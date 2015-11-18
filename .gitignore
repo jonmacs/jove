@@ -1,0 +1,10 @@
+*.o
+jjove
+portsrv
+recover
+setmaps
+teachjove
+keys.c
+paths.h
+doc/cmds.doc
+doc/*.1

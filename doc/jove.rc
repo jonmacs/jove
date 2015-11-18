@@ -46,6 +46,14 @@ process-bind-to-key quit-process ^C^\
 process-bind-to-key stop-process ^C^Z
 process-bind-to-key dstop-process ^C^Y
 
+iproc-env-export INSIDE_JOVE=iproc
+iproc-env-export TERM=dumb
+iproc-env-unset COLORTERM
+iproc-env-export LS_COLORS=never
+iproc-env-export GREP_COLOR=never
+iproc-env-export GCC_COLORS=""
+iproc-env-export SYSTEMD_LOG_COLOR=false
+
 # This makes the arrow keys work on most terminals.
 bind-to-key previous-line ^[[A
 bind-to-key next-line ^[[B

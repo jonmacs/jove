@@ -1085,6 +1085,21 @@ turn off the interrupt character.  The default is ^].  See also
 This sends the signal SIGINT to the interactive process
 in the selected buffer.  This only works if you are inside a buffer
 bound to an interactive process.
+.dc "iproc-env-export" "Not Bound"
+This takes an argument of the form VARNAME=VALUE and replaces or
+sets VARNAME to that VALUE in the list of environment variables that
+are passed to interactive shell commands i.e.
+.IQ shell
+and
+.IQ i-shell-command .
+.dc "iproc-env-show" "Not Bound"
+This shows (as temporary screen output or in a buffer, depending on the variable
+.IQ send-typeout-to-buffer )
+the environment that will be exported to interactive processes.
+.dc "iproc-env-unset" "Not Bound"
+This takes an argument that is the name of an environment variable and
+removes it from the list of environment variables that will be passed
+to interactive processes.
 .dc "kill-next-word" "ESC\ D"
 This kills the text from point to the end of the current or next word.
 The killed text is sent to the kill ring.

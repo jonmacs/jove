@@ -130,18 +130,13 @@ va_list	ap;
 
 /* environment manipulation (always for process) */
 
-Env iproc_env = { NULL, NO, 0};
+private Env iproc_env;
 
 /* Erase misleading knowledge of the terminal type from the environment.
  * The value of variable TERMCAP has two interpretations:
  * If it starts with /, it is a path to the database.
  * If it does not, it is the database entry.
- *
- * We also set EMACS=t to mimic GNU EMACS.  The GNU EMACS manual says:
- *	Emacs defines the environment variable `EMACS' in the subshell,
- *	with value `t'.  A shell script can check this variable to
- *	determine whether it has been run from an Emacs subshell.
- *	bash(1) says that if EMACS==t, line editing is disabled.
+ * Only happens in child.
  */
 private void
 set_process_env()
@@ -151,12 +146,36 @@ set_process_env()
 
 	if (tc != NULL && tc[0] != '/')
 		junsetenv(&iproc_env, tcn);
-#ifndef IPROC_TERM
-	junsetenv(&iproc_env, "TERM");
-#else
-	jputenv(&iproc_env, IPROC_TERM);
-#endif
-	jputenv(&iproc_env, "EMACS=t");	
+	environ = (char **) jenvinit(&iproc_env); /* avoid gcc warning */
+}
+
+private char EnvExpBuf[LBSIZE];
+
+void
+IprocEnvExport()
+{
+	jamstr(EnvExpBuf, ask(EnvExpBuf, ProcFmt));
+	jputenv(&iproc_env, EnvExpBuf);
+}
+
+void
+IprocEnvShow()
+{
+	const char **p;
+	TOstart("i-shell environement");
+	for (p = jenvinit(&iproc_env); *p; p++) {
+	    Typeout("%s", *p);
+	}
+	TOstop();
+}
+
+private char EnvUnsetBuf[LBSIZE];
+
+void
+IprocEnvUnset()
+{
+	jamstr(EnvUnsetBuf, ask(EnvUnsetBuf, ProcFmt));
+	junsetenv(&iproc_env, EnvUnsetBuf);
 }
 
 /* There are two very different implementation techniques: pipes and ptys.

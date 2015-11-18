@@ -82,7 +82,10 @@ extern void
 # endif
 	ProcSendData proto((void)),
 	ProcNewline proto((void)),
-	ProcList proto((void));
+	ProcList proto((void)),
+	IprocEnvExport proto((void)),
+	IprocEnvShow proto((void)),
+	IprocEnvUnset proto((void));
 
 /* Variables: */
 

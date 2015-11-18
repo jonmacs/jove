@@ -155,6 +155,9 @@ const struct cmd	commands[] = {
 	{ MODCMD, "insert-variable", WIRED_CMD(InsVar) },
 #ifdef IPROCS
 	{ COMMAND, "interrupt-process", WIRED_CMD(ProcInt) },
+	{ COMMAND, "iproc-env-export", WIRED_CMD(IprocEnvExport) },
+	{ COMMAND, "iproc-env-show", WIRED_CMD(IprocEnvShow) },
+	{ COMMAND, "iproc-env-unset", WIRED_CMD(IprocEnvUnset) },
 #endif
 	{ MODCMD, "kill-next-word", WIRED_CMD(DelNWord) },
 	{ MODCMD, "kill-previous-word", WIRED_CMD(DelPWord) },

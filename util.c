@@ -784,15 +784,26 @@ ZXchar	first, second;
 	return second;
 }
 
-extern char **environ;	/* <unistd.h> */
-
+#if defined(IPROCS)
+const char **
+jenvinit(envp)
+Env *envp;
+{
+	if (envp->e_data == NULL) {
+	    envp->e_data = (const char **) environ; /* avoid gcc warning */
+	    envp->e_malloced = NO;
+	    envp->e_headroom = 0;
+	}
+	return envp->e_data;
+}
+    
 /* Put a definition into the environment.
  * Same as putenv(3) in SVID 3, POSIX, and BSD 4.3.
  */
 void
 jputenv(envp, def)
 Env *envp;
-const char *def;	/* Note: caller must ensure string persists */
+const char *def;
 {
 	static bool env_malloced = NO;	/* should we free it when replacing? */
 	const char **p, **e;
@@ -800,8 +811,7 @@ const char *def;	/* Note: caller must ensure string persists */
 
 	if ((eq = strchr(def, '=')) == NULL)
 		return;
-	if (envp->e_data == NULL) envp->e_data = (const char **) environ;
-	for (p = e = envp->e_data; ; p++) {
+	for (p = e = jenvinit(envp); ; p++) {
 		if (*p == NULL) {
 			if (envp->e_headroom == 0) {
 #				define JENV_INCR	5
@@ -816,18 +826,18 @@ const char *def;	/* Note: caller must ensure string persists */
 				p = ne + (p-e);
 				if (envp->e_malloced)
 					free((UnivPtr)envp->e_data);
-				envp->e_headroom = JENV_INCR;
-				envp->e_data = ne;
+				envp->e_data = e = ne;
 				envp->e_malloced = YES;
+				envp->e_headroom = JENV_INCR;
 #				undef JENV_INCR
 			}
 			envp->e_headroom -= 1;
-			*p++ = def;
+			*p++ = copystr(def);
 			*p = NULL;
 			break;
 		}
 		if (strncmp(*p, def, (size_t) (eq - def + 1)) == 0) {
-			*p = def;
+			*p = copystr(def);
 			break;
 		}
 	}
@@ -844,8 +854,7 @@ const char *name;
 	const char **p, **q;
 	size_t l = strlen(name);
 
-	if (envp->e_data == NULL) envp->e_data = (const char **) environ;
-	for (p = q = envp->e_data;;) {
+	for (p = q = jenvinit(envp);;) {
 		const char *e = *p++;
 
 		*q = e;
@@ -861,3 +870,4 @@ const char *name;
 		}
 	}
 }
+#endif /* defined(IPROCS) */
