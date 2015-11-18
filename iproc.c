@@ -130,85 +130,7 @@ va_list	ap;
 
 /* environment manipulation (always for process) */
 
-extern char **environ;	/* <unistd.h> */
-static int	env_headroom = 0;	/* remaining room in environ array */
-
-/* Put a definition into the environment.
- * Same as putenv(3) in SVID 3, POSIX, and BSD 4.3.
- */
-private void
-jputenv(def)
-const char *def;	/* Note: caller must ensure string persists */
-{
-	static bool env_malloced = NO;	/* should we free it when replacing? */
-	const char
-		**const e = (const char **)environ,	/* to avoid type complaints from gcc */
-		**p,
-		*eq;
-
-	if ((eq = strchr(def, '=')) == NULL)
-		return;
-
-	for (p = e; ; p++) {
-		if (*p == NULL) {
-			if (env_headroom == 0) {
-#				define JENV_INCR	5
-				size_t	sz = ((p-e) + 1) * sizeof(char *);
-				const char	**ne = (const char **)
-					malloc(sz + JENV_INCR*sizeof(char *));
-
-				if (ne == NULL)
-					break;	/* malloc failed: give up -- doesn't matter much */
-
-				byte_copy(environ, ne, sz);
-				p = ne + (p-e);
-				if (env_malloced)
-					free((UnivPtr)environ);
-				env_headroom = JENV_INCR;
-				environ = (char **)ne;
-				env_malloced = YES;
-#				undef JENV_INCR
-			}
-			env_headroom -= 1;
-			*p++ = def;
-			*p = NULL;
-			break;
-		}
-		if (strncmp(*p, def, (size_t) (eq - def + 1)) == 0) {
-			*p = def;
-			break;
-		}
-	}
-}
-
-/* Remove any definitions of name from the environment.
- * Same as 4.3BSD's unsetenv(3).
- */
-private void
-junsetenv(name)
-const char *name;
-{
-	char
-		**p = environ,
-		**q = environ;
-	size_t l = strlen(name);
-
-	for (;;) {
-		char *e = *p++;
-
-		*q = e;
-
-		if (e == NULL)
-			break;
-
-		if (strncmp(e, name, l) == 0 && e[l] == '=') {
-			/* unset this one by not advancing q */
-			env_headroom += 1;
-		} else {
-			q += 1;
-		}
-	}
-}
+Env iproc_env = { NULL, NO, 0};
 
 /* Erase misleading knowledge of the terminal type from the environment.
  * The value of variable TERMCAP has two interpretations:
@@ -228,13 +150,13 @@ set_process_env()
 	const char *tc = getenv(tcn);
 
 	if (tc != NULL && tc[0] != '/')
-		junsetenv(tcn);
+		junsetenv(&iproc_env, tcn);
 #ifndef IPROC_TERM
-	junsetenv("TERM");
+	junsetenv(&iproc_env, "TERM");
 #else
-	jputenv(IPROC_TERM);
+	jputenv(&iproc_env, IPROC_TERM);
 #endif
-	jputenv("EMACS=t");	
+	jputenv(&iproc_env, "EMACS=t");	
 }
 
 /* There are two very different implementation techniques: pipes and ptys.

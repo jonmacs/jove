@@ -20,7 +20,6 @@
 #include "chars.h"
 #include "term.h"	/* ospeed */
 #include "ttystate.h"
-#include "util.h"
 
 
 #ifdef SGTTY

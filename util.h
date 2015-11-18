@@ -84,6 +84,17 @@ extern void
 extern UnivPtr
 	freealloc proto((UnivPtr obj, size_t size));
 
+typedef struct {
+    const char **e_data;
+    bool e_malloced;
+    int e_headroom;	/* remaining room in e_data array */
+} Env;
+
+extern void
+	jputenv proto((Env *, const char *)),
+	junsetenv proto((Env *, const char *));
+	
+
 /* copy a string into a possibly-too-small buffer
  * trunc* silently truncates a too-large string.
  * jam* complain if the string is too large.

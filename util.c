@@ -783,3 +783,81 @@ ZXchar	first, second;
 	}
 	return second;
 }
+
+extern char **environ;	/* <unistd.h> */
+
+/* Put a definition into the environment.
+ * Same as putenv(3) in SVID 3, POSIX, and BSD 4.3.
+ */
+void
+jputenv(envp, def)
+Env *envp;
+const char *def;	/* Note: caller must ensure string persists */
+{
+	static bool env_malloced = NO;	/* should we free it when replacing? */
+	const char **p, **e;
+	const char *eq;
+
+	if ((eq = strchr(def, '=')) == NULL)
+		return;
+	if (envp->e_data == NULL) envp->e_data = (const char **) environ;
+	for (p = e = envp->e_data; ; p++) {
+		if (*p == NULL) {
+			if (envp->e_headroom == 0) {
+#				define JENV_INCR	5
+				size_t	sz = ((p-e) + 1) * sizeof(char *);
+				const char	**ne = (const char **)
+					malloc(sz + JENV_INCR*sizeof(char *));
+
+				if (ne == NULL)
+					break;	/* malloc failed: give up -- doesn't matter much */
+
+				byte_copy(envp->e_data, ne, sz);
+				p = ne + (p-e);
+				if (envp->e_malloced)
+					free((UnivPtr)envp->e_data);
+				envp->e_headroom = JENV_INCR;
+				envp->e_data = ne;
+				envp->e_malloced = YES;
+#				undef JENV_INCR
+			}
+			envp->e_headroom -= 1;
+			*p++ = def;
+			*p = NULL;
+			break;
+		}
+		if (strncmp(*p, def, (size_t) (eq - def + 1)) == 0) {
+			*p = def;
+			break;
+		}
+	}
+}
+
+/* Remove any definitions of name from the environment.
+ * Same as 4.3BSD's unsetenv(3).
+ */
+void
+junsetenv(envp, name)
+Env *envp;
+const char *name;
+{
+	const char **p, **q;
+	size_t l = strlen(name);
+
+	if (envp->e_data == NULL) envp->e_data = (const char **) environ;
+	for (p = q = envp->e_data;;) {
+		const char *e = *p++;
+
+		*q = e;
+
+		if (e == NULL)
+			break;
+
+		if (strncmp(e, name, l) == 0 && e[l] == '=') {
+			/* unset this one by not advancing q */
+			envp->e_headroom += 1;
+		} else {
+			q += 1;
+		}
+	}
+}
