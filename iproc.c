@@ -128,9 +128,11 @@ va_list	ap;
 	do {} while ((argv[i++] = va_arg(ap, char *)) != NULL);
 }
 
-/* environment manipulation (always for process) */
+/* environment manipulation for interactive processes */
 
 private Env iproc_env;
+private char IEnvExpBuf[LBSIZE];
+private char IEnvUnsetBuf[LBSIZE];
 
 /* Erase misleading knowledge of the terminal type from the environment.
  * The value of variable TERMCAP has two interpretations:
@@ -146,36 +148,32 @@ set_process_env()
 
 	if (tc != NULL && tc[0] != '/')
 		junsetenv(&iproc_env, tcn);
-	environ = (char **) jenvinit(&iproc_env); /* avoid gcc warning */
+	environ = (char **) jenvdata(&iproc_env); /* avoid gcc warning */
 }
-
-private char EnvExpBuf[LBSIZE];
 
 void
 IprocEnvExport()
 {
-	jamstr(EnvExpBuf, ask(EnvExpBuf, ProcFmt));
-	jputenv(&iproc_env, EnvExpBuf);
+	jamstr(IEnvExpBuf, ask(IEnvExpBuf, ProcFmt));
+	jputenv(&iproc_env, IEnvExpBuf);
 }
 
 void
 IprocEnvShow()
 {
 	const char **p;
-	TOstart("i-shell environement");
-	for (p = jenvinit(&iproc_env); *p; p++) {
+	TOstart("i-shell environment");
+	for (p = jenvdata(&iproc_env); *p; p++) {
 	    Typeout("%s", *p);
 	}
 	TOstop();
 }
 
-private char EnvUnsetBuf[LBSIZE];
-
 void
 IprocEnvUnset()
 {
-	jamstr(EnvUnsetBuf, ask(EnvUnsetBuf, ProcFmt));
-	junsetenv(&iproc_env, EnvUnsetBuf);
+	jamstr(IEnvUnsetBuf, ask(IEnvUnsetBuf, ProcFmt));
+	junsetenv(&iproc_env, IEnvUnsetBuf);
 }
 
 /* There are two very different implementation techniques: pipes and ptys.

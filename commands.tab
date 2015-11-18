@@ -213,6 +213,11 @@ const struct cmd	commands[] = {
 	{ COMMAND, "previous-page", WIRED_CMD(PrevPage) },
 	{ COMMAND, "previous-window", WIRED_CMD(PrevWindow) },
 	{ COMMAND, "print", WIRED_CMD(PrVar) },
+#ifdef SUBSHELL
+	{ COMMAND, "proc-env-export", WIRED_CMD(ProcEnvExport) },
+	{ COMMAND, "proc-env-show", WIRED_CMD(ProcEnvShow) },
+	{ COMMAND, "proc-env-unset", WIRED_CMD(ProcEnvUnset) },
+#endif
 #ifdef IPROCS
 	{ COMMAND, "process-bind-keymap-to-key", WIRED_CMD(PBindMap) },
 	{ COMMAND, "process-bind-macro-to-key", WIRED_CMD(PBindMac) },

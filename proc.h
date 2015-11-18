@@ -41,7 +41,10 @@ extern void
 	ShNoBuf proto((void)),
 	ShToBuf proto((void)),
 	ShellCom proto((void)),
-	Shtypeout proto((void));
+	Shtypeout proto((void)),
+	ProcEnvExport proto((void)),
+	ProcEnvShow proto((void)),
+	ProcEnvUnset proto((void));
 #endif
 /*
  * Even if we don't have MakeErrors, the following are useful because we can

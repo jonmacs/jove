@@ -377,13 +377,13 @@ $(TEACH-JOVE): doc/teach-jove
 	$(TINSTALL) doc/teach-jove $(TEACH-JOVE)
 
 doc/cmds.doc:	doc/cmds.macros.nr doc/cmds.nr
-	$(NROFF) doc/cmds.macros.nr doc/cmds.nr > doc/cmds.doc
+	LANG=C $(NROFF) doc/cmds.macros.nr doc/cmds.nr > doc/cmds.doc
 
 doc/jove.man:	doc/intro.nr doc/cmds.nr
-	( cd doc; tbl intro.nr | $(NROFF) -ms - cmds.nr >jove.man )
+	( LANG=C; export LANG; cd doc; tbl intro.nr | $(NROFF) -ms - cmds.nr >jove.man )
 
 doc/jove.man.ps:
-	( cd doc; tbl intro.nr | $(TROFF) -ms - cmds.nr contents.nr $(TROFFPOST) >jove.man.ps )
+	( LANG=C; export LANG; cd doc; tbl intro.nr | $(TROFF) -ms - cmds.nr contents.nr $(TROFFPOST) >jove.man.ps )
 
 $(CMDS.DOC): doc/cmds.doc
 	$(TINSTALL) doc/cmds.doc $(CMDS.DOC)
@@ -421,7 +421,7 @@ $(JOVEM): doc/jove.$(MANEXT)
 # are not fixed yet, and because we must do the formatting.
 
 doc/jove.doc: doc/jove.nr
-	$(NROFF) -man doc/jove.nr >doc/jove.doc
+	LANG=C $(NROFF) -man doc/jove.nr >doc/jove.doc
 
 doc/teachjove.$(MANEXT): doc/teachjove.nr
 	sed -e 's;<TMPDIR>;$(TMPDIR);' \

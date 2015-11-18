@@ -620,6 +620,36 @@ wait_status_t	*status;	/* may be NULL */
 
 #endif /* !MSDOS_PROCS */
 
+/* Environment management for subshells */
+private Env proc_env;
+private char PEnvExpBuf[LBSIZE];
+private char PEnvUnsetBuf[LBSIZE];
+
+void
+ProcEnvExport()
+{
+	jamstr(PEnvExpBuf, ask(PEnvExpBuf, ProcFmt));
+	jputenv(&proc_env, PEnvExpBuf);
+}
+
+void
+ProcEnvShow()
+{
+	const char **p;
+	TOstart("subshell environment");
+	for (p = jenvdata(&proc_env); *p; p++) {
+	    Typeout("%s", *p);
+	}
+	TOstop();
+}
+
+void
+ProcEnvUnset()
+{
+	jamstr(PEnvUnsetBuf, ask(PEnvUnsetBuf, ProcFmt));
+	junsetenv(&proc_env, PEnvUnsetBuf);
+}
+
 /* Run the command cmd.  Output to the buffer named bnm (if not
  * NULL), first erasing bnm (if UTB_DISP and UTB_CLOBBER), and
  * redisplay (if UTB_DISP).  Leaves bnm as the current buffer and
@@ -827,6 +857,7 @@ UnixToBuf(flags, bnm, InFName, cmd)
 
 		pipeclose(p);
 		jcloseall();
+		environ = (char **) jenvdata(&proc_env); /* avoid gcc warning */
 		execv(argv[0], &argv[1]);
 		raw_complain("Execl failed: %s", strerror(errno));
 		_exit(1);
@@ -853,6 +884,10 @@ UnixToBuf(flags, bnm, InFName, cmd)
 		close(ph);
 
 		close(0);
+#if 0
+		/* is there a spawnve (like POSIX) or does environ exist & work? */
+		environ = (char **) jenvdata(&proc_env); /* avoid gcc warning */
+#endif
 		InFailure = InFName != NULL && open(InFName, O_RDONLY | O_BINARY) < 0;
 		if (!InFailure)
 			status = spawnv(0, argv[0], &argv[1]);

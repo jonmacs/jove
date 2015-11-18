@@ -784,9 +784,12 @@ ZXchar	first, second;
 	return second;
 }
 
-#if defined(IPROCS)
+#if defined(IPROCS) || defined(SUBSHELL)
+/* Convenience routine, initializes envp properly if it is null,
+ * hides a bit of the abstraction and some duplicated code
+ */
 const char **
-jenvinit(envp)
+jenvdata(envp)
 Env *envp;
 {
 	if (envp->e_data == NULL) {
@@ -811,7 +814,7 @@ const char *def;
 
 	if ((eq = strchr(def, '=')) == NULL)
 		return;
-	for (p = e = jenvinit(envp); ; p++) {
+	for (p = e = jenvdata(envp); ; p++) {
 		if (*p == NULL) {
 			if (envp->e_headroom == 0) {
 #				define JENV_INCR	5
@@ -854,7 +857,7 @@ const char *name;
 	const char **p, **q;
 	size_t l = strlen(name);
 
-	for (p = q = jenvinit(envp);;) {
+	for (p = q = jenvdata(envp);;) {
 		const char *e = *p++;
 
 		*q = e;

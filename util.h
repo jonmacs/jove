@@ -84,7 +84,7 @@ extern void
 extern UnivPtr
 	freealloc proto((UnivPtr obj, size_t size));
 
-#if defined(IPROCS)
+#if defined(IPROCS) || defined(SUBSHELL)
 extern char **environ;	/* <unistd.h> */
 
 typedef struct {
@@ -94,7 +94,7 @@ typedef struct {
 } Env;
 
 extern const char **
-	jenvinit proto((Env *envp));
+	jenvdata proto((Env *envp));
 extern void
 	jputenv proto((Env *envp, const char *def)),
 	junsetenv proto((Env *envp, const char *name));

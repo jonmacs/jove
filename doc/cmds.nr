@@ -1554,6 +1554,22 @@ you are moved to the bottom window.  It is an error to use this command
 with only one window.
 .dc "print" "Not Bound"
 This displays the value of a \s-2JOVE\s0 variable in the message line.
+.dc "proc-env-export" "Not Bound"
+This takes an argument of the form VARNAME=VALUE and replaces or
+sets VARNAME to that VALUE in the list of environment variables that
+are passed to subshell commands i.e.
+.IQ shell-command ,
+.IQ compile-it ,
+.IQ spell-buffer ,
+etc.
+.dc "proc-env-show" "Not Bound"
+This shows (as temporary screen output or in a buffer, depending on the variable
+.IQ send-typeout-to-buffer )
+the environment that will be exported to subshell commands.
+.dc "proc-env-unset" "Not Bound"
+This takes an argument that is the name of an environment variable and
+removes it from the list of environment variables that will be passed
+to subshell commands.
 .dc "process-bind-keymap-to-key" "Not Bound"
 This is like
 .IQ process-bind-to-key
