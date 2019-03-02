@@ -341,7 +341,8 @@ char	*command;
 		c = *command++;
 	}
 	*cp = '\0';
-	strcpy(bnm, jbasename(bnm));
+	if ((cp = basename(bnm)) != bnm)
+		strcpy(bnm, cp);
 
 	return bnm;
 }

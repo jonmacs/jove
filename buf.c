@@ -170,8 +170,10 @@ const char		**ebnamp;
 	for (b = world; b != NULL; b = b->b_next) {
 		if (b->b_name != NULL) {
 			*bnamp++ = b->b_name;
-			if (bnamp >= ebnamp)
+			if (bnamp >= ebnamp) {
 				complain("too many buffers to list");
+				/* NOTREACHED */
+			}
 		}
 	}
 	*bnamp = NULL;
@@ -234,6 +236,7 @@ int	n;
 		}
 	}
 	complain("[No such buffer]");
+	/* NOTREACHED */
 }
 
 void Buf1Select() { BufNSelect(1); }
@@ -467,8 +470,10 @@ register Buffer	*b;
 	const char	*cp;
 	int	try = 1;
 
-	if (b->b_fname == NULL)
+	if (b->b_fname == NULL) {
 		complain("[No file name]");
+		/* NOTREACHED */
+	}
 	cp = jbasename(b->b_fname);
 	jamstr(tmp, cp);
 	while (buf_exists(tmp)) {
@@ -568,8 +573,10 @@ int	flags;
 		was_dir = (stbuf.st_mode & S_IFMT) == S_IFDIR;
 		was_file = stbuf.st_ino != 0 && (stbuf.st_mode & S_IFMT) == S_IFREG;
 	}
-	if ((flags & DS_DIR) == 0 && was_dir)
+	if ((flags & DS_DIR) == 0 && was_dir) {
 		complain("[%s is a directory]", fnamebuf);
+		/* NOTREACHED */
+	}
 	if (flags & DS_SET) {
 		if ((stbuf.st_mode & S_IFMT) == S_IFREG) {
 #ifdef USE_INO
@@ -813,8 +820,10 @@ register Buffer	*newbuf;
 	if (newbuf == curbuf || newbuf == NULL)
 		return;
 
-	if (!valid_bp(newbuf))
+	if (!valid_bp(newbuf)) {
 		complain("Internal error: (0x%x) is not a valid buffer pointer!", newbuf);
+		/* NOTREACHED */
+	}
 	lsave();
 	curbuf = newbuf;
 	getDOT();
