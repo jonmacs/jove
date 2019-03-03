@@ -1,9 +1,9 @@
-/************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/**************************************************************************
+ * This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    *
+ * provided by Jonathan and Jovehacks without charge and without          *
+ * warranty.  You may copy, modify, and/or distribute JOVE, provided that *
+ * this notice is included in all the source files and documentation.     *
+ **************************************************************************/
 
 #include <stdio.h>
 #include "jove.h"
@@ -67,8 +67,8 @@ int	c;
 	static char	str[16];
 	char	*cp = str;
 
-	if (c & 0200) {
-		c &= ~0200;
+	if (c & METABIT) {
+		c &= ~METABIT;
 		strcpy(cp, "M-");
 		cp += 2;
 	}
@@ -168,7 +168,7 @@ for (fnp = fnt; fnp->in != NULL; fnp++) {
 	lino = 0;
 	ch = 0;
 	for (;;) {
-		if (fgets(line, sizeof line, ifile) == NULL) {
+		if (fgets(line, (int)sizeof(line), ifile) == NULL) {
 			if (sp != stackspace) {
 				fprintf(stderr, "EOF inside #if\n");
 				exit(1);
@@ -189,7 +189,7 @@ for (fnp = fnt; fnp->in != NULL; fnp++) {
 			sp->first = ch;
 			sp->last = -1;
 			strcpy(sp->condition, line);
-			fprintf(of, line);
+			fputs(line, of);
 		} else if (StartsWith(line, "#else")) {
 			if (sp == stackspace || sp->last != -1) {
 				fprintf(stderr, "ifdef/endif mismatch at line %d!\n",
@@ -198,7 +198,7 @@ for (fnp = fnt; fnp->in != NULL; fnp++) {
 			}
 			sp->last = ch;
 			ch = sp->first;
-			fprintf(of, line);
+			fputs(line, of);
 		} else if (StartsWith(line, "#endif")) {
 			if (sp == stackspace) {
 				fprintf(stderr, "ifdef/endif mismatch at line %d!\n",
@@ -211,7 +211,7 @@ for (fnp = fnt; fnp->in != NULL; fnp++) {
 					lino);
 			}
 			sp -= 1;
-			fprintf(of, line);
+			fputs(line, of);
 #ifdef MAC
 		} else if (StartsWith(line, "#MENU")) {
 			inmenu = YES;
@@ -260,7 +260,7 @@ for (fnp = fnt; fnp->in != NULL; fnp++) {
 			}
 		} else {
 			/* If unrecognized, pass and prepare to start new table */
-			fprintf(of, line);
+			fputs(line, of);
 			ch = 0;
 		}
 	}

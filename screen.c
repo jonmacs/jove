@@ -1,9 +1,9 @@
-/************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/**************************************************************************
+ * This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    *
+ * provided by Jonathan and Jovehacks without charge and without          *
+ * warranty.  You may copy, modify, and/or distribute JOVE, provided that *
+ * this notice is included in all the source files and documentation.     *
+ **************************************************************************/
 
 #include "jove.h"
 #include "fp.h"
@@ -24,7 +24,7 @@ struct scrimage
 	*DesiredScreen = NULL,
 	*PhysScreen = NULL;
 
-private struct screenline   *Savelines = NULL;	/* scratch entries (LI of them) */
+private struct screenline	*Savelines = NULL;	/* scratch entries (LI of them) */
 
 private void LEclear proto((struct screenline *));	/* free s_effects component */
 
@@ -32,6 +32,7 @@ private char	*cursor;			/* offset into current Line */
 
 char	*cursend;
 
+/* Position in tercap screen.  INFINITY means "don't know". */
 int	CapCol,
 	CapLine;
 
@@ -79,7 +80,7 @@ make_scr()
 	ns = Screen = (struct screenline *)
 			malloc((unsigned) LI * sizeof(struct screenline));
 
-	nsp = screenchars = (char *) malloc((unsigned)CO * LI);
+	nsp = screenchars = (char *) malloc((size_t)CO * LI);
 
 	if (DesiredScreen == NULL
 	|| PhysScreen == NULL
@@ -146,9 +147,10 @@ register char	*cp1,
 #ifdef MAC
 
 /* Character output to bit-mapped screen is very expensive. It makes
-   much more sense to write the entire line at once. So, we print all
-   the characters, whether already there or not, once the line is
-   complete. */
+ * much more sense to write the entire line at once. So, we print all
+ * the characters, whether already there or not, once the line is
+ * complete.
+ */
 
 private unsigned char sput_buf[255];
 private size_t sput_len = 0;
@@ -556,9 +558,10 @@ SO_effect(on)
 bool	on;
 {
 	/* If there are magic cookies, then WHERE the SO string is
-	   printed decides where the SO actually starts on the screen.
-	   So it's important to make sure the cursor is positioned there
-	   anyway.  I think this is right. */
+	 * printed decides where the SO actually starts on the screen.
+	 * So it's important to make sure the cursor is positioned there
+	 * anyway.  I think this is right.
+	 */
 	if (SG != 0) {
 		Placur(i_line, i_col);
 		i_col += SG;
@@ -581,9 +584,9 @@ bool	on;
 #endif /* TERMCAP */
 
 /* Insert `num' lines at top, but leave all the lines BELOW `bottom'
-   alone (at least they won't look any different when we are done).
-   This changes the screen array AND does the physical changes. */
-
+ * alone (at least they won't look any different when we are done).
+ * This changes the screen array AND does the physical changes.
+ */
 void
 v_ins_line(num, top, bottom)
 int num,
@@ -606,8 +609,8 @@ int num,
 	}
 
 	/* Num number of bottom lines will be lost.
-	   Copy everything down num number of times. */
-
+	 * Copy everything down num number of times.
+	 */
 	for (i = bottom-num; i >= top; i--)
 		Screen[i + num] = Screen[i];
 
@@ -619,8 +622,8 @@ int num,
 }
 
 /* Delete `num' lines starting at `top' leaving the lines below `bottom'
-   alone.  This updates the internal image as well as the physical image.  */
-
+ * alone.  This updates the internal image as well as the physical image.
+ */
 void
 v_del_line(num, top, bottom)
 int num,
@@ -657,10 +660,10 @@ int num,
 #ifdef TERMCAP	/* remainder of this file */
 
 /* The cursor optimization happens here.  You may decide that this
-   is going too far with cursor optimization, or perhaps it should
-   limit the amount of checking to when the output speed is slow.
-   What ever turns you on ...   */
-
+ * is going too far with cursor optimization, or perhaps it should
+ * limit the amount of checking to when the output speed is slow.
+ * What ever turns you on ...
+ */
 struct cursaddr {
 	int	cm_numchars;
 	void	(*cm_proc) ();
@@ -754,10 +757,10 @@ register int	line,
 }
 
 /* Tries to move forward using tabs (if possible).  It tabs to the
-   closest tabstop which means it may go past 'destcol' and backspace
-   to it.
-   Note: changes to this routine must be matched by changes in ForNum. */
-
+ * closest tabstop which means it may go past 'destcol' and backspace
+ * to it.
+ * Note: changes to this routine must be matched by changes in ForNum.
+ */
 private void
 ForTab(to)
 int	to;
@@ -838,15 +841,11 @@ Placur(line, col)
 int line,
     col;
 {
-	int	dline,		/* Number of lines to move */
-		dcol;		/* Number of columns to move */
-	register int	best,
-			i;
-	register struct cursaddr	*cp;
-	int	xtracost = 0;	/* Misc addition to cost. */
-
 # define CursMin(which,addrs,max)	{ \
-	for (best = 0, cp = &(addrs)[1], i = 1; i < (max); i++, cp++) \
+	register int	best = 0, \
+			i; \
+	register struct cursaddr	*cp; \
+	for (cp = &(addrs)[1], i = 1; i < (max); i++, cp++) \
 		if (cp->cm_numchars < (addrs)[best].cm_numchars) \
 			best = i; \
 	(which) = &(addrs)[best]; \
@@ -855,47 +854,57 @@ int line,
 	if (line == CapLine && col == CapCol)
 		return;		/* We are already there. */
 
-	dline = line - CapLine;
-	dcol = col - CapCol;
+	/* Number of characters to move horizontally for each case.
+	 * 1: Try tabbing to the correct place.
+	 * 2: Try going to the beginning of the line, and then tab.
+	 */
+	{
+		int	dcol = col - CapCol;		/* Number of columns to move */
+		int	xtracost = 0;	/* Misc addition to cost. */
+
 # ifdef ID_CHAR
-	if (IN_INSmode && MI)
-		xtracost = EIlen + IMlen;
-	/* If we're already in insert mode, it is likely that we will
-	   want to be in insert mode again, after the insert. */
+		if (IN_INSmode && MI)
+			xtracost = IMEIlen;
+		/* If we're already in insert mode, it is likely that we will
+		 * want to be in insert mode again, after the insert.
+		 */
 # endif
 
-	/* Number of characters to move horizontally for each case.
-	   1: Try tabbing to the correct place.
-	   2: Try going to the beginning of the line, and then tab. */
+		if (dcol == 1 || dcol == 0) {		/* Most common case. */
+			HorMin = &WarpHor[FORTAB];
+			HorMin->cm_numchars = dcol + xtracost;
+		} else {
+			/* if CapCol is unknown, FORTAB is impossible */
+			WarpHor[FORTAB].cm_numchars = CapCol == INFINITY? INFINITY :
+				xtracost + ForNum(CapCol, col);
+			WarpHor[RETFORTAB].cm_numchars = xtracost + 1 + ForNum(0, col);
 
-	if (dcol == 1 || dcol == 0) {		/* Most common case. */
-		HorMin = &WarpHor[FORTAB];
-		HorMin->cm_numchars = dcol + xtracost;
-	} else {
-		WarpHor[FORTAB].cm_numchars = xtracost + ForNum(CapCol, col);
-		WarpHor[RETFORTAB].cm_numchars = xtracost + 1 + ForNum(0, col);
+			/* Which is the shortest of the bunch */
 
-		/* Which is the shortest of the bunch */
-
-		CursMin(HorMin, WarpHor, NUMHOR);
+			CursMin(HorMin, WarpHor, NUMHOR);
+		}
 	}
 
 	/* Moving vertically is more simple. */
+	{
+		int	dline = line - CapLine;		/* Number of lines to move */
 
-	WarpVert[DOWN].cm_numchars = dline >= 0 ? dline : INFINITY;
-	WarpVert[UPMOVE].cm_numchars = dline < 0 ? ((-dline) * UPlen) : INFINITY;
+		WarpVert[DOWN].cm_numchars = dline >= 0 ? dline : INFINITY;
+		WarpVert[UPMOVE].cm_numchars = dline < 0 ? ((-dline) * UPlen) : INFINITY;
+	}
 
 	/* Which of these is simpler */
 	CursMin(VertMin, WarpVert, NUMVERT);
 
 	/* Homing first and lowering first are considered
-	   direct motions.
-	   Homing first's total is the sum of the cost of homing
-	   and the sum of tabbing (if possible) to the right. */
-
+	 * direct motions.
+	 * Homing first's total is the sum of the cost of homing
+	 * and the sum of tabbing (if possible) to the right.
+	 */
 	if (Screen[line].s_effects != NOEFFECT && CM != NULL) {
 		/* We are going to a line with inversion or underlining;
-		   Don't try any clever stuff */
+		 * Don't try any clever stuff
+		 */
 		DirectMin = &WarpDirect[DIRECT];
 		DirectMin->cm_numchars = 0;
 		Cmstr = targ2(CM, col, line);
@@ -933,11 +942,11 @@ int line,
 
 
 /* Figures out how many characters ForTab() would use to move forward
-   using tabs (if possible).
-   Note: changes to this routine must be matched by changes in ForTab.
-   An exception is that any cost for leaving insert mode has been
-   accounted for by our caller. */
-
+ * using tabs (if possible).
+ * Note: changes to this routine must be matched by changes in ForTab.
+ * An exception is that any cost for leaving insert mode has been
+ * accounted for by our caller.
+ */
 private int
 ForNum(from, to)
 register int	from;
@@ -975,11 +984,11 @@ int top,
 {
 	if (CS) {
 		putpad(targ2(CS, bottom, top), 1);
-		CapCol = CapLine = 0;
+		CapCol = CapLine = INFINITY;	/* actually: unknown */
 		Placur(top, 0);
 		putmulti(SR, M_SR, num, bottom - top);
 		putpad(targ2(CS, ILI, 0), 1);
-		CapCol = CapLine = 0;
+		CapCol = CapLine = INFINITY;	/* actually: unknown */
 	} else {
 		Placur(bottom - num + 1, 0);
 		putmulti(DL, M_DL, num, ILI - CapLine);
@@ -996,11 +1005,11 @@ int top,
 {
 	if (CS) {
 		putpad(targ2(CS, bottom, top), 1);
-		CapCol = CapLine = 0;
+		CapCol = CapLine = INFINITY;	/* actually: unknown */
 		Placur(bottom, 0);
 		putmulti(SF, M_SF, num, bottom - top);
 		putpad(targ2(CS, ILI, 0), 1);
-		CapCol = CapLine = 0;
+		CapCol = CapLine = INFINITY;	/* actually: unknown */
 	} else {
 		Placur(top, 0);
 		putmulti(DL, M_DL, num, ILI - top);

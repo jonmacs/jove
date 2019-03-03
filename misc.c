@@ -1,9 +1,9 @@
-/************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/**************************************************************************
+ * This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    *
+ * provided by Jonathan and Jovehacks without charge and without          *
+ * warranty.  You may copy, modify, and/or distribute JOVE, provided that *
+ * this notice is included in all the source files and documentation.     *
+ **************************************************************************/
 
 #include "jove.h"
 #include "jctype.h"
@@ -50,6 +50,7 @@ StrLength()
 	for (cp = linebuf+curchar; ; cp--) {
 		if (*cp == '"' && (cp == linebuf || cp[-1] != '\\'))
 			break;
+
 		if (cp == linebuf)
 			complain(inquotes);
 	}
@@ -106,6 +107,7 @@ TransLines()
 
 	if (firstp(curline))
 		return;
+
 	lsave();
 	/* Exchange l_dline values.
 	 * CHEAT: this breaks the buffer abstraction.
@@ -124,6 +126,8 @@ TransLines()
 	DOLsave = NO;	/* CHEAT: contents of linebuf need not override l_dline. */
 }
 
+/* exit-jove command */
+
 void
 Leave()
 {
@@ -131,10 +135,10 @@ Leave()
 }
 
 /* If argument is specified, kill that many lines down.  Otherwise,
-   if we "appear" to be at the end of a line, i.e. everything to the
-   right of the cursor is white space, we delete the line separator
-   as if we were at the end of the line. */
-
+ * if we "appear" to be at the end of a line, i.e. everything to the
+ * right of the cursor is white space, we delete the line separator
+ * as if we were at the end of the line.
+ */
 void
 KillEOL()
 {
@@ -236,7 +240,8 @@ skip_wht_space()
 }
 
 /* GoLine -- go to a line, usually wired to goto-line, ESC g or ESC G.
-   If no argument is specified it asks for a line number. */
+ * If no argument is specified it asks for a line number.
+ */
 void
 GoLine()
 {

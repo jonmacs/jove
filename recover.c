@@ -1,22 +1,24 @@
-/************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/**************************************************************************
+ * This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    *
+ * provided by Jonathan and Jovehacks without charge and without          *
+ * warranty.  You may copy, modify, and/or distribute JOVE, provided that *
+ * this notice is included in all the source files and documentation.     *
+ **************************************************************************/
 
 /* Recovers JOVE files after a system/editor crash.
-   Usage: recover [-d directory] [-syscrash]
-   The -syscrash option is specified in /etc/rc.  It directs recover to
-   move all the jove tmp files from tmp_dir (/tmp) to RECDIR (/usr/preserve).
-   recover -syscrash must be invoked in /etc/rc BEFORE /tmp gets cleared out.
-   (about the same place as expreserve gets invoked to save ed/vi/ex files.
+ * Usage: recover [-d directory] [-syscrash]
+ * The -syscrash option is specified in /etc/rc.  It directs recover to
+ * move all the jove tmp files from tmp_dir (/tmp) to RECDIR (/usr/preserve).
+ * recover -syscrash must be invoked in /etc/rc BEFORE /tmp gets cleared out.
+ * (about the same place as expreserve gets invoked to save ed/vi/ex files.
+ *
+ * The -d option lets you specify the directory to search for tmp files when
+ * the default isn't the right one.
+ *
+ * Look in Makefile to change the default directories.
+ */
 
-   The -d option lets you specify the directory to search for tmp files when
-   the default isn't the right one.
-
-   Look in Makefile to change the default directories. */
-
+#include <errno.h>
 #include <stdio.h>	/* Do stdio first so it doesn't override OUR
 			   definitions. */
 #include "jove.h"
@@ -94,8 +96,8 @@ private struct rec_head	Header;
 private long	Nchars,
 	Nlines;
 private char	tty[] = "/dev/tty";
-private char	*tmp_dir = TMPDIR;
-private int	UserID;
+private const char	*tmp_dir = TMPDIR;
+private uid_t	UserID;
 private bool	Verbose = NO;
 private char	RecDir[] = RECDIR;
 
@@ -140,7 +142,10 @@ size_t size;
 	return ptr;
 }
 
-/* duplicated in util.c, needed by scandir.c */
+/* copy a string into buffer; truncate silently if too large; NUL-pad.
+ * Note: buffer must be 1 larger than n to fit NUL!
+ * Duplicated from util.c: needed by scandir.c
+ */
 void
 null_ncpy(to, from, n)
 char	*to;
@@ -155,12 +160,13 @@ size_t	n;
 #include "scandir.c"	/* to get dirent simulation and jscandir */
 
 /* Get a line at `tl' in the tmp file into `buf' which should be LBSIZE
-   long. */
+ * long.
+ */
 
 private char	*getblock proto((daddr atl));
 
 void
-getline(tl, buf)
+jgetline(tl, buf)
 daddr	tl;
 char	*buf;
 {
@@ -194,8 +200,24 @@ daddr	atl;
 	nleft = JBUFSIZ - off;
 
 	if (bno != curblock) {
-		lseek(data_fd, (long) bno * JBUFSIZ, L_SET);
-		read(data_fd, (UnivPtr)blk_buf, (size_t)JBUFSIZ);
+		ssize_t r;
+		const char *what;
+
+		errno = 0;
+		what = "lseek";
+		lseek(data_fd, (off_t) bno * JBUFSIZ, L_SET);
+		if (errno == 0) {
+			what = "read";
+			r = read(data_fd, (UnivPtr)blk_buf, (size_t)JBUFSIZ);
+			if (errno == 0 && r != JBUFSIZ) {
+				fprintf(stderr, "read of JOVE tempfile failed -- too short\n");
+				exit(1);
+			}
+		}
+		if (errno != 0) {
+			fprintf(stderr, "%s of JOVE tempfile failed %s\n", what, strerror(errno));
+			exit(1);
+		}
 		curblock = bno;
 	}
 	return blk_buf + off;
@@ -217,23 +239,34 @@ const char	*s;
 	return str;
 }
 
-private char	*CurDir;
+private const char	*CurDir;
 
 /* Scan the DIRNAME directory for jove tmp files, and make a linked list
-   out of them. */
+ * out of them.
+ */
 
 private bool	add_name proto((char *));
 
 private void
 get_files(dirname)
-char	*dirname;
+const char	*dirname;
 {
 	char	**nmptr;
+	int	nentries;
+
+	/* first, free any previous entries */
+	while (First != NULL) {
+		struct file_pair	*p = First;
+
+		First = p->file_next;
+		free((UnivPtr) p);
+	}
 
 	CurDir = dirname;
-	First = NULL;
-	jscandir(dirname, &nmptr, add_name,
+	nentries = jscandir(dirname, &nmptr, add_name,
 		(int (*) ptrproto((UnivConstPtr, UnivConstPtr)))NULL);
+	if (nentries != -1)
+		freedir(&nmptr, nentries);
 }
 
 private bool
@@ -249,13 +282,15 @@ char *fname;
 
 	if (strncmp(fname, jrecstr, sizeof(jrecstr)-1) != 0)
 		return NO;
+
 	/* If we get here, we found a "recover" tmp file, so now
-	   we look for the corresponding "data" tmp file.  First,
-	   though, we check to see whether there is anything in
-	   the "recover" file.  If it's 0 length, there's no point
-	   in saving its name. */
+	 * we look for the corresponding "data" tmp file.  First,
+	 * though, we check to see whether there is anything in
+	 * the "recover" file.  If it's 0 length, there's no point
+	 * in saving its name.
+	 */
 	(void) sprintf(rfile, "%s/%s", CurDir, fname);
-	if ((fd = open(rfile, 0)) != -1) {
+	if ((fd = open(rfile, O_RDONLY | O_BINARY)) != -1) {
 		if (read(fd, (UnivPtr) &header, sizeof header) != sizeof header) {
 			close(fd);
 			fprintf(stderr, "recover: could not read complete header from %s, skipping\n", rfile);
@@ -269,7 +304,7 @@ char *fname;
 		close(fd);
 	}
 	(void) sprintf(dfile, "%s/%s", CurDir, header.TmpFileName);
-	if (access(dfile, 0) != 0) {
+	if (access(dfile, F_OK) != 0) {
 		fprintf(stderr, "recover: can't find the data file `%s' for %s\n", header.TmpFileName, rfile);
 #ifdef NEVER
 		/*
@@ -283,8 +318,9 @@ char *fname;
 		return NO;
 	}
 	/* If we get here, we've found both files, so we put them
-	   in the list. */
-	fp = (struct file_pair *) malloc (sizeof *fp);
+	 * in the list.
+	 */
+	fp = (struct file_pair *) malloc(sizeof *fp);
 	if (fp == NULL) {
 		fprintf(stderr, "recover: cannot malloc for file_pair.\n");
 		exit(-1);
@@ -312,7 +348,7 @@ options()
 
 /* Returns a legitimate buffer # */
 
-private void	tellme proto((char *, char *, size_t)),
+private void	tellme proto((const char *, char *, size_t)),
 	list proto((void));
 
 private struct rec_entry **
@@ -371,6 +407,7 @@ size_t	buflen;
 			exit(0);
 		if (strchr(" \t\n", c) != NULL)
 			break;
+
 		if (bp == ep) {
 			*bp = '\0';
 			fprintf(stderr, "%lu byte buffer too small for word `%s'",
@@ -387,8 +424,8 @@ size_t	buflen;
 
 private void
 tellme(quest, answer, anslen)
-char	*quest,
-	*answer;
+const char	*quest;
+char	*answer;
 size_t	anslen;
 {
 	printf("%s", quest);
@@ -396,13 +433,11 @@ size_t	anslen;
 	readword(answer, anslen);
 }
 
-/* Print the specified file to standard output. */
-
 private jmp_buf	int_env;
 
 private SIGRESTYPE
 catch(junk)
-int	junk;
+int	UNUSED(junk);
 {
 	longjmp(int_env, 1);
 	/*NOTREACHED*/
@@ -453,10 +488,11 @@ char	*dest;
 
 	if (src == NULL || dest == NULL)
 		return;
-	if (dest == tty)
+
+	if (dest == tty) {
 		outfile = stdout;
-	else {
-		if ((outfile = fopen(dest, "w")) == NULL) {
+	} else {
+		if ((outfile = fopen(dest, "wb")) == NULL) {
 			printf("recover: cannot create %s.\n", dest);
 			(void) signal(SIGINT, SIG_DFL);
 			return;
@@ -465,7 +501,7 @@ char	*dest;
 	}
 	if (setjmp(int_env) == 0) {
 		(void) signal(SIGINT, catch);
-		dump_file(src - buflist, outfile);
+		dump_file((int)(src - buflist), outfile);
 	} else {
 		printf("\nAborted!\n");
 	}
@@ -561,7 +597,7 @@ FILE	*out;
 	Nchars = Nlines = 0L;
 	while (--nlines >= 0) {
 		addr = getaddr(ptrs_fp);
-		getline(addr, buf);
+		jgetline(addr, buf);
 		Nlines += 1;
 		Nchars += 1 + strlen(buf);
 		fputs(buf, out);
@@ -584,7 +620,7 @@ list()
 			buflist[i]->r_nlines);
 }
 
-private void	ask_del proto((char *prompt, struct file_pair *fp));
+private void	ask_del proto((const char *prompt, struct file_pair *fp));
 
 private int
 doit(fp)
@@ -594,13 +630,17 @@ struct file_pair	*fp;
 	char	*datafile = fp->file_data,
 		*pntrfile = fp->file_rec;
 
-	ptrs_fp = fopen(pntrfile, "r");
+	ptrs_fp = fopen(pntrfile, "rb");
 	if (ptrs_fp == NULL) {
 		if (Verbose)
 			fprintf(stderr, "recover: cannot read rec file (%s).\n", pntrfile);
 		return 0;
 	}
-	fread((UnivPtr) &Header, sizeof Header, (size_t)1, ptrs_fp);
+	if (fread((UnivPtr) &Header, sizeof Header, (size_t)1, ptrs_fp) != 1) {
+		if (Verbose)
+			fprintf(stderr, "recover: cannot read header from rec file (%s).\n", pntrfile);
+		return 0;
+	}
 	if (Header.Uid != UserID)
 		return 0;
 
@@ -623,7 +663,7 @@ struct file_pair	*fp;
 		Header.Nbuffers,
 		Header.Nbuffers != 1 ? "s" : "",
 		ctime(&Header.UpdTime));
-	data_fd = open(datafile, 0);
+	data_fd = open(datafile, O_RDONLY | O_BINARY);
 	if (data_fd == -1) {
 		fprintf(stderr, "recover: but I can't read the data file (%s).\n", datafile);
 		ask_del("Should I delete the tmp files? ", fp);
@@ -655,12 +695,14 @@ struct file_pair	*fp;
 			return 1;
 
 		case 'g':
-		    {	/* So it asks for src first. */
+		    {
+			/* So it asks for src first. */
 			char	*dest;
 			struct rec_entry	**src;
 
 			if ((src = getsrc()) == NULL)
 				break;
+
 			dest = getdest();
 			get(src, dest);
 			break;
@@ -681,7 +723,7 @@ private void	del_files proto((struct file_pair *fp));
 
 private void
 ask_del(prompt, fp)
-char	*prompt;
+const char	*prompt;
 struct file_pair	*fp;
 {
 	char	yorn[SMALLSTRSIZE];
@@ -700,10 +742,10 @@ struct file_pair	*fp;
 }
 
 
-private char *
+private const char *
 hname()
 {
-	char *p = "unknown";
+	const char *p = "unknown";
 #ifdef USE_UNAME
 	static struct utsname mach;
 
@@ -725,31 +767,31 @@ struct rec_head *rec;
 {
 	char mail_cmd[BUFSIZ];
 	char *last_update;
-	char *buf_string;
+	const char *buf_string;
 	FILE *mail_pipe;
 	struct passwd *pw;
 
 	if ((pw = getpwuid(rec->Uid))== NULL)
 		return;
+
 	last_update = ctime(&(rec->UpdTime));
 	/* Start up mail */
 	sprintf(mail_cmd, "/bin/mail %s", pw->pw_name);
 	setuid(getuid());
 	if ((mail_pipe = popen(mail_cmd, "w")) == NULL)
 		return;
+
 	setbuf(mail_pipe, mail_cmd);
 	/* Let's be grammatically correct! */
-	if (rec->Nbuffers == 1)
-		buf_string = "buffer";
-	else
-		buf_string = "buffers";
-	fprintf(mail_pipe, "Subject: System crash\n");
+	buf_string = rec->Nbuffers == 1? "buffer" : "buffers";
+	fprintf(mail_pipe, "Subject: Jove saved %d %s after \"%s\" crashed\n",
+		rec->Nbuffers, buf_string, hname());
 	fprintf(mail_pipe, " \n");
 	fprintf(mail_pipe, "Jove saved %d %s when the system \"%s\"\n",
-	 rec->Nbuffers, buf_string, hname());
+		rec->Nbuffers, buf_string, hname());
 	fprintf(mail_pipe, "crashed on %s\n\n", last_update);
 	fprintf(mail_pipe, "You can retrieve the %s using Jove's -r\n",
-	 buf_string);
+		buf_string);
 	fprintf(mail_pipe, "(recover option) i.e. give the command.\n");
 	fprintf(mail_pipe, "\tjove -r\n");
 	fprintf(mail_pipe, "See the Jove manual for more details\n");
@@ -771,9 +813,13 @@ savetmps()
 
 	if (strcmp(tmp_dir, RecDir) == 0)
 		return;		/* Files are moved to the same place. */
+
 	get_files(tmp_dir);
 	for (fp = First; fp != NULL; fp = fp->file_next) {
-		stat(fp->file_data, &stbuf);
+		if (stat(fp->file_data, &stbuf) < 0) {
+			perror("recover: stat failed.");
+			continue;
+		}
 		switch (pid = fork()) {
 		case -1:
 			fprintf(stderr, "recover: can't fork\n!");
@@ -783,7 +829,7 @@ savetmps()
 		case 0:
 			fprintf(stderr, "Recovering: %s, %s\n", fp->file_data,
 			 fp->file_rec);
-			if ((fd = open(fp->file_rec, 0)) != -1) {
+			if ((fd = open(fp->file_rec, O_RDONLY | O_BINARY)) != -1) {
 				if ((read(fd, (UnivPtr) &header, sizeof header) != sizeof header)) {
 					close(fd);
 					return;
@@ -806,12 +852,12 @@ savetmps()
 			fname = fp->file_data + strlen(tmp_dir);
 			strcpy(buf, RecDir);
 			strcat(buf, fname);
-			if (chown(buf, (int) stbuf.st_uid, (int) stbuf.st_gid) != 0)
+			if (chown(buf, stbuf.st_uid, stbuf.st_gid) != 0)
 				perror("recover: chown failed.");
 			fname = fp->file_rec + strlen(tmp_dir);
 			strcpy(buf, RecDir);
 			strcat(buf, fname);
-			if (chown(buf, (int) stbuf.st_uid, (int) stbuf.st_gid) != 0)
+			if (chown(buf, stbuf.st_uid, stbuf.st_gid) != 0)
 				perror("recover: chown failed.");
 		}
 	}
@@ -819,7 +865,7 @@ savetmps()
 
 private int
 lookup(dir)
-char	*dir;
+const char	*dir;
 {
 	struct file_pair	*fp;
 	int	nfound = 0;
@@ -838,7 +884,7 @@ char	*dir;
 
 int
 main(argc, argv)
-int	argc;
+int	UNUSED(argc);
 char	*argv[];
 {
 	int	nfound;

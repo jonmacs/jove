@@ -1,9 +1,9 @@
-########################################################################
-# This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  #
-# provided to you without charge, and with no warranty.  You may give  #
-# away copies of JOVE, including sources, provided that this notice is #
-# included in all the files.                                           #
-########################################################################
+##########################################################################
+# This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    #
+# provided by Jonathan and Jovehacks without charge and without          #
+# warranty.  You may copy, modify, and/or distribute JOVE, provided that #
+# this notice is included in all the source files and documentation.     #
+##########################################################################
 
 Jove has two classes of ifdefs.  Some are used to select system-dependent
 features, others are to select Jove features.  The former are defined in
@@ -16,7 +16,7 @@ hard to predict and often do not provide the granularity that's necessary to
 differentiate between system versions or types.  If the system you run is
 included in sysdep.h, just use it.  If not, select a symbol to define your
 system (e.g. SOMEOS) and choose the appropriate system-dependent options that
-characterise your systems terminal handling, process handling, header files,
+characterize your systems terminal handling, process handling, header files,
 etc from the list below.
 
 NOTE: We've removed almost all the "#ifdef system-type" ifdefs from the body
@@ -27,8 +27,8 @@ approach and don't stick "#ifdef system-type" ifdefs in the code.
 
 For terminal handling under Unix, define one of the following, in
 decreasing order of preference.
-TERMIOS		Have "struct termios" and termios.h.  Posix systems,
-		most modern Unixes.
+TERMIOS		Have "struct termios" and termios.h.  POSIX systems,
+		most modern UNIXes.
 SGTTY		Have stty() and gtty() for tty characteristics.
 		BSD4.3 and precursors, including V7.
 TERMIO		Have "struct termio" and termio.h for tty characteristics.
@@ -40,11 +40,27 @@ Jove needs to know the current working directory for pathname optimization
 and the directory functions that it provides ("cd", "pushd", etc).
 Define one of the following, in order of decreasing preference:
 USE_GETCWD	have the getcwd() routine for the name of the current
-		directory.  Posix.
+		directory.  POSIX.
 USE_GETWD	have the getwd() routine for the name of the current dir.
 		BSD4.2 and derivatives (SunOS3, old Ultrix)
 USE_PWD		Run the 'pwd' program to find the name of the current
-		directory.  Old Unixes.
+		directory.  Old UNIXes.
+
+When Jove is tries to make file pathnames canonical.  Handling of a ..
+component must take account of symbolic links.  All modern UNIXes have
+symlinks.  We don't yet know how to support MAC or WIN32 aliases.
+HAS_SYMLINKS	use readlink(2) to handle symlinks
+
+Jove needs to make a number of temporary files.  The traditional ways
+of creating temp files are subject to race conditions allowing
+security to be compromised on multi-user systems.  The mkstemp library
+routine avoids this problem, but isn't available on all systems.  In
+its place, Jove will make do by using mktemp.  If this isn't
+available, Jove will use an even poorer technique.  The mktemp form
+is safe if the open system call supports O_EXCL just right (it must
+balk at symlinks).
+NO_MKSTEMP	work around lack of mkstemp
+NO_MKTEMP	work around lack of mktemp
 
 If the compiler is ANSI C, then prototyping will be supported
 automatically (this is determined by checking that __STDC__ is
@@ -64,14 +80,23 @@ Newer systems tend to have header files with more system calls defined,
 sometimes with prototypes.  Choose one of the following, depending on your
 system.  If neither of the following is defined, then the declarations in
 externs.h are used.
-POSIX_UNISTD	Have Posix P1003.1 compliant unistd.h with declarations.
-FULL_UNISTD	Have fully-prototyped header files, superset of Posix P1003.1
+POSIX_UNISTD	Have POSIX P1003.1 compliant unistd.h with declarations.
+FULL_UNISTD	Have fully-prototyped header files, superset of POSIX P1003.1
+
+Some really old systems may not have a header <fcntl.h>.  To stop JOVE
+trying to #include it, define
+NO_FCNTL	no <fcntl.h> header provided by system
 
 Usually, the result type returned by read() and write() is int.
-Posix carefully defines a type name for this type: ssize_t (it logically
+POSIX carefully defines a type name for this type: ssize_t (it logically
 is a size_t, but it must be signed because -1 is a possible value).
 We use SSIZE_T which defaults to ssize_t if FULL_UNISTD, otherwise int.
 This can be overridden by defining SSIZE_T.
+
+In modern systems, the type mode_t is used for permission bits (in
+creat(2), stat(2), and open(2)).  In ancient systems, this was just int;
+unsigned would have been better.  Jove uses the macro jmode_t.  If you
+don't provide a definition, it defaults to mode_t.
 
 Different environments have different memory and address space limitations.
 Generally, these controls default appropriately.
@@ -80,7 +105,7 @@ JLGBUFSIZ	log-base-2(sizeof buffer block).  Generally 9 or 10,
 		yielding blocks of size 512 or 1024 bytes.  Each text line
 		in Jove is restricted to fit within a single block, so
 		larger is better.  Also, larger blocks should reduce
-		the number of blocks transfered between the temp file
+		the number of blocks transferred between the temp file
 		and RAM.  Smaller blocks reduce the number of bytes
 		transferred and more efficiently use cache memory
 		(there would be more blocks in an identically sized cache).
@@ -111,6 +136,17 @@ define IPROCS.  Beware: doc/jove.rc (the standard system-wide rc file)
 binds several process commands, so it will need changing if interactive
 process support is not compiled in.
 
+IPROC_TERM specifies what $TERM should be set to for the IPROC
+process.  The simulated terminal has very few properties.  The choice
+that works best depends on the termcap and terminfo databases of the
+system, and other arcane things such as the shell startup scripts.  If
+the IPROC_TERM macro is undefined (the default), JOVE will arrange
+that $TERM to the unset in the interactive process.  If the macro is
+defined, JOVE will use it to set the environment; It must be a string,
+including double quotes, like "TERM=emacs", "TERM=dumb" or
+"TERM=vanilla".
+
+
 To multiplex between different processes and the keyboard (when IPROCS
 is defined), define USE_SELECT.
 USE_SELECT	Have the select() system call.  Almost essential!
@@ -130,21 +166,45 @@ NONBLOCKINGREAD	use O_NDELAY/O_NONBLOCK to test for pending keyboard input
 If IPROCS is defined in tune.h, one of the following two must be defined.
 If your system supports neither PTYS nor PIPES, don't define IPROCS unless
 you feel in the mood for very serious hacking.
-PTYPROCS	Use pseudo-ttys.  BSD and most modern Unixes.
-PIPEPROCS	Use pipes for interactive processes.  Older Unixes.
+PTYPROCS	Use pseudo-ttys.  BSD and most modern UNIXes.
+PIPEPROCS	Use pipes for interactive processes.  Older UNIXes.
+		Don't forget to set PORTSRVINST in Makefile.
 
-
-If PTYPROCS is defined, then one of the following must be defined.  Or add
-your own code in iproc-ptys.c.
-SVR4_PTYS	SYSVR4 pty allocation.  ptym, grantpt() and friends.
-BSD_PTYS	canonical BSD ptys, search through pty[pqrst]
+If PTYPROCS is defined, then one of the following must be defined.  Or
+add your own code in iproc-ptys.c.  SVR4_PTYS are more secure than
+BSD_PTYS (the BSD weakness is described below).  SVR4_PTYS are also
+known (at least in the LINUX world) as UNIX98 PTYS.  They are part of
+"The Single UNIX Specification", Version 2.
+SVR4_PTYS	SYSVR4 pty allocation.  Use /dev/ptmx, ptsname, grantpt, etc
+BSD_PTYS	traditional BSD ptys.
 IRIX_PTYS	Irix 3.x onwards -- open a master device, then fstat to get
 		major and minor numbers.
+
+WARNING: On BSD systems, there is a dangerous security hole in the PTY
+system.  Although JOVE (or any other non-privileged program) can
+allocate a PTY, it cannot change the ownership or permissions to
+prevent other processes run by other users from mucking with the same
+PTY.  An example of such mischief is that someone else could trick
+your JOVE into running a shell command for him but as you!  The
+traditional way to allocate a PTY is to search through search through
+/dev/pty[p-s][0-9a-f] for a free one, and use that.  Modern BSD
+systems have added a new library routine "openpty(3)" which could be
+made to close this hole, but this hasn't happened at this time (2001
+March 21).  In anticipation of such a fix, JOVE can be made to use
+this routine.  Currently, the only advantage is that when JOVE is run
+by the superuser, some versions of BSD do manage to close the hole.  A
+disadvantage is that -lutil must be added to the link command because
+openpty is in libutil.
+OpenBSD 3.5 has closed this hole (2004).
+USE_OPENPTY	use the new BSD openpty(3) routine
+HAVE_LIBUTIL_H	use <libutil.h> instead of <util.h>
 
 Certain early SVR4 systems have a buggy grantpt library routine that
 is used if PTYPROCS is defined.  A symptom is that the "shell"
 command will always fail with a [grantpt failed] message.  System V
-Release 4.0 and Solaris 2.0 (but not Solaris 2.3) and have this bug.
+Release 4.0, and Solaris 2.0 (but not Solaris 2.3) and Digital UNIX 4.0
+have this bug.  It turns out that this bug is documented as a feature
+in "The Single UNIX Specification", Version 2!
 GRANTPT_BUG  Define this to enable a work-around.
 
 Certain systems, for example IRIX 4 and IRIX 5.3, define the symbol
@@ -166,14 +226,14 @@ NO_EOF_FROM_PTY	Define this if your system fails to signal EOF to pty master
 
 To deal with SUBSHELL and IPROCS (both in tune.h), define one of the
 following:
-POSIX_PROCS	Supports Posix processes, waitpid()
+POSIX_PROCS	Supports POSIX processes, waitpid()
 BSD_WAIT	Has sys/wait.h and "union wait".
-If neither POSIX_PROCS nor BSD_WAIT is defined, Jove uses wait().  (old Unixes)
+If neither POSIX_PROCS nor BSD_WAIT is defined, Jove uses wait().  (old UNIXes)
 
 
 If BSD_WAIT was defined, also consider defining
 WAIT3		use wait3() on systems that have it.  (BSD4.2 and modern
-		non-Posix Unixes).  If this is not defined, we try wait2().
+		non-POSIX UNIXes).  If this is not defined, we try wait2().
 
 
 Signal handling varies between systems.  The original UNIX signal mechanism
@@ -193,7 +253,7 @@ If none of these symbols is defined, unsafe normal signals are used (except
 on BSD systems, where the normally unsafe signal() is in fact safe).
 
 
-JOB_CONTROL	System supports job control (SIGTSTP, ^Z etc.  for pause-jove)
+JOB_CONTROL	System supports job control (SIGTSTP, ^Z etc. for pause-jove)
 
 
 USE_VFORK	system has a vfork that is much faster than fork.  This
@@ -236,23 +296,23 @@ SIGRESVALUE	the return value of signal handlers.  "/*void!*/" on systems
 
 
 Either of following two is useful to the "recover" program, but not both.
-USE_UNAME	has the uname() system call.  True on System V and Posix
+USE_UNAME	has the uname() system call.  True on System V and POSIX
 		and most hybrids.
 USE_GETHOSTNAME	has gethostname() system call.  True on most BSD machines.
 
 
 NO_STRERROR	If you do not have the strerror() routine.  Needed for
-		pre-ANSI systems (SunOS older than 4.1, BSD, older Unixes)
+		pre-ANSI systems (SunOS older than 4.1, BSD, older UNIXes)
 		With this defined, Jove provides an emulation using
-		sys_errlist, which should work on most Unixes.
+		sys_errlist, which should work on most UNIXes.
 
 USE_FSYNC	Have the fsync() system call.  True on just about all modern
-		Unixes.  Not defining this does little harm (it's used only
+		UNIXes.  Not defining this does little harm (it's used only
 		to force a flush on files)
 
 If BIFF is defined, you can usefully define either or both of the following:
 USE_FSTAT	Have the fstat() call.  Just about every modern Unix does.
-USE_FCHMOD	Have the fchmod() call.  Again, true on most modern Unixes
+USE_FCHMOD	Have the fchmod() call.  Again, true on most modern UNIXes
 		after BSD4.2.
 
 Jove supports 7-bit or 8-bit character sets.  It has a wired-in
@@ -282,7 +342,7 @@ DEFINE_PC_BC_UP_OSPEED
 		this.
 
 USE_MEMORY_H	include memory.h for declarations of memcpy() et al.
-		Older SysV, IBMPCs, Xenix.
+		Older SysV, IBMPCs, XENIX.
 
 
 USE_BCOPY	use bcopy in place of missing memcpy.
@@ -308,7 +368,14 @@ TERMCAP		Support display diversity via termcap database.
 
 TERMINFO	Support for System V variant of TERMCAP.  TERMCAP
 		must also be defined.  This differentiates between
-		tparm and tgoto.  It is untested.
+		tparm and tgoto.
+
+NCURSES_BUG	Work around the non-standard meaning of insert character
+		capabilities in the termcap and terminfo databases
+		distributed with ncurses.  Probably needed for FreeBSD,
+		NetBSD, and LINUX.  Probably safe for all others (except
+		if you use a Datamedia 2500 terminal).  We automatically
+		define this for UNIX.
 
 Jove has been built and tested on PC-compatible computers under
 several compilers and at least two environments.  The following
@@ -320,7 +387,7 @@ MSDOS		MSDOS or MSDOS-like system, such as IBM PC, DEC Rainbow,
 		or Atari ST.  Only tested on IBMPCDOS recently.
 
 IBMPCDOS	Indicates MSDOS on an IBM PC-Compatible hardware platform.
-		This enables hardware-specific characterstics of Jove on
+		This enables hardware-specific characteristics of Jove on
 		this platform, such as the screen and keyboard interface.
 
 WIN32		indicates Jove running as a Console app under the WIN32

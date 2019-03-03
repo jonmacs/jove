@@ -1,9 +1,9 @@
-/************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/**************************************************************************
+ * This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    *
+ * provided by Jonathan and Jovehacks without charge and without          *
+ * warranty.  You may copy, modify, and/or distribute JOVE, provided that *
+ * this notice is included in all the source files and documentation.     *
+ **************************************************************************/
 
 /* Notes:
  * - pervasive exports are declared in jove.h
@@ -64,7 +64,7 @@ extern void
 
 /* termcap declarations */
 
-extern char
+extern const char
 	*CS,	/* change scrolling region */
 	*SO,	/* Start standout */
 	*SE,	/* End standout */
@@ -95,7 +95,7 @@ extern char
 	*M_SF,	/* Scroll forward with arg */
 	*M_SR;	/* Scroll back with arg */
 
-# define	INFINITY	1000	/* cost too high to afford */
+# define	INFINITY	10000	/* cost too high to afford */
 
 extern int
 	UPlen,		/* length of the UP string */
@@ -111,7 +111,9 @@ extern bool
 	NP;		/* there is No Pad character */
 
 extern char
-	PC,		/* pad character, as a char (set from lPC; defaults to NUL) */
+	PC;		/* pad character, as a char (set from lPC; defaults to NUL) */
+
+extern const char
 	*BC,	/* back space (defaults to BS) */
 	*UP;	/* Scroll reverse, or up */
 
@@ -121,7 +123,7 @@ extern bool	CanScroll;	/* can this terminal scroll? */
 
 # ifdef ID_CHAR
 
-extern char
+extern const char
 	*IC,	/* Insert char */
 	*DC,	/* Delete char */
 	*IM,	/* Insert mode */
@@ -133,11 +135,10 @@ extern char
 extern bool	UseIC;	/* VAR: whether or not to use i/d char processesing */
 
 extern int
-	IMlen,	/* length of insert mode */
-	EIlen,	/* length of end insert mode string */
+	IMEIlen,	/* length of insert mode + end insert mode strings */
 	IClen,	/* length of insert char */
-	DClen,	/* length of delete char */
 	MIClen,	/* length of insert char with arg */
+	DClen,	/* length of delete char */
 	MDClen,	/* length of delete char with arg */
 	CElen;	/* length of clear to end of line */
 

@@ -1,9 +1,9 @@
-/************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/**************************************************************************
+ * This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    *
+ * provided by Jonathan and Jovehacks without charge and without          *
+ * warranty.  You may copy, modify, and/or distribute JOVE, provided that *
+ * this notice is included in all the source files and documentation.     *
+ **************************************************************************/
 
 #include "jove.h"
 #include "jctype.h"
@@ -38,16 +38,16 @@ private LinePtr	CurAskPtr = NULL;	/* points at some line in mini-buffer */
 private Buffer	*AskBuffer = NULL;	/* Askbuffer points to actual structure */
 
 /* The way the mini-buffer works is this:  The first line of the mini-buffer
-   is where the user does his stuff.  The rest of the buffer contains
-   strings that the user often wants to use, for instance, file names, or
-   common search strings, etc.  If he types ^N or ^P while in ask(), we
-   bump the point up or down a line and extract the contents (we make sure
-   is somewhere in the mini-buffer). */
-
+ * is where the user does his stuff.  The rest of the buffer contains
+ * strings that the user often wants to use, for instance, file names, or
+ * common search strings, etc.  If he types ^N or ^P while in ask(), we
+ * bump the point up or down a line and extract the contents (we make sure
+ * is somewhere in the mini-buffer).
+ */
 private Buffer *
 get_minibuf()
 {
-	if (AskBuffer) {		/* make sure ut still exists */
+	if (AskBuffer) {		/* make sure it still exists */
 		register Buffer	*b;
 
 		for (b = world; b != NULL; b = b->b_next)
@@ -78,7 +78,7 @@ bool	movedown;
 
 bool	InRealAsk = NO;
 
-private char *
+private const char *
 real_ask(delim, d_proc, def, prompt)
 const char	*delim,
 	*def,
@@ -91,7 +91,7 @@ bool	(*d_proc) ptrproto((ZXchar));
 	Buffer	*saveb = curbuf;
 	volatile bool	aborted = NO;
 	bool	no_typed = NO;
-	data_obj	*push_cmd = LastCmd;
+	const data_obj	*push_cmd = LastCmd;
 	int	saved_as, saved_ac;
 
 #ifdef MAC
@@ -189,18 +189,18 @@ cleanup:
 }
 
 #ifdef STDARGS
-char *
-ask(char *def, char *fmt, ...)
+const char *
+ask(const char *def, const char *fmt, ...)
 #else
-/*VARARGS2*/ char *
+/*VARARGS2*/ const char *
 ask(def, fmt, va_alist)
-	char	*def,
-		*fmt;
+	const char	*def;
+	const char	*fmt;
 	va_dcl
 #endif
 {
 	char	prompt[128];
-	char	*ans;
+	const char	*ans;
 	va_list	ap;
 
 	va_init(ap, fmt);
@@ -216,10 +216,10 @@ ask(def, fmt, va_alist)
 }
 
 #ifdef STDARGS
-char *
+const char *
 do_ask(const char *delim, bool (*d_proc) ptrproto((ZXchar)), const char *def, const char *fmt, ...)
 #else
-/*VARARGS4*/ char *
+/*VARARGS4*/ const char *
 do_ask(delim, d_proc, def, fmt, va_alist)
 	const char	*delim;
 	bool	(*d_proc) ptrproto((ZXchar));
@@ -241,11 +241,11 @@ bool	OneKeyConfirmation = NO;	/* VAR: single y or n keystroke sufficient? */
 
 #ifdef STDARGS
 bool
-yes_or_no_p(char *fmt, ...)
+yes_or_no_p(const char *fmt, ...)
 #else
 /*VARARGS1*/ bool
 yes_or_no_p(fmt, va_alist)
-	char	*fmt;
+	const char	*fmt;
 	va_dcl
 #endif
 {
@@ -268,24 +268,27 @@ yes_or_no_p(fmt, va_alist)
 			if (c == AbortChar)
 				complain("[Aborted]");
 			switch (CharUpcase(c)) {
-			    case 'Y':
+			case 'Y':
 				return YES;
 
-			    case 'N':
+			case 'N':
 				return NO;
 
-			    default:
+			default:
 				add_mess("[Type Y or N]");
 				Asking = YES;	/* so cursor sits on question */
 				SitFor(10);
+				break;
 			}
 		} else {
-			char *ans = ask((char *) NULL, prompt);
+			const char *ans = ask((char *) NULL, prompt);
 
 			if (caseeqn(ans, "yes", strlen(ans)))
 				return YES;
+
 			if (caseeqn(ans, "no", strlen(ans)))
 				return NO;
+
 			rbell();
 		}
 	}
@@ -295,10 +298,10 @@ yes_or_no_p(fmt, va_alist)
 #ifdef F_COMPLETION
 
 /* look for any substrings of the form $foo in linebuf, and expand
-   them according to their value in the environment (if possible) -
-   this munges all over curchar and linebuf without giving it a second
-   thought (I must be getting lazy in my old age) */
-
+ * them according to their value in the environment (if possible) -
+ * this munges all over curchar and linebuf without giving it a second
+ * thought (I must be getting lazy in my old age)
+ */
 # ifndef MAC	/* no environment in MacOS */
 
 bool	DoEVexpand = YES;	/* VAR: should we expand evironment variables? */
@@ -326,9 +329,10 @@ EVexpand()
 				*vp++ = c;
 			*vp = '\0';
 			/* if we find an env. variable with the right
-			   name, we insert it in linebuf, and then delete
-			   the variable name that we're replacing - and
-			   then we continue in case there are others ... */
+			 * name, we insert it in linebuf, and then delete
+			 * the variable name that we're replacing - and
+			 * then we continue in case there are others ...
+			 */
 			if ((ep = getenv(varname)) != NULL) {
 				curchar = lp_start - linebuf;
 				ins_str(ep);
@@ -345,6 +349,7 @@ EVexpand()
 
 private char	*fc_filebase;
 bool	DispBadFs = YES;	/* VAR: display filenames with bad extensions? */
+bool	DispDefFs = YES;	/* VAR: display default filenames in prompt? */
 
 char	BadExtensions[sizeof(BadExtensions)] =	/* VAR: extensions to ignore */
 # ifndef MSFILESYSTEM
@@ -443,10 +448,11 @@ int	n;
 
 		for (i = 0; i < n; i++) {
 			/* If filter is NO, we accept all entries
-			   (either DispBadFs is NO, in which case filtering
-			   was done when dir_vec was built, or DispBadFs
-			   is YES, but we are trying again, after finding
-			   no files passed the filter. */
+			 * (either DispBadFs is NO, in which case filtering
+			 * was done when dir_vec was built, or DispBadFs
+			 * is YES, but we are trying again, after finding
+			 * no files passed the filter.
+			 */
 			if (!filter || !bad_extension(dir_vec[i])) {
 				minmatch = numfound == 0
 					? (int)strlen(dir_vec[i])
@@ -475,6 +481,7 @@ int	n;
 					len_error(JMP_COMPLAIN);
 				the_same = NO;
 				null_ncpy(fc_filebase, dir_vec[lastmatch], (size_t) minmatch);
+				modify();
 				makedirty(curline);
 			}
 			Eol();
@@ -496,8 +503,8 @@ int	n;
 }
 
 /* called from do_ask() when one of "\r\n ?" is typed.  Does the right
-   thing, depending on which. */
-
+ * thing, depending on which.
+ */
 private bool
 f_complete(c)
 ZXchar	c;
@@ -514,6 +521,7 @@ ZXchar	c;
 # endif
 	if (c == CR || c == LF)
 		return NO;	/* tells ask to return now */
+
 	fc_filebase = strrchr(linebuf, '/');
 # ifdef MSFILESYSTEM
 	{
@@ -529,6 +537,8 @@ ZXchar	c;
 		char	tmp[FILESIZE];
 
 		fc_filebase += 1;
+		if ((size_t) (fc_filebase - linebuf) >= sizeof(tmp))
+			len_error(JMP_COMPLAIN);
 		null_ncpy(tmp, linebuf, (size_t) (fc_filebase - linebuf));
 		if (tmp[0] == '\0')
 			strcpy(tmp, "/");
@@ -549,6 +559,8 @@ ZXchar	c;
 		fill_in(dir_vec, nentries);
 	} else {
 		/* we're a '?' */
+		const int
+			towidth = min((CO - 2), MAX_TYPEOUT);
 		int
 			i,
 			maxlen = 0,
@@ -563,7 +575,9 @@ ZXchar	c;
 		for (i = 0; i < nentries; i++)
 			maxlen = max((int)strlen(dir_vec[i]), maxlen);
 		maxlen += 4;	/* pad each column with at least 4 spaces */
-		ncols = min((CO - 2), MAX_TYPEOUT) / maxlen;
+		if (maxlen > towidth)
+		    maxlen = towidth;
+		ncols = towidth / maxlen;
 		entriespercol = (nentries + ncols - 1) / ncols;
 
 		for (line = 0; line < entriespercol; line++) {
@@ -594,22 +608,39 @@ ZXchar	c;
 
 #endif /* F_COMPLETION */
 
+/* ask for file or directory
+ *
+ * These are only different under MSFILESYSTEM.
+ * Note: def and buf may be equal.
+ */
+
+#ifdef MSFILESYSTEM
+private
+#endif
 char *
-ask_file(prmt, def, buf)
+ask_ford(prmt, def, buf)
 const char	*prmt;
 char
 	*def,
 	*buf;
 {
-	char	*ans,
-		prompt[128],
-		*pretty_name = pr_name(def, YES);
+	/* Note: pr_name yields a pointer into its static buffer so
+	 * pretty_name will not be a pointer into def.  This allows
+	 * us to accept *def and *buf being aliases.  Otherwise we
+	 * could end up calling PathParse with aliases.  (Yes, you
+	 * are looking at a battle scar.)
+	 */
+	char
+		*pretty_name = pr_name(def, YES),
+		prompt[128];
+	const char
+		*ans;
 
 	if (prmt == NULL)
 		swritef(prompt, sizeof(prompt), ProcFmt);
 	else
-		strcpy(prompt, prmt);
-	if (def != NULL && *def != '\0') {
+		jamstr(prompt, prmt);
+	if (DispDefFs && def != NULL && *def != '\0') {
 		size_t	pl = strlen(prompt);
 
 		swritef(prompt + pl, sizeof(prompt)-pl, "(default %s) ", pretty_name);
@@ -618,7 +649,8 @@ char
 	}
 #ifdef F_COMPLETION
 	ans = real_ask("\r\n \t?", f_complete, pretty_name, prompt);
-	if (ans == NULL && (ans = pretty_name) == NULL)
+	/* note: *pretty_name may have been overwritten -- we can't use it */
+	if (ans == NULL && (ans = pr_name(def, YES)) == NULL)
 		complain("[No default file name]");
 #else
 	ans = ask(pretty_name, prompt);
@@ -627,3 +659,27 @@ char
 
 	return buf;
 }
+
+#ifdef MSFILESYSTEM
+char *
+ask_file(prmt, def, buf)
+const char	*prmt;
+char
+	*def,
+	*buf;
+{
+	MatchDir = NO;
+	return ask_ford(prmt, def, buf);
+}
+
+char *
+ask_dir(prmt, def, buf)
+const char	*prmt;
+char
+	*def,
+	*buf;
+{
+	MatchDir = YES;
+	return ask_ford(prmt, def, buf);
+}
+#endif

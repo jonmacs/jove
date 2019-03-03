@@ -1,9 +1,9 @@
-/************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/**************************************************************************
+ * This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    *
+ * provided by Jonathan and Jovehacks without charge and without          *
+ * warranty.  You may copy, modify, and/or distribute JOVE, provided that *
+ * this notice is included in all the source files and documentation.     *
+ **************************************************************************/
 
 #include "jove.h"
 
@@ -62,12 +62,9 @@ struct process {
 	int	p_reason;	/* If killed, p_reason is the signal;
 				   if exited, it is the the exit code */
 	Mark	*p_mark;	/* where output left us */
-	bool	p_dbx_mode;	/* whether to parse output for file/lineno
-				   pairs */
 };
 
 private void
-	jputenv proto((char *)),
 	proc_rec proto((Process, char *, size_t)),
 	proc_close proto ((Process)),
 	SendData proto((bool)),
@@ -102,7 +99,7 @@ pid_t	pid;
 			return p;
 }
 
-private char *
+private const char *
 proc_bufname(p)
 Process	p;
 {
@@ -127,8 +124,117 @@ va_list	ap;
 	register int	i = 0;
 
 	argv[i++] = va_arg(ap, char *);
-	argv[i++] = basename(argv[0]);
+	argv[i++] = (char *)jbasename(argv[0]);	/* lose const (but it's safe) */
 	do ; while ((argv[i++] = va_arg(ap, char *)) != NULL);
+}
+
+/* environment manipulation (always for process) */
+
+extern char **environ;	/* <unistd.h> */
+static int	env_headroom = 0;	/* remaining room in environ array */
+
+/* Put a definition into the environment.
+ * Same as putenv(3) in SVID 3, POSIX, and BSD 4.3.
+ */
+private void
+jputenv(def)
+const char *def;	/* Note: caller must ensure string persists */
+{
+	static bool env_malloced = NO;	/* should we free it when replacing? */
+	const char
+		**const e = (const char **)environ,	/* to avoid type complaints from gcc */
+		**p,
+		*eq;
+
+	if ((eq = strchr(def, '=')) == NULL)
+		return;
+
+	for (p = e; ; p++) {
+		if (*p == NULL) {
+			if (env_headroom == 0) {
+#				define JENV_INCR	5
+				size_t	sz = ((p-e) + 1) * sizeof(char *);
+				const char	**ne = (const char **)
+					malloc(sz + JENV_INCR*sizeof(char *));
+
+				if (ne == NULL)
+					break;	/* malloc failed: give up -- doesn't matter much */
+
+				byte_copy(environ, ne, sz);
+				p = ne + (p-e);
+				if (env_malloced)
+					free((UnivPtr)environ);
+				env_headroom = JENV_INCR;
+				environ = (char **)ne;
+				env_malloced = YES;
+#				undef JENV_INCR
+			}
+			env_headroom -= 1;
+			*p++ = def;
+			*p = NULL;
+			break;
+		}
+		if (strncmp(*p, def, (size_t) (eq - def + 1)) == 0) {
+			*p = def;
+			break;
+		}
+	}
+}
+
+/* Remove any definitions of name from the environment.
+ * Same as 4.3BSD's unsetenv(3).
+ */
+private void
+junsetenv(name)
+const char *name;
+{
+	char
+		**p = environ,
+		**q = environ;
+	size_t l = strlen(name);
+
+	for (;;) {
+		char *e = *p++;
+
+		*q = e;
+
+		if (e == NULL)
+			break;
+
+		if (strncmp(e, name, l) == 0 && e[l] == '=') {
+			/* unset this one by not advancing q */
+			env_headroom += 1;
+		} else {
+			q += 1;
+		}
+	}
+}
+
+/* Erase misleading knowledge of the terminal type from the environment.
+ * The value of variable TERMCAP has two interpretations:
+ * If it starts with /, it is a path to the database.
+ * If it does not, it is the database entry.
+ *
+ * We also set EMACS=t to mimic GNU EMACS.  The GNU EMACS manual says:
+ *	Emacs defines the environment variable `EMACS' in the subshell,
+ *	with value `t'.  A shell script can check this variable to
+ *	determine whether it has been run from an Emacs subshell.
+ *	bash(1) says that if EMACS==t, line editing is disabled.
+ */
+private void
+set_process_env()
+{
+	static const char tcn[] = "TERMCAP";
+	const char *tc = getenv(tcn);
+
+	if (tc != NULL && tc[0] != '/')
+		junsetenv(tcn);
+#ifndef IPROC_TERM
+	junsetenv("TERM");
+#else
+	jputenv(IPROC_TERM);
+#endif
+	jputenv("EMACS=t");	
 }
 
 /* There are two very different implementation techniques: pipes and ptys.
@@ -299,10 +405,7 @@ proc_strt(bufname, clobber, procname, va_alist)
 		(void) dup2(ProcOutput, 2);
 		pipeclose(toproc);
 		jcloseall();
-		jputenv("EMACS=t");
-		jputenv("TERM=emacs");
-		/* ??? the following line is not useful for terminfo systems */
-		jputenv(sprint("TERMCAP=emacs:co#%d:tc=unknown:", CO-1));
+		set_process_env();
 		execv(Portsrv, argv);
 		raw_complain("execl failed: %s", strerror(errno));
 		_exit(1);
@@ -327,10 +430,10 @@ proc_strt(bufname, clobber, procname, va_alist)
 	if (!bolp())
 		LineInsert(1);
 	/* Pop_wind() after everything is set up; important!
-	   Bindings won't work right unless newbuf->b_process is already
-	   set up BEFORE NEWBUF is first SetBuf()'d. */
+	 * Bindings won't work right unless newbuf->b_process is already
+	 * set up BEFORE NEWBUF is first SetBuf()'d.
+	 */
 	newp->p_mark = MakeMark(curline, curchar);
-	newp->p_dbx_mode = NO;
 
 	newp->p_toproc = toproc[1];
 	(void) close(toproc[0]);
@@ -380,9 +483,9 @@ kbd_init()
 }
 
 /* kbd_stop() returns true if it changes the state of (i.e. stops)
-   the keyboard process.  This is so kbd stopping and starting in
-   pairs works - see finish() in jove.c. */
-
+ * the keyboard process.  This is so kbd stopping and starting in
+ * pairs works - see finish() in jove.c.
+ */
 private bool	kbd_state = NO;
 
 void
@@ -420,14 +523,28 @@ kbd_kill()
 #else /* !PIPEPROCS */
 
 #include <sys/time.h>
-#include <fcntl.h>
 #include "select.h"
 
 #include "ttystate.h"
 
+# ifdef USE_OPENPTY	/* modern BSDs have openpty(3) */
+#  ifdef HAVE_LIBUTIL_H	/* but disagree about header! */
+#   include <libutil.h>
+#  else
+#   include <util.h>
+#  endif
+# endif
+
 # ifdef SVR4_PTYS
 #  include <stdlib.h>	/* for grantpt and unlockpt, at least in Solaris 2.3 */
-#  include <sys/stropts.h>
+#  if _XOPEN_SOURCE >= 500
+    /* Linux/glibc no longer pretends to support STREAMS (XSR) (2008) */
+#   if _XOPEN_STREAMS != -1
+#    include <stropts.h>
+#   endif
+#  else
+#   include <sys/stropts.h>
+#  endif
   extern char	*ptsname proto((int /*filedes*/));	/* get name of slave */
 # endif
 
@@ -651,6 +768,7 @@ char	c;
 				case -1: /* error: consider ERRNO */
 					if (errno == EINTR)
 						continue;	/* interrupted: try again */
+
 					complain("pty write of control failed: %d %s", errno, strerror(errno));
 					/* NOTREACHED */
 				case 0: /* nothing happened: try again */
@@ -757,13 +875,13 @@ size_t	nbytes;
 
 # ifdef STDARGS
 private void
-proc_strt(char *bufname, bool clobber, char *procname, ...)
+proc_strt(char *bufname, bool clobber, const char *procname, ...)
 # else
 private /*VARARGS2*/ void
 proc_strt(bufname, clobber, procname, va_alist)
 	char	*bufname;
 	bool	clobber;
-	char	*procname;
+	const char	*procname;
 	va_dcl
 # endif
 {
@@ -773,8 +891,10 @@ proc_strt(bufname, clobber, procname, va_alist)
 	pid_t	pid;
 	Process	newp;
 	Buffer	*newbuf;
-	int	i,
-		ptyfd = -1;
+	int	ptyfd = -1;
+# ifdef BSD_PTYS
+	int	slvptyfd = -1;
+# endif
 
 # if !defined(TERMIO) && !defined(TERMIOS)
 #  ifdef TIOCSETD
@@ -784,8 +904,6 @@ proc_strt(bufname, clobber, procname, va_alist)
 	int	lmode;	/* tty local flags */
 #  endif
 # endif
-	register char	*s,
-			*t;
 	char	ttybuf[32];
 # ifdef TERMIO
 	struct termio sgt;
@@ -818,22 +936,24 @@ proc_strt(bufname, clobber, procname, va_alist)
 	}
 
 # ifdef IRIX_PTYS
-	/*
-	 * _getpty may fork off a child to execute mkpts to make a slave pty
+	/* _getpty may fork off a child to execute mkpts to make a slave pty
 	 * in /dev (if we need more) and set the correct ownership and
 	 * modes on the slave pty.  Since _getpty uses waitpid this works
 	 * fine with regard to our other children, but we do have to be
 	 * prepared to catch a SIGCHLD for an unknown child and ignore it ...
 	 */
-	s = _getpty(&ptyfd, O_RDWR|O_NDELAY, 0600, 0);
-	if (s == NULL) {
-		message("[No ptys!]");
-		goto fail;
+	{
+		register char	*s = _getpty(&ptyfd, O_RDWR | O_NDELAY, 0600, 0);
+
+		if (s == NULL) {
+			message("[No ptys!]");
+			goto fail;
+		}
+		(void)strcpy(ttybuf, s);
 	}
-	(void)strcpy(ttybuf, s);
 # endif /* IRIX_PTYS */
 # ifdef SVR4_PTYS
-	if ((ptyfd = open("/dev/ptmx", O_RDWR)) < 0) {
+	if ((ptyfd = open("/dev/ptmx", O_RDWR | O_BINARY)) < 0) {
 		message("[No ptys!]");
 		goto fail;
 	}
@@ -854,58 +974,62 @@ proc_strt(bufname, clobber, procname, va_alist)
 		goto fail;
 	}
 #  endif /* !GRANTPT_BUG */
-	if ((s = ptsname(ptyfd)) == NULL) {
-		message("[ptsname failed]");
-		goto fail;
-	}
-	strcpy(ttybuf, s);
-	(void) ioctl(ptyfd, TIOCFLUSH, (UnivPtr) NULL);	/* ??? why? */
-# endif /* SVR4_PTYS */
-# ifdef BSD_PTYS
-	for (s = "pqrs"; ptyfd<0; s++) {
-		if (*s == '\0') {
-			message("[Out of ptys!]");
+	{
+		register char	*s = ptsname(ptyfd);
+
+		if (s == NULL) {
+			message("[ptsname failed]");
 			goto fail;
 		}
-		for (t = "0123456789abcdef"; *t; t++) {
-			swritef(ttybuf, sizeof(ttybuf), "/dev/pty%c%c", *s, *t);
-			if ((ptyfd = open(ttybuf, 2)) >= 0) {
-				ttybuf[5] = 't';	/* pty => tty */
-#  ifdef NEVER
-				/* Make sure both ends are available.
-				 * ??? This code seems to confuse BSDI's BSD/386 v1.[01]
-				 * so we have eliminated it.  We leave this scar
-				 * in case the checking was in fact useful on other
-				 * systems.  Part of this checking will still be
-				 * done by the "access" below, but with no recovery.
-				 */
-				if ((i = open(ttybuf, 2)) < 0) {
-					(void) close(ptyfd);
-					ptyfd = -1;
-				} else {
-					(void) close(i);
-					break;
-				}
-#  else
-				break;
+		strcpy(ttybuf, s);
+	}
+#  ifdef TIOCFLUSH
+	(void) ioctl(ptyfd, TIOCFLUSH, (UnivPtr) NULL);	/* ??? why? */
 #  endif
+# endif /* SVR4_PTYS */
+# ifdef BSD_PTYS
+#  ifdef USE_OPENPTY
+	if (openpty(&ptyfd, &slvptyfd, ttybuf, NULL, NULL) < 0)
+	{
+		message("[Out of ptys!]");
+		goto fail;
+	}
+#  else /* !USE_OPENPTY */
+	{
+		register const char	*s;
+
+		for (s = "pqrs"; ptyfd<0; s++) {
+			register const char	*t;
+
+			if (*s == '\0') {
+				message("[Out of ptys!]");
+				goto fail;
+			}
+			for (t = "0123456789abcdef"; *t; t++) {
+				swritef(ttybuf, sizeof(ttybuf), "/dev/pty%c%c", *s, *t);
+				if ((ptyfd = open(ttybuf, O_RDWR | O_BINARY)) >= 0) {
+					ttybuf[5] = 't';	/* pty => tty */
+					/* Make sure other end is available too */
+					slvptyfd = open(ttybuf, O_RDWR | O_BINARY);
+					if (slvptyfd > 0)
+						break;	/* it worked: use this one */
+
+					/* can't open, so give up on this pty */
+					(void) close(ptyfd);
+					ptyfd = slvptyfd = -1;
+				}
 			}
 		}
 	}
+#  endif /* !USE_OPENPTY */
 # endif /* BSD_PTYS */
 	/* Check that we can write to the pty, else things will fail in the
 	 * child, where they're harder to detect.  This will not work with
 	 * GRANTPT_BUG because the grantpt and unlockpt have not been done yet.
 	 */
 # ifndef GRANTPT_BUG
-	if (access(ttybuf, W_OK) != 0) {
-		int	ugh = errno;
-
-		message("[Couldn't access ");
-		message(ttybuf);
-		message(": ");
-		message(strerror(ugh));
-		message("]");
+	if (access(ttybuf, R_OK | W_OK) != 0) {
+		s_mess("[Couldn't access %s: %s]", ttybuf, strerror(errno));
 		goto fail;
 	}
 # endif /* !GRANTPT_BUG */
@@ -930,15 +1054,8 @@ proc_strt(bufname, clobber, procname, va_alist)
 	switch (pid = fork()) {
 	case -1:
 		/* fork failed */
-
-		{
-		int	ugh = errno;	/* hold across library calls */
-
-		message("[Fork failed! ");
-		message(strerror(ugh));
-		message("]");
+		s_mess("[Fork failed! %s]", strerror(errno));
 		goto fail;
-		}
 
 	case 0:
 		/* child process */
@@ -993,28 +1110,41 @@ proc_strt(bufname, clobber, procname, va_alist)
 # else /* !TERMIOS */
 #  ifdef TIOCNOTTY
 		/* get rid of controlling tty */
-		if ((i = open("/dev/tty", 2)) >= 0) {
-			(void) ioctl(i, TIOCNOTTY, (UnivPtr)NULL);
-			(void) close(i);
+		{
+			int	i = open("/dev/tty", O_RDWR | O_BINARY);
+
+			if (i >= 0) {
+				(void) ioctl(i, TIOCNOTTY, (UnivPtr)NULL);
+				(void) close(i);
+			}
 		}
 #  endif /* TIOCNOTTY */
 # endif /* !TERMIOS */
-		if (open(ttybuf, 2) != 0)
+		if (open(ttybuf, O_RDWR | O_BINARY) != 0)
 			_exit(errno+1);
 		(void) dup2(0, 1);
 		(void) dup2(0, 2);
 
+# ifdef BSD_PTYS
+		close(slvptyfd);	/* safe to close now that std* are open */
+# endif /* BSD_PTYS */
+
 # ifdef SVR4_PTYS
+#  ifdef I_PUSH		/* LINUX/glibc no longer even pretends to support this (2008) */
 		(void) ioctl(0, I_PUSH, (UnivPtr) "ptem");
 		(void) ioctl(0, I_PUSH, (UnivPtr) "ldterm");
 		(void) ioctl(0, I_PUSH, (UnivPtr) "ttcompat");
+#  endif
 # endif
 
 # ifdef TIOCSCTTY
-		/* This is needed by OSF.  It may be needed by BSDPOSIX systems.
-		 * It should not hurt any system that define TIOCSCTTY.
+		/* Make this controling tty.
+		 * This is needed by OSF.  It may be needed by BSDPOSIX systems.
+		 * It should not hurt on any system that defines TIOCSCTTY.
 		 */
-		(void) ioctl(0, TIOCSCTTY); /* make this controling tty */
+		if (ioctl(0, TIOCSCTTY) == -1)
+			_exit(errno+1);	/* no good way to signal user */
+
 # endif
 
 # ifndef NO_TIOCREMOTE
@@ -1086,18 +1216,22 @@ proc_strt(bufname, clobber, procname, va_alist)
 # ifdef POSIX_PROCS
 		tcsetpgrp(0, getpid());
 # else /* !POSIX_PROCS */
-		i = getpid();
-		(void) ioctl(0, TIOCSPGRP, (UnivPtr) &i);
+		{
+			int	i = getpid();
+
+			(void) ioctl(0, TIOCSPGRP, (UnivPtr) &i);
+		}
 # endif /* POSIX_PROCS */
 
-		jputenv("EMACS=t");
-		jputenv("TERM=emacs");
-		/* ??? the following line is not useful for terminfo systems */
-		jputenv(sprint("TERMCAP=emacs:co#%d:tc=unknown:", CO-1));
+		set_process_env();
 		execvp(argv[0], &argv[1]);
 		raw_complain("execvp failed! %s", strerror(errno));
 		_exit(errno + 1);
 	}
+
+# ifdef BSD_PTYS
+	close(slvptyfd);
+# endif /* BSD_PTYS */
 
 	newp = (Process) emalloc(sizeof *newp);
 
@@ -1116,8 +1250,9 @@ proc_strt(bufname, clobber, procname, va_alist)
 	newbuf->b_process = newp;	/* sorta circular, eh? */
 	pop_wind(bufname, clobber, B_PROCESS);
 	/* Pop_wind() after everything is set up; important!
-	   Bindings won't work right unless newbuf->b_process is already
-	   set up BEFORE NEWBUF is first SetBuf()'d. */
+	 * Bindings won't work right unless newbuf->b_process is already
+	 * set up BEFORE NEWBUF is first SetBuf()'d.
+	 */
 	ToLast();
 	if (!bolp())
 		LineInsert(1);
@@ -1126,7 +1261,6 @@ proc_strt(bufname, clobber, procname, va_alist)
 	newp->p_io_state = IO_NEW;
 	newp->p_child_state = C_LIVE;
 	newp->p_mark = MakeMark(curline, curchar);
-	newp->p_dbx_mode = NO;
 
 	newp->p_next = procs;
 	procs = newp;
@@ -1139,6 +1273,10 @@ proc_strt(bufname, clobber, procname, va_alist)
 fail:
 	if (ptyfd >= 0)
 		close(ptyfd);
+# ifdef BSD_PTYS
+	if (slvptyfd >= 0)
+		close(slvptyfd);
+# endif /* BSD_PTYS */
 }
 
 /* NOTE 1: SIGCHLD is an asynchronous signal.  To safely handle it,
@@ -1156,7 +1294,7 @@ volatile bool	procs_to_reap = NO;
 /*ARGSUSED*/
 SIGRESTYPE
 sigchld_handler(junk)
-int	junk;	/* needed for signal handler; not used */
+int	UNUSED(junk);	/* needed for signal handler; not used */
 {
 	procs_to_reap = YES;
 	return SIGRESVALUE;
@@ -1196,55 +1334,7 @@ closeiprocs()
 
 #endif /* !PIPEPROCS */
 
-extern char **environ;
-
-private void
-jputenv(def)
-char *def;	/* Note: caller must ensure string persists */
-{
-	char	**p, *eq;
-	static int	headroom = -1;	/* trick: -1 is flag for first time */
-
-	if ((eq = strchr(def, '=')) == NULL)
-		return;
-
-	for (p = environ; ; p++) {
-		if (*p == NULL) {
-			if (headroom <= 0) {
-#				define JENV_INCR	5
-				size_t	sz = ((p-environ) + 1) * sizeof(char *);
-				char	**ne = (char **)malloc(sz + JENV_INCR*sizeof(char *));
-
-				if (ne == NULL)
-					break;
-				byte_copy(environ, ne, sz);
-				p = ne + (p-environ);
-				if (headroom == 0)
-					free((UnivPtr)environ);
-				headroom = JENV_INCR;
-				environ = ne;
-#				undef JENV_INCR
-			}
-			headroom -= 1;
-			*p++ = def;
-			*p = NULL;
-			break;
-		}
-		if (strncmp(*p, def, (size_t) (eq - def + 1)) == 0) {
-			*p = def;
-			break;
-		}
-	}
-}
-
 char	proc_prompt[128] = "% ";	/* VAR: process prompt */
-
-const char *
-dbxness(p)
-Process p;
-{
-	return (p == NULL || !p->p_dbx_mode)? NullStr : "DBX ";
-}
 
 const char *
 pstate(p)
@@ -1297,15 +1387,6 @@ KillProcs()
 /* VAR: dbx-mode parse string */
 char	dbx_parse_fmt[128] = "line \\([0-9]*\\) in \\{file\\|\\} *\"\\([^\"]*\\)\"";
 
-void
-DBXpoutput()
-{
-	if (curbuf->b_process == NULL)
-		complain("[Must be in a process buffer to enable dbx mode]");
-	curbuf->b_process->p_dbx_mode = !curbuf->b_process->p_dbx_mode;
-	UpdModLine = YES;
-}
-
 private void
 watch_input(m)
 Mark	*m;
@@ -1331,8 +1412,8 @@ Mark	*m;
 }
 
 /* Process receive: receives the characters in buf, and appends them to
-   the buffer associated with p. */
-
+ * the buffer associated with p.
+ */
 private void
 proc_rec(p, buf, len)
 register Process	p;
@@ -1371,15 +1452,16 @@ size_t	len;
 		}
 	}
 
-	if (do_disp && p->p_dbx_mode)
+	if (do_disp && BufMinorMode(p->p_buffer, DbxMode))
 		watch_input(p->p_mark);
 	MarkSet(p->p_mark, curline, curchar);
 	if (!sameplace)
 		ToMark(savepoint);	/* back to where we were */
 	DelMark(savepoint);
 	/* redisplay now, instead of right after the ins_str, so that
-	   we don't get a bouncing effect if point is not the same as
-	   the process output position */
+	 * we don't get a bouncing effect if point is not the same as
+	 * the process output position
+	 */
 	if (do_disp) {
 		w->w_line = curline;
 		w->w_char = curchar;
@@ -1398,14 +1480,15 @@ int	sig;
 	if (!child_dead(p)) {
 		if (killpg(p->p_pid, sig) != -1)
 			return YES;
+
 		s_mess("Cannot kill %s!", proc_bufname(p));
 	}
 	return NO;
 }
 
 /* Free process CHILD.  Do all the necessary cleaning up (closing fd's,
-   etc.). */
-
+ * etc.).
+ */
 private void
 free_proc(child)
 Process	child;
@@ -1416,6 +1499,7 @@ Process	child;
 
 	if (!dead(child))
 		return;
+
 	untieDeadProcess(child->p_buffer);
 
 	for (p = procs; p != child; prev = p, p = p->p_next)
@@ -1459,7 +1543,8 @@ ProcList()
 	register Process
 		p,
 		next;
-	char	*fmt = "%-15s  %-15s  %-8s %s",
+	const char	*fmt = "%-15s  %-15s  %-8s %s";
+	char
 		pidstr[16];
 
 	if (procs == NULL) {
@@ -1541,13 +1626,15 @@ bool	newlinep;
 
 	if (dead(p))
 		return;
+
 	/* If the process mark was involved in a big deletion, because
-	   the user hit ^W or something, then let's do some magic with
-	   the process mark.  Problem is that if the user yanks back the
-	   text he deleted, the mark stays at the beginning of the region,
-	   and so the next time SendData() is called the entire region
-	   will be sent.  That's not good.  So, to deal with that we reset
-	   the mark to the last line, after skipping over the prompt, etc. */
+	 * the user hit ^W or something, then let's do some magic with
+	 * the process mark.  Problem is that if the user yanks back the
+	 * text he deleted, the mark stays at the beginning of the region,
+	 * and so the next time SendData() is called the entire region
+	 * will be sent.  That's not good.  So, to deal with that we reset
+	 * the mark to the last line, after skipping over the prompt, etc.
+	 */
 	if (p->p_mark->m_big_delete) {
 		Bufpos	bp;
 
@@ -1557,9 +1644,10 @@ bool	newlinep;
 		ToLast();
 		Bol();
 		/* While we're looking at a prompt, and while we're
-		   moving forward.  This is for people who accidently
-		   set their process-prompt to ">*" which will always
-		   match! */
+		 * moving forward.  This is for people who accidently
+		 * set their process-prompt to ">*" which will always
+		 * match!
+		 */
 		while (LookingAt(proc_prompt, linebuf, curchar)
 		&& (REeom > curchar))
 			curchar = REeom;
@@ -1575,15 +1663,16 @@ bool	newlinep;
 		MarkSet(p->p_mark, curline, curchar);
 	} else {
 		/* Either we're looking at a prompt, or we're not, in
-		   which case we want to strip off the beginning of the
-		   line anything that looks like what the prompt at the
-		   end of the file is.  In other words, if "(dbx) stop in
-		   ProcessNewline" is the line we're on, and the last
-		   line in the buffer is "(dbx) ", then we strip off the
-		   leading "(dbx) " from this line, because we know it's
-		   part of the prompt.  But this only happens if "(dbx) "
-		   isn't one of the process prompts ... follow what I'm
-		   saying? */
+		 * which case we want to strip off the beginning of the
+		 * line anything that looks like what the prompt at the
+		 * end of the file is.  In other words, if "(dbx) stop in
+		 * ProcessNewline" is the line we're on, and the last
+		 * line in the buffer is "(dbx) ", then we strip off the
+		 * leading "(dbx) " from this line, because we know it's
+		 * part of the prompt.  But this only happens if "(dbx) "
+		 * isn't one of the process prompts ... follow what I'm
+		 * saying?
+		 */
 		Bol();
 		if (LookingAt(proc_prompt, linebuf, curchar)) {
 			do {
@@ -1615,9 +1704,13 @@ ShellProc()
 
 	swritef(shbuf, sizeof(shbuf), "*shell-%d*", arg_value());
 	b = buf_exists(shbuf);
-	if (b == NULL || dead(b->b_process))
-		proc_strt(shbuf, NO, "i-shell", Shell, "-is", pr_name(curbuf->b_fname, NO),
+	if (b == NULL || dead(b->b_process)) {
+		char	cbnspace[FILESIZE];
+
+		proc_strt(shbuf, NO, "i-shell", Shell, "-is",
+			curbuf->b_fname == NULL? (char *)NULL : strcpy(cbnspace, pr_name(curbuf->b_fname, NO)),
 			(char *)NULL);
+	}
 	pop_wind(shbuf, NO, -1);
 }
 
@@ -1628,11 +1721,13 @@ Iprocess()
 		*bnm;
 	int	cnt = 1;
 	Buffer	*bp;
-	char	*fn = pr_name(curbuf->b_fname, NO);
+	char	fnspace[FILESIZE];
+	char	*fn = curbuf->b_fname == NULL
+		? NULL : strcpy(fnspace, pr_name(curbuf->b_fname, NO));
 
-	null_ncpy(ShcomBuf, ask(ShcomBuf, ProcFmt), (sizeof ShcomBuf) - 1);
+	jamstr(ShcomBuf, ask(ShcomBuf, ProcFmt));
 	bnm = MakeName(ShcomBuf);
-	null_ncpy(scratch, bnm, (sizeof scratch) - 1);
+	truncstr(scratch, bnm);
 	while ((bp = buf_exists(scratch)) != NULL && !dead(bp->b_process))
 		swritef(scratch, sizeof(scratch), "%s.%d", bnm, cnt++);
 	proc_strt(scratch, YES, ShcomBuf, Shell, ShFlags, ShcomBuf, fn, fn, (char *)NULL);

@@ -1,9 +1,9 @@
-/************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/**************************************************************************
+ * This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    *
+ * provided by Jonathan and Jovehacks without charge and without          *
+ * warranty.  You may copy, modify, and/or distribute JOVE, provided that *
+ * this notice is included in all the source files and documentation.     *
+ **************************************************************************/
 
 #include "jove.h"
 #include "fp.h"
@@ -35,7 +35,7 @@
 #endif
 
 private void
-	DefAutoExec proto((data_obj *(*proc) ptrproto((const char *))));
+	DefAutoExec proto((const data_obj *(*proc) ptrproto((const char *))));
 
 int	InJoverc = 0;
 
@@ -44,8 +44,8 @@ int	InJoverc = 0;
 #define NEXECS	20
 
 private struct AutoExec {
-	char	*a_pattern;
-	data_obj	*a_cmd;
+	const char	*a_pattern;
+	const data_obj	*a_cmd;
 	int	a_arg_state,
 		a_arg_count;
 } AutoExecs[NEXECS];	/* must be initialized by system to 0 */
@@ -70,10 +70,10 @@ MAutoExec()
 
 private void
 DefAutoExec(proc)
-data_obj	*(*proc) ptrproto((const char *));
+const data_obj	*(*proc) ptrproto((const char *));
 {
-	data_obj	*d = (*proc)(ProcFmt);
-	char	*pattern;
+	const data_obj	*d = (*proc)(ProcFmt);
+	const char	*pattern;
 	register struct AutoExec	*p;
 
 	pattern = do_ask("\r\n", NULL_ASK_EXT, (char *) NULL, ": %f %s ", d->Name);
@@ -84,6 +84,7 @@ data_obj	*(*proc) ptrproto((const char *));
 		&& p->a_arg_state == arg_state
 		&& p->a_arg_count == arg_count)
 			return;		/* eliminate duplicates */
+
 	if (ExecIndex >= NEXECS)
 		complain("Too many auto-executes, max %d.", NEXECS);
 	p->a_pattern = copystr(pattern);
@@ -94,10 +95,10 @@ data_obj	*(*proc) ptrproto((const char *));
 }
 
 /* DoAutoExec: NEW and OLD are file names, and if NEW and OLD aren't the
-   same kind of file (i.e., match the same pattern) or OLD is NULL and it
-   matches, OR if the pattern is NULL (none was specified) then, we execute
-   the command associated with that kind of file. */
-
+ * same kind of file (i.e., match the same pattern) or OLD is NULL and it
+ * matches, OR if the pattern is NULL (none was specified) then, we execute
+ * the command associated with that kind of file.
+ */
 void
 DoAutoExec(new, old)
 register char	*new,
@@ -151,13 +152,13 @@ Extend()
 }
 
 /* Read a positive integer from CP.  It must be in base BASE, and
-   complains if it isn't.  If allints, all the characters
-   in the string must be integers or we return NO (failure); otherwise
-   we stop reading at the first nondigit and return YES (success). */
-
+ * complains if it isn't.  If allints, all the characters
+ * in the string must be integers or we return NO (failure); otherwise
+ * we stop reading at the first nondigit and return YES (success).
+ */
 bool
 chr_to_int(cp, base, allints, result)
-register char	*cp;
+register const char	*cp;
 int	base;
 bool	allints;
 register int	*result;
@@ -175,6 +176,7 @@ register int	*result;
 		if (!jisdigit(c)) {
 			if (allints)
 				return NO;
+
 			break;
 		}
 		c = c - '0';
@@ -188,11 +190,11 @@ register int	*result;
 
 int
 ask_int(def, prompt, base)
-char	*def;
-char	*prompt;
+const char	*def;
+const char	*prompt;
 int	base;
 {
-	char	*val = ask(def, prompt);
+	const char	*val = ask(def, prompt);
 	int	value;
 
 	if (!chr_to_int(val, base, YES, &value))
@@ -242,6 +244,17 @@ PrVar()
 }
 
 void
+InsVar()
+{
+	struct variable	*vp = (struct variable *) findvar(ProcFmt);
+	char	prbuf[MAXCOLS];
+
+	vpr_aux(vp, prbuf, sizeof(prbuf));
+	ins_str(prbuf);
+	stickymsg = YES;
+}
+
+void
 vset_aux(vp, prompt)
 const struct variable	*vp;
 char	*prompt;
@@ -273,7 +286,7 @@ char	*prompt;
 
 	case V_BOOL:
 	    {
-		static char	*possible[/*bool*/] = {"off", "on", NULL };
+		static const char	*possible[/*bool*/] = {"off", "on", NULL };
 		bool	*valp = (bool *) vp->v_value;
 		int	newval = complete(possible, possible[!*valp], prompt,
 			CASEIND | ALLOW_OLD | ALLOW_EMPTY);
@@ -299,15 +312,12 @@ char	*prompt;
 
 	case V_STRING:
 	    {
-		char	*str;
+		/* do_ask() so you can set string to "" if you so desire */
+		const char	*str = do_ask("\r\n", NULL_ASK_EXT,
+			(char *) vp->v_value, prompt);
 
-		/* Do_ask() so you can set string to "" if you so desire. */
-		str = do_ask("\r\n", NULL_ASK_EXT, (char *) vp->v_value, prompt);
-		if (str == NULL)
-			str = NullStr;
-		if (strlen(str) >= vp->v_size)
-			complain("string too long");
-		strcpy((char *) vp->v_value, str);
+		jamstrsub((char *) vp->v_value, str == NULL? NullStr : str,
+			vp->v_size);
 		break;
 	    }
 
@@ -388,7 +398,7 @@ SetVar()
  * perhaps we should simulate them.
  */
 
-private char	**Possible;	/* possible arg of complete */
+private const char	*const *Possible;	/* possible arg of complete */
 private int
 	comp_flags,	/* flags arg of complete */
 	comp_value;	/* return value for complete; set by aux_complete */
@@ -413,7 +423,8 @@ ZXchar	c;
 		if (InJoverc)
 			complain("[invalid `?']");
 		/* kludge: in case we're using UseBuffers, in which case
-		   linebuf gets written all over (but restored by TOstop/TOabort) */
+		 * linebuf gets written all over (but restored by TOstop/TOabort)
+		 */
 		strcpy(Minibuf, linebuf);
 		TOstart("Completion");	/* for now ... */
 		for (i = 0; Possible[i] != NULL && !TOabort; i++) {
@@ -458,7 +469,7 @@ ZXchar	c;
 					}
 				}
 				minmatch = numfound == 0
-					? strlen(Possible[i])
+					? (int)strlen(Possible[i])
 					: min(minmatch, numcomp(Possible[lastmatch], Possible[i]));
 				numfound += 1;
 				lastmatch = i;
@@ -500,6 +511,8 @@ ZXchar	c;
 			 * or if we made no progress.
 			 */
 			null_ncpy(linebuf, Possible[lastmatch], (size_t) minmatch);
+			modify();
+			makedirty(curline);
 			Eol();
 			if (c == '\r' || minmatch == len) {
 				add_mess(numfound == 1? " [complete]" : " [ambiguous]");
@@ -512,7 +525,7 @@ ZXchar	c;
 
 int
 complete(possible, def, prompt, flags)
-register char	*possible[];
+register const char	*const *possible;
 const char	*def;
 const char	*prompt;
 int	flags;
@@ -534,13 +547,13 @@ Source()
 		fnamebuf[FILESIZE];
 	bool	silence = is_an_arg();
 
-	swritef(fnamebuf, sizeof(fnamebuf),
+	PathCat(fnamebuf, sizeof(fnamebuf), HomeDir,
 #ifdef MSFILESYSTEM
-		"%s/jove.rc",
+		"jove.rc"
 #else
-		"%s/.joverc",
+		".joverc"
 #endif
-		HomeDir);
+		);
 	(void) ask_file((char *)NULL, fnamebuf, fnamebuf);
 	if (!joverc(fnamebuf) && !silence) {
 		message(IOerr("read", fnamebuf));
@@ -566,6 +579,11 @@ BufPos()
 		nchars += length(lp) + (lp->l_next != NULL);	/* include the NL */
 	}
 
+	/* Note: percent calculation might overflow if there are more
+	 * than 20 megs in a buffer (LONG_MAX may be as small as 2**31 - 1).
+	 * Does not seem worth fixing.  Using unsigned long would double
+	 * the limit, but unsigned long is not in K&R C.
+	 */
 	f_mess("[\"%s\" line %d/%d, char %D/%D (%d%%), cursor = %d/%d]",
 	       filename(curbuf), dotline, i, dotchar, nchars,
 	       (nchars == 0) ? 100 : (int) (((long) dotchar * 100) / nchars),
@@ -596,6 +614,7 @@ char	*cmd;
 			    ip++;
 			if (*ip == '\0')
 				break;
+
 			if (ap == &args[elemsof(args)])
 				complain("Too many args for IF shell command");
 			*ap++ = op;
@@ -725,9 +744,9 @@ char	*file;
 		return NO;
 
 	/* Catch any errors, here, and do the right thing with them,
-	   and then restore the error handle to whoever did a setjmp
-	   last. */
-
+	 * and then restore the error handle to whoever did a setjmp
+	 * last.
+	 */
 	InJoverc += 1;
 	push_env(savejmp);
 	if (setjmp(mainjmp)) {
@@ -819,10 +838,12 @@ char	*file;
 
 				if (Inputp == NULL)
 					break;
+
 				while (jiswhite(*Inputp))
 					Inputp += 1;	/* skip white space */
 				if (*Inputp == '\0' || *Inputp == '\n')
 					break;
+
 				if (this_cmd != ARG_CMD)
 					complain("[junk at end of line]");
 			}

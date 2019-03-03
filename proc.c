@@ -1,9 +1,9 @@
-/************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/**************************************************************************
+ * This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    *
+ * provided by Jonathan and Jovehacks without charge and without          *
+ * warranty.  You may copy, modify, and/or distribute JOVE, provided that *
+ * this notice is included in all the source files and documentation.     *
+ **************************************************************************/
 
 #include "jove.h"
 
@@ -55,8 +55,9 @@
 #endif /* !POSIX_SIGS */
 
 /* This disgusting RE search string parses output from the GREP
-   family, from the pdp11 compiler, pcc, and lint.  Jay (HACK)
-   Fenlasen changed this to work for the lint errors. */
+ * family, from the pdp11 compiler, pcc, and lint.  Jay (HACK)
+ * Fenlasen changed this to work for the lint errors.
+ */
 char	ErrFmtStr[256] = "^\\{\"\\|\\}\\([^:\"( \t]*\\)\\{\"\\, line \\|:\\|(\\} *\\([0-9][0-9]*\\)[:)]\
 \\|::  *\\([^(]*\\)(\\([0-9]*\\))$\
 \\|( \\([^(]*\\)(\\([0-9]*\\)) ),";	/* VAR: format string for parse errors */
@@ -78,7 +79,6 @@ private struct error	*cur_error = NULL,
  * If it deleted, we keep it (dormant) in case it will be pasted back
  * into the same buffer.
  */
-
 void
 ChkErrorLines()
 {
@@ -109,8 +109,8 @@ ChkErrorLines()
 }
 
 /* Add an error to the end of the list of errors.  This is used for
-   parse-{C,LINT}-errors and for the spell-buffer command */
-
+ * parse-{C,LINT}-errors and for the spell-buffer command
+ */
 private struct error *
 AddError(laste, errline, buf, line, charpos)
 struct error	*laste;
@@ -147,13 +147,10 @@ char	*fname,
 	putmatch(1, fname, (size_t)FILESIZE);
 	putmatch(2, lineno, (size_t)FILESIZE);
 
-	/* error had lineno followed fname, so switch the two */
-	if (!jisdigit(lineno[0])) {
-		char	tmp[FILESIZE];
-
-		strcpy(tmp, lineno);
-		strcpy(lineno, fname);
-		strcpy(fname, tmp);
+	/* if error had lineno before fname, switch the two */
+	if (!jisdigit(lineno[0]) && jisdigit(fname[0])) {
+	    putmatch(1, lineno, (size_t)FILESIZE);
+	    putmatch(2, fname, (size_t)FILESIZE);
 	}
 }
 
@@ -162,18 +159,20 @@ char	*fname,
 void
 ErrFree()
 {
-	register struct error	*ep;
+	cur_error = NULL;
+	while (errorlist != NULL) {
+		struct error	*nel = errorlist->er_next;
 
-	for (ep = errorlist; ep != NULL; ep = ep->er_next)
-		free((UnivPtr) ep);
-	errorlist = cur_error = NULL;
+		free((UnivPtr) errorlist);
+		errorlist = nel;
+	}
 }
 
 /* Parse errors of the form specified in ErrFmtStr in the current
-   buffer.  Do a show error of the first error.  This is neat because this
-   will work for any kind of output that prints a file name and a line
-   number on the same line. */
-
+ * buffer.  Do a show error of the first error.  This is neat because this
+ * will work for any kind of output that prints a file name and a line
+ * number on the same line.
+ */
 void
 ErrParse()
 {
@@ -227,9 +226,9 @@ ErrorHasReferents()
 }
 
 /* Go the the next error, if there is one.  Put the error buffer in
-   one window and the buffer with the error in another window.
-   It checks to make sure that the error actually exists. */
-
+ * one window and the buffer with the error in another window.
+ * It checks to make sure that the error actually exists.
+ */
 private void
 ToError(forward)
 bool	forward;
@@ -245,6 +244,7 @@ bool	forward;
 			e = forward ? e->er_next : e->er_prev;
 			if (e == NULL)
 				break;
+
 			cur_error = e;
 		}
 		ShowErr();
@@ -275,9 +275,9 @@ int	wsize;
 }
 
 /* Show the current error, i.e. put the line containing the error message
-   in one window, and the buffer containing the actual error in another
-   window. */
-
+ * in one window, and the buffer containing the actual error in another
+ * window.
+ */
 void
 ShowErr()
 {
@@ -323,13 +323,13 @@ ShowErr()
 char	ShcomBuf[LBSIZE];
 
 /* Make a buffer name given the command `command', i.e. "fgrep -n foo *.c"
-   will return the buffer name "fgrep".  */
-
+ * will return the buffer name "fgrep".
+ */
 char *
 MakeName(command)
 char	*command;
 {
-	static char	bnm[50];
+	static char	bnm[FILESIZE];
 	register char	*cp = bnm,
 			c;
 
@@ -341,7 +341,7 @@ char	*command;
 		c = *command++;
 	}
 	*cp = '\0';
-	strcpy(bnm, basename(bnm));
+	strcpy(bnm, jbasename(bnm));
 
 	return bnm;
 }
@@ -349,8 +349,8 @@ char	*command;
 #ifdef SUBSHELL	/* the body is the rest of this file */
 
 /* Run make, first writing all the modified buffers (if the WtOnMk flag is
-   on), parse the errors, and go the first error. */
-
+ * on), parse the errors, and go the first error.
+ */
 bool	WtOnMk = YES;		/* VAR: write files on compile-it command */
 bool	WrapProcessLines = NO;	/* VAR: wrap process lines at CO-1 chars */
 
@@ -369,12 +369,12 @@ MakeErrors()
 		put_bufs(NO);
 
 	/* When we're not doing make or cc (i.e., the last command
-	   was probably a grep or something) and the user just types
-	   ^X ^E, he probably (possibly, hopefully, usually (in my
-	   case)) doesn't want to do the grep again but rather wants
-	   to do a make again; so we ring the bell and insert the
-	   default command and let the person decide. */
-
+	 * was probably a grep or something) and the user just types
+	 * ^X ^E, he probably (possibly, hopefully, usually (in my
+	 * case)) doesn't want to do the grep again but rather wants
+	 * to do a make again; so we ring the bell and insert the
+	 * default command and let the person decide.
+	 */
 	if (is_an_arg()
 	|| !(sindex("make", make_cmd) || sindex("cc", make_cmd)))
 	{
@@ -383,8 +383,7 @@ MakeErrors()
 		/* insert the default for the user (Kludge: only if Inputp is free) */
 		if (Inputp == NULL)
 			Inputp = make_cmd;
-		null_ncpy(make_cmd, ask(make_cmd, "Compilation command: "),
-				sizeof (make_cmd) - 1);
+		jamstr(make_cmd, ask(make_cmd, "Compilation command: "));
 	}
 	com_finish(UnixToBuf(UTB_DISP|UTB_CLOBBER|UTB_ERRWIN|UTB_SH,
 		MakeName(make_cmd), (char *)NULL, make_cmd), make_cmd);
@@ -399,7 +398,7 @@ MakeErrors()
 
 private void
 SpelParse(bname)
-char	*bname;
+const char	*bname;
 {
 	Buffer	*buftospel,
 		*wordsb;
@@ -441,8 +440,8 @@ char	*bname;
 void
 SpelBuffer()
 {
-	char	*Spell = "Spell",
-		com[100];
+	static const char	Spell[] = "Spell";
+	char	com[100];
 	Buffer	*savebp = curbuf;
 
 	if (curbuf->b_fname == NULL)
@@ -465,7 +464,7 @@ void
 SpelWords()
 {
 	Buffer	*wordsb = curbuf;
-	char	*buftospel = ask_buf((Buffer *)NULL, ALLOW_OLD | ALLOW_INDEX);
+	const char	*buftospel = ask_buf((Buffer *)NULL, ALLOW_OLD | ALLOW_INDEX);
 
 	SetBuf(do_select(curwind, buftospel));
 	SpelParse(wordsb->b_name);
@@ -479,22 +478,22 @@ ShToBuf()
 	char	bnm[128],
 		cmd[LBSIZE];
 
-	strcpy(bnm, ask((char *)NULL, "Buffer: "));
-	strcpy(cmd, ask(ShcomBuf, "Command: "));
+	jamstr(bnm, ask((char *)NULL, "Buffer: "));
+	jamstr(cmd, ask(ShcomBuf, "Command: "));
 	DoShell(bnm, cmd);
 }
 
 void
 ShellCom()
 {
-	null_ncpy(ShcomBuf, ask(ShcomBuf, ProcFmt), (sizeof ShcomBuf) - 1);
+	jamstr(ShcomBuf, ask(ShcomBuf, ProcFmt));
 	DoShell(MakeName(ShcomBuf), ShcomBuf);
 }
 
 void
 ShNoBuf()
 {
-	null_ncpy(ShcomBuf, ask(ShcomBuf, ProcFmt), (sizeof ShcomBuf) - 1);
+	jamstr(ShcomBuf, ask(ShcomBuf, ProcFmt));
 	com_finish(UnixToBuf(UTB_SH|UTB_FILEARG, (char *)NULL, (char *)NULL,
 		ShcomBuf), ShcomBuf);
 }
@@ -504,7 +503,7 @@ Shtypeout()
 {
 	wait_status_t	status;
 
-	null_ncpy(ShcomBuf, ask(ShcomBuf, ProcFmt), (sizeof ShcomBuf) - 1);
+	jamstr(ShcomBuf, ask(ShcomBuf, ProcFmt));
 	status = UnixToBuf(UTB_DISP|UTB_SH|UTB_FILEARG, (char *)NULL, (char *)NULL,
 		ShcomBuf);
 #ifdef MSDOS_PROCS
@@ -526,9 +525,9 @@ Shtypeout()
 }
 
 /* Run the shell command into `bnm'.  Empty the buffer except when we
-   give a numeric argument, in which case it inserts the output at the
-   current position in the buffer.  */
-
+ * give a numeric argument, in which case it inserts the output at the
+ * current position in the buffer.
+ */
 private void
 DoShell(bnm, command)
 char	*bnm,
@@ -621,45 +620,47 @@ wait_status_t	*status;	/* may be NULL */
 #endif /* !MSDOS_PROCS */
 
 /* Run the command cmd.  Output to the buffer named bnm (if not
-   NULL), first erasing bnm (if UTB_DISP and UTB_CLOBBER), and
-   redisplay (if UTB_DISP).  Leaves bnm as the current buffer and
-   leaves any windows it creates lying around.  It's up to the
-   caller to fix everything up after we're done.  (Usually there's
-   nothing to fix up.)
-
-   If bnm is non-NULL, the process output goes to that buffer.
-   Furthermore, if UTB_DISP, the buffer is displayed in a window.
-   If not UTB_DISP, the buffer is not given a window (of course it
-   might already have one).  If UTB_DISP and UTB_CLOBBER, the buffer
-   is emptied initially.  If UTB_DISP and UTB_ERRWIN, that window's
-   size is as specified by the variable error-window-size.
-
-   If bnm is NULL, the process output does not go to a buffer.  In this
-   case, if UTB_DISP, it is displayed using Typeout; if not UTB_DISP,
-   the output is discarded.
-
-   Only if UTB_DISP and bnm is non-NULL are UTB_ERRWIN and
-   UTB_CLOBBER meaningful. */
-
+ * NULL), first erasing bnm (if UTB_DISP and UTB_CLOBBER), and
+ * redisplay (if UTB_DISP).  Leaves bnm as the current buffer and
+ * leaves any windows it creates lying around.  It's up to the
+ * caller to fix everything up after we're done.  (Usually there's
+ * nothing to fix up.)
+ *
+ * If bnm is non-NULL, the process output goes to that buffer.
+ * Furthermore, if UTB_DISP, the buffer is displayed in a window.
+ * If not UTB_DISP, the buffer is not given a window (of course it
+ * might already have one).  If UTB_DISP and UTB_CLOBBER, the buffer
+ * is emptied initially.  If UTB_DISP and UTB_ERRWIN, that window's
+ * size is as specified by the variable error-window-size.
+ *
+ * If bnm is NULL, the process output does not go to a buffer.  In this
+ * case, if UTB_DISP, it is displayed using Typeout; if not UTB_DISP,
+ * the output is discarded.
+ *
+ * Only if UTB_DISP and bnm is non-NULL are UTB_ERRWIN and
+ * UTB_CLOBBER meaningful.
+ */
 wait_status_t
 UnixToBuf(flags, bnm, InFName, cmd)
 	int	flags;	/* bunch of booleans: see UTB_* in proc.h */
-	char	*bnm;	/* buffer name (NULL means none) */
-	char	*InFName;	/* name of file for process stdin (NULL means none) */
-	char	*cmd;	/* command to run */
+	const char	*bnm;	/* buffer name (NULL means none) */
+	const char	*InFName;	/* name of file for process stdin (NULL means none) */
+	const char	*cmd;	/* command to run */
 {
 #ifndef MSDOS_PROCS
 	int	p[2];
 	wait_status_t	status;
 	SIGHANDLERTYPE	old_int;
+	char	bfn[FILESIZE];	/* buffer file name */
+	char	bln[10];	/* buffer line number (big enough for any line number) */
+	char	bc[6];	/* buffer column (big enough for any column) */
 #else /* MSDOS_PROCS */
 	char	cmdbuf[129];
 	int	status;
-	char	pnbuf[FILESIZE];
-	char	*pipename;
+	char	pipename[FILESIZE];
 #endif /* MSDOS_PROCS */
 	bool	eof;
-	char	*argv[7];	/* worst case: /bin/sh sh -cf "echo $1" $1 $1 NULL */
+	char	*argv[9];	/* worst case: /bin/sh sh -cf "echo $1" $1 $1 $2 $3 NULL */
 	char	**ap = argv;
 	File	*fp;
 #ifdef SIGINTMASK_DECL
@@ -671,9 +672,9 @@ UnixToBuf(flags, bnm, InFName, cmd)
 	SlowCmd += 1;;
 	if (flags & UTB_SH) {
 			*ap++ = Shell;
-			*ap++ = basename(Shell);
+			*ap++ = (char *)jbasename(Shell);	/* lose const (but it's safe) */
 			*ap++ = ShFlags;
-			*ap++ = cmd;
+			*ap++ = (char *)cmd;	/* lose const (but it's safe) */
 #ifdef MSDOS_PROCS
 			/* Kludge alert!
 			 * UNIX-like DOS shells and command.com-like DOS shells
@@ -707,16 +708,26 @@ UnixToBuf(flags, bnm, InFName, cmd)
 			 * of the Bourne shell take the first as their own name
 			 * for error reporting.)
 			 */
-			if (flags & UTB_FILEARG) {
-				char	*fn = pr_name(curbuf->b_fname, NO);
+			if ((flags & UTB_FILEARG) && curbuf->b_fname != NULL) {
+				strcpy(bfn, pr_name(curbuf->b_fname, NO));
+				*ap++ = bfn;
+				*ap++ = bfn;
+				{
+					int ln = 1;	/* origin 1 */
+					LinePtr lp;
 
-				*ap++ = fn;	/* NOTE: NULL simply terminates argv */
-				*ap++ = fn;
+					for (lp = curbuf->b_first; lp != curline; lp = lp->l_next)
+						ln++;
+					swritef(bln, sizeof(bln), "%d", ln);
+					*ap++ = bln;
+				}
+				swritef(bc, sizeof(bc), "%d", curchar + 1);	/* origin 1 */
+				*ap++ = bc;
 			}
 #endif /* !MSDOS_PROCS */
 	} else {
-		*ap++ = cmd;
-		*ap++ = basename(cmd);
+		*ap++ = (char *)cmd;	/* lose const (but it's safe) */
+		*ap++ = (char *)jbasename(cmd);	/* lose const (but it's safe) */
 	}
 	*ap++ = NULL;
 
@@ -742,21 +753,22 @@ UnixToBuf(flags, bnm, InFName, cmd)
 		}
 	}
 	/* Now I will attempt to describe how I deal with signals during
-	   the execution of the shell command.  My desire was to be able
-	   to interrupt the shell command AS SOON AS the window pops up.
-	   So, if we have SIGINT_BLOCK (i.e., a modern signal mechanism)
-	   I hold SIGINT, meaning if we interrupt now, we will eventually
-	   see the interrupt, but not before we are ready for it.  We
-	   fork, the child releases the interrupt, it then sees the
-	   interrupt, and so exits.  Meanwhile the parent ignores the
-	   signal, so if there was a pending one, it's now lost.
-
-	   Without SIGINT_BLOCK, the best behavior you can expect is that
-	   when you type ^] too soon after the window pops up, it may
-	   be ignored.  The behavior BEFORE was that it would interrupt
-	   JOVE and then you would have to continue JOVE and wait a
-	   little while longer before trying again.  Now that is fixed,
-	   in that you just have to type it twice. */
+	 * the execution of the shell command.  My desire was to be able
+	 * to interrupt the shell command AS SOON AS the window pops up.
+	 * So, if we have SIGINT_BLOCK (i.e., a modern signal mechanism)
+	 * I hold SIGINT, meaning if we interrupt now, we will eventually
+	 * see the interrupt, but not before we are ready for it.  We
+	 * fork, the child releases the interrupt, it then sees the
+	 * interrupt, and so exits.  Meanwhile the parent ignores the
+	 * signal, so if there was a pending one, it's now lost.
+	 *
+	 * Without SIGINT_BLOCK, the best behavior you can expect is that
+	 * when you type ^] too soon after the window pops up, it may
+	 * be ignored.  The behavior BEFORE was that it would interrupt
+	 * JOVE and then you would have to continue JOVE and wait a
+	 * little while longer before trying again.  Now that is fixed,
+	 * in that you just have to type it twice.
+	 */
 
 #ifndef MSDOS_PROCS
 	dopipe(p);
@@ -785,6 +797,7 @@ UnixToBuf(flags, bnm, InFName, cmd)
 		complain("[Fork failed: %s]", strerror(fork_errno));
 	}
 	if (ChildPid == 0) {
+		const char	*a;	/* action name (for error message) */
 # ifdef USE_VFORK
 		/* There are several other forks in Jove, but this is
 		 * the only one we execute often enough to make it worth
@@ -801,12 +814,16 @@ UnixToBuf(flags, bnm, InFName, cmd)
 		SIGINT_UNBLOCK();
 #  endif
 # endif /* !USE_VFORK */
-		(void) close(0);
-		(void) open(InFName==NULL? "/dev/null" : InFName, 0);
-		(void) close(1);
-		(void) dup(p[1]);
-		(void) close(2);
-		(void) dup(p[1]);
+		if (!((a = "close 0", close(0)) == 0
+		&& (a = "open", open(InFName==NULL? "/dev/null" : InFName, O_RDONLY | O_BINARY)) == 0
+		&& (a = "close 1", close(1)) == 0
+		&& (a = "dup 1", dup(p[1])) == 1
+		&& (a = "close 2", close(2)) == 0
+		&& (a = "dup 2", dup(p[1])) == 2)) {
+			raw_complain("% in setup for child failed: %s", a, strerror(errno));
+			_exit(1);
+		}
+
 		pipeclose(p);
 		jcloseall();
 		execv(argv[0], &argv[1]);
@@ -826,10 +843,8 @@ UnixToBuf(flags, bnm, InFName, cmd)
 		bool	InFailure;
 		int	ph;
 
-		swritef(pnbuf, sizeof(pnbuf), "%s/%s", TmpDir, "jpXXXXXX");
-		pipename = mktemp(pnbuf);
-		if ((ph = creat(pipename, S_IWRITE|S_IREAD)) < 0)
-			complain("cannot make pipe for filter: %s", strerror(errno));
+		PathCat(pipename, sizeof(pipename), TmpDir, "jpXXXXXX");
+		ph = MakeTemp(pipename, "cannot make tempfile \"%s\" for filter");
 		close(1);
 		close(2);
 		dup(ph);
@@ -837,7 +852,7 @@ UnixToBuf(flags, bnm, InFName, cmd)
 		close(ph);
 
 		close(0);
-		InFailure = InFName != NULL && open(InFName, 0) < 0;
+		InFailure = InFName != NULL && open(InFName, O_RDONLY | O_BINARY) < 0;
 		if (!InFailure)
 			status = spawnv(0, argv[0], &argv[1]);
 
@@ -855,7 +870,7 @@ UnixToBuf(flags, bnm, InFName, cmd)
 			complain("[filter input failed]");
 		if (status < 0)
 			s_mess("[Spawn failed %d]", errno);
-		ph = open(pipename, 0);
+		ph = open(pipename, O_RDONLY | O_BINARY);
 		if (ph < 0)
 			complain("[cannot reopen pipe]", strerror(errno));
 		fp = fd_open(argv[1], F_READ, ph, iobuff, LBSIZE);
@@ -896,7 +911,7 @@ UnixToBuf(flags, bnm, InFName, cmd)
 	unlink(pipename);
 	getCWD();
 # ifdef WINRESIZE
-	ResizePending = YES;   /* In case subproc did a MODE command or something */
+	ResizePending = YES;	/* In case subproc did a MODE command or something */
 # endif
 #endif /* MSDOS_PROCS */
 	SlowCmd -= 1;;
@@ -904,8 +919,8 @@ UnixToBuf(flags, bnm, InFName, cmd)
 }
 
 /* Send the current region to CMD and insert the output from the
-   command into OUT_BUF. */
-
+ * command into OUT_BUF.
+ */
 private void
 RegToUnix(outbuf, cmd, wrap)
 Buffer	*outbuf;
@@ -913,8 +928,7 @@ char	*cmd;
 bool	wrap;
 {
 	Mark	*m = CurMark();
-	static char	tnambuf[FILESIZE];
-	char	*tname;
+	static char	tname[FILESIZE];
 	Window	*save_wind = curwind;
 	volatile wait_status_t	status;
 	volatile bool	err = NO;
@@ -922,8 +936,11 @@ bool	wrap;
 	File	*volatile fp;
 	jmp_buf	sav_jmp;
 
-	swritef(tnambuf, sizeof(tnambuf), "%s/%s", TmpDir, "jfXXXXXX");
-	tname = mktemp(tnambuf);
+	PathCat(tname, sizeof(tname), TmpDir, "jfXXXXXX");
+
+	/* safe version of mktemp */
+	close(MakeTemp(tname, "can't create tempfile \"%s\" for filter"));
+
 	fp = open_file(tname, iobuff, F_WRITE, YES);
 	push_env(sav_jmp);
 	if (setjmp(mainjmp) == 0) {
@@ -950,15 +967,14 @@ FilterRegion()
 {
 	static char FltComBuf[LBSIZE];
 
-	null_ncpy(FltComBuf, ask(FltComBuf, ": %f (through command) "),
-		  (sizeof FltComBuf) - 1);
+	jamstr(FltComBuf, ask(FltComBuf, ": %f (through command) "));
 	RegToUnix(curbuf, FltComBuf, NO);
 	this_cmd = UNDOABLECMD;
 }
 
 void
 isprocbuf(bnm)
-char	*bnm;
+const char	*bnm;
 {
 	Buffer	*bp;
 

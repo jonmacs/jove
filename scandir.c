@@ -1,9 +1,9 @@
-/************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/**************************************************************************
+ * This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    *
+ * provided by Jonathan and Jovehacks without charge and without          *
+ * warranty.  You may copy, modify, and/or distribute JOVE, provided that *
+ * this notice is included in all the source files and documentation.     *
+ **************************************************************************/
 
 /*
  * This file is used as a compiled module by Jove and also included as
@@ -57,11 +57,11 @@ DIR	*dp;
 
 private DIR *
 opendir(dir)
-char	*dir;
+const char	*dir;
 {
 	int	fd;
 
-	if ((fd = open(dir, 0)) != -1) {
+	if ((fd = open(dir, O_RDONLY | O_BINARY)) != -1) {
 		struct stat	stbuf;
 
 		if ((fstat(fd, &stbuf) != -1)
@@ -96,11 +96,11 @@ DIR	*dp;
 #endif /* DIRENT_EMULATE */
 
 /* jscandir returns the number of entries or -1 if the directory cannot
-   be opened or malloc fails. */
-
+ * be opened or malloc fails.
+ */
 int
 jscandir(dir, nmptr, qualify, sorter)
-char	*dir;
+const char	*dir;
 char	***nmptr;
 bool	(*qualify) ptrproto((char *));
 int	(*sorter) ptrproto((UnivConstPtr, UnivConstPtr));
@@ -108,23 +108,20 @@ int	(*sorter) ptrproto((UnivConstPtr, UnivConstPtr));
 	DIR	*dirp;
 	struct  dirent	*entry;
 	char	**ourarray;
-	unsigned int	nalloc = 10,
-			nentries = 0;
+	unsigned int	nalloc = 10;
+	size_t	nentries = 0;
 
 	if ((dirp = opendir(dir)) == NULL)
 		return -1;
+
 	ourarray = (char **) emalloc(nalloc * sizeof (char *));
 	while ((entry = readdir(dirp)) != NULL) {
 		if (qualify != NULL && !(*qualify)(entry->d_name))
 			continue;
+
 		/* note: test ensures one space left in ourarray for NULL */
 		if (nentries+1 == nalloc)
 			ourarray = (char **) erealloc((UnivPtr) ourarray, (nalloc += 10) * sizeof (char *));
-# ifdef DIRECTORY_ADD_SLASH
-		/* ??? what the heck is this?  dirent doesn't have this info. */
-		if ((entry.attrib&_A_SUBDIR) != 0)
-			strcat(entry->d_name, "/");
-# endif
 		ourarray[nentries++] = copystr(entry->d_name);
 	}
 	closedir(dirp);
@@ -140,6 +137,11 @@ int	(*sorter) ptrproto((UnivConstPtr, UnivConstPtr));
 #endif /* UNIX */
 
 #ifdef MSFILESYSTEM
+/* NOTE: MatchDir affects any call to jscandir!
+ * Currently, the only calls to jscandir are from:
+ * - the recover program (which never touches MatchDir)
+ * - descendants of ask_file or ask_dir (which always set it)
+ */
 bool	MatchDir = NO;
 #endif
 
@@ -151,11 +153,11 @@ bool	MatchDir = NO;
 # endif
 
 /* Scandir returns the number of entries or -1 if the directory cannot
-   be opened or malloc fails. */
-
+ * be opened or malloc fails.
+ */
 int
 jscandir(dir, nmptr, qualify, sorter)
-char	*dir;
+const char	*dir;
 char	***nmptr;
 bool	(*qualify) ptrproto((char *));
 int	(*sorter) ptrproto((UnivConstPtr, UnivConstPtr));
@@ -175,8 +177,8 @@ int	(*sorter) ptrproto((UnivConstPtr, UnivConstPtr));
 			*++ptr = '/';
 		strcpy(ptr+1, "*.*");
 
-		if (_dos_findfirst(dirname, MatchDir? _A_SUBDIR : _A_NORMAL|_A_RDONLY|_A_HIDDEN|_A_SUBDIR, &entry))
-		   return -1;
+		if (_dos_findfirst(dirname, _A_NORMAL|_A_RDONLY|_A_HIDDEN|_A_SUBDIR, &entry))
+			return -1;
 	}
 	ourarray = (char **) emalloc(nalloc * sizeof (char *));
 	do  {
@@ -184,9 +186,11 @@ int	(*sorter) ptrproto((UnivConstPtr, UnivConstPtr));
 
 		if (MatchDir && (entry.attrib&_A_SUBDIR) == 0)
 			continue;
+
 		strlwr(entry.name);
 		if (qualify != NULL && !(*qualify)(entry.name))
 			continue;
+
 		/* note: test ensures one space left in ourarray for NULL */
 		if (nentries+1 == nalloc)
 			ourarray = (char **) erealloc((char *) ourarray, (nalloc += 10) * sizeof (char *));
@@ -213,8 +217,8 @@ int	(*sorter) ptrproto((UnivConstPtr, UnivConstPtr));
 # include <windows.h>
 
 /* Scandir returns the number of entries or -1 if the directory cannot
-   be opened or malloc fails. */
-
+ * be opened or malloc fails.
+ */
 int
 jscandir(dir, nmptr, qualify, sorter)
 char	*dir;
@@ -247,10 +251,12 @@ int	(*sorter) ptrproto((UnivConstPtr, UnivConstPtr));
 
 		if (MatchDir && (entry.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY) == 0)
 			continue;
+
 		strcpy(filename, entry.cFileName);
 		strlwr(entry.cFileName);
 		if (qualify != NULL && !(*qualify)(entry.cFileName))
 			continue;
+
 		/* note: test ensures one space left in ourarray for NULL */
 		if (nentries+1 == nalloc)
 			ourarray = (char **) erealloc((char *) ourarray, (nalloc += 10) * sizeof (char *));

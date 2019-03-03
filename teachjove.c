@@ -1,9 +1,9 @@
-/************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/**************************************************************************
+ * This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    *
+ * provided by Jonathan and Jovehacks without charge and without          *
+ * warranty.  You may copy, modify, and/or distribute JOVE, provided that *
+ * this notice is included in all the source files and documentation.     *
+ **************************************************************************/
 
 #include "tune.h"
 #include "paths.h"
@@ -36,7 +36,7 @@ extern int	execlp proto((const char */*file*/, const char */*arg*/, ...));
 # endif
 
 
-static char	ShareDir[FILESIZE] = SHAREDIR;
+static const char	*ShareDir = SHAREDIR;
 
 int
 main(argc, argv)
@@ -54,12 +54,13 @@ char	*argv[];
 			printf("teachjove: -s argument too long\n");
 			exit(-1);
 		}
-		strcpy(ShareDir, argv[2]);
+		ShareDir = argv[2];
 	} else if (argc != 1) {
 		printf("Usage: teachjove [-s sharedir]\n");
 		exit(-1);
 	}
 	/* ??? "teach-jove" is too long for MSDOS */
+	/* ??? should use snprintf, but not available in old C */
 	(void) sprintf(teachjove, "%s/teach-jove", ShareDir);
 	if ((home = getenv("HOME")) == NULL) {
 		printf("teachjove: cannot find your home!\n");
@@ -68,8 +69,14 @@ char	*argv[];
 	/* ??? "teach-jove" is too long for MSDOS */
 	(void) sprintf(fname, "%s/teach-jove", home);
 	if (access(fname, F_OK) != 0) {
+		int r;
+
 		(void) sprintf(cmd, "cp %s %s; chmod 644 %s", teachjove, fname, fname);
-		system(cmd);
+		r = system(cmd);
+		if (r != 0) {
+			printf("teachjove: cannot execute \"%s\"\n", cmd);
+			exit(-1);
+		}
 	}
 	(void) execlp("jove", "teachjove", fname, (char *) NULL);
 	printf("teachjove: cannot execl jove!\n");

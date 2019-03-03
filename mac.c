@@ -1,9 +1,9 @@
-/************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/**************************************************************************
+ * This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    *
+ * provided by Jonathan and Jovehacks without charge and without          *
+ * warranty.  You may copy, modify, and/or distribute JOVE, provided that *
+ * this notice is included in all the source files and documentation.     *
+ **************************************************************************/
 
 
 /* (C) 1986, 1987, 1988 Ken Mitchum.  This code is intended only for use with Jove. */
@@ -229,8 +229,9 @@ bool	n;	/* also used as subscript! */
 }
 
 /* Surrogate unix-style file i/o routines for Jove.  These replace the
-   routines distributed in the libraries.  They work with Jove, but may
-   not be general enough for other purposes. */
+ * routines distributed in the libraries.  They work with Jove, but may
+ * not be general enough for other purposes.
+ */
 
 #define NFILES 10
 
@@ -355,9 +356,9 @@ const char *file;
 private int do_creat proto((HParmBlkPtr p, StringPtr nm));
 
 int
-creat(name, perm)	/* permission mode is irrelevant on a Mac */
+creat(name, perm)
 const char	*name;
-int	perm;
+jmode_t	perm;	/* perm is irrelevant on a Mac */
 {
 	int fd, err;
 	StringPtr nm;
@@ -374,8 +375,10 @@ int	perm;
 	p.fileParam.ioNamePtr = nm;
 	if ((err = PBHDelete(&p, 0)) != noErr && err != fnfErr)
 		return cvt_err(err);
+
 	if (do_creat(&p, nm) != 0)
 		return -1;
+
 	ft[fd].inuse = YES;
 	ft[fd].refnum = p.ioParam.ioRefNum;
 	return fd + 1;
@@ -403,14 +406,14 @@ int	flags;
 		}
 	}
 	fsetup(&p);
-	switch (flags & 3) {
-	case 0:	/* O_RDONLY */
+	switch (flags & 03) {
+	case O_RDONLY:
 		p.ioParam.ioPermssn = fsRdPerm;
 		break;
-	case 1:	/* O_WRONLY */
+	case O_WRONLY:
 		p.ioParam.ioPermssn = fsWrPerm;
 		break;
-	case 2:	/* O_RDWR */
+	case O_RDWR:
 		p.ioParam.ioPermssn = fsRdWrPerm;
 		break;
 	}
@@ -418,11 +421,13 @@ int	flags;
 	p.ioParam.ioMisc = 0;
 	if ((err = PBHOpen(&p, 0)) != noErr)
 		return cvt_err(err);
+
 	ft[fd].refnum = p.ioParam.ioRefNum;
 	p.ioParam.ioPosMode = fsFromStart;
 	p.ioParam.ioPosOffset = 0;
 	if ((err = PBSetFPos((ParamBlockRec *) &p, 0)) != noErr)
 		return cvt_err(err);
+
 	ft[fd].inuse = YES;
 	errno = 0;
 	return fd + 1;
@@ -556,6 +561,7 @@ size_t	n;
 		p.ioPosOffset = 0L;	/* bidirectional */
 		if ((err = PBWrite((ParamBlockRec *)&p, 0)) != noErr)
 			return cvt_err(err);
+
 		return p.ioActCount;
 	}
 }
@@ -563,7 +569,7 @@ size_t	n;
 long
 lseek(fd, offset, whence)
 int	fd;
-long	offset;
+off_t	offset;
 int	whence;
 {
 	int err;
@@ -615,6 +621,7 @@ int	whence;
 	p.ioPosMode = fsFromStart;
 	if ((err = PBSetFPos((ParamBlockRec *)&p, 0)) != noErr)
 		return cvt_err(err);
+
 	errno = 0;
 	return p.ioPosOffset;
 }
@@ -632,6 +639,7 @@ const char *name;
 	p.fileParam.ioNamePtr = cvt_fnm(name);
 	if ((err = PBHDelete(&p, 0)) != noErr && err != fnfErr)
 		return cvt_err(err);
+
 	return 0;
 }
 
@@ -711,9 +719,9 @@ struct stat *buf;
 }
 
 /* Directory related routines.  Jove keeps track of the true Volume (disk)
-   number and directory number, and avoids "Working Directory Reference
-   Numbers", which are confusing. */
-
+ * number and directory number, and avoids "Working Directory Reference
+ * Numbers", which are confusing.
+ */
 private int
 getdir()	/* call this only once, during startup. */
 {
@@ -723,6 +731,7 @@ getdir()	/* call this only once, during startup. */
 	p.ioNamePtr = NULL;
 	if (PBHGetVol(&p, 0) != noErr)
 		return -1;	/* BIG trouble (but caller never checks returned value!) */
+
 	cur_vol = p.ioWDVRefNum;
 	cur_dir = p.ioWDDirID;
 	SFSaveDisk = 0 - cur_vol;	/* these are for SF dialogs */
@@ -795,17 +804,18 @@ const char *dir;
 	|| !lookupdir(dir, &d)
 	|| setdir(d.dirInfo.ioVRefNum, d.dirInfo.ioDrDirID) < 0)
 		return -1;
+
 	return 0;
 }
 
 /* Scandir returns the number of entries or -1 if the directory cannot
-   be opened or malloc fails.
-   Note: if we ever support RECOVER, this code will have to be moved
-   to scandir.c */
-
+ * be opened or malloc fails.
+ * Note: if we ever support RECOVER, this code will have to be moved
+ * to scandir.c
+ */
 int
 jscandir(dir, nmptr, qualify, sorter)
-char	*dir;
+const char	*dir;
 char	***nmptr;
 bool	(*qualify) ptrproto((char *));
 int	(*sorter) ptrproto((UnivConstPtr, UnivConstPtr));
@@ -825,6 +835,7 @@ int	(*sorter) ptrproto((UnivConstPtr, UnivConstPtr));
 
 		if (!lookupdir(dir, &d))
 			return -1;
+
 		DirID = d.dirInfo.ioDrDirID;
 	}
 
@@ -843,6 +854,7 @@ int	(*sorter) ptrproto((UnivConstPtr, UnivConstPtr));
 			d.volumeParam.ioVolIndex = index++;
 			if (PBGetVInfo(&d, 0) != noErr)
 				break;	/* we are done, then */
+
 			PtoCstr(name);
 #ifdef DIRECTORY_ADD_SLASH
 			/* I *think* this has got to be a volume */
@@ -861,6 +873,7 @@ int	(*sorter) ptrproto((UnivConstPtr, UnivConstPtr));
 			d.dirInfo.ioDrDirID = DirID;	/* .ioDirID == .ioDrDirID */
 			if (PBGetCatInfo(&d, 0) != noErr)
 				break;	/* we are done, then */
+
 			PtoCstr(name);
 #ifdef DIRECTORY_ADD_SLASH
 			if (d.dirInfo.ioFlAttrib & 0x10)	/* see Inside Mac IV-122 */
@@ -869,6 +882,7 @@ int	(*sorter) ptrproto((UnivConstPtr, UnivConstPtr));
 		}
 		if (qualify != NULL && !(*qualify)((char *) name))
 			continue;
+
 		/* note: test ensures one space left in ourarray for NULL */
 		if (nentries+1 == nalloc)
 			ourarray = (char **) erealloc((char *) ourarray, (nalloc += 10) * sizeof (char *));
@@ -917,7 +931,8 @@ size_t	size;
 		if (d.dirInfo.ioDrDirID == 2)
 			break;	/* home directory */
 	}
-	strcpy(buf, p);	/* left justify */
+	/* strcpy(buf, p) won't do because the destination overlaps the source */
+	memmove((UnivPtr)buf, (UnivPtr)p, buf + size - p);	/* left justify */
 	return buf;
 }
 
@@ -979,6 +994,7 @@ about_j()
 
 	if ((theWindow = makedisplay()) == 0)
 		return;
+
 	SetPort(theWindow);
 	if (theList = makelist()) {
 		LActivate(1, theList);
@@ -1010,6 +1026,7 @@ makedisplay()
 	if (dlogid == 0) {
 		if ((theResource = GetNamedResource('DLOG', DLOGNAME)) == NULL)
 			return (WindowPtr)NULL;
+
 		itemType = 'DLOG';
 		GetResInfo(theResource, &dlogid, &resType, buf);
 	}
@@ -1017,7 +1034,7 @@ makedisplay()
 	theDialog = GetNewDialog(dlogid, 0L, (WindowPtr) -1);
 	nostring[0] = 0;	/* set length of Pascal String to 0 */
 	ParamText(
-		"\pMacJove - Copyright (C) 1986-1996 J. Payne, K. Gegenfurtner,",
+		"\pMacJove - Copyright (C) 1986-1999 J. Payne, K. Gegenfurtner,",
 		"\pK. Mitchum. Portions (C) THINK Technologies, Inc.",
 		nostring, nostring);
 
@@ -1175,8 +1192,8 @@ do_events()
 /* Window and Control related routines. */
 
 /* (ORIGINALLY IN) tcon.c.
-   control handler routines for Jove. K. Mitchum 12/86 */
-
+ * control handler routines for Jove. K. Mitchum 12/86
+ */
 
 #define MINC 0
 #define MAXC 100
@@ -1484,6 +1501,7 @@ int row;
 	do {
 		if ((w->w_topline <= row) && ((w->w_height + w->w_topline) > row))
 			return w;
+
 		w = w->w_next;
 	} while (w != fwind);
 	return NULL;
@@ -1557,19 +1575,21 @@ int *row, *col;
 	*col = (p.h / WIDTH );
 	if ((*row > MAXROW) || (*col > MAXCOL))
 		return JMP_ERROR;
+
 	return 0;
 }
 
 /* Event-related routines.  The Event loop is CheckEvents(), and is called
-   whenever a console read occurs or a call to charp().  During certain
-   activities, such as ask(), etc. non-keyboard events are ignored.
-   This is set by the variable Keyonly.  As an update or activate event
-   generates a call to redisplay(), it is important that redisplay() and
-   related routines NOT check for keyboard characters. */
+ * whenever a console read occurs or a call to charp().  During certain
+ * activities, such as ask(), etc. non-keyboard events are ignored.
+ * This is set by the variable Keyonly.  As an update or activate event
+ * generates a call to redisplay(), it is important that redisplay() and
+ * related routines NOT check for keyboard characters.
+ */
 
 /* (ORIGINALLY IN) tevent.c
-	event handler for Jove. K Mitchum 12/86 */
-
+ * event handler for Jove. K Mitchum 12/86
+ */
 
 #define SYS_ID 100
 #define NOFUNC ((void (*) ptrproto((EventRecord *event)))NULL)
@@ -1631,6 +1651,7 @@ CheckEvents()
 	SystemTask();
 	if (EventCmd && !Keyonly)
 		return;
+
 	if (Bufchange)
 		SetBufMenu();
 	if (Modechange)
@@ -1827,7 +1848,8 @@ private char sh_keycodes[] = {
 };
 
 /* (ORIGINALLY IN) tkey.c
-   keyboard routines for Macintosh. K Mitchum 12/86 */
+ * keyboard routines for Macintosh. K Mitchum 12/86
+ */
 
 jmp_buf auxjmp;
 
@@ -1835,10 +1857,11 @@ private nchars = 0;
 private char charbuf[MCHARS];
 
 /* The following kludges a meta key out of the option key by
-   sending an escape sequence back to the dispatch routines.  This is
-   not elegant but it works, and doesn't alter escape sequences for
-   those that prefer them.  To remap the control or meta keys,
-   see mackeys.h. */
+ * sending an escape sequence back to the dispatch routines.  This is
+ * not elegant but it works, and doesn't alter escape sequences for
+ * those that prefer them.  To remap the control or meta keys,
+ * see mackeys.h.
+ */
 
 private void
 dokeyDown(event)
@@ -1924,12 +1947,14 @@ rawchkc()
 }
 
 /* Routines for calling the standard file dialogs, when macify is YES.
-   If the user changes the directory using the file dialogs, Jove's notion
-   of the current directory is updated. */
+ * If the user changes the directory using the file dialogs, Jove's notion
+ * of the current directory is updated.
+ */
 
 
 /* (ORIGINALLY IN) tmacf.c. K. Mitchum 12/86.
-   Macify routines for jove. */
+ * Macify routines for jove.
+ */
 
 int CurrentVol;			/* see tfile.c */
 
@@ -2088,18 +2113,12 @@ char ***avp;
 	return argc;
 }
 
-char *
-mktemp(name)
-char *name;
-{
-	return name;	/* what, me check? */
-}
-
 
 /* Menu routines.  The menus items are set up in a similar manner as keys, and
-   are bound prior to runtime.  See menumaps.txt, which must be run through
-   setmaps.  Unlike keys, menu items may be bound to variables, and to
-   buffers.  Buffer binding is only done at runtime. */
+ * are bound prior to runtime.  See menumaps.txt, which must be run through
+ * setmaps.  Unlike keys, menu items may be bound to variables, and to
+ * buffers.  Buffer binding is only done at runtime.
+ */
 
 private void
 	InitMenu proto((struct menu *M)),
@@ -2370,6 +2389,7 @@ int mnu, itm;
 		for (mnu = 0; ; mnu++) {
 			if (mnu >= NMENUS)
 				return;	/* not found */
+
 			for (itm = 0; (itm < NMENUITEMS); itm++) {
 				if ((struct variable *) (Menus[mnu].m[itm]) == vp)
 					break;
@@ -2382,10 +2402,11 @@ int mnu, itm;
 }
 
 /* Screen routines and driver. The Macinitosh Text Edit routines are not utilized,
-   as they are slow and cumbersome for a terminal emulator. Instead, direct QuickDraw
-   calls are used. The fastest output is obtained writing a line at a time, rather
-   than on a character basis, so the major output routine is writechr(), which takes
-   a pascal-style string as an argument. See do_sputc() in screen.c. */
+ * as they are slow and cumbersome for a terminal emulator. Instead, direct QuickDraw
+ * calls are used. The fastest output is obtained writing a line at a time, rather
+ * than on a character basis, so the major output routine is writechr(), which takes
+ * a pascal-style string as an argument. See do_sputc() in screen.c.
+ */
 
 void
 Placur(line, col)
@@ -2425,10 +2446,10 @@ int top, bottom, num;
 	inslines(num, bottom);
 }
 
-/* (ORIGINALLY IN) tn.c   */
-/* window driver for MacIntosh using windows. */
-/* K. Mitchum 9/86 */
-
+/* (ORIGINALLY IN) tn.c
+ * Window driver for MacIntosh using windows.
+ * K. Mitchum 9/86
+ */
 
 /*#define VARFONT*/
 #ifdef VARFONT

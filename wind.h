@@ -1,9 +1,9 @@
-/************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/**************************************************************************
+ * This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    *
+ * provided by Jonathan and Jovehacks without charge and without          *
+ * warranty.  You may copy, modify, and/or distribute JOVE, provided that *
+ * this notice is included in all the source files and documentation.     *
+ **************************************************************************/
 
 /* typedef struct window Window in jove.h */
 
@@ -46,7 +46,6 @@ extern Window
 #define WSIZE(wp)	((wp)->w_height - 1)	/* window lines, without modeline */
 
 extern int
-	FLine proto((Window *w)),
 	in_window proto((Window *windes,LinePtr line));
 
 extern Window
@@ -60,8 +59,8 @@ extern void
 	SetWind proto((Window *new)),
 	WindSize proto((Window *w,int inc)),
 	del_wind proto((Window *wp)),
-	pop_wind proto((char *name,bool clobber,int btype)),
-	tiewind proto((Window *w,Buffer *bp)),	/* util.c!! */
+	pop_wind proto((const char *name, bool clobber, int btype)),
+	tiewind proto((Window *w, Buffer *bp)),	/* util.c!! */
 	winit proto((void));
 
 /* Commands: */

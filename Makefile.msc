@@ -1,12 +1,13 @@
-########################################################################
-# This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  #
-# provided to you without charge, and with no warranty.  You may give  #
-# away copies of JOVE, including sources, provided that this notice is #
-# included in all the files.                                           #
-########################################################################
+##########################################################################
+# This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    #
+# provided by Jonathan and Jovehacks without charge and without          #
+# warranty.  You may copy, modify, and/or distribute JOVE, provided that #
+# this notice is included in all the source files and documentation.     #
+##########################################################################
 
 # Makefile for Microsoft C version 8.0 (Visual C)
 # should also work with earlier versions
+# Works for MS VisualC++ 5.0 and MS VisualStudio 97
 #
 # - supported targets:
 #   + jjove.exe (build JOVE, but don't install it)
@@ -37,7 +38,7 @@ SYSCFLAGS =	-DWIN32
 SYSLDFLAGS	=	/SUBSYSTEM:Console
 SYSOBJS		=	win32.obj
 LIBS		= /DEFAULTLIB:USER32 /DEFAULTLIB:KERNEL32 /DEFAULTLIB:COMDLG32
-OS	=	W32
+OS	=	w32
 !if "$(DEBUG)" != ""
 DEBLDFLAGS= /DEBUG
 !else
@@ -50,7 +51,7 @@ DEBLDFLAGS=
 ARCH	=	0		# Default to 8086
 !ENDIF
 
-OS	=	DOS
+OS	=	dos
 MEM = L				# M for medium or L for large
 
 SYSCFLAGS = -A$(MEM) -J -Zp -G$(ARCH)
@@ -137,7 +138,7 @@ jjove.exe
 
 # Jove users note: don't confuse jjove.rc with jove.rc, which
 # is the Jove setup script.
-jjove.res:	jjove.rc jjove.ico resource.h
+jjove.res:	jjove.rc jjove.ico resource.h version.h
 	$(RC) $(RCDEFINES) -r jjove.rc
 
 jjove.bsc: $(OBJECTS:.obj=.sbr)

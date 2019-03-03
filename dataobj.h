@@ -1,9 +1,9 @@
-/************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/**************************************************************************
+ * This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    *
+ * provided by Jonathan and Jovehacks without charge and without          *
+ * warranty.  You may copy, modify, and/or distribute JOVE, provided that *
+ * this notice is included in all the source files and documentation.     *
+ **************************************************************************/
 
 #define COMMAND	1
 #define VARIABLE	2
@@ -28,14 +28,14 @@
 /* prefix of cmd, macro, keymap, variable, and sometimes buffer structs */
 typedef struct {
 	int	Type;
-	char	*Name;
+	const char	*Name;
 } data_obj;
 
-extern data_obj	*LastCmd;	/* last command invoked */
+extern const data_obj	*LastCmd;	/* last command invoked */
 
-extern char	*ProcFmt;	/* ": %f " -- name of LastCmd */
+extern const char	*ProcFmt;	/* ": %f " -- name of LastCmd */
 
-extern data_obj
+extern const data_obj
 	*findcom proto((const char *prompt)),
 	*findmac proto((const char *prompt)),
 	*findvar proto((const char *prompt));

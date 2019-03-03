@@ -1,7 +1,7 @@
 ###########################################################################
-# This program is Copyright (C) 1991-1996 by C.H.Lindsey, University of   #
+# This program is Copyright (C) 1991-1999 by C.H.Lindsey, University of   #
 # Manchester.  (X)JOVETOOL is provided to you without charge, and with no #
-# warranty.  You may give away copies of (X)JOVETOOL, including sources,  #
+# warranty.  You may copy, modify, and/or distribute (X)JOVETOOL,         #
 # provided that this notice is included in all the files, except insofar  #
 # as a more specific copyright notices attaches to the file (x)jovetool.c #
 ###########################################################################
@@ -85,7 +85,7 @@ jovetool.o:	jovetool.c exts.h mousemsg.h $(ICONS)
 jovewindows.o:	jovewindows.c jovemenu.c exts.h jovewindows.h ../tune.h
 
 xjove:	xjove.o xjovewindows.o
-		$(CC) $(OPTFLAGS) $(LDFLAGS) $(XJLDFLAGS) -o xjove xjove.o xjovewindows.o -lxview -lolgx -lX11
+		$(CC) $(OPTFLAGS) $(LDFLAGS) $(XJLDFLAGS) -o xjove xjove.o xjovewindows.o -lxview -lX11
 
 xjove.o:	xjove.c exts.h mousemsg.h $(ICONS)
 		$(CC) $(CFLAGS) $(XJCFLAGS) -c xjove.c

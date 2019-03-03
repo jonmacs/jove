@@ -1,3 +1,10 @@
+.\"##########################################################################
+.\"# This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    #
+.\"# provided by Jonathan and Jovehacks without charge and without          #
+.\"# warranty.  You may copy, modify, and/or distribute JOVE, provided that #
+.\"# this notice is included in all the source files and documentation.     #
+.\"##########################################################################
+.\"
 .\" cmds.nr: descriptions of each JOVE command and variable.
 .\"
 .\" This nroff/troff text is used for two purposes:
@@ -10,11 +17,11 @@
 .\" italicising or emboldening in this file.
 .
 .dc "abort-char" "(variable)"
-This variable defines \s-2JOVE'S\s0'S abort character.  When JOVE
+This variable defines \s-2JOVE\s0'S abort character.  When JOVE
 reads this character from the keyboard, it stops what it is doing
 (unless the character is quoted in some way).  Unfortunately, JOVE
 won't notice the character until it reads from the keyboard.  The
-default value is ^G.  See also 
+default value is ^G.  See also
 .IQ interrupt-character .
 .dc "add-lisp-special" "Not Bound"
 This command is to tell \s-2JOVE\s0 what identifiers require special
@@ -42,9 +49,6 @@ such as those from the set \(**&%!"`[]{}.  These files are harder to deal
 with, because the characters mean something to the shell.  The default
 value is
 .IQ off .
-.dc "allow-bad-filenames" "(variable)"
-This is the obsolete name for
-.IQ allow-bad-characters-in-filenames .
 .dc "append-region" "Not Bound"
 This appends the region to a specified file.  If the file does not
 already exist it is created.
@@ -301,14 +305,13 @@ Otherwise, the line will be indented by
 characters
 past the indent of the first line of the expression.  For example, the
 default value produces:
+.DS
 .nr TY \w'Typeout('
-.nf
-
-		Typeout(fmt, itoa(bcount++), line_cnt(b, nbuf),
-		\h'\n(TYu'TypeNames[b->b_type],
-		\h'\n(TYu'IsModified(b) ? "\(**" : b->b_ntbf ? "+" : NullStr,
-		\h'\n(TYu'buf_width, b->b_name, filename(b));
-.fi
+Typeout(fmt, itoa(bcount++), line_cnt(b, nbuf),
+\h'\n(TYu'TypeNames[b->b_type],
+\h'\n(TYu'IsModified(b) ? "\(**" : b->b_ntbf ? "+" : NullStr,
+\h'\n(TYu'buf_width, b->b_name, filename(b));
+.DE
 .dc "c-indentation-increment" "(variable)"
 This defines a set of tabstops independent of the value of
 .IQ tab-width .
@@ -449,11 +452,25 @@ This is the default regular-expression search string used by \s-2JOVE\s0 to
 parse output from
 .IQ dbx
 running in a shell process (see the
-.IQ process-dbx-output
+.IQ dbx-mode
 command).  You shouldn't have to change
-this unless you are using
-.IQ gdb
-or some other symbolic debugger.
+this unless you are using something other than
+.IQ DBX .
+.dc "dbx-mode" "Not Bound"
+This turns on or off the DBX minor mode in the selected
+buffer.  Without a numeric argument, the command toggles the mode;
+with a zero argument, the mode is turned off; with a non-zero
+argument, the mode is turned on.
+This mode only makes sense in a buffer running an interactive shell
+process.  If you are running
+.IQ dbx
+in a window and and the buffer is in DBX minor mode, \s-2JOVE\s0 will
+automatically track the source location in another window.
+Whenever you type \*Qwhere\*U or while you're stepping through a
+program, or when you reach a breakpoint, \s-2JOVE\s0 will present the
+source file in another window and move to the line that is being referenced.
+See also the variable
+.IQ dbx-format-string .
 .dc "define-global-word-abbrev" "Not Bound"
 This defines a global abbreviation.
 See the
@@ -629,9 +646,9 @@ the variable
 .IQ mode-line
 can be set up to announce the arrival of new
 mail during a \s-2JOVE\s0 session.
-.dc "display-bad-filenames" "(variable)"
-This is the obsolete name for
-.IQ display-filenames-with-bad-extensions .
+.dc "display-default-filenames" "(variable)"
+If this is set when \s-2JOVE\s0 asks for a filename, it will display the default
+(unless that would take too much of the prompt line).
 .dc "display-filenames-with-bad-extensions" "(variable)"
 This variable affects only filename completion, in particular, what
 happens when \*Q?\*U is typed while prompting for a file.  When this variable
@@ -695,7 +712,7 @@ This moves point to the last character in the active window.  If there is a
 numeric argument, the point moves that many lines above the bottom
 line.  With the default bindings, the sequence \*QESC\ .\*U is the same as
 \*QESC\ >\*U (\c
-.IQ beginning-of-file )
+.IQ end-of-file )
 but without the shift key on the \*Q>\*U,
 and can thus easily be remembered.
 .dc "enhanced-keyboard" "(variable)"
@@ -844,7 +861,7 @@ This filling is done according the variable
  \(**/
 .DE
 This can be changed by changing the
-.IQ format-comment
+.IQ comment-format
 variable.  Other languages
 may be supported by changing the format variable appropriately.  The
 formatter looks backwards from point for an open comment symbol.  If
@@ -890,6 +907,10 @@ variable.  See also the
 variable and
 .IQ left-margin-here
 command.
+
+Filling a paragraph can do something that you didn't intend.  For that
+reason the original text is saved on the kill ring and can be yanked
+back.  Deleting the rubble is up to you.
 .dc "fill-region" "Not Bound"
 This is like
 .IQ fill-paragraph ,
@@ -1050,9 +1071,6 @@ See also the variable
 .dc "insert-file" "^X\ ^I"
 This inserts a specified file into the selected buffer at point.  Point
 is positioned at the beginning of the inserted file.
-.dc "internal-tabstop" "(variable)"
-This is the obsolete name for
-.IQ tab-width .
 .dc "interrupt-character" "(variable)"
 This specifies what character should be used as the operating
 system's tty driver interrupt character.  When this character is
@@ -1556,17 +1574,6 @@ prefix in this manual and by the
 and
 .IQ describe-bindings
 commands.
-.dc "process-dbx-output" "Not Bound"
-This command only makes sense in a buffer running an interactive shell
-process.  If you are running
-.IQ dbx
-in a window, \s-2JOVE\s0 will automatically
-find the file you are currently stepping through and display it in another
-window whenever you type \*Qwhere\*U or while you're stepping through a
-program, or when you reach a breakpoint.  The string DBX will appear in the
-mode line along with the process status when this feature is enabled.  See
-also the variable
-.IQ dbx-format-string .
 .dc "process-newline" "Proc: Return"
 This command is normally bound to Return as if by a
 .IQ process-bind-to-key
@@ -1763,6 +1770,13 @@ buffer has not been modified
 refuses to do the save.  If
 you really do want to write the file you must use
 .IQ write-file .
+.dc "save-on-exit" "(variable)"
+If this is
+.IQ on 
+when \s-2JOVE\s0 is about to exit, it will ask, for each modified buffer,
+whether you wish it to be saved.
+See
+.IQ write-modified-files .
 .dc "scroll-all-lines" "(variable)"
 When this is
 .IQ off ,

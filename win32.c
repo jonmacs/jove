@@ -1,9 +1,9 @@
-/************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/**************************************************************************
+ * This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    *
+ * provided by Jonathan and Jovehacks without charge and without          *
+ * warranty.  You may copy, modify, and/or distribute JOVE, provided that *
+ * this notice is included in all the source files and documentation.     *
+ **************************************************************************/
 
 /* Win32 support routines for Jove Keyboard and Screen */
 
@@ -476,12 +476,15 @@ inputEventWaiting(int period)
 
 	if (first)
 		return first=FALSE;	/* Force display on first call */
+
 	if (eventp < in_event+nevents)
 		return TRUE;	/* Already something in the queue */
+
 	while (WaitForSingleObject(conin, period) == WAIT_OBJECT_0) {
 		if (!PeekConsoleInput(conin, evnt
 		, sizeof(evnt)/sizeof(evnt[0]), &cnt))
 			break;
+
 		/* Check if the waiting event is of interest. */
 		for (pEvnt=evnt; pEvnt<evnt+cnt; ++pEvnt) {
 			if ((pEvnt->EventType == KEY_EVENT
@@ -531,6 +534,7 @@ SaveBufferFile(Buffer *b)
 			OFN_PATHMUSTEXIST;
 		if (!GetSaveFileName(&ofn))
 			return;
+
 		setfname(b, ofn.lpstrFile);
 	}
 
@@ -564,10 +568,8 @@ ctrlHandler(DWORD type)
 	switch(type) {
 	  case CTRL_C_EVENT:
 		return TRUE;	/* Ignore, keyboard handler will see it. */
-		break;
 	  case CTRL_BREAK_EVENT:
 		return FALSE;
-		break;
 	  case CTRL_CLOSE_EVENT:
 	  case CTRL_LOGOFF_EVENT:
 	  case CTRL_SHUTDOWN_EVENT:
@@ -844,11 +846,7 @@ bool	f;
 int
 FatalErrorMessage(char* str)
 {
-	if (MessageBox(NULL, str, NULL, MB_YESNO) == IDYES) {
-		return 'y';
-	} else {
-		return 'n';
-	}
+	return MessageBox(NULL, str, NULL, MB_YESNO) == IDYES? 'y' : 'n';
 }
 
 #endif /* WIN32 */

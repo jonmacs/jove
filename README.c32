@@ -1,0 +1,64 @@
+##########################################################################
+# This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    #
+# provided by Jonathan and Jovehacks without charge and without          #
+# warranty.  You may copy, modify, and/or distribute JOVE, provided that #
+# this notice is included in all the source files and documentation.     #
+##########################################################################
+
+[Last updated: 1999 August]
+
+Jove for Cygwin32
+=================
+
+Jove has been ported to the Cygwin32 environment using the GNU-Win32 tools.
+Cygwin32 is a POSIX API for Win32, developed by Cygnus Solutions, Inc.  The
+GNU-Win32 tools are Win32 ports of the GNU development tools for Windows NT
+and 95, built using the Cygwin32 API.  For more information on the Cygwin32
+project and the GNU-Win32 toolset, consult
+
+	http://www.cygnus.com/misc/gnu-win32
+
+Jove was originally ported to the environment by Arlindo da Silva.  A more
+complete port was done, based on Arlindo's work, by Dave Curry.
+
+The regular UNIX Makefile is used, with remarkably few changes
+to definitions:
+- XEXT=.exe
+- XINSTALL=install $(INSTALLFLAGS) -c -m 755
+- TINSTALL=install $(INSTALLFLAGS) -c -m 644
+- SYSDEFS=-DCYGWIN32
+- TERMCAPLIB = -L/usr/local/lib -lcurses
+Search for Cygwin32 in the Makefile.
+
+The environment used for the port was GNU-Win32 Beta 19.1 and the EGCS 2.90.27
+compiler set, and Windows 95.  You'll need either GNU Termcap 1.3 or ncurses
+to build from source.  To build, use "Makefile.c32".
+
+Note that you may want to set the CYGWIN32 environment variable to "tty" so
+that the CTRL-C key doesn't get treated as an interrupt.
+
+Arlindo da Silva
+dasliva@alum.mit.edu
+
+Dave Curry
+davy@ers.ibm.com
+
+[Addendum from Mark Moraes, 2013 April]
+
+I recently built jove on a Cygwin environment (1.7.18) with the
+default cc (gcc 3.4.4), and noted that our instructions in README.c32
+and Makefile are slightly obsolete.  With the changes/notes below,
+jove 4.16.0.73 seemed to compile and run fine with
+
+	make SYSDEFS=-DCYGWIN32 TERMCAPLIB=-lcurses XEXT=.exe
+
+1. Rather than building 'GNU Termcap 1.3 or ncurses' from source, all
+one needs to do is include the ncurses-devel package when installing
+Cygwin.
+
+2. Setting CYGWIN=tty is no longer needed, it seems, since the cygwin
+default shell runs under mintty which emulates a terminal.  (Once upon
+a time, I used to have to set TERM=ansi to avoid some sort of
+redisplay misbehaviour, it currently says TERM=xterm and I wonder if
+that misbehaviour still exists, I'll have to search my archive to see
+what it was).  Or just use xterm or rxvt...

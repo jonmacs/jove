@@ -1,4 +1,10 @@
 .\" ditroff -ms
+.\"##########################################################################
+.\"# This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    #
+.\"# provided by Jonathan and Jovehacks without charge and without          #
+.\"# warranty.  You may copy, modify, and/or distribute JOVE, provided that #
+.\"# this notice is included in all the source files and documentation.     #
+.\"##########################################################################
 .
 .\" intro.nr: the first half of the JOVE manual (not manpage!).
 .\"
@@ -12,10 +18,10 @@
 .\" appear better left alone.
 .
 .de IQ	\" italics (here, in manual) or quote (in describe-command)
-\\fI\\$1\\fP\\$2
+\&\\fI\\$1\\fP\\$2
 ..
 .de BQ	\" bold (here, in manual) or quote (in describe-command)
-\\fB\\$1\\fP\\$2
+\&\\fB\\$1\\fP\\$2
 ..
 .de dc
 .NH 2
@@ -49,9 +55,10 @@
 .ps \\n(PS
 ..
 .
-.\" Set the extra vertical spacing around .DS/.DE
-.if n .nr DD 0v
-.if t .nr DD \n(PD/2u
+.\" Change the extra vertical spacing around .DS/.DE
+.\" Does not work with groff's version of MS (GS is 1 iff groff MS)
+.if !\n(GS .if n .nr DD 0v
+.if !\n(GS .if t .nr DD \n(PD/2u
 .
 .nr LL 6.5i
 .nr LT 6.5i
@@ -134,7 +141,7 @@ using the front end program \fIxjove\fP
 .TS
 center;
 =
-|| L1	|| L1.
+|| L1	|| L .
 
 #include <stdio.h>
 
@@ -145,7 +152,7 @@ void main()
 }
 
 _	
-\fBJOVE\ (C OvrWt)\ \ \ [Main:1]\ \ "hello.c"\ \ \(**\ \ /home/foo\ \ \ \ 15:23\fP	<\ the Mode Line
+\fBJOVE\ (C OvrWt)\ \ \ [Main:1]\ \ "hello.c"\ \ \(**\ \ /home/foo\fP	<\ the Mode Line
 _	
 : write-file (default hello.c) aloha.c\^\(sq 	<\ the Message Line
 =	
@@ -219,6 +226,7 @@ The words which indicate which minor modes are turned on are:
 \fBFill\fP meaning that \fIAuto Fill\fP mode is on;
 \fBOvrWt\fP meaning that \fIOver Write\fP mode is on;
 \fBRO\fP meaning that \fIRead Only\fP mode is on.
+\fBDBX\fP meaning that \fIDBX\fP mode is on.
 \fBDef\fP meaning that you are in the process of defining a keyboard macro.
 This is not really a mode, but it's useful to be reminded about it.
 .DE
@@ -1958,7 +1966,7 @@ or different parts of the same buffer.
 .TS
 center;
 =
-|| L1	|| L1.
+|| L1	|| L .
 
 #define\ getchar()\ \ \ \ getc(stdin)
 #define\ putchar(x)\ \ \ putc((x), stdout)	<\ first Window
@@ -1970,7 +1978,7 @@ _
 \ \ \ \ return 0;	<\ second Window
 }\^\(sq
 _	
-\fBJOVE\ (C OvrWt)\ \ \ [Main:1]\ \ "aloha.c"\ \ \-\-\ \ /home/foo\ \ \ \ 15:28\fP	<\ the Mode Line
+\fBJOVE\ (C OvrWt)\ \ \ [Main:1]\ \ "aloha.c"\ \ \-\-\ \ /home/foo\fP	<\ the Mode Line
 _	
 [Point pushed]	<\ the Message Line
 =	
@@ -2321,7 +2329,6 @@ T}
 	continue-process	Send SIGCONT to the process.
 	kill-process	Send SIGKILL to the process in a specified buffer.
 ^C\ ^D	eof-process	Send EOF to the process.
-	process-dbx-output	Toggle the processing of output from \fIdbx\fP.
 .TE
 Although Return is automatically bound to \fIprocess-newline\fP, the various
 ^C\ ... must be explicitly bound in your (or your system administrator's)
@@ -2336,10 +2343,10 @@ assuming the customary bindings as set up by \fIstty\fP.  Observe that
 If the debugging program \fIdbx\fP is provided with your
 .UX
 system, you may of course run it in an interactive window.  Before doing
-this, you should type ESC\ X \fIprocess-dbx-output\fP.  The effect of this is
+this, you should turn on the dbx minor mode.  The effect of this is
 that, every time \fIdbx\fP halts with a message line specifying a filename and
 linenumber (at every breakpoint, for example), \fIfind-file\fP will
-automatically be called on that filename, it will appear in a new window,
+automatically be called on that filename, it will appear in another window,
 and point will be moved to that line.  Thus you may easily follow the
 progress of the program being debugged.
 .HH 2 "Non-interactive Processes"
@@ -2681,10 +2688,11 @@ following commands:
 L2w(10)fR L2w(20)fI Lw(\n(Ww)fR .
 	auto-indent-mode
 	auto-fill-mode
+	dbx-mode
 	over-write-mode
 	read-only-mode
 	show-match-mode
-	word-abbrev-mode	
+	word-abbrev-mode
 .TE
 .LP
 With no argument, these commands toggle the mode.  With a zero argument they
@@ -2703,6 +2711,10 @@ a newline is automatically inserted when the line length
 exceeds the right margin.
 This way,
 you can type a whole paragraph without having to use the Return key.
+.HH 3 "DBX"
+.LP
+This mode is useful if dbx is being run in an interactive window.
+It is described in the section on interactive windows.
 .HH 3 "Over Write"
 .LP
 In this mode,
@@ -3120,9 +3132,9 @@ definitely set to be \fIon\fP, rather than merely being toggled.
 .LP
 The format of the mode line is controlled by the variable \fImode-line\fP.
 Here is a suggested setting.
-.RS
-set mode-line %[Jove%]%w%w%c(%M)%3c[%b:%n]%2c"%f"%2c%m\(**-%m\(**-%2c%p%2s%(%d%e(%t)%)
-.RE
+.DS
+%[Jove%]%w%w%c(%M)%3c[%b:%n]%2c"%f"%2c%m\(**-%m\(**-%2c%p%2s%(%d%e(%t)%)
+.DE
 .LP
 and here is what it all means.
 .IP %[\^...\^%] 12n

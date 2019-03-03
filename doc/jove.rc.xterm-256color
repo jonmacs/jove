@@ -75,55 +75,6 @@ bind-to-key xt-mouse-null ^[[M3
 
 # End of xterm "look and feel" bindings.
 
-
-## OpenLook "Look and Feel" Bindings:
-##
-## The differences are in buttons 2 and 3.
-##
-## button 1:
-##	down with no modifiers:
-##		xt-mouse-point [set point to mouse location]
-##	down with CTRL held:
-##		xt-mouse-mark [set point and mark to mouse location]
-## button 2:
-##	down with no modifiers:
-##		xt-mouse-extend [extend copied region and re-copy]
-##	down with CTRL held:
-##		xt-mouse-point-yank [yank at mouse location]
-## button 3:
-##	down with no modifiers:
-##		xt-mouse-null
-##	down with CTRL held:
-##		xt-mouse-cut-point-yank [delete region and yank at mouse location]
-## button up:
-##	up after drag: [button 1 ONLY]
-##		xt-mouse-mark-drag-point-copy [set region and copy]
-##	other button up:
-##		xt-mouse-null
-#
-## button 1 down [note that the next line has a SPace at the end]
-#bind-to-key xt-mouse-point ^[[M 
-#bind-to-key xt-mouse-mark ^[[M0
-#
-## button 2 down
-#bind-to-key xt-mouse-extend ^[[M!
-#bind-to-key xt-mouse-point-yank ^[[M1
-#
-## button 3 down
-#bind-to-key xt-mouse-null ^[[M"
-#bind-to-key xt-mouse-cut-point-yank ^[[M2
-#
-## button 1 up after drag and/or multiclick
-#bind-to-key xt-mouse-mark-drag-point-copy ^[[T
-#bind-to-key xt-mouse-mark-drag-point-copy ^[[t
-#
-## other button releases
-#bind-to-key xt-mouse-null ^[[M#
-#bind-to-key xt-mouse-null ^[[M3
-#
-## End of OpenLook "look and feel" bindings.
-
-
 # define macro to display TERMinal-specific keychart file
 define-macro keychart ^[xpushlibd^M^U^[xshell-command-with-typeout cat keychart.$TERM^M^[xpopd^M
 

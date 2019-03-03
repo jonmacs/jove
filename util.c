@@ -1,9 +1,9 @@
-/************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/**************************************************************************
+ * This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    *
+ * provided by Jonathan and Jovehacks without charge and without          *
+ * warranty.  You may copy, modify, and/or distribute JOVE, provided that *
+ * this notice is included in all the source files and documentation.     *
+ **************************************************************************/
 
 #include "jove.h"
 #include <errno.h>
@@ -44,6 +44,7 @@ within_indent()
 	for (;;) {
 		if (--i < 0)
 			return YES;
+
 		if (!jiswhite(linebuf[i]))
 			return NO;
 	}
@@ -62,8 +63,8 @@ int	col;
 }
 
 /* If bp->p_line is != current line, then save current line.  Then set dot
-   to bp->p_line, and if they weren't equal get that line into linebuf.  */
-
+ * to bp->p_line, and if they weren't equal get that line into linebuf.
+ */
 void
 SetDot(bp)
 register Bufpos	*bp;
@@ -115,19 +116,24 @@ int	char1,
 		line_diff += 1;
 		if (nextp == endp)
 			return YES;
+
 		if (prevp == endp)
 			return NO;
 	}
-	while (nextp!=NULL && nextp!=endp) {
+	while (nextp!=NULL) {
 		nextp = nextp->l_next;
 		line_diff += 1;
+		if (nextp == endp)
+			return YES;
 	}
-	while (prevp!=NULL && prevp!=endp) {
+	while (prevp!=NULL) {
 		prevp = prevp->l_prev;
 		line_diff += 1;
+		if (prevp == endp)
+			return NO;
 	}
-	/* nextp == prevp implies both are NULL: the lines are not ordered */
-	return nextp==prevp? -1 : nextp==endp;
+	/* the lines are not ordered */
+	return -1;
 }
 
 /* Number of lines (forward OR back) from nextp to endp.
@@ -155,8 +161,10 @@ register LinePtr
 	for (;;) {
 		if (from == to)
 			return n;
+
 		if (from == NULL)
 			return -1;
+
 		n += 1;
 		from = from->l_next;
 	}
@@ -194,6 +202,7 @@ register int	dir;
 			if (c == '\0') {
 				if (curline->l_next == NULL)
 					break;	/* failure: out of buffer */
+
 				SetLine(curline->l_next);
 			} else if (jisword(c)) {
 				break;	/* success */
@@ -206,6 +215,7 @@ register int	dir;
 			if (bolp()) {
 				if (curline->l_prev == NULL)
 					break;	/* failure: out of buffer */
+
 				SetLine(curline->l_prev);
 				Eol();
 			} else if (jisword(linebuf[curchar - 1])) {
@@ -218,8 +228,8 @@ register int	dir;
 }
 
 /* Are there any modified buffers?  Allp means include B_PROCESS
-   buffers in the check. */
-
+ * buffers in the check.
+ */
 bool
 ModBufs(allp)
 bool	allp;
@@ -234,9 +244,9 @@ bool	allp;
 	return NO;
 }
 
-char *
+const char *
 filename(b)
-register Buffer	*b;
+register const Buffer	*b;
 {
 	return b->b_fname ? pr_name(b->b_fname, YES) : "[No file]";
 }
@@ -261,10 +271,7 @@ char *
 lcontents(line)
 register LinePtr	line;
 {
-	if (line == curline)
-		return linebuf;
-	else
-		return lbptr(line);
+	return line == curline? linebuf : lbptr(line);
 }
 
 char *
@@ -276,8 +283,9 @@ char	*buf;
 		if (buf != linebuf)
 			strcpy(buf, linebuf);
 		Jr_Len = strlen(linebuf);
-	} else
-		getline(line->l_dline, buf);
+	} else {
+		jgetline(line->l_dline, buf);
+	}
 	return buf;
 }
 
@@ -323,8 +331,8 @@ LinePtr	first,
 }
 
 /* Make curbuf (un)modified and tell the redisplay code to update the modeline
-   if it will need to be changed. */
-
+ * if it will need to be changed.
+ */
 void
 modify()
 {
@@ -349,12 +357,12 @@ unmodify()
 }
 
 /* Set or clear the divergence flag for `buf'.
-   A buffer that contains a file is considered to have diverged
-   if the file in the filesystem appears to have changed since the
-   last time the buffer was loaded from or saved to that file.
-   If the flag has changed, tell the redisplay code to update the
-   modeline. */
-
+ * A buffer that contains a file is considered to have diverged
+ * if the file in the filesystem appears to have changed since the
+ * last time the buffer was loaded from or saved to that file.
+ * If the flag has changed, tell the redisplay code to update the
+ * modeline.
+ */
 void
 diverge(buf, d)
 Buffer	*buf;
@@ -368,7 +376,7 @@ bool	d;
 
 int
 numcomp(s1, s2)
-register char	*s1,
+register const char	*s1,
 		*s2;
 {
 	register int	count = 0;
@@ -381,7 +389,7 @@ register char	*s1,
 #ifdef FILENAME_CASEINSENSITIVE
 int
 numcompcase(s1, s2)
-register char	*s1,
+register const char	*s1,
 		*s2;
 {
 	register int	count = 0;
@@ -396,14 +404,8 @@ char *
 copystr(str)
 const char	*str;
 {
-	char	*val;
-
-	if (str == NULL)
-		return NULL;
-	val = emalloc((size_t) (strlen(str) + 1));
-
-	strcpy(val, str);
-	return val;
+	return str == NULL? NULL :
+		strcpy(emalloc(strlen(str) + 1), str);
 }
 
 #ifndef byte_copy
@@ -417,7 +419,7 @@ register size_t	count;
 	register char		*q = to;
 
 	if (count != 0) {
-	    do *q++ = *p++; while (--count != 0);
+		do *q++ = *p++; while (--count != 0);
 	}
 }
 #endif
@@ -450,6 +452,7 @@ int	atchar,
 
 	if (num <= 0)
 		return;
+
 	from = &buf[atchar];
 	taillen = *from == '\0'?  1 : strlen(from) + 1;	/* include NUL */
 	if (atchar + taillen + num > max)
@@ -492,7 +495,7 @@ int	atchar;
 
 char *
 IOerr(err, file)
-char	*err, *file;
+const char	*err, *file;
 {
 	return sprint("Couldn't %s \"%s\".", err, file);
 }
@@ -550,11 +553,31 @@ size_t	size;
 	return ptr;
 }
 
-/* Return the basename of file F. */
+/* Return the basename of pathname F.
+ *
+ * - System V release 4 includes a function named "basename" in libgen.
+ *   It is incompatible with ours:
+ *   + it strips trailing "/" characters (does this matter?)
+ *   + although not clearly documented, this stripping modifies the argument!
+ *   + it handles the NULL pointer and the null string as "."
+ *
+ * - LINUX also provides a basename
+ *   + at least one version of Slackware puts the prototype in <unistd.h>
+ *     so it cannot be ignored.
+ *   + This LINUX prototype declares the parameter to be of const char *
+ *     type.  This is incompatible with ours and with SVR4's.
+ *   + The fact that the argument is a pointer to const implies that
+ *     the source string cannot be modified.  Therefore trailing "/"
+ *     characters are not stripped from the source.
+ *   + Either stripping isn't done to the result OR the result must be
+ *     placed in a distinct chunk of memory.  How is this memory managed?
+ *
+ * To avoid conflict, we have renamed ours to "jbasename".
+ */
 
-char *
-basename(f)
-register char	*f;
+const char *
+jbasename(f)
+register const char	*f;
 {
 	register char	*cp;
 
@@ -621,17 +644,23 @@ register size_t	n;
 {
 	if (s1==NULL || s2==NULL)
 		return NO;
+
 	for (;;) {
 		if (n == 0)
 			return YES;
 		n--;
 		if (!cind_eq(*s1, *s2++))
 			return NO;
+
 		if (*s1++ == '\0')
 			return YES;
 	}
 }
 
+/* copy a string into buffer; truncate silently if too large; NUL-pad.
+ * Note: buffer must be 1 larger than n to fit NUL!
+ * Duplicated in recover.c: needed by scandir.c
+ */
 void
 null_ncpy(to, from, n)
 char	*to;
@@ -642,18 +671,50 @@ size_t	n;
 	to[n] = '\0';
 }
 
+/* Copy a string into a buffer; truncate silently if string is too large */
+void
+truncstrsub(buf, str, bufsz)
+char *buf;
+size_t bufsz;
+const char *str;
+{
+	if (strlen(str) < bufsz)
+		strcpy(buf, str);
+	else if (bufsz == 0)
+		complain("internal error");	/* cannot even fit NUL */
+	else {
+		strncpy(buf, str, bufsz - 1);
+		buf[bufsz-1] = '\0';
+	}
+}
+
+/* Copy a string into a buffer; complain if string is too large */
+void
+jamstrsub(buf, str, bufsz)
+char *buf;
+const char *str;
+size_t bufsz;
+{
+	if (strlen(str) < bufsz)
+		strcpy(buf, str);
+	else
+		complain("string too long");
+}
+
 bool
 sindex(pattern, string)
-register char	*pattern,
+register const char	*pattern,
 		*string;
 {
 	register size_t	len = strlen(pattern);
 
 	if (len == 0)
 		return YES;
+
 	while (*string != '\0') {
 		if (*pattern == *string && strncmp(pattern, string, len) == 0)
 			return YES;
+
 		string += 1;
 	}
 	return NO;
@@ -696,9 +757,8 @@ char *
 strerror(errnum)
 int errnum;
 {
-	if (errnum > 0 && errnum < sys_nerr)
-		return(sys_errlist[errnum]);
-	return sprint("Error number %d", errnum);
+	return 0 < errnum && errnum < sys_nerr
+		? sys_errlist[errnum] : sprint("Error number %d", errnum);
 }
 #endif /* NO_STRERROR */
 

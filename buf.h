@@ -1,12 +1,13 @@
-/************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/**************************************************************************
+ * This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    *
+ * provided by Jonathan and Jovehacks without charge and without          *
+ * warranty.  You may copy, modify, and/or distribute JOVE, provided that *
+ * this notice is included in all the source files and documentation.     *
+ **************************************************************************/
 
 /* maximum length of a line (including '\0').  Currently cannot
-   be larger than a logical disk block. */
+ * be larger than a logical disk block.
+ */
 #define	LBSIZE		JBUFSIZ
 
 /* buffer types */
@@ -14,7 +15,7 @@
 #define B_FILE		2	/* normal file (we auto-save these.) */
 #define B_PROCESS	3	/* unix process output in this buffer */
 
-/* major modes */
+/* major modes (order must match entries in disp.c:majname[]) */
 #define FUNDAMENTAL	0	/* Fundamental mode */
 #define TEXTMODE	1	/* Text mode */
 #define CMODE		2	/* C mode */
@@ -28,13 +29,17 @@
 #define MajorMode(x)	(curbuf->b_major == (x))
 #define SetMajor(x)	{ curbuf->b_major = (x); UpdModLine = YES; }
 
-/* minor modes */
-#define Indent		(1 << 0)	/* indent same as previous line after return */
-#define ShowMatch	(1 << 1)	/* paren flash mode */
-#define Fill		(1 << 2)	/* text fill mode */
-#define OverWrite	(1 << 3)	/* over write mode */
-#define Abbrev		(1 << 4)	/* abbrev mode */
-#define ReadOnly	(1 << 5)	/* buffer is read only */
+/* minor modes (order must match entries in disp.c:minname[]) */
+#define Fill		(1 << 0)	/* text fill mode */
+#define Abbrev		(1 << 1)	/* abbrev mode */
+#define OverWrite	(1 << 2)	/* over write mode */
+#define Indent		(1 << 3)	/* indent same as previous line after return */
+#define ReadOnly	(1 << 4)	/* buffer is read only */
+#define ShowMatch	(1 << 5)	/* paren flash mode */
+#ifdef IPROCS
+  /* buffer is running DBX process -- track source references */
+# define DbxMode	(1 << 6)
+#endif
 
 #define BufMinorMode(b, x)	(((b)->b_minor & (x)) != 0)
 #define MinorMode(x)		BufMinorMode(curbuf, (x))
@@ -75,8 +80,8 @@ struct buffer {
 	char *Name;		/* Name will not be used */
 #endif
 	Buffer	*b_next;		/* next buffer in chain */
-	char	*b_name,		/* buffer name */
-		*b_fname;		/* file name associated with buffer */
+	const char	*b_name;	/* buffer name */
+	char	*b_fname;		/* file name associated with buffer */
 #ifdef USE_INO
 	/* unique identification of file */
 	dev_t	b_dev;			/* device of file name. */
@@ -96,14 +101,14 @@ struct buffer {
 #define b_curmark(b)	((b)->b_markring[(b)->b_themark])
 #define curmark		b_curmark(curbuf)
 		*b_marks;		/* all the marks for this buffer */
-	char	b_themark,		/* current mark (in b_markring) */
-		b_type,			/* file, scratch, process, iprocess */
-		b_ntbf,			/* (bool) needs to be found when we
+	int	b_themark,		/* current mark (in b_markring) */
+		b_type;			/* file, scratch, process, iprocess */
+	char	b_ntbf,			/* (bool) needs to be found when we
 					   first select? */
 		b_modified,		/* (bool) is the buffer modified? */
 		b_diverged;		/* (bool) has the underlying file been changed behind our back? */
-	int	b_major,		/* major mode */
-		b_minor;		/* and minor mode */
+	int	b_major;		/* major mode */
+	unsigned	b_minor;		/* and minor mode */
 	struct keymap	*b_map;		/* local bindings (if any) */
 #ifdef IPROCS
 	struct process	*b_process;		/* process we're attached to */
@@ -131,10 +136,10 @@ extern bool
 	valid_bp proto((Buffer	*bp));
 
 extern Buffer
-	*buf_exists proto((char *name)),
+	*buf_exists proto((const char *name)),
 	*do_find proto((Window *w, char *fname, bool force, bool do_macros)),
-	*do_select proto((Window *w,char *name)),
-	*do_stat proto((char *name, Buffer *target, int flags));
+	*do_select proto((Window *w, const char *name)),
+	*do_stat proto((const char *name, Buffer *target, int flags));
 
 /* flags to do_stat */
 #define DS_NONE	0
@@ -146,7 +151,7 @@ extern bool
 	was_dir,	/* do_stat found a directory */
 	was_file;	/* do_stat found a (plain) file */
 
-extern char
+extern const char
 	*ask_buf proto((Buffer *def, int flags));
 
 #ifdef USE_PROTOTYPES
@@ -156,7 +161,7 @@ struct macro;	/* forward declaration preventing prototype scoping */
 extern void
 	TogMinor proto((int bit)),
 	buf_clear proto((Buffer *b)),
-	setfname proto((Buffer *b,char *name)),
+	setfname proto((Buffer *b, const char *name)),
 	SetABuf proto((Buffer *b)),
 	SetBuf proto((Buffer *newbuf)),
 	buf_init proto((void));

@@ -1,9 +1,9 @@
-/************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/**************************************************************************
+ * This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    *
+ * provided by Jonathan and Jovehacks without charge and without          *
+ * warranty.  You may copy, modify, and/or distribute JOVE, provided that *
+ * this notice is included in all the source files and documentation.     *
+ **************************************************************************/
 
 #include "jove.h"
 
@@ -47,7 +47,7 @@ recinit()
 {
 	char	buf[FILESIZE];
 
-	swritef(buf, sizeof(buf), "%s/%s", TmpDir,
+	PathCat(buf, sizeof(buf), TmpDir,
 #ifdef MAC
 		".jrecXXX"	/* must match string in mac.c:Ffilter() */
 #else
@@ -55,12 +55,7 @@ recinit()
 #endif
 		);
 	recfname = copystr(buf);
-	recfname = mktemp(recfname);
-	rec_fd = creat(recfname, 0644);
-	if (rec_fd == -1) {
-		complain("Cannot create \"%s\"; recovery disabled.", recfname);
-		/*NOTREACHED*/
-	}
+	rec_fd = MakeTemp(recfname, "Cannot create \"%s\"; recovery disabled.");
 	/* initialize the recovery file */
 	rec_out = fd_open(recfname, F_WRITE|F_LOCKED, rec_fd, iobuff, LBSIZE);
 
@@ -120,7 +115,7 @@ register Buffer	*b;
 	record.r_dotchar = b->b_char;
 	record.r_nlines = record.r_dotline + LinesTo(b->b_dot, (LinePtr)NULL);
 	strcpy(record.r_fname, b->b_fname ? b->b_fname : NullStr);
-	strcpy(record.r_bname, b->b_name);
+	null_ncpy(record.r_bname, b->b_name, sizeof(record.r_bname) - 1);
 	dmpobj(record);
 }
 
@@ -172,13 +167,14 @@ SyncRec()
 }
 
 /* To be implemented:
-   Full Recover.  What we have to do is go find the name of the tmp
-   file data/rec pair and use those instead of the ones we would have
-   created eventually.  The rec file has a list of buffers, and then
-   the actual pointers.  Stored for each buffer is the buffer name,
-   the file name, the number of lines, the current line, the current
-   character.  The current modes do not need saving as they will be
-   saved when the file name is set.  If a process was running in a
-   buffer, it will be lost. */
+ * Full Recover.  What we have to do is go find the name of the tmp
+ * file data/rec pair and use those instead of the ones we would have
+ * created eventually.  The rec file has a list of buffers, and then
+ * the actual pointers.  Stored for each buffer is the buffer name,
+ * the file name, the number of lines, the current line, the current
+ * character.  The current modes do not need saving as they will be
+ * saved when the file name is set.  If a process was running in a
+ * buffer, it will be lost.
+ */
 
 #endif /* RECOVER */

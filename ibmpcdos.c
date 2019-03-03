@@ -1,9 +1,9 @@
-/************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/**************************************************************************
+ * This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    *
+ * provided by Jonathan and Jovehacks without charge and without          *
+ * warranty.  You may copy, modify, and/or distribute JOVE, provided that *
+ * this notice is included in all the source files and documentation.     *
+ **************************************************************************/
 
 #include "jove.h"
 
@@ -360,7 +360,7 @@ line_feed()
 
 #define BELL_P 0x61			/* speaker */
 #define BELL_D 0x2dc			/* 550 hz  */
-#define TIME_P 0x40			/* timer   */
+#define TIME_P 0x40			/* timer */
 #define TINI   182			/* 10110110b timer initialization */
 
 void

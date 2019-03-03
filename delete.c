@@ -1,9 +1,9 @@
-/************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/**************************************************************************
+ * This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    *
+ * provided by Jonathan and Jovehacks without charge and without          *
+ * warranty.  You may copy, modify, and/or distribute JOVE, provided that *
+ * this notice is included in all the source files and documentation.     *
+ **************************************************************************/
 
 /* Routines to perform all kinds of deletion.  */
 
@@ -16,8 +16,8 @@
 #include "move.h"
 
 /* Assumes that either line1 or line2 is actually the current line, so it can
-   put its result into linebuf. */
-
+ * put its result into linebuf.
+ */
 private void
 patchup(line1, char1, line2, char2)
 LinePtr	line1,
@@ -40,9 +40,9 @@ register int	char1,
 }
 
 /* Deletes the region by unlinking the lines in the middle,
-   and patching things up.  The unlinked lines are still in
-   order.  */
-
+ * and patching things up.  The unlinked lines are still in
+ * order.
+ */
 LinePtr
 reg_delete(line1, char1, line2, char2)
 LinePtr	line1,
@@ -63,7 +63,7 @@ int	char1,
 		genbuf[char2] = '\0';
 
 	retline->l_prev = NULL;
-	retline->l_dline = putline(&genbuf[char1]);
+	retline->l_dline = jputline(&genbuf[char1]);
 	patchup(line1, char1, line2, char2);
 
 	if (line1 == line2)
@@ -72,7 +72,7 @@ int	char1,
 		retline->l_next = line1->l_next;
 		(void) ltobuf(line2, genbuf);
 		genbuf[char2] = '\0';
-		line2->l_dline = putline(genbuf);
+		line2->l_dline = jputline(genbuf);
 		/* Shorten this line */
 	}
 
@@ -97,6 +97,7 @@ register LinePtr	line1,
 
 	if (line1 == line2)
 		return;
+
 	line1->l_next = line2->l_next;
 	if (line1->l_next)
 		line1->l_next->l_prev = line1;
@@ -136,9 +137,9 @@ DelPChar()
 }
 
 /* Delete some characters.  If deleting forward then call for_char
-   to the final position otherwise call back_char.  Then delete the
-   region between the two with patchup(). */
-
+ * to the final position otherwise call back_char.  Then delete the
+ * region between the two with patchup().
+ */
 void
 del_char(dir, num, OK_kill)
 int	dir,
@@ -213,9 +214,9 @@ LinePtr	text;
 }
 
 /* This kills a region between point, and line1/char1 and puts it on
-   the kill-ring.  If the last command was one of the kill commands,
-   the region is appended (prepended if backwards) to the last entry.  */
-
+ * the kill-ring.  If the last command was one of the kill commands,
+ * the region is appended (prepended if backwards) to the last entry.
+ */
 void
 reg_kill(line2, char2, dot_moved)
 LinePtr	line2;
@@ -229,11 +230,11 @@ bool	dot_moved;
 
 	backwards = !fixorder(&line1, &char1, &line2, &char2);
 	/* This is a kludge!  But it possible for commands that don't
-	   know which direction they are deleting in (e.g., delete
-	   previous word could have been called with a negative argument
-	   in which case, it wouldn't know that it really deleted
-	   forward. */
-
+	 * know which direction they are deleting in (e.g., delete
+	 * previous word could have been called with a negative argument
+	 * in which case, it wouldn't know that it really deleted
+	 * forward.
+	 */
 	if (!dot_moved)
 		backwards = !backwards;
 
@@ -265,6 +266,18 @@ DelReg()
 	reg_kill(mp->m_line, mp->m_char, NO);
 }
 
+/* get a new line buffer and add it to the kill ring */
+LinePtr
+new_kill()
+{
+	register LinePtr	nl = nbufline();
+
+	AddKillRing(nl);
+	SavLine(nl, NullStr);
+	nl->l_next = nl->l_prev = NULL;
+	return nl;
+}
+    
 /* Save a region.  A pretend kill. */
 
 void
@@ -278,10 +291,7 @@ CopyRegion()
 	if (mp->m_line == curline && mp->m_char == curchar)
 		complain((char *)NULL);
 
-	nl = nbufline();
-	AddKillRing(nl);
-	SavLine(nl, NullStr);
-	nl->l_next = nl->l_prev = NULL;
+	nl = new_kill();
 
 	status = inorder(mp->m_line, mp->m_char, curline, curchar);
 	if (status == -1)
@@ -307,8 +317,11 @@ DelWtSpace()
 		sp -= 1;
 	if (sp != ep) {
 		curchar = sp - linebuf;
-		DFixMarks(curline, curchar, curline, curchar + (ep - sp));
-		strcpy(sp, ep);
+		DFixMarks(curline, curchar, curline, curchar + (int)(ep - sp));
+		/* Shift the remaining characters left in the buffer to close the gap.
+		 * strcpy(sp, ep) won't do because the destination overlaps the source.
+		 */
+		do ; while ((*sp++ = *ep++) != '\0');
 		makedirty(curline);
 		modify();
 	}
@@ -322,6 +335,7 @@ DelBlnkLines()
 
 	if (!blnkp(&linebuf[curchar]))
 		return;
+
 	dot = MakeMark(curline, curchar);
 	all = !blnkp(linebuf);
 	while (blnkp(linebuf) && curline->l_prev)

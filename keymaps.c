@@ -1,9 +1,9 @@
-/************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/**************************************************************************
+ * This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    *
+ * provided by Jonathan and Jovehacks without charge and without          *
+ * warranty.  You may copy, modify, and/or distribute JOVE, provided that *
+ * this notice is included in all the source files and documentation.     *
+ **************************************************************************/
 
 #include "jove.h"
 #include "list.h"
@@ -184,6 +184,7 @@ ZXchar key;
 
 			if (mid == lwb)
 				break;
+
 			if (b[mid].key <= key)
 				lwb = mid;
 			else
@@ -366,12 +367,12 @@ ZXchar key;
 	return IsKeymap(val)? (struct keymap *) val : (struct keymap *) NULL;
 }
 
-private data_obj *
+private const data_obj *
 findmap(fmt)
 const char	*fmt;
 {
 	struct keymap	*km;
-	char	*strings[128];
+	const char	*strings[128];
 	int	i;
 
 	for (km = keymaps, i = 0; km != NULL; km = km->next_map)
@@ -434,10 +435,10 @@ data_obj *obj;
 
 private void
 DoBind(findproc, map)
-data_obj *(*findproc) ptrproto((const char *));
+const data_obj *(*findproc) ptrproto((const char *));
 struct keymap *map;
 {
-	data_obj *d = (*findproc) (ProcFmt);
+	const data_obj *d = (*findproc) (ProcFmt);
 	char keys[64];
 	int i;
 	struct keymap *m;
@@ -452,6 +453,7 @@ struct keymap *map;
 
 		if (c == EOF)
 			break;
+
 		if (i == sizeof(keys) - 1)
 			complain("key sequence too long");
 		keys[i++] = c;
@@ -472,12 +474,12 @@ struct keymap *map;
 			}
 		}
 	}
-	BindSequence(map, keys, i, d);
+	BindSequence(map, keys, i, (data_obj *)d);	/* lose const on d */
 }
 
 private void
 DoLBind(findproc)
-data_obj *(*findproc) ptrproto((const char *));
+const data_obj *(*findproc) ptrproto((const char *));
 {
 	if (curbuf->b_map == NULL)
 		curbuf->b_map = km_new(SPARSE_KEYMAP, (data_obj **)NULL, (char *)NULL);
@@ -654,7 +656,7 @@ DescBindings()
 
 private char *
 fb_aux(cp, map, prefix, buf, room)
-register data_obj	*cp;
+register const data_obj	*cp;
 struct keymap	*map;
 char	*prefix,
 	*buf;
@@ -727,7 +729,7 @@ size_t	room;
 
 private void
 find_binds(dp, buf, size)
-data_obj *dp;
+const data_obj *dp;
 char *buf;
 size_t size;
 {
@@ -747,14 +749,14 @@ size_t size;
 private void
 ShowDoc(doc_type, dp, show_bindings)
 char *doc_type;
-data_obj *dp;
+const data_obj *dp;
 bool show_bindings;
 {
 	char pattern[100];
 	char	CmdDb[FILESIZE];	/* path for cmds.doc */
 	File *fp;
 
-	swritef(CmdDb, sizeof(CmdDb), "%s/cmds.doc", ShareDir);
+	PathCat(CmdDb, sizeof(CmdDb), ShareDir, "cmds.doc");
 	fp = open_file(CmdDb, iobuff, F_READ, YES);
 	Placur(ILI, 0);
 	flushscreen();
@@ -812,7 +814,7 @@ Apropos()
 	register const struct cmd *cp;
 	register struct macro *m;
 	register const struct variable *v;
-	char *ans;
+	const char *ans;
 	bool
 		anyfs = NO,
 		anyvs = NO,

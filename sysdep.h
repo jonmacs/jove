@@ -1,9 +1,9 @@
-/************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/**************************************************************************
+ * This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    *
+ * provided by Jonathan and Jovehacks without charge and without          *
+ * warranty.  You may copy, modify, and/or distribute JOVE, provided that *
+ * this notice is included in all the source files and documentation.     *
+ **************************************************************************/
 
 /*
  * System Feature Selection: describe OS and C system to JOVE.  See sysdep.doc
@@ -22,7 +22,7 @@
 # define POSIX_UNISTD	1
 # define USE_SELECT	1
 # define PTYPROCS	1
-# define BSD_PTYS	1
+# define BSD_PTYS	1	/* beware security flaw! */
 # define POSIX_PROCS	1
 # define BSD_SIGS	1
 # define JOB_CONTROL	1
@@ -34,6 +34,7 @@
 # define USE_FSYNC	1
 # define USE_FSTAT	1
 # define USE_FCHMOD	1
+# define HAS_SYMLINKS	1
 # define USE_CTYPE	1
 #endif
 
@@ -58,7 +59,7 @@
 # define USE_GETCWD	1
 # define USE_SELECT	1
 # define PTYPROCS	1
-# define BSD_PTYS	1
+# define BSD_PTYS	1	/* beware security flaw! */
 # define BSD_WAIT	1
 # define WAIT3		1
 # define BSD_SIGS	1
@@ -72,6 +73,7 @@
 # define USE_FSYNC	1
 # define USE_FSTAT	1
 # define USE_FCHMOD	1
+# define HAS_SYMLINKS	1
 # define USE_MEMORY_H	1
 #endif
 
@@ -81,7 +83,7 @@
 # define USE_GETWD	1
 # define USE_SELECT	1
 # define PTYPROCS	1
-# define BSD_PTYS	1
+# define BSD_PTYS	1	/* beware security flaw! */
 # define BSD_WAIT	1
 # define WAIT3		1
 # define BSD_SIGS	1
@@ -98,6 +100,7 @@
 # define USE_FSYNC	1
 # define USE_FSTAT	1
 # define USE_FCHMOD	1
+# define HAS_SYMLINKS	1
 /* # define USE_BCOPY	1 */
 /* # define USE_INDEX	1 */
 #endif
@@ -111,7 +114,7 @@
 # define USE_SELECT	1
 # define USE_SELECT_H	1
 # define PTYPROCS	1
-# define BSD_PTYS	1
+# define BSD_PTYS	1	/* beware security flaw! */
 # define NO_EOF_FROM_PTY    1	/* BUG! */
 # define POSIX_PROCS	1
 # define WAIT3		1
@@ -122,7 +125,49 @@
 # define USE_FSYNC	1
 # define USE_FSTAT	1
 # define USE_FCHMOD	1
+# define HAS_SYMLINKS	1
 # define USE_CTYPE	1
+#endif
+
+#ifdef AIX4_2	/* System: IBM AIX 4.2 */
+# define AIX		1
+# define FULL_UNISTD	1
+# define USE_GETWD	1
+# define TERMIOS	1	/* uses termio struct for terminal modes */
+# define USE_UNAME	1
+# define USE_SELECT	1
+# define USE_SELECT_H	1
+# define PTYPROCS	1
+# define BSD_PTYS	1	/* beware security flaw! */
+# define NO_EOF_FROM_PTY    1	/* BUG! */
+# define POSIX_PROCS	1
+# define WAIT3		1
+# define POSIX_SIGS	1
+# define JOB_CONTROL	1
+# define USE_GETPWNAM	1
+# define USE_UNAME	1
+# define USE_FSYNC	1
+# define USE_FSTAT	1
+# define USE_FCHMOD	1
+# define HAS_SYMLINKS	1
+# define USE_CTYPE	1
+  /* Only difference from AIX3_2, perhaps due to switching from
+   * -ltermcap to -lcurses (-ltermcap seems to have disappeared):
+   */
+# define DEFINE_PC_BC_UP_OSPEED	1	/* May be needed for all SYSVR2 */
+#endif
+
+#ifdef __convex__	/* System: ConvexOS (versions 10.x - 11.x) */
+/* Note: this must be placed before BSDPOSIX ifdef (we define BSDPOSIX). */
+# define BSDPOSIX	1	/* mostly like BSDPOSIX */
+# define STICKY_TTYSTATE	1	/* fudge: many progs stupidly set ISTRIP */
+# define ISO_8859_1	1	/* fudge: <ctype.h> doesn't work for 8-bit chars, but X does */
+#endif
+
+#ifdef CYGWIN32 /* System: Cygnus Support Cygwin32 POSIX-like environment
+	on Win95/NT (see README.c32) */
+#define FILENAME_CASEINSENSITIVE	1
+#define BSDPOSIX	1
 #endif
 
 #ifdef __QNX__	/* System: QNX OS for x86 family */
@@ -130,6 +175,11 @@
 # define BSDPOSIX	1
 # define ONLCR		OPOST	/* how to do ONLCR */
 # define USE_SELECT_H	1
+#endif
+
+#ifdef BSDPOSIX_STDC	/* Same as BSDPOSIX, but with a Standard enough C */
+# define REALSTDC	1
+# define BSDPOSIX	1
 #endif
 
 #ifdef BSDPOSIX	/* System: Posix system with BSD flavouring for ptys */
@@ -143,7 +193,7 @@
 # define FULL_UNISTD	1
 # define USE_SELECT	1
 # define PTYPROCS	1
-# define BSD_PTYS	1
+# define BSD_PTYS	1	/* beware security flaw! */
 # define POSIX_PROCS	1
 # define POSIX_SIGS	1
 # define JOB_CONTROL	1
@@ -154,6 +204,10 @@
 # define USE_FSYNC	1
 # define USE_FSTAT	1
 # define USE_FCHMOD	1
+# define HAS_SYMLINKS	1
+# ifndef ISO_8859_1 /* fudge for __convex__ (see above) */
+#  define USE_CTYPE	1
+# endif
 #endif
 
 #ifdef IRIX
@@ -187,6 +241,7 @@
 # define USE_GETPWNAM	1
 # define USE_KILLPG	1
 # define USE_GETHOSTNAME	1
+# define HAS_SYMLINKS	1
 # define USE_CTYPE	1
 #endif
 
@@ -194,12 +249,15 @@
 /* System: Consensys V4 -- use SYSVR4 and GRANTPT_BUG */
 /* System: DEC OSF/1 V2.0 or later -- use SYSVR4 */
 /* System: DEC OSF R1.3MK -- use SYSVR4 */
+/* System: Digital UNIX V4.0 and later -- use SYSVR4 and GRANTPT_BUG */
+/* System: Red Hat LINUX 6.x or 7.x -- use SYSVR4 and _XOPEN_SOURCE=500 */
 /* System: Solaris 2.0, SunOS 5.0 -- use SYSVR4 and GRANTPT_BUG */
 /* System: Solaris 2.x, SunOS 5.x -- use SYSVR4 */
 /* Note: some versions of System V Release 4 have a bug in that affects
  * interactive processes.  Examples include Consensys V4 and SunOS 5.0
  * also known as Solaris 5.0.  See the description of GRANTPT_BUG in
- * sysdep.doc
+ * sysdep.doc.  It turns out that this bug is documented as a feature
+ * in "The Single UNIX Specification", Version 2!
  */
 # define TERMIOS	1
 # define USE_GETCWD	1
@@ -215,24 +273,26 @@
 # define USE_FSYNC	1
 # define USE_FSTAT	1
 # define USE_FCHMOD	1
+# define HAS_SYMLINKS	1
 # define REALSTDC	1
 # define USE_CTYPE	1
 #endif
 
-#ifdef HPUX	/* System: Hewlett-Packard HP-UX 9.01 */
+#ifdef HPUX	/* System: Hewlett-Packard HP-UX 9.01 & 11, probably others */
 # define TERMIOS	1
 # define USE_BSDTTYINCLUDE	1	/* No other way to turn off ^Y */
 # define USE_GETCWD	1
 # define FULL_UNISTD	1
 # define USE_SELECT	1
 # define PTYPROCS	1
-# define BSD_PTYS	1
+# define BSD_PTYS	1	/* beware security flaw! */
 # define POSIX_PROCS	1
 # define NO_EOF_FROM_PTY    1	/* BUG! */
 # define POSIX_SIGS	1
 # define JOB_CONTROL	1
 # define USE_UNAME	1
 # define DEFINE_PC_BC_UP_OSPEED	1	/* May be needed for all SYSVR2 */
+# define HAS_SYMLINKS	1
 #endif
 
 #ifdef BSD4	/* System: Berkeley BSD4.x, 2.9, 2.10, MIPS RiscOS 4.x */
@@ -243,7 +303,7 @@
 # define USE_GETWD	1
 # define USE_SELECT	1
 # define PTYPROCS	1
-# define BSD_PTYS	1
+# define BSD_PTYS	1	/* beware security flaw! */
 # define BSD_WAIT	1
 # define WAIT3		1
 # define BSD_SIGS	1
@@ -252,6 +312,7 @@
 # define BSD_SETPGRP	1
 # define USE_KILLPG	1
 # define BSD_DIR	1
+# define HAS_SYMLINKS	1
 # define SIGRESTYPE	int
 # define SIGRESVALUE	0
 # define USE_GETHOSTNAME	1
@@ -263,14 +324,14 @@
 # define USE_INDEX	1
 #endif
 
-#ifdef SCO	/* System: SCO ODT 3.0 */
+#ifdef SCO_ODT3	/* System: SCO ODT 3.0 */
 # define TERMIOS	1
-# define FULLUNISTD	1
+/* # define FULL_UNISTD	1 */	/* Not tested!  May be worth trying. */
 # define USE_GETCWD	1
 # define POSIX_UNISTD	1
 # define USE_SELECT	1
 # define PTYPROCS	1
-# define BSD_PTYS	1
+# define BSD_PTYS	1	/* beware security flaw! */
 # define POSIX_PROCS	1
 # define JOB_CONTROL	1
 # define USE_UNAME	1
@@ -279,10 +340,13 @@
  * release.  JOVE's IPROCS code no longer triggers this bug.
  */
 # define PTYPROCS	1
+# define HAS_SYMLINKS	1
 # define USE_CTYPE	1
 #endif
 
 #ifdef _MSC_VER	/* System: Microsoft C for the IBM-PC under MSDOS or WIN32 */
+/* 4.16.0.38 tested under VC++ 5.0 / VS 97 */
+/* 4.16.0.62 tested under Visual C++ 6.0 SP5 */
 # if defined(_WIN32) && !defined(WIN32)
 #  define WIN32 _WIN32
 # endif
@@ -299,6 +363,9 @@
 #  endif
 # endif
 # define REALSTDC	1	/* MS C only defines __STDC__ if you use /Za */
+# define NO_MKSTEMP	1
+# define _POSIX_	1	/* suppresses MS's min and max in VC++ 5.0 */
+# define jmode_t	int	/* no mode_t on WIN32 */
 #endif
 
 #ifdef ZTCDOS	/* System: Zortech C V3.0 for the IBM-PC under MSDOS */
@@ -318,6 +385,8 @@
 # define STACK_DECL	unsigned int _stack = 0x2000; WILDCARDS
 # define dostime_t	dos_time_t	/* is Zortech out of step? */
 # define _dos_gettime	dos_gettime
+# define NO_MKSTEMP	1
+# define NO_MKTEMP	1
 #endif
 
 #if defined(__WATCOMC__) && defined(MSDOS)	/* System: Watcom C V10.0 for the IBM-PC under MSDOS */
@@ -330,6 +399,8 @@
 #  define NBUF		3
 #  define FAR_LINES	1	/* to squeeze larger files, distance Lines */
 # endif
+# define NO_MKSTEMP	1
+# define NO_MKTEMP	1
 #endif
 
 #ifdef __BORLANDC__	/* System: Borland C/C++ (v3.1) for the IBM-PC under MSDOS */
@@ -346,6 +417,8 @@
 #  endif
 # endif
 # define STACK_DECL	unsigned int _stklen = 0x2000;		/* Borland's way of specifying stack size */
+/* probably: # define NO_MKSTEMP	1 */
+/* probably: # define NO_MKTEMP	1 */
 #endif
 
 /* All the systems marked with XXX_ are ones that this version of Jove (4.16)
@@ -404,6 +477,8 @@
 # else
 #  define SMALL		1
 # endif
+/* probably: # define NO_MKSTEMP	1 */
+/* probably: # define NO_MKTEMP	1 */
 #endif
 
 #ifdef THINK_C	/* System: Think C version 5.0 on the Macintosh */
@@ -416,6 +491,9 @@
   typedef int	dev_t;
   typedef int	ino_t;
 # define DIRECTORY_ADD_SLASH 1
+# define NO_MKSTEMP	1	/* no mkstemp library routine */
+# define NO_MKTEMP	1	/* no mktemp library routine */
+# define NO_FCNTL	1	/* no <fcntl.h> header */
 # define EOL	'\r'	/* end-of-line character for files */
 # define WINRESIZE	1
 # define AUTO_BUFS	1	/* slim down data segment */
@@ -458,9 +536,16 @@
 # define HIGHLIGHTING	1	/* highlighting is used for mark and scrollbar */
 # define MSDOS_PROCS	1	/* spawn et al */
 # define FILENAME_CASEINSENSITIVE 1
-# define USE_CRLF 1
+# define USE_CRLF	1
 # define DIRECTORY_ADD_SLASH 1
-# define MSFILESYSTEM 1
+# define MSFILESYSTEM	1
+# if defined(_MSC_VER) && _MSC_VER >= 1200 /* VC 6.0+ */
+   /* <basetsd.h> defines SSIZE_T -- a name that we thought was safely
+    * in our namespace!  To prevent havoc, we include that header now
+    * so that our own definition will be suppressed.
+    */
+#  include <basetsd.h>
+# endif
 #endif
 
 /* The operating system (MSDOS, WIN32, or MAC) must be defined by this point. */
@@ -472,6 +557,7 @@
 /* Our defaults tend to be conservative and lean towards pure SYSV */
 # define USE_INO	1
 # define TERMCAP	1
+# define NCURSES_BUG	1   /* almost certainly safe anyway */
 # define WINRESIZE	1
 # define MOUSE		1
 # if !(defined(NO_IPROCS) || defined(PIPEPROCS) || defined(PTYPROCS))
@@ -491,6 +577,19 @@
 #  define SIGCHLD	SIGCLD
 # endif
 #endif /* UNIX */
+
+/* lint suppression macros; GCC requires use of extensions! Clang mimics. */
+#if !defined(GCC_LINT) && (defined(__GNUC__) || defined(__clang__))
+# define GCC_LINT
+#endif
+
+#ifdef GCC_LINT
+# define UNUSED(x)	x __attribute__ ((unused))
+# define NEVER_RETURNS	__attribute__ ((noreturn))
+#else /* !GCC_LINT */
+# define UNUSED(x)	x
+# define NEVER_RETURNS
+#endif /* !GCC_LINT */
 
 /*************************************************************************
  *
@@ -528,6 +627,13 @@
 # define SSIZE_T    int
 #endif
 
+/* jmode_t: the type for file modes
+ * Really old systems might use "int" or perhaps "unsigned".
+ */
+#ifndef jmode_t
+# define jmode_t mode_t
+#endif
+
 /* Determine if really ANSI C */
 #ifdef __STDC__
 # if __STDC__ > 0
@@ -544,7 +650,7 @@
 #  define NBUF		3
 # endif
 # ifndef JLGBUFSIZ
-#  define JLGBUFSIZ	9
+#  define JLGBUFSIZ	9	/* 512kB is the traditional UNIX block size */
 # endif
 #endif
 
@@ -553,7 +659,7 @@
 #endif
 
 #ifndef JLGBUFSIZ
-# define JLGBUFSIZ 10
+# define JLGBUFSIZ 12	/* perhaps a good match for 4kB pages */
 #endif
 
 #define JBUFSIZ	(1<<JLGBUFSIZ)

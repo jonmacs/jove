@@ -1,9 +1,9 @@
-/************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/**************************************************************************
+ * This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    *
+ * provided by Jonathan and Jovehacks without charge and without          *
+ * warranty.  You may copy, modify, and/or distribute JOVE, provided that *
+ * this notice is included in all the source files and documentation.     *
+ **************************************************************************/
 
 #include "jove.h"
 #include "fp.h"
@@ -15,12 +15,11 @@
 #	include "mac.h"
 #else /* !MAC */
 #	include <sys/stat.h>
-#	ifndef MSFILESYSTEM
-#		include <sys/file.h>
-#	else /* MSFILESYSTEM */
-#		include <fcntl.h>
+#	ifdef MSFILESYSTEM
 #		include <io.h>
-#	endif /* MSFILESYSTEM */
+#	else /* !MSFILESYSTEM */
+#		include <sys/file.h>
+#	endif /* !MSFILESYSTEM */
 #endif /* !MAC */
 
 #include <errno.h>
@@ -39,8 +38,8 @@ private File	openfiles[MAXFILES];	/* must be zeroed initially */
 
 File *
 fd_open(name, flags, fd, buffer, buf_size)
-char	*name,
-	*buffer;
+const char	*name;
+char	*buffer;
 int	flags,
 	fd,
 	buf_size;
@@ -51,6 +50,7 @@ int	flags,
 	for (fp = openfiles, i = 0; i < MAXFILES; i++, fp++)
 		if (fp->f_flags == 0)
 			break;
+
 	if (i == MAXFILES)
 		complain("[Too many open files!]");
 	fp->f_bufsize = buf_size;
@@ -79,8 +79,8 @@ gc_openfiles()
 
 File *
 f_open(name, flags, buffer, buf_size)
-char	*name,
-	*buffer;
+const char	*name;
+char	*buffer;
 int	flags,
 	buf_size;
 {
@@ -88,29 +88,27 @@ int	flags,
 
 	switch (F_MODE(flags)) {
 	case F_READ:
-#ifdef MSFILESYSTEM
-		fd = open(name, O_RDONLY|O_BINARY);
-#else
-		fd = open(name, 0);
-#endif
+		fd = open(name, O_RDONLY | O_BINARY);
 		break;
 
 	case F_APPEND:
-#ifdef MSFILESYSTEM
-		fd = open(name, O_WRONLY|O_BINARY);
-#else
-		fd = open(name, 1);
-#endif
+		fd = open(name, O_WRONLY | O_BINARY);
 		if (fd != -1) {
-			(void) lseek(fd, 0L, 2);
+			(void) lseek(fd, (off_t)0, 2);
 			break;
 		}
 		/* FALLTHROUGH */
 	case F_WRITE:
-#ifdef MSFILESYSTEM
-		fd = open(name, O_CREAT|O_TRUNC|O_BINARY|O_RDWR, S_IWRITE|S_IREAD);
+#ifdef O_CREAT
+		fd = open(name, O_CREAT | O_TRUNC | O_BINARY | O_RDWR,
+# ifdef UNIX
+			(jmode_t)CreatMode
+# else
+			S_IWRITE | S_IREAD
+# endif
+			);
 #else
-		fd = creat(name, CreatMode);
+		fd = creat(name, (jmode_t)CreatMode);
 #endif
 		break;
 
@@ -121,6 +119,7 @@ int	flags,
 	}
 	if (fd == -1)
 		return NULL;
+
 	return fd_open(name, flags, fd, buffer, buf_size);
 }
 
@@ -128,19 +127,33 @@ void
 f_close(fp)
 File	*fp;
 {
+	const char *what = "close";
+	int	err = 0;
+
 	if ((fp->f_flags & (F_WRITE|F_APPEND))
 	&& (fp->f_flags & F_ERR) == 0)
 	{
 		flushout(fp);
 #ifdef USE_FSYNC
-		(void) fsync(fp->f_fd);
+		if (fsync(fp->f_fd) != 0) {
+			what = "fsync";
+			err = errno;
+		}
 #endif
 	}
-	(void) close(fp->f_fd);
+	if (close(fp->f_fd) != 0 && err == 0)
+		err = errno;
 	if (fp->f_flags & F_MYBUF)
 		free((UnivPtr) fp->f_base);
 	free((UnivPtr) fp->f_name);
 	fp->f_flags = 0;	/* indicates that we're available */
+	if (err != 0) {
+		/* It would be nice to print fp->f_name, but it's gone.
+		 * Perhaps we should allow the memory to leak so that we
+		 * could easily print it.
+		 */
+		error("[%s error: %s]", what, strerror(err));
+	}
 }
 
 ZXchar
@@ -149,6 +162,7 @@ File	*fp;
 {
 	if (fp->f_flags & (F_EOF|F_ERR))
 		return EOF;
+
 	fp->f_ptr = fp->f_base;
 #ifndef MSDOS
 	do {
@@ -208,7 +222,7 @@ off_t	offset;
 		flushout(fp);
 	fp->f_cnt = 0;		/* next read will f_filbuf(), next write
 				   will flush() with no bad effects */
-	lseek(fp->f_fd, (long) offset, L_SET);
+	lseek(fp->f_fd, offset, L_SET);
 }
 
 void
@@ -235,6 +249,7 @@ register File	*fp;
 
 			if (n <= 0)
 				break;
+
 #ifdef RAINBOW
 			wr = rbwrite(fp->f_fd, (UnivPtr) p, (size_t)n);
 #else
@@ -242,14 +257,20 @@ register File	*fp;
 #endif
 			if (wr >= 0) {
 				p += wr;
-			} else if (errno != EINTR) {
+			} else {
+#ifndef MSDOS
+				if (errno != EINTR) {
+#endif /* MSDOS */
 #ifndef NO_JSTDOUT
-				if (fp == jstdout)
-					break;	/* bail out, silently */
+					if (fp == jstdout)
+						break;	/* bail out, silently */
 #endif
-				fp->f_flags |= F_ERR;
-				error("[I/O error(%s); file = %s, fd = %d]",
-					strerror(errno), fp->f_name, fp->f_fd);
+					fp->f_flags |= F_ERR;
+					error("[I/O error(%s); file = %s, fd = %d]",
+						strerror(errno), fp->f_name, fp->f_fd);
+#ifndef MSDOS
+				}
+#endif /* MSDOS */
 			}
 		}
 
@@ -270,6 +291,7 @@ size_t	max;
 
 	if (fp->f_flags & F_EOF)
 		return YES;
+
 	while ((c = f_getc(fp)) != EOF && c != EOL) {
 		/* We can't store NUL in our buffer, so ignore it.
 		 * Similarly, we can only store characters less than NCHARS.
@@ -308,14 +330,15 @@ size_t	max;
 }
 
 /* skip to beginning of next line, i.e., next read returns first
-   character of new line */
-
+ * character of new line
+ */
 void
 f_toNL(fp)
 register File	*fp;
 {
 	if (fp->f_flags & F_EOF)
 		return;
+
 	for (;;) {
 		switch (f_getc(fp)) {
 		case EOF:
@@ -341,6 +364,7 @@ size_t	n;
 
 		if (f_eof(fp))
 			break;
+
 		*addr++ = c;
 	}
 	return n - nleft;

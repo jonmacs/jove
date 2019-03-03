@@ -1,32 +1,96 @@
-########################################################################
-# This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  #
-# provided to you without charge, and with no warranty.  You may give  #
-# away copies of JOVE, including sources, provided that this notice is #
-# included in all the files.                                           #
-########################################################################
+##########################################################################
+# This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    #
+# provided by Jonathan and Jovehacks without charge and without          #
+# warranty.  You may copy, modify, and/or distribute JOVE, provided that #
+# this notice is included in all the source files and documentation.     #
+##########################################################################
 
-[Updated in September 1995]
+[Updated in 2004 July]
 
-Installation on a UNIX System.
-------------------------------
+JOVE on UNIX Systems
+--------------------
 
-To make JOVE, edit Makefile to set the right directories for the binaries,
-on line documentation, the man pages, and the TMP files, and select the
-appropriate load command (see LDFLAGS in Makefile).  (IMPORTANT! read the
-Makefile carefully.)  "paths.h" will be created by MAKE automatically,
-and it will use the directories you specified in the Makefile.  (NOTE:
-You should never edit paths.h directly because your changes will be undone
-by the next make.)
+For information about other systems, see the other README files:
+  README.c32 for Cygwin32
+  README.dos for MS DOS
+  README.mac for Macintosh
+  README.w32 for MS Win32
 
-You need to set "SYSDEFS" to the symbol that identifies your system,
-using the notation for a macro-setting flag to the C compiler.  For
-example, on a Sun running SunOS 4.0, use "SYSDEFS=-DSUNOS40".  The
-Makefile describes suitable settings of SYSDEFS for many configurations.
-If yours isn't mentioned, use "grep System: sysdep.h" to find all
+Quick Summary of Installation
+-----------------------------
+
+Configuration is not automatic, but it is simple for modern systems.
+Usually only SYSDEFS is critical and this can be specified in the make
+command line.
+
+Unpack the tar file somewhere convenient and cd into it:
+  tar tzf jove*.tgz
+  cd jove___
+
+BSD:
+  use the first of the following that works:
+  make SYSDEFS="-DBSDPOSIX_STDC -DUSE_OPENPTY" EXTRALIBS=-lutil install
+  make SYSDEFS="-DBSDPOSIX_STDC -DUSE_OPENPTY -DHAS_LIBUTILS_H" EXTRALIBS=-lutil install
+  make SYSDEFS="-DBSDPOSIX_STDC" install
+  make SYSDEFS="-DBSDPOSIX" install
+
+LINUX:
+  Using RPM (if sufficiently close to Red Hat; no need to have untared):
+    rpmbuild -ta jove*.tgz
+  Otherwise:
+    make SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500" install
+    If this fails because the system doesn't have -ltermcap, try:
+    make SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500" TERMCAPLIB=-lncurses install
+
+Solaris:
+  make SYSDEFS="-DSYSVR4" install
+
+Other systems:
+  Read comments about SYSDEFS settings in Makefile
+
+Some systems have dropped the termcap library.  The curses (or
+ncurses) library is much fatter than termcap, but will do.
+If ld complains that there is no -ltermcap, add TERMCAPLIB=-lcurses.
+If ld then complains that there is no -lcurses, try TERMCAPLIB=-lncurses.
+
+When in doubt, read the rest of this document.
+
+Please help us keep up with new systems.  If your system isn't covered
+here on in the SYSDEFS section of Makefile, tell us what works.  If
+your system is covered, but the documented procedure doesn't work,
+tell us.
+
+
+Full Story of Installation
+--------------------------
+
+JOVE does not use any automatic configuring mechanism.  Most
+configuring is done by editing definitions in Makefile (in some
+situations it is handier to override definitions by supplying them on
+the make command line).
+
+JOVE has been around for a long time, and a lot of care has been taken
+to make it work on many systems, new and old.  For current systems,
+less configuring is require -- hurray for standards!
+
+Makefile specifies paths for installing JOVE components (JOVEHOME,
+SHAREDIR, LIBDIR, BINDIR, MANDIR, MANEXT), tempfiles (TMPDIR, RECDIR),
+and the default shell (DFLTSHELL).  Although the defaults are
+reasonable, you may wish to change them.
+
+For many systems, you will need to change the definition of SYSDEFS.
+to the symbol that identifies your system's characteristics, using the
+notation for a macro-setting flag to the C compiler.  For example, on
+a Sun running SunOS 4.0, use "SYSDEFS=-DSUNOS40".  The Makefile
+describes suitable settings of SYSDEFS for many configurations.  If
+yours isn't mentioned, use "grep System: sysdep.h" to find all
 currently supported system configurations.  If there is no canned
-configuration for your system, you will have to define a new symbol and
-edit sysdep.h suitably.  See "sysdep.doc" for the possible set of
+configuration for your system, you will have to define a new symbol
+and edit sysdep.h suitably.  See "sysdep.doc" for the possible set of
 system-dependent aspects that you can select/tune.
+
+On some systems, you may need to change the flags passed to the
+compiler (OPTFLAGS) or the linker (TERMCAPLIB, EXTRALIBS, LDFLAGS).
 
 Next you may edit "tune.h" to select the compile time features you care
 about.  See "tune.doc" for a description of all the compile time options.
@@ -38,24 +102,26 @@ some of the less-portable features of JOVE initially.
 You can type "make" to compile "jjove", "portsrv" (this is compiled on
 every system, but is only used if JOVE is compiled with the PIPEPROCS
 feature selection, typically on UNIX systems without pseudo ttys),
-"recover" and "teachjove".  NOTE:  make won't work if it fires up /bin/csh
-for the shell commands.  Test jjove to see if it works (remember that it
+"recover" and "teachjove".  Test jjove to see if it works (remember that it
 won't be able to access its subsidiary files until they are installed, so
-you will need to call it with "jjove -l . -s doc ..." -- assuming you are
+you will need to call it with "./jjove -l . -s doc ..." -- assuming you are
 in the main JOVE directory).  If it works, type "make install" to install
 everything where it belongs.
 
-Here are some things to consider for deciding where to put the tmp files.
-TMPDIR is where the tmp files get stored, usually /tmp or /tmp/jove.  If
-your system does not remove subdirectories of /tmp on reboot (lots do remove
-them these days) then it makes sense to make TMPDIR be /tmp/jove; otherwise,
-/usr/tmp may be better.  But if you use /tmp and want to recover buffers on
-system crashes, you should put the lines
+Here are some things to consider when choosing a definition for
+TMPDIR, the directory where JOVE puts temporary files.  The obvious
+place is /tmp, but many systems delete all files in /tmp when they are
+rebooting.  If you hope to recover buffers from a system crash, TMPDIR
+lets you specify a safer place.  If your system does not remove
+subdirectories of /tmp on reboot (lots do remove them these days) then
+it makes sense to make TMPDIR be /tmp/jove; otherwise, /var/tmp may be
+better.  But if you use /tmp and want to recover buffers on system
+crashes, you should put the lines:
 	(echo preserving JOVE files)	>/dev/console
 	(cd /tmp; /usr/local/lib/jovelib/recover -syscrash) >/dev/console
 in the /etc/rc file BEFORE /tmp is cleared, so that you can recover
 files after reboots (hint: look for the equivalent code to preserve vi
-tempfiles).  There should then be a crontab entry to clear out old files
+tempfiles).  You should then create a crontab entry to clear out old files
 in /usr/preserve.
 
 If you plan on using JOVE with a xterm, look at doc/XTermresource.
@@ -66,6 +132,10 @@ For the pdp11 version there is the Ovmakefile.  This has only been
 tested on 2.9bsd, and not recently.  It worked pretty well, actually,
 and it was possible to turn on all the compile time options with this
 version.
+
+For LINUX, jove.spec is provided to specify how an RPM should be created.
+On Red Hat LINUX 7.x, 8.0, and 9, "rpmbuild -ta jove*.tgz" will build
+source and binary RPMs -- rpm looks inside the .tgz to find jove.spec.
 
 
 Some features.
@@ -122,6 +192,21 @@ Thanks to the other JoveHacks for testing and for contributing numerous
 fixes, portability enhancements, and pieces of sage advice.
 
 	D. Hugh Redelmeier (hugh@mimosa.com)
+
+Changes since 4.16
+------------------
+
+- Portability fixes.  Most important: work around a never-to-be-fixed
+  bug in ncurses (the freely redistributable termcap/terminfo
+  database).
+
+- Various minor bug fixes.  Highlights:
+  + use mkstemp to avoid a security loophole
+  + avoid bad interaction between metakey and xterm mouse support
+    in windows wider than 95 characters
+  + handle symlinks better
+  + obscure bug in text justification that could hang JOVE
+  + misuse of stat that only misbehaved on LINUX
 
 Changes since 4.16beta
 ----------------------
@@ -346,8 +431,7 @@ jovehacks, for example:
   features (we do try to keep JOVE small)
 
 The "official" FTP site and directory for JOVE is:
-	ftp.cs.toronto.edu:/pub/moraes/jove
+	ftp://ftp.cs.toronto.edu/pub/moraes/jove
 Look here for the most recent releases of JOVE.
-
-Hugh will report all significant new releases to comp.editors and
-comp.emacs.
+Development snapshots appear from time to time in
+	ftp://ftp.cs.toronto.edu/pub/hugh/jove-dev

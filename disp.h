@@ -1,9 +1,9 @@
-/************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/**************************************************************************
+ * This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    *
+ * provided by Jonathan and Jovehacks without charge and without          *
+ * warranty.  You may copy, modify, and/or distribute JOVE, provided that *
+ * this notice is included in all the source files and documentation.     *
+ **************************************************************************/
 
 #define makedirty(line)	{ (line)->l_dline |= DDIRTY; }
 #define isdirty(line)	((line)->l_dline & DDIRTY)
@@ -40,10 +40,10 @@ extern void
 	ChkWindows proto((LinePtr line1,LinePtr line2)),
 	ChkWinLines proto((void)),
 	DrawMesg proto((bool abortable)),
-	message proto((char *)),
-	TOstart proto((char *name)),
+	message proto((const char *)),
+	TOstart proto((const char *name)),
 	TOstop proto((void)),
-	Typeout proto((char *, ...)),
+	Typeout proto((const char *, ...)),
 	rbell proto((void)),
 	redisplay proto((void));
 

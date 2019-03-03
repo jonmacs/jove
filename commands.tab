@@ -1,9 +1,9 @@
-/************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/**************************************************************************
+ * This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    *
+ * provided by Jonathan and Jovehacks without charge and without          *
+ * warranty.  You may copy, modify, and/or distribute JOVE, provided that *
+ * this notice is included in all the source files and documentation.     *
+ **************************************************************************/
 
 /* This file is #included by commands.c and setmaps.c */
 
@@ -65,6 +65,9 @@ const struct cmd	commands[] = {
 	{ COMMAND, "copy-region", WIRED_CMD(CopyRegion) },
 	{ COMMAND, "current-error", WIRED_CMD(ShowErr) },
 	{ COMMAND, "date", WIRED_CMD(prCTIME) },
+#ifdef IPROCS
+	{ DefMinor(DbxMode), "dbx-mode", WIRED_CMD(NULL) },
+#endif
 #ifdef ABBREV
 	{ COMMAND, "define-global-word-abbrev", WIRED_CMD(DefGAbbrev) },
 #endif
@@ -117,10 +120,10 @@ const struct cmd	commands[] = {
 	{ COMMAND, "execute-named-command", WIRED_CMD(Extend) },
 	{ COMMAND, "exit-jove", WIRED_CMD(Leave) },
 #ifdef CMT_FMT
-	{ MODCMD, "fill-comment", WIRED_CMD(Comment) },
+	{ MODCMD, "fill-comment", WIRED_CMD(FillComment) },
 #endif /* CMT_FMT */
-	{ MODCMD, "fill-paragraph", WIRED_CMD(Justify) },
-	{ MODCMD, "fill-region", WIRED_CMD(RegJustify) },
+	{ MODCMD, "fill-paragraph", WIRED_CMD(FillParagraph) },
+	{ MODCMD, "fill-region", WIRED_CMD(FillRegion) },
 #ifdef SUBSHELL
 	{ MODCMD, "filter-region", WIRED_CMD(FilterRegion) },
 #endif
@@ -149,6 +152,7 @@ const struct cmd	commands[] = {
 	{ COMMAND, "i-shell-command", WIRED_CMD(Iprocess) },
 #endif
 	{ MODCMD, "insert-file", WIRED_CMD(InsFile) },
+	{ MODCMD, "insert-variable", WIRED_CMD(InsVar) },
 #ifdef IPROCS
 	{ COMMAND, "interrupt-process", WIRED_CMD(ProcInt) },
 #endif
@@ -207,10 +211,9 @@ const struct cmd	commands[] = {
 	{ COMMAND, "previous-window", WIRED_CMD(PrevWindow) },
 	{ COMMAND, "print", WIRED_CMD(PrVar) },
 #ifdef IPROCS
-	{ COMMAND, "process-bind-keymap-to-key", WIRED_CMD(PBindMac) },
+	{ COMMAND, "process-bind-keymap-to-key", WIRED_CMD(PBindMap) },
 	{ COMMAND, "process-bind-macro-to-key", WIRED_CMD(PBindMac) },
 	{ COMMAND, "process-bind-to-key", WIRED_CMD(PBindAKey) },
-	{ COMMAND, "process-dbx-output", WIRED_CMD(DBXpoutput) },
 	{ MODCMD, "process-newline", WIRED_CMD(ProcNewline) },
 	{ COMMAND, "process-send-data-no-return", WIRED_CMD(ProcSendData) },
 #endif

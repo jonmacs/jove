@@ -1,9 +1,9 @@
-/************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/**************************************************************************
+ * This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    *
+ * provided by Jonathan and Jovehacks without charge and without          *
+ * warranty.  You may copy, modify, and/or distribute JOVE, provided that *
+ * this notice is included in all the source files and documentation.     *
+ **************************************************************************/
 
 #include "jove.h"
 #include "re.h"
@@ -27,6 +27,7 @@ register int	n;
 		if (eolp()) {			/* Go to the next Line */
 			if (curline->l_next == NULL)
 				break;
+
 			SetLine(curline->l_next);
 		} else
 			curchar += 1;
@@ -45,6 +46,7 @@ register int	n;
 		if (bolp()) {
 			if (curline->l_prev == NULL)
 				break;
+
 			SetLine(curline->l_prev);
 			Eol();
 		} else
@@ -81,9 +83,9 @@ PrevLine()
 }
 
 /* moves to a different line in DIR; LINE_CMD says whether this is
-   being called from NextLine() or PrevLine(), in which case it tries
-   to line up the column with the column of the current line */
-
+ * being called from NextLine() or PrevLine(), in which case it tries
+ * to line up the column with the column of the current line
+ */
 void
 line_move(dir, n, line_cmd)
 int	dir,
@@ -181,9 +183,9 @@ Bof()
 }
 
 /* Move forward (if dir > 0) or backward (if dir < 0) a sentence.  Deals
-   with all the kludgery involved with paragraphs, and moving backwards
-   is particularly yucky. */
-
+ * with all the kludgery involved with paragraphs, and moving backwards
+ * is particularly yucky.
+ */
 private void
 to_sent(dir)
 int	dir;
@@ -212,6 +214,7 @@ int	dir;
 			&& (!inorder(new->p_line, new->p_char, old.p_line, old.p_char)
 			  || !inorder(old.p_line, old.p_char, curline, curchar)))
 				break;
+
 			SetDot(new);
 		} else {
 			if (blnkp(linebuf)) {
@@ -219,6 +222,7 @@ int	dir;
 				b_char(1);
 				if (old.p_line != curline || old.p_char < curchar)
 					break;
+
 				to_word(FORWARD);	/* Oh brother this is painful */
 			} else {
 				curchar = REbom + 1;	/* Just after the [?.!] */

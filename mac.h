@@ -1,9 +1,9 @@
-/************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/**************************************************************************
+ * This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    *
+ * provided by Jonathan and Jovehacks without charge and without          *
+ * warranty.  You may copy, modify, and/or distribute JOVE, provided that *
+ * this notice is included in all the source files and documentation.     *
+ **************************************************************************/
 
 /* Macintosh related things. K. Mitchum 2/88 */
 
@@ -28,7 +28,7 @@ struct stat {
 	long st_ino;		/* file number on volume */
 	dev_t st_rdev;
 	off_t st_size;		/* logical end of file */
-	int st_mode;
+	jmode_t st_mode;
 	time_t st_mtime;	/* last modified */
 };
 

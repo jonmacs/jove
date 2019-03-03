@@ -1,9 +1,9 @@
-/************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/**************************************************************************
+ * This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    *
+ * provided by Jonathan and Jovehacks without charge and without          *
+ * warranty.  You may copy, modify, and/or distribute JOVE, provided that *
+ * this notice is included in all the source files and documentation.     *
+ **************************************************************************/
 
 #include "jove.h"
 #include "jctype.h"
@@ -48,8 +48,9 @@ struct macro	*new;
 }
 
 /* To execute a macro, we have a "stack" of running macros.  Whenever
-   we execute a macro, we push it on the stack, run it, then pop it
-   from the stack.  */
+ * we execute a macro, we push it on the stack, run it, then pop it
+ * from the stack.
+ */
 struct m_thread {
 	struct m_thread	*mt_prev;
 	struct macro	*mt_mp;
@@ -86,6 +87,7 @@ pop_macro_stack()
 
 	if ((m = mac_stack) == NULL)
 		return;
+
 	mac_stack = m->mt_prev;
 	free_mthread(m);
 }
@@ -162,6 +164,7 @@ mac_getc()
 
 	if ((mthread = mac_stack) == NULL)
 		return EOF;
+
 	m = mthread->mt_mp;
 	if (mthread->mt_offset == m->m_len) {
 		mthread->mt_offset = 0;
@@ -175,7 +178,7 @@ mac_getc()
 private void
 MacDef(m, name, len, body)
 struct macro	*m;	/* NULL, or def to overwrite */
-char	*name;	/* must be stable if m isn't NULL */
+const char	*name;	/* must be stable if m isn't NULL */
 int	len;
 char	*body;
 {
@@ -271,9 +274,10 @@ DefKBDMac()
 	struct macro	*m = ask_macname(ProcFmt,
 		ALLOW_OLD | ALLOW_INDEX | ALLOW_NEW);
 	ZXchar	c;
-	char
+	const char
 		*macro_name = m == NULL? copystr(Minibuf) : m->Name,
-		*macro_body,
+		*macro_body;
+	char
 		macro_buffer[LBSIZE];
 	int	len;
 
@@ -296,9 +300,11 @@ void
 Remember()
 {
 	/* We're already executing the macro; ignore any attempts
-	   to define the keyboard macro while we are executing. */
+	 * to define the keyboard macro while we are executing.
+	 */
 	if (in_macro())
 		return;
+
 	if (InMacDefine)
 		message("[Already defining ... continue with definition]");
 	else {
@@ -350,8 +356,8 @@ ask_macname(prompt, flags)
 const char	*prompt;
 int flags;
 {
-	char	*strings[100];
-	register char	**strs = strings;
+	const char	*strings[100];
+	register const char	**strs = strings;
 	register int	com;
 	register struct macro	*m;
 
@@ -364,13 +370,14 @@ int flags;
 
 	if ((com = complete(strings, (char *)NULL, prompt, flags)) < 0)
 		return NULL;
+
 	m = macros;
 	while (--com >= 0)
 		m = m->m_nextm;
 	return m;
 }
 
-data_obj *
+const data_obj *
 findmac(prompt)
 const char	*prompt;
 {

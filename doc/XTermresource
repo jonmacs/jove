@@ -57,11 +57,11 @@
 	!Ctrl <BtnDown>: ignore()\n \
 	!Ctrl <BtnUp>: ignore()\n \
 	~Ctrl ~Meta <Btn2Up>: insert-selection(PRIMARY,BUFFER)\n \
-	<BtnUp>: select-end(PRIMARY,BUFFER)\n 
+	<BtnUp>: select-end(PRIMARY,BUFFER)\n
 #else
 #define MOUSE_SPECIFIC	\
 	~Ctrl ~Meta <Btn2Up>: insert-selection(PRIMARY,BUFFER)\n \
-	<BtnUp>: select-end(PRIMARY,BUFFER)\n 
+	<BtnUp>: select-end(PRIMARY,BUFFER)\n
 #endif
 
 #ifdef SUN

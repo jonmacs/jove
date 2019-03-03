@@ -1,9 +1,9 @@
-/************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/**************************************************************************
+ * This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    *
+ * provided by Jonathan and Jovehacks without charge and without          *
+ * warranty.  You may copy, modify, and/or distribute JOVE, provided that *
+ * this notice is included in all the source files and documentation.     *
+ **************************************************************************/
 
 #ifdef IPROCS	/* the body is the rest of this file */
 
@@ -59,7 +59,6 @@ extern bool
 	KillProcs proto((void));
 
 extern const char
-	*dbxness proto((Process)),
 	*pstate proto((Process));
 
 extern pid_t	DeadPid;	/* info about ChildPid, if reaped by kill_off */
@@ -71,7 +70,6 @@ extern void
 /* Commands: */
 extern void
 	ProcInt proto((void)),
-	DBXpoutput proto((void)),
 	Iprocess proto((void)),
 	ShellProc proto((void)),
 	ProcQuit proto((void)),

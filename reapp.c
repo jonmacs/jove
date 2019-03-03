@@ -1,9 +1,9 @@
-/************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/**************************************************************************
+ * This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    *
+ * provided by Jonathan and Jovehacks without charge and without          *
+ * warranty.  You may copy, modify, and/or distribute JOVE, provided that *
+ * this notice is included in all the source files and documentation.     *
+ **************************************************************************/
 
 /* regular expression applications: search, replace, and tags */
 
@@ -14,6 +14,7 @@
 #include "chars.h"
 #include "disp.h"
 #include "ask.h"
+#include "extend.h" /* for chr_to_int */
 #include "fmt.h"
 #include "marks.h"
 #include "reapp.h"
@@ -39,9 +40,9 @@ bool
 
 private void
 setsearch(str)
-char	*str;
+const char	*str;
 {
-	strcpy(searchstr, str);
+	jamstr(searchstr, str);
 }
 
 private char *
@@ -57,9 +58,8 @@ bool	re,
 	setdefault;
 {
 	Bufpos	*newdot;
-	char	*s;
+	const char	*s = ask(searchstr, ProcFmt);
 
-	s = ask(searchstr, ProcFmt);
 	if (setdefault)
 		setsearch(s);
 	okay_wrap = YES;
@@ -242,8 +242,6 @@ replace(query, inreg)
 bool	query,
 	inreg;
 {
-	Mark	*m;
-	char	*rep_ptr;
 	LinePtr	l1 = curline,
 		l2 = curbuf->b_last;
 	int	char1 = curchar,
@@ -252,23 +250,28 @@ bool	query,
 	struct RE_block	re_blk;
 
 	if (inreg) {
-		m = CurMark();
+		Mark	*m = CurMark();
+
 		l2 = m->m_line;
 		char2 = m->m_char;
 		(void) fixorder(&l1, &char1, &l2, &char2);
 	}
 
 	/* get search string */
-	strcpy(rep_search, ask(rep_search[0] ? rep_search : (char *)NULL, ProcFmt));
+	jamstr(rep_search,
+		ask(rep_search[0] ? rep_search : (char *)NULL, ProcFmt));
 	REcompile(rep_search, UseRE, &re_blk);
+
 	/* Now the replacement string.  Do_ask() so the user can play with
-	   the default (previous) replacement string by typing ^R in ask(),
-	   OR, he can just hit Return to replace with nothing. */
-	rep_ptr = do_ask("\r\n", NULL_ASK_EXT, rep_str, ": %f %s with ",
-		rep_search);
-	if (rep_ptr == NULL)
-		rep_ptr = NullStr;
-	strcpy(rep_str, rep_ptr);
+	 * the default (previous) replacement string by typing ^R in ask(),
+	 * OR, he can just hit Return to replace with nothing.
+	 */
+	{
+		const char	*rp = do_ask("\r\n",
+			NULL_ASK_EXT, rep_str, ": %f %s with ", rep_search);
+
+		jamstr(rep_str, rp == NULL? NullStr : rp);
+	}
 
 	if ((numdone = substitute(&re_blk, query, l1, char1, l2, char2)) != 0
 	&& !inreg)
@@ -300,14 +303,15 @@ RepSearch()
 }
 
 /* Lookup a tag in tag file FILE.  FILE is assumed to be sorted
-   alphabetically.  The FASTTAGS code, which is implemented with
-   a binary search, depends on this assumption.  If it's not true
-   it is possible to comment out the fast tag code (which is clearly
-   labeled), delete the marked test in the sequential loop, and
-   everything else will just work. */
-
+ * alphabetically.  The FASTTAGS code, which is implemented with
+ * a binary search, depends on this assumption.  If it's not true
+ * it is possible to comment out the fast tag code (which is clearly
+ * labeled), delete the marked test in the sequential loop, and
+ * everything else will just work.
+ */
 private bool
-lookup_tag(searchbuf, sbsize, filebuf, tag, file)
+lookup_tag(ispat, searchbuf, sbsize, filebuf, tag, file)
+bool	*ispat;
 char	*searchbuf;
 size_t	sbsize;
 char	*filebuf,
@@ -316,7 +320,7 @@ char	*filebuf,
 {
 	register size_t	taglen = strlen(tag);
 	char	line[JBUFSIZ],
-		pattern[128];
+		pattern[200];
 	register File	*fp;
 	struct stat	stbuf;
 	bool	success = NO;
@@ -326,7 +330,46 @@ char	*filebuf,
 		message(IOerr("open", file));
 		return NO;
 	}
-	swritef(pattern, sizeof(pattern), "^%s[^\t]*\t*\\([^\t]*\\)\t*\\([?/]\\)\\(.*\\)\\2$", tag);
+	/* Build a pattern to parse the tag line.
+	 *
+	 * - the tag name is at the start of the line.
+	 *   Since our name may only be a prefix, ignore
+	 *   the rest of the tab-terminated field.
+	 *     ^%s[^\t]*\t
+	 *
+	 * - a file name, terminated by a tab.
+	 *   Use parens to capture the field as \1:
+	 *     \\([^\t]*\\)\t
+	 *
+	 * - EITHER: a pattern to match for the
+	 *   start of the object within the source file.
+	 *   Capture the delimiter as \2 and the pattern as \3.
+	 *     \\([?/]\\)\\(.*\\)\\2
+	 *   OR: a line number.
+	 *   Capture the lack-of-delimiter in \2 and the number in \3.
+	 *     \\(\\)\\([0-9]*\\)
+	 *
+	 * - possible gunge in the form of an ex(1) comment:
+	 *     \\{;".*\\|\\}
+	 *
+	 * - the end
+	 *     $
+	 *
+	 * Some tag lines collected in the wild:
+	 *   AddError	proc.c	/^AddError(laste, errline, buf, line, charpos)$/
+	 *   AddError	proc.c	/^AddError(laste, errline, buf, line, charpos)$/;"	f
+	 *   AT_BOL	re.c	49;"	d	file:
+	 */
+	swritef(pattern, sizeof(pattern),
+	    /*tag name
+	     *========   file name
+	     *          ============            pattern
+	     *                           =====================      line number
+	     *                                                   =================        gunge
+	     *                                                                        =============
+	     */
+	    "^%s[^\t]*\t\\([^\t]*\\)\t\\{\\([?/]\\)\\(.*\\)\\2\\|\\(\\)\\([0-9]*\\)\\}\\{;\".*\\|\\}$",
+	    tag);
 
 	/* ********BEGIN FAST TAG CODE******** */
 
@@ -356,13 +399,15 @@ char	*filebuf,
 
 			if (upper - lower < JBUFSIZ)
 				break;	/* small range: search sequentially */
+
 			mid = (lower + upper) / 2;
 			f_seek(fp, mid);	/* mid will not be 0 */
 			f_toNL(fp);
 			if (f_gets(fp, line, sizeof line))
 				break;		/* unexpected: bail out */
+
 			chars_eq = numcomp(line, tag);
-			if (chars_eq == taglen && jiswhite(line[chars_eq])) {
+			if ((size_t)chars_eq == taglen && jiswhite(line[chars_eq])) {
 				/* we hit the exact line: get out */
 				lower = mid;
 				break;
@@ -388,10 +433,14 @@ char	*filebuf,
 			if (cmp == 0) {
 				/* we've found the match */
 				if (!LookingAt(pattern, line, 0)) {
-					complain("I thought I saw it!");
+					complain("tag line confuses me: %s", line);
 				} else {
+					char patdelim[2];
+
 					putmatch(1, filebuf, (size_t)FILESIZE);
-					putmatch(3, searchbuf, sbsize-1);
+					putmatch(2, patdelim, sizeof(patdelim));
+					putmatch(3, searchbuf, sbsize);
+					*ispat = patdelim[0] != '\0';
 					success = YES;
 				}
 				break;
@@ -415,12 +464,13 @@ char	*tag;
 bool	localp;
 {
 	char	filebuf[FILESIZE],
-		sstr[100],
+		sstr[200],	/* 100 wasn't big enough */
 		tfbuf[FILESIZE];
 	register Bufpos	*bp;
 	register Buffer	*b;
+	bool ispat;
 
-	if (lookup_tag(sstr, sizeof(sstr), filebuf, tag,
+	if (lookup_tag(&ispat, sstr, sizeof(sstr), filebuf, tag,
 	  localp? TagFile : ask_file("With tag file ", TagFile, tfbuf)))
 	{
 		set_mark();
@@ -428,11 +478,25 @@ bool	localp;
 		if (curbuf != b)
 			SetABuf(curbuf);
 		SetBuf(b);
-		if ((bp = dosearch(sstr, BACKWARD, NO)) == NULL
-		&& (bp = dosearch(sstr, FORWARD, NO)) == NULL)
-			message("Well, I found the file, but the tag is missing.");
-		else
-			SetDot(bp);
+		if (ispat) {
+			if ((bp = dosearch(sstr, BACKWARD, NO)) == NULL
+			&& (bp = dosearch(sstr, FORWARD, NO)) == NULL)
+				message("Well, I found the file, but the tag is missing.");
+			else
+				SetDot(bp);
+		} else {
+			int lnum = 0;   /* keep gcc -W quiet */
+
+			if (chr_to_int(sstr, 10, YES, &lnum) != YES || lnum < 1) {
+				swritef(mesgbuf, sizeof mesgbuf, "Invalid line number: %s", sstr);
+				message(mesgbuf);
+			} else {
+				LinePtr tagline = next_line(curbuf->b_first, lnum - 1);
+
+				PushPntp(tagline);
+				SetLine(tagline);
+			}
+		}
 	}
 }
 
@@ -442,7 +506,7 @@ FindTag()
 	bool	localp = !is_an_arg();
 	char	tag[128];
 
-	strcpy(tag, ask((char *)NULL, ProcFmt));
+	jamstr(tag, ask((char *)NULL, ProcFmt));
 	find_tag(tag, localp);
 }
 
@@ -468,16 +532,16 @@ FDotTag()
 }
 
 /* I-search returns a code saying what to do:
-   I_STOP:	We found the match, so unwind the stack and leave
-		where it is.
-   I_DELETE:	Rubout the last command.
-   I_BACKUP:	Back up to where the isearch was last NOT failing.
-   I_TOSTART:	Abort the search, going back where isearch started
-
-   When a character is typed it is appended to the search string, and
-   then, isearch is called recursively.  When ^S or ^R is typed, isearch
-   is again called recursively. */
-
+ * I_STOP:	We found the match, so unwind the stack and leave
+ *		where it is.
+ * I_DELETE:	Rubout the last command.
+ * I_BACKUP:	Back up to where the isearch was last NOT failing.
+ * I_TOSTART:	Abort the search, going back where isearch started
+ *
+ * When a character is typed it is appended to the search string, and
+ * then, isearch is called recursively.  When ^S or ^R is typed, isearch
+ * is again called recursively.
+ */
 #define I_STOP	1
 #define I_DELETE	2
 #define I_BACKUP	3
@@ -501,6 +565,7 @@ bool		failing;
 	if (c != CTL('S') && c != CTL('R')) {
 		if (failing)
 			return NULL;
+
 		DOTsave(&buf);
 		if (dir == FORWARD) {
 			if (ZXC(linebuf[curchar]) == c
@@ -588,13 +653,13 @@ Bufpos	*bp;
 		c = getch();
 		if (c == SExitChar)
 			return I_STOP;
+
 		if (c == AbortChar) {
 			/* If we're failing, we backup until we're no longer
-			   failing or we've reached the beginning; else, we
-			   just abort the search and go back to the start. */
-			if (failing)
-				return I_BACKUP;
-			return I_TOSTART;
+			 * failing or we've reached the beginning; else, we
+			 * just abort the search and go back to the start.
+			 */
+			return failing? I_BACKUP : I_TOSTART;
 		}
 		switch (c) {
 		case DEL:
@@ -607,16 +672,18 @@ Bufpos	*bp;
 		case CTL('S'):
 		case CTL('R'):
 			/* If this is the first time through and we have a
-			   search string left over from last time, and Inputp
-			   is not in use [kludge!], use that one now. */
+			 * search string left over from last time, and Inputp
+			 * is not in use [kludge!], use that one now.
+			 */
 			if (Inputp == NULL && incp == ISbuf) {
 				Inputp = getsearch();
 				continue;
 			}
 			ndir = (c == CTL('S')) ? FORWARD : BACKWARD;
 			/* If we're failing and we're not changing our
-			   direction, don't recur since there's no way
-			   the search can work. */
+			 * direction, don't recur since there's no way
+			 * the search can work.
+			 */
 			if (failing && ndir == dir) {
 				rbell();
 				continue;
@@ -666,11 +733,13 @@ Bufpos	*bp;
 
 		case I_BACKUP:
 			/* If we're not failing, we just continue to to the
-			   for loop; otherwise we keep returning to the
-			   previous levels until we find one that isn't
-			   failing OR we reach the beginning. */
+			 * for loop; otherwise we keep returning to the
+			 * previous levels until we find one that isn't
+			 * failing OR we reach the beginning.
+			 */
 			if (failing)
 				return I_BACKUP;
+
 			/*FALLTHROUGH*/
 		case I_DELETE:
 			incp = orig_incp;

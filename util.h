@@ -1,9 +1,9 @@
-/************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/**************************************************************************
+ * This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    *
+ * provided by Jonathan and Jovehacks without charge and without          *
+ * warranty.  You may copy, modify, and/or distribute JOVE, provided that *
+ * this notice is included in all the source files and documentation.     *
+ **************************************************************************/
 
 /* some utility functions, as macros, to be included by jove.h */
 
@@ -11,14 +11,14 @@ extern int
 	fnamecomp proto((UnivConstPtr, UnivConstPtr));	/* order file names */
 
 #define IsModified(b)	((b)->b_modified)
-#define SavLine(a, b)	((a)->l_dline = putline((b)))
+#define SavLine(a, b)	((a)->l_dline = jputline((b)))
 #define SetLine(line)	DotTo((line), 0)
 #define bobp()		(firstp(curline) && bolp())
 #define bolp()		(curchar == 0)
 #define eobp()		(lastp(curline) && eolp())
 #define eolp()		(linebuf[curchar] == '\0')
 #define firstp(line)	((line) == curbuf->b_first)
-#define getDOT()	getline(curline->l_dline, linebuf)
+#define getDOT()	jgetline(curline->l_dline, linebuf)
 #define lastp(line)	((line) == curbuf->b_last)
 
 extern UnivPtr
@@ -26,13 +26,15 @@ extern UnivPtr
 	erealloc proto((UnivPtr ptr, size_t size));
 
 extern char
-	*IOerr proto((char *err, char *file)),
-	*basename proto((char *f)),
+	*IOerr proto((const char *err, const char *file)),
 	*copystr proto((const char *str)),
-	*filename proto((Buffer *b)),
 	*get_time proto((time_t *timep,char *buf,int from,int to)),
 	*lcontents proto((LinePtr line)),
 	*ltobuf proto((LinePtr line,char *buf));
+
+extern const char
+	*jbasename proto((const char *f)),
+	*filename proto((const Buffer *b));
 
 extern int
 	inorder proto((LinePtr nextp,int char1,LinePtr endp,int char2)),
@@ -41,8 +43,8 @@ extern int
 	length proto((LinePtr line)),
 	max proto((int a,int b)),
 	min proto((int a,int b)),
-	numcomp proto((char *s1,char *s2)),
-	numcompcase proto((char *s1,char *s2));
+	numcomp proto((const char *s1, const char *s2)),
+	numcompcase proto((const char *s1, const char *s2));
 
 extern ZXchar
 	DecodePair proto((ZXchar first, ZXchar second));
@@ -54,7 +56,7 @@ extern bool
 	within_indent proto((void)),
 	fixorder proto((LinePtr  *line1,int *char1,LinePtr  *line2,int *char2)),
 	inlist proto((LinePtr first,LinePtr what)),
-	sindex proto((char *pattern,char *string)),
+	sindex proto((const char *pattern, const char *string)),
 	ModBufs proto((bool allp));
 
 extern void
@@ -81,6 +83,16 @@ extern void
 
 extern UnivPtr
 	freealloc proto((UnivPtr obj, size_t size));
+
+/* copy a string into a possibly-too-small buffer
+ * trunc* silently truncates a too-large string.
+ * jam* complain if the string is too large.
+ */
+#define truncstr(buf, str)	truncstrsub(buf, str, sizeof(buf))
+#define jamstr(buf, str)	jamstrsub(buf, str, sizeof(buf))
+extern void
+	truncstrsub proto((char *buf, const char *str, size_t bufsz)),
+	jamstrsub proto((char *buf, const char *str, size_t bufsz));
 
 /* Variables: */
 

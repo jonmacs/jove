@@ -1,9 +1,9 @@
-/************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/**************************************************************************
+ * This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    *
+ * provided by Jonathan and Jovehacks without charge and without          *
+ * warranty.  You may copy, modify, and/or distribute JOVE, provided that *
+ * this notice is included in all the source files and documentation.     *
+ **************************************************************************/
 
 /* jove.h header file to be included by EVERYONE */
 
@@ -52,7 +52,7 @@
 
 #ifdef STDARGS
 # include <stdarg.h>
-# define	va_init(ap, parmN)	{ va_start((ap), (parmN)); }
+# define	va_init(ap, parmN)	{ va_start((ap), parmN); }
 #else
 # include <varargs.h>
 # define	va_init(ap, parmN)	{ va_start((ap)); }
@@ -319,7 +319,6 @@ extern char
 
 
 /* setjmp/longjmp args for DoKeys() mainjmp */
-#define JMP_FIRSTCALL	0
 #define JMP_ERROR		1
 #define JMP_COMPLAIN	2	/* do the error without a getDOT */
 #define JMP_QUIT		3	/* leave this level of recursion */
@@ -364,7 +363,7 @@ extern void	jcloseall proto((void));
 #endif
 
 extern SIGRESTYPE
-	finish proto((int code)),	/* doesn't return at all! */
+	finish proto((int code)) NEVER_RETURNS,	/* doesn't return at all! */
 	win_reshape proto((int /*junk*/));
 
 extern bool
@@ -380,7 +379,7 @@ extern void
 	cmd_sync proto((void)),
 	add_stroke proto((ZXchar)),
 	error proto((const char *, ...)),
-	complain proto((const char *, ...)),
+	complain proto((const char *, ...)) NEVER_RETURNS,
 	raw_complain proto((const char *, ...)),
 	confirm proto((const char *, ...)),
 	SitFor proto((int delay)),
@@ -409,3 +408,4 @@ extern bool	TimeDisplayed;	/* is time actually displayed in modeline? */
 extern int	UpdFreq;		/* VAR: how often to update modeline */
 extern void	SetClockAlarm proto((bool unset));
 #endif
+extern bool	SaveOnExit;		/* VAR: offer to save buffers on exit */

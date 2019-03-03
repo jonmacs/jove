@@ -1,3 +1,9 @@
+.\"##########################################################################
+.\"# This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    #
+.\"# provided by Jonathan and Jovehacks without charge and without          #
+.\"# warranty.  You may copy, modify, and/or distribute JOVE, provided that #
+.\"# this notice is included in all the source files and documentation.     #
+.\"##########################################################################
 .TH JOVE 1 "24 June 1993"
 .SH NAME
 jove \- an interactive display-oriented text editor
@@ -152,7 +158,7 @@ Divides the window into
 .I n
 windows (if
 .I n
-is ommitted, it is taken to be 2).
+is omitted, it is taken to be 2).
 Subsequent files in the list are read in and displayed in succeeding windows.
 .SH "RECOVERING BUFFERS AFTER A CRASH"
 The
@@ -251,7 +257,7 @@ If the initialization file has provided specific keybindings for your
 terminal, it should also be possible to view the keyboard layout with
 the keychart macro.
 .LP
-If you're not familar with the EMACS command set, it would be worth your
+If you're not familiar with the EMACS command set, it would be worth your
 while to use run TEACHJOVE.  Do do that, just type ``teachjove'' to your shell
 and you will be placed in JOVE in a file which contains directions.  I highly
 recommend this for beginners; you may save yourself a lot of time and

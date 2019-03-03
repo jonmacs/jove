@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 1986 Free Software Foundation, Inc.
- * Copyright (C) 1991-1996 C.H.Lindsey, University of Manchester
+ * Copyright (C) 1991-1999 C.H.Lindsey, University of Manchester
  *
  * This file is derived from the program emacstool, which is itself part of the
  * GNU Emacs system.
@@ -622,7 +622,7 @@ main(argc, argv)
 	putenv("IN_JOVETOOL=t");/* notify subprocess that it is in jovetool */
 
 	font = (Xv_font) xv_find(ttysw, FONT, FONT_NAME,
-				 defaults_get_string("font.name", "Font.Name", "lucidasanstypewriter-12"),
+				 defaults_get_string("xjove.font.name", "Xjove.Font.Name", "lucidasanstypewriter-12"),
 				 0);
 
 	child_argv = (char **) malloc((argc + 1) * sizeof(char *));
