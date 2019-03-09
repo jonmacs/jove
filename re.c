@@ -593,25 +593,25 @@ register char	*linep,
 
 	case ANYC | STAR:
 		first_p = linep;
-		do ; while (*linep++ != '\0');
+		do {} while (*linep++ != '\0');
 		goto star;
 
 	case NORMC | STAR:
 		first_p = linep;
-		do ; while (*comp_ptr == *linep++);
+		do {} while (*comp_ptr == *linep++);
 		comp_ptr += 1;
 		goto star;
 
 	case CINDC | STAR:
 		first_p = linep;
-		do ; while (cind_eq(*comp_ptr, *linep++));
+		do {} while (cind_eq(*comp_ptr, *linep++));
 		comp_ptr += 1;
 		goto star;
 
 	case ONE_OF | STAR:
 	case NONE_OF | STAR:
 		first_p = linep;
-		do ; while (member(comp_ptr, ZXC(*linep++), comp_ptr[-1] == (ONE_OF | STAR)));
+		do {} while (member(comp_ptr, ZXC(*linep++), comp_ptr[-1] == (ONE_OF | STAR)));
 		comp_ptr += SETSIZE;
 		/* fall through */
 star:

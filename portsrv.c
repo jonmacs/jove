@@ -71,7 +71,7 @@ kbd_process()
 		}
 		lump.header.nbytes = n;
 		/* It is not clear what we can do if this write fails */
-		do ; while (write(1, (UnivPtr) &lump, sizeof(struct header) + n) < 0
+		do {} while (write(1, (UnivPtr) &lump, sizeof(struct header) + n) < 0
 			&& errno == EINTR);
 	}
 }
@@ -88,7 +88,7 @@ UnivConstPtr	ptr;
 size_t	n;
 {
 	/* It is not clear what we can do if this write fails */
-	do ; while (write(1, ptr, n) < 0 && errno == EINTR);
+	do {} while (write(1, ptr, n) < 0 && errno == EINTR);
 }
 
 private void
@@ -112,7 +112,7 @@ char	*str;
 	strcpy(lump.data, str);
 	proc_write((UnivConstPtr) &lump, sizeof(struct header) + lump.header.nbytes);
 	/* It is not clear what we can do if this write fails */
-	do ; while (write(tty_fd, (UnivConstPtr)str, strlen(str)) < 0 && errno == EINTR);
+	do {} while (write(tty_fd, (UnivConstPtr)str, strlen(str)) < 0 && errno == EINTR);
 	exit(-2);
 }
 
@@ -157,7 +157,7 @@ char	**argv;
 		lump.header.nbytes = sizeof (pid_t);
 		byte_copy((UnivConstPtr) &pid, (UnivPtr) lump.data, sizeof(pid_t));
 		/* It is not clear what we can do if this write fails */
-		do ; while (write(1, (UnivConstPtr) &lump, sizeof(struct header) + sizeof(pid_t)) < 0
+		do {} while (write(1, (UnivConstPtr) &lump, sizeof(struct header) + sizeof(pid_t)) < 0
 			&& errno == EINTR);
 
 		/* read proc's output and send it to jove */
@@ -178,12 +178,12 @@ char	**argv;
 		{
 			wait_status_t	status;
 
-			do ; while (wait(&status) != pid);
+			do {} while (wait(&status) != pid);
 			byte_copy((UnivPtr)&status, (UnivPtr)lump.data,
 				sizeof(status));
 		}
 		/* It is not clear what we can do if this write fails */
-		do ; while (write(1, (UnivConstPtr) &lump,
+		do {} while (write(1, (UnivConstPtr) &lump,
 			sizeof(struct header) + sizeof(wait_status_t)) < 0
 				&& errno == EINTR);
 	}

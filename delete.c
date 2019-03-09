@@ -321,7 +321,7 @@ DelWtSpace()
 		/* Shift the remaining characters left in the buffer to close the gap.
 		 * strcpy(sp, ep) won't do because the destination overlaps the source.
 		 */
-		do ; while ((*sp++ = *ep++) != '\0');
+		do {} while ((*sp++ = *ep++) != '\0');
 		makedirty(curline);
 		modify();
 	}

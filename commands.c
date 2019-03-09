@@ -116,7 +116,7 @@ const char	*prompt;
 			register const char	**strs = strings;
 			register const struct cmd	*c = commands;
 
-			do ; while ((*strs++ = (*c++).Name) != NULL);
+			do {} while ((*strs++ = (*c++).Name) != NULL);
 		}
 		last = complete(strings, last >= 0? strings[last] : (char *)NULL,
 			prompt, CASEIND | ALLOW_OLD);

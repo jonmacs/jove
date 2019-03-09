@@ -293,11 +293,11 @@ bool	n;	/* also used as subscript! */
 #endif
 
 #ifdef TERMIO
-	do ; while (ioctl(0, TCSETAW, (UnivPtr) &sg[n]) < 0 && errno == EINTR);
+	do {} while (ioctl(0, TCSETAW, (UnivPtr) &sg[n]) < 0 && errno == EINTR);
 #endif
 
 #ifdef TERMIOS
-	do ; while (tcsetattr(0, TCSADRAIN, &sg[n]) < 0 && errno == EINTR);
+	do {} while (tcsetattr(0, TCSADRAIN, &sg[n]) < 0 && errno == EINTR);
 #endif
 
 #ifdef USE_TIOCSLTC

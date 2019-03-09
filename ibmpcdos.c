@@ -400,7 +400,7 @@ int	n;
 #else
 		unsigned int i = 0x8888;	/* a CPU-speed dependent duration */
 
-		do ; while (--i > 0);
+		do {} while (--i > 0);
 #endif
 	}
 	outp(BELL_P, spkr_state);

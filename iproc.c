@@ -125,7 +125,7 @@ va_list	ap;
 
 	argv[i++] = va_arg(ap, char *);
 	argv[i++] = (char *)jbasename(argv[0]);	/* lose const (but it's safe) */
-	do ; while ((argv[i++] = va_arg(ap, char *)) != NULL);
+	do {} while ((argv[i++] = va_arg(ap, char *)) != NULL);
 }
 
 /* environment manipulation (always for process) */
@@ -1201,10 +1201,10 @@ proc_strt(bufname, clobber, procname, va_alist)
 		sgt.c_lflag &= ~(ECHO);
 		sgt.c_oflag &= ~(ONLCR | TABDLY);
 #  ifdef TERMIO
-		do ; while (ioctl(0, TCSETAW, (UnivPtr) &sgt) < 0 && errno == EINTR);
+		do {} while (ioctl(0, TCSETAW, (UnivPtr) &sgt) < 0 && errno == EINTR);
 #  endif
 #  ifdef TERMIOS
-		do ; while (tcsetattr(0, TCSADRAIN, &sgt) < 0 && errno == EINTR);
+		do {} while (tcsetattr(0, TCSADRAIN, &sgt) < 0 && errno == EINTR);
 #  endif
 # else /* !(defined(TERMIO) || defined(TERMIOS)) */
 		sgt = sg[NO];

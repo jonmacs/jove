@@ -600,7 +600,7 @@ char *pref;
 			char keydescbuf[40];
 
 			c2 = c1;
-			do; while (++c2 < NCHARS && c1obj == km_getkey(map, c2));
+			do {} while (++c2 < NCHARS && c1obj == km_getkey(map, c2));
 			c2 -= 1;
 			swritef(keydescbuf, sizeof(keydescbuf),
 				c1 == c2 ? "%s %p" : c1 + 1 == c2 ? "%s {%p,%p}" : "%s [%p-%p]",
@@ -673,7 +673,7 @@ size_t	room;
 
 			c2 = c1;
 			if (c1obj == cp) {
-				do ; while (++c2 < NCHARS && c1obj == km_getkey(map, c2));
+				do {} while (++c2 < NCHARS && c1obj == km_getkey(map, c2));
 				c2 -= 1;
 				swritef(bufp, room - (bufp-buf),
 					c1==c2? "%s%p, " : c1+1==c2? "%s{%p,%p}, " : "%s[%p-%p], ",

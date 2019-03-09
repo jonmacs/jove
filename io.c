@@ -920,7 +920,7 @@ char	*intobuf;
 				int	linklen;
 #endif
 
-				do ; while (dp > intobuf+1 && *--dp != '/');
+				do {} while (dp > intobuf+1 && *--dp != '/');
 #ifdef HAS_SYMLINKS
 				/* If we find that the path up to the .. is a symlink,
 				 * and we don't appear to be in a symlink loop
@@ -1368,7 +1368,7 @@ register char	*buf;
 
 	lp = buf;
 	bp = getblock(addr, NO);
-	do ; while ((*lp++ = *bp++) != '\0');
+	do {} while ((*lp++ = *bp++) != '\0');
 	Jr_Len = (lp - buf) - 1;
 }
 

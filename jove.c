@@ -653,7 +653,7 @@ int	delay;
 	start = Ticks;
 
 	end = start + delay * 6;
-	do ; while (!charp() && Ticks < end);
+	do {} while (!charp() && Ticks < end);
 
 #else /* !MAC */
 
@@ -1768,7 +1768,7 @@ char	*argv[];
 	{
 		char	*cp = &TmpDir[strlen(TmpDir)];
 
-		do ; while (cp != TmpDir && (*--cp == '/'
+		do {} while (cp != TmpDir && (*--cp == '/'
 #ifdef MSFILESYSTEM
 			|| *cp == '\\'
 #endif

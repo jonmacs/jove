@@ -400,7 +400,7 @@ size_t	buflen;
 	char	*bp = buf,
 		*ep = buf + buflen - 1;
 
-	do ; while (strchr(" \t\n", c = getchar()) != NULL);
+	do {} while (strchr(" \t\n", c = getchar()) != NULL);
 
 	for (;;) {
 		if (c == EOF)
@@ -844,7 +844,7 @@ savetmps()
 			/*NOTREACHED*/
 
 		default:
-			do ; while (wait(&status) != pid);
+			do {} while (wait(&status) != pid);
 			if (WIFSIGNALED(status))
 				fprintf(stderr, "recover: copy terminated by signal %d\n.\n", WTERMSIG(status));
 			if (WIFEXITED(status))
