@@ -46,12 +46,12 @@ struct sgttyb	sg1, sg2;
 #endif BRLUNIX
 
 #ifdef BIFF
-static struct stat	tt_stat;	/* for biff */
+private struct stat	tt_stat;	/* for biff */
 #ifndef BSD4_2
-static char	*tt_name = 0;		/* name of the control tty */
+private char	*tt_name = 0;		/* name of the control tty */
 extern char	*ttyname();		/* for systems w/o fchmod ... */
 #endif
-static int	dw_biff = NO;		/* whether or not to fotz at all */
+private int	dw_biff = NO;		/* whether or not to fotz at all */
 #endif
 
 time_t	time0;			/* when jove started up */
@@ -114,11 +114,11 @@ finish(code)
 #endif
 }
 
-static char	smbuf[20],
+private char	smbuf[20],
 		*bp = smbuf;
-static int	nchars = 0;
+private int	nchars = 0;
 
-static char	peekbuf[10],
+private char	peekbuf[10],
 		*peekp = peekbuf;
 
 #ifdef SYSV
@@ -333,9 +333,9 @@ ResetTerm()
 	/* just in case we changed our minds about whether to deal with
 	   biff */
 #endif
-	chkmail(YES);	/* force it to check to we can be accurate */
-	do_sgtty();	/* this is so if you change baudrate or stuff
-			   like that, JOVE will notice. */
+	(void) chkmail(YES);	/* force it to check to we can be accurate */
+	do_sgtty();		/* this is so if you change baudrate or stuff
+				   like that, JOVE will notice. */
 	ttyset(ON);
 }
 
@@ -487,7 +487,7 @@ ttinit()
 	do_sgtty();
 }
 
-static int	done_ttinit = 0;
+private int	done_ttinit = 0;
 
 do_sgtty()
 {
@@ -587,11 +587,10 @@ register int	c;
 	if (cp == 0) {
 		rbell();
 		exp = 1;
-		exp_p = errormsg = 0;
+		exp_p = errormsg = NO;
 		message(NullStr);
-		return;
-	}
-	ExecCmd(cp);
+	} else
+		ExecCmd(cp);
 }
 
 int	LastKeyStruck,
@@ -724,7 +723,7 @@ char	*argv[];
 			case 't':
 				++argv;
 				--argc;
-				exp_p = 1;
+				exp_p = YES;
 				find_tag(argv[1], YES);
 				break;
 
@@ -753,28 +752,6 @@ char	*argv[];
 		--argc;
 	}
 }
-
-#ifdef lint
-Ignore(a)
-	char *a;
-{
-
-	a = a;
-}
-
-Ignorf(a)
-	int (*a)();
-{
-
-	a = a;
-}
-
-Ignorl(a)
-long	a;
-{
-	a = a;
-}
-#endif
 
 /* VARARGS1 */
 
@@ -845,7 +822,7 @@ Recur()
 	UpdModLine++;
 	RecDepth--;
 	SetBuf(do_select(curwind, bname));
-	if (!exp_p)
+	if (exp_p == NO)
 		ToMark(m);
 	DelMark(m);
 }
@@ -906,7 +883,7 @@ DoKeys(nocmdline)
 	for (;;) {
 		if (this_cmd != ARG_CMD) {
 			exp = 1;
-			exp_p = 0;
+			exp_p = NO;
 			last_cmd = this_cmd;
 			init_strokes();
 		}
@@ -998,12 +975,16 @@ win_reshape()
 main(argc, argv)
 char	*argv[];
 {
-	char	s_iobuff[LBSIZE],
+	char	ttbuf[512],
+#ifndef VMUNIX
+		s_iobuff[LBSIZE],
 		s_genbuf[LBSIZE],
 		s_linebuf[LBSIZE],
-		ttbuf[512],
+#endif
 		*cp;
 
+
+#ifndef VMUNIX
 	/* The way I look at it, there ain't no way I is gonna run
 	   out of stack space UNLESS I have some kind of infinite
 	   recursive bug.  So why use up some valuable memory, when
@@ -1013,6 +994,7 @@ char	*argv[];
 	iobuff = s_iobuff;
 	genbuf = s_genbuf;
 	linebuf = s_linebuf;
+#endif
 
 	errormsg = 0;
 

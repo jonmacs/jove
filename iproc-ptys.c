@@ -49,8 +49,6 @@ struct process {
 } *procs = 0,
   *cur_proc = 0;
 
-char	proc_prompt[80] = "% ";
-
 int	global_fd = 1,
 	NumProcs = 0;
 
@@ -119,13 +117,11 @@ register int	fd;
 	}
 
 	n = read(fd, ibuf, sizeof(ibuf) - 1);
-
 	if (n == 0) {
 		proc_close(p);
 		NumProcs--;
 		return;
 	}
-
 	ibuf[n] = '\0';
 	proc_rec(p, ibuf);
 	redisplay();
@@ -244,7 +240,6 @@ register Mark	*mp;
 }
 
 /* VARARGS2 */
-
 static
 proc_strt(bufname, procname, cmd)
 char	*bufname,
@@ -286,21 +281,25 @@ char	*bufname,
 	bp = buf_exists(bufname);
 	if (bp != 0 && IsModified(bp) && bp->b_type != B_IPROCESS && bp->b_type != B_PROCESS)
 		complain("Command would over-write buffer %s.", procname, bufname);
-	pop_wind(bufname, 1, B_IPROCESS);
+	pop_wind(bufname, YES, B_IPROCESS);
 
 	for (s = "pqrs"; *s; s++) {
 		for (t = "0123456789abcdef"; *t; t++) {
 			sprintf(ptybuf, "/dev/pty%c%c", *s, *t);
-			if ((ttyfd = open(ptybuf, 2)) >= 0)
+			if ((ttyfd = open(ptybuf, 2)) >= 0) {
+				strcpy(ttybuf, ptybuf);
+				ttybuf[5] = 't';
+				/* make sure both ends are available */
+				if ((i = open(ttybuf, 2)) < 0)
+					continue;
+				(void) close(i);
 				goto out;
+			}
 		}
 	}
 
 out:	if (s == 0 && t == 0)
 		complain("[Out of ptys!]");
-
-	strcpy(ttybuf, ptybuf);
-	ttybuf[5] = 't';
 
 #ifdef TIOCGETD
 	(void) ioctl(0, TIOCGETD, (struct sgttyb *) &ldisc);

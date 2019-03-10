@@ -14,7 +14,7 @@
 
 #include "jove.h"
 
-struct data_obj	*mainmap[] = {
+keymap	mainmap = {
 	"set-mark",			/* ^@ */
 	"beginning-of-line",		/* ^A */
 	"backward-character",		/* ^B */
@@ -150,7 +150,7 @@ struct data_obj	*pref1map[0200] = {
 	"unbound",			/* ^A */
 	"backward-s-expression",	/* ^B */
 	"unbound",			/* ^C */
-	"unbound",			/* ^D */
+	"down-list",			/* ^D */
 	"unbound",			/* ^E */
 	"forward-s-expression",		/* ^F */
 	"unbound",			/* ^G */
@@ -160,14 +160,14 @@ struct data_obj	*pref1map[0200] = {
 	"kill-s-expression",		/* ^K */
 	"clear-and-redraw",		/* ^L */
 	"unbound",			/* ^M */
-	"unbound",			/* ^N */
+	"forward-list",			/* ^N */
 	"unbound",			/* ^O */
-	"unbound",			/* ^P */
+	"backward-list",		/* ^P */
 	"unbound",			/* ^Q */
 	"unbound",			/* ^R */
 	"unbound",			/* ^S */
 	"unbound",			/* ^T */
-	"unbound",			/* ^U */
+	"backward-up-list",		/* ^U */
 	"page-next-window",		/* ^V */
 	"unbound",			/* ^W */
 	"unbound",			/* ^X */
@@ -276,7 +276,7 @@ struct data_obj	*pref1map[0200] = {
 	"kill-previous-word"		/* ^? */
 };
 
-struct data_obj	*pref2map[0200] = {
+keymap	pref2map = {
 	"unbound",			/* ^@ */
 	"unbound",			/* ^A */
 	"list-buffers",			/* ^B */
@@ -407,4 +407,4 @@ struct data_obj	*pref2map[0200] = {
 	"kill-to-beginning-of-sentence"	/* ^? */
 };
 
-struct data_obj	*miscmap[0200] = {0};
+keymap	miscmap = {0};

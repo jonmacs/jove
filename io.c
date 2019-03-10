@@ -21,10 +21,17 @@
 
 long	io_chars;		/* number of chars in this open_file */
 int	io_lines;		/* number of lines in this open_file */
-static int	tellall;	/* display file io info? */
+private int	tellall;	/* display file io info? */
+
+#ifdef VMUNIX
+char	iobuff[LBSIZE],
+	genbuf[LBSIZE],
+	linebuf[LBSIZE];
+#else
 char	*iobuff,
 	*genbuf,
 	*linebuf;
+#endif
 
 #ifdef BACKUPFILES
 int	BkupOnWrite = 0;
@@ -59,9 +66,10 @@ Line	*line1,
 		(void) fixorder(&line1, &char1, &line2, &char2);
 	while (line1 != line2->l_next) {
 		lp = lcontents(line1) + char1;
-		if (line1 == line2)
+		if (line1 == line2) {
 			fputnchar(lp, (char2 - char1), fp);
-		else while (c = *lp++) {
+			io_chars += (char2 - char1);
+		} else while (c = *lp++) {
 			putc(c, fp);
 			io_chars++;
 		}
@@ -115,10 +123,10 @@ register File	*fp;
 	xeof = f_gets(fp, linebuf + curchar, LBSIZE - curchar);
 	SavLine(curline, linebuf);
 	if (!xeof) do {
-		xeof = f_gets(fp, linebuf, LBSIZE);
 		curline = listput(curbuf, curline);
-		curline->l_dline = putline(linebuf) | DIRTY;
+		xeof = f_getputl(curline, fp);
 	} while (!xeof);
+	getDOT();
 	linecopy(linebuf, (curchar = strlen(linebuf)), end);
 	SavLine(curline, linebuf);
 	IFixMarks(savel, savec, curline, curchar);
@@ -165,8 +173,8 @@ char	*fname;
 
 #define NDIRS	5
 
-static char	*DirStack[NDIRS] = {0};
-static int	DirSP = 0;	/* Directory stack pointer */
+private char	*DirStack[NDIRS] = {0};
+private int	DirSP = 0;	/* Directory stack pointer */
 #define PWD	(DirStack[DirSP])
 
 char *
@@ -316,7 +324,7 @@ Popd()
 	prDIRS();
 }
 
-static char *
+private char *
 dbackup(base, offset, c)
 register char	*base,
 		*offset,
@@ -587,7 +595,7 @@ char	*fname;
 		DOTsave(&save);
 		ToLast();
 		if (length(curline))	/* Not a blank Line */
-			DoTimes(LineInsert(), 1);	/* Make it blank */
+			LineInsert(1);
 		SetDot(&save);
 	}
 	putreg(fp, curbuf->b_first, 0, curbuf->b_last, length(curbuf->b_last), NO);
@@ -671,7 +679,6 @@ tmpclose()
 
 int	Jr_Len;		/* Length of Just Read Line. */
 
-char *
 getline(tl, buf)
 disk_line	tl;
 char	*buf;
@@ -694,8 +701,6 @@ char	*buf;
 		}
 	}
 	Jr_Len = (lp - buf) - 1;
-
-	return buf;
 }
 
 /* Put `buf' and return the disk address */
@@ -722,7 +727,8 @@ char	*buf;
 			break;
 		}
 		if (--nl == 0) {
-			tline = (tl += INCRMT);
+			tl += INCRMT;
+			tline = tl;
 			bp = getblock(tl, WRITE);
 			lp = buf;	/* start over ... */
 			nretries++;
@@ -733,6 +739,64 @@ char	*buf;
 	tline += (((lp - buf) + BNDRY - 1) >> SHFT) & 077776;
 
 	return tl;
+}
+
+#define lockblock(addr)
+#define unlockblock(addr)
+
+disk_line
+f_getputl(line, fp)
+Line	*line;
+register File	*fp;
+{
+	register char	*bp;
+	register int	c,
+			nl,
+			max = LBSIZE;
+	disk_line	tl;
+	char		*base;
+
+	tl = tline;
+	base = bp = getblock(tl, WRITE);
+	nl = nleft;
+	tl &= ~OFFMSK;
+	while (--max > 0) {
+		c = getc(fp);
+		if (c == EOF || c == '\n')
+			break;
+		if (--nl == 0) {
+			char	*newbp;
+			int	nbytes;
+
+			lockblock(tl);
+			tl += INCRMT;
+			tline = tl;
+			nbytes = bp - base;
+			newbp = getblock(tl, WRITE);
+			byte_copy(base, newbp, nbytes);
+			bp = newbp + nbytes;
+			base = newbp;
+			nl = nleft;
+			unlockblock(tl);
+		}
+		*bp++ = c;
+	}
+	*bp = '\0';
+	tl = tline;
+	tline += (((bp - base) + BNDRY) >> SHFT) & 077776;
+	line->l_dline = tl;
+	if (max == 0) {
+		add_mess(" [Line too long]");
+		rbell();
+		return EOF;
+	}
+	if (c == EOF) {
+		if (bp != base)
+			add_mess(" [Incomplete last line]");
+		return EOF;
+	}
+	io_lines++;
+	return NIL;
 }
 
 typedef struct block {
@@ -748,14 +812,14 @@ typedef struct block {
 #define HASHSIZE	7	/* Primes work best (so I'm told) */
 #define B_HASH(bno)	(bno % HASHSIZE)
 
-static Block	b_cache[NBUF],
+private Block	b_cache[NBUF],
 		*bht[HASHSIZE] = {0},		/* Block hash table */
 		*f_block = 0,
 		*l_block = 0;
-static int	max_bno = -1,
+private int	max_bno = -1,
 		NBlocks;
 
-static
+private
 block_init()
 {
 	register Block	*bp,	/* Block pointer */
@@ -779,7 +843,7 @@ block_init()
 	}
 }
 
-static Block *
+private Block *
 lookup(bno)
 register short	bno;
 {
@@ -791,7 +855,7 @@ register short	bno;
 	return bp;
 }
 
-static
+private
 LRUunlink(b)
 register Block	*b;
 {
@@ -805,7 +869,7 @@ register Block	*b;
 		b->b_LRUnext->b_LRUprev = b->b_LRUprev;
 }
 
-static Block *
+private Block *
 b_unlink(bp)
 register Block	*bp;
 {
@@ -855,13 +919,14 @@ disk_line	atl;
 	if (bno >= NMBLKS)
 		error("Tmp file too large.  Get help!");
 	nleft = BUFSIZ - off;
-	if (lastb != 0 && lastb->b_bno == bno)
+	if (lastb != 0 && lastb->b_bno == bno) {
+		lastb->b_dirty |= iof;
 		return lastb->b_buf + off;
+	}
 
 	/* The requested block already lives in memory, so we move
 	   it to the end of the LRU list (making it Most Recently Used)
 	   and then return a pointer to it. */
-
 	if (bp = lookup(bno)) {
 		if (bp != l_block) {
 			LRUunlink(bp);
@@ -883,7 +948,6 @@ disk_line	atl;
 	/* The block we want doesn't reside in memory so we take the
 	   least recently used clean block (if there is one) and use
 	   it.  */
-
 	bp = f_block;
 	if (bp->b_dirty)	/* The best block is dirty ... */
 		SyncTmp();
@@ -922,7 +986,7 @@ Line	*line;
 	return getblock(line->l_dline, READ);
 }
 
-static
+private
 blkio(b, iofcn)
 register Block	*b;
 register int	(*iofcn)();

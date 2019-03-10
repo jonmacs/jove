@@ -19,6 +19,8 @@ int	proc_child();
 #   include "iproc-ptys.c"
 #endif
 
+char	proc_prompt[80] = "% ";
+
 KillProcs()
 {
 	register Process	*p;
@@ -177,11 +179,23 @@ ProcList()
 
 ProcNewline()
 {
+	SendData(YES);
+}
+
+ProcSendData()
+{
+	SendData(NO);
+}
+
+private
+SendData(newlinep)
+{
 	if (isdead(cur_proc))
 		return;
 	if (lastp(curline)) {
 		Eol();
-		LineInsert();
+		if (newlinep)
+			LineInsert(1);
 		do_rtp(cur_proc->p_mark);
 		MarkSet(cur_proc->p_mark, curline, curchar);
 	} else {
@@ -191,6 +205,16 @@ ProcNewline()
 		strcpy(genbuf, linebuf + curchar);
 		ToLast();
 		ins_str(genbuf, NO);
+	}
+}
+
+ShelCmd()
+{
+	if (cur_proc == 0)
+		IShell();
+	else {
+		tiewind(curwind, cur_proc->p_buffer);
+		SetBuf(cur_proc->p_buffer);
 	}
 }
 
@@ -295,7 +319,7 @@ ProcBind()
 {
 	data_obj	*d;
 
-	if ((d = findcom(ProcFmt, NOTHING)) == 0)
+	if ((d = findcom(ProcFmt)) == 0)
 		return;
 	s_mess(": %f %s ", d->Name);
 	ProcB2(mainmap, EOF, d);

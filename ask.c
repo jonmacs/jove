@@ -47,7 +47,7 @@ char	*str;
 	register Buffer	*saveb = curbuf;
 
 	SetBuf(get_minibuf());
-	LineInsert();
+	LineInsert(1);
 	ins_str(str, NO);
 	if (movedown)
 		CurAskPtr = curline;
@@ -93,7 +93,7 @@ int	(*d_proc)();
 
 	for (;;) {
 		exp = 1;
-		exp_p = 0;
+		exp_p = NO;
 		last_cmd = this_cmd;
 		init_strokes();
 cont:		s_mess("%s%s", prompt, linebuf);
@@ -345,7 +345,7 @@ f_complete(c)
 	if (nentries == 0) {
 		add_mess(" [No match]");
 		(void) SitFor(7);
-	} else if (c == ' ')
+	} else if (c == ' ' || c == '\t')
 		fill_in(dir_vec, nentries);
 	else {
 		/* we're a '?' */
@@ -405,7 +405,7 @@ char	*def,
 	else
 		sprintf(prompt, ProcFmt);
 #ifdef F_COMPLETION
-  	ans = real_ask("\r\n ?", f_complete, pretty_name, prompt);
+  	ans = real_ask("\r\n \t?", f_complete, pretty_name, prompt);
 	if (ans == 0 && (ans = pretty_name) == 0)
 		complain("[No default file name]");
 #else

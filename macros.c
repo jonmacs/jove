@@ -188,7 +188,7 @@ RunMacro()
 {
 	struct macro	*m;
 
-	if (m = (struct macro *) findmac(ProcFmt, NOTHING))
+	if (m = (struct macro *) findmac(ProcFmt))
 		do_macro(m);
 }
 
@@ -290,7 +290,7 @@ register long x;
 	return(x);
 }
 
-short htons(x);
+short htons(x)
 register short x;
 {
 	return(x);
@@ -447,7 +447,7 @@ ModMacs()
 }
 
 data_obj *
-findmac(prompt, flags)
+findmac(prompt)
 char	*prompt;
 {
 	char	*strings[100];
@@ -459,7 +459,7 @@ char	*prompt;
 		*strs++ = m->Name;
 	*strs = 0;
 
-	if ((com = complete(strings, prompt, flags)) < 0)
+	if ((com = complete(strings, prompt, NOTHING)) < 0)
 		return 0;
 	m = macros;
 	while (--com >= 0)
@@ -471,7 +471,7 @@ DelMacro()
 {
 	struct macro	*m;
 
-	if ((m = (struct macro *) findmac(ProcFmt, NOTHING)) == 0)
+	if ((m = (struct macro *) findmac(ProcFmt)) == 0)
 		return;
 	if (m == &KeyMacro)
 		complain("[It's illegal to delete the keyboard-macro!]");

@@ -64,4 +64,4 @@ extern char
 	PC,
 	*BC;		/* back space */
 
-extern int ospeed;
+extern short	ospeed;

@@ -281,7 +281,7 @@ BindMtoW()
 	    (ap = lookup(A_tables[GLOBAL], word)) == 0)
 	    	complain("%s: unknown abbrev.", word);
 
-	hook = findmac("Macro: ", NOTHING);
+	hook = findmac("Macro: ");
 	if (hook == 0)
 		complain("[Undefined macro]");
 	ap->a_cmdhook = hook;

@@ -72,7 +72,6 @@ int	LI,
 	HOlen,
 	LLlen;
 
-int	ospeed;
 extern char	PC;
 
 static char	tspace[256];

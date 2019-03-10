@@ -47,6 +47,7 @@
 #define NOTHING		0	/* opposite of RET_STATE */
 #define RET_STATE	1	/* return state when we hit return */
 #define RCOMMAND	2	/* we are reading a joverc file */
+#define CASEIND		4	/* map all to lower case */
 
 #define DEFINE		01	/* defining this macro */
 #define EXECUTE		02	/* executing this macro */
@@ -66,7 +67,7 @@
 #define BS		CTL(H)
 #define ESC		`\033'
 
-#define DoTimes(f, n)	exp_p = 1, exp = n, f
+#define DoTimes(f, n)	exp_p = YES, exp = n, f
 #define HALF(wp)	((wp->w_height - 1) / 2)
 #define IsModified(b)	(b->b_modified)
 #define SIZE(wp)	(wp->w_height - 1)
@@ -128,7 +129,7 @@ extern char	CharTable[NMAJORS][128];
 #define FIRSTCALL	0
 #define ERROR		1
 #define COMPLAIN	2	/* do the error without a getDOT */
-#define QUIT		3	/* leave this level of recusion */
+#define QUIT		3	/* leave this level of recursion */
 
 #define QUIET		1	/* sure, why not? */
 
@@ -138,6 +139,7 @@ extern char	CharTable[NMAJORS][128];
 #define FALSE		0
 #define ON		1
 #define OFF		0
+#define YES_NODIGIT	2
 
 extern char	*Mainbuf,
 		*HomeDir,	/* home directory */
@@ -148,9 +150,15 @@ extern int	HomeLen;	/* length of home directory */
 
 extern char	NullStr[];
 
+#ifdef VMUNIX
+extern char	genbuf[LBSIZE],
+		linebuf[LBSIZE],
+		iobuff[LBSIZE];
+#else
 extern char	*genbuf,	/* scratch pad points at s_genbuf (see main()) */
 		*linebuf,	/* points at s_linebuf */
 		*iobuff;	/* for file reading ... points at s_iobuff */
+#endif
 
 extern int	InJoverc,
 		Interactive;
@@ -167,6 +175,11 @@ typedef struct mark	Mark;
 typedef struct buffer	Buffer;
 typedef struct line	Line;
 typedef struct iobuf	IOBUF;
+typedef struct data_obj {
+	int	Type;
+	char	*Name;
+} data_obj;	/* points to cmd, macro, or variable */
+typedef data_obj	*keymap[0200];
 
 struct line {
 	Line	*l_prev,		/* pointer to prev */
@@ -183,15 +196,14 @@ struct window {
 	int	w_char,
 		w_height,	/* window height */
 		w_topnum,	/* line number of the topline */
-		w_offset,	/* currently unused */
-		w_numlines,	/* display line numbervs in this window? */
-		w_visspace,	/* display whitespace visibly? */
 		w_dotcol,	/* UpdWindow sets this ... */
 		w_dotline,	/* ... and this */
 		w_flags;
-#define	TOPGONE	01
-#define	CURGONE	02	/* topline (curline) of window has been deleted
-			   since the last time a redisplay was called */
+#define	W_TOPGONE	01
+#define	W_CURGONE	02	/* topline (curline) of window has been deleted
+				   since the last time a redisplay was called */
+#define W_VISSPACE	04
+#define W_NUMLINES	010
 };
 
 extern Window	*fwind,		/* first window in list */
@@ -223,17 +235,18 @@ struct buffer {
 		*b_last;		/* last line in list */
 	int	b_char;			/* current character in line */
 
-#define NMARKS	16			/* number of marks in the ring */
+#define NMARKS	8			/* number of marks in the ring */
 
 	Mark	*b_markring[NMARKS],	/* new marks are pushed saved here */
 		*b_marks;		/* all the marks for this buffer */
-	int	b_themark;		/* current mark */
-	char	b_type,			/* file, scratch, process, iprocess */
+	char	b_themark,		/* current mark (in b_markring) */
+		b_type,			/* file, scratch, process, iprocess */
 		b_ntbf,			/* needs to be found when we
 					   first select? */
 		b_modified;		/* is the buffer modified? */
 	int	b_major,		/* major mode */
 		b_minor;		/* and minor mode */
+	keymap	*b_keybinds;		/* local bindings (if any) */
 };
 
 struct macro {
@@ -262,17 +275,12 @@ struct cmd {
 	int	(*c_proc)();
 };
 
-typedef struct data_obj {
-	int	Type;
-	char	*Name;
-} data_obj;	/* points to cmd, macro, or variable */
+extern keymap	mainmap,	/* various key maps */
+		pref1map,
+		pref2map,
+		miscmap;
 
-extern data_obj
-	*mainmap[],	/* various key maps */
-	*pref1map[],
-	*pref2map[],
-	*miscmap[],
-	*LastCmd;	/* Last command invoked */
+extern data_obj	*LastCmd;	/* last command invoked */
 
 extern char	*ProcFmt;
 
@@ -345,6 +353,8 @@ extern int
 	MarkThresh,		/* moves greater than MarkThresh
 				   will SetMark */
 	PDelay,			/* paren flash delay in tenths of a second */
+	CIndIncrmt,		/* how much each indentation level pushes
+				   over in C mode */
 	CreatMode,		/* default mode for creat'ing files */
 	CaseIgnore,		/* case ignore search */
 #ifdef ABBREV
@@ -382,7 +392,7 @@ extern char
 	ModeFmt[120],		/* mode line format string */
 	Mailbox[128],		/* mailbox name */
 	TagFile[128],		/* default tag file */
-	Shell[40];		/* shell to use */
+	Shell[128];		/* shell to use */
 
 extern int
 	exp,		/* argument count */
@@ -489,7 +499,6 @@ extern char
 	*do_ask(),
 	*ask_buf(),
 	*ask_file(),
-	*getline(),
 	*lcontents(),
 	*getblock(),
 	*malloc(),
@@ -533,3 +542,6 @@ extern Buffer
 	*mak_buf(),
 	*buf_exists(),
 	*file_exists();
+
+struct cmd *
+	FindCmd();

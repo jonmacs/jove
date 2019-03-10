@@ -20,7 +20,8 @@ static File	_openfiles[MAXFILES] = {0};
 
 static File *
 f_alloc(name, flags, fd, buffer, buf_size)
-char	*buffer;
+char	*name,
+	*buffer;
 {
 	register File	*fp;
 	register int	i;
@@ -55,7 +56,8 @@ gc_openfiles()
 
 File *
 fd_open(name, flags, fd, buffer, bsize)
-char	*buffer;
+char	*name,
+	*buffer;
 {
 	return f_alloc(name, flags, fd, buffer, bsize);
 }
@@ -75,7 +77,7 @@ char	*name,
 		if (fd == -1)
 			mode = F_WRITE;
 		else
-			(void) lseek(fd, (long) 0, 2);
+			(void) lseek(fd, 0L, 2);
 	}
 	if (mode == F_WRITE)
 		fd = creat(name, CreatMode);
@@ -136,13 +138,6 @@ register File	*fp;
 		putc(*s++, fp);
 }
 
-putnchar(s, n)
-register char	*s;
-register int	n;
-{
-	fputnchar(s, n, stdout);
-}
-
 flusho()
 {
 	_flush(EOF, stdout);
@@ -159,14 +154,15 @@ register File	*fp;
 {
 	register int	n;
 
-	if ((fp->f_flags & F_READ) ||
-	    ((fp->f_flags & F_STRING)))
+	if (fp->f_flags & (F_READ | F_STRING | F_ERR))
 		return;
 	if (((n = (fp->f_ptr - fp->f_base)) > 0) &&
 	    (write(fp->f_fd, fp->f_base, n) != n) &&
-	    (fp != stdout))
+	    (fp != stdout)) {
+	    	fp->f_flags |= F_ERR;
 		error("[I/O error(%d); file = %s, fd = %d]",
 			errno, fp->f_name, fp->f_fd);
+	}
 
 	if (fp == stdout)
 		OkayAbort = YES;

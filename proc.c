@@ -192,6 +192,14 @@ ToError(forward)
 int	EWSize = 20;	/* percentage of screen the error window
 			   should be */
 
+set_wsize(wsize)
+int	wsize;
+{
+	wsize = (LI * wsize) / 100;
+	if (wsize >= 1 && !one_windp())
+		WindSize(curwind, wsize - (curwind->w_height - 1));
+}
+
 /* Show the current error, i.e. put the line containing the error message
    in one window, and the buffer containing the actual error in another
    window. */
@@ -200,7 +208,6 @@ ShowErr()
 {
 	Window	*err_wind,
 		*buf_wind;
-	int	w_size;		/* size of window */
 
 	if (cur_error == 0)
 		complain(noerrs);
@@ -213,16 +220,16 @@ ShowErr()
 
 	if (err_wind && !buf_wind) {
 		SetWind(err_wind);
-		pop_wind(cur_error->er_buf->b_name, 0, -1);
+		pop_wind(cur_error->er_buf->b_name, NO, -1);
 		buf_wind = curwind;
 	} else if (!err_wind && buf_wind) {
 		SetWind(buf_wind);
-		pop_wind(perr_buf->b_name, 0, -1);
+		pop_wind(perr_buf->b_name, NO, -1);
 		err_wind = curwind;
 	} else if (!err_wind && !buf_wind) {
-		pop_wind(perr_buf->b_name, 0, -1);
+		pop_wind(perr_buf->b_name, NO, -1);
 		err_wind = curwind;
-		pop_wind(cur_error->er_buf->b_name, 0, -1);
+		pop_wind(cur_error->er_buf->b_name, NO, -1);
 		buf_wind = curwind;
 	}
 
@@ -230,9 +237,7 @@ ShowErr()
 	SetWind(err_wind);
 	SetLine(cur_error->er_mess);
 	SetTop(curwind, (curwind->w_line = cur_error->er_mess));
-	w_size = (ILI * EWSize) / 100;
-	if (w_size >= 1)
-		WindSize(curwind, w_size - (curwind->w_height - 1));
+	set_wsize(EWSize);
 
 	/* now go to the the line with the error in the other window */
 	SetWind(buf_wind);
@@ -467,9 +472,7 @@ char	*bufname,
 	if (disp) {
 		message("Starting up...");
 		pop_wind(bufname, clobber, clobber ? B_PROCESS : B_FILE);
-		wsize = (LI * wsize) / 100;
-		if (wsize >= 1 && !one_windp())
-			WindSize(curwind, wsize - (curwind->w_height - 1));
+		set_wsize(wsize);
 		redisplay();
 	}
 	exp = 1;
@@ -505,7 +508,7 @@ char	*bufname,
 		while (inIOread = 1, f_gets(fp, genbuf, LBSIZE) != EOF) {
 			inIOread = 0;
 			ins_str(genbuf, YES);
-			LineInsert();
+			LineInsert(1);
 			if (disp != 0 && fp->f_cnt <= 0) {
 #ifdef LOAD_AV
 			    {

@@ -51,7 +51,7 @@ mp_error()
 
 /* Search from the current position for the paren that matches p_type.
    Search in the direction dir.  If can_mismatch is YES then it is okay
-   to have mismatched parens.  If stop_early is YES then when a close
+   to have mismatched parens.  If stop_early is YES then when an open
    paren is found at the beginning of a line, it is assumed that there
    is no point in backing up further.  This is so when you hit tab or
    LineFeed outside, in-between procedure/function definitions, it won't
@@ -67,8 +67,8 @@ register int	dir;
 	static Bufpos	ret;
 	Bufpos	savedot,
 		*sp;
-	static char	re_buf[100],
-			*re_alts[NALTS];
+	char	re_buf[100],
+		*re_alts[NALTS];
 	int	count = 0;
 	register char	*lp,
 			c;
@@ -108,7 +108,8 @@ register int	dir;
 		if (backslashed(lp, c_char))
 			continue;
 		c = lp[c_char];
-		if (c == '/') {		/* check if this is a comment */
+		/* check if this is a comment (if we're not inside quotes) */
+		if (quote_c == 0 && c == '/') {
 			if ((c_char != 0) && lp[c_char - 1] == '*')
 				in_comment = (dir == FORWARD) ? NO : YES;
 			else if (lp[c_char + 1] == '*')
@@ -162,7 +163,7 @@ register int	dir;
 }
 
 private
-do_expr(dir)
+do_expr(dir, skip_words)
 register int	dir;
 {
 	register char	c,
@@ -173,7 +174,7 @@ register int	dir;
 		BackChar();
 	c = linebuf[curchar];
 	for (;;) {
-		if (ismword(c)) {
+		if (!skip_words && ismword(c)) {
 		    WITH_TABLE(curbuf->b_major)
 			(dir == FORWARD) ? ForWord() : BackWord();
 		    END_TABLE();
@@ -198,7 +199,19 @@ FSexpr()
 		BSexpr();
 	}
 	while (--num >= 0)
-		do_expr(FORWARD);
+		do_expr(FORWARD, NO);
+}
+
+FList()
+{
+	register int	num = exp;
+
+	if (exp < 0) {
+		exp = -exp;
+		BList();
+	}
+	while (--num >= 0)
+		do_expr(FORWARD, YES);
 }
 
 BSexpr()
@@ -210,7 +223,44 @@ BSexpr()
 		FSexpr();
 	}
 	while (--num >= 0)
-		do_expr(BACKWARD);
+		do_expr(BACKWARD, NO);
+}
+
+BList()
+{
+	register int	num = exp;
+
+	if (exp < 0) {
+		exp = -exp;
+		FList();
+	}
+	while (--num >= 0)
+		do_expr(BACKWARD, YES);
+}
+
+BUpList()
+{
+	Bufpos	*mp;
+
+	mp = m_paren(')', BACKWARD, NO, YES);
+	if (mp == 0)
+		mp_error();
+	else
+		SetDot(mp);
+}
+
+FDownList()
+{
+	Bufpos	*sp;
+	char	*sstr = (MajorMode(CMODE) ? "[{([\\])}]" : "[()]"),
+		*lp;
+
+	sp = dosearch(sstr, FORWARD, YES);
+	if (sp != 0)
+		lp = lcontents(sp->p_line);
+	if (sp == 0 || has_syntax(lp[sp->p_char - 1], _Cl))
+		complain("[No contained expression]");
+	SetDot(sp);
 }
 
 /* Move to the matching brace or paren depending on the current position
@@ -223,7 +273,7 @@ FindMatch(dir)
 	register char	c = linebuf[curchar];
 
 	if ((index(p_types, c) == 0) ||
-	    (backslashed(curline, curchar)))
+	    (backslashed(linebuf, curchar)))
 		complain((char *) 0);
 	if (dir == FORWARD)
 		ForChar();
@@ -237,22 +287,23 @@ FindMatch(dir)
 }
 
 Bufpos *
-c_indent()
+c_indent(incrmt)
 {
-	Bufpos	*bp,
-		save;
-	int	indent;
+	Bufpos	*bp;
+	int	indent = 0;
 
-	DOTsave(&save);
-	bp = m_paren('}', BACKWARD, NO, YES);
-	if (bp == 0)
-		return 0;
-	SetDot(bp);
-	ToIndent();
-	indent = calc_pos(linebuf, curchar);
-	SetDot(&save);
+	if (bp = m_paren('}', BACKWARD, NO, YES)) {
+		Bufpos	save;
+
+		DOTsave(&save);
+		SetDot(bp);
+		ToIndent();
+		indent = calc_pos(linebuf, curchar);
+		SetDot(&save);
+	}
 	n_indent(indent);
-
+	if (incrmt)	/* this is until I get indentation really right */
+		Insert('\t');
 	return bp;
 }
 
@@ -440,13 +491,13 @@ char	*format;
 	entry_mark = MakeMark(curline, curchar, FLOATER);
 	ToMark(open_c_mark);
 	/* always separate the comment body from anything preceeding it */
-	LineInsert();
+	LineInsert(1);
 	DelWtSpace();
 	Bol();
 	for (cp = open_c; *cp; cp++) {
 		if (*cp == '\r') {
 			if (!eolp())
-				LineInsert();
+				LineInsert(1);
 			else
 				line_move(FORWARD, NO);
 		} else if (*cp == ' ' || *cp == '\t') {
@@ -495,7 +546,7 @@ char	*format;
 	RMargin = saveRMargin - strlen(l_header) -
 		  strlen(l_trailer) - indent_pos + 2;
 	/* do not use the left margin */
-	exp_p = 0;
+	exp_p = NO;
 	do_rfill();
 	RMargin = saveRMargin;
 	/* get back to the start of the comment */
@@ -527,19 +578,19 @@ char	*format;
 	/* if the addition of the close symbol would cause the line to be
 	   too long, put the close symbol on the next line. */
 	if (strlen(close_c) + calc_pos(linebuf, curchar) > RMargin) {
-		LineInsert();
+		LineInsert(1);
 		n_indent(indent_pos);
 	}
 	for (cp = close_c; *cp; cp++) {
 		if (*cp == '\r') {
-			LineInsert();
+			LineInsert(1);
 			n_indent(indent_pos);
 		} else
 			Insert(*cp);
 	}
 	ToMark(open_c_mark);
 	Eol();
-	exp_p = 0;
+	exp_p = NO;
 	DelNChar();
 }
 

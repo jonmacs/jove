@@ -304,7 +304,7 @@ strt:
 
 Justify()
 {
-	use_lmargin = (exp_p != 0);
+	use_lmargin = (exp_p != NO);
 	find_para(BACKWARD);
 	DoJustify(para_head, 0, para_tail, length(para_tail), NO,
 		  use_lmargin ? LMargin : body_indent);
@@ -341,7 +341,7 @@ RegJustify()
 	Line	*rl1,
 		*rl2;
 
-	use_lmargin = (exp_p != 0);
+	use_lmargin = (exp_p != NO);
 	(void) fixorder(&l1, &c1, &l2, &c2);
 	do {
 		DotTo(l1, c1);
@@ -366,7 +366,7 @@ do_rfill()
 	int	c1 = curchar,
 		c2 = mp->m_char;
 
-	use_lmargin = (exp_p != 0);
+	use_lmargin = (exp_p != NO);
 	(void) fixorder(&l1, &c1, &l2, &c2);
 	DoJustify(l1, c1, l2, c2, NO, use_lmargin ? LMargin : 0);
 }
@@ -461,7 +461,7 @@ Line	*l1,
 			n_indent(indent);
 		} else {
 			DelWtSpace();
-			LineInsert();
+			LineInsert(1);
 			if (scrunch && TwoBlank()) {
 				Eol();
 				DelNChar();

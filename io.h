@@ -37,7 +37,6 @@ extern int	io_lines;
 
 extern File
 	*stdout,
-	*mru_file,
 
 	*open_file(),
 	*fd_open(),

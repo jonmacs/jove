@@ -18,6 +18,7 @@ struct variable	variables[] = {
 #ifdef F_COMPLETION
 	VARIABLE, "bad-filename-extensions", (int *) BadExtensions, V_STRING,
 #endif
+	VARIABLE, "c-indentation-increment", &CIndIncrmt, V_BASE10,
 	VARIABLE, "case-ignore-search", &CaseIgnore, V_BOOL,
 #ifdef CMT_FMT
  	VARIABLE, "comment-format", (int *) CmtFmt, V_STRING,
@@ -65,7 +66,7 @@ struct variable	variables[] = {
 };
 
 data_obj *
-findvar(prompt, flags)
+findvar(prompt)
 char	*prompt;
 {
 	static char	*strings[(sizeof variables) / sizeof (struct variable)];
@@ -82,7 +83,7 @@ char	*prompt;
 		*strs = 0;
 	}
 
-	if ((com = complete(strings, prompt, flags)) < 0)
+	if ((com = complete(strings, prompt, NOTHING)) < 0)
 		return 0;
 	return (data_obj *) &variables[com];
 }

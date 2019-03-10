@@ -50,8 +50,6 @@ struct process {
 } *procs = 0,
   *cur_proc = 0;
 
-char	proc_prompt[80] = "% ";
-
 int	ProcInput,
 	ProcOutput,
 	NumProcs = 0;
@@ -231,7 +229,7 @@ char	*bufname,
 	bp = buf_exists(bufname);
 	if (bp != 0 && IsModified(bp) && bp->b_type != B_IPROCESS && bp->b_type != B_PROCESS)
 		complain("Command would over-write buffer %s.", procname, bufname);
-	pop_wind(bufname, 1, B_IPROCESS);
+	pop_wind(bufname, YES, B_IPROCESS);
 
 	dopipe(toproc);
 

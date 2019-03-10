@@ -58,7 +58,7 @@ data_obj	*(*proc)();
 
 	if (ExecIndex >= NEXECS)
 		complain("Too many auto-executes, max %d.", NEXECS);
-	if ((d = (*proc)(ProcFmt, NOTHING)) == 0)
+	if ((d = (*proc)(ProcFmt)) == 0)
 		return;
 	pattern = ask((char *) 0, ": %f %s ", d->Name);
 	for (i = 0; i < ExecIndex; i++)
@@ -80,7 +80,7 @@ register char	*new,
 {
 	register int	i;
 
-	exp_p = 1;
+	exp_p = YES;
 	exp = 1;	/* So minor modes don't toggle.  We always want
 			   them on. */
 	if (new == 0)
@@ -207,7 +207,7 @@ data_obj	*(*proc)();
 {
 	data_obj	*d;
 
-	if ((d = (*proc)(ProcFmt, NOTHING)) == 0)
+	if ((d = (*proc)(ProcFmt)) == 0)
 		return;
 	s_mess(": %f %s ", d->Name);
 	BindWMap(mainmap, EOF, d);
@@ -244,9 +244,9 @@ DescCom()
 	File	*fp;
 
 	if (!strcmp(LastCmd->Name, "describe-variable"))
-		dp = (data_obj *) findvar(ProcFmt, NOTHING);
+		dp = (data_obj *) findvar(ProcFmt);
 	else
-		dp = (data_obj *) findcom(ProcFmt, NOTHING);
+		dp = (data_obj *) findcom(ProcFmt);
 
 	if (dp == 0)
 		return;
@@ -270,7 +270,7 @@ DescCom()
 	else if (strcmp("Command", doc_type) == 0) {
 		char	binding[128];
 
-		find_binds((struct cmd *) dp, binding);
+		find_binds(dp, binding);
 		if (blnkp(binding))
 			Typeout("To invoke %s, type \"ESC X %s<cr>\".",
 				dp->Name,
@@ -330,14 +330,14 @@ char	*pref;
 }
 
 private
-find_binds(cp, buf)
-struct cmd	*cp;
+find_binds(dp, buf)
+data_obj	*dp;
 char	*buf;
 {
 	char	*endp;
 
 	buf[0] = '\0';
-	fb_aux(cp, mainmap, (char *) 0, buf);
+	fb_aux(dp, mainmap, (char *) 0, buf);
 	endp = buf + strlen(buf) - 2;
 	if ((endp > buf) && (strcmp(endp, ", ") == 0))
 		*endp = '\0';
@@ -406,9 +406,9 @@ Apropos()
 				Typeout("Commands");
 				Typeout("--------");
 			}
-			find_binds(cp, buf);
+			find_binds((data_obj *) cp, buf);
 			if (buf[0])
-				Typeout(": %-30s(%s)", cp->Name, buf);
+				Typeout(": %-35s(%s)", cp->Name, buf);
 			else
 				Typeout(": %s", cp->Name);
 			anyfs++;
@@ -436,9 +436,9 @@ Apropos()
 			anyms++;
 			find_binds((data_obj *) m, buf);
 			if (buf[0])
-				Typeout(": %-30s(%s)", m->Name, buf);
+				Typeout(": %-35s(%s)", m->Name, buf);
 			else
-				Typeout(": %-30s%s", "execute-macro", m->Name);
+				Typeout(": %-35s%s", "execute-macro", m->Name);
 		}
 	TOstop();
 }
@@ -447,7 +447,7 @@ Extend()
 {
 	data_obj	*d;
 
-	if (d = findcom(": ", NOTHING))
+	if (d = findcom(": "))
 		ExecCmd(d);
 }
 
@@ -521,7 +521,7 @@ PrVar()
 	struct variable	*vp;
 	char	prbuf[256];
 
-	if ((vp = (struct variable *) findvar(ProcFmt, NOTHING)) == 0)
+	if ((vp = (struct variable *) findvar(ProcFmt)) == 0)
 		return;
 	vpr_aux(vp, prbuf);
 	s_mess(": %f %s => %s", vp->Name, prbuf);
@@ -532,7 +532,7 @@ SetVar()
 	struct variable	*vp;
 	char	*prompt;
 
-	if ((vp = (struct variable *) findvar(ProcFmt, NOTHING)) == 0)
+	if ((vp = (struct variable *) findvar(ProcFmt)) == 0)
 		return;
 	prompt = sprint(": %f %s ", vp->Name);
 
@@ -609,6 +609,13 @@ aux_complete(c)
 		length,
 		i;
 
+	if (comp_flags & CASEIND) {
+		char	*lp;
+
+		for (lp = linebuf; *lp != '\0'; lp++)
+			if (isupper(*lp))
+				*lp = tolower(*lp);
+	}
 	switch (c) {
 	case EOF:
 		comp_value = -1;
@@ -625,7 +632,7 @@ aux_complete(c)
 			comp_value = NULLSTRING;
 			return 0;
 		}
-		if (comp_flags == RET_STATE) switch (command) {
+		if (comp_flags & RET_STATE) switch (command) {
 			case UNIQUE:
 			case ORIGINAL:
 			case NULLSTRING:
@@ -718,32 +725,10 @@ complete(possible, prompt, flags)
 register char	*possible[];
 char	*prompt;
 {
-	if (!InJoverc) {
-		Possible = possible;
-		comp_flags = flags;
-		(void) do_ask("\r\n \t?", aux_complete, NullStr, prompt);
-		return comp_value;
-	}
-	/* This is for faster startup.  This just reads until a
-	   space or a tab or a newline character is reached, and
-	   then does lookup on that string.  This should be much
-	   faster than initializing the minibuffer for each line. */
-	{
-		char	cmdbuf[128];
-		register char	*cp = cmdbuf;
-		register int	i,
-				c;
-
-		while (((c = getch()) != EOF) && !index(" \t\r\n", c))
-			*cp++ = c;
-		if (c == EOF)
-			return EOF;
-		*cp = '\0';
-		if ((i = match(possible, cmdbuf)) >= 0 || i == NULLSTRING)
-			return i;
-		complain("[\"%s\" unknown]", linebuf);
-		/* NOTREACHED */
-	}
+	Possible = possible;
+	comp_flags = flags;
+	(void) do_ask("\r\n \t?", aux_complete, NullStr, prompt);
+	return comp_value;
 }
 
 match(choices, what)

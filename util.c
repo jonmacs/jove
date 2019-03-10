@@ -252,7 +252,7 @@ register Line	*nextp,
 PushPntp(line)
 register Line	*line;
 {
-	exp_p = 0;
+	exp_p = NO;
 	if (LineDist(curline, line) >= MarkThresh)
 		SetMark();
 }
@@ -375,7 +375,7 @@ char	*buf;
 			strcpy(buf, linebuf);
 		Jr_Len = strlen(linebuf);
 	} else
-		(void) getline(line->l_dline, buf);
+		getline(line->l_dline, buf);
 	return buf;
 }
 

@@ -42,15 +42,14 @@ register Line	*after;
 
 /* Divide the current line and move the current line to the next one */
 
-LineInsert()
+LineInsert(num)
+register int	num;
 {
-	register int	num = exp;
 	char	newline[LBSIZE];
 	register Line	*newdot,
 			*olddot;
 	int	oldchar;
 
-	exp = 1;
 	olddot = curline;
 	oldchar = curchar;
 
@@ -86,7 +85,7 @@ register int	goal;
 	DoTimes(Insert('\t'), (goal / tabstop));
 	if (goal % tabstop)
 		DoTimes(Insert(' '), (goal % tabstop));
-	exp_p = 0;
+	exp_p = NO;
 	exp = 1;
 }
 
@@ -154,8 +153,9 @@ Tab()
 	}
 #endif
 	if (MajorMode(CMODE) && strlen(linebuf) == 0)
-		(void) c_indent();
-	SelfInsert();
+		(void) c_indent(CIndIncrmt);
+	else
+		SelfInsert();
 }
 
 QuotChar()
@@ -167,7 +167,7 @@ QuotChar()
 	if (alarmed)
 		message(key_strokes);
 	if (c == CTL(J))
-		LineInsert();
+		LineInsert(exp);
 	else if (c != CTL(@))
 		Insert(c);
 }
@@ -176,7 +176,8 @@ QuotChar()
    '}' in the "right" place for C indentation; that is indented 
    the same amount as the matching '{' is indented. */
 
-int	PDelay = 5;	/* 1/2 a second */
+int	PDelay = 5,	/* 1/2 a second */
+	CIndIncrmt = 8;
 
 DoParen()
 {
@@ -191,7 +192,7 @@ DoParen()
 
 	if (MajorMode(CMODE) && c == '}' && blnkp(linebuf)) {
 		DelWtSpace();
-		bp = c_indent();
+		bp = c_indent(0);
 	}
 #ifdef LISP
 	if (MajorMode(LISPMODE) && c == ')' && blnkp(linebuf)) {
@@ -260,7 +261,7 @@ DoNewline(indentp)
 	if (exp == 1 && eolp() && TwoBlank())
 		SetLine(curline->l_next);
 	else
-		LineInsert();
+		LineInsert(exp);
 
 	if (indentp)
 #ifdef LISP
@@ -285,7 +286,7 @@ register char	*str;
 			IFixMarks(save.p_line, save.p_char, curline, curchar);
 			modify();
 			makedirty(curline);
-			LineInsert();
+			LineInsert(1);
 			DOTsave(&save);
 			llen = strlen(linebuf);
 		}
@@ -304,7 +305,7 @@ OpenLine()
 	Bufpos	dot;
 
 	DOTsave(&dot);
-	LineInsert();	/* Open the lines... */
+	LineInsert(exp);	/* Open the lines... */
 	SetDot(&dot);
 }
 
@@ -349,7 +350,7 @@ Buffer	*whatbuf;
 		atchar = 0;
 	}
 
-	(void) getline(atline->l_dline, genbuf);
+	getline(atline->l_dline, genbuf);
 	atchar += tchar;
 	linecopy(genbuf, atchar, save);
 	atline->l_dline = putline(genbuf);
@@ -623,11 +624,13 @@ lisp_indent()
 			"macro",
 			"lexpr",
 			"nlambda",
+			"named-l",	/* named-let and named-lambda */
 			"dolist",
 			"caseq",
 			"selectq",
 			"while",
 			"prog",
+			"in-package",
 			0
 		};
 		int	i = 0;
@@ -645,13 +648,15 @@ lisp_indent()
 			i++;
 		}
 		if (specials[i] == 0) {
-			if (index(&linebuf[curchar], ' ') != 0) {
-			    WITH_TABLE(curbuf->b_major)
+			int	c_char = curchar;
+
+			WITH_TABLE(curbuf->b_major)
 				ForWord();
-			    END_TABLE();
-				while (linebuf[curchar] == ' ')
-					curchar++;
-			}
+			END_TABLE();
+			if (LookingAt("[ \t]*;\\|[ \t]*$", linebuf, curchar))
+				curchar = c_char;
+			else while (linebuf[curchar] == ' ')
+				curchar++;
 		} else
 			curchar++;
 	}

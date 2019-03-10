@@ -86,6 +86,7 @@ mak_buf()
 	newb->b_minor = 0;
 	newb->b_major = TEXT;
 	newb->b_first = 0;
+	newb->b_keybinds = 0;
 	initlist(newb);
 	return newb;
 }

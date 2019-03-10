@@ -71,7 +71,7 @@ Digit9()
 
 prCTIME()
 {
-	s_mess(": %f %s", get_time((long *) 0, (char *) 0, 0, -1));
+	s_mess(": %f %s", get_time((time_t *) 0, (char *) 0, 0, -1));
 }
 
 extern int	alarmed;
@@ -83,7 +83,7 @@ FourTime()
 	int	nexp;
 
 	alarmed = 0;
-	exp_p = 1;
+	exp_p = YES;
 	this_cmd = ARG_CMD;
 	do {
 		if ((nexp = exp * 4) != 0)
@@ -103,32 +103,43 @@ int	exp_p,
 
 GetExp(c)
 {
-	int	sign = 1,
-		i,
-		digited = 0;
+	int	sign = 0,
+		i = 0;
+	static int	digited;
 
 	if (!isdigit(c) && c != '-')
 		complain((char *) 0);
-	if (exp_p)
-		i = exp;
-	else
-		i = 0;
+	if (exp_p == NO) {	/* if we just got here */
+		exp = 0;	/* start over */
+		digited = NO;
+	} else if (exp_p == YES_NODIGIT) {
+		sign = (exp < 0) ? -1 : 1;
+		exp = 0;
+	}
+
+	if (!sign)
+		sign = (exp < 0) ? -1 : 1;
+	if (sign == -1)
+		exp = -exp;
 	if (c == '-') {
-		sign = -1;
+		sign = -sign;
 		goto goread;
 	}
 	for (;;) {
 		if (alarmed)
 			message(key_strokes);
 		if (isdigit(c)) {
-			i = i * 10 + (c - '0');
+			exp = (exp * 10) + (c - '0');
 			digited++;
 		} else {
 			if (digited)
-				exp_p = 1;
-			else
-				i = 1;
-			exp = i * sign;
+				exp_p = YES;
+			else {
+				exp = 1;
+				if (exp_p == NO)
+					exp_p = YES_NODIGIT;
+			}
+			exp *= sign;
 			this_cmd = ARG_CMD;
 			Ungetc(c);
 			return;
@@ -411,10 +422,10 @@ GoLine()
 	Line	*newline;
 
 #ifndef ANSICODES
-	if (exp_p == 0)
+	if (exp_p == NO)
 		return;
 #else
-	if (exp_p == 0 || exp <= 0) {
+	if (exp_p == NO || exp <= 0) {
 		if (SP)
 			putpad(SP, 1);	/* Ask for cursor position */
 		return;
