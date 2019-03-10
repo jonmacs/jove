@@ -75,7 +75,7 @@ char	*name,
 		if (fd == -1)
 			mode = F_WRITE;
 		else
-			ignore(lseek(fd, (long) 0, 2));
+			(void) lseek(fd, (long) 0, 2);
 	}
 	if (mode == F_WRITE)
 		fd = creat(name, CreatMode);
@@ -92,9 +92,9 @@ File	*fp;
 	flush(fp);
 #ifdef BSD4_2 
 	if (fp->f_flags & (F_WRITE|F_APPEND))
-		ignore(fsync(fp->f_fd));
+		(void) fsync(fp->f_fd);
 #endif 
-	ignore(close(fp->f_fd));
+	(void) close(fp->f_fd);
 	if (fp->f_flags & F_MYBUF)
 		free(fp->f_base);
 	free(fp->f_name);

@@ -408,7 +408,7 @@ register int	linenum;
 #else
 		if (w->w_numlines)
 #endif
-			ignore(swrite(sprint("%6d  ", des_p->s_vln), 0));
+			(void) swrite(sprint("%6d  ", des_p->s_vln), 0);
 
 #ifdef ID_CHAR
 		if (UseIC) {
@@ -418,8 +418,8 @@ register int	linenum;
 			int	fromcol = w->w_numlines ? 8 : 0;
 
 			if (w->w_numlines) {
-				ignore(sprintf(buff, "%6d  ", des_p->s_vln));
-				ignore(getright(des_p->s_lp, buff + fromcol));
+				sprintf(buff, "%6d  ", des_p->s_vln);
+				(void) getright(des_p->s_lp, buff + fromcol);
 				bptr = buff;
 			} else
 				bptr = getcptr(des_p->s_lp, buff);
@@ -660,7 +660,7 @@ DelChar(lineno, col, num)
 	if (M_DC && num > 1) {
 		char	minibuf[16];
 
-		ignore(sprintf(minibuf, M_DC, num));
+		sprintf(minibuf, M_DC, num);
 		putpad(minibuf, num);
 	} else {
 		for (i = num; --i >= 0; )
@@ -711,7 +711,7 @@ char	*new;
 	} else if (M_IC && num > 1) {
 		char	minibuf[16];
 
-		ignore(sprintf(minibuf, M_IC, num));
+		sprintf(minibuf, M_IC, num);
 		putpad(minibuf, num);
 	} else if (IC) {
 		for (i = 0; i < num; i++)
@@ -746,7 +746,7 @@ chkmail(force)
 	int	last_val;
 	extern time_t	time0;
 
-	ignorl(time(&now));
+	time(&now);
 	if (!force && (now < last_chk + MailInt))
 		return value;
 	if (stat(Mailbox, &stbuf) < 0)
@@ -902,7 +902,8 @@ register Window	*w;
 				if (bp == thisbuf)
 					break;
 
-			mode_app(sprintf(tmp, "%d", n));
+			sprintf(tmp, "%d", n);
+			mode_app(tmp);
 			break;
 
 		case 'm':
@@ -928,9 +929,9 @@ register Window	*w;
 
 		    	get_la(&theavg);
 		    	theavg += .005;	/* round to nearest .01 */
-		    	ignore(sprintf(minibuf, "%d.%02d",
+		    	sprintf(minibuf, "%d.%02d",
 			       (int) theavg,
-			       (int)((theavg - (int) theavg) * 100)));
+			       (int)((theavg - (int) theavg) * 100));
 		    	mode_app(minibuf);
 		    }
 		    break;
@@ -1176,7 +1177,7 @@ va_dcl
 			ins_str(string, NO);
 		else {
 			i_set(LineNo, last_col);
-			ignore(swrite(string, 0));
+			(void) swrite(string, 0);
 			last_col = i_col;
 		}
 	}

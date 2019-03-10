@@ -205,14 +205,14 @@ char	c;
 		complain("[No processes]");
 	if (cur_proc->p_buffer == curbuf)
 		ToLast();
-	ignore(write(cur_proc->p_fd, &c, 1));
+	(void) write(cur_proc->p_fd, &c, 1);
 }
 
 static
 proc_close(p)
 Process *p;
 {
-	ignore(close(p->p_fd));
+	(void) close(p->p_fd);
 	global_fd &= ~(1 << p->p_fd);
 	p->p_eof++;
 }
@@ -230,14 +230,14 @@ register Mark	*mp;
 	if (isdead(p) || p->p_buffer != curbuf)
 		return;
 
-	ignore(fixorder(&line1, &char1, &line2, &char2));
+	(void) fixorder(&line1, &char1, &line2, &char2);
 	while (line1 != line2->l_next) {
 		gp = getright(line1, genbuf) + char1;
 		if (line1 == line2)
 			gp[char2] = '\0';
 		else
 			strcat(gp, "\n");
-		ignore(write(p->p_fd, gp, strlen(gp)));
+		(void) write(p->p_fd, gp, strlen(gp));
 		line1 = line1->l_next;
 		char1 = 0;
 	}
@@ -290,7 +290,7 @@ char	*bufname,
 
 	for (s = "pqrs"; *s; s++) {
 		for (t = "0123456789abcdef"; *t; t++) {
-			ignore(sprintf(ptybuf, "/dev/pty%c%c", *s, *t));
+			sprintf(ptybuf, "/dev/pty%c%c", *s, *t);
 			if ((ttyfd = open(ptybuf, 2)) >= 0)
 				goto out;
 		}
@@ -303,75 +303,75 @@ out:	if (s == 0 && t == 0)
 	ttybuf[5] = 't';
 
 #ifdef TIOCGETD
-	ignore(ioctl(0, TIOCGETD, (struct sgttyb *) &ldisc));
+	(void) ioctl(0, TIOCGETD, (struct sgttyb *) &ldisc);
 #endif
 #ifdef TIOCLGET
-	ignore(ioctl(0, TIOCLGET, (struct sgttyb *) &lmode));
+	(void) ioctl(0, TIOCLGET, (struct sgttyb *) &lmode);
 #endif
 #ifdef TIOCGWINSZ
-	ignore(ioctl(0, TIOCGWINSZ, (struct sgttyb *) &win));
+	(void) ioctl(0, TIOCGWINSZ, (struct sgttyb *) &win);
 #else
 #  ifdef BTL_BLIT
-	ignore(ioctl(0, JWINSIZE, (struct sgttyb *) &jwin));
+	(void) ioctl(0, JWINSIZE, (struct sgttyb *) &jwin);
 #  endif BTL_BLIT
 #endif
 
 	switch (pid = fork()) {
 	case -1:
-		ignore(close(ttyfd));
+		(void) close(ttyfd);
 		complain("[Fork failed!]");
 
 	case 0:
 		cp = &cmd;
 
 		for (i = 0; i < 32; i++)
-			ignore(close(i));
+			(void) close(i);
 
 #ifdef TIOCNOTTY
 		if ((i = open("/dev/tty", 2)) >= 0) {
-			ignore(ioctl(i, TIOCNOTTY, (struct sgttyb *) 0));
-			ignore(close(i));
+			(void) ioctl(i, TIOCNOTTY, (struct sgttyb *) 0);
+			(void) close(i);
 		}
 #endif
 		i = open(ttybuf, 2);
 		for (f = 0; f <= 2; f++)
-			ignore(dup2(i, f));
+			(void) dup2(i, f);
 
 #ifdef TIOCSETD
-		ignore(ioctl(0, TIOCSETD, (struct sgttyb *) &ldisc));
+		(void) ioctl(0, TIOCSETD, (struct sgttyb *) &ldisc);
 #endif
 #ifdef TIOCLSET
-		ignore(ioctl(0, TIOCLSET, (struct sgttyb *) &lmode));
+		(void) ioctl(0, TIOCLSET, (struct sgttyb *) &lmode);
 #endif
 #ifdef TIOCSETC
-		ignore(ioctl(0, TIOCSETC, (struct sgttyb *) &tc1));
+		(void) ioctl(0, TIOCSETC, (struct sgttyb *) &tc1);
 #endif
 #ifdef TIOCSLTC
-		ignore(ioctl(0, TIOCSLTC, (struct sgttyb *) &ls1));
+		(void) ioctl(0, TIOCSLTC, (struct sgttyb *) &ls1);
 #endif
 
 #ifdef TIOCGWINSZ
 #    ifdef SIGWINCH
-		ignorf(signal(SIGWINCH, SIG_IGN));
+		(void) signal(SIGWINCH, SIG_IGN);
 #    endif
 		win.ws_row = curwind->w_height;
-		ignore(ioctl(0, TIOCSWINSZ, (struct sgttyb *) &win));
+		(void) ioctl(0, TIOCSWINSZ, (struct sgttyb *) &win);
 #else
 #  ifdef BTL_BLIT
 		jwin.bytesy = curwind->w_height;
-		ignore(ioctl(0, JSWINSIZE, (struct sgttyb *) &jwin));
+		(void) ioctl(0, JSWINSIZE, (struct sgttyb *) &jwin);
 #  endif
 #endif
 
 		sg = sg1;
 		sg.sg_flags &= ~(ECHO | CRMOD);
-		ignore(stty(0, &sg));
+		(void) stty(0, &sg);
 
 		i = getpid();
-		ignore(ioctl(0, TIOCSPGRP, (struct sgttyb *) &i));
-		ignore(setpgrp(0, i));
+		(void) ioctl(0, TIOCSPGRP, (struct sgttyb *) &i);
+		(void) setpgrp(0, i);
 		execve(cp[0], &cp[1], environ);
-		ignore(write(1, "execve failed!\n", 15));
+		(void) write(1, "execve failed!\n", 15);
 		_exit(errno + 1);
 	}
 
@@ -389,7 +389,7 @@ out:	if (s == 0 && t == 0)
 	cp = &cmd + 1;
 	cmdbuf[0] = '\0';
 	while (*cp != 0)
-		ignore(sprintf(&cmdbuf[strlen(cmdbuf)], "%s ", *cp++));
+		(void) sprintf(&cmdbuf[strlen(cmdbuf)], "%s ", *cp++);
 
 	newp->p_name = copystr(cmdbuf);
 	newp->p_state = RUNNING;
@@ -406,5 +406,5 @@ out:	if (s == 0 && t == 0)
 	
 pinit()
 {
-	ignorf(signal(SIGCHLD, proc_child));
+	(void) signal(SIGCHLD, proc_child);
 }

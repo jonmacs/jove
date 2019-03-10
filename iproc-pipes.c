@@ -110,7 +110,7 @@ procs_read()
 	sighold(SIGCHLD);	/* Block any other children. */
 	here++;
 	for (;;) {
-		ignore(ioctl(ProcInput, FIONREAD, (struct sgttyb *) &nbytes));
+		(void) ioctl(ProcInput, FIONREAD, (struct sgttyb *) &nbytes);
 		if (nbytes < sizeof header)
 			break;
 		n = read(ProcInput, (char *) &header, sizeof header);
@@ -179,7 +179,7 @@ static
 proc_close(p)
 Process	*p;
 {
-	ignore(close(p->p_toproc));
+	(void) close(p->p_toproc);
 	p->p_toproc = -1;	/* Writes will fail. */
 }
 
@@ -196,14 +196,14 @@ register Mark	*mp;
 	if (isdead(p) || p->p_buffer != curbuf)
 		return;
 
-	ignore(fixorder(&line1, &char1, &line2, &char2));
+	(void) fixorder(&line1, &char1, &line2, &char2);
 	while (line1 != line2->l_next) {
 		gp = getright(line1, genbuf) + char1;
 		if (line1 == line2)
 			gp[char2] = '\0';
 		else
 			strcat(gp, "\n");
-		ignore(write(p->p_toproc, gp, strlen(gp)));
+		(void) write(p->p_toproc, gp, strlen(gp));
 		line1 = line1->l_next;
 		char1 = 0;
 	}
@@ -242,13 +242,14 @@ char	*bufname,
 
 	case 0:
 	    	args[0] = "portsrv";
-	    	args[1] = sprintf(foo, "%d", ProcInput);
+	    	args[1] = foo;
+		sprintf(foo, "%d", ProcInput);
 	    	for (i = 0, cp = &cmd; cp[i] != 0; i++)
 	    		args[2 + i] = cp[i];
 	    	args[2 + i] = 0;
-		ignore(dup2(toproc[0], 0));
-		ignore(dup2(ProcOutput, 1));
-		ignore(dup2(ProcOutput, 2));
+		(void) dup2(toproc[0], 0);
+		(void) dup2(ProcOutput, 1);
+		(void) dup2(ProcOutput, 2);
 		pclose(toproc);
 		execv(PORTSRV, args);
 		printf("Execl failed.\n");
@@ -275,7 +276,7 @@ char	*bufname,
 	newp->p_reason = 0;
 	newp->p_eof = 0;
 	NumProcs++;
-	ignore(close(toproc[0]));
+	(void) close(toproc[0]);
 	sigrelse(SIGCHLD);
 	SetWind(owind);
 }
@@ -284,11 +285,11 @@ pinit()
 {
 	int	p[2];
 
-	ignorf(signal(SIGCHLD, proc_child));
-	ignore(pipe(p));
+	(void) signal(SIGCHLD, proc_child);
+	(void) pipe(p);
 	ProcInput = p[0];
 	ProcOutput = p[1];
-	ignorf(signal(INPUT_SIG, procs_read));
+	(void) signal(INPUT_SIG, procs_read);
 	sighold(INPUT_SIG);	/* Released during terminal read */
 }
 

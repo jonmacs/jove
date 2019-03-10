@@ -253,7 +253,7 @@ DescCom()
 	fp = open_file(file, iobuff, F_READ, COMPLAIN, QUIET);
 	Placur(ILI, 0);
 	flusho();
-	ignore(sprintf(pattern, "^\\.dc \"%s\" \"\\([^\"]*\\)\"", dp->Name));
+	sprintf(pattern, "^\\.dc \"%s\" \"\\([^\"]*\\)\"", dp->Name);
 	TOstart("Help", TRUE);
 	for (;;) {
 		if (f_gets(fp, genbuf) == EOF) {
@@ -312,11 +312,11 @@ char	*pref;
 		c2--;
 		numbetween = c2 - c1;
 		if (numbetween == 1)
-			ignore(sprintf(keydescbuf, "%s {%p,%p}", pref, c1, c2));
+			sprintf(keydescbuf, "%s {%p,%p}", pref, c1, c2);
 		else if (numbetween == 0)
-			ignore(sprintf(keydescbuf, "%s %p", pref, c1));
+			sprintf(keydescbuf, "%s %p", pref, c1);
 		else
-			ignore(sprintf(keydescbuf, "%s [%p-%p]", pref, c1, c2));
+			sprintf(keydescbuf, "%s [%p-%p]", pref, c1, c2);
 		if (prefp = IsPrefix(map[c1]))
 			DescMap(prefp, keydescbuf);
 		else
@@ -718,7 +718,7 @@ char	*prompt;
 	if (!InJoverc) {
 		Possible = possible;
 		comp_flags = flags;
-		ignore(do_ask("\r\n \t?", aux_complete, NullStr, prompt));
+		(void) do_ask("\r\n \t?", aux_complete, NullStr, prompt);
 		return comp_value;
 	}
 	/* This is for faster startup.  This just reads until a
@@ -782,7 +782,7 @@ Source()
 	char	*com,
 		buf[FILESIZE];
 
-	ignore(sprintf(buf, "%s/.joverc", getenv("HOME")));
+	sprintf(buf, "%s/.joverc", getenv("HOME"));
 	com = ask_file(buf, buf);
 	if (joverc(buf) == NIL)
 		complain(IOerr("read", com));
@@ -840,7 +840,7 @@ char	*cmd;
 		/* close(1);	 but not writes or ioctl's
 		close(2);    */
 
-	    	ignore(execvp(args[0], args));
+	    	(void) execvp(args[0], args);
 		_exit(-10);	/* signals exec error (see below) */
 	    }
 	}
@@ -914,7 +914,7 @@ char	*file;
 		}
 		if (IfStatus == IF_FALSE)
 			continue;
-		ignore(strcat(lbuf, "\n"));
+		(void) strcat(lbuf, "\n");
 		Inputp = lbuf;
 		while (*Inputp == ' ' || *Inputp == '\t')
 			Inputp++;	/* skip white space */

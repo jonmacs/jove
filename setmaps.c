@@ -48,11 +48,11 @@ int	c;
 	if (c == '\033')
 		strcpy(cp, "ESC");
 	else if (c < ' ')
-		ignore(sprintf(cp, "C-%c", c + '@'));
+		(void) sprintf(cp, "C-%c", c + '@');
 	else if (c == '\177')
 		strcpy(cp, "^?");
 	else
-		ignore(sprintf(cp, "%c", c));
+		(void) sprintf(cp, "%c", c);
 	return cp;
 }
 

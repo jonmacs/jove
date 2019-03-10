@@ -342,7 +342,7 @@ RegJustify()
 		*rl2;
 
 	use_lmargin = (exp_p != 0);
-	ignore(fixorder(&l1, &c1, &l2, &c2));
+	(void) fixorder(&l1, &c1, &l2, &c2);
 	do {
 		DotTo(l1, c1);
 		find_para(FORWARD);
@@ -367,7 +367,7 @@ do_rfill()
 		c2 = mp->m_char;
 
 	use_lmargin = (exp_p != 0);
-	ignore(fixorder(&l1, &c1, &l2, &c2));
+	(void) fixorder(&l1, &c1, &l2, &c2);
 	DoJustify(l1, c1, l2, c2, NO, use_lmargin ? LMargin : 0);
 }
 
@@ -420,7 +420,7 @@ Line	*l1,
 		*endmark;
 
 	exp = 1;
-	ignore(fixorder(&l1, &c1, &l2, &c2));	/* l1/c1 will be before l2/c2 */
+	(void) fixorder(&l1, &c1, &l2, &c2);	/* l1/c1 will be before l2/c2 */
 	DotTo(l1, c1);
 	if (get_indent(l1) >= c1) {
 		if (use_lmargin) {

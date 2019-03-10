@@ -72,10 +72,10 @@ finish(code)
 		char	c;
 
 #ifndef MENLO_JCL
-		ignorf(signal(code, finish));
+		(void) signal(code, finish);
 #endif
 		f_mess("Abort (Type 'n' if you're not sure)? ");
-		ignore(read(0, &c, 1));
+		(void) read(0, &c, 1);
 		message(NullStr);
 		if ((c & 0377) != 'y') {
 			redisplay();
@@ -92,8 +92,8 @@ finish(code)
 			printf("JOVE CRASH!! (code %d)\n", code);
 			if (ModBufs(1)) {
 				printf("Your buffers have been saved.\n");
-				printf("Use \"jove_recover\" or \"jove -r\"");
-				printf("to have a\nlook at them.\n");
+				printf("Use \"jove_recover\" or \"jove -r\"\n");
+				printf("to have a look at them.\n");
 				DelTmps = 0;	/* Don't delete anymore. */
 			} else
 				printf("You didn't lose any work.\n");
@@ -288,10 +288,8 @@ charp()
 {
 	int	some = 0;
 
-	if (InJoverc)
+	if (InJoverc != 0 || nchars > 0 || Inputp != 0)
 		return 1;
-	if (nchars > 0)
-		return 1;			/* Quick check */
 #ifdef BRLUNIX
 	{
 		static struct sg_brl gttyBuf;
@@ -361,7 +359,7 @@ char	*mesg;
 PauseJove()
 {
 	UnsetTerm(ModBufs(0) ? "[There are modified buffers]" : NullStr);
-	ignore(kill(0, SIGTSTP));
+	(void) kill(0, SIGTSTP);
 	ResetTerm();
 	ClAndRedraw();
 }
@@ -377,8 +375,8 @@ Push()
 
 	case 0:
 		UnsetTerm(NullStr);
-		ignorf(signal(SIGTERM, SIG_DFL));
-		ignorf(signal(SIGINT, SIG_DFL));
+		(void) signal(SIGTERM, SIG_DFL);
+		(void) signal(SIGINT, SIG_DFL);
 		execl(Shell, basename(Shell), 0);
 		message("[Execl failed]");
 		_exit(1);
@@ -397,8 +395,8 @@ Push()
 #endif
 	    	ResetTerm();
 	    	ClAndRedraw();
-	    	ignorf(signal(SIGINT, old_int));
-		ignorf(signal(SIGQUIT, old_quit));
+	    	(void) signal(SIGINT, old_int);
+		(void) signal(SIGQUIT, old_quit);
 	    }
 	}
 }
@@ -451,11 +449,11 @@ biff(on)
 	if (dw_biff == NO)
 		return;
 #ifndef BSD4_2
-	ignore(chmod(tt_name, on ? tt_stat.st_mode :
-				   (tt_stat.st_mode & ~S_IEXEC)));
+	(void) chmod(tt_name, on ? tt_stat.st_mode :
+				   (tt_stat.st_mode & ~S_IEXEC));
 #else
-	ignore(fchmod(0, on ? tt_stat.st_mode :
-			      (tt_stat.st_mode & ~S_IEXEC)));
+	(void) fchmod(0, on ? tt_stat.st_mode :
+			      (tt_stat.st_mode & ~S_IEXEC));
 #endif
 }
 
@@ -467,7 +465,7 @@ ttinit()
 	biff_init();
 #endif
 #ifdef TIOCSLTC
-	ignore(ioctl(0, TIOCGLTC, (struct sgttyb *) &ls1));
+	(void) ioctl(0, TIOCGLTC, (struct sgttyb *) &ls1);
 	ls2 = ls1;
 	ls2.t_suspc = (char) -1;
 	ls2.t_dsuspc = (char) -1;
@@ -477,7 +475,7 @@ ttinit()
 
 #ifdef TIOCGETC
 	/* Change interupt and quit. */
-	ignore(ioctl(0, TIOCGETC, (struct sgttyb *) &tc1));
+	(void) ioctl(0, TIOCGETC, (struct sgttyb *) &tc1);
 	tc2 = tc1;
 	tc2.t_intrc = CTL(]);
 	tc2.t_quitc = (char) -1;
@@ -494,9 +492,9 @@ static int	done_ttinit = 0;
 do_sgtty()
 {
 #ifdef SYSV
-	ignore(ioctl(0, TCGETA, (char *) &sg1));
+	(void) ioctl(0, TCGETA, (char *) &sg1);
 #else
-	ignore(gtty(0, &sg1));
+	(void) gtty(0, &sg1);
 #endif SYSV
 	sg2 = sg1;
 
@@ -554,20 +552,20 @@ ttyset(n)
 	if (!done_ttinit && n == 0)	/* Try to reset before we've set! */
 		return;
 #ifdef SYSV
-	ignore(ioctl(0, TCSETAW, n == 0 ? (struct sgttyb *) &sg1 : (struct sgttyb *) &sg2));
+	(void) ioctl(0, TCSETAW, n == 0 ? (struct sgttyb *) &sg1 : (struct sgttyb *) &sg2);
 #else
 #ifdef BRLUNIX
-	ignore(stty(0, n == 0 ? (struct sgttyb *) &sg1 : (struct sgttyb *) &sg2));
+	(void) stty(0, n == 0 ? (struct sgttyb *) &sg1 : (struct sgttyb *) &sg2);
 #else
-	ignore(ioctl(0, TIOCSETN, n == 0 ? (struct sgttyb *) &sg1 : (struct sgttyb *) &sg2));
+	(void) ioctl(0, TIOCSETN, n == 0 ? (struct sgttyb *) &sg1 : (struct sgttyb *) &sg2);
 #endif BRLUNIX
 #endif SYSV
 
 #ifdef TIOCSETC
-	ignore(ioctl(0, TIOCSETC, n == 0 ? (struct sgttyb *) &tc1 : (struct sgttyb *) &tc2));
+	(void) ioctl(0, TIOCSETC, n == 0 ? (struct sgttyb *) &tc1 : (struct sgttyb *) &tc2);
 #endif TIOCSETC
 #ifdef TIOCSLTC
-	ignore(ioctl(0, TIOCSLTC, n == 0 ? (struct sgttyb *) &ls1 : (struct sgttyb *) &ls2));
+	(void) ioctl(0, TIOCSLTC, n == 0 ? (struct sgttyb *) &ls1 : (struct sgttyb *) &ls2);
 #endif TIOCSLTC
 	done_ttinit = 1;
 #ifdef BIFF
@@ -730,7 +728,7 @@ char	*argv[];
 
 			case 'w':
 				nwinds += -1 + chr_to_int(&argv[1][2], 10, NIL);
-				ignore(div_wind(curwind, nwinds - 1));
+				(void) div_wind(curwind, nwinds - 1);
 				break;
 
 			case '0':
@@ -788,7 +786,7 @@ va_dcl
 		UpdMesg++;
 	}
 	rbell();
-	ignore(longjmp(mainjmp, ERROR));
+	(void) longjmp(mainjmp, ERROR);
 }
 
 /* VARARGS1 */
@@ -806,7 +804,7 @@ va_dcl
 		UpdMesg++;
 	}
 	rbell();
-	ignore(longjmp(mainjmp, COMPLAIN));
+	(void) longjmp(mainjmp, COMPLAIN);
 }
 
 /* VARARGS1 */
@@ -823,7 +821,7 @@ va_dcl
 	va_end(ap);
 	yorn = ask((char *) 0, mesgbuf);
 	if (*yorn != 'Y' && *yorn != 'y')
-		ignore(longjmp(mainjmp, COMPLAIN));
+		(void) longjmp(mainjmp, COMPLAIN);
 }
 
 int	RecDepth = 0;
@@ -938,9 +936,9 @@ updmode()
 	if (inIOread)
 		redisplay();
 #ifndef JOB_CONTROL
-	ignorf(signal(SIGALRM, updmode));
+	(void) signal(SIGALRM, updmode);
 #endif
-	ignore(alarm((unsigned) UpdFreq));
+	(void) alarm((unsigned) UpdFreq);
 }
 
 #ifdef TIOCGWINSZ
@@ -955,7 +953,7 @@ win_reshape()
 {
 	register int diff;
 
-	ignorf(signal(SIGWINCH, SIG_IGN));
+	(void) signal(SIGWINCH, SIG_IGN);
 
 	/*
 	 * Save old number of lines.
@@ -987,7 +985,7 @@ win_reshape()
 	make_scr();
 	redisplay();
 
-	ignorf(signal(SIGWINCH, win_reshape));
+	(void) signal(SIGWINCH, win_reshape);
 }
 #endif
 #endif
@@ -1057,38 +1055,39 @@ char	*argv[];
 	if (HomeDir == 0)
 		HomeDir = "/";
 	HomeLen = strlen(HomeDir);
-	ignore(joverc(JOVERC));
+	(void) joverc(JOVERC);
 	if (!scanvec(argv, "-j")) {
 		char	tmpbuf[100];
 
-		ignore(joverc(sprintf(tmpbuf, "%s/.joverc", HomeDir)));
+		sprintf(tmpbuf, "%s/.joverc", HomeDir);
+		(void) joverc(tmpbuf);
 	}
 #ifdef SYSV
 	sprintf(MailBox, "/usr/mail/%s", getenv("LOGNAME"));
 #else
 	sprintf(Mailbox, "/usr/spool/mail/%s", getenv("USER"));
 #endif SYSV
-	ignorl(time(&time0));
+	(void) time(&time0);
 	ttinit();	/* initialize terminal (after ~/.joverc) */
 	settout(ttbuf);	/* not until we know baudrate */
 	ResetTerm();
 
-	ignorf(signal(SIGHUP, finish));
-	ignorf(signal(SIGINT, finish));
-	ignorf(signal(SIGQUIT, SIG_IGN));
-	ignorf(signal(SIGBUS, finish));
-	ignorf(signal(SIGSEGV, finish));
-	ignorf(signal(SIGPIPE, finish));
-	ignorf(signal(SIGTERM, SIG_IGN));
+	(void) signal(SIGHUP, finish);
+	(void) signal(SIGINT, finish);
+	(void) signal(SIGQUIT, SIG_IGN);
+	(void) signal(SIGBUS, finish);
+	(void) signal(SIGSEGV, finish);
+	(void) signal(SIGPIPE, finish);
+	(void) signal(SIGTERM, SIG_IGN);
 #ifdef TIOCGWINSZ
 #ifdef SIGWINCH
-	ignorf(signal(SIGWINCH, win_reshape));
+	(void) signal(SIGWINCH, win_reshape);
 #endif
 #endif
 
 	/* set things up to update the modeline every UpdFreq seconds */
-	ignorf(signal(SIGALRM, updmode));
-	ignore(alarm((unsigned) UpdFreq));
+	(void) signal(SIGALRM, updmode);
+	(void) alarm((unsigned) UpdFreq);
 
 	cl_scr(1);
 	flusho();

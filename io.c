@@ -56,7 +56,7 @@ Line	*line1,
 	register char	*lp;
 
 	if (makesure)
-		ignore(fixorder(&line1, &char1, &line2, &char2));
+		(void) fixorder(&line1, &char1, &line2, &char2);
 	lsave();	/* Need this! */
 	while (line1 != line2->l_next) {
 		lp = getline(line1->l_dline, linebuf) + char1;
@@ -115,7 +115,7 @@ register File	*fp;
 	int	savec = curchar;
 
 	lsave();
-	ignore(getline(curline->l_dline, end));
+	(void) getline(curline->l_dline, end);
 	strcpy(gbuf, end);
 	strcpy(end, &end[curchar]);
 	if ((xeof = f_gets(fp, linebuf)) == 0)
@@ -163,7 +163,8 @@ char	*fname;
 	if (strncmp(fname, HomeDir, HomeLen) == 0) {
 		static char	name_buf[100];
 
-		return sprintf(name_buf, "~%s", fname + HomeLen);
+		sprintf(name_buf, "~%s", fname + HomeLen);
+		return name_buf;
 	}
 
 	return fname;
@@ -200,7 +201,8 @@ char	*fname;
 	if (strcmp(HomeDir, "/") != 0 && strncmp(fname, HomeDir, HomeLen) == 0) {
 		static char	name_buf[100];
 
-		return sprintf(name_buf, "~%s", fname + HomeLen);
+		sprintf(name_buf, "~%s", fname + HomeLen);
+		return name_buf;
 	}
 
 	return fname;	/* return entire path name */
@@ -210,7 +212,7 @@ Chdir()
 {
 	char	dirbuf[FILESIZE];
 
-	ignore(ask_file(PWD, dirbuf));
+	(void) ask_file(PWD, dirbuf);
 	if (chdir(dirbuf) == -1) {
 		s_mess("cd: cannot change into %s.", dirbuf);
 		return;
@@ -228,7 +230,7 @@ getwd()
 
 	SetBuf(do_select((Window *) 0, "pwd-output"));
 	curbuf->b_type = B_PROCESS;
-	ignore(UnixToBuf("pwd-output", NO, 0, YES, "/bin/pwd", "pwd", 0));
+	(void) UnixToBuf("pwd-output", NO, 0, YES, "/bin/pwd", "pwd", 0);
 	ToFirst();
 	ret_val = sprint(linebuf);
 	SetBuf(old);
@@ -296,7 +298,7 @@ Pushd()
 		old_top = PWD;
 		DirStack[DirSP] = DirStack[DirSP - 1];
 		DirStack[DirSP - 1] = old_top;
-		ignore(chdir(PWD));
+		(void) chdir(PWD);
 	} else {
 		if (chdir(dirbuf) == -1) {
 			s_mess("pushd: cannot change into %s.", dirbuf);
@@ -319,7 +321,7 @@ Popd()
 	free(PWD);
 	PWD = 0;
 	DirSP--;
-	ignore(chdir(PWD));	/* If this doesn't work, we's in deep shit. */
+	(void) chdir(PWD);	/* If this doesn't work, we's in deep shit. */
 	prDIRS();
 }
 
@@ -362,8 +364,8 @@ char	*file,
 				strcpy(into, "/"), dp = into + 1;
 		} else {
 			if (into[strlen(into) - 1] != '/')
-				ignore(strcat(into, "/"));
-			ignore(strcat(into, file));
+				(void) strcat(into, "/");
+			(void) strcat(into, file);
 			dp += strlen(file);	/* stay at the end */
 		}
 		file = sp + 1;
@@ -383,7 +385,7 @@ register char	*user,
 
 	u_len = strlen(user);
 	fp = open_file("/etc/passwd", fbuf, F_READ, COMPLAIN, QUIET);
-	ignore(sprintf(pattern, "%s:[^:]*:[^:]*:[^:]*:[^:]*:\\([^:]*\\):", user));
+	sprintf(pattern, "%s:[^:]*:[^:]*:[^:]*:[^:]*:\\([^:]*\\):", user);
 	while (f_gets(fp, genbuf) != EOF)
 		if ((strncmp(genbuf, user, u_len) == 0) &&
 		    (LookingAt(pattern, genbuf, 0))) {
@@ -421,7 +423,7 @@ char	*name,
 		}
 	} else if (*name == '\\')
 		name++;
-	ignore(strcat(localbuf, name));
+	(void) strcat(localbuf, name);
 #ifdef CHDIR
 	dfollow(localbuf, intobuf);
 #else
@@ -656,7 +658,7 @@ char	*tfname;
 tmpinit()
 {
 	tfname = mktemp(TMPFILE);
-	ignore(close(creat(tfname, 0600)));
+	(void) close(creat(tfname, 0600));
 	tmpfd = open(tfname, 2);
 	if (tmpfd == -1) {
 		printf("%s?\n", tfname);
@@ -668,9 +670,9 @@ tmpinit()
 
 tmpclose()
 {
-	ignore(close(tmpfd));
+	(void) close(tmpfd);
 	tmpfd = -1;
-	ignore(unlink(tfname));
+	(void) unlink(tfname);
 }
 
 /* Get a line at `tl' in the tmp file into `buf' which should be LBSIZE
@@ -916,7 +918,7 @@ blkio(b, iofcn)
 register Block	*b;
 register int	(*iofcn)();
 {
-	ignorl(lseek(tmpfd, (long) ((unsigned) b->b_bno) * BUFSIZ, 0));
+	(void) lseek(tmpfd, (long) ((unsigned) b->b_bno) * BUFSIZ, 0);
 	if ((*iofcn)(tmpfd, b->b_buf, BUFSIZ) != BUFSIZ)
 		error("Tmp file %s error.", (iofcn == read) ? "read" : "write");
 }
@@ -960,17 +962,17 @@ char *fname;
 	strcpy(tmp1, fname);
 	
 	if ((s = rindex(tmp1, '/')) == NULL)
-		ignore(sprintf(tmp2, "#%s", fname));
+		sprintf(tmp2, "#%s", fname);
 	else {
 		*s++ = NULL;
-		ignore(sprintf(tmp2, "%s/#%s", tmp1, s));
+		sprintf(tmp2, "%s/#%s", tmp1, s);
 	}
 
 	if ((fd1 = open(fname, 0)) < 0)
 		return;
 
 	if ((fd2 = creat(tmp2, CreatMode)) < 0) {
-		ignore(close(fd1));
+		(void) close(fd1);
 		return;
 	}
 
@@ -978,9 +980,9 @@ char *fname;
 		write(fd2, tmp1, i);
 
 #ifdef BSD4_2
-	ignore(fsync(fd2));
+	(void) fsync(fd2);
 #endif
-	ignore(close(fd2));
-	ignore(close(fd1));
+	(void) close(fd2);
+	(void) close(fd1);
 }
 #endif

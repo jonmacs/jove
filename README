@@ -81,7 +81,7 @@ ID_CHAR	   - Enables support for Insert/Delete character on terminals
 	     faster.  And if you look at code you'll understand why I don't
 	     like it all that much.
 
-C_FMT	   - This enables code to format and indent C comments.
+CMT_FMT	   - This enables code to format and indent C comments.
 
 BSD4_2     - Obviously, if you're a Berkeley 4.2 system.
 
@@ -116,7 +116,18 @@ MY_MALLOC  - Use the older version of malloc that is more memory efficient
 	     The VAX version seems to place more importance on the speed
 	     of the allocation than the amount of memory it uses.  Make your
 	     choice ... JOVE hardly ever calls malloc, anyway, relatively
-	     speaking, since it allocates lines in big chunks.
+	     speaking, since it allocates lines in big chunks.  NOTE: This
+	     seems not to work on suns.
+
+To make macro files compatible between machines with different byte order I
+use the ntohl() and htonl() calls that are supplied with (as far as I know)
+4.2 systems.  If you're not running 4.2 a bunch of macros will be defined
+automatically in macros.c.  From Dave Curry:
+	The "#if" gets all the identifiers of backwards (left-endian)
+	machines, the "#else" handles normal (right-endian)
+	machines....  Just add some remark in the READ_ME for people
+	porting to machines other than the Vax or PDP-11 which are
+	left-endian.
 
 "doc/system.rc" and "doc/example.rc" are jove initialization files.
 "system.rc" is the "system" rc file here at UoR, and it gets ready every
@@ -137,12 +148,12 @@ people who have never used EMACS style editors.  It is an interactive
 tutorial, THE tutorial written by Stallman for the original EMACS, only
 slightly modified for JOVE in the appropriate places.
 
-Thanks to Jay Fenlason at Berkeley for writing the pty code in iproc.c.
+Thanks to Jay Fenlason at Berkeley for writing the original pty code.
 
 Thanks to Dave Curry at Purdue for putting in tons of time and effort
 into getting JOVE ready.  It just wouldn't be working without his help.
 
 Thanks to Jeff Mc Carrell at Berkeley for finding bugs and adding features.
 
-Good luck, have fun, and all that stuff,
-	-Jonathan Payne
+Good luck, have fun.
+	Jonathan Payne (payne@rochester until '88)

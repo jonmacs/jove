@@ -36,7 +36,7 @@ Line	*stop;
 	which = index(origs, orig) - origs;
 	forward = (which % 2) == 0;
 	matcher = matches[which];
-	ignore(sprintf(REstr, "[\\%c\\%c]", orig, matcher));
+	sprintf(REstr, "[\\%c\\%c]", orig, matcher);
 	DOTsave(&savedot);
 	REcompile(REstr, 1, REbuf, REalts);
 

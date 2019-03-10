@@ -265,7 +265,7 @@ EditAbbrevs()
 		rest_abbrevs(tname);
 		unmodify();
 	}
-	ignore(unlink(tname));
+	(void) unlink(tname);
 	SetBuf(do_select(curwind, obuf->b_name));
 }
 

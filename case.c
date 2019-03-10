@@ -120,7 +120,7 @@ Line	*line1,
 	*line2;
 int	char1;
 {
-	ignore(fixorder(&line1, &char1, &line2, &char2));
+	(void) fixorder(&line1, &char1, &line2, &char2);
 	DotTo(line1, char1);
 
 	exp = 1;

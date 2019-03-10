@@ -80,7 +80,7 @@ char	*dir;
 closedir(dp)
 DIR	*dp;
 {
-	ignore(close(dp->d_fd));
+	(void) close(dp->d_fd);
 	free(dp);
 }
 
@@ -238,8 +238,8 @@ struct direct	*dp;
 	   though, we check to see whether there is anything in
 	   the "recover" file.  If it's 0 length, there's no point
 	   in saving its name. */
-	ignore(sprintf(rfile, "%s/%s", CurDir, dp->d_name));
-	ignore(sprintf(dfile, "%s/jove%s", CurDir, dp->d_name + strlen(REC_BASE)));
+	(void) sprintf(rfile, "%s/%s", CurDir, dp->d_name);
+	(void) sprintf(dfile, "%s/jove%s", CurDir, dp->d_name + strlen(REC_BASE));
 	if ((fd = open(rfile, 0)) != -1) {
 		if ((read(fd, (char *) &header, sizeof header) != sizeof header)) {
 			close(fd);
@@ -250,8 +250,8 @@ struct direct	*dp;
 	if (access(dfile, 0) != 0) {
 		fprintf(stderr, "recover: can't find the data file for %s/%s\n", TMP_DIR, dp->d_name);
 		fprintf(stderr, "so deleting...\n");
-		ignore(unlink(rfile));
-		ignore(unlink(dfile));
+		(void) unlink(rfile);
+		(void) unlink(dfile);
 		return 0;
 	}
 	/* If we get here, we've found both files, so we put them
@@ -371,7 +371,7 @@ restore()
 	int	nrecovered = 0;
 
 	for (i = 1; i <= Header.Nbuffers; i++) {
-		ignore(sprintf(tofile, "#%s", buflist[i]->r_bname));
+		(void) sprintf(tofile, "#%s", buflist[i]->r_bname);
 tryagain:
 		printf("Restoring %s to %s, okay?", buflist[i]->r_bname,
 						     tofile);
@@ -401,7 +401,7 @@ char	*dest;
 
 	if (src == 0 || dest == 0)
 		return;
-	ignorf(signal(SIGINT, catch));
+	(void) signal(SIGINT, catch);
 	if (setjmp(int_env) == 0) {
 		if ((outfile = fopen(dest, "w")) == NULL) {
 			printf("recover: cannot create %s.\n", dest);
@@ -416,7 +416,7 @@ char	*dest;
 	fclose(outfile);
 	if (dest != tty)
 		printf(" %ld lines, %ld characters.\n", Nlines, Nchars);
-	ignorf(signal(SIGINT, SIG_DFL));
+	(void) signal(SIGINT, SIG_DFL);
 }
 
 char **
@@ -630,8 +630,8 @@ struct file_pair	*fp;
 del_files(fp)
 struct file_pair	*fp;
 {
-	ignore(unlink(fp->file_data));
-	ignore(unlink(fp->file_rec));
+	(void) unlink(fp->file_data);
+	(void) unlink(fp->file_rec);
 }
 
 savetmps()
@@ -676,9 +676,9 @@ char	*dir;
 	for (fp = First; fp != 0; fp = fp->file_next) {
 		nfound += doit(fp);
 		if (ptrs_fp)
-			ignore(fclose(ptrs_fp));
+			(void) fclose(ptrs_fp);
 		if (data_fd > 0)
-			ignore(close(data_fd));
+			(void) close(data_fd);
 	}
 	return nfound;
 }
