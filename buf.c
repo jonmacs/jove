@@ -111,7 +111,7 @@ FindFile()
 	register char	*name;
 	char	fnamebuf[FILESIZE];
 
-	name = ask_file(curbuf->b_fname, fnamebuf);
+	name = ask_file((char *) 0, curbuf->b_fname, fnamebuf);
 	SetABuf(curbuf);
 	SetBuf(do_find(curwind, name, 0));
 }
@@ -269,8 +269,7 @@ KillSome()
 
 	for (b = world; b != 0; b = next) {
 		next = b->b_next;
-		y_or_n = ask("No", "Kill %s? ", b->b_name);
-		if (Upper(*y_or_n) != 'Y')
+		if (yes_or_no_p("Kill %s? ", b->b_name) == NO)
 			continue;
 		if (IsModified(b)) {
 			y_or_n = ask("No", "%s modified; should I save it? ", b->b_name);
@@ -531,13 +530,17 @@ register char	*fname;
 			SetBuf(b);	/* this'll read the file */
 			SetBuf(oldb);
 		}
-	}
+	} else
+		/* check NOW to make sure that the file hasn't been
+		   messed with by someone else (just issues a warning) */
+		chk_mtime(b, b->b_fname, (char *) 0);
+
 	if (w)
 		tiewind(w, b);
 	return b;
 }
 
-/* Set alternate buffer */
+/* set alternate buffer */
 
 SetABuf(b)
 Buffer	*b;
@@ -583,7 +586,10 @@ register char	*name;
 		new = mak_buf();
 		setfname(new, (char *) 0);
 		setbname(new, name);
-	}
+	} else
+		/* check NOW to make sure that the file hasn't been
+		   messed with by someone else (just issues a warning) */
+		chk_mtime(new, new->b_fname, (char *) 0);
 	if (w)
 		tiewind(w, new);
 	return new;

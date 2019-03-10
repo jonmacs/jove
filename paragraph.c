@@ -424,7 +424,6 @@ Line	*l1,
 	DotTo(l1, c1);
 	if (get_indent(l1) >= c1) {
 		if (use_lmargin) {
-			DelWtSpace();
 			n_indent(indent + (head_indent - body_indent));
 			use_lmargin = 0;	/* turn this off now */
 		}
@@ -457,7 +456,6 @@ Line	*l1,
 		/* Can't fit in small margin, so we do the best we can. */
 		if (eolp()) {
 			line_move(FORWARD, NO);
-			DelWtSpace();
 			n_indent(indent);
 		} else {
 			DelWtSpace();

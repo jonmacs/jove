@@ -7,7 +7,7 @@
  * included with a Unix system distribution and the source is provided.  *
  *************************************************************************/
 
-/* Search package. */
+/* search package */
 
 #include "jove.h"
 #include "ctype.h"
@@ -108,12 +108,13 @@ char	*pattern,
 	*alt_p = 0;
 }
 
-/* Compile the pattern into an internal code. */
+/* compile the pattern into an internal code */
 
 private
 do_comp(kind)
 {
-	char	*last_p;
+	char	*last_p,
+		*chr_cnt = 0;
 	int	parens[NPAR],
 		*parenp,
 		c,
@@ -128,6 +129,7 @@ do_comp(kind)
 toolong:		complain("Search string too long/complex.");
 		if (c != '*')
 			last_p = comp_p;
+
 		if (kind == NORM && index(".[*", c) != 0)
 			goto defchar;
 		switch (c) {
@@ -138,7 +140,7 @@ toolong:		complain("Search string too long/complex.");
 
 			case '{':
 			    {
-			    	char	*wcntp;		/* Word count. */
+			    	char	*wcntp;		/* word count */
 
 			    	*comp_p++ = CURLYB;
 			    	wcntp = comp_p;
@@ -154,7 +156,7 @@ toolong:		complain("Search string too long/complex.");
 			    		if (comp_val == 0)
 			    			break;
 			    	}
-			    	continue;
+			    	break;
 			    }
 
 			case '}':
@@ -169,21 +171,21 @@ toolong:		complain("Search string too long/complex.");
 				*comp_p++ = OPENP;
 				*comp_p++ = nparens;
 				*parenp++ = nparens++;
-				continue;
+				break;
 
 			case ')':
 				if (parenp == parens)
 					complain("Too many )'s.");
 				*comp_p++ = CLOSEP;
 				*comp_p++ = *--parenp;
-				continue;
+				break;
 
 			case '|':
 				if (alt_p >= alt_endp)
 					complain("Too many alternates; max %d.", NALTS);
 				*comp_p++ = EOP;
 				*alt_p++ = comp_p;
-				continue;
+				break;
 
 			case '1':
 			case '2':
@@ -196,19 +198,20 @@ toolong:		complain("Search string too long/complex.");
 			case '9':
 				*comp_p++ = BACKREF;
 				*comp_p++ = c - '1';
-				continue;
+				break;
 
 			case '<':
 				*comp_p++ = AT_BOW;
-				continue;
+				break;
 
 			case '>':
 				*comp_p++ = AT_EOW;
-				continue;
+				break;
 
 			default:
 				goto defchar;
 			}
+			break;
 
 		case ',':
 			if (kind != IN_CB)
@@ -217,12 +220,12 @@ toolong:		complain("Search string too long/complex.");
 
 		case '.':
 			*comp_p++ = ANYC;
-			continue;
+			break;
 
 		case '^':
 			if (comp_p == cur_compb || comp_p[-1] == EOP) {
 				*comp_p++ = AT_BOL;
-				continue;
+				break;
 			}
 			goto defchar;
 
@@ -230,7 +233,7 @@ toolong:		complain("Search string too long/complex.");
 			if ((REpeekc = REgetc()) != 0 && REpeekc != '\\')
 				goto defchar;
 			*comp_p++ = AT_EOL;
-			continue;
+			break;
 
 		case '[':
 		    {
@@ -267,19 +270,35 @@ toolong:		complain("Search string too long/complex.");
 		    	if (chrcnt == 1)
 		    		complain("Empty [].");
 		    	comp_p += 16;
-		    	continue;
+		    	break;
 		    }
 
 		case '*':
 			if (last_p == 0 || *last_p <= NOSTR)
 				goto defchar;
-			*last_p |= STAR;
-			continue;
+			if (chr_cnt) {
+				char	lastc = chr_cnt[*chr_cnt];
+
+				comp_p = chr_cnt + *chr_cnt;
+				(*chr_cnt)--;
+				*comp_p++ = chr_cnt[-1] | STAR;
+				*comp_p++ = lastc;
+			} else
+				*last_p |= STAR;
+			break;
 
 		default:
-defchar:		*comp_p++ = (CaseIgnore) ? CINDC : NORMC;
+defchar:		if (chr_cnt)
+				(*chr_cnt)++;	/* increment the count */
+			else {
+				*comp_p++ = (CaseIgnore) ? CINDC : NORMC;
+				chr_cnt = comp_p++;
+				*chr_cnt = 1;   /* last_p[1] = 1; */
+			}
 			*comp_p++ = c;
+			continue;
 		}
+		chr_cnt = FALSE;
 	}
 outahere:
 	/* End of pattern, let's do some error checking. */
@@ -341,14 +360,18 @@ register char	*linep,
 
 	for (;;) switch (*comp_p++) {
 	case NORMC:
-		if (*linep++ == *comp_p++)
-			continue;
-		return 0;
+		n = *comp_p++;
+		while (--n >= 0)
+			if (*linep++ != *comp_p++)
+				return 0;
+		continue;
 
 	case CINDC:	/* case independent comparison */
-		if (cind_cmp(*linep++, *comp_p++))
-			continue;
-		return 0;
+		n = *comp_p++;
+		while (--n >= 0)
+			if (!cind_cmp(*linep++, *comp_p++))
+				return 0;
+		continue;
 
 	case EOP:
 		loc2 = linep;
@@ -529,7 +552,7 @@ char	*expr,
 	isquick = ((expr[0] == NORMC || expr[0] == CINDC) &&
 		   (alternates[1] == 0));
 	if (isquick)
-		firstc = expr[1];
+		firstc = expr[2];
 	if (expr[0] == CINDC)
 		firstc = CaseEquiv[firstc];
 	locs = REbolp + offset;

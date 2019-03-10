@@ -209,6 +209,7 @@ extern int
 
 #ifdef LISP
 	GSexpr(),	/* Grind S Expression. */
+	AddSpecial(),	/* add lisp special form */
 #endif
 	CAutoExec(),
 	MAutoExec(),
@@ -236,9 +237,12 @@ extern int
 #endif TXT_TO_C
 
 struct cmd	commands[] = {
-	FUNCTION, "Prefix-1", WIRED_CMD(EscPrefix),
-	FUNCTION, "Prefix-2", WIRED_CMD(CtlxPrefix),
-	FUNCTION, "Prefix-3", WIRED_CMD(MiscPrefix),
+	FUNCTION, "prefix-1", WIRED_CMD(EscPrefix),
+	FUNCTION, "prefix-2", WIRED_CMD(CtlxPrefix),
+	FUNCTION, "prefix-3", WIRED_CMD(MiscPrefix),
+#ifdef LISP
+	FUNCTION, "add-lisp-special", WIRED_CMD(AddSpecial),
+#endif
 #ifdef ANSICODES
 	FUNCTION, "ansi-codes", WIRED_CMD(AnsiCodes),
 #endif

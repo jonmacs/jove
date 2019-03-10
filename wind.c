@@ -173,7 +173,7 @@ register Window	*w;
 
 int	ScrollStep = 0;		/* Full scrolling */
 
-/* Calculate the new topline of the screen.  If ScrollStep == 0
+/* Calculate the new topline of the window.  If ScrollStep == 0
    it means we should center the current line in the window. */
 
 CalcWind(w)

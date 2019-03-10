@@ -17,7 +17,7 @@
 #	include <sys/stat.h>
 #endif
 
-int	Asking = 0;
+int	Asking = NO;
 char	Minibuf[LBSIZE];
 private Line	*CurAskPtr = 0;	/* points at some line in mini-buffer */
 private Buffer	*AskBuffer = 0;	/* Askbuffer points to actual structure */
@@ -32,8 +32,13 @@ private Buffer	*AskBuffer = 0;	/* Askbuffer points to actual structure */
 static Buffer *
 get_minibuf()
 {
-	if (AskBuffer)
-		return AskBuffer;
+	if (AskBuffer) {		/* make sure ut still exists */
+		register Buffer	*b;
+
+		for (b = world; b != 0; b = b->b_next)
+			if (b == AskBuffer)
+				return b;
+	}
 	AskBuffer = do_select((Window *) 0, "Minibuf");
 	AskBuffer->b_type = B_SCRATCH;
 	return AskBuffer;
@@ -153,7 +158,7 @@ cleanup:
 	no_typed = (linebuf[0] == '\0');
 	strcpy(Minibuf, linebuf);
 	SetBuf(saveb);
-	InAsk = Asking = Interactive = 0;
+	InAsk = Asking = Interactive = NO;
 	if (!abort) {
 		if (!charp()) {
 			Placur(ILI, 0);
@@ -207,6 +212,42 @@ va_dcl
 	format(prompt, sizeof prompt, fmt, ap);
 	va_end(ap);
 	return real_ask(delim, d_proc, def, prompt);
+}
+
+/* VARARGS2 */
+
+yes_or_no_p(fmt, va_alist)
+char	*fmt;
+va_dcl
+{
+	char	prompt[128];
+	int	c;
+	va_list	ap;
+
+	va_start(ap);
+	format(prompt, sizeof prompt, fmt, ap);
+	va_end(ap);
+	for (;;) {
+		message(prompt);
+		Asking = strlen(prompt);	/* so redisplay works */
+		c = getch();
+		Asking = NO;
+		switch (Upper(c)) {
+		case 'Y':
+			return YES;
+
+		case 'N':
+			return NO;
+
+		case CTL(G):
+			complain("[Aborted]");
+
+		default:
+			add_mess("[Type Y or N]");
+			SitFor(10);
+		}
+	}
+	/* NOTREACHED */
 }
 
 #ifdef F_COMPLETION
@@ -392,18 +433,23 @@ f_complete(c)
 #endif
 
 char *
-ask_file(def, buf)
-char	*def,
+ask_file(prmt, def, buf)
+char	*prmt,
+	*def,
 	*buf;
 {
 	char	*ans,
 		prompt[128],
 		*pretty_name = pr_name(def);
 
-	if (def != 0 && *def != '\0')
-		sprintf(prompt, ": %f (default %s) ", pretty_name);
-	else
-		sprintf(prompt, ProcFmt);
+	if (prmt)
+		sprintf(prompt, prmt);
+	else {
+		if (def != 0 && *def != '\0')
+			sprintf(prompt, ": %f (default %s) ", pretty_name);
+		else
+			sprintf(prompt, ProcFmt);
+	}
 #ifdef F_COMPLETION
   	ans = real_ask("\r\n \t?", f_complete, pretty_name, prompt);
 	if (ans == 0 && (ans = pretty_name) == 0)

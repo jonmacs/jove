@@ -664,8 +664,8 @@ getch()
 
 dorecover()
 {
-	execl(RECOVER, "jove_recover", 0);
-	printf("%s: execl failed!\n", RECOVER);
+	execl(Recover, "jove_recover", "-d", TmpFilePath, 0);
+	printf("%s: execl failed!\n", Recover);
 	flusho();
 	_exit(-1);
 }
@@ -1006,16 +1006,13 @@ char	*argv[];
 		finish(0);
 	}
 
-	if (scanvec(argv, "-r"))
-		dorecover();
-
 	getTERM();	/* Get terminal. */
 	if (getenv("METAKEY"))
 		MetaKey = 1;
 	ttsize();
 	InitCM();
 
-	tmpinit();	/* Init temp file. */
+	d_cache_init();		/* initialize the disk buffer cache */
 
 	if (cp = getenv("SHELL"))
 		strcpy(Shell, cp);
@@ -1042,18 +1039,21 @@ char	*argv[];
 	if (HomeDir == 0)
 		HomeDir = "/";
 	HomeLen = strlen(HomeDir);
-	(void) joverc(JOVERC);
+#ifdef SYSV
+	sprintf(MailBox, "/usr/mail/%s", getenv("LOGNAME"));
+#else
+	sprintf(Mailbox, "/usr/spool/mail/%s", getenv("USER"));
+#endif SYSV
+	(void) joverc(Joverc);
 	if (!scanvec(argv, "-j")) {
 		char	tmpbuf[100];
 
 		sprintf(tmpbuf, "%s/.joverc", HomeDir);
 		(void) joverc(tmpbuf);
 	}
-#ifdef SYSV
-	sprintf(MailBox, "/usr/mail/%s", getenv("LOGNAME"));
-#else
-	sprintf(Mailbox, "/usr/spool/mail/%s", getenv("USER"));
-#endif SYSV
+	if (scanvec(argv, "-r"))
+		dorecover();
+
 	(void) time(&time0);
 	ttinit();	/* initialize terminal (after ~/.joverc) */
 	settout(ttbuf);	/* not until we know baudrate */

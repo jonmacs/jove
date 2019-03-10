@@ -117,14 +117,17 @@
 
 #ifndef NOEXTERNS
 extern char
-	*TMP_DIR,
-	*REC_DIR,
-	*TMPFILE,
-	*RECFILE,
-	*REC_BASE,
-	*RECOVER,
-	*CMD_DB,
-	*JOVERC,
+	TmpFilePath[128],
+	*d_tempfile,
+	*p_tempfile,
+	*Recover,
+	*CmdDb,
+	*Joverc,
+
+#ifdef PIPEPROCS
+	*Portsrv = "LIBDIR/portsrv",
+#endif
+
 	Shell[],
 	ShFlags[];
 

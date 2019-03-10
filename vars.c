@@ -31,7 +31,7 @@ struct variable	variables[] = {
 	VARIABLE, "files-should-end-with-newline", &EndWNewline, V_BOOL,
 	VARIABLE, "internal-tabstop", &tabstop, V_BASE10|V_CLRSCREEN,
 	VARIABLE, "left-margin", &LMargin, V_BASE10,
-	VARIABLE, "mailbox", (int *) Mailbox, V_STRING,
+	VARIABLE, "mailbox", (int *) Mailbox, V_FILENAME,
 	VARIABLE, "mail-check-frequency", (int *) &MailInt, V_BASE10,
 #ifdef BACKUPFILES
 	VARIABLE, "make-backup-files", &BkupOnWrite, V_BOOL,
@@ -54,7 +54,8 @@ struct variable	variables[] = {
 	VARIABLE, "shell", (int *) Shell, V_STRING,
 	VARIABLE, "shell-flags", (int *) ShFlags, V_STRING,
 	VARIABLE, "sync-frequency", &SyncFreq, V_BASE10,
-	VARIABLE, "tag-file", (int *) TagFile, V_STRING,
+	VARIABLE, "tag-file", (int *) TagFile, V_FILENAME,
+	VARIABLE, "tmp-file-pathname", (int *) TmpFilePath, V_FILENAME,
 	VARIABLE, "update-time-frequency", &UpdFreq, V_BASE10,
 #ifdef ID_CHAR
 	VARIABLE, "use-i/d-char", &UseIC, V_BOOL,

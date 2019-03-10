@@ -249,7 +249,7 @@ char	*bufname,
 		(void) dup2(ProcOutput, 1);
 		(void) dup2(ProcOutput, 2);
 		pclose(toproc);
-		execv(PORTSRV, args);
+		execv(Portsrv, args);
 		printf("Execl failed.\n");
 		_exit(1);
 	}

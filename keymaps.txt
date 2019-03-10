@@ -39,10 +39,10 @@ keymap	mainmap = {
 	"quadruple-numeric-argument",	/* ^U */
 	"next-page",			/* ^V */
 	"kill-region",			/* ^W */
-	"Prefix-2",			/* ^X */
+	"prefix-2",			/* ^X */
 	"yank",				/* ^Y */
 	"scroll-up",			/* ^Z */
-	"Prefix-1",			/* ^[ */
+	"prefix-1",			/* ^[ */
 	"search-forward",		/* ^\ */
 	"unbound",			/* ^] */
 	"quoted-insert",		/* ^^ */

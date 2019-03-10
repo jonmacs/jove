@@ -329,11 +329,11 @@ extern struct scrimage
 #define V_BOOL		04	/* is a boolean */
 #define V_STRING	010	/* is a string */
 #define V_CHAR		020	/* is a character */
-#define V_TYPEMASK	037	/* mask off the display bits */
-#define V_MODELINE	040	/* update modeline */
-#define V_CLRSCREEN	0100	/* clear and redraw screen */
-#define V_TTY_RESET	0200	/* redo the tty modes because we may want
-				   to change some things */
+#define V_FILENAME	040	/* a file name (implies V_STRING) */
+#define V_TYPEMASK	077	/* mask off the extra bits */
+#define V_MODELINE	0100	/* update modeline */
+#define V_CLRSCREEN	0200	/* clear and redraw screen */
+#define V_TTY_RESET	0400	/* redo the tty modes */
 
 extern int
 	OKXonXoff,		/* disable start/stop characters */
@@ -391,6 +391,7 @@ extern char
 #endif
 	ModeFmt[120],		/* mode line format string */
 	Mailbox[128],		/* mailbox name */
+	TmpFilePath[128],	/* directory/device to store tmp files */
 	TagFile[128],		/* default tag file */
 	Shell[128];		/* shell to use */
 

@@ -139,7 +139,7 @@ SaveFile()
 			WriteFile();
 		else {
 			filemunge(curbuf->b_fname);
-			chk_mtime(curbuf->b_fname, "save");
+			chk_mtime(curbuf, curbuf->b_fname, "save");
 			file_write(curbuf->b_fname, 0);
 			unmodify();
 		}
@@ -211,7 +211,7 @@ Chdir()
 {
 	char	dirbuf[FILESIZE];
 
-	(void) ask_file(PWD, dirbuf);
+	(void) ask_file((char *) 0, PWD, dirbuf);
 	if (chdir(dirbuf) == -1) {
 		s_mess("cd: cannot change into %s.", dirbuf);
 		return;
@@ -287,7 +287,7 @@ Pushd()
 	char	*newdir,
 		dirbuf[FILESIZE];
 
-	newdir = ask_file(NullStr, dirbuf);	/* Parses directories ... */
+	newdir = ask_file((char *) 0, NullStr, dirbuf);
 	UpdModLine++;
 	if (*newdir == 0) {	/* Wants to swap top two entries */
 		char	*old_top;
@@ -467,7 +467,7 @@ DoWriteReg(app)
 	File	*fp;
 
 	/* Won't get here if there isn't a Mark */
-	fname = ask_file((char *) 0, fnamebuf);
+	fname = ask_file((char *) 0, (char *) 0, fnamebuf);
 
 #ifdef BACKUPFILES
 	if (!app) {
@@ -493,7 +493,7 @@ WriteFile()
 	char	*fname,
 		fnamebuf[FILESIZE];
 
-	fname = ask_file(curbuf->b_fname, fnamebuf);
+	fname = ask_file((char *) 0, curbuf->b_fname, fnamebuf);
 	/* Don't allow bad characters when creating new files. */
 	if (!OkayBadChars && strcmp(curbuf->b_fname, fnamebuf) != 0) {
 		static char	*badchars = "!$^&*()~`{}\"'\\|<>? ";
@@ -505,7 +505,7 @@ WriteFile()
 				complain("'%p': bad character in filename.", c);
 	}
 
-	chk_mtime(fname, "write");
+	chk_mtime(curbuf, fname, "write");
 	filemunge(fname);
 	if (curbuf->b_type != B_IPROCESS)
 		curbuf->b_type = B_FILE;  /* In case it wasn't before. */
@@ -551,7 +551,8 @@ register int	how;
    I hate to use another stat(), but to use confirm we gotta
    do this before we open the file. */
 
-chk_mtime(fname, how)
+chk_mtime(thisbuf, fname, how)
+Buffer	*thisbuf;
 char	*fname,
 	*how;
 {
@@ -559,9 +560,9 @@ char	*fname,
 	Buffer	*b;
     	char	*mesg = "Shall I go ahead and %s anyway? ";
 
-	if ((curbuf->b_mtime != 0) &&		/* if we care ... */
+	if ((thisbuf->b_mtime != 0) &&		/* if we care ... */
 	    (b = file_exists(fname)) &&		/* we already have this file */
-	    (b == curbuf) &&			/* and it's the current buffer */
+	    (b == thisbuf) &&			/* and it's the current buffer */
 	    (stat(fname, &stbuf) != -1) &&	/* and we can stat it */
 	    (stbuf.st_mtime != b->b_mtime)) {	/* and there's trouble. */
 	    	rbell();
@@ -569,11 +570,15 @@ char	*fname,
 	    	TOstart("Warning", TRUE);
 	    	Typeout("\"%s\" now saved on disk is not what you last", pr_name(fname));
 		Typeout("visited or saved.  Probably someone else is editing");
-		Typeout("your file at the same time.  Type \"y\" if I should");
-		Typeout("%s anyway.", how);
-	    	f_mess(mesg, how);
+		Typeout("your file at the same time.");
+	    	if (how) {
+			Typeout("");
+			Typeout("Type \"y\" if I should %s, anyway.", how);
+		    	f_mess(mesg, how);
+		}
 	    	TOstop();
-	    	confirm(mesg, how);
+	    	if (how)
+		    	confirm(mesg, how);
 	}
 }
 
@@ -608,8 +613,8 @@ ReadFile()
 	char	*fname,
 		fnamebuf[FILESIZE];
 
-	fname = ask_file(curbuf->b_fname, fnamebuf);
-	chk_mtime(fname, "read");
+	fname = ask_file((char *) 0, curbuf->b_fname, fnamebuf);
+	chk_mtime(curbuf, fname, "read");
 
 	if (IsModified(curbuf)) {
 		char	*y_or_n;
@@ -637,7 +642,7 @@ InsFile()
 	char	*fname,
 		fnamebuf[FILESIZE];
 
-	fname = ask_file(curbuf->b_fname, fnamebuf);
+	fname = ask_file((char *) 0, curbuf->b_fname, fnamebuf);
 	read_file(fname, 1);
 }
 
@@ -648,23 +653,22 @@ int	DOLsave = 0;	/* Do Lsave flag.  If lines aren't being save
 			   flag is probably not being set, or is being
 			   cleared before lsave() was called. */
 
-int	nleft,		/* Number of good characters left in current block */
-	tmpfd;
-disk_line	tline;	/* Pointer to end of tmp file */
-
-char	*tfname;
+private int	nleft,	/* number of good characters left in current block */
+		tmpfd = -1;
+private disk_line	tline = 0;	/* pointer to end of tmp file */
+private char	*tfname;
 
 tmpinit()
 {
-	tfname = mktemp(TMPFILE);
+	char	buf[FILESIZE];
+
+	sprintf(buf, "%s/%s", TmpFilePath, d_tempfile);
+	tfname = copystr(buf);
+	tfname = mktemp(tfname);
 	(void) close(creat(tfname, 0600));
 	tmpfd = open(tfname, 2);
-	if (tmpfd == -1) {
-		printf("%s?\n", tfname);
-		finish(0);
-	}
-	block_init();
-	tline = 2;
+	if (tmpfd == -1)
+		complain("Warning: cannot create tmp file!");
 }
 
 tmpclose()
@@ -741,6 +745,11 @@ char	*buf;
 	return tl;
 }
 
+/* The theory is that critical section of code inside this procedure
+   will never cause a problem to occur.  Basically, we need to ensure
+   that two blocks are in memory at the same time, but I think that
+   this can never screw up. */
+
 #define lockblock(addr)
 #define unlockblock(addr)
 
@@ -769,7 +778,7 @@ register File	*fp;
 			int	nbytes;
 
 			lockblock(tl);
-			tl += INCRMT;
+			tl += INCRMT;	/* to beginning of next block */
 			tline = tl;
 			nbytes = bp - base;
 			newbp = getblock(tl, WRITE);
@@ -819,13 +828,35 @@ private Block	b_cache[NBUF],
 private int	max_bno = -1,
 		NBlocks;
 
+private int	(*blkio)();
+
 private
-block_init()
+real_blkio(b, iofcn)
+register Block	*b;
+register int	(*iofcn)();
+{
+	(void) lseek(tmpfd, (long) ((unsigned) b->b_bno) * BUFSIZ, 0);
+	if ((*iofcn)(tmpfd, b->b_buf, BUFSIZ) != BUFSIZ)
+		error("Tmp file %s error.", (iofcn == read) ? "read" : "write");
+}
+
+private
+fake_blkio(b, iofcn)
+register Block	*b;
+register int	(*iofcn)();
+{
+	tmpinit();
+	blkio = real_blkio;
+	real_blkio(b, iofcn);
+}
+
+d_cache_init()
 {
 	register Block	*bp,	/* Block pointer */
 			**hp;	/* Hash pointer */
 	register short	bno;
 
+	tline = 2;
 	for (bp = b_cache, bno = NBUF; --bno >= 0; bp++) {
 		NBlocks++;
 		bp->b_dirty = 0;
@@ -841,6 +872,18 @@ block_init()
 		bp->b_HASHnext = *(hp = &bht[B_HASH(bno)]);
 		*hp = bp;
 	}
+	blkio = fake_blkio;
+}
+
+SyncTmp()
+{
+	register Block	*b;
+
+	for (b = f_block; b != 0; b = b->b_LRUnext)
+		if (b->b_dirty) {
+			(*blkio)(b, write);
+			b->b_dirty = 0;
+		}
 }
 
 private Block *
@@ -894,7 +937,7 @@ register Block	*bp;
 		bht[B_HASH(bp->b_bno)] = hp->b_HASHnext;
 
 	if (bp->b_dirty) {	/* Do, now, the delayed write */
-		blkio(bp, write);
+		(*blkio)(bp, write);
 		bp->b_dirty = 0;
 	}
 
@@ -971,7 +1014,7 @@ disk_line	atl;
 	   the end of the tmp file. */
 
 	if (bp->b_bno <= max_bno)
-		blkio(bp, read);
+		(*blkio)(bp, read);
 	else
 		max_bno = bno;
 
@@ -984,27 +1027,6 @@ lbptr(line)
 Line	*line;
 {
 	return getblock(line->l_dline, READ);
-}
-
-private
-blkio(b, iofcn)
-register Block	*b;
-register int	(*iofcn)();
-{
-	(void) lseek(tmpfd, (long) ((unsigned) b->b_bno) * BUFSIZ, 0);
-	if ((*iofcn)(tmpfd, b->b_buf, BUFSIZ) != BUFSIZ)
-		error("Tmp file %s error.", (iofcn == read) ? "read" : "write");
-}
-
-SyncTmp()
-{
-	register Block	*b;
-
-	for (b = f_block; b != 0; b = b->b_LRUnext)
-		if (b->b_dirty) {
-			blkio(b, write);
-			b->b_dirty = 0;
-		}
 }
 
 /* save the current contents of linebuf, if it has changed */

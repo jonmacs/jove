@@ -13,23 +13,26 @@
 #include "rec.h"
 #include <sys/file.h>
 
-static int	rec_fd = 0;	/* File descriptor of recover file. */
-static char	*recfname;
-static File	*rec_out;
+private int	rec_fd = 0;
+private char	*recfname;
+private File	*rec_out;
 
 #ifndef L_SET
 #	define L_SET 0
 #endif
 
-struct rec_head	Header;
+private struct rec_head	Header;
 
 recinit()
 {
-	recfname = mktemp(RECFILE);
+	char	buf[128];
+
+	sprintf(buf, "%s/%s", TmpFilePath, p_tempfile);
+	recfname = copystr(buf);
+	recfname = mktemp(recfname);
 	rec_fd = creat(recfname, 0644);
 	if (rec_fd == -1) {
-		f_mess("Cannot open \"%s\"; recovery disabled.", recfname);
-		(void) SitFor(7);
+		complain("Cannot create \"%s\"; recovery disabled.", recfname);
 		return;
 	}
 	/* Initialize the record IO. */

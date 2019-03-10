@@ -391,8 +391,7 @@ SaveBuf(askp)
 	char	*yorn;
 
 	if (askp) {
-		yorn = ask((char *) 0, "Write %s? ", curbuf->b_fname);
-		if (*yorn != 'Y' && *yorn != 'y')
+		if (yes_or_no_p("Write %s? ", curbuf->b_fname) == NO)
 			return 0;
 	}
 	file_write(curbuf->b_fname, 0);

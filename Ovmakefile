@@ -31,7 +31,7 @@ SHELL = /bin/csh
 
 # These should all just be right if the above ones are.
 JOVE = $(DESTDIR)$(BINDIR)/jove
-RECOVER = $(DESTDIR)$(BINDIR)/recover
+RECOVER = $(DESTDIR)$(LIBDIR)/recover
 TEACHJOVE = $(DESTDIR)$(BINDIR)/teachjove
 JOVERC = $(DESTDIR)$(LIBDIR)/.joverc
 CMDS.DOC = $(DESTDIR)$(LIBDIR)/cmds.doc
@@ -67,7 +67,7 @@ COFLAGS = -rworking -q
 
 BASESEG = funcdefs.o keymaps.o ask.o buf.o ctype.o delete.o disp.o fmt.o fp.o \
 	  insert.o io.o jove.o malloc.o macros.o marks.o misc.o move.o re.o \
-	  screen.o tune.o util.o vars.o version.o
+	  screen.o table.o tune.o util.o vars.o version.o
 OVLAY1 = abbrev.o rec.o paragraph.o
 OVLAY2 = c.o wind.o
 OVLAY3 = extend.o
@@ -79,14 +79,17 @@ OBJECTS = $(BASESEG) $(OVLAY1) $(OVLAY2) $(OVLAY3) $(OVLAY4) $(OVLAY5)
 C-FILES = funcdefs.c abbrev.c ask.c buf.c c.c case.c ctype.c delete.c disp.c \
 	extend.c fmt.c fp.c insert.c io.c iproc.c iproc-pipes.c iproc-ptys.c \
 	jove.c macros.c malloc.c marks.c misc.c move.c paragraph.c proc.c \
-	re.c re1.c rec.c scandir.c screen.c term.c util.c vars.c version.c \
+	re.c re1.c rec.c scandir.c screen.c table.c term.c util.c vars.c version.c \
 	wind.c
 
-H-FILES = ctype.h io.h jove.h re.h rec.h temp.h termcap.h tune.h
+H-FILES = ctype.h io.h jove.h re.h rec.h table.h temp.h termcap.h tune.h
 
-BACKUPS = $(C-FILES) $(H-FILES) teachjove.c recover.c setmaps.c portsrv.c \
-	tune.template Makefile Ovmakefile keymaps.txt README tags \
-	doc
+BACKUPS = $(C-FILES) $(H-FILES) $(DOCS) teachjove.c recover.c setmaps.c portsrv.c \
+	tune.template Makefile Ovmakefile keymaps.txt README tags
+
+DOCS =	doc/cmds.doc.nr doc/example.rc doc/jove.1 doc/jove.2 doc/jove.3 \
+	doc/jove.4 doc/jove.nr doc/recover.nr doc/system.rc doc/teach-jove \
+	doc/teachjove.nr doc/README
 
 all:	xjove recover teachjove portsrv
 
