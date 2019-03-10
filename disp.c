@@ -136,15 +136,15 @@ register char	*lp;
 register int	c_char;
 {
 	register int	pos = 0;
+	register int	c;
 
-	while ((--c_char >= 0) && *lp != 0) {
-		if (isctrl(*lp))
+	while ((--c_char >= 0) && ((c = *lp++) & 0177) != 0) {
+		if (isctrl(c))
 			pos += 2;
-		else if (*lp == '\t')
+		else if (c == '\t')
 			pos += (tabstop - (pos % tabstop));
 		else
 			pos++;
-		lp++;
  	}
 	return pos;
 }

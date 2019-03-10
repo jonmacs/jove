@@ -255,6 +255,7 @@ FDotTag()
 
 static char	ISbuf[128],
 		*incp = 0;
+int	SExitChar = CR;
 
 #define cmp_char(a, b)	((a) == (b) || (CaseIgnore && (Upper(a) == Upper(b))))
 
@@ -348,14 +349,13 @@ Bufpos	*bp;
 			add_mess("reverse-");
 		add_mess("I-search: %s", ISbuf);
 
-		switch (c = getch()) {
+		c = getch();
+		if (c == SExitChar)
+			return STOP;
+		switch (c) {
 		case RUBOUT:
 		case BS:
 			return DELETE;
-
-		case CR:
-		case LF:
-			return STOP;
 
 		case CTL(G):
 			/* If we're failing, we backup until we're no longer

@@ -330,10 +330,11 @@ extern struct scrimage
 #define V_BASE8		02	/* is integer in base 8 */
 #define V_BOOL		04	/* is a boolean */
 #define V_STRING	010	/* is a string */
-#define V_TYPEMASK	017	/* mask off the display bits */
-#define V_MODELINE	020	/* update modeline */
-#define V_CLRSCREEN	040	/* clear and redraw screen */
-#define V_TTY_RESET	0100	/* redo the tty modes because we may want
+#define V_CHAR		020	/* is a character */
+#define V_TYPEMASK	037	/* mask off the display bits */
+#define V_MODELINE	040	/* update modeline */
+#define V_CLRSCREEN	0100	/* clear and redraw screen */
+#define V_TTY_RESET	0200	/* redo the tty modes because we may want
 				   to change some things */
 
 extern int
@@ -374,6 +375,7 @@ extern int
 #ifdef ID_CHAR
 	UseIC,			/* whether or not to use i/d char
 				   processesing */
+	SExitChar,		/* type this to stop i-search */
 #endif
 	EWSize;			/* size to make the error window */
 

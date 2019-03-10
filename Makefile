@@ -197,7 +197,7 @@ touch:
 
 clean:
 	rm -f a.out core $(OBJECTS) errs Errs Makefile.bak keymaps.c tune.c \
-	xjove portsrv recover setmaps teachjove mkversion
+	xjove portsrv recover setmaps teachjove
 
 # This version only works under 4.3BSD
 depend:

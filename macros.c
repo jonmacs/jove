@@ -257,6 +257,7 @@ ReadMacs()
 	int	nmacs = 0,
 		namelen,
 		bodylen,
+		tmp,
 		he_is_sure = 0,
 		save_em = FALSE;
 
@@ -265,12 +266,13 @@ ReadMacs()
 		complain(IOerr("open", file));
 
 	f_mess("\"%s\"", file);
-	while (read(mac_fd, (char *) &bodylen, sizeof m->m_len) == (sizeof m->m_len)) {
-		bodylen = int_fmt(bodylen);
-		if (!he_is_sure && (bodylen <= 0 || bodylen > 1000)) {
+	while (read(mac_fd, (char *) &tmp, sizeof tmp) == (sizeof tmp)) {
+retry:		bodylen = int_fmt(tmp);
+		if (!he_is_sure && (bodylen <= 0 || bodylen > 10000)) {
 			if (int_how == NEWWAY) {
 				int_how = OLDWAY;
 				save_em = TRUE;
+				goto retry;
 			} else {
 				confirm("Are you sure \"%s\" is a JOVE macro file? ", filebuf);
 				he_is_sure = 1;
@@ -280,7 +282,7 @@ ReadMacs()
 		m = (struct macro *) emalloc (sizeof *m);
 		m->m_flags = 0;
 		m->m_len = bodylen;
-		m->m_buflen = (m->m_len + 16) & ~017;
+		m->m_buflen = m->m_len;
 		mac_io(read, (char *) &namelen, sizeof namelen);
 		namelen = int_fmt(namelen);
 		m->Name = emalloc(namelen);
@@ -292,20 +294,19 @@ ReadMacs()
 	ignore(close(mac_fd));
 	add_mess(" %d macro%n defined.", nmacs, nmacs);
 	if (save_em) {
-		char	ibuf[FILESIZE + 1];
+		char	*msg = "OK to convert to the new format? ",
+			ibuf[FILESIZE + 1];
 
 		if (!InJoverc) {
-			char	*msg = "Convert to the new format? ";
-
 			TOstart("Warning", TRUE);
 			Typeout("Warning: your macros file is in the old format.");
 			Typeout("Do you want me to convert \"%s\" to the new", pr_name(file));
 			Typeout("format?");
-			confirm("Convert macros file to new format? ");
 			f_mess(msg);
 			TOstop();
 			confirm(msg);
 		}
+		/* WriteMacs requests a file name.  This is what it'll get. */
 		sprintf(ibuf, "%s\n", file);
 		Inputp = ibuf;
 		WriteMacs();
