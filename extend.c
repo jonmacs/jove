@@ -191,7 +191,7 @@ data_obj	**map,
 	if (c == EOF) {
 		if (lastkey == EOF)
 			complain("[Empty key sequence]");
-		complain("[Unexpected end-of-line]");
+		complain("[Premature end of key sequence]");
 	} else {
 		if (nextmap = IsPrefix(map[c]))
 			BindWMap(nextmap, c, func);
