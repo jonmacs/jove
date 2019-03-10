@@ -30,7 +30,7 @@ KillProcs()
 		if (!isdead(p)) {
 			if (killem == -1) {
 				yorn = ask("y", "Should I kill your i-processes? ");
-				killem = (Upper(*yorn) == 'Y');
+				killem = (CharUpcase(*yorn) == 'Y');
 			}
 			if (killem)
 				proc_kill(p, SIGKILL);
@@ -50,7 +50,7 @@ register Buffer	*b;
 /* Process receive: receives the characters in buf, and appends them to
    the buffer associated with p. */
 
-static
+private
 proc_rec(p, buf)
 register Process	*p;
 char	*buf;
@@ -95,11 +95,10 @@ register Process	*p;
 		s_mess("Cannot kill %s!", proc_buf(p));
 }
 
-/* Deal with a process' death.  proc_rec turns on the FREEUP bit when it
-   it gets the "EOF" from portsrv.  FREEUP'd processes get unlinked from
-   the list, and the proc stucture and proc_buf(p) get free'd up, here. */
+/* Deal with a process' death.  Go through all processes and find
+   the ones which have gotten EOF.  Delete them from the list and
+   free up the memory, and insert a status string. */
 
-private
 DealWDeath()
 {
 	register Process	*p,
@@ -108,7 +107,7 @@ DealWDeath()
 	
 	for (p = procs; p != 0; p = next) {
 		next = p->p_next;
-		if (!p->p_eof) {
+		if (p->p_state != DEAD) {
 			prev = p;
 			continue;
 		}
@@ -130,6 +129,7 @@ ProcList()
 	char	*fmt = "%-15s  %-15s  %-8s %s",
 		pidstr[10];
 
+	DealWDeath();
 	if (procs == 0) {
 		message("[No subprocesses]");
 		return;
@@ -142,7 +142,6 @@ ProcList()
 		sprintf(pidstr, "%d", p->p_pid);
 		Typeout(fmt, proc_buf(p), pstate(p), pidstr, p->p_name);
 	}
-	DealWDeath();
 	TOstop();
 }
 
@@ -160,6 +159,8 @@ private
 SendData(newlinep)
 {
 	register Process	*p = curbuf->b_process;
+	register char	*lp,
+			*gp;	/* JF fix for better prompt handling */
 
 	if (isdead(p))
 		return;
@@ -175,7 +176,11 @@ SendData(newlinep)
 			SetDot(dosearch(proc_prompt, 1, 1));
 		strcpy(genbuf, linebuf + curchar);
 		ToLast();
-		ins_str(genbuf, NO);
+		gp = genbuf;
+		lp = linebuf;
+		while (*lp == *gp && *lp != '\0')
+			lp++, gp++;
+		ins_str(gp, NO);
 	}
 }
 
@@ -222,7 +227,6 @@ kill_off(pid, w)
 register int	pid;
 union wait	w;
 {
-	char	str[128];
 	register Process	*child;
 
 	if ((child = proc_pid(pid)) == 0)
@@ -239,11 +243,19 @@ union wait	w;
 			child->p_howdied = KILLED;
 		}
 		proc_close(child);
+		{
+			Buffer	*save = curbuf;
+			char	mesg[128];
+
+			/* insert status message now */
+			sprintf(mesg, "[Process %s: %s]\n",
+				proc_cmd(child),
+				pstate(child));
+			SetBuf(child->p_buffer);
+			ins_str(mesg);
+			SetBuf(save);
+		}
 	}
-	sprintf(str, "[Process %s: %s]\n",
-		proc_cmd(child),
-		pstate(child));
-	proc_rec(child, str);
 }
 
 /* Push/pod process bindings.  I openly acknowledge that this is a

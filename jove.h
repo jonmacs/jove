@@ -81,6 +81,7 @@
 #define lastp(line)	(line == curbuf->b_last)
 #define makedirty(line)	line->l_dline |= DIRTY
 #define one_windp()	(fwind->w_next == fwind)
+#define CharUpcase(c)	(CaseEquiv[c])
 
 extern int	OkayAbort,	/* okay to abort redisplay */
 		BufSize;
@@ -121,6 +122,7 @@ extern int	OkayAbort,	/* okay to abort redisplay */
 #define SetMajor(x)	((curbuf->b_major = x), UpdModLine++)
 
 extern char	CharTable[NMAJORS][128];
+extern char	CaseEquiv[128];
 
 /* setjmp/longjmp args for DoKeys() mainjmp */
 #define FIRSTCALL	0
@@ -192,22 +194,21 @@ struct process {
 	Process	*p_next;
 #ifdef PIPEPROCS
 	int	p_toproc,	/* read p_fromproc and write p_toproc */
-		p_portpid,	/* Pid of child (the portsrv) */
-		p_pid;		/* Pid of real child i.e. not portsrv */
+		p_portpid,	/* pid of child (the portsrv) */
+		p_pid;		/* pid of real child i.e. not portsrv */
 #else
-	int	p_fd,		/* File descriptor of ptyp? opened r/w */
+	int	p_fd,		/* file descriptor of pty? opened r/w */
 		p_pid;		/* pid of child (the shell) */
 #endif
-	Buffer	*p_buffer;	/* Add output to end of this buffer */
+	Buffer	*p_buffer;	/* add output to end of this buffer */
 	char	*p_name;	/* ... */
 	char	p_state,	/* State */
 		p_howdied,	/* Killed? or Exited? */
-		p_reason,	/* If signaled, p_reason is the signal; else
+		p_reason;	/* If signaled, p_reason is the signal; else
 				   it is the the exit code */
-		p_eof;		/* Received EOF, so can be free'd up */
-	Mark	*p_mark;	/* Where output left us. */
+	Mark	*p_mark;	/* where output left us */
 	data_obj
-		*p_cmd;		/* Command to call when process dies */
+		*p_cmd;		/* command to call when process dies */
 };
 #endif IPROCS
 

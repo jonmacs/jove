@@ -51,7 +51,7 @@ recclose()
 	(void) unlink(recfname);
 }
 
-static
+private
 putaddr(addr, p)
 disk_line	addr;
 register File	*p;
@@ -63,7 +63,7 @@ register File	*p;
 		putc(*cp++ & 0377, p);
 }
 
-static
+private
 putn(cp, nbytes)
 register char	*cp;
 register int	nbytes;
@@ -74,7 +74,7 @@ register int	nbytes;
 
 /* Write out the line pointers for buffer B. */
 
-static
+private
 dmppntrs(b)
 register Buffer	*b;
 {
@@ -86,19 +86,21 @@ register Buffer	*b;
 
 /* dump the buffer info and then the actual line pointers. */
 
-static
+private
 dmp_buf(b)
 register Buffer	*b;
 {
-	static struct rec_entry	record;
+	struct rec_entry	record;
 	register Line	*lp;
 	register int	nlines = 0;
 
 	for (lp = b->b_first; lp != 0; lp = lp->l_next, nlines++)
-		;
+		if (lp == b->b_dot)
+			record.r_dotline = nlines;
 	strcpy(record.r_fname, b->b_fname ? b->b_fname : NullStr);
 	strcpy(record.r_bname, b->b_name);
 	record.r_nlines = nlines;
+	record.r_dotchar = b->b_char;
 	putn((char *) &record, sizeof record);
 	dmppntrs(b);
 }
@@ -110,6 +112,7 @@ int	SyncFreq = 50;
 SyncRec()
 {
 	register Buffer	*b;
+	extern disk_line	DFree;
 
 	if (rec_fd == 0)
 		recinit();	/* Init recover file. */
@@ -123,6 +126,7 @@ SyncRec()
 			continue;
 		else
 			Header.Nbuffers++;
+	Header.FreePtr = DFree;
 	putn((char *) &Header, sizeof Header);
 	if (Header.Nbuffers != 0) {
 		SyncTmp();
@@ -133,4 +137,8 @@ SyncRec()
 				dmp_buf(b);
 	}
 	flush(rec_out);
+}
+
+FullRecover()
+{
 }

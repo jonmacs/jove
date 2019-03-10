@@ -7,11 +7,17 @@
 
 #define TUNED		/* don't touch this */
 
-/*#define LSRHS		/* if this is Lincoln-Sudbury Regional High School */
 /*#define MSDOS		/* if this is MSDOS */
 #define BSD4_2		/* Berkeley 4.2 BSD */
 /*#define BSD4_3	/* Berkeley 4.3 BSD */
 /*#define SYSV		/* for (System III/System V) UNIX systems */
+/*#define SYSVR2	/* system 5, rel. 2 */
+#ifdef SYSVR2
+#   ifndef SYSV
+#	define SYSV	/* SYSV is a subset of SYSVR2 */
+#   endif
+#endif
+
 #ifdef BSD4_3
 #   ifndef BSD4_2
 #	define BSD4_2	/* 4.3 is 4.2 only different. */
@@ -67,7 +73,7 @@
 #       define BIFF		/* if you have biff (or the equivalent) */
 #       define F_COMPLETION	/* filename completion */
 #       define CHDIR		/* cd command and absolute pathnames */
-#       define	KILL0	/* kill(pid, 0) returns 0 if proc exists */
+/*#       define	KILL0	/* kill(pid, 0) returns 0 if proc exists */
 #       define SPELL		/* spell words and buffer commands */
 #       define ID_CHAR		/* include code to IDchar */
 #       define WIRED_TERMS	/* include code for wired terminals */

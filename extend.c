@@ -292,7 +292,7 @@ DescBindings()
 	extern int	Typeout();
 
 	TOstart("Key Bindings", TRUE);
-	DescMap(mainmap, NullStr);
+	DescMap(mainmap, NullStr, -1);
 	TOstop();
 }
 
@@ -320,7 +320,7 @@ char	*pref;
 			sprintf(keydescbuf, "%s %p", pref, c1);
 		else
 			sprintf(keydescbuf, "%s [%p-%p]", pref, c1, c2);
-		if (prefp = IsPrefix(map[c1]))
+		if ((prefp = IsPrefix(map[c1])) && (prefp != map))
 			DescMap(prefp, keydescbuf);
 		else
 			Typeout("%-14s%s", keydescbuf, map[c1]->Name);
@@ -335,7 +335,7 @@ char	*buf;
 	char	*endp;
 
 	buf[0] = '\0';
-	fb_aux(dp, mainmap, (char *) 0, buf);
+	fb_aux(dp, mainmap, (char *) 0, buf, -1);
 	endp = buf + strlen(buf) - 2;
 	if ((endp > buf) && (strcmp(endp, ", ") == 0))
 		*endp = '\0';
@@ -377,7 +377,7 @@ char	*buf,
 				break;
 			}
 		}
-		if (prefp = IsPrefix(map[c1])) {
+		if ((prefp = IsPrefix(map[c1])) && (prefp != map))  {
 			sprintf(prefbuf, "%p", c1);
 			fb_aux(cp, prefp, prefbuf, bufp);
 		}
@@ -801,12 +801,8 @@ BufPos()
 	}
 
 	s_mess("[\"%s\" line %d of %d, char %D of %D (%d%%)]",
-			filename(curbuf),
-			dotline,
-			i,
-			dotchar,
-			nchars,
-			(int) (((long) dotchar * 100) / nchars));
+	       filename(curbuf), dotline, i, dotchar, nchars,
+	       (nchars == 0) ? 100 : (int) (((long) dotchar * 100) / nchars));
 }
 
 #define IF_UNBOUND	-1

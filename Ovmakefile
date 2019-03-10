@@ -62,10 +62,10 @@ CFLAGS = -O -V
 COFLAGS = -rworking -q
 
 BASESEG = funcdefs.o keymaps.o ask.o buf.o ctype.o delete.o disp.o fmt.o fp.o \
-	  insert.o io.o jove.o malloc.o macros.o marks.o misc.o move.o re.o \
-	  screen.o table.o tune.o util.o vars.o version.o
-OVLAY1 = abbrev.o rec.o paragraph.o
-OVLAY2 = c.o wind.o
+	  insert.o io.o jove.o malloc.o marks.o misc.o move.o re.o \
+	  screen.o table.o tune.o util.o version.o
+OVLAY1 = abbrev.o rec.o paragraph.o macros.o
+OVLAY2 = c.o wind.o vars.o
 OVLAY3 = extend.o
 OVLAY4 = iproc.o re1.o
 OVLAY5 = proc.o scandir.o term.o case.o

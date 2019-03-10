@@ -35,7 +35,7 @@ Line	*l1,
 			if (query) {
 				message("Replace (Type '?' for help)? ");
 reswitch:			redisplay();
-				switch (Upper(getchar())) {
+				switch (CharUpcase(getchar())) {
 				case '.':
 					stop++;
 					/* Fall into ... */
@@ -229,7 +229,7 @@ char	*tag;
 		SetABuf(curbuf);
 	SetBuf(b);
 	if ((bp = dosearch(sstr, BACKWARD, 0)) == 0 &&
-	    (WrapScan || ((bp = dosearch(sstr, FORWARD, 0)) == 0)))
+	    ((bp = dosearch(sstr, FORWARD, 0)) == 0))
 		message("Well, I found the file, but the tag is missing.");
 	else
 		SetDot(bp);
@@ -282,7 +282,7 @@ static char	ISbuf[128],
 		*incp = 0;
 int	SExitChar = CR;
 
-#define cmp_char(a, b)	((a) == (b) || (CaseIgnore && (Upper(a) == Upper(b))))
+#define cmp_char(a, b)	((a) == (b) || (CaseIgnore && (CharUpcase(a) == CharUpcase(b))))
 
 static Bufpos *
 doisearch(dir, c, failing)

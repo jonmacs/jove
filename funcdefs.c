@@ -6,6 +6,7 @@
  ************************************************************************/
 
 #include "jove.h"
+#include "ctype.h"
 
 #ifndef TXT_TO_C
 extern int
@@ -167,6 +168,7 @@ extern int
 	SpelBuffer(),
 #endif
 	SplitWind(),
+	GotoWind(),
 	Remember(),
 	Forget(),
 	StrLength(),
@@ -358,6 +360,7 @@ struct cmd	commands[] = {
 	FUNCTION, "grind-s-expr", WIRED_CMD(GSexpr),
 #endif
 	FUNCTION, "goto-line", WIRED_CMD(GoLine),
+	FUNCTION, "goto-window-with-buffer", WIRED_CMD(GotoWind),
 	FUNCTION, "grow-window", WIRED_CMD(GrowWindow),
 	FUNCTION, "handle-tab", WIRED_CMD(Tab),
 	FUNCTION, "i-search-forward", WIRED_CMD(IncFSearch),
@@ -520,11 +523,11 @@ char	*prompt;
 		struct cmd	*which;
 		int	cmdlen,
 			found = 0;
-		static struct cmd	*cmdhash[1 + 26];
+		static struct cmd	*cmdhash[26];
 		static int	beenhere = NO;
 
 /* special case for prefix commands--only upper case ones */
-#define hash(c)	((c == 'P') ? 0 : 1 + (c - 'a'))
+#define hash(c)	(c - 'a')
 
 		/* initialize the hash table */
 		if (beenhere == NO) {
@@ -539,8 +542,11 @@ char	*prompt;
 		}
 
 		/* gather the cmd name */
-		while (((c = getch()) != EOF) && !index(" \t\r\n", c))
+		while (((c = getch()) != EOF) && !index(" \t\r\n", c)) {
+			if (isupper(c))
+				c = tolower(c);
 			*cp++ = c;
+		}
 		if (c == EOF)
 			return 0;
 		*cp = '\0';
@@ -549,14 +555,15 @@ char	*prompt;
 			return 0;
 
 		/* look it up (in the reduced search space) */
-		for (cmd = cmdhash[hash(cmdbuf[0])]; cmd->Name[0] == cmdbuf[0]; cmd++) {
+		if (islower(cmdbuf[0]))
+		    for (cmd = cmdhash[hash(cmdbuf[0])]; cmd != 0 && cmd->Name[0] == cmdbuf[0]; cmd++) {
 			if (strncmp(cmd->Name, cmdbuf, cmdlen) == 0) {
 				if (strcmp(cmd->Name, cmdbuf) == 0)
 					return (data_obj *) cmd;
 				found++;
 				which = cmd;
 			}
-		}
+		    }
 		if (found > 1)
 			complain("[\"%s\" ambiguous]", cmdbuf);
 		else if (found == 0)
@@ -565,17 +572,17 @@ char	*prompt;
 			return (data_obj *) which;
 	} else {
 		static char	*strings[(sizeof commands) / sizeof (commands[0])];
-		static int	beenhere = 0;
+		static int	beenhere = NO;
 		register int	com;
 
-		if (beenhere == 0) {
+		if (beenhere == NO) {
 			register char	**strs = strings;
-			register struct cmd	*c = commands;
+			register struct cmd	*c;
 
-			beenhere = 1;
-			for (; c->Name; c++)
+			for (c = commands; c->Name != 0; c++)
 				*strs++ = c->Name;
 			*strs = 0;
+			beenhere = YES;
 		}
 
 		if ((com = complete(strings, prompt, CASEIND)) < 0)

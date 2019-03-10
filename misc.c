@@ -90,6 +90,11 @@ FourTime()
 			newc = waitchar();
 		else
 			newc = getch();
+		if (isdigit(newc) || newc == '-') {
+		     exp_p = NO;
+		     GetExp(newc);
+		     return;
+		}
 		if (alarmed)
 			message(key_strokes);
 	} while (newc == oldc);
@@ -440,13 +445,13 @@ AnsiCodes()
 	static char *unsupported = "[Unsupported ANSI code received]";
 
 	while (isdigit(c = getch()))
-		num1 = (num1*10) + (c - '0');
+		num1 = (num1 * 10) + (c - '0');
 
 	switch (c) {
 	case ';':
 		num2 = 0;
 		while (isdigit(c = getch()))
-			num2 = (num2*10) + (c - '0');
+			num2 = (num2 * 10) + (c - '0');
 		switch (c) {
 		case 'R':
 			MoveToCursor(--num1, --num2);
@@ -479,6 +484,23 @@ AnsiCodes()
 			break;
 		}
 		/* FALL THROUGH */
+
+	case 'P':
+		PrevPage();
+		break;
+
+	case 'Q':
+		NextPage();
+		break;
+
+	case 'R':
+		UpScroll();
+		break;
+
+	case 'S':
+		DownScroll();
+		break;
+
 	default:
 		complain(unsupported);
 	}

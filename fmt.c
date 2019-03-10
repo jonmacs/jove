@@ -189,7 +189,7 @@ va_list	ap;
 			break;
 
 		case 'l':
-			c = Upper(*++fmt);
+			c = CharUpcase(*++fmt);
 			goto reswitch;
 	
 		case 'n':

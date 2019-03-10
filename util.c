@@ -7,11 +7,12 @@
 
 #include "jove.h"
 #include "ctype.h"
+#include "termcap.h"
 #include <signal.h>
 #include <varargs.h>
 
-#ifdef SYSV /* release 2, at least */
-short ospeed ;
+#ifdef SYSVR2 /* release 2, at least */
+short	ospeed;
 #endif
 
 struct cmd *
@@ -27,6 +28,7 @@ register int 	(*proc)();
 }
 
 int	Interactive;	/* True when we invoke with the command handler? */
+data_obj	*LastCmd;
 char	*ProcFmt = ": %f ";
 
 ExecCmd(cp)
@@ -56,15 +58,11 @@ Line *
 lastline(lp)
 register Line	*lp;
 {
-	while (lp->l_next)
-		lp = lp->l_next;
-	return lp;
-}
+	register Line	*next;
 
-Upper(c)
-register int	c;
-{
-	return (islower(c) ? toupper(c) : c);
+	while (next = lp->l_next)
+		lp = next;
+	return lp;
 }
 
 int	alarmed = 0;
@@ -95,7 +93,7 @@ slowpoke()
 #ifdef BSD4_2
 #	define N_SEC	1	/* will be precisely 1 second on 4.2 */
 #else
-#	define N_SEC	2	/* but from 0 to 2 seconds otherwise */
+#	define N_SEC	2	/* but from 1 to 2 seconds otherwise */
 #endif
 
 waitchar()
@@ -430,7 +428,7 @@ register Line	*first,
 	return 0;
 }
 
-/* Make `buf' modified and tell the redisplay code to update the modeline
+/* Make `buf' (un)modified and tell the redisplay code to update the modeline
    if it will need to be changed. */
 
 int	ModCount = 0;
@@ -439,9 +437,10 @@ modify()
 {
 	extern int	DOLsave;
 
-	if (!curbuf->b_modified)
+	if (!curbuf->b_modified) {
 		UpdModLine++;
-	curbuf->b_modified++;
+		curbuf->b_modified = YES;
+	}
 	DOLsave++;
 	if (!Asking)
 		ModCount++;
@@ -449,9 +448,10 @@ modify()
 
 unmodify()
 {
-	if (curbuf->b_modified)
+	if (curbuf->b_modified) {
 		UpdModLine++;
-	curbuf->b_modified = 0;
+		curbuf->b_modified = NO;
+	}
 }
 
 numcomp(s1, s2)
@@ -500,7 +500,7 @@ char	c, *buf;
 {
 	register char	*pp, *pp1;
 	register int	len;
-	int	numchars;	/* Number of characters to copy forward */
+	int	numchars;	/* number of characters to copy forward */
 
 	if (num <= 0)
 		return;
@@ -566,7 +566,7 @@ int	p[];
 char *
 emalloc(size)
 {
-	char	*ptr;
+	register char	*ptr;
 
 	if (ptr = malloc((unsigned) size))
 		return ptr;
@@ -693,11 +693,11 @@ time_t	*timep;
 strlen(s)
 register char	*s;
 {
-	register char	*base = s + 1;	/* Can you say kludge? */
+	register char	*base = s;
 
 	while (*s++)
 		;
-	return (s - base);
+	return (s - base) - 1;
 }
 
 char *
@@ -719,7 +719,7 @@ register char	*s1,
 		*s2;
 {
 	if (!s1 || !s2)
-		return 1;	/* Which is not zero ... */
+		return 1;	/* which is not zero ... */
 	while (*s1 == *s2++)
 		if (*s1++ == '\0')
 			return 0;
@@ -731,8 +731,8 @@ register char	*s1,
 		*s2;
 {
 	if (!s1 || !s2)
-		return 1;	/* Which is not zero ... */
-	while (*s1 == *s2++ || Upper(*s1) == Upper(s2[-1]))
+		return 1;	/* which is not zero ... */
+	while (CharUpcase(*s1) == CharUpcase(*s2++))
 		if (*s1++ == '\0')
 			return 0;
 	return (*s1 - *--s2);
@@ -744,8 +744,8 @@ register char	*s1,
 register int	n;
 {
 	if (!s1 || !s2)
-		return 1;	/* Which is not zero ... */
-	while (--n >= 0  && (*s1 == *s2++ || Upper(*s1) == Upper(s2[-1])))
+		return 1;	/* which is not zero ... */
+	while (--n >= 0  && (CharUpcase(*s1) == CharUpcase(*s2++)))
 		if (*s1++ == '\0')
 			return 0;
 	return ((n < 0) ? 0 : *s1 - *--s2);

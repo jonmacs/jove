@@ -13,8 +13,6 @@
 #include <signal.h>
 #include <sgtty.h>
 
-typedef struct process	Process;
-
 #define DEAD	1	/* Dead but haven't informed user yet */
 #define STOPPED	2	/* Job stopped */
 #define RUNNING	3	/* Just running */
@@ -126,7 +124,7 @@ register int	nbytes;
 	}
 
 	if (nbytes == EOF) {		/* Okay to clean up this process */
-		p->p_eof = 1;
+		proc_close(p);
 		NumProcs--;	/* As far as getch() in main is concerned */
 		return;
 	}
@@ -155,12 +153,12 @@ ProcQuit()
 	proc_kill(curbuf->b_process, SIGQUIT);
 }
 
-static
+private
 proc_close(p)
 Process	*p;
 {
 	(void) close(p->p_toproc);
-	p->p_toproc = -1;	/* Writes will fail. */
+	p->p_toproc = -1;	/* writes will fail */
 }
 
 do_rtp(mp)
@@ -228,7 +226,7 @@ va_dcl
 		(void) dup2(ProcOutput, 1);
 		(void) dup2(ProcOutput, 2);
 		pclose(toproc);
-		execv(Portsrv, args);
+		execv(Portsrv, argv);
 		printf("Execl failed.\n");
 		_exit(1);
 	}
@@ -264,7 +262,6 @@ va_dcl
 
 	newp->p_toproc = toproc[1];
 	newp->p_reason = 0;
-	newp->p_eof = 0;
 	NumProcs++;
 	(void) close(toproc[0]);
 	sigrelse(SIGCHLD);

@@ -436,3 +436,25 @@ SplitWind()
 {
 	SetWind(div_wind(curwind, exp_p ? (exp - 1) : 1));
 }
+
+/* Goto the window with the named buffer.  If no such window
+   exists, pop one and attach the buffer to it. */
+GotoWind()
+{
+	extern Buffer	*lastbuf;
+	char	*bname;
+	Window	*w;
+
+	bname = ask_buf(lastbuf);
+	w = curwind->w_next;
+	do {
+		if (w->w_bufp->b_name == bname) {
+			SetABuf(curbuf);
+			SetWind(w);
+			return;
+		}
+		w = w->w_next;
+	} while (w != curwind);
+	SetABuf(curbuf);
+	pop_wind(bname, NO, -1);
+}
