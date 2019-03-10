@@ -70,7 +70,11 @@ int	LI,
 	HOlen,
 	LLlen;
 
+#ifdef SYSV /* release 2, at least */
+char PC ;
+#else
 extern char	PC;
+#endif SYSV
 
 static char	tspace[256];
 
@@ -114,7 +118,7 @@ char	*fmt;
 
 getTERM()
 {
-	char	*getenv();
+	char	*getenv(), *tgetstr() ;
 	char	termbuf[13],
 		*termname = 0,
 		*termp = tspace,

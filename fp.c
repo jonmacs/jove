@@ -48,7 +48,7 @@ gc_openfiles()
 	register File	*fp;
 
 	for (fp = _openfiles; fp < &_openfiles[MAXFILES]; fp++)
-		if (fp->f_flags != 0 && (fp->f_flags & F_LOCK) == 0)
+		if (fp->f_flags != 0 && (fp->f_flags & F_LOCKED) == 0)
 			f_close(fp);
 }
 
@@ -261,6 +261,6 @@ char	*ttbuf;
 		512	/* EXT	*/
 	};
 	BufSize = min(512, (speeds[ospeed] * max(LI / 24, 1)));
-	stdout = fd_open("/dev/tty", F_WRITE|F_LOCK, 1, ttbuf, BufSize);
+	stdout = fd_open("/dev/tty", F_WRITE|F_LOCKED, 1, ttbuf, BufSize);
 }
 

@@ -271,7 +271,9 @@ struct buffer {
 	int	b_major,		/* major mode */
 		b_minor;		/* and minor mode */
 	keymap	*b_keybinds;		/* local bindings (if any) */
+#ifdef IPROCS
 	Process	*b_process;		/* process we're attached to */
+#endif
 };
 
 struct macro {

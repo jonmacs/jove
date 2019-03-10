@@ -85,7 +85,9 @@ mak_buf()
 	newb->b_major = TEXT;
 	newb->b_first = 0;
 	newb->b_keybinds = 0;
+#ifdef IPROCS
 	newb->b_process = 0;
+#endif
 	initlist(newb);
 
 	return newb;

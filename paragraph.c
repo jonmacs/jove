@@ -430,32 +430,40 @@ Line	*l1,
 	endmark = MakeMark(l2, c2, FLOATER);
 
 	for (;;) {
-		while (calc_pos(linebuf, curchar) < RMargin) {
-			if (curline == endmark->m_line && curchar >= endmark->m_char)
-				goto outahere;
-			okay_char = curchar;
-			if (eolp()) {
-				DelNChar();	/* Delete line separator. */
-				ins_str("  ", NO);
-			} else {
-				cp = StrIndex(1, linebuf, curchar + 1, ' ');
-				if (cp == 0)
-					Eol();
-				else
-					curchar = (cp - linebuf);
-			}
-			do_space();
+		cp = StrIndex(1, linebuf, curchar, ' ');
+		if (cp == 0)
+			Eol();
+		else
+			curchar = (cp - linebuf);
+		if (curline == endmark->m_line && curchar >= endmark->m_char)
+			goto outahere;
+		if (eolp()) {
+			ins_str("  ", NO);
+			DelNChar();	/* delete line separator */
+			curchar -= 2;	/* back over the spaces */
 		}
+		/* at this point we are ALWAYS sitting right after
+		   a word - that is, just before some spaces or the
+		   end of the line */
+		if (calc_pos(linebuf, curchar) <= RMargin) {
+			okay_char = curchar;
+			do_space();
+			continue;
+		}
+
+		/* if we get here, we have done all we can for
+		   this line - now we split the line, or just move
+		   to the next one */
 		if (okay_char > 0)
 			curchar = okay_char;			
 		if (curline == endmark->m_line && curchar >= endmark->m_char)
 			goto outahere;
-
-		/* Can't fit in small margin, so we do the best we can. */
+		/* can't fit in small margin, so we do the best we can */
 		if (eolp()) {
 			line_move(FORWARD, NO);
 			n_indent(indent);
 		} else {
+			/* insert a line break - line WAS too long */
 			DelWtSpace();
 			LineInsert(1);
 			if (scrunch && TwoBlank()) {

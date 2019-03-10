@@ -121,6 +121,7 @@ register File	*fp;
 	int	xeof = 0;
 	Line	*savel = curline;
 	int	savec = curchar;
+	disk_line	f_getputl() ;
 
 	strcpy(end, linebuf + curchar);
 	xeof = f_gets(fp, linebuf + curchar, LBSIZE - curchar);

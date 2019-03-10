@@ -154,14 +154,15 @@ register Window	*new;
 	curwind = new;
 }
 
-/* Delete the current window if it isn't the only one left */
+/* delete the current window if it isn't the only one left */
 
 DelCurWindow()
 {
+	SetABuf(curwind->w_bufp);
 	del_wind(curwind);
 }
 
-/* Put the current line of `w' in the middle of the window */
+/* put the current line of `w' in the middle of the window */
 
 CentWind(w)
 register Window	*w;
@@ -169,7 +170,7 @@ register Window	*w;
 	SetTop(w, prev_line(w->w_line, HALF(w)));
 }
 
-int	ScrollStep = 0;		/* Full scrolling */
+int	ScrollStep = 0;		/* full scrolling */
 
 /* Calculate the new topline of the window.  If ScrollStep == 0
    it means we should center the current line in the window. */
@@ -200,9 +201,16 @@ register Window	*w;
 	}
 }
 
+/* This is bound to C-X 4 [BTF].  To make the screen stay the
+   same we have to remember various things, like the current
+   top line in the current window.  It's sorta gross, but it's
+   necessary because of the way this is implemented (i.e., in
+   terms of do_find(), do_select() which manipulate the windows. */
 WindFind()
 {
-	register Buffer	*savebuf = curbuf;
+	register Buffer	*obuf = curbuf,
+			*nbuf;
+	Line	*ltop = curwind->w_top;
 	Bufpos	savedot;
 	extern int
 		FindTag(),
@@ -231,13 +239,15 @@ WindFind()
 		complain("T: find-tag, F: find-file, B: select-buffer.");
 	}
 
+	nbuf = curbuf;
+	SetBuf(obuf);
+	SetDot(&savedot);
+	SetTop(curwind, ltop);	/* there! it's as if we did nothing */
+
 	if (one_windp())
 		(void) div_wind(curwind, 1);
 
-	tiewind(curwind->w_next, curbuf);
-	SetBuf(savebuf);	/* Back to original buffer */
-	SetDot(&savedot);	/* in original position */
-	tiewind(curwind, curbuf);
+	tiewind(curwind->w_next, nbuf);
 	SetWind(curwind->w_next);
 }
 
@@ -332,8 +342,10 @@ register char	*name;
 		SetWind(wp);
 
 	newb = do_select((Window *) 0, name);
-	if (clobber)
+	if (clobber) {
 		initlist(newb);
+		newb->b_modified = NO;
+	}
 	tiewind(curwind, newb);
 	if (btype != -1)
 		newb->b_type = btype;

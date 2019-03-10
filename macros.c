@@ -10,7 +10,7 @@
 struct macro	*macros = 0;		/* Macros */
 data_obj	*LastCmd;
 
-static
+private
 add_mac(new)
 struct macro	*new;
 {
@@ -29,7 +29,7 @@ struct macro	*new;
 	new->Type = MACRO;
 }
 
-static
+private
 del_mac(mac)
 struct macro	*mac;
 {
@@ -50,7 +50,7 @@ struct macro	KeyMacro;	/* Macro used for defining */
 #define NMACROS	40		/* This is bad, bad, BAD! */
 
 struct macro	*macstack[NMACROS];
-static int	stackp = 0;
+private int	stackp = 0;
 
 fix_macros()
 {
@@ -66,7 +66,7 @@ fix_macros()
 	KeyMacro.m_flags = KeyMacro.m_offset = 0;
 }
 
-static
+private
 mac_err(err)
 char	*err;
 {
@@ -88,14 +88,14 @@ struct macro	*mac;
 	mac->m_flags |= EXECUTE;
 }
 
-static
+private
 MacNolen(m)
 struct macro	*m;
 {
 	m->m_len = m->m_offset = 0;
 }
 
-static struct macro *
+private struct macro *
 mac_exists(name)
 char	*name;
 {
@@ -190,9 +190,9 @@ RunMacro()
 		do_macro(m);
 }
 
-static int	mac_fd;
+private int	mac_fd;
 
-static
+private
 mac_io(fcn, ptr, nbytes)
 int	(*fcn)();
 char	*ptr;
@@ -214,6 +214,7 @@ WriteMacs()
 		nmacs = 0;
 	char	*file,
 		filebuf[FILESIZE];
+	long htonl() ;
 
 	file = ask_file((char *) 0, (char *) 0, filebuf);
 	if ((mac_fd = creat(file, 0666)) == -1)
@@ -241,7 +242,7 @@ WriteMacs()
 #define NEWWAY	1
 #define OLDWAY	0
 
-static int	int_how = NEWWAY;
+private int	int_how = NEWWAY;
 
 /* Formatting int's the old way or the new "improved" way? */
 
@@ -392,7 +393,7 @@ Remember()
 
 /* Is `c' a prefix character */
 
-static
+private
 PrefChar(c)
 {
 	return (int) IsPrefix(mainmap[c]);

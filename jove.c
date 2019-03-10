@@ -18,10 +18,10 @@
 #include <errno.h>
 #ifndef SYSV
 #include <sgtty.h>
-#include <fcntl.h>
 #else
 #include <termio.h>
 #endif SYSV
+#include <fcntl.h>
 
 #ifdef TIOCSLTC
 struct ltchars	ls1,
@@ -378,11 +378,13 @@ Push()
 
 	case 0:
 		UnsetTerm(NullStr);
+#ifdef IPROCS
 		sigrelse(SIGCHLD);
+#endif
 		(void) signal(SIGTERM, SIG_DFL);
 		(void) signal(SIGINT, SIG_DFL);
 		(void) signal(SIGQUIT, SIG_DFL);
-		execl(Shell, basename(Shell), 0);
+		execl(Shell, basename(Shell), (char *)0);
 		message("[Execl failed]");
 		_exit(1);
 	}
@@ -660,7 +662,7 @@ getch()
 
 dorecover()
 {
-	execl(Recover, "jove_recover", "-d", TmpFilePath, 0);
+	execl(Recover, "jove_recover", "-d", TmpFilePath, (char *)0);
 	printf("%s: execl failed!\n", Recover);
 	flusho();
 	_exit(-1);
@@ -1036,7 +1038,7 @@ char	*argv[];
 		HomeDir = "/";
 	HomeLen = strlen(HomeDir);
 #ifdef SYSV
-	sprintf(MailBox, "/usr/mail/%s", getenv("LOGNAME"));
+	sprintf(Mailbox, "/usr/mail/%s", getenv("LOGNAME"));
 #else
 	sprintf(Mailbox, "/usr/spool/mail/%s", getenv("USER"));
 #endif SYSV

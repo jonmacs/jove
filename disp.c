@@ -108,7 +108,11 @@ dobell(n)
 		if (VisBell && VB)
 			putstr(VB);
 		else
+#ifdef SYSV	/* release 2, at least */
+			putpad("$<20>\007", 1) ;
+#else
 			putpad("20\007", 1);
+#endif SYSV
 	}
 	flusho();
 }
@@ -773,7 +777,7 @@ register char	*str;
 	mode_p--;	/* back over the null */
 }
 
-char	ModeFmt[120] = "%3c %[%sJOVE (%M)   Buffer: %b  \"%f\" %]%s%m %((%t)%s%)%e";
+char	ModeFmt[120] = "%3c %[%sJOVE (%M)   Buffer: %b  \"%f\" %]%s%m*- %((%t)%s%)%e";
 
 ModeLine(w)
 register Window	*w;
@@ -903,9 +907,10 @@ register Window	*w;
 
 		case 'm':
 			if (IsModified(w->w_bufp))
-				*mode_p++ = '*';
+				*mode_p++ = fmt[0];
 			else
-				*mode_p++ = ' ';
+				*mode_p++ = fmt[1];
+			fmt += 2;	/* skip two characters */
 			break;
 
 		case 't':

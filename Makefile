@@ -38,11 +38,12 @@ RECOVERM = $(DESTDIR)$(MANDIR)/recover.$(MANEXT)
 TEACHJOVEM = $(DESTDIR)$(MANDIR)/teachjove.$(MANEXT)
 
 # Select the right libraries for your system.
-#	2.9BSD:	LIBS =	-ltermcap -ljobs
-#	v7:	LIBS =	-ltermcap
-#	4.1BSD:	LIBS =	-ltermcap -ljobs
-#	4.2BSD:	LIBS =	-ltermcap
-#	4.3BSD:	LIBS =	-ltermcap
+#	2.9BSD:	LIBS = -ltermcap -ljobs
+#	v7:	LIBS = -ltermcap
+#	4.1BSD:	LIBS = -ltermcap -ljobs
+#	4.2BSD:	LIBS = -ltermcap
+#	4.3BSD:	LIBS = -ltermcap
+#	SysV Rel. 2: LIBS = -lcurses
 
 LIBS = -ltermcap
 
@@ -53,11 +54,11 @@ LIBS = -ltermcap
 #	4.1BSD:	LDFLAGS =
 #	4.2BSD:	LDFLAGS =
 #	4.3BSD:	LDFLAGS =
+#	SysV Rel. 2: LDFLAGS = -Ml
 
 LDFLAGS =
 
 CFLAGS = -O
-COFLAGS = -rworking -q
 
 OBJECTS = keymaps.o funcdefs.o abbrev.o ask.o buf.o c.o case.o ctype.o \
 	delete.o disp.o extend.o fp.o fmt.o insert.o io.o iproc.o jove.o macros.o \
@@ -179,9 +180,8 @@ lint:
 tags:
 	ctags -w $(JOVESRC) $(HEADERS)
 
-ci-newversion:
-	ci -u$(VERSION) version.c
-	ci -u$(VERSION) -m"No message." -f -q $(BACKUPS)
+ciall:
+	ci $(BACKUPS)
 
 coall:
 	co $(BACKUPS)
