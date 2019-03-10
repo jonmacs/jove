@@ -222,10 +222,10 @@ register int	abortable;
 
 BufSwrite(linenum)
 {
-	char	*bp;
 	register int	n = cursend - cursor,
 			col = 0,
 			c;
+	register char	*bp;
 	int	StartCol = DesiredScreen[linenum].s_offset,
 		visspace = DesiredScreen[linenum].s_window->w_flags & W_VISSPACE,
 		aborted = 0;
@@ -532,7 +532,7 @@ register int	destline;
 	register int	nlines = destline - CapLine;
 
 	while (--nlines >= 0)
-		putchar('\n');
+		putpad(NL, 1);
 	CapLine = destline;
 }
 
@@ -716,12 +716,12 @@ GENi_lines(top, bottom, num)
 	register int	i;
 
 	if (CS) {
-		putpad(tgoto(CS, bottom, top));
+		putpad(tgoto(CS, bottom, top), 1);
 		CapCol = CapLine = 0;
 		Placur(top, 0);
 		for (i = 0; i < num; i++)
 			putpad(SR, bottom - top);
-		putpad(tgoto(CS, ILI, 0));
+		putpad(tgoto(CS, ILI, 0), 1);
 		CapCol = CapLine = 0;
 	} else {
 		Placur(bottom - num + 1, 0);
@@ -785,12 +785,12 @@ GENd_lines(top, bottom, num)
 	register int	i;
 
 	if (CS) {
-		putpad(tgoto(CS, bottom, top));
+		putpad(tgoto(CS, bottom, top), 1);
 		CapCol = CapLine = 0;
 		Placur(bottom, 0);
 		for (i = 0; i < num; i++)
 			putpad(SF, bottom - top);
-		putpad(tgoto(CS, ILI, 0));
+		putpad(tgoto(CS, ILI, 0), 1);
 		CapCol = CapLine = 0;
 	} else {
 		Placur(top, 0);

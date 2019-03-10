@@ -24,6 +24,7 @@
 #define KILLED	2
 
 #define isdead(p)	(p == 0 || proc_state(p) == DEAD || p->p_fd == -1)
+#define makedead(p)	(proc_state(p) = DEAD)
 
 #define proc_buf(p)	(p->p_buffer->b_name)
 #define proc_cmd(p)	(p->p_name)
@@ -46,7 +47,7 @@ extern struct tchars tc1;
 	extern struct ltchars ls1;
 #endif
 
-static char *
+char *
 pstate(p)
 Process	*p;
 {
@@ -61,12 +62,12 @@ Process	*p;
 		if (p->p_howdied == EXITED) {
 			if (p->p_reason == 0)
 				return "Done";
-			return sprint("exit(%d)", p->p_reason);
+			return sprint("Exit %d", p->p_reason);
 		}
-		return sprint("Killed(%d)", p->p_reason);
+		return sprint("Killed %d", p->p_reason);
 
 	default:
-		return "Unknown state.";
+		return "Unknown state";
 	}
 }
 
@@ -108,13 +109,15 @@ register int	fd;
 	if (n == -1 && errno == EIO)
 		return;
 	if (n <= 0) {
-		proc_close(p);
-		NumProcs--;
-		return;
+		if (n == 0) {
+			makedead(p);
+			return;
+		}
+		sprintf(ibuf, "\n[pty read error: %d]\n", errno);
+		n = strlen(ibuf);
 	}
 	ibuf[n] = '\0';
 	proc_rec(p, ibuf);
-	redisplay();
 }
 
 ProcKill()
@@ -378,7 +381,7 @@ out:	if (s == 0 && t == 0)
 	newp->p_name = copystr(cmdbuf);
 	newp->p_state = RUNNING;
 	newp->p_reason = 0;
-	newp->p_mark = MakeMark(curline, curchar, FLOATER);
+	newp->p_mark = MakeMark(curline, curchar, M_FLOATER);
 
 	newp->p_next = procs;
 	procs = newp;

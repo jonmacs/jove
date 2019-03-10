@@ -16,16 +16,13 @@ CapChar()
 
 	DOTsave(&b);
 
-	if (exp < 0) {
+	num = arg_value();
+	if (num < 0) {
 		restore++;
-		exp = -exp;
-		num = exp;
-		BackChar();	/* Cap previous EXP chars */
-	} else
-		num = exp;
+		num = -num;
+		b_char(num);	/* Cap previous EXP chars */
+	}
 		
-	exp = 1;	/* So all the commands are done once */
-
 	while (num--) {
 		if (upper(&linebuf[curchar])) {
 			modify();
@@ -35,8 +32,7 @@ CapChar()
 			if (curline->l_next == 0)
 				break;
 			SetLine(curline->l_next);
-		}
-		else
+		} else
 			curchar++;
 	}
 	if (restore)
@@ -51,15 +47,12 @@ CapWord()
 
 	DOTsave(&b);
 
-	if (exp < 0) {
+	num = arg_value();
+	if (num < 0) {
 		restore++;
-		exp = -exp;
-		num = exp;
-		BackWord();	/* Cap previous EXP words */
-	} else
-		num = exp;
-		
-	exp = 1;	/* So all the commands are done once */
+		num = -num;
+		b_word(num);		/* Cap previous EXP words */
+	}
 
 	while (num--) {
 		to_word(1);	/* Go to the beginning of the next word. */
@@ -87,11 +80,11 @@ case_word(up)
 	Bufpos	before;
 
 	DOTsave(&before);
-	ForWord();	/* This'll go backward if negative argument. */
+	ForWord();	/* this'll go backward if negative argument */
 	case_reg(before.p_line, before.p_char, curline, curchar, up);
 }
 
-static
+private
 upper(c)
 register char	*c;
 {
@@ -121,7 +114,6 @@ int	char1;
 	(void) fixorder(&line1, &char1, &line2, &char2);
 	DotTo(line1, char1);
 
-	exp = 1;
 	for (;;) {
 		if (curline == line2 && curchar == char2)
 			break;
@@ -130,7 +122,7 @@ int	char1;
 				makedirty(curline);
 				modify();
 			}
-		ForChar();
+		f_char(1);
 	}
 }
 

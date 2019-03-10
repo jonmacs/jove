@@ -68,21 +68,24 @@ char	*buf;
 	if (w != 0)
 		do_disp = (in_window(w, p->p_mark->m_line) != -1);
 	SetBuf(p->p_buffer);
-	savepoint = MakeMark(curline, curchar, FLOATER);
-	ToMark(p->p_mark);	/* Where output last stopped. */
+	savepoint = MakeMark(curline, curchar, M_FLOATER);
+	ToMark(p->p_mark);		/* where output last stopped */
 	if (savepoint->m_line == curline && savepoint->m_char == curchar)
 		sameplace++;
 
 	ins_str(buf, YES);
+	MarkSet(p->p_mark, curline, curchar);
+	if (!sameplace)
+		ToMark(savepoint);	/* back to where we were */
+	DelMark(savepoint);
+	/* redisplay now, instead of right after the ins_str, so that
+	   we don't get a bouncing effect if point is not the same as
+	   the process output position */
 	if (do_disp) {
 		w->w_line = curline;
 		w->w_char = curchar;
 		redisplay();
 	}
-	MarkSet(p->p_mark, curline, curchar);
-	if (!sameplace)
-		ToMark(savepoint);	/* Back to where we were. */
-	DelMark(savepoint);
 	SetBuf(saveb);
 }
 
@@ -164,6 +167,27 @@ SendData(newlinep)
 
 	if (isdead(p))
 		return;
+	/* If the process mark was involved in a big deletion, because
+	   the user hit ^W or something, then let's do some magic with
+	   the process mark.  Problem is that if the user yanks back the
+	   text he deleted, the mark stays at the beginning of the region,
+	   and so the next time SendData() is called the entire region
+	   will be sent.  That's not good.  So, to deal with that we reset
+	   the mark to the last line, after skipping over the prompt, etc. */
+	if (p->p_mark->m_flags & M_BIG_DELETE) {
+		Bufpos	bp;
+
+		p->p_mark->m_flags &= ~M_BIG_DELETE;
+
+		DOTsave(&bp);
+		ToLast();
+		Bol();
+		while (LookingAt(proc_prompt, linebuf, curchar))
+			SetDot(dosearch(proc_prompt, 1, 1));
+		MarkSet(p->p_mark, curline, curchar);
+		SetDot(&bp);
+	}
+
 	if (lastp(curline)) {
 		Eol();
 		if (newlinep)
@@ -175,7 +199,7 @@ SendData(newlinep)
 		while (LookingAt(proc_prompt, linebuf, curchar))
 			SetDot(dosearch(proc_prompt, 1, 1));
 		strcpy(genbuf, linebuf + curchar);
-		ToLast();
+		Eof();
 		gp = genbuf;
 		lp = linebuf;
 		while (*lp == *gp && *lp != '\0')
@@ -232,6 +256,7 @@ union wait	w;
 	if ((child = proc_pid(pid)) == 0)
 		return;
 
+	UpdModLine = YES;		/* we're changing state ... */
 	if (WIFSTOPPED(w))
 		child->p_state = STOPPED;
 	else {
@@ -242,7 +267,6 @@ union wait	w;
 			child->p_reason = w.w_termsig;
 			child->p_howdied = KILLED;
 		}
-		proc_close(child);
 		{
 			Buffer	*save = curbuf;
 			char	mesg[128];
@@ -252,8 +276,9 @@ union wait	w;
 				proc_cmd(child),
 				pstate(child));
 			SetBuf(child->p_buffer);
-			ins_str(mesg);
+			ins_str(mesg, NO);
 			SetBuf(save);
+			redisplay();
 		}
 	}
 }

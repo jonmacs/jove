@@ -96,13 +96,11 @@ register int	goal;
 		incrmt = (tabstop - (dotcol % tabstop));
 		if (dotcol + incrmt > goal)
 			break;
-		Insert('\t');
+		insert_c('\t', 1);
 		dotcol += incrmt;
 	}
 	if (dotcol != goal)
-		DoTimes(Insert(' '), (goal - dotcol));
-	exp_p = NO;
-	exp = 1;
+		insert_c(' ', (goal - dotcol));
 }
 
 SelfInsert()
@@ -116,17 +114,17 @@ SelfInsert()
 		register int	num,
 				i;
 
-		for (i = 0, num = exp, exp = 1; i < num; i++) {
+		for (i = 0, num = arg_value(); i < num; i++) {
 			int	pos = calc_pos(linebuf, curchar);
 
 			if (!eolp()) {
 				if (linebuf[curchar] == '\t') {
 					if ((pos + 1) == ((pos + tabstop) - (pos % tabstop)))
-						DelNChar();
+						del_char(FORWARD, 1);
 				} else
-					DelNChar();
+					del_char(FORWARD, 1);
 			}
-			Insert(LastKeyStruck);
+			insert_c(LastKeyStruck, 1);
 		}
 	} else
 		Insert(LastKeyStruck);
@@ -139,13 +137,19 @@ SelfInsert()
 
 Insert(c)
 {
-	if (exp <= 0)
+	insert_c(c, arg_value());
+}
+
+/* insert character C N times at point */
+insert_c(c, n)
+{
+	if (n <= 0)
 		return;
 	modify();
 	makedirty(curline);
-	ins_c(c, linebuf, curchar, exp, LBSIZE);
-	IFixMarks(curline, curchar, curline, curchar + exp);
-	curchar += exp;
+	ins_c(c, linebuf, curchar, n, LBSIZE);
+	IFixMarks(curline, curchar, curline, curchar + n);
+	curchar += n;
 }	
 
 /* Tab in to the right place for C mode */
@@ -159,7 +163,7 @@ Tab()
 
 		ToIndent();
 		if (dotchar > curchar)
-			m = MakeMark(curline, dotchar, FLOATER);
+			m = MakeMark(curline, dotchar, M_FLOATER);
 		(void) lisp_indent();
 		if (m) {
 			ToMark(m);
@@ -177,15 +181,15 @@ Tab()
 
 QuotChar()
 {
-	int	c;
-	extern int	alarmed;	/* If waitfor had to wait. */
+	int	c,
+		slow;
 
-	c = waitchar();
-	if (alarmed)
+	c = waitchar(&slow);
+	if (slow)
 		message(key_strokes);
-	if (c == CTL(J))
-		LineInsert(exp);
-	else if (c != CTL(@))
+	if (c == CTL('J'))
+		LineInsert(arg_value());
+	else if (c != CTL('@'))
 		Insert(c);
 }
 
@@ -215,10 +219,10 @@ DoParen()
 #endif
 	SelfInsert();
 	if (MinorMode(ShowMatch) && !charp() && !in_macro()) {
-		BackChar();	/* Back onto the ')' */
+		b_char(1);	/* Back onto the ')' */
 		if ((int) bp == -1)
 			bp = m_paren(c, BACKWARD, NO, YES);
-		ForChar();
+		f_char(1);
 		if (bp != 0) {
 			nx = in_window(curwind, bp->p_line);
 			if (nx != -1) {		/* is visible */
@@ -271,10 +275,10 @@ DoNewline(indentp)
 		
 	/* If there is more than 2 blank lines in a row then don't make
 	   a newline, just move down one. */
-	if (exp == 1 && eolp() && TwoBlank())
+	if (arg_value() == 1 && eolp() && TwoBlank())
 		SetLine(curline->l_next);
 	else
-		LineInsert(exp);
+		LineInsert(arg_value());
 
 	if (indentp)
 #ifdef LISP
@@ -293,7 +297,7 @@ register char	*str;
 	int	llen;
 
 	if (*str == 0)
-		return;	/* ain't nothing to insert! */
+		return;		/* ain't nothing to insert! */
 	DOTsave(&save);
 	llen = strlen(linebuf);
 	while (c = *str++) {
@@ -315,13 +319,18 @@ register char	*str;
 	makedirty(curline);
 }
 
-OpenLine()
+open_lines(n)
 {
 	Bufpos	dot;
 
 	DOTsave(&dot);
-	LineInsert(exp);	/* Open the lines... */
+	LineInsert(n);	/* Open the lines... */
 	SetDot(&dot);
+}
+
+OpenLine()
+{
+	open_lines(arg_value());
 }
 
 /* Take the region FLINE/FCHAR to TLINE/TCHAR and insert it at
@@ -393,7 +402,7 @@ YankPop()
 
 	/* Now must find a recently killed region. */
 
-	if (exp < 0)
+	if (arg_value() < 0)
 		dir = 1;
 
 	killptr += dir;
@@ -469,7 +478,7 @@ register Line	*line1,
 	}
 }
 
-static
+private
 newchunk()
 {
 	register Line	*newline;
@@ -521,7 +530,7 @@ nbufline()
 /* Remove the free lines, in chunk c, from the free list because they are
    no longer free. */
 
-static
+private
 remfreelines(c)
 register struct chunk	*c;
 {
@@ -585,12 +594,11 @@ GSexpr()
 	DOTsave(&dot);
 	FSexpr();
 	DOTsave(&end);
-	exp = 1;
 	SetDot(&dot);
 	for (;;) {
 		if (curline == end.p_line)
 			break;
-		line_move(FORWARD, NO);
+		line_move(FORWARD, 1, NO);
 		if (!blnkp(linebuf))
 			(void) lisp_indent();
 	}
@@ -657,7 +665,7 @@ lisp_indent()
 
 	DOTsave(&savedot);
 	SetDot(bp);
-	DoTimes(ForChar(), 1);
+	f_char(1);
 	if (linebuf[curchar] != '(') {
 		register Word	*wp;
 
@@ -670,7 +678,7 @@ lisp_indent()
 			int	c_char = curchar;
 
 			WITH_TABLE(curbuf->b_major)
-				ForWord();
+				f_word(1);
 			END_TABLE();
 			if (LookingAt("[ \t]*;\\|[ \t]*$", linebuf, curchar))
 				curchar = c_char;

@@ -219,7 +219,7 @@ WindFind()
 
 	DOTsave(&savedot);
 
-	switch (waitchar()) {
+	switch (waitchar((int *) 0)) {
 	case 't':
 	case 'T':
 		ExecCmd((data_obj *) FindCmd(FindTag));
@@ -354,12 +354,12 @@ register char	*name;
 
 GrowWindow()
 {
-	WindSize(curwind, abs(exp));
+	WindSize(curwind, abs(arg_value()));
 }
 
 ShrWindow()
 {
-	WindSize(curwind, -abs(exp));
+	WindSize(curwind, -abs(arg_value()));
 }
 
 /* Change the size of the window by inc.  First arg is the window,
@@ -434,7 +434,7 @@ register Line	*line;
 
 SplitWind()
 {
-	SetWind(div_wind(curwind, exp_p ? (exp - 1) : 1));
+	SetWind(div_wind(curwind, is_an_arg() ? (arg_value() - 1) : 1));
 }
 
 /* Goto the window with the named buffer.  If no such window

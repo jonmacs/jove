@@ -98,7 +98,7 @@ extern int
 	ForChar(),
 	FSexpr(),
 	ForWord(),
-	FourTime(),
+	TimesFour(),
 	GoLine(),
 	GrowWindow(),
 	IncFSearch(),
@@ -356,6 +356,7 @@ struct cmd	commands[] = {
 	FUNCTION, "forward-sentence", WIRED_CMD(Eos),
 	FUNCTION, "forward-word", WIRED_CMD(ForWord),
 	DefMajor(FUNDAMENTAL), "fundamental-mode", 0,
+	FUNCTION, "gather-numeric-argument", WIRED_CMD(TimesFour),
 #ifdef LISP
 	FUNCTION, "grind-s-expr", WIRED_CMD(GSexpr),
 #endif
@@ -435,7 +436,6 @@ struct cmd	commands[] = {
 	FUNCTION, "pushd", WIRED_CMD(Pushd),
 	FUNCTION, "pwd", WIRED_CMD(prCWD),
 #endif
-	FUNCTION, "quadruple-numeric-argument", WIRED_CMD(FourTime),
 	FUNCTION, "query-replace-string", WIRED_CMD(QRepSearch),
 #ifdef IPROCS
 	FUNCTION, "quit-process", WIRED_CMD(ProcQuit),

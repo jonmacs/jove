@@ -108,11 +108,7 @@ dobell(n)
 		if (VisBell && VB)
 			putstr(VB);
 		else
-#ifdef SYSV	/* release 2, at least */
-			putpad("$<20>\007", 1) ;
-#else
-			putpad("20\007", 1);
-#endif SYSV
+			putpad(BL, 1);
 	}
 	flusho();
 }
@@ -787,7 +783,6 @@ register Window	*w;
 		ign_some = 0;
 	char	line[132],
 		*fmt = ModeFmt,
-		tmp[16],
 		fillc,
 		c;
 	register Buffer	*thisbuf = w->w_bufp;
@@ -889,14 +884,16 @@ register Window	*w;
 				mode_app("[No file]");
 			else {
 				if (c == 'f')
-					mode_app(pr_name(thisbuf->b_fname));
+					mode_app(pr_name(thisbuf->b_fname, YES));
 				else
 					mode_app(basename(thisbuf->b_fname));
 			}
 			break;
 
-
 		case 'n':
+		    {
+			char	tmp[16];
+
 			for (bp = world, n = 1; bp != 0; bp = bp->b_next, n++)
 				if (bp == thisbuf)
 					break;
@@ -904,6 +901,7 @@ register Window	*w;
 			sprintf(tmp, "%d", n);
 			mode_app(tmp);
 			break;
+		    }
 
 		case 'm':
 			if (IsModified(w->w_bufp))
@@ -933,8 +931,8 @@ register Window	*w;
 			       (int) theavg,
 			       (int)((theavg - (int) theavg) * 100));
 		    	mode_app(minibuf);
+			break;
 		    }
-		    break;
 #endif
 
 		case 'C':	/* check mail here */
@@ -944,7 +942,7 @@ register Window	*w;
 
 #ifdef CHDIR
 		case 'd':	/* print working directory */
-			mode_app(pr_name(pwd()));
+			mode_app(pr_name(pwd(), YES));
 			break;
 #endif
 			
@@ -958,6 +956,20 @@ register Window	*w;
 
 		    	goto outahere;		/* %e means we're done! */
 		    }
+
+#ifdef IPROCS
+		case 'p':
+		    if (thisbuf->b_type != B_PROCESS) {
+			char	tmp[40];
+
+			sprintf(tmp, "(%s)", (thisbuf->b_process == 0) ?
+					     "No process" :
+					     pstate(thisbuf->b_process));
+			mode_app(tmp);
+			break;
+		    }
+#endif
+
 		}
 	}
 
@@ -980,8 +992,8 @@ outahere:
 
 RedrawDisplay()
 {
-	Line	*newtop = prev_line((curwind->w_line = curline), exp_p ?
-				exp : HALF(curwind));
+	Line	*newtop = prev_line((curwind->w_line = curline), is_an_arg() ?
+				arg_value() : HALF(curwind));
 
 	if (newtop == curwind->w_top)
 		v_clear(FLine(curwind), FLine(curwind) + SIZE(curwind));
@@ -1016,12 +1028,12 @@ NextPage()
 
 	if (Asking)
 		return;
-	if (exp < 0) {
-		exp = -exp;
+	if (arg_value() < 0) {
+		negate_arg_value();
 		PrevPage();
 		return;
 	}
-	if (exp_p == YES)
+	if (arg_type() == YES)
 		UpScroll();
 	else {
 		if (in_window(curwind, curwind->w_bufp->b_last) != -1) {
@@ -1041,12 +1053,12 @@ PrevPage()
 
 	if (Asking)
 		return;
-	if (exp < 0) {
-		exp = -exp;
+	if (arg_value() < 0) {
+		negate_arg_value();
 		NextPage();
 		return;
 	}
-	if (exp_p == YES)
+	if (arg_type() == YES)
 		DownScroll();
 	else {
 		newline = prev_line(curwind->w_top, max(1, SIZE(curwind) - 1));
@@ -1058,7 +1070,7 @@ PrevPage()
 
 UpScroll()
 {
-	SetTop(curwind, next_line(curwind->w_top, exp));
+	SetTop(curwind, next_line(curwind->w_top, arg_value()));
 	if ((curwind->w_bufp == curbuf) &&
 	    (in_window(curwind, curline) == -1))
 		SetLine(curwind->w_top);
@@ -1066,7 +1078,7 @@ UpScroll()
 
 DownScroll()
 {
-	SetTop(curwind, prev_line(curwind->w_top, exp));
+	SetTop(curwind, prev_line(curwind->w_top, arg_value()));
 	if ((curwind->w_bufp == curbuf) &&
 	    (in_window(curwind, curline) == -1))
 		SetLine(curwind->w_top);
@@ -1101,8 +1113,8 @@ Eow()
 	if (Asking)
 		return;
 	SetLine(next_line(curwind->w_top, SIZE(curwind) - 1 -
-			min(SIZE(curwind) - 1, exp - 1)));
-	if (exp_p == NO)
+			min(SIZE(curwind) - 1, arg_value() - 1)));
+	if (!is_an_arg())
 		Eol();
 }
 
@@ -1112,7 +1124,7 @@ Bow()
 {
 	if (Asking)
 		return;
-	SetLine(next_line(curwind->w_top, min(SIZE(curwind) - 1, exp - 1)));
+	SetLine(next_line(curwind->w_top, min(SIZE(curwind) - 1, arg_value() - 1)));
 }
 
 private int	LineNo,
@@ -1158,7 +1170,7 @@ va_dcl
 		f_mess("--more--");
 		if ((c = getchar()) != ' ') {
 			TOabort++;
-			if (c != CTL(G) && c != RUBOUT)
+			if (c != CTL('G') && c != RUBOUT)
 				Ungetc(c);
 			return;
 		}

@@ -57,15 +57,14 @@
 #define FORWARD		1
 #define BACKWARD	-1
 
-#define CTL(c)		('c' & 037)
-#define META(c)		('c' | 0200)
+#define CTL(c)		(c & 037)
+#define META(c)		(c | 0200)
 #define RUBOUT		'\177'
-#define LF		CTL(J)
-#define CR		CTL(M)
-#define BS		CTL(H)
+#define LF		CTL('J')
+#define CR		CTL('M')
+#define BS		CTL('H')
 #define ESC		'\033'
 
-#define DoTimes(f, n)	exp_p = YES, exp = n, f
 #define HALF(wp)	((wp->w_height - 1) / 2)
 #define IsModified(b)	(b->b_modified)
 #define SIZE(wp)	(wp->w_height - 1)
@@ -243,8 +242,10 @@ struct mark {
 	Line	*m_line;
 	int	m_char;
 	Mark	*m_next;	/* list of marks */
-#define FLOATER	1
-	char	m_floater;	/* FLOATERing mark? */
+#define M_FIXED		00
+#define M_FLOATER	01
+#define M_BIG_DELETE	02
+	char	m_flags;	/* FLOATERing mark? */
 };
 
 struct buffer {
@@ -381,8 +382,7 @@ extern int
 	ScrollStep,		/* how should we scroll */
 	WtOnMk,			/* write files on compile-it command */
 	EndWNewline,		/* end files with a blank line */
-	MarkThresh,		/* moves greater than MarkThresh
-				   will SetMark */
+	MarkThresh,		/* moves greater than MarkThresh will SetMark */
 	PDelay,			/* paren flash delay in tenths of a second */
 	CIndIncrmt,		/* how much each indentation level pushes
 				   over in C mode */
@@ -409,6 +409,7 @@ extern int
 	SExitChar,		/* type this to stop i-search */
 #endif
 	IntChar,		/* ttysets this to generate QUIT */
+	DoEVexpand,		/* treat $foo as environment variable */
 	EWSize;			/* size to make the error window */
 
 extern char
@@ -428,9 +429,6 @@ extern char
 	Shell[128];		/* shell to use */
 
 extern int
-	exp,		/* argument count */
-	exp_p,		/* argument count is supplied */
-
 	TOabort,	/* flag set by Typeout() */
 	io,		/* file descriptor for reading and writing files */
 	errormsg,	/* last message was an error message
@@ -540,6 +538,9 @@ extern char
 	*tgoto(),
 	*pr_name(),
 	*sprint(),
+#ifdef IPROCS
+	*pstate(),
+#endif
 	*StrIndex();
 
 extern Bufpos

@@ -33,10 +33,7 @@ va_list	ap;
 	putc('\0', sp);
 }
 
-static char	padc = ' ';
-static File	*curiop = 0;
-
-static
+private
 PPchar(c, str)
 int	c;
 char	*str;
@@ -53,46 +50,57 @@ char	*str;
 		sprintf(cp, "%c", c);
 }
 
-static
-putld(leftadj, width, d, base)
+private struct fmt_state {
+	int	precision,
+		width,
+		leftadj;
+	char	padc;
+	File	*iop;
+} current_fmt;
+
+private
+putld(d, base)
 long	d;
 {
 	int	length = 1;
 	long	tmpd = d;
 
+	if (current_fmt.width == 0 && current_fmt.precision) {
+		current_fmt.width = current_fmt.precision;
+		current_fmt.padc = '0';
+	}
 	while (tmpd = (tmpd / base))
 		length++;
 	if (d < 0)
 		length++;
-	if (!leftadj)
-		pad(padc, width - length);
+	if (!current_fmt.leftadj)
+		pad(current_fmt.padc, current_fmt.width - length);
 	if (d < 0) {
-		putc('-', curiop);
+		putc('-', current_fmt.iop);
 		d = -d;
 	}
 	outld(d, base);
-	if (leftadj)
-		pad(padc, width - length);
+	if (current_fmt.leftadj)
+		pad(current_fmt.padc, current_fmt.width - length);
 }
 
-static
+private
 outld(d, base)
 long	d;
 {
-	long	n;
+	register long	n;
 
 	if (n = (d / base))
 		outld(n, base);
-	putc((int) ('0' + (int) (d % base)), curiop);
+	putc((int) ('0' + (int) (d % base)), current_fmt.iop);
 }
 
-static
-puts(leftadj, width, str)
+private
+puts(str)
 char	*str;
 {
 	int	length;
-	register char	*cp,
-			c;
+	register char	*cp;
 
 	if (str == 0)
 #if pyr
@@ -101,91 +109,105 @@ char	*str;
 		str = "(null)";
 #endif
 	length = strlen(str);
+	if (current_fmt.precision == 0 || length < current_fmt.precision)
+		current_fmt.precision = length;
+	else
+		length = current_fmt.precision;
 	cp = str;
-	if (!leftadj)
-		pad(' ', width - length);
-	while (c = *cp++)
-		putc(c, curiop);
-	if (leftadj)
-		pad(' ', width - length);
+	if (!current_fmt.leftadj)
+		pad(' ', current_fmt.width - length);
+	while (--current_fmt.precision >= 0)
+		putc(*cp++, current_fmt.iop);
+	if (current_fmt.leftadj)
+		pad(' ', current_fmt.width - length);
 }
 
-static
+private
 pad(c, amount)
 register int	c,
 		amount;
 {
 	while (--amount >= 0)
-		putc(c, curiop);
+		putc(c, current_fmt.iop);
 }
 
-static
+private
 doformat(sp, fmt, ap)
 register File	*sp;
 register char	*fmt;
 va_list	ap;
 {
 	register char	c;
-	int	leftadj,
-		width;
-	File	*pushiop = curiop;
+	struct fmt_state	prev_fmt;
 
-	curiop = sp;
+	prev_fmt = current_fmt;
+	current_fmt.iop = sp;
 
 	while (c = *fmt++) {
 		if (c != '%') {
-			putc(c, sp);
+			putc(c, current_fmt.iop);
 			continue;
 		}
 
-		padc = ' ';
-		leftadj = width = 0;
+		current_fmt.padc = ' ';
+		current_fmt.precision = current_fmt.leftadj = current_fmt.width = 0;
 		c = *fmt++;
 		if (c == '-') {
-			leftadj++;
+			current_fmt.leftadj = YES;
 			c = *fmt++;
 		}
 		if (c == '0') {
-			padc = '0';
+			current_fmt.padc = '0';
 			c = *fmt++;
 		}
 		while (c >= '0' && c <= '9') {
-			width = width * 10 + (c - '0');
+			current_fmt.width = current_fmt.width * 10 + (c - '0');
 			c = *fmt++;
 		}
 		if (c == '*') {
-			width = va_arg(ap, int);
+			current_fmt.width = va_arg(ap, int);
 			c = *fmt++;
+		}
+		if (c == '.') {
+			c = *fmt++;
+			while (c >= '0' && c <= '9') {
+				current_fmt.precision = current_fmt.precision * 10 + (c - '0');
+				c = *fmt++;
+			}
+			if (c == '*') {
+				current_fmt.precision = va_arg(ap, int);
+				c = *fmt++;
+			}
 		}
 	reswitch:
 		/* At this point, fmt points at one past the format letter. */
 		switch (c) {
 		case '%':
-			putc('%', curiop);
+			putc('%', current_fmt.iop);
 			break;
 	
 		case 'D':
-			putld(leftadj, width, va_arg(ap, long), 10);
+			putld(va_arg(ap, long), 10);
 			break;
 	
 		case 'b':
 		    {
 			Buffer	*b = va_arg(ap, Buffer *);
 
-			puts(leftadj, width, b->b_name);
+			puts(b->b_name);
 			break;
 		    }
 
 		case 'c':
-			putc(va_arg(ap, int), curiop);
+			putc(va_arg(ap, int), current_fmt.iop);
 			break;
 	
 		case 'd':
-			putld(leftadj, width, (long) va_arg(ap, int), 10);
+			putld((long) va_arg(ap, int), 10);
 			break;
 	
 		case 'f':	/* current command name gets inserted here! */
-			puts(leftadj, width, LastCmd->Name);
+			puts(LastCmd->Name);
 			break;
 
 		case 'l':
@@ -194,11 +216,11 @@ va_list	ap;
 	
 		case 'n':
 			if (va_arg(ap, int) != 1)
-				puts(leftadj, width, "s");
+				puts("s");
 			break;
 
 		case 'o':
-			putld(leftadj, width, (long) va_arg(ap, int), 8);
+			putld((long) va_arg(ap, int), 8);
 			break;
 	
 		case 'p':
@@ -206,19 +228,19 @@ va_list	ap;
 		    	char	cbuf[20];
 
 		    	PPchar(va_arg(ap, int), cbuf);
-		    	puts(leftadj, width, cbuf);
+		    	puts(cbuf);
 		    	break;
 		    }
 
 		case 's':
-			puts(leftadj, width, va_arg(ap, char *));
+			puts(va_arg(ap, char *));
 			break;
 		
 		default:
 			complain("Unknown format directive: \"%%%c\"", c);
 		}
 	}
-	curiop = pushiop;
+	current_fmt = prev_fmt;
 }
 
 /* VARARGS1 */

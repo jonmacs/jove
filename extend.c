@@ -78,9 +78,7 @@ register char	*new,
 {
 	register int	i;
 
-	exp_p = YES;
-	exp = 1;	/* So minor modes don't toggle.  We always want
-			   them on. */
+	set_arg_value(1);
 	if (new == 0)
 		return;
 	for (i = 0; i < ExecIndex; i++)
@@ -165,7 +163,7 @@ addgetc()
 		} else if (c == '^') {
 			if ((c = getch()) == '?')
 				c = RUBOUT;
-			else if (isalpha(c) || index("[\\]^_", c))
+			else if (isalpha(c) || index("@[\\]^_", c))
 				c = c - '@';
 			else
 				complain("[Unknown control character]");
@@ -292,7 +290,7 @@ DescBindings()
 	extern int	Typeout();
 
 	TOstart("Key Bindings", TRUE);
-	DescMap(mainmap, NullStr, -1);
+	DescMap(mainmap, NullStr);
 	TOstop();
 }
 
@@ -335,7 +333,7 @@ char	*buf;
 	char	*endp;
 
 	buf[0] = '\0';
-	fb_aux(dp, mainmap, (char *) 0, buf, -1);
+	fb_aux(dp, mainmap, (char *) 0, buf);
 	endp = buf + strlen(buf) - 2;
 	if ((endp > buf) && (strcmp(endp, ", ") == 0))
 		*endp = '\0';
@@ -640,15 +638,9 @@ aux_complete(c)
 			comp_value = NULLSTRING;
 			return 0;
 		}
-		if (comp_flags & RET_STATE) switch (command) {
-			case UNIQUE:
-			case ORIGINAL:
-			case NULLSTRING:
-				comp_value = command;
-				return 0;
-
-			default:
-				break;
+		if (comp_flags & RET_STATE) {
+			comp_value = command;
+			return 0;
 		}
 		if (InJoverc)
 			complain("[\"%s\" unknown]", linebuf);
@@ -800,9 +792,11 @@ BufPos()
 		nchars += length(lp) + (lp->l_next != 0); /* include the NL */
 	}
 
-	s_mess("[\"%s\" line %d of %d, char %D of %D (%d%%)]",
+	s_mess("[\"%s\" line %d/%d, char %D/%D (%d%%), cursor = %d/%d]",
 	       filename(curbuf), dotline, i, dotchar, nchars,
-	       (nchars == 0) ? 100 : (int) (((long) dotchar * 100) / nchars));
+	       (nchars == 0) ? 100 : (int) (((long) dotchar * 100) / nchars),
+	       calc_pos(linebuf, curchar),
+	       calc_pos(linebuf, strlen(linebuf)));
 }
 
 #define IF_UNBOUND	-1
@@ -880,7 +874,7 @@ char	*file;
 		Buffer	*savebuf = curbuf;
 
 		SetBuf(do_select((Window *) 0, "RC errors"));
-		ins_str(sprint("%s:%d:%s\t%s\n", pr_name(file), lnum, lbuf, mesgbuf), NO);
+		ins_str(sprint("%s:%d:%s\t%s\n", pr_name(file, YES), lnum, lbuf, mesgbuf), NO);
 		unmodify();
 		SetBuf(savebuf);
 		Asking = 0;

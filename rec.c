@@ -87,7 +87,7 @@ register Buffer	*b;
 /* dump the buffer info and then the actual line pointers. */
 
 private
-dmp_buf(b)
+dmp_buf_header(b)
 register Buffer	*b;
 {
 	struct rec_entry	record;
@@ -102,7 +102,6 @@ register Buffer	*b;
 	record.r_nlines = nlines;
 	record.r_dotchar = b->b_char;
 	putn((char *) &record, sizeof record);
-	dmppntrs(b);
 }
 
 /* Goes through all the buffers and syncs them to the disk. */
@@ -134,7 +133,12 @@ SyncRec()
 			if (b->b_type == B_SCRATCH || !IsModified(b))
 				continue;
 			else
-				dmp_buf(b);
+				dmp_buf_header(b);
+		for (b = world; b != 0; b = b->b_next)
+			if (b->b_type == B_SCRATCH || !IsModified(b))
+				continue;
+			else
+				dmppntrs(b);
 	}
 	flush(rec_out);
 }

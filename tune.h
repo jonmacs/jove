@@ -42,7 +42,7 @@
 #	define NBUF	3
 #   endif
 #
-/* #   define LOAD_AV	/* Use the load average for various commands.
+#   define LOAD_AV	/* Use the load average for various commands.
 #			   Do not define this if you lack a load average
 #			   system call and kmem is read protected. */
 #

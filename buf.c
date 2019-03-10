@@ -26,8 +26,8 @@ Buffer	*world = 0,		/* First in the list */
 
 TogMinor(bit)
 {
-	if (exp_p) {
-		if (exp == 0)
+	if (is_an_arg()) {
+		if (arg_value() == 0)
 			curbuf->b_minor &= ~bit;
 		else
 			curbuf->b_minor |= bit;
@@ -147,7 +147,7 @@ Buffer	*def;
 	offset = complete(bnames, prompt, RET_STATE);
 	if (offset == EOF)
 		complain((char *) 0);
-	if (offset == ORIGINAL)
+	if (offset == ORIGINAL || offset == AMBIGUOUS)
 		bname = Minibuf;
 	else if (offset == NULLSTRING) {
 		if (def)
@@ -499,7 +499,7 @@ register Buffer	*b;
 {
 	struct stat	stbuf;
 
-	if (b->b_fname == 0 || stat(b->b_fname, &stbuf) == -1) {
+	if (b->b_fname == 0 || stat(pr_name(b->b_fname, NO), &stbuf) == -1) {
 		b->b_ino = 0;
 		b->b_mtime = 0;
 	} else {

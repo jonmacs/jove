@@ -102,9 +102,9 @@ finish(code)
 	if (CoreDump)
 		abort();
 #ifdef PROFILING
-	exit(exp_p);
+	exit(0);
 #else
-	_exit(exp_p);
+	_exit(0);
 #endif
 }
 
@@ -394,7 +394,7 @@ Push()
 }
 
 int	OKXonXoff = 0,		/* ^S and ^Q initially DON'T work */
-	IntChar = CTL(]);
+	IntChar = CTL(']');
 
 ttsize()
 {
@@ -581,8 +581,8 @@ register int	c;
 
 	if (cp == 0) {
 		rbell();
-		exp = 1;
-		exp_p = errormsg = NO;
+		clr_arg_value();
+		errormsg = NO;
 		message(NullStr);
 	} else
 		ExecCmd(cp);
@@ -718,7 +718,6 @@ char	*argv[];
 			case 't':
 				++argv;
 				--argc;
-				exp_p = YES;
 				find_tag(argv[1], YES);
 				break;
 
@@ -809,7 +808,7 @@ Recur()
 	Mark	*m;
 
 	sprintf(bname, "%s", curbuf->b_name);
-	m = MakeMark(curline, curchar, FLOATER);
+	m = MakeMark(curline, curchar, M_FLOATER);
 
 	RecDepth++;
 	UpdModLine++;
@@ -817,7 +816,7 @@ Recur()
 	UpdModLine++;
 	RecDepth--;
 	SetBuf(do_select(curwind, bname));
-	if (exp_p == NO)
+	if (!is_an_arg())
 		ToMark(m);
 	DelMark(m);
 }
@@ -877,8 +876,7 @@ DoKeys(nocmdline)
 
 	for (;;) {
 		if (this_cmd != ARG_CMD) {
-			exp = 1;
-			exp_p = NO;
+			clr_arg_value();
 			last_cmd = this_cmd;
 			init_strokes();
 		}
@@ -1053,7 +1051,6 @@ char	*argv[];
 
 	ttinit();	/* initialize terminal (after ~/.joverc) */
 	settout(ttbuf);	/* not until we know baudrate */
-	ResetTerm();
 
 	(void) signal(SIGHUP, finish);
 	(void) signal(SIGINT, finish);
@@ -1070,8 +1067,9 @@ char	*argv[];
 	/* set things up to update the modeline every UpdFreq seconds */
 	(void) signal(SIGALRM, updmode);
 	(void) time(&time0);
-	(void) alarm((unsigned) 1 + (time0 % 60));
+	(void) alarm((unsigned) (60 - (time0 % 60)));
 
+	ResetTerm();
 	cl_scr(1);
 	flusho();
 	RedrawDisplay();	/* start the redisplay process. */

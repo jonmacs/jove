@@ -18,27 +18,26 @@
 # e.g., jove.1 or jove.l or jove.m.
 
 DESTDIR =
-TMPDIR = /u/sys/jove/tmp
-LIBDIR = /usr/lib/jove
-BINDIR = /usr/tut/bin
-MANDIR = /usr/man/manl
+TMPDIR = /tmp
+LIBDIR = /nfs/socrates/usr/jpayne/jovelib
+BINDIR = /nfs/socrates/usr/jpayne/bin
+MANDIR = /nfs/socrates/usr/jpayne/manl
 MANEXT = l
 SHELL = /bin/csh
 
 # These should all just be right if the above ones are.
 JOVE = $(DESTDIR)$(BINDIR)/jove
-RECOVER = $(DESTDIR)$(LIBDIR)/recover
 TEACHJOVE = $(DESTDIR)$(BINDIR)/teachjove
+RECOVER = $(DESTDIR)$(LIBDIR)/recover
+PORTSRV = $(DESTDIR)$(LIBDIR)/portsrv
 JOVERC = $(DESTDIR)$(LIBDIR)/.joverc
 CMDS.DOC = $(DESTDIR)$(LIBDIR)/cmds.doc
 TEACH-JOVE = $(DESTDIR)$(LIBDIR)/teach-jove
-PORTSRV = $(DESTDIR)$(LIBDIR)/portsrv
 JOVEM = $(DESTDIR)$(MANDIR)/jove.$(MANEXT)
-RECOVERM = $(DESTDIR)$(MANDIR)/recover.$(MANEXT)
 TEACHJOVEM = $(DESTDIR)$(MANDIR)/teachjove.$(MANEXT)
 
 # Select the right libraries for your system.
-#	2.9BSD:	LIBS = -ltermcap -ljobs
+#	2.10BSD:LIBS = -ltermcap
 #	v7:	LIBS = -ltermcap
 #	4.1BSD:	LIBS = -ltermcap -ljobs
 #	4.2BSD:	LIBS = -ltermcap
@@ -49,23 +48,35 @@ LIBS = -ltermcap
 
 # If you are not VMUNIX (vax running Berkeley Version 4), you must specify
 # the -i flags (split I/D space) and maybe the -x option (for adb to work).
-#	2.9BSD:	LDFLAGS = -x -i
-#	v7:	LDFLAGS = -x -i
+#	2.10BSD:LDFLAGS =
+#	v7:	LDFLAGS =
 #	4.1BSD:	LDFLAGS =
 #	4.2BSD:	LDFLAGS =
 #	4.3BSD:	LDFLAGS =
 #	SysV Rel. 2: LDFLAGS = -Ml
+#
+# SEPFLAG should be:
+#	not on a PDP-11:		SEPFLAG =
+#	PDP-11 with separate I&D:	SEPFLAG = -i
+#	PDP-11 without separate I&D:	SEPFLAG = -n
 
-LDFLAGS =
+LDFLAGS = -g
+SEPFLAG =
 
-CFLAGS = -O
+CFLAGS = -g
 
-OBJECTS = keymaps.o funcdefs.o abbrev.o ask.o buf.o c.o case.o ctype.o \
-	delete.o disp.o extend.o fp.o fmt.o insert.o io.o iproc.o jove.o macros.o \
-	malloc.o marks.o misc.o move.o paragraph.o proc.o re.o re1.o rec.o \
-	scandir.o screen.o table.o term.o tune.o util.o vars.o version.o wind.o
+BASESEG = funcdefs.o keymaps.o argcount.o ask.o buf.o ctype.o delete.o \
+	  disp.o fmt.o insert.o io.o jove.o malloc.o marks.o misc.o re.o \
+	  screen.o table.o tune.o util.o vars.o version.o
+OVLAY1 = abbrev.o rec.o paragraph.o
+OVLAY2 = c.o wind.o fp.o move.o
+OVLAY3 = extend.o macros.o
+OVLAY4 = iproc.o re1.o
+OVLAY5 = proc.o scandir.o term.o case.o
 
-JOVESRC = funcdefs.c abbrev.c ask.c buf.c c.c case.c ctype.c \
+OBJECTS = $(BASESEG) $(OVLAY1) $(OVLAY2) $(OVLAY3) $(OVLAY4) $(OVLAY5)
+
+JOVESRC = funcdefs.c abbrev.c argcount.c ask.c buf.c c.c case.c ctype.c \
 	delete.c disp.c extend.c fp.c fmt.c insert.c io.c iproc.c \
 	jove.c macros.c malloc.c marks.c misc.c move.c paragraph.c \
 	proc.c re.c re1.c rec.c scandir.c screen.c table.c term.c util.c \
@@ -76,8 +87,8 @@ SOURCES = $(JOVESRC) portsrv.c recover.c setmaps.c teachjove.c
 HEADERS = ctype.h io.h jove.h re.h rec.h table.h temp.h termcap.h tune.h
 
 DOCS =	doc/cmds.doc.nr doc/example.rc doc/jove.1 doc/jove.2 doc/jove.3 \
-	doc/jove.4 doc/jove.5 doc/jove.nr doc/recover.nr doc/system.rc \
- 	doc/teach-jove doc/teachjove.nr doc/README
+	doc/jove.4 doc/jove.5 doc/jove.nr doc/system.rc \
+	doc/teach-jove doc/teachjove.nr doc/README
 
 BACKUPS = $(HEADERS) $(JOVESRC) iproc-pipes.c iproc-ptys.c \
 	teachjove.c recover.c setmaps.c portsrv.c tune.template \
@@ -87,7 +98,7 @@ BACKUPS = $(HEADERS) $(JOVESRC) iproc-pipes.c iproc-ptys.c \
 all:	xjove recover teachjove portsrv
 
 xjove:	$(OBJECTS)
-	$(CC) $(LDFLAGS) -o xjove $(OBJECTS) version.o $(LIBS)
+	$(CC) $(LDFLAGS) -o xjove $(OBJECTS) $(LIBS);
 	@-size xjove
 	@-date
 
@@ -95,7 +106,7 @@ portsrv:	portsrv.o
 	cc -o portsrv -n portsrv.o $(LIBS)
 
 recover:	recover.o tune.o rec.h temp.h
-	cc -gx -o recover -n recover.o tune.o $(LIBS)
+	cc -o recover -n recover.o tune.o $(LIBS)
 
 teachjove:	teachjove.o
 	cc -o teachjove -n teachjove.o $(LIBS)
@@ -131,7 +142,7 @@ $(DESTDIR)$(LIBDIR):
 $(TEACH-JOVE): doc/teach-jove
 	install -c -m 644 doc/teach-jove $(TEACH-JOVE)
 
-doc/cmds.doc: doc/cmds.doc.nr doc/jove.4 doc/jove.5
+doc/cmds.doc:	doc/cmds.doc.nr doc/jove.4 doc/jove.5
 	nroff doc/cmds.doc.nr doc/jove.4 doc/jove.5 > doc/cmds.doc
 
 $(CMDS.DOC): doc/cmds.doc
@@ -158,12 +169,6 @@ $(JOVEM): doc/jove.nr
 	     -e 's;SHELL;$(SHELL);' doc/jove.nr > /tmp/jove.nr
 	install -m 644 /tmp/jove.nr $(JOVEM)
 
-$(RECOVERM): doc/recover.nr
-	@sed -e 's;TMPDIR;$(TMPDIR);' \
-	     -e 's;LIBDIR;$(LIBDIR);' \
-	     -e 's;SHELL;$(SHELL);' doc/recover.nr > /tmp/recover.nr
-	install -m 644 /tmp/recover.nr $(RECOVERM)
-
 $(TEACHJOVEM): doc/teachjove.nr
 	@sed -e 's;TMPDIR;$(TMPDIR);' \
 	     -e 's;LIBDIR;$(LIBDIR);' \
@@ -178,7 +183,7 @@ lint:
 	@echo Done
 
 tags:
-	ctags -w $(JOVESRC) $(HEADERS)
+	ctags -w $(JOVESRC) $(HEADERS) iproc-ptys.c
 
 ciall:
 	ci $(BACKUPS)
@@ -189,7 +194,7 @@ coall:
 jove.shar:
 	shar $(BACKUPS) > jove.shar
 
-backup:
+backup: $(BACKUPS)
 	tar cf backup $(BACKUPS)
 
 tape-backup:

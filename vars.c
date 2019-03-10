@@ -25,6 +25,7 @@ struct variable	variables[] = {
 	VARIABLE, "disable-biff", &BiffChk, V_BOOL,
 #endif
 	VARIABLE, "error-window-size", &EWSize, V_BASE10,
+	VARIABLE, "expand-environment-variables", &DoEVexpand, V_BOOL,
 	VARIABLE, "file-creation-mode", &CreatMode, V_BASE8,
 	VARIABLE, "files-should-end-with-newline", &EndWNewline, V_BOOL,
 	VARIABLE, "internal-tabstop", &tabstop, V_BASE10|V_CLRSCREEN,

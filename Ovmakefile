@@ -61,7 +61,7 @@ CFLAGS = -O -V
 
 COFLAGS = -rworking -q
 
-BASESEG = funcdefs.o keymaps.o ask.o buf.o ctype.o delete.o disp.o fmt.o fp.o \
+BASESEG = funcdefs.o keymaps.o argcount.o ask.o buf.o ctype.o delete.o disp.o fmt.o fp.o \
 	  insert.o io.o jove.o malloc.o marks.o misc.o move.o re.o \
 	  screen.o table.o tune.o util.o version.o
 OVLAY1 = abbrev.o rec.o paragraph.o macros.o
@@ -72,7 +72,7 @@ OVLAY5 = proc.o scandir.o term.o case.o
 
 OBJECTS = $(BASESEG) $(OVLAY1) $(OVLAY2) $(OVLAY3) $(OVLAY4) $(OVLAY5)
 
-C-FILES = funcdefs.c abbrev.c ask.c buf.c c.c case.c ctype.c delete.c disp.c \
+C-FILES = funcdefs.c abbrev.c argcount.c ask.c buf.c c.c case.c ctype.c delete.c disp.c \
 	extend.c fmt.c fp.c insert.c io.c iproc.c iproc-pipes.c iproc-ptys.c \
 	jove.c macros.c malloc.c marks.c misc.c move.c paragraph.c proc.c \
 	re.c re1.c rec.c scandir.c screen.c table.c term.c util.c vars.c version.c \

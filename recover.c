@@ -405,10 +405,9 @@ char	*dest;
 			printf("recover: cannot create %s.\n", dest);
 			return;
 		}
-		seekto(src - buflist);
 		if (dest != tty)
 			printf("\"%s\"", dest);
-		dump_file(outfile);
+		dump_file(src - buflist, outfile);
 	} else
 		printf("\nAborted!\n");
 	fclose(outfile);
@@ -440,30 +439,29 @@ struct rec_entry	*recptr;
 seekto(which)
 {
 	struct rec_entry	rec;
+	long	offset;
+	int	i;
 
-	fseek(ptrs_fp, (long) (sizeof Header), L_SET);
-	
-	while (which-- > 1) {
-		read_rec(&rec);
-		if (fseek(ptrs_fp, (long) rec.r_nlines * sizeof (disk_line),
-			L_INCR) == -1)
-			printf("recover: improper fseek!\n");
-	}
+	offset = sizeof (Header) + (Header.Nbuffers * sizeof (rec));
+	for (i = 1; i < which; i++)
+		offset += buflist[i]->r_nlines * sizeof (disk_line);
+	fseek(ptrs_fp, offset, L_SET);
 }
 
 makblist()
 {
 	int	i;
 
+	fseek(ptrs_fp, (long) sizeof (Header), L_SET);
 	for (i = 1; i <= Header.Nbuffers; i++) {
-		seekto(i);
 		if (buflist[i] == 0)
 			buflist[i] = (struct rec_entry *) malloc (sizeof (struct rec_entry));
 		read_rec(buflist[i]);
 	}
-	if (buflist[i]) {
+	while (buflist[i]) {
 		free((char *) buflist[i]);
 		buflist[i] = 0;
+		i++;
 	}
 }
 
@@ -481,16 +479,15 @@ register FILE	*fp;
 	return addr;
 }
 
-dump_file(out)
+dump_file(which, out)
 FILE	*out;
 {
-	struct rec_entry	record;
 	register int	nlines;
 	register disk_line	daddr;
 	char	buf[BUFSIZ];
 
-	read_rec(&record);
-	nlines = record.r_nlines;
+	seekto(which);
+	nlines = buflist[which]->r_nlines;
 	Nchars = Nlines = 0L;
 	while (--nlines >= 0) {
 		daddr = getaddr(ptrs_fp);
@@ -539,11 +536,6 @@ struct file_pair	*fp;
 #ifdef KILL0
 	if (kill(Header.Pid, 0) == 0)
 		return 0;
-#else
-#ifdef LSRHS
-	if (pexist(Header.Pid))
-		return 0;
-#endif LSRHS
 #endif KILL0
 
 	if (Header.Nbuffers == 0) {

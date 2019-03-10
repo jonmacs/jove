@@ -36,13 +36,11 @@ extern char
 	*SF,	/* Scroll forward */
 	*SR,	/* Scroll reverse */
 	*SP,	/* Send cursor position */
-#ifdef LSRHS
-	*RS,	/* reverse video start */
-	*RE,	/* reverse video end */
-#endif
 	*VB,	/* visible bell */
+	*BL,	/* audible bell */
 	*IP,	/* insert pad after character inserted */
-	*lPC;
+	*lPC,
+	*NL;	/* newline character (usually \n) */
 
 extern int
 	LI,		/* number of lines */

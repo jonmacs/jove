@@ -107,9 +107,11 @@ char	*file;
 	}
 	DOTsave(&save);
 	dofread(fp);
-	SetDot(&save);
-	if (is_insert && io_chars > 0)
+	if (is_insert && io_chars > 0) {
 		modify();
+		set_mark();
+	}
+	SetDot(&save);
 	getDOT();
 	close_file(fp);
 }
@@ -157,13 +159,13 @@ int	HomeLen = -1;	/* length of home directory string */
 #ifndef CHDIR
 
 char *
-pr_name(fname)
+pr_name(fname, okay_home)
 char	*fname;
 {
 	if (fname == 0)
 		return 0;
 
-	if (strncmp(fname, HomeDir, HomeLen) == 0) {
+	if (okay_home == YES && strncmp(fname, HomeDir, HomeLen) == 0) {
 		static char	name_buf[100];
 
 		sprintf(name_buf, "~%s", fname + HomeLen);
@@ -188,7 +190,7 @@ pwd()
 }
 
 char *
-pr_name(fname)
+pr_name(fname, okay_home)
 char	*fname;
 {
 	int	n;
@@ -201,7 +203,7 @@ char	*fname;
 	    (fname[n] == '/'))
 		return fname + n + 1;
 
-	if (strcmp(HomeDir, "/") != 0 && strncmp(fname, HomeDir, HomeLen) == 0) {
+	if (okay_home == YES && strcmp(HomeDir, "/") != 0 && strncmp(fname, HomeDir, HomeLen) == 0) {
 		static char	name_buf[100];
 
 		sprintf(name_buf, "~%s", fname + HomeLen);
@@ -226,20 +228,18 @@ Chdir()
 
 #ifndef JOB_CONTROL
 char *
-getwd(buf)
-char	*buf;
+getwd()
 {
 	Buffer	*old = curbuf;
 	char	*ret_val;
 
-	SetBuf(do_select((Window *) 0, "*pwd-output*"));
+	SetBuf(do_select((Window *) 0, "pwd-output"));
 	curbuf->b_type = B_PROCESS;
 	(void) UnixToBuf("pwd-output", NO, 0, YES, "/bin/pwd", (char *) 0);
 	ToFirst();
-	strcpy(buf, linebuf);
+	ret_val = sprint(linebuf);
 	SetBuf(old);
-
-	return buf;
+	return ret_val;
 }
 #endif
 
@@ -268,12 +268,12 @@ getCWD()
 	if (cwd == 0)
 		cwd = getenv("PWD");
 	if (cwd == 0)
+#ifdef JOB_CONTROL
 		cwd = getwd(pathname);
-	if (cwd == 0) {
-		message("[Cannot determine working directory - using \".\"]");
-		strcpy(pathname, ".");
-		cwd = pathname;
-	}
+#else
+		cwd = getwd();
+#endif
+
 	setCWD(cwd);
 }	
 
@@ -283,7 +283,7 @@ prDIRS()
 
 	s_mess(": %f ");
 	for (i = DirSP; i >= 0; i--)
-		add_mess("%s ", pr_name(DirStack[i]));
+		add_mess("%s ", pr_name(DirStack[i], YES));
 }
 
 prCWD()
@@ -460,12 +460,12 @@ char	*newname;
 
 WrtReg()
 {
-	DoWriteReg(0);
+	DoWriteReg(NO);
 }
 
 AppReg()
 {
-	DoWriteReg(1);
+	DoWriteReg(YES);
 }
 
 int	CreatMode = DFLT_MODE;
@@ -481,7 +481,7 @@ DoWriteReg(app)
 	fname = ask_file((char *) 0, (char *) 0, fnamebuf);
 
 #ifdef BACKUPFILES
-	if (!app) {
+	if (app == NO) {
 		filemunge(fname);
 
 		if (BkupOnWrite)
@@ -518,11 +518,27 @@ WriteFile()
 
 	chk_mtime(curbuf, fname, "write");
 	filemunge(fname);
-	curbuf->b_type = B_FILE;  	/* In case it wasn't before. */
+	curbuf->b_type = B_FILE;  	/* in case it wasn't before */
 	setfname(curbuf, fname);
 	file_write(fname, 0);
 	unmodify();
 }
+
+/* Open file FNAME supplying the buffer IO routine with buffer BUF.
+   HOW is F_READ, F_WRITE or F_APPEND.  IFBAD == COMPLAIN means that
+   if we fail at opening the file, call complain.  LOUDNESS says
+   whether or not to print the "reading ..." message on the message
+   line.
+
+   NOTE:  This opens the pr_name(fname, NO) of fname.  That is, FNAME
+	  is usually an entire pathname, which can be slow when the
+	  pathname is long and there are lots of symbolic links along
+	  the way (which has become very common in my experience).  So,
+	  this speeds up opens file names in the local directory.  It
+	  will not speed up things like "../scm/foo.scm" simple because
+	  by the time we get here that's already been expanded to an
+	  absolute pathname.  But this is a start.
+   */
 
 File *
 open_file(fname, buf, how, ifbad, loudness)
@@ -536,7 +552,7 @@ register int	how;
 	io_lines = 0;
 	tellall = loudness;
 
-	fp = f_open(fname, how, buf, LBSIZE);
+	fp = f_open(pr_name(fname, NO), how, buf, LBSIZE);
 	if (fp == NIL) {
                 message(IOerr((how == F_READ) ? "open" : "create", fname));
 		if (ifbad == COMPLAIN)
@@ -544,11 +560,11 @@ register int	how;
 	} else {
 		int	readonly = FALSE;
 
-		if (access(fname, W_OK) == -1 && errno != ENOENT)
+		if (access(pr_name(fname, NO), W_OK) == -1 && errno != ENOENT)
 			readonly = TRUE;
 							 
 		if (loudness != QUIET)
-			f_mess("\"%s\"%s", pr_name(fname),
+			f_mess("\"%s\"%s", pr_name(fname, YES),
 				   readonly ? " [Read only]" : NullStr);
 	}
 	return fp;
@@ -559,7 +575,11 @@ register int	how;
    doing.
 
    I hate to use another stat(), but to use confirm we gotta
-   do this before we open the file. */
+   do this before we open the file.
+
+   NOTE: This stats FNAME after converting it to a path-relative
+	 name.  I can't see why this would cause a problem ...
+   */
 
 chk_mtime(thisbuf, fname, how)
 Buffer	*thisbuf;
@@ -573,12 +593,12 @@ char	*fname,
 	if ((thisbuf->b_mtime != 0) &&		/* if we care ... */
 	    (b = file_exists(fname)) &&		/* we already have this file */
 	    (b == thisbuf) &&			/* and it's the current buffer */
-	    (stat(fname, &stbuf) != -1) &&	/* and we can stat it */
+	    (stat(pr_name(fname, NO), &stbuf) != -1) &&	/* and we can stat it */
 	    (stbuf.st_mtime != b->b_mtime)) {	/* and there's trouble. */
 	    	rbell();
 		redisplay();	/* Ring that bell! */
 	    	TOstart("Warning", TRUE);
-	    	Typeout("\"%s\" now saved on disk is not what you last", pr_name(fname));
+	    	Typeout("\"%s\" now saved on disk is not what you last", pr_name(fname, YES));
 		Typeout("visited or saved.  Probably someone else is editing");
 		Typeout("your file at the same time.");
 	    	if (how) {
@@ -689,10 +709,10 @@ tmpclose()
 	(void) unlink(tfname);
 }
 
-/* Get a line at `tl' in the tmp file into `buf' which should be LBSIZE
-   long. */
+/* get a line at `tl' in the tmp file into `buf' which should be LBSIZE
+   long */
 
-int	Jr_Len;		/* Length of Just Read Line. */
+int	Jr_Len;		/* length of Just Read Line */
 private char	*getblock();
 
 getline(addr, buf)

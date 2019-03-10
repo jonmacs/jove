@@ -204,7 +204,6 @@ find_para(how)
 	int	this_indent;
 	Bufpos	orig;		/* remember where we were when we started */
 
-	exp = 1;
 	DOTsave(&orig);
 strt:
 	this = curline;
@@ -218,14 +217,14 @@ strt:
 				if (firstp(curline))
 					complain((char *) 0);
 				else
-					line_move(BACKWARD, NO);
+					line_move(BACKWARD, 1, NO);
 			goto strt;
 		} else {
 			while (i_blank(curline))
 				if (lastp(curline))
 					complain((char *) 0);
 				else
-					line_move(FORWARD, NO);
+					line_move(FORWARD, 1, NO);
 			head = curline;
 			next = curline->l_next;
 			if (!i_bsblank(next))
@@ -302,7 +301,7 @@ strt:
 
 Justify()
 {
-	use_lmargin = (exp_p != NO);
+	use_lmargin = is_an_arg();
 	find_para(BACKWARD);
 	DoJustify(para_head, 0, para_tail, length(para_tail), NO,
 		  use_lmargin ? LMargin : body_indent);
@@ -339,14 +338,14 @@ RegJustify()
 	Line	*rl1,
 		*rl2;
 
-	use_lmargin = (exp_p != NO);
+	use_lmargin = is_an_arg();
 	(void) fixorder(&l1, &c1, &l2, &c2);
 	do {
 		DotTo(l1, c1);
 		find_para(FORWARD);
 		rl1 = max_line(l1, para_head);
 		rl2 = min_line(l2, para_tail);
-		tailmark = MakeMark(para_tail, 0, FLOATER);
+		tailmark = MakeMark(para_tail, 0, M_FLOATER);
 		DoJustify(rl1, (rl1 == l1) ? c1 : 0, rl2,
 			  (rl2 == l2) ? c2 : length(rl2),
 			  NO, use_lmargin ? LMargin : body_indent);
@@ -356,7 +355,7 @@ RegJustify()
 	} while (l1 != 0 && l2 != rl2);
 }
 
-do_rfill()
+do_rfill(ulm)
 {
 	Mark	*mp = CurMark();
 	Line	*l1 = curline,
@@ -364,7 +363,7 @@ do_rfill()
 	int	c1 = curchar,
 		c2 = mp->m_char;
 
-	use_lmargin = (exp_p != NO);
+	use_lmargin = ulm;
 	(void) fixorder(&l1, &c1, &l2, &c2);
 	DoJustify(l1, c1, l2, c2, NO, use_lmargin ? LMargin : 0);
 }
@@ -403,9 +402,9 @@ do_space()
 		nspace = 0;
 
 	if (diff > nspace)
-		DoTimes(DelPChar(), (diff - nspace));
+		del_char(BACKWARD, (diff - nspace));
 	else if (diff < nspace)
-		DoTimes(Insert(' '), (nspace - diff));
+		insert_c(' ', (nspace - diff));
 }
 
 DoJustify(l1, c1, l2, c2, scrunch, indent)
@@ -414,10 +413,9 @@ Line	*l1,
 {
 	int	okay_char = -1;
 	char	*cp;
-	Mark	*savedot = MakeMark(curline, curchar, FLOATER),
+	Mark	*savedot = MakeMark(curline, curchar, M_FLOATER),
 		*endmark;
 
-	exp = 1;
 	(void) fixorder(&l1, &c1, &l2, &c2);	/* l1/c1 will be before l2/c2 */
 	DotTo(l1, c1);
 	if (get_indent(l1) >= c1) {
@@ -427,48 +425,40 @@ Line	*l1,
 		}
 		ToIndent();
 	}
-	endmark = MakeMark(l2, c2, FLOATER);
+	endmark = MakeMark(l2, c2, M_FLOATER);
 
 	for (;;) {
-		cp = StrIndex(1, linebuf, curchar, ' ');
-		if (cp == 0)
-			Eol();
-		else
-			curchar = (cp - linebuf);
-		if (curline == endmark->m_line && curchar >= endmark->m_char)
-			goto outahere;
-		if (eolp()) {
-			ins_str("  ", NO);
-			DelNChar();	/* delete line separator */
-			curchar -= 2;	/* back over the spaces */
-		}
-		/* at this point we are ALWAYS sitting right after
-		   a word - that is, just before some spaces or the
-		   end of the line */
-		if (calc_pos(linebuf, curchar) <= RMargin) {
+		while (calc_pos(linebuf, curchar) < RMargin) {
+			if (curline == endmark->m_line && curchar >= endmark->m_char)
+				goto outahere;
 			okay_char = curchar;
+			if (eolp()) {
+				del_char(FORWARD, 1);	/* Delete line separator. */
+				ins_str("  ", NO);
+			} else {
+				cp = StrIndex(1, linebuf, curchar + 1, ' ');
+				if (cp == 0)
+					Eol();
+				else
+					curchar = (cp - linebuf);
+			}
 			do_space();
-			continue;
 		}
-
-		/* if we get here, we have done all we can for
-		   this line - now we split the line, or just move
-		   to the next one */
 		if (okay_char > 0)
 			curchar = okay_char;			
 		if (curline == endmark->m_line && curchar >= endmark->m_char)
 			goto outahere;
-		/* can't fit in small margin, so we do the best we can */
+
+		/* Can't fit in small margin, so we do the best we can. */
 		if (eolp()) {
-			line_move(FORWARD, NO);
+			line_move(FORWARD, 1, NO);
 			n_indent(indent);
 		} else {
-			/* insert a line break - line WAS too long */
 			DelWtSpace();
 			LineInsert(1);
 			if (scrunch && TwoBlank()) {
 				Eol();
-				DelNChar();
+				del_char(FORWARD, 1);
 			}
 			n_indent(indent);
 		}
@@ -486,7 +476,7 @@ extern Line	*para_head,
 
 DoPara(dir)
 {
-	register int	num = exp,
+	register int	num = arg_value(),
 			first_time = TRUE;	
 
 	while (--num >= 0) {
@@ -495,21 +485,21 @@ tryagain:	find_para(dir);		/* find paragraph bounderies */
 		    ((!first_time) || ((para_head == curline) && bolp()))) {
 		    	if (bobp())
 		    		complain((char *) 0);
-			BackChar();
+			b_char(1);
 			first_time = !first_time;
 			goto tryagain;
 		}
 		SetLine((dir == BACKWARD) ? para_head : para_tail);
 		if (dir == BACKWARD && !firstp(curline) &&
 		    i_blank(curline->l_prev))
-			line_move(BACKWARD, NO);
+			line_move(BACKWARD, 1, NO);
 		else if (dir == FORWARD) {
 			if (lastp(curline)) {
 				Eol();
 				break;
 			}
 			/* otherwise */
-			line_move(FORWARD, NO);
+			line_move(FORWARD, 1, NO);
 		}
 	}
 }
