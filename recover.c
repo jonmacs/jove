@@ -48,6 +48,7 @@ long	Nchars,
 char	tty[] = "/dev/tty";
 int	UserID,
 	Verbose = 0;
+char	*Directory = 0;		/* the directory we're looking in */
 
 struct file_pair {
 	char	*file_data,
@@ -230,7 +231,7 @@ struct direct	*dp;
 	struct rec_head		header;
 	int	fd;
 
-	if (strncmp(dp->d_name, REC_BASE, strlen(REC_BASE)) != 0)
+	if (strncmp(dp->d_name, "jrec", 4) != 0)
 		return 0;
 	/* If we get here, we found a "recover" tmp file, so now
 	   we look for the corresponding "data" tmp file.  First,
@@ -238,7 +239,7 @@ struct direct	*dp;
 	   the "recover" file.  If it's 0 length, there's no point
 	   in saving its name. */
 	(void) sprintf(rfile, "%s/%s", CurDir, dp->d_name);
-	(void) sprintf(dfile, "%s/jove%s", CurDir, dp->d_name + strlen(REC_BASE));
+	(void) sprintf(dfile, "%s/jove%s", CurDir, dp->d_name + 4);
 	if ((fd = open(rfile, 0)) != -1) {
 		if ((read(fd, (char *) &header, sizeof header) != sizeof header)) {
 			close(fd);
@@ -247,7 +248,7 @@ struct direct	*dp;
 			close(fd);
 	}
 	if (access(dfile, 0) != 0) {
-		fprintf(stderr, "recover: can't find the data file for %s/%s\n", TMP_DIR, dp->d_name);
+		fprintf(stderr, "recover: can't find the data file for %s/%s\n", Directory, dp->d_name);
 		fprintf(stderr, "so deleting...\n");
 		(void) unlink(rfile);
 		(void) unlink(dfile);
@@ -633,6 +634,7 @@ struct file_pair	*fp;
 	(void) unlink(fp->file_rec);
 }
 
+#ifdef notdef
 savetmps()
 {
 	struct file_pair	*fp;
@@ -661,6 +663,7 @@ savetmps()
 		}
 	}
 }
+#endif
 
 lookup(dir)
 char	*dir;
@@ -671,6 +674,8 @@ char	*dir;
 	int	nfound = 0,
 		this_one;
 
+	printf("Checking %s ...\n", dir);
+	Directory = dir;
 	get_files(dir);
 	for (fp = First; fp != 0; fp = fp->file_next) {
 		nfound += doit(fp);
@@ -692,33 +697,30 @@ char	*argv[];
 	UserID = getuid();
 
 	if (scanvec(argv, "-help")) {
-		printf("recover: usage: recover [-d directory] [-syscrash]\n");
+		printf("recover: usage: recover [-d directory]\n");
 		printf("Use \"recover\" after JOVE has died for some\n");
 		printf("unknown reason.\n\n");
 		printf("Use \"recover -syscrash\" when the system is in the process\n");
 		printf("of rebooting.  This is done automatically at reboot time\n");
 		printf("and so most of you don't have to worry about that.\n\n");
 		printf("Use \"recover -d directory\" when the tmp files are store\n");
-		printf("in DIRECTORY instead of the default one (%s).\n", TMP_DIR);
+		printf("in DIRECTORY instead of the default one (/tmp).\n");
 		exit(0);
 	}
 	if (scanvec(argv, "-v"))
 		Verbose++;
-	if (scanvec(argv, "-syscrash")) {
+/*	if (scanvec(argv, "-syscrash")) {
 		printf("Recovering jove files ... ");
 		savetmps();
 		printf("Done.\n");
 		exit(0);
-	}
+	} */
 	if (argvp = scanvec(argv, "-uid"))
 		UserID = atoi(argvp[1]);
 	if (argvp = scanvec(argv, "-d"))
 		nfound = lookup(argvp[1]);
-	else {
-		if ((nfound = lookup(REC_DIR)) ||
-		    (nfound = lookup(TMP_DIR)))
-			;
-	}
+	else
+		nfound = lookup(TmpFilePath);
 	if (nfound == 0)
 		printf("There's nothing to recover.\n");
 }

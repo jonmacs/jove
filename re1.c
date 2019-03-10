@@ -210,14 +210,18 @@ find_tag(tag, localp)
 char	*tag;
 {
 	char	filebuf[FILESIZE],
-		sstr[100];
+		sstr[100],
+		tfbuf[FILESIZE];
 	register Bufpos	*bp;
 	register Buffer	*b;
 	char	*tagfname;
 
-	if (!localp)
-		tagfname = ask(TagFile, "With tag file (%s default): ", TagFile);
-	else
+	if (!localp) {
+		char	prompt[128];
+
+		sprintf(prompt, "With tag file (%s default): ", TagFile);
+		tagfname = ask_file(prompt, TagFile, tfbuf);
+	} else
 		tagfname = TagFile;
 	if (lookup(sstr, filebuf, tag, tagfname) == 0)
 		return;

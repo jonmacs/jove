@@ -301,9 +301,13 @@ c_indent(incrmt)
 		indent = calc_pos(linebuf, curchar);
 		SetDot(&save);
 	}
-	n_indent(indent);
-	if (incrmt)	/* this is until I get indentation really right */
-		Insert('\t');
+	if (incrmt) {
+		if (indent == 0)
+			incrmt = tabstop;
+		else
+			incrmt = (tabstop - (indent%tabstop));
+	}
+	n_indent(indent + incrmt);
 	return bp;
 }
 
@@ -555,7 +559,6 @@ char	*format;
 		if (curline == open_c_mark->m_line->l_next) {
 			;
 		} else {
-			Bol();
 			n_indent(indent_pos);
 			ins_str(l_header, NO);
 		}

@@ -11,19 +11,18 @@
 
 #include "tune.h"
 
-char	*TMP_DIR = "TMPDIR",
-	*REC_DIR = "RECDIR",
-	*TMPFILE = "TMPDIR/joveXXXXXX",	/* Buffer lines go here. */
-	*RECFILE = "TMPDIR/jrecXXXXXX",	/* Line pointers go here. */
-	*REC_BASE = "jrec",
-	*RECOVER = "BINDIR/recover",
-	*CMD_DB = "LIBDIR/cmds.doc",
-		/* Copy of "cmds.doc" lives in the doc subdirectory */
+char	TmpFilePath[128] = "TMPDIR";
 
-	*JOVERC = "LIBDIR/.joverc",
+char	*d_tempfile = "joveXXXXXX",	/* buffer lines go here */
+	*p_tempfile = "jrecXXXXXX",	/* line pointers go here */
+	*Recover = "LIBDIR/recover",
+	*CmdDb = "LIBDIR/cmds.doc",
+		/* copy of "cmds.doc" lives in the doc subdirectory */
+
+	*Joverc = "LIBDIR/.joverc",
 
 #ifdef PIPEPROCS
-	*PORTSRV = "LIBDIR/portsrv",
+	*Portsrv = "LIBDIR/portsrv",
 #endif
 
 	Shell[128] = "SHELL",

@@ -240,7 +240,7 @@ DescCom()
 	data_obj	*dp;
 	char	pattern[100],
 		doc_type[40],
-		*file = CMD_DB;
+		*file = CmdDb;
 	File	*fp;
 
 	if (!strcmp(LastCmd->Name, "describe-variable"))
@@ -507,6 +507,7 @@ char	*buf;
 		break;
 
 	case V_STRING:
+	case V_FILENAME:
 		sprintf(buf, "%s", (char *) vp->v_value);
 		break;
 
@@ -566,12 +567,21 @@ SetVar()
 	    	break;
 	    }
 
+	case V_FILENAME:
+	    {
+		char	fbuf[FILESIZE];
+
+	    	sprintf(&prompt[strlen(prompt)], "(default %s) ", vp->v_value);
+	    	(void) ask_file(prompt, (char *) vp->v_value, fbuf);
+		strcpy((char *) vp->v_value, fbuf);
+	    	break;
+	    }
+
 	case V_STRING:
 	    {
 		char	*str;
 
-	    	/* Do_ask() so if you want you can set string to
-		   "" if you so desire. */
+	    	/* Do_ask() so you can set string to "" if you so desire. */
 	    	str = do_ask("\r\n", (int (*)()) 0, (char *) vp->v_value, prompt);
 	    	if (str == 0)
 			str = NullStr;
@@ -771,7 +781,7 @@ Source()
 		buf[FILESIZE];
 
 	sprintf(buf, "%s/.joverc", getenv("HOME"));
-	com = ask_file(buf, buf);
+	com = ask_file((char *) 0, buf, buf);
 	if (joverc(buf) == NIL)
 		complain(IOerr("read", com));
 }
@@ -781,18 +791,24 @@ BufPos()
 	register Line	*lp = curbuf->b_first;
 	register int	i,
 			dotline;
+	long	dotchar,
+		nchars;
 
-	for (i = 0; lp != 0; i++, lp = lp->l_next)
-		if (lp == curline)
+	for (i = nchars = 0; lp != 0; i++, lp = lp->l_next) {
+		if (lp == curline) {
+			dotchar = nchars + curchar;
 			dotline = i + 1;
+		}
+		nchars += length(lp) + (lp->l_next != 0); /* include the NL */
+	}
 
-	s_mess("\"%s\" line %d of %d --%d%%--, column %d of %d.",
+	s_mess("[\"%s\" line %d of %d, char %D of %D (%d%%)]",
 			filename(curbuf),
 			dotline,
 			i,
-			(int) (((long) dotline * 100) / i),
-			1 + calc_pos(linebuf, curchar),
-			1 + calc_pos(linebuf, strlen(linebuf)));
+			dotchar,
+			nchars,
+			(int) (((long) dotchar * 100) / nchars));
 }
 
 #define IF_UNBOUND	-1

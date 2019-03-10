@@ -343,14 +343,19 @@ register int	a,
 	return (a > b) ? a : b;
 }
 
-tiewind(wp, bp)
-register Window	*wp;
+tiewind(w, bp)
+register Window	*w;
 register Buffer	*bp;
 {
+	int	not_tied = (w->w_bufp != bp);
+
 	UpdModLine++;	/* Kludge ... but speeds things up considerably */
-	wp->w_line = bp->b_dot;
-	wp->w_char = bp->b_char;
-	wp->w_bufp = bp;
+	w->w_line = bp->b_dot;
+	w->w_char = bp->b_char;
+	w->w_bufp = bp;
+	if (not_tied)
+		CalcWind(w);	/* ah, this has been missing since the
+				   beginning of time! */
 }
 
 extern int	Jr_Len;

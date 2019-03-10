@@ -227,14 +227,14 @@ SaveAbbrevs()
 {
 	char	filebuf[FILESIZE];
 
-	save_abbrevs(ask_file((char *) 0, filebuf));
+	save_abbrevs(ask_file((char *) 0, (char *) 0, filebuf));
 }
 
 RestAbbrevs()
 {
 	char	filebuf[FILESIZE];
 
-	rest_abbrevs(ask_file((char *) 0, filebuf));
+	rest_abbrevs(ask_file((char *) 0, (char *) 0, filebuf));
 }
 
 EditAbbrevs()

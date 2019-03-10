@@ -70,10 +70,3 @@
 #define	SHFT	0
 
 #endif VMUNIX
-
-extern int	nleft,		/* Number of good characters left in current block */
-		tmpfd;
-extern disk_line
-		tline;	/* Pointer to end of tmp file */
-
-extern char	*tfname;

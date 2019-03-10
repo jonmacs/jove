@@ -217,7 +217,7 @@ WriteMacs()
 	char	*file,
 		filebuf[FILESIZE];
 
-	file = ask_file((char *) 0, filebuf);
+	file = ask_file((char *) 0, (char *) 0, filebuf);
 	if ((mac_fd = creat(file, 0666)) == -1)
 		complain(IOerr("create", file));
 	f_mess("\"%s\"", file);
@@ -329,7 +329,7 @@ ReadMacs()
 		he_is_sure = 0,
 		save_em = FALSE;
 
-	file = ask_file((char *) 0, filebuf);
+	file = ask_file((char *) 0, (char *) 0, filebuf);
 	if ((mac_fd = open(file, 0)) == -1)
 		complain(IOerr("open", file));
 

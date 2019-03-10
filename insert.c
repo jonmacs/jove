@@ -8,8 +8,8 @@
  *************************************************************************/
 
 #include "jove.h"
-
 #include "ctype.h"
+#include "table.h"
 
 /* Make a newline after AFTER in buffer BUF, UNLESS after is 0,
    in which case we insert the newline before after. */
@@ -77,14 +77,32 @@ register int	num;
 	IFixMarks(olddot, oldchar, curline, curchar);
 }	
 
+/* Makes the indent of the current line == goal.  If the current indent
+   is greater than GOAL it deletes.  If more indent is needed, it uses
+   tabs and spaces to get to where it's going. */
+
 n_indent(goal)
 register int	goal;
 {
-	if (goal < 0)
-		return;
-	DoTimes(Insert('\t'), (goal / tabstop));
-	if (goal % tabstop)
-		DoTimes(Insert(' '), (goal % tabstop));
+	int	dotcol,
+		incrmt;
+
+	ToIndent();
+	dotcol = calc_pos(linebuf, curchar);
+	if (goal < dotcol) {
+		DelWtSpace();
+		dotcol = 0;
+	}
+
+	for (;;) {
+		incrmt = (tabstop - (dotcol % tabstop));
+		if (dotcol + incrmt > goal)
+			break;
+		Insert('\t');
+		dotcol += incrmt;
+	}
+	if (dotcol != goal)
+		DoTimes(Insert(' '), (goal - dotcol));
 	exp_p = NO;
 	exp = 1;
 }
@@ -138,16 +156,17 @@ Tab()
 {
 #ifdef LISP
 	if (MajorMode(LISPMODE)) {
-		Mark	*m = bolp() ? 0 : MakeMark(curline, curchar, FLOATER);
+		int	dotchar = curchar;
+		Mark	*m = 0;
 
-		Bol();
-		DelWtSpace();
+		ToIndent();
+		if (dotchar > curchar)
+			m = MakeMark(curline, dotchar, FLOATER);
 		(void) lisp_indent();
 		if (m) {
 			ToMark(m);
 			DelMark(m);
-		}
-		if (bolp())
+		} else
 			ToIndent();
 		return;
 	}
@@ -190,15 +209,11 @@ DoParen()
 		return;
 	}
 
-	if (MajorMode(CMODE) && c == '}' && blnkp(linebuf)) {
-		DelWtSpace();
+	if (MajorMode(CMODE) && c == '}' && blnkp(linebuf))
 		bp = c_indent(0);
-	}
 #ifdef LISP
-	if (MajorMode(LISPMODE) && c == ')' && blnkp(linebuf)) {
-		DelWtSpace();
+	if (MajorMode(LISPMODE) && c == ')' && blnkp(linebuf))
 		bp = lisp_indent();
-	}
 #endif
 	SelfInsert();
 	if (MinorMode(ShowMatch) && !charp() && !in_macro()) {
@@ -243,9 +258,6 @@ DoNewline(indentp)
 	indent = calc_pos(linebuf, curchar);
 	SetDot(&save);
 
-	/* If there is more than 2 blank lines in a row then don't make
-	   a newline, just move down one. */
-
 #ifdef ABBREV
 	if (MinorMode(Abbrev) && !ismword(LastKeyStruck) &&
 	    !bolp() && ismword(linebuf[curchar - 1]))
@@ -258,6 +270,8 @@ DoNewline(indentp)
 	else if (blnkp(linebuf))
 		DelWtSpace();
 		
+	/* If there is more than 2 blank lines in a row then don't make
+	   a newline, just move down one. */
 	if (exp == 1 && eolp() && TwoBlank())
 		SetLine(curline->l_next);
 	else
@@ -576,16 +590,51 @@ GSexpr()
 		if (curline == end.p_line)
 			break;
 		line_move(FORWARD, NO);
-		if (!blnkp(linebuf)) {
-			DelWtSpace();
+		if (!blnkp(linebuf))
 			(void) lisp_indent();
-		}
 	}
 	SetDot(&dot);
 }
 
 /* lisp_indent() indents a new line in Lisp Mode, according to where
    the matching close-paren would go if we typed that (sort of). */
+
+private Table	*specials = NIL;
+
+private
+init_specials()
+{
+	static char *words[] = {
+		"case",
+		"def",
+		"dolist",
+		"fluid-let",
+		"lambda",
+		"let",
+		"lexpr",
+		"macro",
+		"named-l",	/* named-let and named-lambda */
+		"nlambda",
+		"prog",
+		"selectq",
+		0
+	};
+	char	**wordp = words;
+
+	specials = make_table();
+	while (*wordp)
+		add_word(*wordp++, specials);
+}
+
+AddSpecial()
+{
+	char	*word;
+
+	word = ask((char *) 0, ProcFmt);
+	if (specials == NIL)
+		init_specials();
+	add_word(copystr(word), specials);
+}
 
 Bufpos *
 lisp_indent()
@@ -599,55 +648,24 @@ lisp_indent()
 	if (bp == 0)
 		return 0;
 
-	/*
-	 * Otherwise, we indent to the first argument of
-	 * the current s-expression.  This is done by
-	 * starting at the matching paren, skipping
-	 * to a word (atom), skipping over it, and
-	 * skipping to the next one.
-	 *
-	 * We want to end up
-	 *
-	 *	(atom atom atom ...
-	 *	      ^ here.
+	/* We want to end up
+	 
+	 	(atom atom atom ...
+	 	      ^ here.
 	 */
 
 	DOTsave(&savedot);
 	SetDot(bp);
 	DoTimes(ForChar(), 1);
 	if (linebuf[curchar] != '(') {
-		static char	*specials[] = {
-			"def",
-			"let",
-			"lambda",
-			"fluid-let",
-			"macro",
-			"lexpr",
-			"nlambda",
-			"named-l",	/* named-let and named-lambda */
-			"dolist",
-			"caseq",
-			"selectq",
-			"while",
-			"prog",
-			"in-package",
-			0
-		};
-		int	i = 0;
+		register Word	*wp;
 
-		while (specials[i]) {
-			char	*cp1 = specials[i],
-				*cp2 = &linebuf[curchar];
-			int	n = strlen(cp1);
-
-			while (--n >= 0)
-				if (Upper(*cp1++) != Upper(*cp2++))
-					break;
-			if (n < 0)
-				break;	/* Matched. */
-			i++;
-		}
-		if (specials[i] == 0) {
+		if (specials == NIL)
+			init_specials();
+		for (wp = table_top(specials); wp != NIL; wp = next_word(wp))
+			if (casencmp(word_text(wp), &linebuf[curchar], word_length(wp)) == 0)
+				break;
+		if (wp == NIL) {	/* not special */
 			int	c_char = curchar;
 
 			WITH_TABLE(curbuf->b_major)
