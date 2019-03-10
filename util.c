@@ -440,7 +440,8 @@ modify()
 		UpdModLine++;
 	curbuf->b_modified++;
 	DOLsave++;
-	ModCount++;
+	if (!Asking)
+		ModCount++;
 }
 
 unmodify()

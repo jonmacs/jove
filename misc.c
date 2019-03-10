@@ -284,7 +284,7 @@ KillExpr()
 
 	line1 = curline;
 	char1 = curchar;
-	Fparen();
+	FSexpr();
 	reg_kill(line1, char1, 1);
 }
 

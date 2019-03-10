@@ -409,8 +409,6 @@ Apropos()
 		}
 	for (v = variables; v->Name != 0; v++)
 		if (sindex(ans, v->Name)) {
-			int	type = (v->v_flags & V_TYPEMASK);
-
 			if (anyfs) {
 				Typeout(NullStr);
 				Typeout("Variables");
@@ -445,8 +443,6 @@ Extend()
 	if (d = findcom(": ", NOTHING))
 		ExecFunc(d);
 }
-
-#include "ctype.h"
 
 /* Read a positive integer from CP.  It must be in base BASE, and
    complains if it isn't.  If allints is nonzero, all the characters

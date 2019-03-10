@@ -19,4 +19,5 @@ extern char	searchstr[128],
 
 extern int	REdirection,
 		REeom,
-		REbom;
+		REbom,
+		REalt_num;
