@@ -179,8 +179,9 @@ lint:
 tags:
 	ctags -w $(JOVESRC) $(HEADERS)
 
-ciall:
-	ci $(BACKUPS)
+ci-newversion:
+	ci -u$(VERSION) version.c
+	ci -u$(VERSION) -m"No message." -f -q $(BACKUPS)
 
 coall:
 	co $(BACKUPS)
@@ -193,6 +194,9 @@ backup:
 
 tape-backup:
 	tar cbf 20 /dev/rmt0 $(BACKUPS)
+
+rtape-backup:
+	rtar cbf 20 sen:/dev/rmt0 $(BACKUPS)
 
 touch:
 	touch $(OBJECTS)

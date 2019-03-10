@@ -549,10 +549,11 @@ char	*expr,
 	resp = REbolp;
 	isquick = ((expr[0] == NORMC || expr[0] == CINDC) &&
 		   (alternates[1] == 0));
-	if (isquick)
+	if (isquick) {
 		firstc = expr[2];
-	if (expr[0] == CINDC)
-		firstc = CaseEquiv[firstc];
+		if (expr[0] == CINDC)
+			firstc = CaseEquiv[firstc];
+	}
 	locs = REbolp + offset;
 
 	if (REdirection == FORWARD) {

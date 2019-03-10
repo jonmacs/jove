@@ -377,18 +377,14 @@ put_bufs(askp)
 				continue;
 			setfname(b, newname);
 		}
-		if (SaveBuf(askp))
-			unmodify();
+		if (askp && (yes_or_no_p("Write %s? ", curbuf->b_fname) == NO))
+			continue;
+		filemunge(curbuf->b_fname);
+		chk_mtime(curbuf, curbuf->b_fname, "save");
+		file_write(curbuf->b_fname, 0);
+		unmodify();
 	}
 	SetBuf(oldb);
-}
-
-SaveBuf(askp)
-{
-	if (askp && (yes_or_no_p("Write %s? ", curbuf->b_fname) == NO))
-		return FALSE;
-	file_write(curbuf->b_fname, 0);
-	return TRUE;
 }
 
 ToIndent()
