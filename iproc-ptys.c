@@ -335,7 +335,7 @@ out:	if (s == 0 && t == 0)
 		va_start(ap);
 		make_argv(argv, ap);
 		va_end(ap);
-		execve(argv[0], &argv[1]);
+		execv(argv[0], &argv[1]);
 		(void) write(1, "execve failed!\n", 15);
 		_exit(errno + 1);
 	}

@@ -468,6 +468,7 @@ va_dcl
 {
 	int	p[2],
 		pid,
+		eof,
 		status;
 	va_list	ap;
 	char	*argv[32],
@@ -540,10 +541,13 @@ va_dcl
 #endif	
 	(void) close(p[1]);
 	fp = fd_open(argv[1], F_READ, p[0], iobuff, LBSIZE);
-	while (inIOread = 1, f_gets(fp, genbuf, LBSIZE) != EOF) {
+	do {
+		inIOread = 1;
+ 		eof = f_gets(fp, genbuf, LBSIZE);
 		inIOread = 0;
 		ins_str(genbuf, YES);
-		LineInsert(1);
+		if (!eof)
+			LineInsert(1);
 		if (disp != 0 && fp->f_cnt <= 0) {
 #ifdef LOAD_AV
 		    {
@@ -563,7 +567,7 @@ va_dcl
 			message(mess);
 			redisplay();
 		}
-	}
+	} while (!eof);
 	if (disp)
 		DrawMesg(NO);
 	close_file(fp);
