@@ -12,7 +12,9 @@
 #include "re.h"
 
 static
-substitute(query)
+substitute(query, l1, char1, l2, char2)
+Line	*l1,
+	*l2;
 {
 	Line	*lp;
 	int	numdone = 0,
@@ -24,8 +26,12 @@ substitute(query)
 	lsave();
 	REdirection = FORWARD;
 
-	for (lp = curline; !stop && lp != 0; lp = lp->l_next, offset = 0) {
+	lp = l1;
+	for (lp = l1; (lp != l2->l_next) && !stop; lp = lp->l_next) {
+		offset = (lp == l1) ? char1 : 0;
 		while (!stop && re_lindex(lp, offset, compbuf, alternates, 0)) {
+			if (lp == l2 && REeom > char2)	/* nope, leave this alone */
+				break;
 			DotTo(lp, REeom);
 			offset = curchar;
 			if (query) {
@@ -83,7 +89,7 @@ reswitch:			redisplay();
 
 				case CTL(L):
 					RedrawDisplay();
-					goto reswitch;;
+					goto reswitch;
 
 				default:
 					rbell();
@@ -114,14 +120,26 @@ done:	s_mess("%d substitution%n.", numdone, numdone);
    point is restored when we're done. */
 
 static
-replace(query, re)
+replace(query, inreg)
 {
-	Mark	*save = MakeMark(curline, curchar, FLOATER);
+	Mark	*save = MakeMark(curline, curchar, FLOATER),
+		*m;
 	char	*rep_ptr;
+	Line	*l1 = curline,
+		*l2 = curbuf->b_last;
+	int	char1 = curchar,
+		char2 = length(curbuf->b_last);
+
+	if (inreg) {
+		m = CurMark();
+		l2 = m->m_line;
+		char2 = m->m_char;
+		ignore(fixorder(&l1, &char1, &l2, &char2));
+	}
 
 	/* Get search string. */
 	strcpy(rep_search, ask(rep_search[0] ? rep_search : (char *) 0, ProcFmt));
-	REcompile(rep_search, re, compbuf, alternates);
+	REcompile(rep_search, UseRE, compbuf, alternates);
 	/* Now the replacement string.  Do_ask() so the user can play with
 	   the default (previous) replacement string by typing C-R in ask(),
 	   OR, he can just hit Return to replace with nothing. */
@@ -130,19 +148,24 @@ replace(query, re)
 		rep_ptr = NullStr;
 	strcpy(rep_str, rep_ptr);
 
-	substitute(query);
+	substitute(query, l1, char1, l2, char2);
 	ToMark(save);
 	DelMark(save);
 }
 
+RegReplace()
+{
+	replace(0, YES);
+}
+
 QRepSearch()
 {
-	replace(1, UseRE);
+	replace(1, NO);
 }
 
 RepSearch()
 {
-	replace(0, UseRE);
+	replace(0, NO);
 }
 
 /* C tags package. */

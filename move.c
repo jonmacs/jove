@@ -106,13 +106,14 @@ Line	*line;
 
 	pos = 0;
 
-	while (pos < col && (c = (*lp++ & 0177))) {
+	while (pos < col && (c = (*lp & 0177))) {
 		if (isctrl(c))
 			pos += 2;
 		else if (c == '\t')
 			pos += (tabstop - (pos % tabstop));
 		else
 			pos++;
+		lp++;
 	}
 
 	return lp - base;
