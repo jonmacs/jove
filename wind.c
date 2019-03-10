@@ -210,24 +210,24 @@ WindFind()
 		FindTag(),
 		BufSelect(),
 		FindFile();
-	extern data_obj	*FindFunc();
+	extern data_obj	*FindCmd();
 
 	DOTsave(&savedot);
 
 	switch (waitchar()) {
 	case 't':
 	case 'T':
-		ExecFunc((data_obj *) FindFunc(FindTag));
+		ExecCmd((data_obj *) FindCmd(FindTag));
 		break;
 
 	case 'b':
 	case 'B':
-		ExecFunc((data_obj *) FindFunc(BufSelect));
+		ExecCmd((data_obj *) FindCmd(BufSelect));
 		break;
 
 	case 'f':
 	case 'F':
-		ExecFunc((data_obj *) FindFunc(FindFile));
+		ExecCmd((data_obj *) FindCmd(FindFile));
 		break;
 
 	default:
@@ -344,7 +344,11 @@ register char	*name;
 	if (clobber)
 		initlist(newb);
 	tiewind(curwind, newb);
+#ifdef IPROCS
+	if (newb->b_type != B_IPROCESS && btype != -1)
+#else
 	if (btype != -1)
+#endif
 		newb->b_type = btype;
 	SetBuf(newb);
 }

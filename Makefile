@@ -78,11 +78,14 @@ SOURCES = $(JOVESRC) portsrv.c recover.c setmaps.c teachjove.c
 
 HEADERS = ctype.h io.h jove.h re.h rec.h temp.h termcap.h tune.h
 
+DOCS =	doc/cmds.doc.nr doc/example.rc doc/jove.1 doc/jove.2 doc/jove.3 \
+	doc/jove.4 doc/jove.nr doc/recover.nr doc/system.rc doc/teach-jove \
+	doc/teachjove.nr doc/README
+
+
 BACKUPS = $(HEADERS) $(JOVESRC) iproc-pipes.c iproc-ptys.c \
 	teachjove.c recover.c setmaps.c portsrv.c tune.template \
-	Makefile Ovmakefile keymaps.txt README doc/cmds.doc \
-	doc/example.rc doc/jove.nr doc/manual.n doc/recover.nr \
-	doc/system.rc doc/teach-jove doc/teachjove.nr
+	Makefile Ovmakefile keymaps.txt README $(DOCS)
 
 
 all:	xjove recover teachjove portsrv
@@ -132,6 +135,9 @@ $(DESTDIR)$(LIBDIR):
 
 $(TEACH-JOVE): doc/teach-jove
 	install -c -m 644 doc/teach-jove $(TEACH-JOVE)
+
+doc/cmds.doc:	doc/cmds.doc.nr doc/jove.4
+	nroff doc/cmds.doc.nr doc/jove.4 > doc/cmds.doc
 
 $(CMDS.DOC): doc/cmds.doc
 	install -c -m 644 doc/cmds.doc $(CMDS.DOC)
@@ -201,7 +207,7 @@ touch:
 	touch $(OBJECTS)
 
 clean:
-	rm -f a.out core $(OBJECTS) errs Errs Makefile.bak keymaps.c tune.c \
+	rm -f a.out core *.o errs Errs Makefile.bak keymaps.c tune.c \
 	xjove portsrv recover setmaps teachjove
 
 # This version only works under 4.3BSD

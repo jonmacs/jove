@@ -10,7 +10,7 @@
 #include "jove.h"
 
 struct macro	*macros = 0;		/* Macros */
-data_obj	*LastFunc;
+data_obj	*LastCmd;
 
 static
 add_mac(new)
@@ -417,7 +417,7 @@ Forget()
 		cp = &m->m_body[m->m_len - 2];
 		if (PrefChar(*cp))
 			m->m_len -= 2;
-		else if (commands[*++cp].f_func == Forget)
+		else if (commands[*++cp].c_proc == Forget)
 			m->m_len--;
 	}
 }

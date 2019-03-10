@@ -45,7 +45,7 @@ struct process {
 		p_eof;		/* Received EOF, so can be free'd up */
 	Mark	*p_mark;	/* Where output left us. */
 	data_obj
-		*p_func;	/* Function to call when process dies */
+		*p_cmd;		/* Command to call when process dies */
 } *procs = 0,
   *cur_proc = 0;
 
@@ -232,7 +232,7 @@ register Mark	*mp;
 
 	(void) fixorder(&line1, &char1, &line2, &char2);
 	while (line1 != line2->l_next) {
-		gp = getright(line1, genbuf) + char1;
+		gp = ltobuf(line1, genbuf) + char1;
 		if (line1 == line2)
 			gp[char2] = '\0';
 		else

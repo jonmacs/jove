@@ -136,17 +136,16 @@ system-wide .joverc to the right place automatically.)  After that JOVE
 reads an initialization file in the user's home directory, and "example.rc"
 is mine.
 
-Lots of work needs to be done on manual.n.  I got permission from Richard
-Stallman to use his manual for the original EMACS, modifying it where
-necessary for JOVE.  I did most of the commands that are common to EMACS and
-JOVE, but ran into trouble writing documentation for the JOVE specific
-stuff.  The cmds.doc file is completely up to date thanks to Dave Curry at
-Purdue.
+The files "jove.[1234]" in DOC are the official JOVE manual.  I got
+permission from Richard Stallman to use his manual for the original EMACS,
+modifying it where necessary for JOVE.  Lots of work was done by Brian
+Harvey on this manual.
 
 There are man pages for jove, recover and teachjove.  Teachjove is for
 people who have never used EMACS style editors.  It is an interactive
 tutorial, THE tutorial written by Stallman for the original EMACS, only
-slightly modified for JOVE in the appropriate places.
+slightly modified for JOVE in the appropriate places.  The man pages are
+completely up to date, thanks to me.
 
 Thanks to Jay Fenlason at Berkeley for writing the original pty code.
 
@@ -154,6 +153,8 @@ Thanks to Dave Curry at Purdue for putting in tons of time and effort
 into getting JOVE ready.  It just wouldn't be working without his help.
 
 Thanks to Jeff Mc Carrell at Berkeley for finding bugs and adding features.
+
+(Thanks to Brian Harvey for teaching me about linked lists ...)
 
 Good luck, have fun.
 	Jonathan Payne (payne@rochester until '88)

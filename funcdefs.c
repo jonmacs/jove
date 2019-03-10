@@ -202,7 +202,7 @@ extern int
 #ifdef LISP
 	GSexpr(),	/* Grind S Expression. */
 #endif
-	FAutoExec(),
+	CAutoExec(),
 	MAutoExec(),
 
 	DefMAbbrev(),
@@ -219,276 +219,276 @@ extern int
 	MacInter();		/* This is the last one. */
 
 
-#	define WIRED_FUNC(c)	c
+#	define WIRED_CMD(c)	c
 
 #else TXT_TO_C
 
-#	define WIRED_FUNC(c)	0
+#	define WIRED_CMD(c)	0
 
 #endif TXT_TO_C
 
-struct funct	commands[] = {
-	FUNCTION, "Prefix-1", WIRED_FUNC(EscPrefix),
-	FUNCTION, "Prefix-2", WIRED_FUNC(CtlxPrefix),
-	FUNCTION, "Prefix-3", WIRED_FUNC(MiscPrefix),
+struct cmd	commands[] = {
+	FUNCTION, "Prefix-1", WIRED_CMD(EscPrefix),
+	FUNCTION, "Prefix-2", WIRED_CMD(CtlxPrefix),
+	FUNCTION, "Prefix-3", WIRED_CMD(MiscPrefix),
 #ifdef ANSICODES
-	FUNCTION, "ansi-codes", WIRED_FUNC(AnsiCodes),
+	FUNCTION, "ansi-codes", WIRED_CMD(AnsiCodes),
 #endif
-	FUNCTION, "append-region", WIRED_FUNC(AppReg),
-	FUNCTION, "apropos", WIRED_FUNC(Apropos),
-	FUNCTION, "auto-execute-command", WIRED_FUNC(FAutoExec),
-	FUNCTION, "auto-execute-macro", WIRED_FUNC(MAutoExec),
+	FUNCTION, "append-region", WIRED_CMD(AppReg),
+	FUNCTION, "apropos", WIRED_CMD(Apropos),
+	FUNCTION, "auto-execute-command", WIRED_CMD(CAutoExec),
+	FUNCTION, "auto-execute-macro", WIRED_CMD(MAutoExec),
 	DefMinor(Fill), "auto-fill-mode", 0,
 	DefMinor(Indent), "auto-indent-mode", 0,
-	FUNCTION, "backward-character", WIRED_FUNC(BackChar),
-	FUNCTION, "backward-paragraph", WIRED_FUNC(BackPara),
-	FUNCTION, "backward-s-expression", WIRED_FUNC(BSexpr),
-	FUNCTION, "backward-sentence", WIRED_FUNC(Bos),
-	FUNCTION, "backward-word", WIRED_FUNC(BackWord),
-	FUNCTION, "beginning-of-file", WIRED_FUNC(Bof),
-	FUNCTION, "beginning-of-line", WIRED_FUNC(Bol),
-	FUNCTION, "beginning-of-window", WIRED_FUNC(Bow),
-	FUNCTION, "bind-to-key", WIRED_FUNC(BindAKey),
-	FUNCTION, "bind-macro-to-key", WIRED_FUNC(BindMac),
+	FUNCTION, "backward-character", WIRED_CMD(BackChar),
+	FUNCTION, "backward-paragraph", WIRED_CMD(BackPara),
+	FUNCTION, "backward-s-expression", WIRED_CMD(BSexpr),
+	FUNCTION, "backward-sentence", WIRED_CMD(Bos),
+	FUNCTION, "backward-word", WIRED_CMD(BackWord),
+	FUNCTION, "beginning-of-file", WIRED_CMD(Bof),
+	FUNCTION, "beginning-of-line", WIRED_CMD(Bol),
+	FUNCTION, "beginning-of-window", WIRED_CMD(Bow),
+	FUNCTION, "bind-to-key", WIRED_CMD(BindAKey),
+	FUNCTION, "bind-macro-to-key", WIRED_CMD(BindMac),
 #ifdef ABBREV
-	FUNCTION, "bind-macro-to-word-abbrev", WIRED_FUNC(BindMtoW),
+	FUNCTION, "bind-macro-to-word-abbrev", WIRED_CMD(BindMtoW),
 #endif
-	FUNCTION, "buffer-position", WIRED_FUNC(BufPos),
+	FUNCTION, "buffer-position", WIRED_CMD(BufPos),
 	DefMajor(CMODE), "c-mode", 0,
-	FUNCTION, "case-character-capitalize", WIRED_FUNC(CapChar),
-	FUNCTION, "case-region-lower", WIRED_FUNC(CasRegLower),
-	FUNCTION, "case-region-upper", WIRED_FUNC(CasRegUpper),
-	FUNCTION, "case-word-capitalize", WIRED_FUNC(CapWord),
-	FUNCTION, "case-word-lower", WIRED_FUNC(LowWord),
-	FUNCTION, "case-word-upper", WIRED_FUNC(UppWord),
-	FUNCTION, "character-to-octal-insert", WIRED_FUNC(ChrToOct),
+	FUNCTION, "case-character-capitalize", WIRED_CMD(CapChar),
+	FUNCTION, "case-region-lower", WIRED_CMD(CasRegLower),
+	FUNCTION, "case-region-upper", WIRED_CMD(CasRegUpper),
+	FUNCTION, "case-word-capitalize", WIRED_CMD(CapWord),
+	FUNCTION, "case-word-lower", WIRED_CMD(LowWord),
+	FUNCTION, "case-word-upper", WIRED_CMD(UppWord),
+	FUNCTION, "character-to-octal-insert", WIRED_CMD(ChrToOct),
 #ifdef CHDIR
-	FUNCTION, "cd", WIRED_FUNC(Chdir),
+	FUNCTION, "cd", WIRED_CMD(Chdir),
 #endif
-	FUNCTION, "clear-and-redraw", WIRED_FUNC(ClAndRedraw),
-	FUNCTION, "compile-it", WIRED_FUNC(MakeErrors),
+	FUNCTION, "clear-and-redraw", WIRED_CMD(ClAndRedraw),
+	FUNCTION, "compile-it", WIRED_CMD(MakeErrors),
 #ifdef IPROCS
 #  ifndef PIPEPROCS
 #    ifdef TIOCSLTC
-	FUNCTION, "continue-process", WIRED_FUNC(ProcCont),
+	FUNCTION, "continue-process", WIRED_CMD(ProcCont),
 #    endif
 #  endif
 #endif
-	FUNCTION, "copy-region", WIRED_FUNC(CopyRegion),
-	FUNCTION, "current-error", WIRED_FUNC(ShowErr),
-	FUNCTION, "date", WIRED_FUNC(prCTIME),
+	FUNCTION, "copy-region", WIRED_CMD(CopyRegion),
+	FUNCTION, "current-error", WIRED_CMD(ShowErr),
+	FUNCTION, "date", WIRED_CMD(prCTIME),
 #ifdef ABBREV
-	FUNCTION, "define-mode-word-abbrev", WIRED_FUNC(DefMAbbrev),
-	FUNCTION, "define-global-word-abbrev", WIRED_FUNC(DefGAbbrev),
+	FUNCTION, "define-mode-word-abbrev", WIRED_CMD(DefMAbbrev),
+	FUNCTION, "define-global-word-abbrev", WIRED_CMD(DefGAbbrev),
 #endif
-	FUNCTION, "delete-blank-lines", WIRED_FUNC(DelBlnkLines),
-	FUNCTION, "delete-buffer", WIRED_FUNC(BufKill),
-	FUNCTION, "delete-macro", WIRED_FUNC(DelMacro),
-	FUNCTION, "delete-next-character", WIRED_FUNC(DelNChar),
-	FUNCTION, "delete-other-windows", WIRED_FUNC(OneWindow),
-	FUNCTION, "delete-previous-character", WIRED_FUNC(DelPChar),
-	FUNCTION, "delete-white-space", WIRED_FUNC(DelWtSpace),
-	FUNCTION, "delete-current-window", WIRED_FUNC(DelCurWindow),
-	FUNCTION, "describe-bindings", WIRED_FUNC(DescBindings),
-	FUNCTION, "describe-command", WIRED_FUNC(DescCom),
-	FUNCTION, "describe-key", WIRED_FUNC(KeyDesc),
-	FUNCTION, "describe-variable", WIRED_FUNC(DescCom),
-	FUNCTION, "digit", WIRED_FUNC(Digit),
-	FUNCTION, "digit-1", WIRED_FUNC(Digit1),
-	FUNCTION, "digit-2", WIRED_FUNC(Digit2),
-	FUNCTION, "digit-3", WIRED_FUNC(Digit3),
-	FUNCTION, "digit-4", WIRED_FUNC(Digit4),
-	FUNCTION, "digit-5", WIRED_FUNC(Digit5),
-	FUNCTION, "digit-6", WIRED_FUNC(Digit6),
-	FUNCTION, "digit-7", WIRED_FUNC(Digit7),
-	FUNCTION, "digit-8", WIRED_FUNC(Digit8),
-	FUNCTION, "digit-9", WIRED_FUNC(Digit9),
-	FUNCTION, "digit-0", WIRED_FUNC(Digit0),
+	FUNCTION, "delete-blank-lines", WIRED_CMD(DelBlnkLines),
+	FUNCTION, "delete-buffer", WIRED_CMD(BufKill),
+	FUNCTION, "delete-macro", WIRED_CMD(DelMacro),
+	FUNCTION, "delete-next-character", WIRED_CMD(DelNChar),
+	FUNCTION, "delete-other-windows", WIRED_CMD(OneWindow),
+	FUNCTION, "delete-previous-character", WIRED_CMD(DelPChar),
+	FUNCTION, "delete-white-space", WIRED_CMD(DelWtSpace),
+	FUNCTION, "delete-current-window", WIRED_CMD(DelCurWindow),
+	FUNCTION, "describe-bindings", WIRED_CMD(DescBindings),
+	FUNCTION, "describe-command", WIRED_CMD(DescCom),
+	FUNCTION, "describe-key", WIRED_CMD(KeyDesc),
+	FUNCTION, "describe-variable", WIRED_CMD(DescCom),
+	FUNCTION, "digit", WIRED_CMD(Digit),
+	FUNCTION, "digit-1", WIRED_CMD(Digit1),
+	FUNCTION, "digit-2", WIRED_CMD(Digit2),
+	FUNCTION, "digit-3", WIRED_CMD(Digit3),
+	FUNCTION, "digit-4", WIRED_CMD(Digit4),
+	FUNCTION, "digit-5", WIRED_CMD(Digit5),
+	FUNCTION, "digit-6", WIRED_CMD(Digit6),
+	FUNCTION, "digit-7", WIRED_CMD(Digit7),
+	FUNCTION, "digit-8", WIRED_CMD(Digit8),
+	FUNCTION, "digit-9", WIRED_CMD(Digit9),
+	FUNCTION, "digit-0", WIRED_CMD(Digit0),
 #ifdef CHDIR
-	FUNCTION, "dirs", WIRED_FUNC(prDIRS),
+	FUNCTION, "dirs", WIRED_CMD(prDIRS),
 #endif
 #ifdef IPROCS
 #  ifndef PIPEPROCS
 #    ifdef TIOCSLTC
-	FUNCTION, "dstop-process", WIRED_FUNC(ProcDStop),
+	FUNCTION, "dstop-process", WIRED_CMD(ProcDStop),
 #    endif
 #  endif
 #endif
 #ifdef ABBREV
-	FUNCTION, "edit-word-abbrevs", WIRED_FUNC(EditAbbrevs),
+	FUNCTION, "edit-word-abbrevs", WIRED_CMD(EditAbbrevs),
 #endif
-	FUNCTION, "end-of-file", WIRED_FUNC(Eof),
-	FUNCTION, "end-of-line", WIRED_FUNC(Eol),
-	FUNCTION, "end-of-window", WIRED_FUNC(Eow),
+	FUNCTION, "end-of-file", WIRED_CMD(Eof),
+	FUNCTION, "end-of-line", WIRED_CMD(Eol),
+	FUNCTION, "end-of-window", WIRED_CMD(Eow),
 #ifdef IPROCS
 #  ifndef PIPEPROCS
 #    ifdef TIOCSLTC
-	FUNCTION, "eof-process", WIRED_FUNC(ProcEof),
+	FUNCTION, "eof-process", WIRED_CMD(ProcEof),
 #    endif
 #  endif
 #endif
-	FUNCTION, "erase-buffer", WIRED_FUNC(BufErase),
-	FUNCTION, "exchange-point-and-mark", WIRED_FUNC(PtToMark),
-	FUNCTION, "execute-named-command", WIRED_FUNC(Extend),
-	FUNCTION, "execute-keyboard-macro", WIRED_FUNC(ExecMacro),
-	FUNCTION, "execute-macro", WIRED_FUNC(RunMacro),
-	FUNCTION, "exit-jove", WIRED_FUNC(Leave),
+	FUNCTION, "erase-buffer", WIRED_CMD(BufErase),
+	FUNCTION, "exchange-point-and-mark", WIRED_CMD(PtToMark),
+	FUNCTION, "execute-named-command", WIRED_CMD(Extend),
+	FUNCTION, "execute-keyboard-macro", WIRED_CMD(ExecMacro),
+	FUNCTION, "execute-macro", WIRED_CMD(RunMacro),
+	FUNCTION, "exit-jove", WIRED_CMD(Leave),
 #ifdef CMT_FMT
- 	FUNCTION, "fill-comment", WIRED_FUNC(Comment),
+ 	FUNCTION, "fill-comment", WIRED_CMD(Comment),
 #endif CMT_FMT
-	FUNCTION, "fill-paragraph", WIRED_FUNC(Justify),
-	FUNCTION, "fill-region", WIRED_FUNC(RegJustify),
-	FUNCTION, "filter-region", WIRED_FUNC(FilterRegion),
-	FUNCTION, "find-file", WIRED_FUNC(FindFile),
-	FUNCTION, "find-tag", WIRED_FUNC(FindTag),
-	FUNCTION, "find-tag-at-point", WIRED_FUNC(FDotTag),
-	FUNCTION, "first-non-blank", WIRED_FUNC(ToIndent),
-	FUNCTION, "forward-character", WIRED_FUNC(ForChar),
-	FUNCTION, "forward-paragraph", WIRED_FUNC(ForPara),
-	FUNCTION, "forward-s-expression", WIRED_FUNC(FSexpr),
-	FUNCTION, "forward-sentence", WIRED_FUNC(Eos),
-	FUNCTION, "forward-word", WIRED_FUNC(ForWord),
+	FUNCTION, "fill-paragraph", WIRED_CMD(Justify),
+	FUNCTION, "fill-region", WIRED_CMD(RegJustify),
+	FUNCTION, "filter-region", WIRED_CMD(FilterRegion),
+	FUNCTION, "find-file", WIRED_CMD(FindFile),
+	FUNCTION, "find-tag", WIRED_CMD(FindTag),
+	FUNCTION, "find-tag-at-point", WIRED_CMD(FDotTag),
+	FUNCTION, "first-non-blank", WIRED_CMD(ToIndent),
+	FUNCTION, "forward-character", WIRED_CMD(ForChar),
+	FUNCTION, "forward-paragraph", WIRED_CMD(ForPara),
+	FUNCTION, "forward-s-expression", WIRED_CMD(FSexpr),
+	FUNCTION, "forward-sentence", WIRED_CMD(Eos),
+	FUNCTION, "forward-word", WIRED_CMD(ForWord),
 	DefMajor(FUNDAMENTAL), "fundamental-mode", 0,
 #ifdef LISP
-	FUNCTION, "grind-s-expr", WIRED_FUNC(GSexpr),
+	FUNCTION, "grind-s-expr", WIRED_CMD(GSexpr),
 #endif
-	FUNCTION, "goto-line", WIRED_FUNC(GoLine),
-	FUNCTION, "grow-window", WIRED_FUNC(GrowWindow),
-	FUNCTION, "handle-tab", WIRED_FUNC(Tab),
-	FUNCTION, "i-search-forward", WIRED_FUNC(IncFSearch),
-	FUNCTION, "i-search-reverse", WIRED_FUNC(IncRSearch),
-	FUNCTION, "insert-file", WIRED_FUNC(InsFile),
+	FUNCTION, "goto-line", WIRED_CMD(GoLine),
+	FUNCTION, "grow-window", WIRED_CMD(GrowWindow),
+	FUNCTION, "handle-tab", WIRED_CMD(Tab),
+	FUNCTION, "i-search-forward", WIRED_CMD(IncFSearch),
+	FUNCTION, "i-search-reverse", WIRED_CMD(IncRSearch),
+	FUNCTION, "insert-file", WIRED_CMD(InsFile),
 #ifdef IPROCS
-	FUNCTION, "interrupt-process", WIRED_FUNC(ProcInt),
-	FUNCTION, "i-shell", WIRED_FUNC(IShell),
-	FUNCTION, "i-shell-command", WIRED_FUNC(Iprocess),
+	FUNCTION, "interrupt-process", WIRED_CMD(ProcInt),
+	FUNCTION, "i-shell", WIRED_CMD(IShell),
+	FUNCTION, "i-shell-command", WIRED_CMD(Iprocess),
 #endif
-	FUNCTION, "kill-next-word", WIRED_FUNC(DelNWord),
-	FUNCTION, "kill-previous-word", WIRED_FUNC(DelPWord),
+	FUNCTION, "kill-next-word", WIRED_CMD(DelNWord),
+	FUNCTION, "kill-previous-word", WIRED_CMD(DelPWord),
 #ifdef IPROCS
-	FUNCTION, "kill-process", WIRED_FUNC(ProcKill),
+	FUNCTION, "kill-process", WIRED_CMD(ProcKill),
 #endif
-	FUNCTION, "kill-region", WIRED_FUNC(DelReg),
-	FUNCTION, "kill-s-expression", WIRED_FUNC(KillExpr),
-	FUNCTION, "kill-some-buffers", WIRED_FUNC(KillSome),
-	FUNCTION, "kill-to-beginning-of-sentence", WIRED_FUNC(KillBos),
-	FUNCTION, "kill-to-end-of-line", WIRED_FUNC(KillEOL),
-	FUNCTION, "kill-to-end-of-sentence", WIRED_FUNC(KillEos),
-	FUNCTION, "left-margin-here", WIRED_FUNC(SetLMargin),
+	FUNCTION, "kill-region", WIRED_CMD(DelReg),
+	FUNCTION, "kill-s-expression", WIRED_CMD(KillExpr),
+	FUNCTION, "kill-some-buffers", WIRED_CMD(KillSome),
+	FUNCTION, "kill-to-beginning-of-sentence", WIRED_CMD(KillBos),
+	FUNCTION, "kill-to-end-of-line", WIRED_CMD(KillEOL),
+	FUNCTION, "kill-to-end-of-sentence", WIRED_CMD(KillEos),
+	FUNCTION, "left-margin-here", WIRED_CMD(SetLMargin),
 #ifdef LISP
 	DefMajor(LISPMODE), "lisp-mode", 0,
 #endif
-	FUNCTION, "list-buffers", WIRED_FUNC(BufList),
+	FUNCTION, "list-buffers", WIRED_CMD(BufList),
 #ifdef IPROCS
-	FUNCTION, "list-processes", WIRED_FUNC(ProcList),
+	FUNCTION, "list-processes", WIRED_CMD(ProcList),
 #endif
-	FUNCTION, "make-buffer-unmodified", WIRED_FUNC(NotModified),
-	FUNCTION, "make-macro-interactive", WIRED_FUNC(MacInter),
-	FUNCTION, "name-keyboard-macro", WIRED_FUNC(NameMac),
-	FUNCTION, "newline", WIRED_FUNC(Newline),
-	FUNCTION, "newline-and-backup", WIRED_FUNC(OpenLine),
-	FUNCTION, "newline-and-indent", WIRED_FUNC(LineAI),
-	FUNCTION, "next-error", WIRED_FUNC(NextError),
-	FUNCTION, "next-line", WIRED_FUNC(NextLine),
-	FUNCTION, "next-page", WIRED_FUNC(NextPage),
-	FUNCTION, "next-window", WIRED_FUNC(NextWindow),
-	FUNCTION, "number-lines-in-window", WIRED_FUNC(WNumLines),
+	FUNCTION, "make-buffer-unmodified", WIRED_CMD(NotModified),
+	FUNCTION, "make-macro-interactive", WIRED_CMD(MacInter),
+	FUNCTION, "name-keyboard-macro", WIRED_CMD(NameMac),
+	FUNCTION, "newline", WIRED_CMD(Newline),
+	FUNCTION, "newline-and-backup", WIRED_CMD(OpenLine),
+	FUNCTION, "newline-and-indent", WIRED_CMD(LineAI),
+	FUNCTION, "next-error", WIRED_CMD(NextError),
+	FUNCTION, "next-line", WIRED_CMD(NextLine),
+	FUNCTION, "next-page", WIRED_CMD(NextPage),
+	FUNCTION, "next-window", WIRED_CMD(NextWindow),
+	FUNCTION, "number-lines-in-window", WIRED_CMD(WNumLines),
 	DefMinor(OverWrite), "over-write-mode", 0,
-	FUNCTION, "page-next-window", WIRED_FUNC(PageNWind),
-	FUNCTION, "paren-flash", WIRED_FUNC(DoParen),
-	FUNCTION, "parse-errors", WIRED_FUNC(ParseAll),
-	FUNCTION, "parse-special-errors", WIRED_FUNC(XParse),
+	FUNCTION, "page-next-window", WIRED_CMD(PageNWind),
+	FUNCTION, "paren-flash", WIRED_CMD(DoParen),
+	FUNCTION, "parse-errors", WIRED_CMD(ParseAll),
+	FUNCTION, "parse-special-errors", WIRED_CMD(XParse),
 #ifdef SPELL
-	FUNCTION, "parse-spelling-errors-in-buffer", WIRED_FUNC(SpelWords),
+	FUNCTION, "parse-spelling-errors-in-buffer", WIRED_CMD(SpelWords),
 #endif
 #ifdef JOB_CONTROL
-	FUNCTION, "pause-jove", WIRED_FUNC(PauseJove),
+	FUNCTION, "pause-jove", WIRED_CMD(PauseJove),
 #else
-	FUNCTION, "pause-jove", WIRED_FUNC(Push),
+	FUNCTION, "pause-jove", WIRED_CMD(Push),
 #endif
-	FUNCTION, "pop-mark", WIRED_FUNC(PopMark),
+	FUNCTION, "pop-mark", WIRED_CMD(PopMark),
 #ifdef CHDIR
-	FUNCTION, "popd", WIRED_FUNC(Popd),
+	FUNCTION, "popd", WIRED_CMD(Popd),
 #endif
-	FUNCTION, "previous-error", WIRED_FUNC(PrevError),
-	FUNCTION, "previous-line", WIRED_FUNC(PrevLine),
-	FUNCTION, "previous-page", WIRED_FUNC(PrevPage),
-	FUNCTION, "previous-window", WIRED_FUNC(PrevWindow),
-	FUNCTION, "print", WIRED_FUNC(PrVar),
+	FUNCTION, "previous-error", WIRED_CMD(PrevError),
+	FUNCTION, "previous-line", WIRED_CMD(PrevLine),
+	FUNCTION, "previous-page", WIRED_CMD(PrevPage),
+	FUNCTION, "previous-window", WIRED_CMD(PrevWindow),
+	FUNCTION, "print", WIRED_CMD(PrVar),
 #ifdef IPROCS
-	FUNCTION, "process-bind-to-key", WIRED_FUNC(ProcBind),
-	FUNCTION, "process-newline", WIRED_FUNC(ProcNewline),
+	FUNCTION, "process-bind-to-key", WIRED_CMD(ProcBind),
+	FUNCTION, "process-newline", WIRED_CMD(ProcNewline),
 #endif
-	FUNCTION, "push-shell", WIRED_FUNC(Push),
+	FUNCTION, "push-shell", WIRED_CMD(Push),
 #ifdef CHDIR
-	FUNCTION, "pushd", WIRED_FUNC(Pushd),
-	FUNCTION, "pwd", WIRED_FUNC(prCWD),
+	FUNCTION, "pushd", WIRED_CMD(Pushd),
+	FUNCTION, "pwd", WIRED_CMD(prCWD),
 #endif
-	FUNCTION, "quadruple-numeric-argument", WIRED_FUNC(FourTime),
-	FUNCTION, "query-replace-string", WIRED_FUNC(QRepSearch),
+	FUNCTION, "quadruple-numeric-argument", WIRED_CMD(FourTime),
+	FUNCTION, "query-replace-string", WIRED_CMD(QRepSearch),
 #ifdef IPROCS
-	FUNCTION, "quit-process", WIRED_FUNC(ProcQuit),
+	FUNCTION, "quit-process", WIRED_CMD(ProcQuit),
 #endif
-	FUNCTION, "quoted-insert", WIRED_FUNC(QuotChar),
+	FUNCTION, "quoted-insert", WIRED_CMD(QuotChar),
 #ifdef ABBREV
-	FUNCTION, "read-word-abbrev-file", WIRED_FUNC(RestAbbrevs),
+	FUNCTION, "read-word-abbrev-file", WIRED_CMD(RestAbbrevs),
 #endif
-	FUNCTION, "read-macros-from-file", WIRED_FUNC(ReadMacs),
-	FUNCTION, "redraw-display", WIRED_FUNC(RedrawDisplay),
-	FUNCTION, "recursive-edit", WIRED_FUNC(Recur),
-	FUNCTION, "rename-buffer", WIRED_FUNC(ReNamBuf),
-	FUNCTION, "replace-in-region", WIRED_FUNC(RegReplace),
-	FUNCTION, "replace-string", WIRED_FUNC(RepSearch),
-	FUNCTION, "right-margin-here", WIRED_FUNC(SetRMargin),
-	FUNCTION, "save-file", WIRED_FUNC(SaveFile),
-	FUNCTION, "scroll-down", WIRED_FUNC(DownScroll),
-	FUNCTION, "scroll-up", WIRED_FUNC(UpScroll),
-	FUNCTION, "search-forward", WIRED_FUNC(ForSearch),
-	FUNCTION, "search-reverse", WIRED_FUNC(RevSearch),
-	FUNCTION, "select-buffer", WIRED_FUNC(BufSelect),
-	FUNCTION, "self-insert", WIRED_FUNC(SelfInsert),
-	FUNCTION, "set", WIRED_FUNC(SetVar),
-	FUNCTION, "set-mark", WIRED_FUNC(SetMark),
-	FUNCTION, "shell-command", WIRED_FUNC(ShellCom),
-	FUNCTION, "shell-command-to-buffer", WIRED_FUNC(ShToBuf),
+	FUNCTION, "read-macros-from-file", WIRED_CMD(ReadMacs),
+	FUNCTION, "redraw-display", WIRED_CMD(RedrawDisplay),
+	FUNCTION, "recursive-edit", WIRED_CMD(Recur),
+	FUNCTION, "rename-buffer", WIRED_CMD(ReNamBuf),
+	FUNCTION, "replace-in-region", WIRED_CMD(RegReplace),
+	FUNCTION, "replace-string", WIRED_CMD(RepSearch),
+	FUNCTION, "right-margin-here", WIRED_CMD(SetRMargin),
+	FUNCTION, "save-file", WIRED_CMD(SaveFile),
+	FUNCTION, "scroll-down", WIRED_CMD(DownScroll),
+	FUNCTION, "scroll-up", WIRED_CMD(UpScroll),
+	FUNCTION, "search-forward", WIRED_CMD(ForSearch),
+	FUNCTION, "search-reverse", WIRED_CMD(RevSearch),
+	FUNCTION, "select-buffer", WIRED_CMD(BufSelect),
+	FUNCTION, "self-insert", WIRED_CMD(SelfInsert),
+	FUNCTION, "set", WIRED_CMD(SetVar),
+	FUNCTION, "set-mark", WIRED_CMD(SetMark),
+	FUNCTION, "shell-command", WIRED_CMD(ShellCom),
+	FUNCTION, "shell-command-to-buffer", WIRED_CMD(ShToBuf),
 	DefMinor(ShowMatch), "show-match-mode", 0,
-	FUNCTION, "shrink-window", WIRED_FUNC(ShrWindow),
-	FUNCTION, "source", WIRED_FUNC(Source),
+	FUNCTION, "shrink-window", WIRED_CMD(ShrWindow),
+	FUNCTION, "source", WIRED_CMD(Source),
 #ifdef SPELL
-	FUNCTION, "spell-buffer", WIRED_FUNC(SpelBuffer),
+	FUNCTION, "spell-buffer", WIRED_CMD(SpelBuffer),
 #endif
-	FUNCTION, "split-current-window", WIRED_FUNC(SplitWind),
-	FUNCTION, "start-remembering", WIRED_FUNC(Remember),
+	FUNCTION, "split-current-window", WIRED_CMD(SplitWind),
+	FUNCTION, "start-remembering", WIRED_CMD(Remember),
 #ifdef IPROCS
 #  ifndef PIPEPROCS
 #    ifdef TIOCSLTC
-	FUNCTION, "stop-process", WIRED_FUNC(ProcStop),
+	FUNCTION, "stop-process", WIRED_CMD(ProcStop),
 #    endif
 #  endif
 #endif
-	FUNCTION, "stop-remembering", WIRED_FUNC(Forget),
-	FUNCTION, "string-length", WIRED_FUNC(StrLength),
+	FUNCTION, "stop-remembering", WIRED_CMD(Forget),
+	FUNCTION, "string-length", WIRED_CMD(StrLength),
 #ifdef JOB_CONTROL
-	FUNCTION, "suspend-jove", WIRED_FUNC(PauseJove),
+	FUNCTION, "suspend-jove", WIRED_CMD(PauseJove),
 #endif
 	DefMajor(TEXT), "text-mode", 0,
-	FUNCTION, "transpose-characters", WIRED_FUNC(TransChar),
-	FUNCTION, "transpose-lines", WIRED_FUNC(TransLines),
-	FUNCTION, "unbind-key", WIRED_FUNC(UnbindC),
-	FUNCTION, "version", WIRED_FUNC(ShowVersion),
-	FUNCTION, "visible-spaces-in-window", WIRED_FUNC(WVisSpace),
-	FUNCTION, "visit-file", WIRED_FUNC(ReadFile),
-	FUNCTION, "window-find", WIRED_FUNC(WindFind),
+	FUNCTION, "transpose-characters", WIRED_CMD(TransChar),
+	FUNCTION, "transpose-lines", WIRED_CMD(TransLines),
+	FUNCTION, "unbind-key", WIRED_CMD(UnbindC),
+	FUNCTION, "version", WIRED_CMD(ShowVersion),
+	FUNCTION, "visible-spaces-in-window", WIRED_CMD(WVisSpace),
+	FUNCTION, "visit-file", WIRED_CMD(ReadFile),
+	FUNCTION, "window-find", WIRED_CMD(WindFind),
 #ifdef ABBREV
 	DefMinor(Abbrev), "word-abbrev-mode", 0,
-	FUNCTION, "write-word-abbrev-file", WIRED_FUNC(SaveAbbrevs),
+	FUNCTION, "write-word-abbrev-file", WIRED_CMD(SaveAbbrevs),
 #endif
-	FUNCTION, "write-file", WIRED_FUNC(WriteFile),
-	FUNCTION, "write-macros-to-file", WIRED_FUNC(WriteMacs),
-	FUNCTION, "write-modified-files", WIRED_FUNC(WtModBuf),
-	FUNCTION, "write-region", WIRED_FUNC(WrtReg),
-	FUNCTION, "yank", WIRED_FUNC(Yank),
-	FUNCTION, "yank-pop", WIRED_FUNC(YankPop),
+	FUNCTION, "write-file", WIRED_CMD(WriteFile),
+	FUNCTION, "write-macros-to-file", WIRED_CMD(WriteMacs),
+	FUNCTION, "write-modified-files", WIRED_CMD(WtModBuf),
+	FUNCTION, "write-region", WIRED_CMD(WrtReg),
+	FUNCTION, "yank", WIRED_CMD(Yank),
+	FUNCTION, "yank-pop", WIRED_CMD(YankPop),
 	FUNCTION, 0, 0
 };
 
@@ -497,17 +497,17 @@ data_obj *
 findcom(prompt, flags)
 char	*prompt;
 {
-	static char	*strings[(sizeof commands) / sizeof (struct funct)];
+	static char	*strings[(sizeof commands) / sizeof (commands[0])];
 	static int	beenhere = 0;
 	register int	com;
 
 	if (beenhere == 0) {
 		register char	**strs = strings;
-		register struct funct	*f = commands;
+		register struct cmd	*c = commands;
 
 		beenhere = 1;
-		for (; f->Name; f++)
-			*strs++ = f->Name;
+		for (; c->Name; c++)
+			*strs++ = c->Name;
 		*strs = 0;
 	}
 

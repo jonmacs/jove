@@ -266,7 +266,7 @@ struct proc_bind {
 	int		pb_key;
 	data_obj	**pb_map;
 	data_obj	*pb_push;
-	data_obj	*pb_proc;
+	data_obj	*pb_cmd;
 	struct proc_bind *pb_next;
 };
 
@@ -286,7 +286,7 @@ PushPBs()
 
 	for (p = PBinds; p != 0; p = p->pb_next) {
 		p->pb_push = p->pb_map[p->pb_key];
-		p->pb_map[p->pb_key] = p->pb_proc;
+		p->pb_map[p->pb_key] = p->pb_cmd;
 	}
 }
 /* VARARGS0 */
@@ -301,9 +301,9 @@ ProcBind()
 	ProcB2(mainmap, EOF, d);
 }
 
-ProcB2(map, lastkey, func)
+ProcB2(map, lastkey, cmd)
 data_obj	**map,
-		*func;
+		*cmd;
 {
 	register struct proc_bind *p;
 	data_obj	**nextmap;
@@ -316,7 +316,7 @@ data_obj	**map,
 		complain("[Unexpected end-of-line]");
 	} else {
 		if (nextmap = IsPrefix(map[c]))
-			ProcB2(nextmap, c, func);
+			ProcB2(nextmap, c, cmd);
 		else {
 			if (curbuf->b_type == B_IPROCESS)
 				PopPBs();
@@ -331,7 +331,7 @@ data_obj	**map,
 			}
 			p->pb_map = map;
 			p->pb_key = c;
-			p->pb_proc = func;
+			p->pb_cmd = cmd;
 
 			if (curbuf->b_type == B_IPROCESS)
 				PushPBs();

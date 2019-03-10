@@ -184,7 +184,7 @@ DoParen()
 	int	nx,
 		c = LastKeyStruck;
 
-	if (!index(")}]", c)) {
+	if (!isclosep(c)) {
 		SelfInsert();
 		return;
 	}
@@ -203,7 +203,8 @@ DoParen()
 	if (MinorMode(ShowMatch) && !charp() && !in_macro()) {
 		BackChar();	/* Back onto the ')' */
 		if ((int) bp == -1)
-			bp = m_paren(c, BACKWARD);
+			bp = m_paren(c, BACKWARD, NO, YES);
+		ForChar();
 		if (bp != 0) {
 			nx = in_window(curwind, bp->p_line);
 			if (nx != -1) {		/* is visible */
@@ -214,12 +215,9 @@ DoParen()
 				(void) SitFor(PDelay);
 				SetDot(&b);
 			} else
-				s_mess("%s", getright(bp->p_line, genbuf));
-		} else {
-			rbell();
-			message("[Mismatched parentheses]");
+				s_mess("%s", lcontents(bp->p_line));
 		}
-		ForChar();
+		mp_error();	/* display error message */
 	}
 }
 
@@ -303,10 +301,11 @@ register char	*str;
 
 OpenLine()
 {
-	register int	num = exp;
+	Bufpos	dot;
 
+	DOTsave(&dot);
 	LineInsert();	/* Open the lines... */
-	DoTimes(BackChar(), num);
+	SetDot(&dot);
 }
 
 /* Take the region FLINE/FCHAR to TLINE/TCHAR and insert it at
@@ -329,10 +328,10 @@ Buffer	*whatbuf;
 	lsave();
 	if (whatbuf)
 		modify();
-	(void) getright(atline, genbuf);
+	(void) ltobuf(atline, genbuf);
 	strcpy(save, &genbuf[atchar]);
 
-	(void) getright(fline, buf);
+	(void) ltobuf(fline, buf);
 	if (fline == tline)
 		buf[tchar] = '\0';
 
@@ -594,7 +593,7 @@ lisp_indent()
 		savedot;
 	int	goal;
 
-	bp = m_paren(')', BACKWARD);
+	bp = m_paren(')', BACKWARD, NO, YES);
 
 	if (bp == 0)
 		return 0;

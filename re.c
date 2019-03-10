@@ -30,10 +30,10 @@ int	CaseIgnore = 0,
 
 #define cind_cmp(a, b)	(Upper(a) == Upper(b))
 
-static int	REpeekc;
-static char	*REptr;
+private int	REpeekc;
+private char	*REptr;
 
-static
+private
 REgetc()
 {
 	int	c;
@@ -68,8 +68,8 @@ REgetc()
 #define EOP	BACKREF+2	/* end of pattern */
 
 #define NPAR	9	/* [1-9] */
-static int	nparens;
-static char	*comp_p,
+private int	nparens;
+private char	*comp_p,
 		**alt_p,
 		**alt_endp;
 
@@ -91,7 +91,7 @@ char	*pattern,
 
 /* Compile the pattern into an internal code. */
 
-static
+private
 do_comp(kind)
 {
 	char	*last_p;
@@ -218,10 +218,7 @@ do_comp(kind)
 		    	int	chrcnt;
 
 		    	*comp_p++ = ONE_OF;
-		    	*comp_p++ = 0;
-		    	/* Here will eventually store the number of
-		    	   characters between the [ and ], but for now
-		    	   we stuff it with a 0. */
+		    	bzero(comp_p, 16);
 		    	if ((REpeekc = REgetc()) == '^') {
 		    		*last_p = NONE_OF;
 		    		/* Get it for real this time. */
@@ -231,14 +228,24 @@ do_comp(kind)
 		    	while ((c = REgetc()) != ']' && c != 0) {
 		    		if (c == '\\')
 		    			c = REgetc();
+				else if ((REpeekc = REgetc()) == '-') {
+					int	c2;
+
+					(void) REgetc();	/* read '-' */
+					c2 = REgetc();
+					while (c < c2) {
+						comp_p[c/8] |= (1 << (c%8));
+						c++;
+					}
+				}
+				comp_p[c/8] |= (1 << (c%8));
 		    		chrcnt++;
-		    		*comp_p++ = c;
 		    	}
 		    	if (c == 0)
 		    		complain("Missing ].");
 		    	if (chrcnt == 1)
 		    		complain("Empty [].");
-		    	last_p[1] = chrcnt;
+		    	comp_p += 16;
 		    	continue;
 		    }
 
@@ -264,7 +271,7 @@ outahere:
 	return ret_code;
 }
 
-static char	*pstrtlst[NPAR],	/* index into REbuf. */
+private char	*pstrtlst[NPAR],	/* index into REbuf */
 		*pendlst[NPAR],
 		*REbolp,
 		*locs,
@@ -275,7 +282,7 @@ int	REbom,
 	REeom,		/* beginning and end of match */
 	REalt_num;	/* if alternatives, which one matched? */
 
-static
+private
 backref(n, linep)
 register char	*linep;
 {
@@ -290,7 +297,7 @@ register char	*linep;
 	return 0;
 }
 
-static
+private
 member(comp_p, c, af)
 register char	*comp_p;
 register int	c;
@@ -299,22 +306,13 @@ register int	c;
 	char	*base;
 
 	if (c == 0)
-		return 0;
-	n = *comp_p++;
-	base = comp_p;
-	while (--n >= 0) {
-		if ((*comp_p == '-') && (n > 0) && (comp_p > base)) {
-			if (c >= comp_p[-1] && c <= comp_p[1])
-				return af;
-			comp_p += 2;
-			n--;
-		} else if (*comp_p++ == c)
-			return af;
-	}
+		return 0;	/* try to match EOL always fails */
+	if (comp_p[c/8] & (1 << (c%8)))
+		return af;
 	return !af;
 }
 
-static
+private
 REmatch(linep, comp_p)
 register char	*linep,
 		*comp_p;
@@ -367,7 +365,7 @@ register char	*linep,
 	case ONE_OF:
 	case NONE_OF:
 		if (member(comp_p, *linep++, comp_p[-1] == ONE_OF)) {
-			comp_p += *comp_p;
+			comp_p += 16;
 			continue;
 		}
 		return 0;
@@ -433,7 +431,7 @@ register char	*linep,
 		first_p = linep;
 		while (member(comp_p, *linep++, comp_p[-1] == (ONE_OF | STAR)))
 			;
-		comp_p += *comp_p;
+		comp_p += 16;
 		goto star;
 
 	case BACKREF | STAR:
@@ -463,7 +461,7 @@ star:		do {
 	/* NOTREACHED. */
 }
 
-static
+private
 REreset()
 {
 	register int	i;
@@ -481,34 +479,44 @@ REreset()
    destination strings are the same.  I hate all these arguments! */
 
 re_lindex(line, offset, expr, alts, lbuf_okay)
-register Line	*line;
+Line	*line;
 char	*expr,
 	**alts;
 {
 	int	isquick;
 	register int	firstc,
-			re_dir = REdirection;
+			c;
+	register char	*resp;
 
 	REreset();
-	if (lbuf_okay)
-		REbolp = getcptr(line, REbuf);
-	else
-		REbolp = getright(line, REbuf);
-	if (offset == -1) {	/* Reverse search, find end of line. */
-		extern int	Jr_Len;
+	if (lbuf_okay) {
+		REbolp = lbptr(line);
+		if (offset == -1)
+			offset = strlen(REbolp);	/* arg! */
+	} else {
+		REbolp = ltobuf(line, REbuf);
+		if (offset == -1) {	/* Reverse search, find end of line. */
+			extern int	Jr_Len;
 
-		offset = Jr_Len;	/* Just Read Len. */
+			offset = Jr_Len;	/* Just Read Len. */
+		}
 	}
+	resp = REbolp;
 	isquick = (expr[0] == NORMC && alternates[1] == 0);
 	if (isquick)
 		firstc = expr[1];
 	locs = REbolp + offset;
 
-	do {
+	if (REdirection == FORWARD) {
+	    do {
 		char	**altp = alts;
 
-		if (isquick && *locs != firstc)
-			continue;
+		if (isquick) {
+			while ((c = *locs++) != 0 && c != firstc)
+				;
+			if (*--locs == 0)
+				break;
+		}
 		REalt_num = 1;
 		while (*altp) {
 			if (REmatch(locs, *altp++)) {
@@ -518,7 +526,28 @@ char	*expr,
 			}
 			REalt_num++;
 		}
-	} while ((re_dir == FORWARD) ? *locs++ : locs-- > REbolp);
+	    } while (*locs++);
+	} else {
+	    do {
+		char	**altp = alts;
+
+		if (isquick) {
+			while (locs >= REbolp && *locs-- != firstc)
+				;
+			if (*++locs != firstc)
+				break;
+		}
+		REalt_num = 1;
+		while (*altp) {
+			if (REmatch(locs, *altp++)) {
+				loc1 = locs;
+				REbom = loc1 - REbolp;
+				return 1;
+			}
+			REalt_num++;
+		}
+	    } while (--locs >= resp);
+	}
 
 	return 0;
 }
@@ -554,6 +583,13 @@ char	*expr,
 	register int	offset;
 	int	we_wrapped = 0;
 
+	lsave();
+	/* Search now lsave()'s so it doesn't make any assumptions on
+	   whether the the contents of curline/curchar are in linebuf.
+	   Nowhere does search write all over linebuf.  However, we have to
+	   be careful about what calls we make here, because many of them
+	   assume (and rightly so) that curline is in linebuf. */
+
 	REdirection = dir;
 	DOTsave(&push_dot);
 	if (dir == BACKWARD) {
@@ -564,9 +600,16 @@ char	*expr,
 			}
 			return 0;
 		}
-		BackChar();
-	} else if (dir == FORWARD && eolp())
-		ForChar();
+		/* here we simulate BackChar() */
+		if (bolp()) {
+			curline = curline->l_prev;
+			curchar = strlen(lbptr(curline));
+		} else
+			--curchar;
+	} else if (dir == FORWARD && (lbptr(curline)[curchar] == '\0') && !lastp(curline)) {
+		curline = curline->l_next;
+		curchar = 0;
+	}
 	lp = curline;
 	offset = curchar;
 
@@ -591,7 +634,8 @@ doit:		lp = (dir == FORWARD) ? lp->l_next : lp->l_prev;
 
 	if (lp == push_dot.p_line && we_wrapped)
 		lp = 0;
-	SetDot(&push_dot);
+	curline = push_dot.p_line;
+	curchar = push_dot.p_char;
 	if (lp == 0)
 		return 0;
 	ret.p_line = lp;
@@ -599,7 +643,7 @@ doit:		lp = (dir == FORWARD) ? lp->l_next : lp->l_prev;
 	return &ret;
 }
 
-static char *
+private char *
 insert(off, endp, which)
 char	*off,
 	*endp;
@@ -712,7 +756,7 @@ RevSearch()
 	search(BACKWARD, UseRE);
 }
 
-static
+private
 search(dir, re)
 {
 	Bufpos	*newdot;

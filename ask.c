@@ -19,8 +19,8 @@
 
 int	Asking = 0;
 char	Minibuf[LBSIZE];
-Line	*CurAskPtr = 0;		/* points at some line in mini-buffer */
-Buffer	*AskBuffer = 0;		/* Askbuffer points to actual structure */
+private Line	*CurAskPtr = 0;	/* points at some line in mini-buffer */
+private Buffer	*AskBuffer = 0;	/* Askbuffer points to actual structure */
 
 /* The way the mini-buffer works is this:  The first line of the mini-buffer
    is where the user does his stuff.  The rest of the buffer contains
@@ -41,7 +41,7 @@ get_minibuf()
 
 /* Add a string to the mini-buffer. */
 
-minib_add(str)
+minib_add(str, movedown)
 char	*str;
 {
 	register Buffer	*saveb = curbuf;
@@ -49,15 +49,17 @@ char	*str;
 	SetBuf(get_minibuf());
 	LineInsert();
 	ins_str(str, NO);
+	if (movedown)
+		CurAskPtr = curline;
 	SetBuf(saveb);
 }
 
 static char *
-real_ask(delim, d_func, def, prompt)
+real_ask(delim, d_proc, def, prompt)
 char	*delim,
 	*def,
 	*prompt;
-int	(*d_func)();
+int	(*d_proc)();
 {
 	static int	InAsk = 0;
 	jmp_buf	savejmp;
@@ -66,7 +68,7 @@ int	(*d_func)();
 	Buffer	*saveb = curbuf;
 	int	abort = 0,
 		no_typed = 0;
-	data_obj	*push_func = LastFunc;
+	data_obj	*push_cmd = LastCmd;
 	int	o_exp = exp,
 		o_exp_p = exp_p;
 
@@ -98,7 +100,7 @@ cont:		s_mess("%s%s", prompt, linebuf);
 		Asking = curchar + prompt_len;
 		c = getch();
 		if ((c == EOF) || index(delim, c)) {
-			if (d_func == 0 || (*d_func)(c) == 0)
+			if (d_proc == 0 || (*d_proc)(c) == 0)
 				goto cleanup;
 		} else switch (c) {
 		case CTL(G):
@@ -114,7 +116,7 @@ cont:		s_mess("%s%s", prompt, linebuf);
 				CurAskPtr = next_line(CurAskPtr, n);
 				if (CurAskPtr == curbuf->b_first && CurAskPtr->l_next != 0)
 					CurAskPtr = CurAskPtr->l_next;
-				(void) getright(CurAskPtr, linebuf);
+				(void) ltobuf(CurAskPtr, linebuf);
 				modify();
 				makedirty(curline);
 				Eol();
@@ -145,7 +147,7 @@ cont:		s_mess("%s%s", prompt, linebuf);
 cleanup:
 	pop_env(savejmp);
 
-	LastFunc = push_func;
+	LastCmd = push_cmd;
 	exp_p = o_exp_p;
 	exp = o_exp;
 	no_typed = (linebuf[0] == '\0');
@@ -191,11 +193,11 @@ va_dcl
 /* VARARGS2 */
 
 char *
-do_ask(delim, d_func, def, fmt, va_alist)
+do_ask(delim, d_proc, def, fmt, va_alist)
 char	*delim,
 	*def,
 	*fmt;
-int	(*d_func)();
+int	(*d_proc)();
 va_dcl
 {
 	char	prompt[128];
@@ -204,7 +206,7 @@ va_dcl
 	va_start(ap);
 	format(prompt, sizeof prompt, fmt, ap);
 	va_end(ap);
-	return real_ask(delim, d_func, def, prompt);
+	return real_ask(delim, d_proc, def, prompt);
 }
 
 #ifdef F_COMPLETION
@@ -403,7 +405,7 @@ char	*def,
 	else
 		sprintf(prompt, ProcFmt);
 #ifdef F_COMPLETION
-	ans = real_ask("\r\n ?", f_complete, pretty_name, prompt);
+  	ans = real_ask("\r\n ?", f_complete, pretty_name, prompt);
 	if (ans == 0 && (ans = pretty_name) == 0)
 		complain("[No default file name]");
 #else

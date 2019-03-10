@@ -47,7 +47,7 @@
 
 #define WIRED_TERMS	/* include code for wired terminals */
 
-#define ANSICODES	/* Include extra functions that process
+#define ANSICODES	/* Include extra commands that process
 			   ANSI codes sequences.  Includes simple
 			   mouse support pointing. */
 

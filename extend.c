@@ -26,16 +26,16 @@ extern int	getch(),
 
 #define NEXECS	20
 
-static struct {
+private struct {
 	char	*a_pattern;
-	data_obj	*a_func;
+	data_obj	*a_cmd;
 } AutoExecs[NEXECS] = {0};
 
-static int	ExecIndex = 0;
+private int	ExecIndex = 0;
 
-/* Function auto-execute. */
+/* Command auto-execute. */
 
-FAutoExec()
+CAutoExec()
 {
 	DefAutoExec(findcom);
 }
@@ -49,8 +49,8 @@ MAutoExec()
 
 /* VARARGS0 */
 
-DefAutoExec(func)
-data_obj	*(*func)();
+DefAutoExec(proc)
+data_obj	*(*proc)();
 {
 	data_obj	*d;
 	char	*pattern;
@@ -58,21 +58,21 @@ data_obj	*(*func)();
 
 	if (ExecIndex >= NEXECS)
 		complain("Too many auto-executes, max %d.", NEXECS);
-	if ((d = (*func)(ProcFmt, NOTHING)) == 0)
+	if ((d = (*proc)(ProcFmt, NOTHING)) == 0)
 		return;
 	pattern = ask((char *) 0, ": %f %s ", d->Name);
 	for (i = 0; i < ExecIndex; i++)
-		if ((AutoExecs[i].a_func == d) &&
+		if ((AutoExecs[i].a_cmd == d) &&
 		    (strcmp(pattern, AutoExecs[i].a_pattern) == 0))
 		    	return;		/* Eliminate duplicates. */
 	AutoExecs[ExecIndex].a_pattern = copystr(pattern);
-	AutoExecs[ExecIndex].a_func = d;
+	AutoExecs[ExecIndex].a_cmd = d;
 	ExecIndex++;
 }
 
 /* DoAutoExec: NEW and OLD are file names, and if NEW and OLD aren't the
    same kind of file (i.e., match the same pattern) or OLD is 0 and it
-   matches, we execute the function associated with that kind of file. */
+   matches, we execute the command associated with that kind of file. */
  
 DoAutoExec(new, old)
 register char	*new,
@@ -88,7 +88,7 @@ register char	*new,
 	for (i = 0; i < ExecIndex; i++)
 		if ((LookingAt(AutoExecs[i].a_pattern, new, 0)) &&
 		    (old == 0 || !LookingAt(AutoExecs[i].a_pattern, old, 0)))
-			ExecFunc(AutoExecs[i].a_func);
+			ExecCmd(AutoExecs[i].a_cmd);
 }
 
 BindAKey()
@@ -106,19 +106,19 @@ extern int	EscPrefix(),
 		MiscPrefix();
 
 data_obj **
-IsPrefix(fp)
-data_obj	*fp;
+IsPrefix(cp)
+data_obj	*cp;
 {
-	int	(*func)();
+	int	(*proc)();
 
-	if (fp == 0 || (fp->Type & TYPEMASK) != FUNCTION)
+	if (cp == 0 || (cp->Type & TYPEMASK) != FUNCTION)
 		return 0;
-	func = ((struct funct *) fp)->f_func;
-	if (func == EscPrefix)
+	proc = ((struct cmd *) cp)->c_proc;
+	if (proc == EscPrefix)
 		return pref1map;
-	if (func == CtlxPrefix)
+	if (proc == CtlxPrefix)
 		return pref2map;
-	if (func == MiscPrefix)
+	if (proc == MiscPrefix)
 		return miscmap;
 	return 0;
 }
@@ -180,9 +180,9 @@ addgetc()
 	return c;
 }
 
-BindWMap(map, lastkey, func)
+BindWMap(map, lastkey, cmd)
 data_obj	**map,
-		*func;
+		*cmd;
 {
 	data_obj	**nextmap;
 	int	c;
@@ -194,20 +194,20 @@ data_obj	**map,
 		complain("[Premature end of key sequence]");
 	} else {
 		if (nextmap = IsPrefix(map[c]))
-			BindWMap(nextmap, c, func);
+			BindWMap(nextmap, c, cmd);
 		else
-			map[c] = func;
+			map[c] = cmd;
 	}
 }
 
 /* VARARGS0 */
 
-BindSomething(func)
-data_obj	*(*func)();
+BindSomething(proc)
+data_obj	*(*proc)();
 {
 	data_obj	*d;
 
-	if ((d = (*func)(ProcFmt, NOTHING)) == 0)
+	if ((d = (*proc)(ProcFmt, NOTHING)) == 0)
 		return;
 	s_mess(": %f %s ", d->Name);
 	BindWMap(mainmap, EOF, d);
@@ -218,15 +218,15 @@ data_obj	*(*func)();
 DescWMap(map, key)
 data_obj	**map;
 {
-	data_obj	*fp = map[key],
+	data_obj	*cp = map[key],
 			**prefp;
 
-	if (fp == 0)
+	if (cp == 0)
 		add_mess("is unbound.");
-	else if (prefp = IsPrefix(fp))
+	else if (prefp = IsPrefix(cp))
 		DescWMap(prefp, addgetc());
 	else
-		add_mess("is bound to %s.", fp->Name);
+		add_mess("is bound to %s.", cp->Name);
 }
 
 KeyDesc()
@@ -239,11 +239,11 @@ DescCom()
 {
 	data_obj	*dp;
 	char	pattern[100],
-		key_bind[40],
+		doc_type[40],
 		*file = CMD_DB;
 	File	*fp;
 
-	if (!strcmp(LastFunc->Name, "describe-variable"))
+	if (!strcmp(LastCmd->Name, "describe-variable"))
 		dp = (data_obj *) findvar(ProcFmt, NOTHING);
 	else
 		dp = (data_obj *) findcom(ProcFmt, NOTHING);
@@ -253,29 +253,34 @@ DescCom()
 	fp = open_file(file, iobuff, F_READ, COMPLAIN, QUIET);
 	Placur(ILI, 0);
 	flusho();
-	sprintf(pattern, "^\\.dc \"%s\" \"\\([^\"]*\\)\"", dp->Name);
+	sprintf(pattern, "^:entry \"%s\" \"\\([^\"]*\\)\"", dp->Name);
 	TOstart("Help", TRUE);
 	for (;;) {
-		if (f_gets(fp, genbuf) == EOF) {
+		if (f_gets(fp, genbuf, LBSIZE) == EOF) {
 			Typeout("There is no documentation for \"%s\".", dp->Name);
 			goto outahere;
 		}
-		if ((strncmp(genbuf, ".dc", 3) == 0) && LookingAt(pattern, genbuf, 0))
+		if ((strncmp(genbuf, ":entry", 6) == 0) && LookingAt(pattern, genbuf, 0))
 			break;
 	}
 	/* found it ... let's print it */
-	putmatch(1, key_bind, sizeof key_bind);
-	if (strcmp("Not Bound", key_bind) == 0)
-		Typeout("To invoke %s, type \"ESC X %s<cr>\".",
-			dp->Name,
-			dp->Name);
-	else if (strcmp("(variable)", key_bind) == 0)
+	putmatch(1, doc_type, sizeof doc_type);
+	if (strcmp("Variable", doc_type) == 0)
 		Typeout(dp->Name);
-	else
-		Typeout("Type \"%s\" to invoke %s.", key_bind, dp->Name);
+	else if (strcmp("Command", doc_type) == 0) {
+		char	binding[128];
+
+		find_binds((struct cmd *) dp, binding);
+		if (blnkp(binding))
+			Typeout("To invoke %s, type \"ESC X %s<cr>\".",
+				dp->Name,
+				dp->Name);
+		else
+			Typeout("Type \"%s\" to invoke %s.", binding, dp->Name);
+	}
 	Typeout("");
-	while (f_gets(fp, genbuf) != EOF)
-		if (strncmp(genbuf, ".dc", 3) == 0)
+	while (f_gets(fp, genbuf, LBSIZE) != EOF)
+		if (strncmp(genbuf, ":entry", 6) == 0)
 			goto outahere;
 		else
 			Typeout("%s", genbuf);
@@ -324,23 +329,23 @@ char	*pref;
 	}
 }
 
-static
-find_binds(fp, buf)
-struct funct	*fp;
+private
+find_binds(cp, buf)
+struct cmd	*cp;
 char	*buf;
 {
 	char	*endp;
 
 	buf[0] = '\0';
-	fb_aux(fp, mainmap, (char *) 0, buf);
+	fb_aux(cp, mainmap, (char *) 0, buf);
 	endp = buf + strlen(buf) - 2;
 	if ((endp > buf) && (strcmp(endp, ", ") == 0))
 		*endp = '\0';
 }
 
-static
-fb_aux(fp, map, prefix, buf)
-register data_obj	*fp,
+private
+fb_aux(cp, map, prefix, buf)
+register data_obj	*cp,
 			**map;
 char	*buf,
 	*prefix;
@@ -353,7 +358,7 @@ char	*buf,
 
 	for (c1 = c2 = 0; c1 < 0200 && c2 < 0200; c1 = c2 + 1) {
 		c2 = c1;
-		if (map[c1] == fp) {
+		if (map[c1] == cp) {
 			while (++c2 < 0200 && map[c1] == map[c2])
 				;
 			c2--;
@@ -376,7 +381,7 @@ char	*buf,
 		}
 		if (prefp = IsPrefix(map[c1])) {
 			sprintf(prefbuf, "%p", c1);
-			fb_aux(fp, prefp, prefbuf, bufp);
+			fb_aux(cp, prefp, prefbuf, bufp);
 		}
 		bufp += strlen(bufp);
 	}
@@ -384,49 +389,51 @@ char	*buf,
 
 Apropos()
 {
-	register struct funct	*fp;
+	register struct cmd	*cp;
 	register struct macro	*m;
 	register struct variable	*v;
 	char	*ans;
 	int	anyfs = 0,
-		anyvs = 0;
+		anyvs = 0,
+		anyms = 0;
 	char	buf[256];
 
 	ans = ask((char *) 0, ": %f (keyword) ");
 	TOstart("Help", TRUE);
-	for (fp = commands; fp->Name != 0; fp++)
-		if (sindex(ans, fp->Name)) {
+	for (cp = commands; cp->Name != 0; cp++)
+		if (sindex(ans, cp->Name)) {
 			if (anyfs == 0) {
 				Typeout("Commands");
 				Typeout("--------");
 			}
-			find_binds(fp, buf);
+			find_binds(cp, buf);
 			if (buf[0])
-				Typeout(": %-30s(%s)", fp->Name, buf);
+				Typeout(": %-30s(%s)", cp->Name, buf);
 			else
-				Typeout(": %s", fp->Name);
+				Typeout(": %s", cp->Name);
 			anyfs++;
 		}
+	if (anyfs)
+		Typeout(NullStr);
 	for (v = variables; v->Name != 0; v++)
 		if (sindex(ans, v->Name)) {
-			if (anyfs) {
-				Typeout(NullStr);
+			if (anyvs == 0) {
 				Typeout("Variables");
 				Typeout("---------");
-				anyfs = 0;
 			}
 			anyvs++;
 			vpr_aux(v, buf);
 			Typeout(": set %-26s%s", v->Name, buf);
 		}
+	if (anyvs)
+		Typeout(NullStr);
 	for (m = macros; m != 0; m = m->m_nextm)
 		if (sindex(ans, m->Name)) {
-			if (anyvs || anyfs) {
-				Typeout(NullStr);
+			if (anyms == 0) {
 				Typeout("Macros");
 				Typeout("------");
-				anyvs = 0;
 			}
+			anyms++;
 			find_binds((data_obj *) m, buf);
 			if (buf[0])
 				Typeout(": %-30s(%s)", m->Name, buf);
@@ -441,7 +448,7 @@ Extend()
 	data_obj	*d;
 
 	if (d = findcom(": ", NOTHING))
-		ExecFunc(d);
+		ExecCmd(d);
 }
 
 /* Read a positive integer from CP.  It must be in base BASE, and
@@ -481,7 +488,7 @@ int	base;
 	return value;
 }
 
-static
+private
 vpr_aux(vp, buf)
 register struct variable	*vp;
 char	*buf;
@@ -592,8 +599,8 @@ SetVar()
    If flags are RET_STATE, and the user hits <return> what they typed
    so far is in the Minibuf string. */
 
-static char	**Possible;
-static int	comp_value,
+private char	**Possible;
+private int	comp_value,
 		comp_flags;
 
 aux_complete(c)
@@ -858,7 +865,7 @@ joverc(file)
 char	*file;
 {
 	char	buf[LBSIZE],
-		lbuf[LBSIZE];
+		lbuf[128];
 	int	lnum = 0,
 		eof = FALSE;
 	jmp_buf	savejmp;
@@ -885,7 +892,7 @@ char	*file;
 	}
 	InJoverc = 1;
 	if (!eof) do {
-		eof = (f_gets(fp, lbuf) == EOF);
+		eof = (f_gets(fp, lbuf, sizeof lbuf) == EOF);
 		lnum++;
 		if (casencmp(lbuf, "if", 2) == 0) {
 			char	cmd[128];

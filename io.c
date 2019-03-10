@@ -57,12 +57,11 @@ Line	*line1,
 
 	if (makesure)
 		(void) fixorder(&line1, &char1, &line2, &char2);
-	lsave();	/* Need this! */
 	while (line1 != line2->l_next) {
-		lp = getline(line1->l_dline, linebuf) + char1;
+		lp = lcontents(line1) + char1;
 		if (line1 == line2)
-			linebuf[char2] = '\0';
-		while (c = *lp++) {
+			fputnchar(lp, (char2 - char1), fp);
+		else while (c = *lp++) {
 			putc(c, fp);
 			io_chars++;
 		}
@@ -75,7 +74,6 @@ Line	*line1,
 		char1 = 0;
 	}
 	flush(fp);
-	getDOT();
 }
 
 read_file(file, is_insert)
@@ -108,28 +106,21 @@ char	*file;
 dofread(fp)
 register File	*fp;
 {
-	char	end[LBSIZE],
-		gbuf[LBSIZE];
+	char	end[LBSIZE];
 	int	xeof = 0;
 	Line	*savel = curline;
 	int	savec = curchar;
 
-	lsave();
-	(void) getline(curline->l_dline, end);
-	strcpy(gbuf, end);
-	strcpy(end, &end[curchar]);
-	if ((xeof = f_gets(fp, linebuf)) == 0)
-		linecopy(gbuf, curchar, linebuf);
-
-	curline->l_dline = putline(gbuf);
+	strcpy(end, linebuf + curchar);
+	xeof = f_gets(fp, linebuf + curchar, LBSIZE - curchar);
+	SavLine(curline, linebuf);
 	if (!xeof) do {
-		xeof = f_gets(fp, linebuf);
+		xeof = f_gets(fp, linebuf, LBSIZE);
 		curline = listput(curbuf, curline);
 		curline->l_dline = putline(linebuf) | DIRTY;
 	} while (!xeof);
-
 	linecopy(linebuf, (curchar = strlen(linebuf)), end);
-	curline->l_dline = putline(linebuf);
+	SavLine(curline, linebuf);
 	IFixMarks(savel, savec, curline, curchar);
 }
 
@@ -386,7 +377,7 @@ register char	*user,
 	u_len = strlen(user);
 	fp = open_file("/etc/passwd", fbuf, F_READ, COMPLAIN, QUIET);
 	sprintf(pattern, "%s:[^:]*:[^:]*:[^:]*:[^:]*:\\([^:]*\\):", user);
-	while (f_gets(fp, genbuf) != EOF)
+	while (f_gets(fp, genbuf, LBSIZE) != EOF)
 		if ((strncmp(genbuf, user, u_len) == 0) &&
 		    (LookingAt(pattern, genbuf, 0))) {
 			putmatch(1, buf, FILESIZE);
@@ -709,6 +700,8 @@ char	*buf;
 
 /* Put `buf' and return the disk address */
 
+int	nretries = 0;
+
 disk_line
 putline(buf)
 char	*buf;
@@ -729,12 +722,16 @@ char	*buf;
 			break;
 		}
 		if (--nl == 0) {
-			bp = getblock(tl += INCRMT, WRITE);
+			tline = (tl += INCRMT);
+			bp = getblock(tl, WRITE);
+			lp = buf;	/* start over ... */
+			nretries++;
 			nl = nleft;
 		}
 	}
 	tl = tline;
 	tline += (((lp - buf) + BNDRY - 1) >> SHFT) & 077776;
+
 	return tl;
 }
 
@@ -748,7 +745,7 @@ typedef struct block {
 		*b_HASHnext;
 } Block;
 
-#define HASHSIZE	3	/* Primes work best (so I'm told) */
+#define HASHSIZE	7	/* Primes work best (so I'm told) */
 #define B_HASH(bno)	(bno % HASHSIZE)
 
 static Block	b_cache[NBUF],
@@ -851,12 +848,15 @@ disk_line	atl;
 	register int	bno,
 			off;
 	register Block	*bp;
+	static Block	*lastb = 0;
 
 	bno = (atl >> OFFBTS) & BLKMSK;
 	off = (atl << SHFT) & LBTMSK;
 	if (bno >= NMBLKS)
 		error("Tmp file too large.  Get help!");
 	nleft = BUFSIZ - off;
+	if (lastb != 0 && lastb->b_bno == bno)
+		return lastb->b_buf + off;
 
 	/* The requested block already lives in memory, so we move
 	   it to the end of the LRU list (making it Most Recently Used)
@@ -876,6 +876,7 @@ disk_line	atl;
 		if (bp->b_bno > max_bno)
 			max_bno = bp->b_bno;
 		bp->b_dirty |= iof;
+		lastb = bp;
 		return bp->b_buf + off;
 	}
 
@@ -910,7 +911,15 @@ disk_line	atl;
 	else
 		max_bno = bno;
 
+	lastb = bp;
 	return bp->b_buf + off;
+}
+
+char *
+lbptr(line)
+Line	*line;
+{
+	return getblock(line->l_dline, READ);
 }
 
 static
@@ -938,12 +947,10 @@ SyncTmp()
 
 lsave()
 {
-	char	foobuf[LBSIZE];
-
 	if (curbuf == 0 || !DOLsave)	/* Nothing modified recently */
 		return;
 
-	if (strcmp(getline(curline->l_dline, foobuf), linebuf) != 0)
+	if (strcmp(lbptr(curline), linebuf) != 0)
 		SavLine(curline, linebuf);	/* Put linebuf on the disk. */
 	DOLsave = 0;
 }

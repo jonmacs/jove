@@ -49,7 +49,7 @@ gc_openfiles()
 	register File	*fp;
 
 	for (fp = _openfiles; fp < &_openfiles[MAXFILES]; fp++)
-		if (fp->f_flags != 0)
+		if (fp->f_flags != 0 && (fp->f_flags & F_LOCK) == 0)
 			f_close(fp);
 }
 
@@ -87,8 +87,6 @@ char	*name,
 f_close(fp)
 File	*fp;
 {
-	if (fp->f_flags & F_LOCK)   /* we're not allowed to chuck this */
-		return;
 	flush(fp);
 #ifdef BSD4_2 
 	if (fp->f_flags & (F_WRITE|F_APPEND))
@@ -129,12 +127,20 @@ register char	*s;
 		putchar(c);
 }
 
+fputnchar(s, n, fp)
+register char	*s;
+register int	n;
+register File	*fp;
+{
+	while (--n >= 0)
+		putc(*s++, fp);
+}
+
 putnchar(s, n)
 register char	*s;
 register int	n;
 {
-	while (--n >= 0)
-		putchar(*s++);
+	fputnchar(s, n, stdout);
 }
 
 flusho()
@@ -170,13 +176,13 @@ register File	*fp;
 		putc(c, fp);
 }
 
-f_gets(fp, buf)
+f_gets(fp, buf, max)
 register File	*fp;
 char	*buf;
 {
 	register char	*cp = buf;
 	register int	c;
-	char	*endp = buf + LBSIZE - 1;
+	char	*endp = buf + max - 1;
 
 	if (fp->f_flags & F_EOF)
 		return EOF;

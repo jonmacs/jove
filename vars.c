@@ -18,10 +18,10 @@ struct variable	variables[] = {
 #ifdef F_COMPLETION
 	VARIABLE, "bad-filename-extensions", (int *) BadExtensions, V_STRING,
 #endif
+	VARIABLE, "case-ignore-search", &CaseIgnore, V_BOOL,
 #ifdef CMT_FMT
  	VARIABLE, "comment-format", (int *) CmtFmt, V_STRING,
 #endif
-	VARIABLE, "case-ignore-search", &CaseIgnore, V_BOOL,
 #ifdef BIFF
 	VARIABLE, "disable-biff", &BiffChk, V_BOOL,
 #endif

@@ -204,8 +204,8 @@ va_list	ap;
 			putc(va_arg(ap, int), curiop);
 			break;
 	
-		case 'f':	/* Funcname() gets inserted here! */
-			puts(leftadj, width, LastFunc->Name);
+		case 'f':	/* current command name gets inserted here! */
+			puts(leftadj, width, LastCmd->Name);
 			break;
 
 		default:
@@ -299,7 +299,7 @@ va_dcl
 	va_start(ap);
 	format(mesgbuf, sizeof mesgbuf, fmt, ap);
 	va_end(ap);
-	DrawMesg();
+	DrawMesg(NO);
 	UpdMesg++;	/* Still needs updating (for convenience) */
 }
 

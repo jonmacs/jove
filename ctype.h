@@ -31,8 +31,8 @@ extern int	SyntaxTable;
 #define tolower(c)	((c)|040)
 #define toascii(c)	((c)&0177)
 #define isctrl(c)	((CharTable[0][c&0177])&_C)
-#define openpp(c)	((CharTable[0][c&0177])&_Op)
-#define closepp(c)	((CharTable[0][c&0177])&_Cl)
+#define isopenp(c)	((CharTable[0][c&0177])&_Op)
+#define isclosep(c)	((CharTable[0][c&0177])&_Cl)
 #define has_syntax(c,s)	((CharTable[SyntaxTable][c&0177])&s)
 #define WITH_TABLE(x) \
 { \

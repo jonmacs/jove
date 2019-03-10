@@ -178,7 +178,7 @@ char	*searchbuf,
 	*file;
 {
 	register int	taglen = strlen(tag);
-	char	line[LBSIZE],
+	char	line[128],
 		pattern[100];
 	File	*fp;
 
@@ -186,7 +186,7 @@ char	*searchbuf,
 	if (fp == NIL)
 		return 0;
 	sprintf(pattern, "^%s[^\t]*\t\\([^\t]*\\)\t[?/]\\(.*\\)[?/]$", tag);
-	while (f_gets(fp, line) != EOF) {
+	while (f_gets(fp, line, sizeof line) != EOF) {
 		if (line[0] != *tag || strncmp(tag, line, taglen) != 0)
 			continue;
 		if (!LookingAt(pattern, line, 0)) {
@@ -292,7 +292,7 @@ register int	c,
 	Bufpos	*bp;
 
 	if (c == CTL(S) || c == CTL(R))
-		return dosearch(ISbuf, dir, 0);
+		goto dosrch;
 
 	if (failing)
 		return 0;
@@ -306,7 +306,7 @@ register int	c,
 		if (look_at(ISbuf))
 			return &buf;
 	}
-	if ((bp = dosearch(ISbuf, dir, 0)) == 0)
+dosrch:	if ((bp = dosearch(ISbuf, dir, 0)) == 0)
 		rbell();	/* ring the first time there's no match */
 	return bp;
 }
@@ -371,7 +371,8 @@ Bufpos	*bp;
 		if (dir == BACKWARD)
 			add_mess("reverse-");
 		add_mess("I-search: %s", ISbuf);
-
+		DrawMesg(NO);
+		add_mess(NullStr);	/* tell me this is disgusting ... */
 		c = getch();
 		if (c == SExitChar)
 			return STOP;
@@ -441,7 +442,9 @@ Bufpos	*bp;
 			*incp = 0;
 			break;
 		}
-
+		add_mess("%s", orig_incp);
+		add_mess(" ...");	/* so we know what's going on */
+		DrawMesg(NO);		/* do it now */
 		switch (isearch(ndir, doisearch(ndir, c, failing))) {
 		case TOSTART:
 			return TOSTART;

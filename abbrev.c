@@ -21,7 +21,7 @@ struct abbrev {
 	char	*a_abbrev,
 		*a_phrase;
 	struct abbrev	*a_next;
-	data_obj	*a_funchook;
+	data_obj	*a_cmdhook;
 };
 
 #define GLOBAL	NMAJORS
@@ -86,7 +86,7 @@ char	*abbrev,
 		ap->a_abbrev = copystr(abbrev);
 		h %= HASHSIZE;
 		ap->a_next = table[h];
-		ap->a_funchook = 0;
+		ap->a_cmdhook = 0;
 		table[h] = ap;
 	} else
 		free(ap->a_phrase);
@@ -140,8 +140,8 @@ AbbrevExpand()
 		cp++;
 	}
 
-	if (ap->a_funchook != 0)
-		ExecFunc(ap->a_funchook);
+	if (ap->a_cmdhook != 0)
+		ExecCmd(ap->a_cmdhook);
 }
 
 static char	*mode_names[NMAJORS + 1] = {
@@ -193,7 +193,7 @@ char	*file;
 
 	fp = open_file(file, buf, F_READ, COMPLAIN, QUIET);
 	while (mode <= GLOBAL) {
-		eof = f_gets(fp, genbuf);
+		eof = f_gets(fp, genbuf, LBSIZE);
 		if (eof || genbuf[0] == '\0')
 			break;
 		lnum++;
@@ -284,7 +284,7 @@ BindMtoW()
 	hook = findmac("Macro: ", NOTHING);
 	if (hook == 0)
 		complain("[Undefined macro]");
-	ap->a_funchook = hook;
+	ap->a_cmdhook = hook;
 }
 
 #endif ABBREV

@@ -164,8 +164,9 @@ register char	c;
    reach the end of the screen.  Aborts if there is a character
    waiting.  */
 
-swrite(line, inversep)
+swrite(line, inversep, abortable)
 register char	*line;
+register int	abortable;
 {
 	register int	c;
 	int	col = i_col,
@@ -179,7 +180,7 @@ register char	*line;
 
 	OkayAbort = 0;
 	while (c = *line++) {
-		if (OkayAbort) {
+		if (abortable && OkayAbort) {
 			OkayAbort = NO;
 			if (InputPending = charp()) {
 				aborted = 1;
@@ -197,7 +198,7 @@ register char	*line;
 				soutputc(thebyte);
 			if (n <= 0)
 				break;
-		} else if (c < 040 || c == '\177') {
+		} else if (isctrl(c)) {
 			thebyte = ('^' | or_byte);
 			soutputc(thebyte);
 			thebyte = (((c == '\177') ? '?' : c + '@') | or_byte);
@@ -228,21 +229,11 @@ BufSwrite(linenum)
 	register int	n = cursend - cursor,
 			col = 0,
 			c;
-	int	tl = DesiredScreen[linenum].s_id,
-		nl,
-		StartCol = DesiredScreen[linenum].s_offset,
+	int	StartCol = DesiredScreen[linenum].s_offset,
 		visspace = DesiredScreen[linenum].s_window->w_visspace,
 		aborted = 0;
 
-	if (DesiredScreen[linenum].s_lp == curline) {
-		bp = linebuf;
-		nl = BUFSIZ;
-	} else {
-		bp = getblock(tl, READ);
-		nl = nleft;
-		tl &= ~OFFMSK;
-	}
-
+	bp = lcontents(DesiredScreen[linenum].s_lp);
 	if (*bp) for (;;) {
 		if (col >= StartCol) {
 			DesiredScreen[linenum].s_offset = col;
@@ -256,11 +247,6 @@ BufSwrite(linenum)
 			col += 2;
 		else
 			col++;
-
-		if (--nl == 0) {
-			bp = getblock(tl += INCRMT, READ);
-			nl = nleft;
-		}
 	}
 
 	OkayAbort = 0;
@@ -272,11 +258,7 @@ BufSwrite(linenum)
 				break;
 			}
 		}
-		if (isctrl(c)) {
-			soutputc('^');
-			soutputc((c == '\177') ? '?' : c + '@');
-			col += 2;
-		} else if (c == '\t') {
+		if (c == '\t') {
 			int	nchars = (tabstop - (col % tabstop));
 
 			col += nchars;
@@ -288,16 +270,15 @@ BufSwrite(linenum)
 				soutputc(' ');
 			if (n <= 0)
 				break;
+		} else if (isctrl(c)) {
+			soutputc('^');
+			soutputc((c == '\177') ? '?' : c + '@');
+			col += 2;
 		} else {
 			if (visspace && c == ' ')
 				c = '_';
 			soutputc(c);
 			col++;
-		}
-
-		if (--nl == 0) {
-			bp = getblock(tl += INCRMT, READ);
-			nl = nleft;
 		}
 	}
 	if (n <= 0)
@@ -386,15 +367,44 @@ v_del_line(num, top, bottom)
    limit the amount of checking to when the output speed is slow.
    What ever turns you on ...   */
 
-struct cursaddr {
+private struct cursaddr {
 	int	c_numchars,
-		(*c_func)();
+		(*c_proc)();
 };
 
-char	*Cmstr;
-struct cursaddr	*HorMin,
-		*VertMin,
-		*DirectMin;
+private char	*Cmstr;
+private struct cursaddr	*HorMin,
+			*VertMin,
+			*DirectMin;
+
+private ForMotion(),
+	ForTab(),
+	BackMotion(),
+	RetTab(),
+	DownMotion(),
+	UpMotion(),
+	GoDirect(),
+	HomeGo(),
+	BottomUp();
+	
+
+private struct cursaddr	WarpHor[] = {
+	0,	ForMotion,
+	0,	ForTab,
+	0,	BackMotion,
+	0,	RetTab
+};
+
+private struct cursaddr	WarpVert[] = {
+	0,	DownMotion,
+	0,	UpMotion
+};
+
+private struct cursaddr	WarpDirect[] = {
+	0,	GoDirect,
+	0,	HomeGo,
+	0,	BottomUp
+};
 
 #undef	FORWARD
 #define	FORWARD		0	/* Move forward */
@@ -417,12 +427,9 @@ struct cursaddr	*HorMin,
 #define LowLine()	putpad(LL, 1), CapLine = ILI, CapCol = 0
 #define PrintHo()	putpad(HO, 1), CapLine = CapCol = 0
 
-struct cursaddr	WarpHor[NUMHOR],
-		WarpVert[NUMVERT],
-		WarpDirect[NUMDIRECT];
-
 int	phystab = 8;
 
+private
 GoDirect(line, col)
 register int	line,
 		col;
@@ -432,6 +439,7 @@ register int	line,
 	CapCol = col;
 }
 
+private
 RetTab(col)
 register int	col;
 {
@@ -440,6 +448,7 @@ register int	col;
 	ForTab(col);
 }
 
+private
 HomeGo(line, col)
 {
 	PrintHo();
@@ -447,6 +456,7 @@ HomeGo(line, col)
 	ForTab(col);
 }
 
+private
 BottomUp(line, col)
 register int	line,
 		col;
@@ -460,6 +470,7 @@ register int	line,
    closest tabstop which means it may go past 'destcol' and backspace
    to it. */
 
+private
 ForTab(destcol)
 int	destcol;
 {
@@ -486,6 +497,7 @@ int	destcol;
 		ForMotion(destcol);
 }
 
+private
 ForMotion(destcol)
 register int	destcol;
 {
@@ -497,6 +509,7 @@ register int	destcol;
 	CapCol = destcol;
 }
 
+private
 BackMotion(destcol)
 register int	destcol;
 {
@@ -511,6 +524,7 @@ register int	destcol;
 	CapCol = destcol;
 }
 
+private
 DownMotion(destline)
 register int	destline;
 {
@@ -521,6 +535,7 @@ register int	destline;
 	CapLine = destline;
 }
 
+private
 UpMotion(destline)
 register int	destline;
 {
@@ -538,18 +553,6 @@ extern int	IMlen;
 
 InitCM()
 {
-	WarpHor[FORWARD].c_func = ForMotion;
-	WarpHor[BACKWARD].c_func = BackMotion;
-	WarpHor[FORTAB].c_func = ForTab;
-	WarpHor[RETFORWARD].c_func = RetTab;
-
-	WarpVert[DOWN].c_func = DownMotion;
-	WarpVert[UPMOVE].c_func = UpMotion;
-
-	WarpDirect[DIRECT].c_func = GoDirect;
-	WarpDirect[HOME].c_func = HomeGo;
-	WarpDirect[LOWER].c_func = BottomUp;
-
 	HOlen = HO ? strlen(HO) : 1000;
 	LLlen = LL ? strlen(LL) : 1000;
 	UPlen = UP ? strlen(UP) : 1000;
@@ -635,20 +638,20 @@ Placur(line, col)
 
 	if (HorMin->c_numchars + VertMin->c_numchars < DirectMin->c_numchars) {
 		if (line != CapLine)
-			(*VertMin->c_func)(line);
+			(*VertMin->c_proc)(line);
 		if (col != CapCol) {
 #ifdef ID_CHAR
 			if (IN_INSmode)	/* We may use real characters ... */
 				INSmode(0);
 #endif
-			(*HorMin->c_func)(col);
+			(*HorMin->c_proc)(col);
 		}
 	} else {
 #ifdef ID_CHAR
 		if (IN_INSmode && !MI)
 			INSmode(0);
 #endif
-		(*DirectMin->c_func)(line, col);
+		(*DirectMin->c_proc)(line, col);
 	}
 }
 
@@ -814,8 +817,8 @@ GENd_lines(top, bottom, num)
 
 struct ID_lookup {
 	char	*ID_name;
-	int	(*I_func)();	/* Function to insert lines */
-	int	(*D_func)();	/* Function to delete lines */
+	int	(*I_proc)();	/* proc to insert lines */
+	int	(*D_proc)();	/* proc to delete lines */
 } ID_trms[] = {
 	"generic",	GENi_lines,	GENd_lines,	/* This should stay here */
 #ifdef WIRED_TERMS
@@ -836,6 +839,6 @@ char	*tname;
 			break;
 	if (idp->ID_name == 0)
 		idp = &ID_trms[0];
-	TTins_line = idp->I_func;
-	TTdel_line = idp->D_func;
+	TTins_line = idp->I_proc;
+	TTdel_line = idp->D_proc;
 }

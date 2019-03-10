@@ -13,7 +13,7 @@
 
 #include <signal.h>
 
-static char
+private char
 	*errfmt = "^\\{\",\\}\\([^:\"( \t]*\\)\\{\"\\, line ,:,(\\} *\\([0-9][0-9]*\\)[:)]";
 
 struct error {
@@ -34,7 +34,7 @@ int	WtOnMk = 1;		/* Write the modified files when we make */
 /* Add an error to the end of the list of errors.  This is used for
    parse-{C,LINT}-errors and for the spell-buffer command */
 
-static struct error *
+private struct error *
 AddError(laste, errline, buf, line, charpos)
 struct error	*laste;
 Line	*errline,
@@ -137,10 +137,10 @@ ErrFree()
 /* Internal next error sets cur_error to the next error, taking the
    argument count, supplied by the user, into consideration. */
 
-static char	errbounds[] = "You're at the %s error.",
+private char	errbounds[] = "You're at the %s error.",
 		noerrs[] = "No errors!";
 
-static
+private
 toerror(forward)
 {
 	register int	i;
@@ -169,7 +169,7 @@ PrevError()
 	ToError(0);
 }
 
-static
+private
 okay_error()
 {
 	return ((inlist(perr_buf->b_first, cur_error->er_mess)) &&
@@ -385,7 +385,7 @@ ShellCom()
    give a numeric argument, in which case it inserts the output at the
    current position in the buffer.  */
 
-static
+private
 DoShell(bufname, command)
 char	*bufname,
 	*command;
@@ -400,7 +400,7 @@ char	*bufname,
 	SetWind(savewp);
 }
 
-static
+private
 com_finish(status, com)
 char	*com;
 {
@@ -452,9 +452,9 @@ int	pid,
 
 /* VARARGS3 */
 
-UnixToBuf(bufname, disp, wsize, clobber, func, args)
+UnixToBuf(bufname, disp, wsize, clobber, cmd, args)
 char	*bufname,
-	*func;
+	*cmd;
 {
 	int	p[2],
 		pid;
@@ -487,7 +487,7 @@ char	*bufname,
 		(void) dup(p[1]);
 		(void) dup(p[1]);
 		pclose(p);
-		execv(func, (char **) &args);
+		execv(cmd, (char **) &args);
 		(void) write(1, "Execl failed.\n", 14);
 		_exit(1);
 	} else {
@@ -501,8 +501,8 @@ char	*bufname,
 #endif
 
 		(void) close(p[1]);
-		fp = fd_open(func, F_READ, p[0], iobuff, LBSIZE);
-		while (inIOread = 1, f_gets(fp, genbuf) != EOF) {
+		fp = fd_open(cmd, F_READ, p[0], iobuff, LBSIZE);
+		while (inIOread = 1, f_gets(fp, genbuf, LBSIZE) != EOF) {
 			inIOread = 0;
 			ins_str(genbuf, YES);
 			LineInsert();
@@ -527,7 +527,7 @@ char	*bufname,
 			}
 		}
 		if (disp)
-			DrawMesg();
+			DrawMesg(NO);
 		close_file(fp);
 		(void) signal(SIGINT, oldint);
 		dowait(pid, &status);
@@ -541,7 +541,7 @@ char	*bufname,
 
 #ifdef BSD4_2
 
-static int	SigMask = 0;
+private int	SigMask = 0;
 
 sighold(sig)
 {

@@ -306,7 +306,7 @@ MiscPrefix()
 HandlePref(map)
 data_obj	**map;
 {
-	register data_obj	*fp;
+	register data_obj	*cp;
 	register int	c;
 
 	c = waitchar();
@@ -319,12 +319,12 @@ data_obj	**map;
 	if (alarmed)
 		message(key_strokes);
 
-	fp = map[c];
-	if (fp == 0) {
+	cp = map[c];
+	if (cp == 0) {
 		s_mess("[%sunbound]", key_strokes);
 		rbell();
 	} else
-		ExecFunc(fp);
+		ExecCmd(cp);
 }
 
 Yank()

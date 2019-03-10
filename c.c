@@ -14,21 +14,54 @@
 #include "ctype.h"
 
 private
-backslashed(cpos)
+backslashed(lp, cpos)
+register char	*lp;
 register int	cpos;
 {
 	register int	cnt = 0;
 
-	while (cpos > 0 && linebuf[--cpos] == '\\')
+	while (cpos > 0 && lp[--cpos] == '\\')
 		cnt++;
 	return (cnt % 2);
 }
 
 private char	*p_types = "(){}[]";
+private int	mp_kind;
+#define MP_OKAY		0
+#define MP_MISMATCH	1
+#define MP_UNBALANCED	2
+
+mp_error()
+{
+	switch (mp_kind) {
+	case MP_MISMATCH:
+		message("[Mismatched parentheses]");
+		break;
+
+	case MP_UNBALANCED:
+		message("[Unbalanced parenthesis]");
+		break;
+
+	case MP_OKAY:
+	default:
+		return;
+	}
+	rbell();
+}
+
+/* Search from the current position for the paren that matches p_type.
+   Search in the direction dir.  If can_mismatch is YES then it is okay
+   to have mismatched parens.  If stop_early is YES then when a close
+   paren is found at the beginning of a line, it is assumed that there
+   is no point in backing up further.  This is so when you hit tab or
+   LineFeed outside, in-between procedure/function definitions, it won't
+   sit there searching all the way to the beginning of the file for a
+   match that doesn't exist.  {forward,backward}-s-expression are the
+   only ones that insist on getting the "true" story. */
 
 Bufpos *
-m_paren(p_type, dir)
-register char	p_type;		/* One we are on */
+m_paren(p_type, dir, can_mismatch, can_stop)
+char	p_type;
 register int	dir;
 {
 	static Bufpos	ret;
@@ -36,16 +69,18 @@ register int	dir;
 		*sp;
 	static char	re_buf[100],
 			*re_alts[NALTS];
-	register int	count = 0;
+	int	count = 0;
+	register char	*lp,
+			c;
 	char	p_match,
 		re_str[128],
-		c,
 		*cp,
 		quote_c = 0;
-	Line	*quote_line = 0;
-	int	c_char;
+	register int	c_char;
+	int	in_comment = NO,
+		stopped = NO;
 
-	sprintf(re_str, "[(){}[\\]%s]", (MajorMode(CMODE)) ? "\"'" : "\"");
+	sprintf(re_str, "[(){}[\\]%s]", (MajorMode(CMODE)) ? "/\"'" : "\"");
 	REcompile(re_str, 1, re_buf, re_alts);
 	if (cp = index(p_types, p_type))
 		p_match = cp[dir];
@@ -53,52 +88,85 @@ register int	dir;
 		complain("[Cannot match %c's]", p_type);
 	DOTsave(&savedot);
 
+	/* To make things a little faster I avoid copying lines into
+	   linebuf by setting curline and curchar by hand.  Warning:
+	   this is slightly to very risky.  When I did this there were
+	   lots of problems with procedures that expect the contents of
+	   curline to be in linebuf. */
 	while (count >= 0) {
 		sp = docompiled(dir, re_buf, re_alts);
 		if (sp == 0)
 			break;
-		SetDot(sp);
+		lp = lbptr(sp->p_line);
+
+		curline = sp->p_line;
+		curchar = sp->p_char;	/* here's where I cheat */
 		c_char = curchar;
 		if (dir == FORWARD)
 			c_char--;
 
-		if (backslashed(c_char))
+		if (backslashed(lp, c_char))
 			continue;
-		c = linebuf[c_char];
-		if (quote_line != 0 && curline != quote_line) {
-			quote_line = 0;
-			quote_c = 0;
+		c = lp[c_char];
+		if (c == '/') {		/* check if this is a comment */
+			if ((c_char != 0) && lp[c_char - 1] == '*')
+				in_comment = (dir == FORWARD) ? NO : YES;
+			else if (lp[c_char + 1] == '*')
+				in_comment = (dir == FORWARD) ? YES : NO;
 		}
+		if (in_comment)
+			continue;
 		if (c == '"' || c == '\'') {
-			if (quote_c == c) {
+			if (quote_c == c)
 				quote_c = 0;
-				quote_line = 0;
-			} else if (quote_c == 0) {
+			else if (quote_c == 0)
 				quote_c = c;
-				quote_line = curline;
-			}
 		}
-		if (quote_line != 0)
+		if (quote_c != 0)
 			continue;
-		if (openpp(c))
+		if (isopenp(c)) {
 			count += dir;
-		else if (closepp(c))
+			if (c_char == 0 && can_stop == YES && count >= 0) {
+				stopped = YES;
+				break;
+			}
+		} else if (isclosep(c))
 			count -= dir;
 	}
 
 	ret.p_line = curline;
 	ret.p_char = curchar;
-	SetDot(&savedot);
-	if (count >= 0 || c != p_match)
+
+	curline = savedot.p_line;
+	curchar = savedot.p_char;	/* here's where I undo it */
+
+	if (count >= 0)
+		mp_kind = MP_UNBALANCED;
+	else if (c != p_match)
+		mp_kind = MP_MISMATCH;
+	else
+		mp_kind = MP_OKAY;
+
+	/* If we stopped (which means we were allowed to stop) and there
+	   was an error, we clear the error so no error message is printed.
+	   An error should be printed ONLY when we are sure about the fact,
+	   namely we didn't stop prematurely HOPING that it was the right
+	   answer. */
+	if (stopped && mp_kind != MP_OKAY) {
+		mp_kind = MP_OKAY;
 		return 0;
-	return &ret;
+	}
+	if (mp_kind == MP_OKAY || (mp_kind == MP_MISMATCH && can_mismatch == YES))
+		return &ret;
+	return 0;
 }
 
 private
 do_expr(dir)
+register int	dir;
 {
-	char	c,
-		syntax = (dir == FORWARD) ? _Op : _Cl;
+	register char	c,
+			syntax = (dir == FORWARD) ? _Op : _Cl;
 
 	exp = 1;
 	if (dir == BACKWARD)
@@ -148,21 +216,24 @@ BSexpr()
 /* Move to the matching brace or paren depending on the current position
    in the buffer. */
 
+private
 FindMatch(dir)
 {
-	Bufpos	*bp;
-	char	c = linebuf[curchar];
+	register Bufpos	*bp;
+	register char	c = linebuf[curchar];
 
-	if ((index(p_types, linebuf[curchar]) == 0) ||
-	    (backslashed(curchar)))
+	if ((index(p_types, c) == 0) ||
+	    (backslashed(curline, curchar)))
 		complain((char *) 0);
 	if (dir == FORWARD)
 		ForChar();
-	bp = m_paren(c, dir);
-	if (bp)
+	bp = m_paren(c, dir, YES, NO);
+	if (dir == FORWARD)
+		BackChar();
+	if (bp != 0)
 		SetDot(bp);
-	else
-		complain("[Mismatched parentheses]");
+	mp_error();	/* if there is an error the user wants to
+			   know about it */
 }
 
 Bufpos *
@@ -173,7 +244,7 @@ c_indent()
 	int	indent;
 
 	DOTsave(&save);
-	bp = m_paren('}', BACKWARD);
+	bp = m_paren('}', BACKWARD, NO, YES);
 	if (bp == 0)
 		return 0;
 	SetDot(bp);
@@ -196,7 +267,7 @@ Comment()
 
 /* Strip leading and trailing white space.  Skip over any imbedded '\r's. */
 
-static
+private
 strip_c(from, to)
 char	*from,
 	*to;
@@ -222,26 +293,26 @@ char	*from,
 	*++to_p = '\0';
 }
 
-static char	open_c[20],	/* the open comment format string */
+private char	open_c[20],	/* the open comment format string */
 		open_pat[20],	/* the search pattern for open comment */
 		l_header[20],	/* the prefix for each comment line */
 		l_trailer[20],	/* the suffix ... */
 		close_c[20],
 		close_pat[20];
 
-static char	*comment_body[] = {
+private char	*comment_body[] = {
  	open_c,
 	l_header,
 	l_trailer,
 	close_c
 };
 					
-static int	nlflags;
+private int	nlflags;
 
 /* Fill in the data structures above from the format string.  Don't return
    if there's trouble. */
 
-static
+private
 parse_cmt_fmt(str)
 char	*str;
 {

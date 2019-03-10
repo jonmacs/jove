@@ -81,14 +81,15 @@ int	(*sorter)();
 
 	if ((dirp = opendir(dir)) == 0)
 		return -1;
-	ourarray = (char **) malloc(nalloc * sizeof (char *));
+	if ((ourarray = (char **) malloc(nalloc * sizeof (char *))) == 0)
+memfail:	complain("[Malloc failed: cannot scandir]");
 	while ((entry = readdir(dirp)) != 0) {
 		if (qualify != 0 && (*qualify)(entry->d_name) == 0)
 			continue;
 		if (nentries == nalloc) {
 			ourarray = (char **) realloc((char *) ourarray, (nalloc += 10) * sizeof (char *));
 			if (ourarray == 0)
-				return -1;
+				goto memfail;
 		}
 		ourarray[nentries] = (char *) malloc(DIRSIZE(entry) + 1);
 		null_ncpy(ourarray[nentries], entry->d_name, (int) DIRSIZE(entry));
@@ -101,7 +102,8 @@ int	(*sorter)();
 	if (sorter != 0)
 		qsort((char *) ourarray, nentries, sizeof (char **), sorter);
 	*nmptr = ourarray;
-	ourarray[nentries] = 0;		/* guarenteed 0 pointer */
+	ourarray[nentries] = 0;		/* guaranteed 0 pointer */
+
 	return nentries;
 }
 

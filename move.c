@@ -73,10 +73,10 @@ PrevLine()
 
 line_move(dir, line_cmd)
 {
-	Line	*(*func)() = (dir == FORWARD) ? next_line : prev_line;
+	Line	*(*proc)() = (dir == FORWARD) ? next_line : prev_line;
 	Line	*line;
 
-	line = (*func)(curline, exp);
+	line = (*proc)(curline, exp);
 	if (line == curline) {
 		(dir == FORWARD) ? Eol() : Bol();
 		return;
@@ -102,15 +102,14 @@ Line	*line;
 			c;
 	char	*base;
 
-	base = lp = getcptr(line, genbuf);
-
+	base = lp = lcontents(line);
 	pos = 0;
 
 	while (pos < col && (c = (*lp & 0177))) {
-		if (isctrl(c))
-			pos += 2;
-		else if (c == '\t')
+		if (c == '\t')
 			pos += (tabstop - (pos % tabstop));
+		else if (isctrl(c))
+			pos += 2;
 		else
 			pos++;
 		lp++;
