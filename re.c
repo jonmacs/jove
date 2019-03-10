@@ -28,7 +28,26 @@ int	CaseIgnore = 0,
 	WrapScan = 0,
 	UseRE = 0;
 
-#define cind_cmp(a, b)	(Upper(a) == Upper(b))
+private char	CaseEquiv[] = {
+	'\000',	'\001',	'\002',	'\003',	'\004',	'\005',	'\006',	'\007',
+	'\010',	'\011',	'\012',	'\013',	'\014',	'\015',	'\016',	'\017',
+	'\020',	'\021',	'\022',	'\023',	'\024',	'\025',	'\026',	'\027',
+	'\030',	'\031',	'\032',	'\033',	'\034',	'\035',	'\036',	'\037',
+	'\040',	'!',	'"',	'#',	'$',	'%',	'&',	'\'',
+	'(',	')',	'*',	'+',	',',	'-',	'.',	'/',
+	'0',	'1',	'2',	'3',	'4',	'5',	'6',	'7',
+	'8',	'9',	':',	';',	'<',	'=',	'>',	'?',
+	'@',	'A',	'B',	'C',	'D',	'E',	'F',	'G',
+	'H',	'I',	'J',	'K',	'L',	'M',	'N',	'O',
+	'P',	'Q',	'R',	'S',	'T',	'U',	'V',	'W',
+	'X',	'Y',	'Z',	'[',	'\\',	']',	'^',	'_',
+	'`',	'A',	'B',	'C',	'D',	'E',	'F',	'G',
+	'H',	'I',	'J',	'K',	'L',	'M',	'N',	'O',
+	'P',	'Q',	'R',	'S',	'T',	'U',	'V',	'W',
+	'X',	'Y',	'Z',	'{',	'|',	'}',	'~',	'\177'
+};
+
+#define cind_cmp(a, b)	(CaseEquiv[a] == CaseEquiv[b])
 
 private int	REpeekc;
 private char	*REptr;
@@ -106,7 +125,7 @@ do_comp(kind)
 
 	while (c = REgetc()) {
 		if (comp_p > &cur_compb[(sizeof compbuf) - 4])
-			complain("Search string too long.");
+toolong:		complain("Search string too long/complex.");
 		if (c != '*')
 			last_p = comp_p;
 		if (kind == NORM && index(".[*", c) != 0)
@@ -218,6 +237,8 @@ do_comp(kind)
 		    	int	chrcnt;
 
 		    	*comp_p++ = ONE_OF;
+			if (comp_p + 16 >= &cur_compb[(sizeof compbuf)])
+				goto toolong;
 		    	bzero(comp_p, 16);
 		    	if ((REpeekc = REgetc()) == '^') {
 		    		*last_p = NONE_OF;
@@ -231,7 +252,7 @@ do_comp(kind)
 				else if ((REpeekc = REgetc()) == '-') {
 					int	c2;
 
-					(void) REgetc();	/* read '-' */
+					(void) REgetc();     /* reread '-' */
 					c2 = REgetc();
 					while (c < c2) {
 						comp_p[c/8] |= (1 << (c%8));
@@ -300,11 +321,9 @@ register char	*linep;
 private
 member(comp_p, c, af)
 register char	*comp_p;
-register int	c;
+register int	c,
+		af;
 {
-	register int	n;
-	char	*base;
-
 	if (c == 0)
 		return 0;	/* try to match EOL always fails */
 	if (comp_p[c/8] & (1 << (c%8)))
@@ -379,8 +398,10 @@ register char	*linep,
 		continue;
 
 	case BACKREF:
-		if (pstrtlst[n = *comp_p++] == 0)
-			complain("\\%d was not specified.", n + 1);
+		if (pstrtlst[n = *comp_p++] == 0) {
+			s_mess("\\%d was not specified.", n + 1);
+			return 0;
+		}
 		if (backref(n, linep)) {
 			linep += pendlst[n] - pstrtlst[n];
 			continue;
@@ -476,7 +497,10 @@ REreset()
    LISP mode.  Saves all that copying from linebuf to REbuf.  substitute()
    is the guy who calls re_lindex with lbuf_okay as 0, since the substitution
    gets placed in linebuf ... doesn't work too well when the source and
-   destination strings are the same.  I hate all these arguments! */
+   destination strings are the same.  I hate all these arguments!
+
+   This code is cumbersome, repetetive for reasons of efficiency.  Fast
+   search is a must as far as I am concerned. */
 
 re_lindex(line, offset, expr, alts, lbuf_okay)
 Line	*line;
@@ -502,9 +526,12 @@ char	*expr,
 		}
 	}
 	resp = REbolp;
-	isquick = (expr[0] == NORMC && alternates[1] == 0);
+	isquick = ((expr[0] == NORMC || expr[0] == CINDC) &&
+		   (alternates[1] == 0));
 	if (isquick)
 		firstc = expr[1];
+	if (expr[0] == CINDC)
+		firstc = CaseEquiv[firstc];
 	locs = REbolp + offset;
 
 	if (REdirection == FORWARD) {
@@ -512,8 +539,13 @@ char	*expr,
 		char	**altp = alts;
 
 		if (isquick) {
-			while ((c = *locs++) != 0 && c != firstc)
-				;
+			if (expr[0] == NORMC)
+				while ((c = *locs++) != 0 && c != firstc)
+					;
+			else
+				while (((c = *locs++) != 0) &&
+					(CaseEquiv[c] != firstc))
+					;
 			if (*--locs == 0)
 				break;
 		}
@@ -532,10 +564,17 @@ char	*expr,
 		char	**altp = alts;
 
 		if (isquick) {
-			while (locs >= REbolp && *locs-- != firstc)
-				;
-			if (*++locs != firstc)
-				break;
+			if (expr[0] == NORMC) {
+				while (locs >= REbolp && *locs-- != firstc)
+					;
+				if (*++locs != firstc)
+					break;
+			} else {
+				while (locs >= REbolp && CaseEquiv[*locs--] != firstc)
+					;
+				if (CaseEquiv[*++locs] != firstc)
+					break;
+			}
 		}
 		REalt_num = 1;
 		while (*altp) {
@@ -566,9 +605,7 @@ char	*pattern;
 
 	REcompile(pattern, re, compbuf, alternates);
 
-	okay_wrap++;
 	pos = docompiled(dir, compbuf, alternates);
-	okay_wrap = 0;
 	return pos;
 }
 
@@ -578,7 +615,6 @@ char	*expr,
 	**alts;
 {
 	static Bufpos	ret;
-	Bufpos	push_dot;
 	register Line	*lp;
 	register int	offset;
 	int	we_wrapped = 0;
@@ -591,30 +627,29 @@ char	*expr,
 	   assume (and rightly so) that curline is in linebuf. */
 
 	REdirection = dir;
-	DOTsave(&push_dot);
+	lp = curline;
+	offset = curchar;
 	if (dir == BACKWARD) {
 		if (bobp()) {
-			if (okay_wrap && WrapScan) {
-				lp = curline;
+			if (okay_wrap && WrapScan)
 				goto doit;
-			}
 			return 0;
 		}
 		/* here we simulate BackChar() */
 		if (bolp()) {
-			curline = curline->l_prev;
-			curchar = strlen(lbptr(curline));
+			lp = lp->l_prev;
+			offset = strlen(lbptr(lp));
 		} else
-			--curchar;
-	} else if (dir == FORWARD && (lbptr(curline)[curchar] == '\0') && !lastp(curline)) {
-		curline = curline->l_next;
-		curchar = 0;
+			--offset;
+	} else if ((dir == FORWARD) &&
+		   (lbptr(lp)[offset] == '\0') &&
+		   !lastp(lp)) {
+		lp = lp->l_next;
+		offset = 0;
 	}
-	lp = curline;
-	offset = curchar;
 
 	do {
-		if (re_lindex(lp, offset, expr, alts, 1))
+		if (re_lindex(lp, offset, expr, alts, YES))
 			break;
 doit:		lp = (dir == FORWARD) ? lp->l_next : lp->l_prev;
 		if (lp == 0) {
@@ -628,14 +663,11 @@ doit:		lp = (dir == FORWARD) ? lp->l_next : lp->l_prev;
 		if (dir == FORWARD)
 			offset = 0;
 		else
-			offset = -1;	/* Signals re_lindex ... */
+			offset = -1;	/* signals re_lindex ... */
+	} while (lp != curline);
 
-	} while (lp != push_dot.p_line);
-
-	if (lp == push_dot.p_line && we_wrapped)
+	if (lp == curline && we_wrapped)
 		lp = 0;
-	curline = push_dot.p_line;
-	curchar = push_dot.p_char;
 	if (lp == 0)
 		return 0;
 	ret.p_line = lp;
@@ -748,25 +780,41 @@ RErecur()
 
 ForSearch()
 {
-	search(FORWARD, UseRE);
+	search(FORWARD, UseRE, YES);
 }
 
 RevSearch()
 {
-	search(BACKWARD, UseRE);
+	search(BACKWARD, UseRE, YES);
+}
+
+FSrchND()
+{
+	search(FORWARD, UseRE, NO);
+}
+
+RSrchND()
+{
+	search(BACKWARD, UseRE, NO);
 }
 
 private
-search(dir, re)
+search(dir, re, setdefault)
 {
 	Bufpos	*newdot;
+	char	*s;
 
-	setsearch(ask(searchstr, ProcFmt));
-	if ((newdot = dosearch(searchstr, dir, re)) == 0) {
+	s = ask(searchstr, ProcFmt);
+	if (setdefault)
+		setsearch(s);
+	okay_wrap = YES;
+	newdot = dosearch(s, dir, re);
+	okay_wrap = NO;
+	if (newdot == 0) {
 		if (WrapScan)
-			complain("No \"%s\" in buffer.", searchstr);
+			complain("No \"%s\" in buffer.", s);
 		else
-			complain("No \"%s\" found to %s.", searchstr,
+			complain("No \"%s\" found to %s.", s,
 				 (dir == FORWARD) ? "bottom" : "top");
 	}
 	PushPntp(newdot->p_line);

@@ -22,7 +22,9 @@ char	*TMP_DIR = "TMPDIR",
 
 	*JOVERC = "LIBDIR/.joverc",
 
+#ifdef PIPEPROCS
 	*PORTSRV = "LIBDIR/portsrv",
+#endif
 
-	Shell[40] = "SHELL",
+	Shell[128] = "SHELL",
 	ShFlags[16] = "-c";

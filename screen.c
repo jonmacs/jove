@@ -211,8 +211,10 @@ register int	abortable;
 		}
 	}
 	if (n <= 0) {
-		thebyte = ('!' | or_byte);
-		sputc(thebyte);
+		if ((*line == '\0') && (c != '\t') && !isctrl(c))
+			sputc(c|or_byte);
+		else
+			sputc('!'|or_byte);
 	}
 	if (cursor > Curline->s_length)
 		Curline->s_length = cursor;
@@ -230,7 +232,7 @@ BufSwrite(linenum)
 			col = 0,
 			c;
 	int	StartCol = DesiredScreen[linenum].s_offset,
-		visspace = DesiredScreen[linenum].s_window->w_visspace,
+		visspace = DesiredScreen[linenum].s_window->w_flags & W_VISSPACE,
 		aborted = 0;
 
 	bp = lcontents(DesiredScreen[linenum].s_lp);
@@ -275,14 +277,18 @@ BufSwrite(linenum)
 			soutputc((c == '\177') ? '?' : c + '@');
 			col += 2;
 		} else {
-			if (visspace && c == ' ')
+			if (c == ' ' && visspace)
 				c = '_';
 			soutputc(c);
 			col++;
 		}
 	}
-	if (n <= 0)
-		sputc('!');
+	if (n <= 0) {
+		if ((*bp == '\0') && (c != '\t') && !isctrl(c))
+			sputc(c);
+		else
+			sputc('!');
+	}
 	if (cursor > Curline->s_length)
 		Curline->s_length = cursor;
 	return !aborted;		/* Didn't abort */

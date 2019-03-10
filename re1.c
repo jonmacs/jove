@@ -290,6 +290,7 @@ register int	c,
 {
 	static Bufpos	buf;
 	Bufpos	*bp;
+	extern int	okay_wrap;
 
 	if (c == CTL(S) || c == CTL(R))
 		goto dosrch;
@@ -306,8 +307,10 @@ register int	c,
 		if (look_at(ISbuf))
 			return &buf;
 	}
-dosrch:	if ((bp = dosearch(ISbuf, dir, 0)) == 0)
+dosrch:	okay_wrap = YES;
+	if ((bp = dosearch(ISbuf, dir, 0)) == 0)
 		rbell();	/* ring the first time there's no match */
+	okay_wrap = NO;
 	return bp;
 }
 
@@ -336,7 +339,6 @@ IncSearch(dir)
 			DoSetMark(save_env.p_line, save_env.p_char);
 	}
 	setsearch(ISbuf);
-	message(ISbuf);
 }
 
 /* Nicely recursive. */

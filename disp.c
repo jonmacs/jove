@@ -29,9 +29,9 @@ register Line	*line2;
 	do {
 		for (lp = line1->l_next; lp != line2->l_next; lp = lp->l_next) {
 			if (lp == w->w_top)
-				w->w_flags |= TOPGONE;
+				w->w_flags |= W_TOPGONE;
 			if (lp == w->w_line)
-				w->w_flags |= CURGONE;
+				w->w_flags |= W_CURGONE;
 		}
 		w = w->w_next;
 	} while (w != fwind);
@@ -214,27 +214,28 @@ register Window	*w;
 	Buffer	*bp = w->w_bufp;
 
 retry:
-	if (w->w_flags & CURGONE) {
+	if (w->w_flags & W_CURGONE) {
 		w->w_line = bp->b_dot;
 		w->w_char = bp->b_char;
 	}
-	if (w->w_flags & TOPGONE)
+	if (w->w_flags & W_TOPGONE)
 		CentWind(w);	/* Reset topline of screen */
-	w->w_flags = 0;
+	w->w_flags &= ~(W_CURGONE|W_TOPGONE);
 	for (i = w->w_height, lp = w->w_top; --i > 0 && lp != 0; lp = lp->l_next)
 		if (lp == w->w_line)
 			break;
-	if (i == 0 || lp == 0) {	/* Current line not in window */
+	if (i == 0 || lp == 0) {	/* current line not in window */
 		ntries++;
 		if (ntries == 1) {
 			CalcWind(w);
 			goto retry;
 		} else if (ntries == 2) {
 			w->w_top = w->w_line = w->w_bufp->b_first;
-			f_mess("ERROR in redisplay: I got hopelessly lost!");
+			printf("\rERROR in redisplay: I got hopelessly lost!");
+			dobell(2);
 			goto retry;
 		} else if (ntries == 3) {
-			printf("\rOops, still lost, quitting ...\r\n");
+			printf("\n\rOops, still lost, quitting ...\r\n");
 			finish(1);
 		}
 	}
@@ -248,13 +249,13 @@ retry:
 		des_p->s_lp = lp;
 		des_p->s_id = lp->l_dline & ~DIRTY;
 		des_p->s_flags = isdirty(lp) ? L_MOD : 0;
-		if (w->w_numlines)
+		if (w->w_flags & W_NUMLINES)
 			des_p->s_vln = w->w_topnum + (i - upper);
 		else
 			des_p->s_vln = 0;
 
 		if (lp == w->w_line) {
-			int	diff = w->w_numlines ? 8 : 0,
+			int	diff = (w->w_flags & W_NUMLINES) ? 8 : 0,
 				strt_col = phys_p->s_offset,
 				end_col = strt_col + (CO - 2) - diff;
 
@@ -402,9 +403,9 @@ register int	linenum;
 		des_p->s_lp->l_dline &= ~DIRTY;
 		des_p->s_flags &= ~(DIRTY | L_MOD);
 #ifdef ID_CHAR
-		if (!UseIC && w->w_numlines)
+		if (!UseIC && (w->w_flags & W_NUMLINES))
 #else
-		if (w->w_numlines)
+		if (w->w_flags & W_NUMLINES)
 #endif
 			(void) swrite(sprint("%6d  ", des_p->s_vln), NIL, YES);
 
@@ -412,14 +413,14 @@ register int	linenum;
 		if (UseIC) {
 			char	outbuf[256],
 				*lptr;
-			int	fromcol = w->w_numlines ? 8 : 0;
+			int	fromcol = (w->w_flags & W_NUMLINES) ? 8 : 0;
 
-			if (w->w_numlines)
+			if (w->w_flags & W_NUMLINES)
 				sprintf(outbuf, "%6d  ", des_p->s_vln);
 			lptr = lcontents(des_p->s_lp);
 			DeTab(des_p->s_offset, lptr, outbuf + fromcol,
 				(sizeof outbuf) - 1 - fromcol,
-				des_p->s_window->w_visspace);
+				des_p->s_window->w_flags & W_VISSPACE);
 			if (IDchar(outbuf, linenum, 0))
 				PhysScreen[linenum] = *des_p;
 			else if (i_set(linenum, 0), swrite(outbuf, NIL, YES))
@@ -1015,7 +1016,7 @@ NextPage()
 		PrevPage();
 		return;
 	}
-	if (exp_p)
+	if (exp_p == YES)
 		UpScroll();
 	else {
 		if (in_window(curwind, curwind->w_bufp->b_last) != -1) {
@@ -1040,7 +1041,7 @@ PrevPage()
 		NextPage();
 		return;
 	}
-	if (exp_p)
+	if (exp_p == YES)
 		DownScroll();
 	else {
 		newline = prev_line(curwind->w_top, max(1, SIZE(curwind) - 1));
@@ -1096,7 +1097,7 @@ Eow()
 		return;
 	SetLine(next_line(curwind->w_top, SIZE(curwind) - 1 -
 			min(SIZE(curwind) - 1, exp - 1)));
-	if (!exp_p)
+	if (exp_p == NO)
 		Eol();
 }
 

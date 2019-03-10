@@ -23,9 +23,9 @@
 DESTDIR =
 TMPDIR = /tmp
 RECDIR = /tmp
-LIBDIR = /u/payne/jovelib
-BINDIR = /u/payne/bin
-MANDIR = /u/payne/manl
+LIBDIR = /socrates.usr/jpayne/jovelib
+BINDIR = /socrates.usr/jpayne/bin
+MANDIR = /socrates.usr/jpayne/manl
 MANEXT = l
 SHELL = /bin/csh
 
@@ -107,7 +107,7 @@ teachjove:	teachjove.o
 setmaps:	setmaps.o funcdefs.c
 	cc -o setmaps setmaps.o
 
-teachjove.o:	teachjove.c
+teachjove.o:	teachjove.c /usr/include/sys/types.h /usr/include/sys/file.h
 	cc -c $(CFLAGS) -DTEACHJOVE=\"$(TEACH-JOVE)\" teachjove.c
 
 setmaps.o:	funcdefs.c keymaps.txt
@@ -207,8 +207,8 @@ touch:
 	touch $(OBJECTS)
 
 clean:
-	rm -f a.out core *.o errs Errs Makefile.bak keymaps.c tune.c \
-	xjove portsrv recover setmaps teachjove
+	rm -f a.out core *.o keymaps.c tune.c xjove portsrv recover setmaps \
+	teachjove
 
 # This version only works under 4.3BSD
 depend:
@@ -229,3 +229,93 @@ depend:
 	echo '# see make depend above' >> Makefile
 
 # DO NOT DELETE THIS LINE -- make depend uses it
+# DEPENDENCIES MUST END AT END OF FILE
+funcdefs.o: funcdefs.c ./jove.h /usr/include/setjmp.h /usr/include/sys/types.h
+funcdefs.o: ./tune.h /usr/include/sys/ioctl.h /usr/include/sys/ttychars.h
+funcdefs.o: /usr/include/sys/ttydev.h
+abbrev.o: abbrev.c ./jove.h /usr/include/setjmp.h /usr/include/sys/types.h
+abbrev.o: ./tune.h ./io.h ./ctype.h
+ask.o: ask.c ./jove.h /usr/include/setjmp.h /usr/include/sys/types.h ./tune.h
+ask.o: ./termcap.h ./ctype.h /usr/include/signal.h /usr/include/varargs.h
+ask.o: /usr/include/sys/stat.h
+buf.o: buf.c ./jove.h /usr/include/setjmp.h /usr/include/sys/types.h ./tune.h
+buf.o: /usr/include/sys/stat.h
+c.o: c.c ./jove.h /usr/include/setjmp.h /usr/include/sys/types.h ./tune.h
+c.o: ./re.h ./ctype.h
+case.o: case.c ./jove.h /usr/include/setjmp.h /usr/include/sys/types.h ./tune.h
+case.o: ./ctype.h
+ctype.o: ctype.c ./jove.h /usr/include/setjmp.h /usr/include/sys/types.h
+ctype.o: ./tune.h ./ctype.h
+delete.o: delete.c ./jove.h /usr/include/setjmp.h /usr/include/sys/types.h
+delete.o: ./tune.h
+disp.o: disp.c ./jove.h /usr/include/setjmp.h /usr/include/sys/types.h ./tune.h
+disp.o: ./ctype.h ./termcap.h /usr/include/varargs.h /usr/include/signal.h
+disp.o: /usr/include/sys/stat.h
+extend.o: extend.c ./jove.h /usr/include/setjmp.h /usr/include/sys/types.h
+extend.o: ./tune.h ./io.h ./termcap.h ./ctype.h /usr/include/signal.h
+extend.o: /usr/include/varargs.h
+fp.o: fp.c ./jove.h /usr/include/setjmp.h /usr/include/sys/types.h ./tune.h
+fp.o: ./io.h ./termcap.h /usr/include/sys/stat.h /usr/include/sys/file.h
+fp.o: /usr/include/errno.h
+fmt.o: fmt.c ./jove.h /usr/include/setjmp.h /usr/include/sys/types.h ./tune.h
+fmt.o: ./io.h ./termcap.h /usr/include/varargs.h
+insert.o: insert.c ./jove.h /usr/include/setjmp.h /usr/include/sys/types.h
+insert.o: ./tune.h ./ctype.h
+io.o: io.c ./jove.h /usr/include/setjmp.h /usr/include/sys/types.h ./tune.h
+io.o: ./io.h ./termcap.h /usr/include/signal.h /usr/include/sys/stat.h
+io.o: /usr/include/sys/file.h /usr/include/errno.h ./temp.h
+iproc.o: iproc.c ./jove.h /usr/include/setjmp.h /usr/include/sys/types.h
+iproc.o: ./tune.h ./iproc-ptys.c /usr/include/sys/wait.h /usr/include/signal.h
+iproc.o: /usr/include/sgtty.h /usr/include/sys/ioctl.h
+iproc.o: /usr/include/sys/ttychars.h /usr/include/sys/ttydev.h
+jove.o: jove.c ./jove.h /usr/include/setjmp.h /usr/include/sys/types.h ./tune.h
+jove.o: ./io.h ./termcap.h /usr/include/varargs.h /usr/include/sys/stat.h
+jove.o: /usr/include/signal.h /usr/include/errno.h /usr/include/sgtty.h
+jove.o: /usr/include/sys/ioctl.h /usr/include/sys/ttychars.h
+jove.o: /usr/include/sys/ttydev.h /usr/include/fcntl.h
+macros.o: macros.c ./jove.h /usr/include/setjmp.h /usr/include/sys/types.h
+macros.o: ./tune.h
+malloc.o: malloc.c ./tune.h
+marks.o: marks.c ./jove.h /usr/include/setjmp.h /usr/include/sys/types.h
+marks.o: ./tune.h
+misc.o: misc.c ./jove.h /usr/include/setjmp.h /usr/include/sys/types.h ./tune.h
+misc.o: ./ctype.h /usr/include/signal.h ./termcap.h
+move.o: move.c ./jove.h /usr/include/setjmp.h /usr/include/sys/types.h ./tune.h
+move.o: ./ctype.h
+paragraph.o: paragraph.c ./jove.h /usr/include/setjmp.h
+paragraph.o: /usr/include/sys/types.h ./tune.h
+proc.o: proc.c ./jove.h /usr/include/setjmp.h /usr/include/sys/types.h ./tune.h
+proc.o: ./io.h ./termcap.h /usr/include/signal.h /usr/include/sys/wait.h
+re.o: re.c ./jove.h /usr/include/setjmp.h /usr/include/sys/types.h ./tune.h
+re.o: ./ctype.h
+re1.o: re1.c ./jove.h /usr/include/setjmp.h /usr/include/sys/types.h ./tune.h
+re1.o: ./io.h ./re.h
+rec.o: rec.c ./jove.h /usr/include/setjmp.h /usr/include/sys/types.h ./tune.h
+rec.o: ./io.h ./temp.h ./rec.h /usr/include/sys/file.h
+scandir.o: scandir.c ./jove.h /usr/include/setjmp.h /usr/include/sys/types.h
+scandir.o: ./tune.h /usr/include/sys/stat.h /usr/include/sys/dir.h
+screen.o: screen.c ./jove.h /usr/include/setjmp.h /usr/include/sys/types.h
+screen.o: ./tune.h ./io.h ./ctype.h ./temp.h ./termcap.h
+term.o: term.c ./jove.h /usr/include/setjmp.h /usr/include/sys/types.h ./tune.h
+term.o: /usr/include/errno.h /usr/include/sgtty.h /usr/include/sys/ioctl.h
+term.o: /usr/include/sys/ttychars.h /usr/include/sys/ttydev.h
+term.o: /usr/include/signal.h
+util.o: util.c ./jove.h /usr/include/setjmp.h /usr/include/sys/types.h ./tune.h
+util.o: ./ctype.h /usr/include/signal.h /usr/include/nlist.h
+util.o: /usr/include/sys/time.h /usr/include/time.h
+vars.o: vars.c ./jove.h /usr/include/setjmp.h /usr/include/sys/types.h ./tune.h
+version.o: version.c
+wind.o: wind.c ./jove.h /usr/include/setjmp.h /usr/include/sys/types.h ./tune.h
+wind.o: ./termcap.h
+portsrv.o: portsrv.c ./tune.h
+recover.o: recover.c /usr/include/stdio.h ./jove.h /usr/include/setjmp.h
+recover.o: /usr/include/sys/types.h ./tune.h ./temp.h ./rec.h
+recover.o: /usr/include/signal.h /usr/include/sys/file.h
+recover.o: /usr/include/sys/stat.h /usr/include/sys/dir.h ./ctype.h
+setmaps.o: setmaps.c ./funcdefs.c ./jove.h /usr/include/setjmp.h
+setmaps.o: /usr/include/sys/types.h ./tune.h /usr/include/sys/ioctl.h
+setmaps.o: /usr/include/sys/ttychars.h /usr/include/sys/ttydev.h
+setmaps.o: /usr/include/stdio.h
+# DEPENDENCIES MUST END AT END OF FILE
+# IF YOU PUT STUFF HERE IT WILL GO AWAY
+# see make depend above

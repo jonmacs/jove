@@ -103,7 +103,6 @@ DIR	*dp;
 /* Get a line at `tl' in the tmp file into `buf' which should be LBSIZE
    long. */
 
-char *
 getline(tl, buf)
 disk_line	tl;
 char	*buf;

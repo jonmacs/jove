@@ -85,7 +85,7 @@ register Window	*wp;
 
 	while (--n >= 0) {
 		new = (Window *) emalloc(sizeof (Window));
-		new->w_visspace = new->w_numlines = 0;
+		new->w_flags = 0;
 
 		new->w_height = amt;
 		wp->w_height -= amt;
@@ -116,7 +116,7 @@ winit()
 
 	w = curwind = fwind = (Window *) emalloc(sizeof (Window));
 	w->w_line = w->w_top = 0;
-	w->w_visspace = w->w_numlines = 0;
+	w->w_flags = 0;
 	w->w_char = 0;
 	w->w_next = w->w_prev = fwind;
 	w->w_height = ILI;
@@ -210,7 +210,6 @@ WindFind()
 		FindTag(),
 		BufSelect(),
 		FindFile();
-	extern data_obj	*FindCmd();
 
 	DOTsave(&savedot);
 
@@ -332,6 +331,9 @@ register char	*name;
 	register Window	*wp;
 	register Buffer	*newb;
 
+	if (newb = buf_exists(name))
+		btype = -1;	/* if the buffer exists, don't change
+				   it's type */
 	if ((wp = w_nam_typ(name, btype)) == 0) {
 		if (one_windp())
 			SetWind(div_wind(curwind, 1));
@@ -395,7 +397,7 @@ register Line	*line;
 	register int	num = 0;
 
 	w->w_top = line;
-	if (w->w_numlines) {
+	if (w->w_flags & W_NUMLINES) {
 		while (lp) {
 			num++;
 			if (line == lp)
@@ -408,13 +410,13 @@ register Line	*line;
 
 WNumLines()
 {
-	curwind->w_numlines = !curwind->w_numlines;
+	curwind->w_flags ^= W_NUMLINES; 
 	SetTop(curwind, curwind->w_top);
 }
 
 WVisSpace()
 {
-	curwind->w_visspace = !curwind->w_visspace;
+	curwind->w_flags ^= W_VISSPACE;
 	ClAndRedraw();
 }
 

@@ -258,6 +258,7 @@ DelBlnkLines()
 	all = !blnkp(linebuf);
 	while (blnkp(linebuf) && curline->l_prev)
 		SetLine(curline->l_prev);
+	all |= (firstp(curline));
 	Eol();
 	DelWtSpace();
 	line_move(FORWARD, NO);

@@ -24,6 +24,10 @@ extern int
 	AppReg(),
 	Apropos(),
 	BackChar(),
+	BList(),
+	FList(),
+	BUpList(),
+	FDownList(),
 	BSexpr(),
 	BackWord(),
 	Bof(),
@@ -152,7 +156,9 @@ extern int
 	DownScroll(),
 	UpScroll(),
 	ForSearch(),
+	FSrchND(),
 	RevSearch(),
+	RSrchND(),
 	SelfInsert(),
 	SetVar(),
  	SetMark(),
@@ -181,6 +187,7 @@ extern int
 	WNumLines(),
 
 #ifdef IPROCS
+	ShelCmd(),
 	IShell(),
 	ProcInt(),
 	ProcQuit(),
@@ -193,6 +200,7 @@ extern int
 	ProcDStop(),
 #    endif
 #  endif
+	ProcSendData(),
 	ProcNewline(),
 	ProcList(),
 	ProcBind(),
@@ -241,9 +249,11 @@ struct cmd	commands[] = {
 	DefMinor(Fill), "auto-fill-mode", 0,
 	DefMinor(Indent), "auto-indent-mode", 0,
 	FUNCTION, "backward-character", WIRED_CMD(BackChar),
+	FUNCTION, "backward-list", WIRED_CMD(BList),
 	FUNCTION, "backward-paragraph", WIRED_CMD(BackPara),
 	FUNCTION, "backward-s-expression", WIRED_CMD(BSexpr),
 	FUNCTION, "backward-sentence", WIRED_CMD(Bos),
+	FUNCTION, "backward-up-list", WIRED_CMD(BUpList),
 	FUNCTION, "backward-word", WIRED_CMD(BackWord),
 	FUNCTION, "beginning-of-file", WIRED_CMD(Bof),
 	FUNCTION, "beginning-of-line", WIRED_CMD(Bol),
@@ -307,6 +317,7 @@ struct cmd	commands[] = {
 #ifdef CHDIR
 	FUNCTION, "dirs", WIRED_CMD(prDIRS),
 #endif
+	FUNCTION, "down-list", WIRED_CMD(FDownList),
 #ifdef IPROCS
 #  ifndef PIPEPROCS
 #    ifdef TIOCSLTC
@@ -344,6 +355,7 @@ struct cmd	commands[] = {
 	FUNCTION, "find-tag-at-point", WIRED_CMD(FDotTag),
 	FUNCTION, "first-non-blank", WIRED_CMD(ToIndent),
 	FUNCTION, "forward-character", WIRED_CMD(ForChar),
+	FUNCTION, "forward-list", WIRED_CMD(FList),
 	FUNCTION, "forward-paragraph", WIRED_CMD(ForPara),
 	FUNCTION, "forward-s-expression", WIRED_CMD(FSexpr),
 	FUNCTION, "forward-sentence", WIRED_CMD(Eos),
@@ -418,6 +430,7 @@ struct cmd	commands[] = {
 #ifdef IPROCS
 	FUNCTION, "process-bind-to-key", WIRED_CMD(ProcBind),
 	FUNCTION, "process-newline", WIRED_CMD(ProcNewline),
+	FUNCTION, "process-send-data-no-return", WIRED_CMD(ProcSendData),
 #endif
 	FUNCTION, "push-shell", WIRED_CMD(Push),
 #ifdef CHDIR
@@ -444,11 +457,16 @@ struct cmd	commands[] = {
 	FUNCTION, "scroll-down", WIRED_CMD(DownScroll),
 	FUNCTION, "scroll-up", WIRED_CMD(UpScroll),
 	FUNCTION, "search-forward", WIRED_CMD(ForSearch),
+	FUNCTION, "search-forward-nd", WIRED_CMD(FSrchND),
 	FUNCTION, "search-reverse", WIRED_CMD(RevSearch),
+	FUNCTION, "search-reverse-nd", WIRED_CMD(RSrchND),
 	FUNCTION, "select-buffer", WIRED_CMD(BufSelect),
 	FUNCTION, "self-insert", WIRED_CMD(SelfInsert),
 	FUNCTION, "set", WIRED_CMD(SetVar),
 	FUNCTION, "set-mark", WIRED_CMD(SetMark),
+#ifdef IPROCS	/* for GNU compatibility */
+	FUNCTION, "shell", WIRED_CMD(ShelCmd),
+#endif
 	FUNCTION, "shell-command", WIRED_CMD(ShellCom),
 	FUNCTION, "shell-command-to-buffer", WIRED_CMD(ShToBuf),
 	DefMinor(ShowMatch), "show-match-mode", 0,
@@ -494,25 +512,83 @@ struct cmd	commands[] = {
 
 #ifndef TXT_TO_C
 data_obj *
-findcom(prompt, flags)
+findcom(prompt)
 char	*prompt;
 {
-	static char	*strings[(sizeof commands) / sizeof (commands[0])];
-	static int	beenhere = 0;
-	register int	com;
+	/* This is for faster startup.  This just reads until a space or a
+	   tab or a newline character is reached, and then does a
+	   semi-hashed lookup on that string.  This should be much faster
+	   than initializing the minibuffer for each line. */
+	if (InJoverc) {
+		char	cmdbuf[128];
+		register struct cmd	*cmd;
+		register char	*cp = cmdbuf;
+		register int	c;
+		struct cmd	*which;
+		int	cmdlen,
+			found = 0;
+		static struct cmd	*cmdhash[1 + 26];
+		static int	beenhere = NO;
 
-	if (beenhere == 0) {
-		register char	**strs = strings;
-		register struct cmd	*c = commands;
+/* special case for prefix commands--only upper case ones */
+#define hash(c)	((c == 'P') ? 0 : 1 + (c - 'a'))
 
-		beenhere = 1;
-		for (; c->Name; c++)
-			*strs++ = c->Name;
-		*strs = 0;
+		/* initialize the hash table */
+		if (beenhere == NO) {
+			int	lastc = 0;
+
+			for (cmd = commands; cmd->Name != 0; cmd++)
+				if (lastc != cmd->Name[0]) {
+					lastc = cmd->Name[0];
+					cmdhash[hash(lastc)] = cmd;
+				}
+			beenhere = YES;
+		}
+
+		/* gather the cmd name */
+		while (((c = getch()) != EOF) && !index(" \t\r\n", c))
+			*cp++ = c;
+		if (c == EOF)
+			return 0;
+		*cp = '\0';
+		cmdlen = cp - cmdbuf;
+		if (cmdlen == 0)
+			return 0;
+
+		/* look it up (in the reduced search space) */
+		for (cmd = cmdhash[hash(cmdbuf[0])]; cmd->Name[0] == cmdbuf[0]; cmd++) {
+			if (strncmp(cmd->Name, cmdbuf, cmdlen) == 0) {
+				if (strcmp(cmd->Name, cmdbuf) == 0)
+					return (data_obj *) cmd;
+				found++;
+				which = cmd;
+			}
+		}
+		if (found > 1)
+			complain("[\"%s\" ambiguous]", cmdbuf);
+		else if (found == 0)
+			complain("[\"%s\" unknown]", cmdbuf);
+		else
+			return (data_obj *) which;
+	} else {
+		static char	*strings[(sizeof commands) / sizeof (commands[0])];
+		static int	beenhere = 0;
+		register int	com;
+
+		if (beenhere == 0) {
+			register char	**strs = strings;
+			register struct cmd	*c = commands;
+
+			beenhere = 1;
+			for (; c->Name; c++)
+				*strs++ = c->Name;
+			*strs = 0;
+		}
+
+		if ((com = complete(strings, prompt, CASEIND)) < 0)
+			return 0;
+		return (data_obj *) &commands[com];
 	}
-
-	if ((com = complete(strings, prompt, flags)) < 0)
-		return 0;
-	return (data_obj *) &commands[com];
+	/* NOTREACHED */
 }
 #endif
