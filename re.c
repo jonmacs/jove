@@ -1,11 +1,9 @@
-/*************************************************************************
- * This program is copyright (C) 1985, 1986 by Jonathan Payne.  It is    *
- * provided to you without charge for use only on a licensed Unix        *
- * system.  You may copy JOVE provided that this notice is included with *
- * the copy.  You may not sell copies of this program or versions        *
- * modified for use on microcomputer systems, unless the copies are      *
- * included with a Unix system distribution and the source is provided.  *
- *************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 /* search package */
 
@@ -737,12 +735,17 @@ char	*tobuf;
 		*tp++ = *rp++;
 
 	if (!delp) while (c = *repp++) {
-		if (c == '\\' && (c = *repp++) >= '1' && c <= nparens + '1') {
-			tp = insert(tp, endp, c - '1');
-			continue;
+		if (c == '\\') {
+			if ((c = *repp++) == '\0') {
+				*tp++ = '\\';
+	  			goto endchk;
+			} else if ((c = *repp++) >= '1' && c <= nparens + '1') {
+				tp = insert(tp, endp, c - '1');
+				continue;
+			}
 		}
 		*tp++ = c;
-		if (tp >= endp)
+endchk:		if (tp >= endp)
 			len_error(ERROR);
 	}
 	rp = loc2;

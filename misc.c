@@ -1,11 +1,9 @@
-/*************************************************************************
- * This program is copyright (C) 1985, 1986 by Jonathan Payne.  It is    *
- * provided to you without charge for use only on a licensed Unix        *
- * system.  You may copy JOVE provided that this notice is included with *
- * the copy.  You may not sell copies of this program or versions        *
- * modified for use on microcomputer systems, unless the copies are      *
- * included with a Unix system distribution and the source is provided.  *
- *************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 #include "jove.h"
 #include "ctype.h"
@@ -103,8 +101,7 @@ int	exp_p,
 
 GetExp(c)
 {
-	int	sign = 0,
-		i = 0;
+	int	sign = 0;
 	static int	digited;
 
 	if (!isdigit(c) && c != '-')
@@ -388,21 +385,10 @@ put_bufs(askp)
 
 SaveBuf(askp)
 {
-	char	*yorn;
-
-	if (askp) {
-		if (yes_or_no_p("Write %s? ", curbuf->b_fname) == NO)
-			return 0;
-	}
+	if (askp && (yes_or_no_p("Write %s? ", curbuf->b_fname) == NO))
+		return FALSE;
 	file_write(curbuf->b_fname, 0);
-	return 1;
-}
-
-DOTsave(buf)
-Bufpos *buf;
-{
-	buf->p_line = curline;
-	buf->p_char = curchar;
+	return TRUE;
 }
 
 ToIndent()
@@ -477,10 +463,10 @@ AnsiCodes()
 		}
 		break;
 	case 'A':
-		line_move(BACKWARD, NO);
+		line_move(BACKWARD, YES);
 		break;
 	case 'B':
-		line_move(FORWARD, NO);
+		line_move(FORWARD, YES);
 		break;
 	case 'C':
 		ForChar();

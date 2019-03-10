@@ -1,11 +1,9 @@
-/*************************************************************************
- * This program is copyright (C) 1985, 1986 by Jonathan Payne.  It is    *
- * provided to you without charge for use only on a licensed Unix        *
- * system.  You may copy JOVE provided that this notice is included with *
- * the copy.  You may not sell copies of this program or versions        *
- * modified for use on microcomputer systems, unless the copies are      *
- * included with a Unix system distribution and the source is provided.  *
- *************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 #include "jove.h"
 
@@ -247,10 +245,6 @@ static int	int_how = NEWWAY;
 
 /* Formatting int's the old way or the new "improved" way? */
 
-#ifndef BSD4_2
-
-/* 4.2 (at least) has these functions defined. */
-
 #if vax || pdp11
 long htonl(x)
 register long x;
@@ -308,7 +302,6 @@ register short x;
 	return(x);
 }
 #endif
-#endif BSD4_2
 
 int_fmt(i)
 {

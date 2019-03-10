@@ -1,11 +1,9 @@
-/*************************************************************************
- * This program is copyright (C) 1985, 1986 by Jonathan Payne.  It is    *
- * provided to you without charge for use only on a licensed Unix        *
- * system.  You may copy JOVE provided that this notice is included with *
- * the copy.  You may not sell copies of this program or versions        *
- * modified for use on microcomputer systems, unless the copies are      *
- * included with a Unix system distribution and the source is provided.  *
- *************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 /* Recovers JOVE files after a system/editor crash.
    Usage: recover [-d directory] [-syscrash]
@@ -111,17 +109,17 @@ char	*buf;
 	register char	*bp,
 			*lp;
 	register int	nl;
+	char	*getblock();
 
 	lp = buf;
-	bp = getblock(tl);
+	bp = getblock(tl >> 1);
 	nl = nleft;
-	tl &= ~OFFMSK;
+	tl = blk_round(tl);
 
 	while (*lp++ = *bp++) {
 		if (--nl == 0) {
-			/* += INCRMT moves tl to the next block in
-			   the tmp file. */
-			bp = getblock(tl += INCRMT);
+			tl = forward_block(tl);
+			bp = getblock(tl >> 1);
 			nl = nleft;
 		}
 	}
@@ -135,8 +133,8 @@ disk_line	atl;
 		off;
 	static int	curblock = -1;
 
-	bno = (atl >> OFFBTS) & BLKMSK;
-	off = (atl << SHFT) & LBTMSK;
+	bno = daddr_to_bno(atl);
+	off = daddr_to_off(atl);
 	nleft = BUFSIZ - off;
 
 	if (bno != curblock) {

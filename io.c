@@ -1,23 +1,26 @@
-/*************************************************************************
- * This program is copyright (C) 1985, 1986 by Jonathan Payne.  It is    *
- * provided to you without charge for use only on a licensed Unix        *
- * system.  You may copy JOVE provided that this notice is included with *
- * the copy.  You may not sell copies of this program or versions        *
- * modified for use on microcomputer systems, unless the copies are      *
- * included with a Unix system distribution and the source is provided.  *
- *************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 #include "jove.h"
 #include "io.h"
 #include "termcap.h"
 
 #ifdef IPROCS
-#	include <signal.h>
+#   include <signal.h>
 #endif
 
 #include <sys/stat.h>
 #include <sys/file.h>
 #include <errno.h>
+
+#ifndef W_OK
+#   define W_OK	2
+#   define F_OK	0
+#endif
 
 long	io_chars;		/* number of chars in this open_file */
 int	io_lines;		/* number of lines in this open_file */
@@ -229,7 +232,7 @@ getwd()
 
 	SetBuf(do_select((Window *) 0, "pwd-output"));
 	curbuf->b_type = B_PROCESS;
-	(void) UnixToBuf("pwd-output", NO, 0, YES, "/bin/pwd", "pwd", 0);
+	(void) UnixToBuf("pwd-output", NO, 0, YES, "/bin/pwd", (char *) 0);
 	ToFirst();
 	ret_val = sprint(linebuf);
 	SetBuf(old);
@@ -507,8 +510,7 @@ WriteFile()
 
 	chk_mtime(curbuf, fname, "write");
 	filemunge(fname);
-	if (curbuf->b_type != B_IPROCESS)
-		curbuf->b_type = B_FILE;  /* In case it wasn't before. */
+	curbuf->b_type = B_FILE;  	/* In case it wasn't before. */
 	setfname(curbuf, fname);
 	file_write(fname, 0);
 	unmodify();
@@ -655,7 +657,8 @@ int	DOLsave = 0;	/* Do Lsave flag.  If lines aren't being save
 
 private int	nleft,	/* number of good characters left in current block */
 		tmpfd = -1;
-private disk_line	tline = 0;	/* pointer to end of tmp file */
+private disk_line	DFree = 1;
+			/* pointer to end of tmp file */
 private char	*tfname;
 
 tmpinit()
@@ -682,34 +685,23 @@ tmpclose()
    long. */
 
 int	Jr_Len;		/* Length of Just Read Line. */
+private char	*getblock();
 
-getline(tl, buf)
-disk_line	tl;
-char	*buf;
+getline(addr, buf)
+disk_line	addr;
+register char	*buf;
 {
 	register char	*bp,
 			*lp;
-	register int	nl;
 
 	lp = buf;
-	bp = getblock(tl, READ);
-	nl = nleft;
-	tl &= ~OFFMSK;
-
-	while (*lp++ = *bp++) {
-		if (--nl == 0) {
-			/* += INCRMT moves tl to the next block in
-			   the tmp file. */
-			bp = getblock(tl += INCRMT, READ);
-			nl = nleft;
-		}
-	}
+	bp = getblock(addr >> 1, READ);
+	while (*lp++ = *bp++)
+		;
 	Jr_Len = (lp - buf) - 1;
 }
 
 /* Put `buf' and return the disk address */
-
-int	nretries = 0;
 
 disk_line
 putline(buf)
@@ -718,31 +710,30 @@ char	*buf;
 	register char	*bp,
 			*lp;
 	register int	nl;
-	disk_line	tl;
+	disk_line	free_ptr;
 
 	lp = buf;
-	tl = tline;
-	bp = getblock(tl, WRITE);
+	free_ptr = DFree;
+	bp = getblock(free_ptr, WRITE);
 	nl = nleft;
-	tl &= ~OFFMSK;
+	free_ptr = blk_round(free_ptr);
 	while (*bp = *lp++) {
 		if (*bp++ == '\n') {
 			*--bp = 0;
 			break;
 		}
 		if (--nl == 0) {
-			tl += INCRMT;
-			tline = tl;
-			bp = getblock(tl, WRITE);
+			free_ptr = forward_block(free_ptr);
+			DFree = free_ptr;
+			bp = getblock(free_ptr, WRITE);
 			lp = buf;	/* start over ... */
-			nretries++;
 			nl = nleft;
 		}
 	}
-	tl = tline;
-	tline += (((lp - buf) + BNDRY - 1) >> SHFT) & 077776;
-
-	return tl;
+	free_ptr = DFree;
+	DFree += (((lp - buf) + CH_SIZE - 1) / CH_SIZE);
+	         /* (lp - buf) includes the null */
+	return (free_ptr << 1);
 }
 
 /* The theory is that critical section of code inside this procedure
@@ -762,13 +753,13 @@ register File	*fp;
 	register int	c,
 			nl,
 			max = LBSIZE;
-	disk_line	tl;
+	disk_line	free_ptr;
 	char		*base;
 
-	tl = tline;
-	base = bp = getblock(tl, WRITE);
+	free_ptr = DFree;
+	base = bp = getblock(free_ptr, WRITE);
 	nl = nleft;
-	tl &= ~OFFMSK;
+	free_ptr = blk_round(free_ptr);
 	while (--max > 0) {
 		c = getc(fp);
 		if (c == EOF || c == '\n')
@@ -777,30 +768,29 @@ register File	*fp;
 			char	*newbp;
 			int	nbytes;
 
-			lockblock(tl);
-			tl += INCRMT;	/* to beginning of next block */
-			tline = tl;
+			lockblock(free_ptr);
+			DFree = free_ptr = forward_block(free_ptr);
 			nbytes = bp - base;
-			newbp = getblock(tl, WRITE);
+			newbp = getblock(free_ptr, WRITE);
+			nl = nleft;
 			byte_copy(base, newbp, nbytes);
 			bp = newbp + nbytes;
 			base = newbp;
-			nl = nleft;
-			unlockblock(tl);
+			unlockblock(free_ptr);
 		}
 		*bp++ = c;
 	}
-	*bp = '\0';
-	tl = tline;
-	tline += (((bp - base) + BNDRY) >> SHFT) & 077776;
-	line->l_dline = tl;
+	*bp++ = '\0';
+	free_ptr = DFree;
+	DFree += (((bp - base) + CH_SIZE - 1) / CH_SIZE);
+	line->l_dline = (free_ptr << 1);
 	if (max == 0) {
 		add_mess(" [Line too long]");
 		rbell();
 		return EOF;
 	}
 	if (c == EOF) {
-		if (bp != base)
+		if (--bp != base)
 			add_mess(" [Incomplete last line]");
 		return EOF;
 	}
@@ -856,7 +846,6 @@ d_cache_init()
 			**hp;	/* Hash pointer */
 	register short	bno;
 
-	tline = 2;
 	for (bp = b_cache, bno = NBUF; --bno >= 0; bp++) {
 		NBlocks++;
 		bp->b_dirty = 0;
@@ -877,6 +866,13 @@ d_cache_init()
 
 SyncTmp()
 {
+#ifdef MSDOS
+	register int	bno = 0;
+	BLock *lookup();
+
+	for (bno = 0; bno <= max_bno; )
+		(*blkio)(lookup(bno++), write);
+#else
 	register Block	*b;
 
 	for (b = f_block; b != 0; b = b->b_LRUnext)
@@ -884,6 +880,7 @@ SyncTmp()
 			(*blkio)(b, write);
 			b->b_dirty = 0;
 		}
+#endif
 }
 
 private Block *
@@ -948,7 +945,7 @@ register Block	*bp;
    atl.  Returns a pointer to the block and sets the global variable
    nleft (number of good characters left in the buffer). */
 
-char *
+private char *
 getblock(atl, iof)
 disk_line	atl;
 {
@@ -957,9 +954,9 @@ disk_line	atl;
 	register Block	*bp;
 	static Block	*lastb = 0;
 
-	bno = (atl >> OFFBTS) & BLKMSK;
-	off = (atl << SHFT) & LBTMSK;
-	if (bno >= NMBLKS)
+	bno = daddr_to_bno(atl);
+	off = daddr_to_off(atl);
+	if (bno >= MAX_BLOCKS)
 		error("Tmp file too large.  Get help!");
 	nleft = BUFSIZ - off;
 	if (lastb != 0 && lastb->b_bno == bno) {
@@ -1026,7 +1023,7 @@ char *
 lbptr(line)
 Line	*line;
 {
-	return getblock(line->l_dline, READ);
+	return getblock(line->l_dline >> 1, READ);
 }
 
 /* save the current contents of linebuf, if it has changed */
@@ -1045,7 +1042,7 @@ lsave()
 file_backup(fname)
 char *fname;
 {
-	char *s;
+	char	*s;
 	register int	i;
 	int	fd1,
 		fd2;
@@ -1057,7 +1054,7 @@ char *fname;
 	if ((s = rindex(tmp1, '/')) == NULL)
 		sprintf(tmp2, "#%s", fname);
 	else {
-		*s++ = NULL;
+		*s++ = '\0';
 		sprintf(tmp2, "%s/#%s", tmp1, s);
 	}
 

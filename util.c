@@ -1,15 +1,14 @@
-/*************************************************************************
- * This program is copyright (C) 1985, 1986 by Jonathan Payne.  It is    *
- * provided to you without charge for use only on a licensed Unix        *
- * system.  You may copy JOVE provided that this notice is included with *
- * the copy.  You may not sell copies of this program or versions        *
- * modified for use on microcomputer systems, unless the copies are      *
- * included with a Unix system distribution and the source is provided.  *
- *************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 #include "jove.h"
 #include "ctype.h"
 #include <signal.h>
+#include <varargs.h>
 
 struct cmd *
 FindCmd(proc)
@@ -296,8 +295,8 @@ register int	dir;
 	}
 }
 
-/* Are there any modified buffers?  Allp means include B_PROCESS and
-   B_IPROCESS buffers in the check, but never scratch buffers. */
+/* Are there any modified buffers?  Allp means include B_PROCESS
+   buffers in the check. */
 
 ModBufs(allp)
 {
@@ -382,6 +381,13 @@ char	*buf;
 	} else
 		getline(line->l_dline, buf);
 	return buf;
+}
+
+DOTsave(buf)
+Bufpos *buf;
+{
+	buf->p_line = curline;
+	buf->p_char = curchar;
 }
 
 /* Return none-zero if we had to rearrange the order. */
@@ -777,40 +783,38 @@ int	delay;
 	timer.tv_usec = (delay % 10) * 100000;
 
 	if (charp())
-		return 1;
+		return;
 	/* gross that I had to snarf this from getch() */
 	if (!UpdMesg && !Asking) {	/* Don't erase if we are asking */
 		if (mesgbuf[0] && !errormsg)
 			message(NullStr);
 	}
 	redisplay();
-	return select(1, &readfds, &writefds, &exceptfds, &timer);
+	select(1, &readfds, &writefds, &exceptfds, &timer);
 #else
-	static float cps[] = {
-		0.0,
-		5.0,
-		7.5,
-		11.0,
-		13.4,
-		15.0,
-		20.0,
-		30.0,
-		60.0,
-		120.0,
-		180.0,
-		240.0,
-		480.0,
-		960.0,
-		1920.0,
-		1920.0,
+	static int cps[] = {
+		0,
+		5,
+		7,
+		11,
+		13,
+		15,
+		20,
+		30,
+		60,
+		120,
+		180,
+		240,
+		480,
+		960,
+		1920,
+		1920,
 	};
-	float	nsecs;
 	register int	nchars;
 
 	if (charp())
-		return 1;
-	nsecs = (float) delay / 10;
-	nchars = (int) (nsecs * cps[ospeed]);
+		return;
+	nchars = (delay * cps[ospeed]) / 10;
 	redisplay();
 	while ((--nchars > 0) && !InputPending) {
 		putchar(0);
@@ -819,7 +823,6 @@ int	delay;
 			InputPending = charp();
 		}
 	}
-	return InputPending;
 #endif
 }
 
@@ -835,4 +838,18 @@ register char	*pattern,
 		string++;
 	}
 	return FALSE;
+}
+
+make_argv(argv, ap)
+register char	*argv[];
+va_list	ap;
+{
+	register char	*cp;
+	register int	i = 0;
+
+	argv[i++] = va_arg(ap, char *);
+	argv[i++] = basename(argv[0]);
+	while (cp = va_arg(ap, char *))
+		argv[i++] = cp;
+	argv[i] = 0;
 }

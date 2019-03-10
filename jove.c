@@ -1,11 +1,9 @@
-/*************************************************************************
- * This program is copyright (C) 1985, 1986 by Jonathan Payne.  It is    *
- * provided to you without charge for use only on a licensed Unix        *
- * system.  You may copy JOVE provided that this notice is included with *
- * the copy.  You may not sell copies of this program or versions        *
- * modified for use on microcomputer systems, unless the copies are      *
- * included with a Unix system distribution and the source is provided.  *
- *************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 /* Contains the main loop initializations, and some system dependent
    type things, e.g. putting terminal in CBREAK mode, etc. */
@@ -367,41 +365,39 @@ PauseJove()
 
 Push()
 {
-	int	pid;
+	int	pid,
+    		(*old_int)() = signal(SIGINT, SIG_IGN),
+		(*old_quit)() = signal(SIGQUIT, SIG_IGN);
 
+#ifdef IPROCS
+	sighold(SIGCHLD);
+#endif
 	switch (pid = fork()) {
 	case -1:
 		complain("[Fork failed]");
 
 	case 0:
 		UnsetTerm(NullStr);
+		sigrelse(SIGCHLD);
 		(void) signal(SIGTERM, SIG_DFL);
 		(void) signal(SIGINT, SIG_DFL);
+		(void) signal(SIGQUIT, SIG_DFL);
 		execl(Shell, basename(Shell), 0);
 		message("[Execl failed]");
 		_exit(1);
-
-	default:
-	    {
-	    	int	(*old_int)() = signal(SIGINT, SIG_IGN);
-		int	(*old_quit)() = signal(SIGQUIT, SIG_IGN);
-
-#ifdef IPROCS
-		sighold(SIGCHLD);
-#endif
-	    	dowait(pid, (int *) 0);
-#ifdef IPROCS
-		sigrelse(SIGCHLD);
-#endif
-	    	ResetTerm();
-	    	ClAndRedraw();
-	    	(void) signal(SIGINT, old_int);
-		(void) signal(SIGQUIT, old_quit);
-	    }
 	}
+    	dowait(pid, (int *) 0);
+#ifdef IPROCS
+	sigrelse(SIGCHLD);
+#endif
+    	ResetTerm();
+    	ClAndRedraw();
+	(void) signal(SIGQUIT, old_quit);
+    	(void) signal(SIGINT, old_int);
 }
 
-int	OKXonXoff = 0;		/* ^S and ^Q initially DON'T work */
+int	OKXonXoff = 0,		/* ^S and ^Q initially DON'T work */
+	IntChar = CTL(]);
 
 ttsize()
 {
@@ -477,7 +473,7 @@ ttinit()
 	/* Change interupt and quit. */
 	(void) ioctl(0, TIOCGETC, (struct sgttyb *) &tc1);
 	tc2 = tc1;
-	tc2.t_intrc = CTL(]);
+	tc2.t_intrc = IntChar;
 	tc2.t_quitc = (char) -1;
 	if (OKXonXoff) {
 		tc2.t_stopc = (char) -1;
@@ -1061,7 +1057,6 @@ char	*argv[];
 
 	(void) signal(SIGHUP, finish);
 	(void) signal(SIGINT, finish);
-	(void) signal(SIGQUIT, SIG_IGN);
 	(void) signal(SIGBUS, finish);
 	(void) signal(SIGSEGV, finish);
 	(void) signal(SIGPIPE, finish);

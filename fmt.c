@@ -1,11 +1,9 @@
-/*************************************************************************
- * This program is copyright (C) 1985, 1986 by Jonathan Payne.  It is    *
- * provided to you without charge for use only on a licensed Unix        *
- * system.  You may copy JOVE provided that this notice is included with *
- * the copy.  You may not sell copies of this program or versions        *
- * modified for use on microcomputer systems, unless the copies are      *
- * included with a Unix system distribution and the source is provided.  *
- *************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 #include "jove.h"
 #include "io.h"
@@ -162,24 +160,45 @@ va_list	ap;
 	reswitch:
 		/* At this point, fmt points at one past the format letter. */
 		switch (c) {
-		case 'l':
-			c = Upper(*++fmt);
-			goto reswitch;
-	
 		case '%':
 			putc('%', curiop);
 			break;
 	
-		case 'o':
-			putld(leftadj, width, (long) va_arg(ap, int), 8);
+		case 'D':
+			putld(leftadj, width, va_arg(ap, long), 10);
+			break;
+	
+		case 'b':
+		    {
+			Buffer	*b = va_arg(ap, Buffer *);
+
+			puts(leftadj, width, b->b_name);
+			break;
+		    }
+
+		case 'c':
+			putc(va_arg(ap, int), curiop);
 			break;
 	
 		case 'd':
 			putld(leftadj, width, (long) va_arg(ap, int), 10);
 			break;
 	
-		case 'D':
-			putld(leftadj, width, va_arg(ap, long), 10);
+		case 'f':	/* current command name gets inserted here! */
+			puts(leftadj, width, LastCmd->Name);
+			break;
+
+		case 'l':
+			c = Upper(*++fmt);
+			goto reswitch;
+	
+		case 'n':
+			if (va_arg(ap, int) != 1)
+				puts(leftadj, width, "s");
+			break;
+
+		case 'o':
+			putld(leftadj, width, (long) va_arg(ap, int), 8);
 			break;
 	
 		case 'p':
@@ -191,25 +210,12 @@ va_list	ap;
 		    	break;
 		    }
 
-		case 'n':
-			if (va_arg(ap, int) != 1)
-				puts(leftadj, width, "s");
-			break;
-
 		case 's':
 			puts(leftadj, width, va_arg(ap, char *));
 			break;
 		
-		case 'c':
-			putc(va_arg(ap, int), curiop);
-			break;
-	
-		case 'f':	/* current command name gets inserted here! */
-			puts(leftadj, width, LastCmd->Name);
-			break;
-
 		default:
-			complain("%%%c?", c);
+			complain("Unknown format directive: \"%%%c\"", c);
 		}
 	}
 	curiop = pushiop;

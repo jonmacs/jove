@@ -1,11 +1,9 @@
-/*************************************************************************
- * This program is copyright (C) 1985, 1986 by Jonathan Payne.  It is    *
- * provided to you without charge for use only on a licensed Unix        *
- * system.  You may copy JOVE provided that this notice is included with *
- * the copy.  You may not sell copies of this program or versions        *
- * modified for use on microcomputer systems, unless the copies are      *
- * included with a Unix system distribution and the source is provided.  *
- *************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 #include "jove.h"
 #include "termcap.h"
@@ -39,7 +37,7 @@ get_minibuf()
 			if (b == AskBuffer)
 				return b;
 	}
-	AskBuffer = do_select((Window *) 0, "Minibuf");
+	AskBuffer = do_select((Window *) 0, "*minibuf*");
 	AskBuffer->b_type = B_SCRATCH;
 	return AskBuffer;
 }
@@ -195,7 +193,7 @@ va_dcl
 	return ans;
 }
 
-/* VARARGS2 */
+/* VARARGS1 */
 
 char *
 do_ask(delim, d_proc, def, fmt, va_alist)
@@ -346,7 +344,7 @@ register char	**dir_vec;
 		    (isdir(linebuf)));
 	if (the_same && !is_ntdir) {
 		add_mess(n == 1 ? " [Unique]" : " [Ambiguous]");
-		(void) SitFor(7);
+		SitFor(7);
 	}
 	if (is_ntdir)
 		Insert('/');
@@ -380,12 +378,12 @@ f_complete(c)
 	}
 	if ((nentries = scandir(dir, &dir_vec, f_match, alphacomp)) == -1) {
 		add_mess(" [Unknown directory: %s]", dir);
-		(void) SitFor(7);
+		SitFor(7);
 		return 1;
 	}
 	if (nentries == 0) {
 		add_mess(" [No match]");
-		(void) SitFor(7);
+		SitFor(7);
 	} else if (c == ' ' || c == '\t')
 		fill_in(dir_vec, nentries);
 	else {
