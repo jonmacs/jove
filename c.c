@@ -201,7 +201,7 @@ c_indent()
 
 #ifdef CMT_FMT
 
-char CmtFmt[80] = "/\\*%n%! * %c%!%n \\*/";
+char	CmtFmt[80] = "/*%n%! * %c%!%n */";
 
 Comment()
 {
@@ -316,7 +316,7 @@ char	*format;
 		header_len,
 		trailer_len;
 	register char	*cp;
-	static char	inside_err[] = "Must be between %s and %s to re-format.";
+	static char	inside_err[] = "[Must be between %s and %s to re-format]";
 	Bufpos	open_c_pt,
 		close_c_pt,
 		tmp_bp,
@@ -332,11 +332,11 @@ char	*format;
 		/* VARARGS */
 		complain("No opening %s to match to.", open_pat);
 	open_c_pt = *match_o;
-	if ((match_c = dosearch(close_pat, BACKWARD, 0)) != 0 &&
+	if ((match_c = dosearch(close_pat, BACKWARD, NO)) != 0 &&
 	    inorder(open_c_pt.p_line, open_c_pt.p_char,
 		    match_c->p_line, match_c->p_char))
 	  	complain(inside_err, open_pat, close_pat);
-	if ((match_o = dosearch(open_pat, FORWARD, 0)) != 0) {
+	if ((match_o = dosearch(open_pat, FORWARD, NO)) != 0) {
 		tmp_bp = *match_o;
 		match_o = &tmp_bp;
 	} 

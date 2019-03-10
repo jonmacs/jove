@@ -227,7 +227,7 @@ proc_child()
 #ifndef VMUNIX
 		pid = wait2(&w.w_status, (WNOHANG | WUNTRACED));
 #else
-		pid = wait3(&w.w_status, (WNOHANG | WUNTRACED), 0);
+		pid = wait3(&w, (WNOHANG | WUNTRACED), (struct rusage *) 0);
 #endif
 		if (pid <= 0)
 			break;
@@ -318,7 +318,7 @@ data_obj	**map,
 		if (nextmap = IsPrefix(map[c]))
 			ProcB2(nextmap, c, func);
 		else {
-doit:			if (curbuf->b_type == B_IPROCESS)
+			if (curbuf->b_type == B_IPROCESS)
 				PopPBs();
 
 			for (p = PBinds; p != 0; p = p->pb_next)

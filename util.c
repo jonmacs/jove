@@ -8,7 +8,6 @@
  *************************************************************************/
 
 #include "jove.h"
-#include "termcap.h"
 #include "ctype.h"
 #include <signal.h>
 
@@ -550,15 +549,6 @@ int	*p;
 	ignore(close(p[1]));
 }
 
-doread(fd, buf, n)
-char	*buf;
-{
-	int	nread;
-
-	if ((nread = read(fd, buf, (unsigned int) n)) != n)
-		complain("Cannot read %d (got %d) bytes.", n, nread);
-}
-
 dopipe(p)
 int	p[];
 {
@@ -596,15 +586,6 @@ register char	*f;
 		return cp + 1;
 	else
 		return f;
-}
-
-putstr(str)
-register char	*str;
-{
-	register char	c;
-
-	while (c = *str++)
-		outchar(c);
 }
 
 push_env(savejmp)
@@ -657,7 +638,7 @@ double	*dp;
 		nlist("/vmunix", nl);
 	}
 	lseek(kmem, (long) nl[X_AVENRUN].n_value, 0);
-	read(kmem, avenrun, sizeof(avenrun));
+	read(kmem, (char *) avenrun, sizeof(avenrun));
 	*dp = avenrun[0];
 }
 
@@ -680,12 +661,11 @@ double	*dp;
 char *
 get_time(timep, buf, from, to)
 char	*buf;
-long	*timep;
+time_t	*timep;
 {
 	time_t	now;
 	char	*cp;
 	extern char	*ctime();
-	extern long	time();
 
 	if (timep != 0)
 		now = *timep;
@@ -780,95 +760,6 @@ register char	*t,
 {
 	while (*t++ = *f++)
 		;
-}
-
-/* Deals with output to the terminal, setting up the amount of characters
-   to be buffered depending on the output baud rate.  Why it's in a 
-   separate file I don't know ... */
-
-static char	one_buf;
-
-int	BufSize = 1;
-
-struct iobuf	termout = {1, &one_buf, &one_buf, 1};
-
-#ifndef putchar
-putchar(c)
-register int	c;
-{
-	outchar(c);
-}
-#endif
-
-/* put a string with padding */
-
-tputc(c)
-{
-	outchar(c);
-}
-
-putpad(str, lines)
-char	*str;
-{
-	if (str)
-		tputs(str, lines, tputc);
-}
-
-/* Flush the output, and check for more characters.  If there are
-   some, then return to main, to process them, aborting redisplay. */
-
-flushout(c, p)
-register IOBUF	*p;
-{
-	register int	n;
-	extern int	errno;
-
-	if ((n = p->io_ptr - p->io_base) <= 0)
-		goto skip;
-	if (write(p->io_fd, p->io_base, n) != n) {
-		if (p != &termout)	/* we don't care about ttyoutput */
-			error("[write error %d]", errno);
-	}
-	if (p == &termout) {
-		p->io_cnt = BufSize;
-		OkayAbort = 1;
-	} else
-		p->io_cnt = BUFSIZ;
-	p->io_ptr = p->io_base;
-skip:
-	if (c >= 0)
-		Putc(c, p);
-}
-
-/* Determine the number of characters to buffer at each baud rate.  The
-   lower the number, the quicker the response when new input arrives.  Of
-   course the lower the number, the more prone the program is to stop in
-   output.  Decide what matters most to you. This sets BufSize to the right
-   number or chars, and initiaizes `termout'.  */
-
-settout(ttbuf)
-char	*ttbuf;
-{
-	static int speeds[] = {
-		1,	/* 0	*/
-		1,	/* 50	*/
-		1,	/* 75	*/
-		1,	/* 110	*/
-		1,	/* 134	*/
-		1,	/* 150	*/
-		1,	/* 200	*/
-		2,	/* 300	*/
-		4,	/* 600	*/
-		8,	/* 1200 */
-		16,	/* 1800	*/
-		32,	/* 2400	*/
-		128,	/* 4800	*/
-		256,	/* 9600	*/
-		512,	/* EXTA	*/
-		512	/* EXT	*/
-	};
-	termout.io_cnt = BufSize = min(512, (speeds[ospeed] * max(LI / 24, 1)));
-	termout.io_base = termout.io_ptr = ttbuf;
 }
 
 /* Tries to pause for delay/10 seconds OR until a character is typed

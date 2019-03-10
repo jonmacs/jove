@@ -303,7 +303,7 @@ retry:
 }
 
 /* Write whatever is in mesgbuf (maybe we are Asking, or just printed
-   a message.  Turns off the UpdateMesg line flag. */
+   a message).  Turns off the UpdateMesg line flag. */
 
 DrawMesg()
 {
@@ -718,9 +718,11 @@ char	*new;
 			putpad(IC, 1);
 	}
 	for (i = 0; i < num; i++) {
-		outchar(new[i]);
-		CapCol++;
+		putchar(new[i]);
+		if (IN_INSmode)
+			putpad(IP, 1);
 	}
+	CapCol += num;
 }
 
 #endif ID_CHAR
@@ -1095,6 +1097,8 @@ char	*str;
 
 Eow()
 {
+	if (Asking)
+		return;
 	SetLine(next_line(curwind->w_top, SIZE(curwind) - 1 -
 			min(SIZE(curwind) - 1, exp - 1)));
 	if (!exp_p)
@@ -1105,6 +1109,8 @@ Eow()
 
 Bow()
 {
+	if (Asking)
+		return;
 	SetLine(next_line(curwind->w_top, min(SIZE(curwind) - 1, exp - 1)));
 }
 
@@ -1167,7 +1173,7 @@ va_dcl
 		format(string, sizeof string, fmt, ap);
 		va_end(ap);
 		if (UseBuffers)
-			ins_str(string);
+			ins_str(string, NO);
 		else {
 			i_set(LineNo, last_col);
 			ignore(swrite(string, 0));

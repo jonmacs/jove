@@ -74,7 +74,7 @@ read_pipe()
 {
 	register int	n;
 	
-	signal(SIGALRM, p_inform);
+	ignorf(signal(SIGALRM, p_inform));
 
 	while ((header.nbytes = read(InputFD, header.buf, sizeof header.buf)) > 0) {
 		n = HEADSIZE + header.nbytes;
@@ -104,7 +104,7 @@ char	*argv[];
 		ignore(close(p[0]));
 		ignore(close(p[1]));
 			
-		setpgrp(getpid(), getpid());
+		ignore(setpgrp(getpid(), getpid()));
 		execv(argv[2], &argv[3]);
 		_exit(-4);
 

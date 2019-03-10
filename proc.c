@@ -8,6 +8,7 @@
  *************************************************************************/
 
 #include "jove.h"
+#include "io.h"
 #include "termcap.h"
 
 #include <signal.h>
@@ -431,7 +432,7 @@ int	pid,
 #ifndef VMUNIX
 		rpid = wait2(&w.w_status, 0);
 #else
-		rpid = wait3(&w.w_status, 0, 0);
+		rpid = wait3(&w, 0, (struct rusage *) 0);
 #endif
 		if (rpid == pid) {
 			if (status)
@@ -493,18 +494,19 @@ char	*bufname,
 		int	status;
 		int	(*oldint)() = signal(SIGINT, SIG_IGN);
 		char	*mess;
+		File	*fp;
 
 #ifdef IPROCS
 		sighold(SIGCHLD);
 #endif
 
 		ignore(close(p[1]));
-		io = p[0];
-		while (inIOread = 1, getfline(genbuf) != EOF) {
+		fp = fd_open(func, F_READ, p[0], iobuff, LBSIZE);
+		while (inIOread = 1, f_gets(fp, genbuf) != EOF) {
 			inIOread = 0;
-			ins_str(genbuf);
+			ins_str(genbuf, YES);
 			LineInsert();
-			if (disp != 0 && ninbuf <= 0) {	/* ninbuf set by getfline() */
+			if (disp != 0 && fp->f_cnt <= 0) {
 #ifdef LOAD_AV
 			    {
 			    	double	theavg;
@@ -526,7 +528,7 @@ char	*bufname,
 		}
 		if (disp)
 			DrawMesg();
-		IOclose();
+		close_file(fp);
 		ignorf(signal(SIGINT, oldint));
 		dowait(pid, &status);
 #ifdef IPROCS
@@ -572,10 +574,11 @@ char	*cmd;
 		combuf[130];
 	Window	*save_wind = curwind;
 	int	status;
+	File	*fp;
 
     CATCH
-	open_file(tname, O_WRITE, COMPLAIN, QUIET);
-	putreg(m->m_line, m->m_char, curline, curchar, YES);
+	fp = open_file(tname, iobuff, F_WRITE, COMPLAIN, QUIET);
+	putreg(fp, m->m_line, m->m_char, curline, curchar, YES);
 	DelReg();
 	ignore(sprintf(combuf, "%s < %s", cmd, tname));
 	status = UnixToBuf(outbuf->b_name, NO, 0, outbuf->b_type == B_SCRATCH,
@@ -584,7 +587,7 @@ char	*cmd;
 	;	/* Do nothing ... but fall through and delete the tmp
 		   file. */
     ENDCATCH
-	IOclose();
+	f_close(fp);
 	ignore(unlink(tname));
 	SetWind(save_wind);
 	com_finish(status, combuf);

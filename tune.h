@@ -11,7 +11,7 @@
 
 /*#define LSRHS		/* if this is Lincoln-Sudbury Regional High School */
 
-/* #define LOAD_AV	/* Use the load average for various commands.
+#define LOAD_AV		/* Use the load average for various commands.
 			   Do not define this if you lack a load average
 			   system call and kmem is read protected. */
 
@@ -57,7 +57,7 @@
 
 #define BSD4_2		/* Berkeley 4.2 BSD */
 
-#define BSD4_3		/* Berkeley 4.3 BSD */
+/*#define BSD4_3		/* Berkeley 4.3 BSD */
 
 #ifdef BSD4_3
 #	ifndef BSD4_2

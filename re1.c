@@ -8,6 +8,7 @@
  *************************************************************************/
 
 #include "jove.h"
+#include "io.h"
 #include "re.h"
 
 static
@@ -156,14 +157,13 @@ char	*searchbuf,
 	register int	taglen = strlen(tag);
 	char	line[LBSIZE],
 		pattern[100];
+	File	*fp;
 
-	open_file(file, O_READ, !COMPLAIN, QUIET);
-	if (io == -1) {
-		message(IOerr("open", file));
+	fp = open_file(file, iobuff, F_READ, !COMPLAIN, QUIET);
+	if (fp == NIL)
 		return 0;
-	}
 	ignore(sprintf(pattern, "^%s[^\t]*\t\\([^\t]*\\)\t[?/]\\(.*\\)[?/]$", tag));
-	while (getfline(line) != EOF) {
+	while (f_gets(fp, line) != EOF) {
 		if (line[0] != *tag || strncmp(tag, line, taglen) != 0)
 			continue;
 		if (!LookingAt(pattern, line, 0)) {
@@ -172,11 +172,11 @@ char	*searchbuf,
 		} else {
 			putmatch(2, searchbuf, 100);
 			putmatch(1, filebuf, 100);
-			IOclose();
+			close_file(fp);
 			return 1;
 		}
 	}
-	IOclose();
+	f_close(fp);
 	s_mess("Can't find tag \"%s\".", tag);
 	return 0;
 }

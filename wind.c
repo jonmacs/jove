@@ -210,17 +210,17 @@ WindFind()
 	switch (waitchar()) {
 	case 't':
 	case 'T':
-		ExecFunc(FindFunc(FindTag));
+		ExecFunc((data_obj *) FindFunc(FindTag));
 		break;
 
 	case 'b':
 	case 'B':
-		ExecFunc(FindFunc(BufSelect));
+		ExecFunc((data_obj *) FindFunc(BufSelect));
 		break;
 
 	case 'f':
 	case 'F':
-		ExecFunc(FindFunc(FindFile));
+		ExecFunc((data_obj *) FindFunc(FindFile));
 		break;
 
 	default:

@@ -11,7 +11,8 @@
 
 #include "funcdefs.c"
 #undef putchar	/* From jove.h via funcdefs.c, conflicts with STDIO */
-
+#undef putc
+#undef getc
 #undef EOF
 #undef FILE
 #undef BUFSIZ

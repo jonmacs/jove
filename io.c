@@ -8,6 +8,7 @@
  *************************************************************************/
 
 #include "jove.h"
+#include "io.h"
 #include "termcap.h"
 
 #ifdef IPROCS
@@ -18,96 +19,41 @@
 #include <sys/file.h>
 #include <errno.h>
 
-static long	io_chars;	/* number of chars in this open_file */
-static int	io_lines,	/* number of lines in this open_file */
-		readonly,	/* is this readonly file? */
-		tellall;	/* display file io info? */
-char	*nextip,
-	*iobuff,
+long	io_chars;		/* number of chars in this open_file */
+int	io_lines;		/* number of lines in this open_file */
+static int	tellall;	/* display file io info? */
+char	*iobuff,
 	*genbuf,
 	*linebuf;
-int	ninbuf;
-int	io = -1;
-static IOBUF	file_io;	/* for putreg() */
 
 #ifdef BACKUPFILES
 int	BkupOnWrite = 0;
 #endif
 
-IOclose()
+close_file(fp)
+File	*fp;
 {
-	if (io > 0) {
-#ifdef BSD4_2
-		ignore(fsync(io)),
-#endif
-		ignore(close(io));
-		io = -1;
-		nextip = iobuff;
-		ninbuf = 0;
-		readonly = 0;
-		if (tellall)
+	if (fp) {
+		f_close(fp);
+		if (tellall != QUIET)
 			add_mess(" %d lines, %D characters.",
 				 io_lines,
 				 io_chars);
 	}
 }
 
-/* This reads a line from the input file into buf. */
-
-getfline(buf)
-char	*buf;
-{
-	register int	c;
-	register char	*lp,
-			*fp;
-
-	lp = buf;
-	*lp = '\0';
-	fp = nextip;
-	do {
-		if (--ninbuf < 0) {
-			ninbuf = (int) read(io, iobuff, LBSIZE) - 1;
-			fp = iobuff;
-			if (ninbuf < 0) {
-				if (lp != buf)
-					add_mess(" [Incomplete last line]");
-				*lp = '\0';
-				return EOF;
-			}
-		}
-		c = *fp++;
-		if (c == '\0')
-			continue;
-		if (lp >= &buf[LBSIZE - 1]) {
-			add_mess(" [Line too long]");
-			rbell();
-			return EOF;
-		}
-
-		*lp++ = c;
-	} while (c != '\n');
-	io_chars += lp - buf;	/* Be smart, better than INCR per char */
-	*--lp = 0;
-	nextip = fp;
-	return 0;
-}
-
-/* Write the region from line1/char1 to line2/char2 to IO.  */
+/* Write the region from line1/char1 to line2/char2 to FP.  This
+   never CLOSES the file since we don't know if we want to. */
 
 int	EndWNewline = 1;
 
-putreg(line1, char1, line2, char2, makesure)
+putreg(fp, line1, char1, line2, char2, makesure)
+register File	*fp;
 Line	*line1,
 	*line2;
 {
 	register int	c;
-	register IOBUF	*fp = &file_io;
 	register char	*lp;
-
-	fp->io_fd = io;
-	fp->io_ptr = iobuff;
-	fp->io_base = iobuff;
-	fp->io_cnt = BUFSIZ;
 
 	if (makesure)
 		ignore(fixorder(&line1, &char1, &line2, &char2));
@@ -117,37 +63,33 @@ Line	*line1,
 		if (line1 == line2)
 			linebuf[char2] = '\0';
 		while (c = *lp++) {
-			Putc(c, fp);
+			putc(c, fp);
 			io_chars++;
 		}
 		if (line1 != line2) {
 			io_lines++;
 			io_chars++;
-			Putc('\n', fp);
+			putc('\n', fp);
 		}
 		line1 = line1->l_next;
 		char1 = 0;
 	}
-	flushout(-1, fp);
-	getDOT();		/* What ever was in linebuf */
+	flush(fp);
+	getDOT();
 }
 
 read_file(file, is_insert)
 char	*file;
 {
 	Bufpos	save;
-	int	a_code;
-	extern int	errno;
+	File	*fp;
 
 	if (!is_insert) {
 		curbuf->b_ntbf = 0;
 		set_ino(curbuf);
-		a_code = access(file, W_OK);
-		if (a_code == -1 && errno != ENOENT)
-			readonly = 1;
 	}
-	open_file(file, O_READ, !COMPLAIN, !QUIET);
-	if (io == -1) {
+	fp = open_file(file, iobuff, F_READ, !COMPLAIN, !QUIET);
+	if (fp == NIL) {
 		if (!is_insert && errno == ENOENT)
 			s_mess("(new file)");
 		else
@@ -155,15 +97,16 @@ char	*file;
 		return;
 	}
 	DOTsave(&save);
-	dofread();
+	dofread(fp);
 	SetDot(&save);
 	if (is_insert && io_chars > 0)
 		modify();
 	getDOT();
-	IOclose();
+	close_file(fp);
 }
 
-dofread()
+dofread(fp)
+register File	*fp;
 {
 	char	end[LBSIZE],
 		gbuf[LBSIZE];
@@ -175,13 +118,12 @@ dofread()
 	ignore(getline(curline->l_dline, end));
 	strcpy(gbuf, end);
 	strcpy(end, &end[curchar]);
-	if ((xeof = getfline(linebuf)) == 0)
+	if ((xeof = f_gets(fp, linebuf)) == 0)
 		linecopy(gbuf, curchar, linebuf);
 
 	curline->l_dline = putline(gbuf);
 	if (!xeof) do {
-		xeof = getfline(linebuf);
-		io_lines++;
+		xeof = f_gets(fp, linebuf);
 		curline = listput(curbuf, curline);
 		curline->l_dline = putline(linebuf) | DIRTY;
 	} while (!xeof);
@@ -422,7 +364,7 @@ char	*file,
 			if (into[strlen(into) - 1] != '/')
 				ignore(strcat(into, "/"));
 			ignore(strcat(into, file));
-			dp += strlen(file);	/* Stay at the end */
+			dp += strlen(file);	/* stay at the end */
 		}
 		file = sp + 1;
 	} while (sp != 0);
@@ -434,22 +376,23 @@ get_hdir(user, buf)
 register char	*user,
 		*buf;
 {
-	char	lbuf[LBSIZE],
+	char	fbuf[LBSIZE],
 		pattern[100];
 	register int	u_len;
+	File	*fp;
 
 	u_len = strlen(user);
-	open_file("/etc/passwd", O_READ, COMPLAIN, QUIET);
+	fp = open_file("/etc/passwd", fbuf, F_READ, COMPLAIN, QUIET);
 	ignore(sprintf(pattern, "%s:[^:]*:[^:]*:[^:]*:[^:]*:\\([^:]*\\):", user));
-	while (getfline(lbuf) != EOF)
-		if ((strncmp(lbuf, user, u_len) == 0) &&
-		    (LookingAt(pattern, lbuf, 0))) {
-			putmatch(1, buf, 256);
-			IOclose();
+	while (f_gets(fp, genbuf) != EOF)
+		if ((strncmp(genbuf, user, u_len) == 0) &&
+		    (LookingAt(pattern, genbuf, 0))) {
+			putmatch(1, buf, FILESIZE);
+			close_file(fp);
 			return;
 		}
-	IOclose();
-	complain("unknown user: %s", user);
+	f_close(fp);
+	complain("[unknown user: %s]", user);
 }
 
 PathParse(name, intobuf)
@@ -520,6 +463,7 @@ DoWriteReg(app)
 	char	fnamebuf[FILESIZE],
 		*fname;
 	Mark	*mp = CurMark();
+	File	*fp;
 
 	/* Won't get here if there isn't a Mark */
 	fname = ask_file((char *) 0, fnamebuf);
@@ -536,9 +480,9 @@ DoWriteReg(app)
 		filemunge(fname);
 #endif
 
-	open_file(fname, app ? O_APPND : O_WRITE, COMPLAIN, !QUIET);
-	putreg(mp->m_line, mp->m_char, curline, curchar, YES);
-	IOclose();
+	fp = open_file(fname, iobuff, app ? F_APPEND : F_WRITE, COMPLAIN, !QUIET);
+	putreg(fp, mp->m_line, mp->m_char, curline, curchar, YES);
+	close_file(fp);
 }
 
 int	OkayBadChars = 0;
@@ -569,47 +513,42 @@ WriteFile()
 	unmodify();
 }
 
-open_file(fname, how, ifbad, loudness)
+File *
+open_file(fname, buf, how, ifbad, loudness)
 register char	*fname;
+char	*buf;
 register int	how;
 {
-	register int	fd;
+	register File	*fp;
 
-	fd = -1;
 	io_chars = 0;
 	io_lines = 0;
 	tellall = loudness;
-	if (how == O_READ)
-		fd = open(fname, 0);
-	if (how == O_APPND) {
-		fd = open(fname, 1);
-		if (fd == -1)
-			how = O_WRITE;	/* Fall through ... */
-		else
-			dolseek(fd, 0L, 2);
-	}
-	if (how == O_WRITE)
-		fd = creat(fname, CreatMode);
-	if (fd == -1) {
-		message(IOerr((how == O_READ) ? "open" : "create", fname));
+
+	fp = f_open(fname, how, buf, LBSIZE);
+	if (fp == NIL) {
+                message(IOerr((how == F_READ) ? "open" : "create", fname));
 		if (ifbad == COMPLAIN)
 			complain((char *) 0);
 	} else {
+		int	readonly = FALSE;
+
+		if (access(fname, W_OK) == -1 && errno != ENOENT)
+			readonly = TRUE;
+							 
 		if (loudness != QUIET)
 			f_mess("\"%s\"%s", pr_name(fname),
-					   readonly ? " [Read only]" : NullStr);
+				   readonly ? " [Read only]" : NullStr);
 	}
-	io = fd;
+	return fp;
 }
 
-/*
- * Check to see if the file has been modified since it was
- * last written.  If so, make sure they know what they're
- * doing.
- *
- * I hate to use another stat(), but to use confirm we gotta
- * do this before we open the file.
- */
+/* Check to see if the file has been modified since it was
+   last written.  If so, make sure they know what they're
+   doing.
+
+   I hate to use another stat(), but to use confirm we gotta
+   do this before we open the file. */
 
 chk_mtime(fname, how)
 char	*fname,
@@ -640,12 +579,14 @@ char	*fname,
 file_write(fname, app)
 char	*fname;
 {
+	File	*fp;
+
 #ifdef BACKUPFILES
 	if (!app && BkupOnWrite)
 		file_backup(fname);
 #endif
 
-	open_file(fname, app ? O_APPND : O_WRITE, COMPLAIN, !QUIET);
+	fp = open_file(fname, iobuff, app ? F_APPEND : F_WRITE, COMPLAIN, !QUIET);
 
 	if (EndWNewline) {	/* Make sure file ends with a newLine */
 		Bufpos	save;
@@ -656,9 +597,9 @@ char	*fname;
 			DoTimes(LineInsert(), 1);	/* Make it blank */
 		SetDot(&save);
 	}
-	putreg(curbuf->b_first, 0, curbuf->b_last, length(curbuf->b_last), NO);
+	putreg(fp, curbuf->b_first, 0, curbuf->b_last, length(curbuf->b_last), NO);
 	set_ino(curbuf);
-	IOclose();
+	close_file(fp);
 }
 
 ReadFile()
@@ -697,13 +638,6 @@ InsFile()
 
 	fname = ask_file(curbuf->b_fname, fnamebuf);
 	read_file(fname, 1);
-}
-
-dolseek(fd, offset, whence)
-long	offset;
-{
-	if (lseek(fd, offset, whence) == -1)
-		complain("[lseek failed]");
 }
 
 #include "temp.h"
@@ -982,7 +916,7 @@ blkio(b, iofcn)
 register Block	*b;
 register int	(*iofcn)();
 {
-	ignore(lseek(tmpfd, (long) ((unsigned) b->b_bno) * BUFSIZ, 0));
+	ignorl(lseek(tmpfd, (long) ((unsigned) b->b_bno) * BUFSIZ, 0));
 	if ((*iofcn)(tmpfd, b->b_buf, BUFSIZ) != BUFSIZ)
 		error("Tmp file %s error.", (iofcn == read) ? "read" : "write");
 }

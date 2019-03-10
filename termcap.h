@@ -39,27 +39,29 @@ extern char
 	*SR,	/* Scroll reverse */
 	*SP,	/* Send cursor position */
 #ifdef LSRHS
-	*RS,	/* Reverse video start. */
-	*RE,	/* Reverse video end. */
+	*RS,	/* reverse video start */
+	*RE,	/* reverse video end */
 #endif
-	*VB;	/* Visible bell */
+	*VB,	/* visible bell */
+	*IP,	/* insert pad after character inserted */
+	*lPC;
 
 extern int
-	LI,		/* Number of lines. */
-	ILI,		/* Number of internal lines. */
-	CO,		/* Number of columns. */
+	LI,		/* number of lines */
+	ILI,		/* number of internal lines */
+	CO,		/* number of columns */
 
-	UL,		/* Underscores don't replace chars already on screen */
-	MI,		/* Okay to move while in insert mode */
-	SG,		/* Number of magic cookies left by SO and SE */
+	UL,		/* underscores don't replace chars already on screen */
+	MI,		/* okay to move while in insert mode */
+	SG,		/* number of magic cookies left by SO and SE */
 
-	TABS,		/* Whether we are in tabs mode */
-	UPlen,		/* Length of the UP string */
-	HOlen,		/* Length of Home string */
-	LLlen;		/* Length of lower string */
+	TABS,		/* whether we are in tabs mode */
+	UPlen,		/* length of the UP string */
+	HOlen,		/* length of Home string */
+	LLlen;		/* length of lower string */
 
 extern char
 	PC,
-	*BC;	/* Back space */
+	*BC;		/* back space */
 
 extern int ospeed;

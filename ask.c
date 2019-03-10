@@ -251,8 +251,10 @@ isdir(name)
 char	*name;
 {
 	struct stat	stbuf;
+	char	filebuf[FILESIZE];
 
-	return ((stat(name, &stbuf) != -1) &&
+	PathParse(name, filebuf);
+	return ((stat(filebuf, &stbuf) != -1) &&
 		(stbuf.st_mode & S_IFDIR) == S_IFDIR);
 }
 
@@ -260,9 +262,9 @@ static
 fill_in(dir_vec, n)
 register char	**dir_vec;
 {
-	int	minmatch,
+	int	minmatch = 0,
     		numfound = 0,
-    		lastmatch,
+    		lastmatch = -1,
 		i,
 		the_same = TRUE, /* After filling in, are we the same
 				    as when we were called? */

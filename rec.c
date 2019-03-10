@@ -8,13 +8,14 @@
  *************************************************************************/
 
 #include "jove.h"
+#include "io.h"
 #include "temp.h"
 #include "rec.h"
 #include <sys/file.h>
 
 static int	rec_fd = 0;	/* File descriptor of recover file. */
 static char	*recfname;
-static IOBUF	rec_out;
+static File	*rec_out;
 
 #ifndef L_SET
 #	define L_SET 0
@@ -28,14 +29,11 @@ recinit()
 	rec_fd = creat(recfname, 0644);
 	if (rec_fd == -1) {
 		f_mess("Cannot open \"%s\"; recovery disabled.", recfname);
-		SitFor(7);
+		ignore(SitFor(7));
 		return;
 	}
 	/* Initialize the record IO. */
-	rec_out.io_fd = rec_fd;
-	rec_out.io_ptr = iobuff;
-	rec_out.io_base = iobuff;
-	rec_out.io_cnt = BUFSIZ;
+	rec_out = fd_open(recfname, F_WRITE|F_LOCK, rec_fd, iobuff, LBSIZE);
 
 	/* Initialize the record header. */
 	Header.Uid = getuid();
@@ -56,13 +54,13 @@ recclose()
 static
 putaddr(addr, p)
 disk_line	addr;
-register IOBUF	*p;
+register File	*p;
 {
 	register char	*cp = (char *) &addr;
 	register int	nchars = sizeof (disk_line);
 
 	while (--nchars >= 0)
-		Putc(*cp++ & 0377, p);
+		putc(*cp++ & 0377, p);
 }
 
 static
@@ -71,7 +69,7 @@ register char	*cp;
 register int	nbytes;
 {
 	while (--nbytes >= 0)
-		Putc(*cp++ & 0377, &rec_out);
+		putc(*cp++ & 0377, rec_out);
 }
 
 /* Write out the line pointers for buffer B. */
@@ -83,7 +81,7 @@ register Buffer	*b;
 	register Line	*lp;
 
 	for (lp = b->b_first; lp != 0; lp = lp->l_next)
-		putaddr(lp->l_dline, &rec_out);
+		putaddr(lp->l_dline, rec_out);
 }
 
 /* dump the buffer info and then the actual line pointers. */
@@ -117,7 +115,7 @@ SyncRec()
 		recinit();	/* Init recover file. */
 	if (rec_fd == -1)
 		return;
-	dolseek(rec_fd, 0L, L_SET);
+	lseek(rec_fd, 0L, L_SET);
 	ignorl(time(&Header.UpdTime));
 	Header.Nbuffers = 0;
 	for (b = world; b != 0; b = b->b_next)
@@ -134,5 +132,5 @@ SyncRec()
 			else
 				dmp_buf(b);
 	}
-	flushout(-1, &rec_out);
+	flush(rec_out);
 }

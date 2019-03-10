@@ -8,6 +8,7 @@
  *************************************************************************/
 
 #include "jove.h"
+#include "io.h"
 #include "termcap.h"
 
 #include <varargs.h>
@@ -21,19 +22,21 @@ char	*buf,
 	*fmt;
 va_list	ap;
 {
-	IOBUF	strbuf,
+	File	strbuf,
 		*sp = &strbuf;
 
- 	sp->io_ptr = sp->io_base = buf;
-	sp->io_fd = -1;		/* Not legit for files */
-	sp->io_cnt = len;
+ 	sp->f_ptr = sp->f_base = buf;
+	sp->f_fd = -1;		/* Not legit for files */
+	sp->f_cnt = len;
+	sp->f_flags = F_STRING;
+	sp->f_bufsize = len;
 
 	doformat(sp, fmt, ap);
-	Putc('\0', sp);
+	putc('\0', sp);
 }
 
 static char	padc = ' ';
-static IOBUF	*curiop = 0;
+static File	*curiop = 0;
 
 static
 PPchar(c, str)
@@ -66,7 +69,7 @@ long	d;
 	if (!leftadj)
 		pad(padc, width - length);
 	if (d < 0) {
-		Putc('-', curiop);
+		putc('-', curiop);
 		d = -d;
 	}
 	outld(d, base);
@@ -82,7 +85,7 @@ long	d;
 
 	if (n = (d / base))
 		outld(n, base);
-	Putc((int) ('0' + (int) (d % base)), curiop);
+	putc((int) ('0' + (int) (d % base)), curiop);
 }
 
 static
@@ -104,7 +107,7 @@ char	*str;
 	if (!leftadj)
 		pad(' ', width - length);
 	while (c = *cp++)
-		Putc(c, curiop);
+		putc(c, curiop);
 	if (leftadj)
 		pad(' ', width - length);
 }
@@ -115,25 +118,25 @@ register int	c,
 		amount;
 {
 	while (--amount >= 0)
-		Putc(c, curiop);
+		putc(c, curiop);
 }
 
 static
 doformat(sp, fmt, ap)
-register IOBUF	*sp;
+register File	*sp;
 register char	*fmt;
 va_list	ap;
 {
 	register char	c;
 	int	leftadj,
 		width;
-	IOBUF	*pushiop = curiop;
+	File	*pushiop = curiop;
 
 	curiop = sp;
 
 	while (c = *fmt++) {
 		if (c != '%') {
-			Putc(c, sp);
+			putc(c, sp);
 			continue;
 		}
 
@@ -164,7 +167,7 @@ va_list	ap;
 			goto reswitch;
 	
 		case '%':
-			Putc('%', curiop);
+			putc('%', curiop);
 			break;
 	
 		case 'o':
@@ -198,7 +201,7 @@ va_list	ap;
 			break;
 		
 		case 'c':
-			Putc(va_arg(ap, int), curiop);
+			putc(va_arg(ap, int), curiop);
 			break;
 	
 		case 'f':	/* Funcname() gets inserted here! */
@@ -237,7 +240,21 @@ va_dcl
 	va_list	ap;
 
 	va_start(ap);
-	doformat(&termout, fmt, ap);
+	doformat(stdout, fmt, ap);
+	va_end(ap);
+}
+
+/* VARARGS1 */
+
+fprintf(fp, fmt, va_alist)
+File	*fp;
+char	*fmt;
+va_dcl
+{
+	va_list	ap;
+
+	va_start(ap);
+	doformat(fp, fmt, ap);
 	va_end(ap);
 }
 
