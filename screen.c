@@ -231,8 +231,8 @@ BufSwrite(linenum)
 	int	tl = DesiredScreen[linenum].s_id,
 		nl,
 		StartCol = DesiredScreen[linenum].s_offset,
-		aborted = 0,
-		visspace = DesiredScreen[linenum].s_window->w_visspace;
+		visspace = DesiredScreen[linenum].s_window->w_visspace,
+		aborted = 0;
 
 	if (DesiredScreen[linenum].s_lp == curline) {
 		bp = linebuf;

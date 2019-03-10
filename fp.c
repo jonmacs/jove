@@ -91,7 +91,8 @@ File	*fp;
 		return;
 	flush(fp);
 #ifdef BSD4_2 
-	ignore(fsync(fp->f_fd)),
+	if (fp->f_flags & (F_WRITE|F_APPEND))
+		ignore(fsync(fp->f_fd));
 #endif 
 	ignore(close(fp->f_fd));
 	if (fp->f_flags & F_MYBUF)

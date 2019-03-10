@@ -28,7 +28,7 @@ Line	*stop;
 		lastdot,
 		*bp;
 	static Bufpos	ret;
-	char	REstr[5],
+	char	REstr[10],
 		REbuf[30],
 		*REalts[4];
 	extern Line	*RElimit;

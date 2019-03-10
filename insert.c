@@ -138,7 +138,7 @@ Insert(c)
 Tab()
 {
 #ifdef LISP
-	if (MajorMode(LISPMODE) && (bolp() || !blnkp(&linebuf[curchar]))) {
+	if (MajorMode(LISPMODE)) {
 		Mark	*m = bolp() ? 0 : MakeMark(curline, curchar, FLOATER);
 
 		Bol();

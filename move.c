@@ -92,38 +92,30 @@ line_move(dir, line_cmd)
 		curchar = how_far(curline, line_pos);
 }
 
-/* returns what cur_char should be for that pos */
+/* returns what cur_char should be for that position col */
 
-how_far(line, ypos)
+how_far(line, col)
 Line	*line;
 {
-	register char	*pp;
+	register char	*lp;
+	register int	pos,
+			c;
 	char	*base;
-	register int	cur_char,
-			y;
-	char	c;
 
-	base = pp = getcptr(line, genbuf);
+	base = lp = getcptr(line, genbuf);
 
-	cur_char = 0;
-	y = 0;
+	pos = 0;
 
-	while (c = *pp++) {
-		if (y >= ypos)
-			return cur_char;
-		if (c == '\177')
-			y++;
-		else if (c < ' ') {
-			if (c == '\t')
-				y += ((tabstop - y % tabstop) - 1);
-			else
-				y++;
-		}
-		y++;
-		cur_char++;
+	while (pos < col && (c = (*lp++ & 0177))) {
+		if (isctrl(c))
+			pos += 2;
+		else if (c == '\t')
+			pos += (tabstop - (pos % tabstop));
+		else
+			pos++;
 	}
 
-	return pp - base - 1;
+	return lp - base;
 }
 
 Bol()

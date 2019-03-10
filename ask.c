@@ -336,7 +336,7 @@ f_complete(c)
 		strcpy(dir, ".");
 	}
 	if ((nentries = scandir(dir, &dir_vec, f_match, alphacomp)) == -1) {
-		add_mess(" [unknown directory: %s]", dir);
+		add_mess(" [Unknown directory: %s]", dir);
 		ignore(SitFor(7));
 		return 1;
 	}
@@ -348,7 +348,10 @@ f_complete(c)
 	else {
 		/* we're a '?' */
 		int	maxlen = 0,
-			ncols;
+			ncols,
+			col,
+			lines,
+			linespercol;
 
 		TOstart("Completion", FALSE);	/* false means newline only on request */
 		Typeout("(! means file will not be chosen unless typed explicitly)");
@@ -360,17 +363,23 @@ f_complete(c)
 			maxlen = max(strlen(dir_vec[i]), maxlen);
 		maxlen += 4;	/* pad each column with at least 4 spaces */
 		ncols = (CO - 2) / maxlen;
+		linespercol = 1 + (nentries / ncols);
 
-		for (i = 0; i < nentries; i++) {
-			int	isbad;
-			char	bads[128];
+		for (lines = 0; lines < linespercol; lines++) {
+			for (col = 0; col < ncols; col++) {
+				int	isbad,
+					which;
+				char	bads[128];
 
-			strcpy(bads, BadExtensions);
-			isbad = bad_extension(dir_vec[i], bads);
-			Typeout("%s%-*s", isbad ? "!" : NullStr,
-				maxlen - isbad, dir_vec[i]);
-			if (((i + 1) % ncols) == 0)
-				Typeout((char *) 0);
+				which = (col * linespercol) + lines;
+				if (which >= nentries)
+					break;
+				strcpy(bads, BadExtensions);
+				isbad = bad_extension(dir_vec[which], bads);
+				Typeout("%s%-*s", isbad ? "!" : NullStr,
+					maxlen - isbad, dir_vec[which]);
+			}
+			Typeout((char *) 0);
 		}
 		TOstop();
 	}

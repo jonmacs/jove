@@ -67,35 +67,42 @@ register Window	*wp;
 	free((char *) wp);
 }
 
-/* Divide the `wp'.  Complains if `wp' is too small to be split.
-   It returns the new window. */
+/* Divide the window WP N times.  Complains if WP is too small to be split
+   into that many pieces.  It returns the new window. */
 
 Window *
-div_wind(wp)
+div_wind(wp, n)
 register Window	*wp;
 {
 	register Window	*new;
+	int	amt;
 
-	if (wp->w_height < 4)
+	if (n < 1)
+		return;
+	amt = wp->w_height / (n + 1);
+	if (amt < 2)
 		complain(toosmall);
 
-	new = (Window *) emalloc(sizeof (Window));
-	new->w_visspace = new->w_numlines = 0;
-	/* Reset the window bounds */
-	new->w_height = (wp->w_height / 2);
-	wp->w_height -= new->w_height;
+	while (--n >= 0) {
+		new = (Window *) emalloc(sizeof (Window));
+		new->w_visspace = new->w_numlines = 0;
 
-	/* Set the lines such that w_line is the center in each Window */
-	new->w_line = wp->w_line;
-	new->w_char = wp->w_char;
-	new->w_bufp = wp->w_bufp;
-	new->w_top = prev_line(new->w_line, HALF(new));
+		new->w_height = amt;
+		wp->w_height -= amt;
 
-	/* Link the new window into the list */
-	new->w_prev = wp;
-	new->w_next = wp->w_next;
-	new->w_next->w_prev = new;
-	wp->w_next = new;
+		/* set the lines such that w_line is the center in
+		   each Window */
+		new->w_line = wp->w_line;
+		new->w_char = wp->w_char;
+		new->w_bufp = wp->w_bufp;
+		new->w_top = prev_line(new->w_line, HALF(new));
+
+		/* Link the new window into the list */
+		new->w_prev = wp;
+		new->w_next = wp->w_next;
+		new->w_next->w_prev = new;
+		wp->w_next = new;
+	}
 	return new;
 }
 
@@ -228,7 +235,7 @@ WindFind()
 	}
 
 	if (one_windp())
-		ignore(div_wind(curwind));
+		ignore(div_wind(curwind, 1));
 
 	tiewind(curwind->w_next, curbuf);
 	SetBuf(savebuf);	/* Back to original buffer */
@@ -424,5 +431,5 @@ register Line	*line;
 
 SplitWind()
 {
-	SetWind(div_wind(curwind));
+	SetWind(div_wind(curwind, exp_p ? (exp - 1) : 1));
 }

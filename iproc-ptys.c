@@ -46,7 +46,6 @@ struct process {
 	Mark	*p_mark;	/* Where output left us. */
 	data_obj
 		*p_func;	/* Function to call when process dies */
-	char	p_tty[11];	/* /dev/tty[pqrs][0-9a-f] */
 } *procs = 0,
   *cur_proc = 0;
 
@@ -326,7 +325,7 @@ out:	if (s == 0 && t == 0)
 		cp = &cmd;
 
 		for (i = 0; i < 32; i++)
-			ignore(close(i));;
+			ignore(close(i));
 
 #ifdef TIOCNOTTY
 		if ((i = open("/dev/tty", 2)) >= 0) {
@@ -369,8 +368,8 @@ out:	if (s == 0 && t == 0)
 		ignore(stty(0, &sg));
 
 		i = getpid();
-		ignore(setpgrp(0, i));
 		ignore(ioctl(0, TIOCSPGRP, (struct sgttyb *) &i));
+		ignore(setpgrp(0, i));
 		execve(cp[0], &cp[1], environ);
 		ignore(write(1, "execve failed!\n", 15));
 		_exit(errno + 1);
@@ -380,9 +379,8 @@ out:	if (s == 0 && t == 0)
 #ifdef SIGWINCH
 	sighold(SIGWINCH);
 #endif
-	cur_proc = newp = (Process *) malloc(sizeof *newp);
+	cur_proc = newp = (Process *) emalloc(sizeof *newp);
 
-	newp->p_next = procs;
 	newp->p_fd = ttyfd;
 	newp->p_pid = pid;
 	newp->p_eof = 0;
@@ -396,9 +394,9 @@ out:	if (s == 0 && t == 0)
 	newp->p_name = copystr(cmdbuf);
 	newp->p_state = RUNNING;
 	newp->p_reason = 0;
-	strcpy(newp->p_tty, ttybuf);
 	newp->p_mark = MakeMark(curline, curchar, FLOATER);
 
+	newp->p_next = procs;
 	procs = newp;
 	NumProcs++;
 	global_fd |= 1 << newp->p_fd;

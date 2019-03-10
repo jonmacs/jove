@@ -48,6 +48,7 @@ struct variable	variables[] = {
 #endif
 	VARIABLE, "right-margin", &RMargin, V_BASE10,
 	VARIABLE, "scroll-step", &ScrollStep, V_BASE10,
+	VARIABLE, "search-exit-char", &SExitChar, V_CHAR,
 	VARIABLE, "send-typeout-to-buffer", &UseBuffers, V_BOOL,
 	VARIABLE, "shell", (int *) Shell, V_STRING,
 	VARIABLE, "shell-flags", (int *) ShFlags, V_STRING,

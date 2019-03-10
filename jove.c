@@ -715,8 +715,8 @@ char	*argv[];
 				break;
 
 			case 'w':
-				nwinds++;
-				ignore(div_wind(curwind));
+				nwinds += -1 + chr_to_int(&argv[1][2], 10, NIL);
+				ignore(div_wind(curwind, nwinds - 1));
 				break;
 
 			case '0':
@@ -1069,7 +1069,7 @@ char	*argv[];
 #endif
 #endif
 
-	/* Set things up to update the modeline every UpdFreq seconds. */
+	/* set things up to update the modeline every UpdFreq seconds */
 	ignorf(signal(SIGALRM, updmode));
 	ignore(alarm((unsigned) UpdFreq));
 

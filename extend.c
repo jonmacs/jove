@@ -435,6 +435,10 @@ PrVar()
 	case V_STRING:
 		add_mess("%s", (char *) vp->v_value);
 		break;
+
+	case V_CHAR:
+		add_mess("%p", *(vp->v_value));
+		break;
 	}
 }
 
@@ -490,6 +494,11 @@ SetVar()
 		/* ... and hope there is enough room. */
 	    	break;
 	    }
+	case V_CHAR:
+		f_mess(prompt);
+	    	*(vp->v_value) = addgetc();
+		break;	    	
+
 	}
 	if (vp->v_flags & V_MODELINE)
 		UpdModLine++;
@@ -693,7 +702,7 @@ Source()
 
 	ignore(sprintf(buf, "%s/.joverc", getenv("HOME")));
 	com = ask_file(buf, buf);
-	if (joverc(buf) == -1)
+	if (joverc(buf) == NIL)
 		complain(IOerr("read", com));
 }
 
@@ -778,7 +787,9 @@ char	*file;
 	int	IfStatus = IF_UNBOUND;
 	File	*fp;
 
-	fp = open_file(file, buf, F_READ, COMPLAIN, QUIET);
+	fp = open_file(file, buf, F_READ, !COMPLAIN, QUIET);
+	if (fp == NIL)
+		return NIL;
 
 	/* Catch any errors, here, and do the right thing with them,
 	   and then restore the error handle to whoever did a setjmp
@@ -835,5 +846,5 @@ char	*file;
 	InJoverc = 0;
 	if (IfStatus != IF_UNBOUND)
 		complain("[Missing endif]");
-	return 1;
+	return !NIL;
 }
