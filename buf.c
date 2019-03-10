@@ -171,7 +171,7 @@ BufSelect()
 	SetBuf(do_select(curwind, bname));
 }
 
-static
+private
 defb_wind(b)
 register Buffer *b;
 {
@@ -186,17 +186,17 @@ register Buffer *b;
 
 	do {
 		if (w->w_bufp == b) {
-			if (one_windp())
+			if (one_windp() || alt != Mainbuf)
 				(void) do_select(w, alt);
 			else {
-				register Window	*save = w->w_next;
+				Window	*save = w->w_next;
 
 				del_wind(w);
 				w = save->w_prev;
 			}
-		}				
+		}
 		w = w->w_next;
-	} while (w != fwind);
+	} while (w != fwind || w->w_bufp == b);
 }
 
 Buffer *
@@ -275,7 +275,7 @@ KillSome()
 			continue;
 		if (IsModified(b)) {
 			y_or_n = ask("No", "%s modified; should I save it? ", b->b_name);
-			if (Upper(*y_or_n) == 'Y') {
+			if (CharUpcase(*y_or_n) == 'Y') {
 				oldb = curbuf;
 				SetBuf(b);
 				SaveFile();
@@ -524,14 +524,13 @@ register char	*fname;
 		bufname(b);
 		set_ino(b);
 		b->b_ntbf = 1;
-		if (force) {
-			Buffer	*oldb = curbuf;
-
-			SetBuf(b);	/* this'll read the file */
-			SetBuf(oldb);
-		}
 	}
+	if (force) {
+		Buffer	*oldb = curbuf;
 
+		SetBuf(b);	/* this'll read the file */
+		SetBuf(oldb);
+	}
 	if (w)
 		tiewind(w, b);
 	return b;
@@ -549,15 +548,23 @@ Buffer	*b;
 SetBuf(newbuf)
 register Buffer	*newbuf;
 {
-	register Buffer	*oldb = curbuf;
+	register Buffer	*oldb = curbuf,
+			*b;
 
 	if (newbuf == curbuf || newbuf == 0)
 		return;
 
+	/* check to see that we're selecting a valid buffer */
+	for (b = world; b != 0; b = b->b_next)
+		if (b == newbuf)
+			break;
+	if (b == 0)
+		complain("Internal error: (%x) is not a valid buffer pointer!", newbuf);
+
 	lsave();
 	curbuf = newbuf;
-	curline = newbuf->b_dot;
-	curchar = newbuf->b_char;
+/*	curline = newbuf->b_dot;
+	curchar = newbuf->b_char;	STUPID!! */
 	getDOT();
 	/* Do the read now ... */
 	if (curbuf->b_ntbf)

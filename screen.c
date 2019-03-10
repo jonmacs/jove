@@ -369,8 +369,8 @@ v_del_line(num, top, bottom)
    What ever turns you on ...   */
 
 private struct cursaddr {
-	int	c_numchars,
-		(*c_proc)();
+	int	cm_numchars,
+		(*cm_proc)();
 };
 
 private char	*Cmstr;
@@ -574,7 +574,7 @@ Placur(line, col)
 
 #define CursMin(which,addrs,max) \
 	for (best = 0, cp = &addrs[1], i = 1; i < max; i++, cp++) \
-		if (cp->c_numchars < addrs[best].c_numchars) \
+		if (cp->cm_numchars < addrs[best].cm_numchars) \
 			best = i; \
 	which = &addrs[best];
 
@@ -598,13 +598,13 @@ Placur(line, col)
 
 	if (dcol == 1 || dcol == 0) {		/* Most common case. */
 		HorMin = &WarpHor[FORWARD];
-		HorMin->c_numchars = dcol + xtracost;
+		HorMin->cm_numchars = dcol + xtracost;
 	} else {
-		WarpHor[FORWARD].c_numchars = dcol >= 0 ? dcol + xtracost : 1000;
-		WarpHor[BACKWARD].c_numchars = dcol < 0 ? -(dcol + xtracost) : 1000;
-		WarpHor[FORTAB].c_numchars = dcol >= 0 && TABS ?
+		WarpHor[FORWARD].cm_numchars = dcol >= 0 ? dcol + xtracost : 1000;
+		WarpHor[BACKWARD].cm_numchars = dcol < 0 ? -(dcol + xtracost) : 1000;
+		WarpHor[FORTAB].cm_numchars = dcol >= 0 && TABS ?
 				ForNum(CapCol, col) + xtracost : 1000;
-		WarpHor[RETFORWARD].c_numchars = (xtracost + 1 + (TABS ? ForNum(0, col) : col));
+		WarpHor[RETFORWARD].cm_numchars = (xtracost + 1 + (TABS ? ForNum(0, col) : col));
 
 		/* Which is the shortest of the bunch */
 
@@ -613,8 +613,8 @@ Placur(line, col)
 
 	/* Moving vertically is more simple. */
 
-	WarpVert[DOWN].c_numchars = dline >= 0 ? dline : 1000;
-	WarpVert[UPMOVE].c_numchars = dline < 0 ? ((-dline) * UPlen) : 1000;
+	WarpVert[DOWN].cm_numchars = dline >= 0 ? dline : 1000;
+	WarpVert[UPMOVE].cm_numchars = dline < 0 ? ((-dline) * UPlen) : 1000;
 
 	/* Which of these is simpler */
 	CursMin(VertMin, WarpVert, NUMVERT);
@@ -624,35 +624,35 @@ Placur(line, col)
 	   Homing first's total is the sum of the cost of homing
 	   and the sum of tabbing (if possible) to the right. */
 	
-	if (VertMin->c_numchars + HorMin->c_numchars <= 3) {
+	if (VertMin->cm_numchars + HorMin->cm_numchars <= 3) {
 		DirectMin = &WarpDirect[DIRECT];	/* A dummy ... */
-		DirectMin->c_numchars = 100;
+		DirectMin->cm_numchars = 100;
 	} else {
-		WarpDirect[DIRECT].c_numchars = CM ?
+		WarpDirect[DIRECT].cm_numchars = CM ?
 				strlen(Cmstr = tgoto(CM, col, line)) : 1000;
-		WarpDirect[HOME].c_numchars = HOlen + line +
-				WarpHor[RETFORWARD].c_numchars;
-		WarpDirect[LOWER].c_numchars = LLlen + ((ILI - line) * UPlen) +
-				WarpHor[RETFORWARD].c_numchars;
+		WarpDirect[HOME].cm_numchars = HOlen + line +
+				WarpHor[RETFORWARD].cm_numchars;
+		WarpDirect[LOWER].cm_numchars = LLlen + ((ILI - line) * UPlen) +
+				WarpHor[RETFORWARD].cm_numchars;
 		CursMin(DirectMin, WarpDirect, NUMDIRECT);
 	}
 
-	if (HorMin->c_numchars + VertMin->c_numchars < DirectMin->c_numchars) {
+	if (HorMin->cm_numchars + VertMin->cm_numchars < DirectMin->cm_numchars) {
 		if (line != CapLine)
-			(*VertMin->c_proc)(line);
+			(*VertMin->cm_proc)(line);
 		if (col != CapCol) {
 #ifdef ID_CHAR
 			if (IN_INSmode)	/* We may use real characters ... */
 				INSmode(0);
 #endif
-			(*HorMin->c_proc)(col);
+			(*HorMin->cm_proc)(col);
 		}
 	} else {
 #ifdef ID_CHAR
 		if (IN_INSmode && !MI)
 			INSmode(0);
 #endif
-		(*DirectMin->c_proc)(line, col);
+		(*DirectMin->cm_proc)(line, col);
 	}
 }
 

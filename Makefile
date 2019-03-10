@@ -18,10 +18,10 @@
 # e.g., jove.1 or jove.l or jove.m.
 
 DESTDIR =
-TMPDIR = /tmp
-LIBDIR = /u/jpayne/jovelib
-BINDIR = /u/jpayne/bin
-MANDIR = /u/jpayne/manl
+TMPDIR = /u/sys/jove/tmp
+LIBDIR = /usr/lib/jove
+BINDIR = /usr/tut/bin
+MANDIR = /usr/man/manl
 MANEXT = l
 SHELL = /bin/csh
 
@@ -76,8 +76,8 @@ SOURCES = $(JOVESRC) portsrv.c recover.c setmaps.c teachjove.c
 HEADERS = ctype.h io.h jove.h re.h rec.h table.h temp.h termcap.h tune.h
 
 DOCS =	doc/cmds.doc.nr doc/example.rc doc/jove.1 doc/jove.2 doc/jove.3 \
-	doc/jove.4 doc/jove.nr doc/recover.nr doc/system.rc doc/teach-jove \
-	doc/teachjove.nr doc/README
+	doc/jove.4 doc/jove.5 doc/jove.nr doc/recover.nr doc/system.rc \
+ 	doc/teach-jove doc/teachjove.nr doc/README
 
 BACKUPS = $(HEADERS) $(JOVESRC) iproc-pipes.c iproc-ptys.c \
 	teachjove.c recover.c setmaps.c portsrv.c tune.template \
@@ -95,7 +95,7 @@ portsrv:	portsrv.o
 	cc -o portsrv -n portsrv.o $(LIBS)
 
 recover:	recover.o tune.o rec.h temp.h
-	cc -o recover -n recover.o tune.o $(LIBS)
+	cc -gx -o recover -n recover.o tune.o $(LIBS)
 
 teachjove:	teachjove.o
 	cc -o teachjove -n teachjove.o $(LIBS)
@@ -131,8 +131,8 @@ $(DESTDIR)$(LIBDIR):
 $(TEACH-JOVE): doc/teach-jove
 	install -c -m 644 doc/teach-jove $(TEACH-JOVE)
 
-doc/cmds.doc:	doc/cmds.doc.nr doc/jove.4
-	nroff doc/cmds.doc.nr doc/jove.4 > doc/cmds.doc
+doc/cmds.doc: doc/cmds.doc.nr doc/jove.4 doc/jove.5
+	nroff doc/cmds.doc.nr doc/jove.4 doc/jove.5 > doc/cmds.doc
 
 $(CMDS.DOC): doc/cmds.doc
 	install -c -m 644 doc/cmds.doc $(CMDS.DOC)

@@ -121,7 +121,7 @@ register File	*fp;
 	int	xeof = 0;
 	Line	*savel = curline;
 	int	savec = curchar;
-	disk_line	f_getputl() ;
+	extern disk_line	f_getputl();
 
 	strcpy(end, linebuf + curchar);
 	xeof = f_gets(fp, linebuf + curchar, LBSIZE - curchar);
@@ -226,18 +226,20 @@ Chdir()
 
 #ifndef JOB_CONTROL
 char *
-getwd()
+getwd(buf)
+char	*buf;
 {
 	Buffer	*old = curbuf;
 	char	*ret_val;
 
-	SetBuf(do_select((Window *) 0, "pwd-output"));
+	SetBuf(do_select((Window *) 0, "*pwd-output*"));
 	curbuf->b_type = B_PROCESS;
 	(void) UnixToBuf("pwd-output", NO, 0, YES, "/bin/pwd", (char *) 0);
 	ToFirst();
-	ret_val = sprint(linebuf);
+	strcpy(buf, linebuf);
 	SetBuf(old);
-	return ret_val;
+
+	return buf;
 }
 #endif
 
@@ -256,19 +258,22 @@ char	*d;
 
 getCWD()
 {
-	char	*cwd = getenv("CWD");
+	char	*cwd;
 #ifdef JOB_CONTROL
 	extern char	*getwd();
 	char	pathname[FILESIZE];
 #endif
 
+	cwd = getenv("CWD");
 	if (cwd == 0)
-#ifdef JOB_CONTROL
+		cwd = getenv("PWD");
+	if (cwd == 0)
 		cwd = getwd(pathname);
-#else
-		cwd = getwd();
-#endif
-
+	if (cwd == 0) {
+		message("[Cannot determine working directory - using \".\"]");
+		strcpy(pathname, ".");
+		cwd = pathname;
+	}
 	setCWD(cwd);
 }	
 
@@ -339,6 +344,7 @@ register char	*base,
 	return offset;
 }
 
+private
 dfollow(file, into)
 char	*file,
 	*into;
@@ -377,6 +383,7 @@ char	*file,
 
 #endif CHDIR
 
+private
 get_hdir(user, buf)
 register char	*user,
 		*buf;
@@ -626,7 +633,7 @@ ReadFile()
 		for (;;) {
 			rbell();
 			y_or_n = ask(NullStr, "Shall I make your changes to \"%s\" permanent? ", curbuf->b_name);
-			c = Upper(*y_or_n);
+			c = CharUpcase(*y_or_n);
 			if (c == 'Y' || c == 'N')
 				break;
 		}			
@@ -658,7 +665,7 @@ int	DOLsave = 0;	/* Do Lsave flag.  If lines aren't being save
 
 private int	nleft,	/* number of good characters left in current block */
 		tmpfd = -1;
-private disk_line	DFree = 1;
+disk_line	DFree = 1;
 			/* pointer to end of tmp file */
 private char	*tfname;
 

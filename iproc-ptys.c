@@ -12,6 +12,7 @@
 #endif
 #include <signal.h>
 #include <sgtty.h>
+#include <errno.h>
 
 #define DEAD	1	/* Dead but haven't informed user yet */
 #define STOPPED	2	/* Job stopped */
@@ -98,7 +99,15 @@ register int	fd;
 	}
 
 	n = read(fd, ibuf, sizeof(ibuf) - 1);
-	if (n == 0) {
+	/* NOTE: This read somethings returns -1 when it's the first time
+	   we're reading the socket.  Errno was set to I/O error or something
+	   bizarre like that.  So, I'm choosing to ignore this.  I ignored
+	   it before, and what happened was random text was being inserted
+	   at the beginning of the buffer because the ibuf[n] = '\0' wasn't
+ 	   working right (ibuf[-1] = '\0'). */
+	if (n == -1 && errno == EIO)
+		return;
+	if (n <= 0) {
 		proc_close(p);
 		NumProcs--;
 		return;
@@ -171,13 +180,12 @@ char	c;
 	(void) write(p->p_fd, &c, 1);
 }
 
-static
+private
 proc_close(p)
 Process *p;
 {
 	(void) close(p->p_fd);
 	global_fd &= ~(1 << p->p_fd);
-	p->p_eof++;
 }
 
 do_rtp(mp)
@@ -216,7 +224,7 @@ va_dcl
 	va_list	ap;
 	char	*argv[32],
 		*cp;
-	Window *owind	= curwind;
+	Window *owind = curwind;
 	int	pid;
 	Process	*newp;
 	Buffer 	*newbuf;
@@ -348,7 +356,6 @@ out:	if (s == 0 && t == 0)
 
 	newp->p_fd = ttyfd;
 	newp->p_pid = pid;
-	newp->p_eof = 0;
 
 	newbuf = do_select((Window *) 0, bufname);
 	newbuf->b_type = B_PROCESS;

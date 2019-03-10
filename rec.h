@@ -6,15 +6,17 @@
  ************************************************************************/
 
 struct rec_head {
-	int	Uid,		/* Uid of owner. */
-		Pid;		/* Pid of jove process. */
-	time_t	UpdTime;	/* Last time this was updated. */
-	int	Nbuffers;	/* Number of buffers. */
+	int		Uid,		/* uid of owner */
+			Pid;		/* pid of jove process */
+	time_t		UpdTime;	/* last time this was updated */
+	int		Nbuffers;	/* number of buffers */
+	disk_line	FreePtr;	/* position of DFree */
 };
 
 struct rec_entry {
 	char	r_bname[128],
 		r_fname[128];
-	int	r_nlines;
+	int	r_nlines,
+		r_dotline,	/* so we can really save the context */
+		r_dotchar;
 };
-

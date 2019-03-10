@@ -20,8 +20,8 @@
 #include <sgtty.h>
 #else
 #include <termio.h>
-#endif SYSV
 #include <fcntl.h>
+#endif SYSV
 
 #ifdef TIOCSLTC
 struct ltchars	ls1,
@@ -62,10 +62,6 @@ finish(code)
 	int	CoreDump = (code != 0 && code != SIGHUP),
 		DelTmps = 1;		/* Usually we delete them. */
 
-#ifdef LSRHS
-	if (CoreDump)
-		setdump(1);
-#endif
 	if (code == SIGINT) {
 		char	c;
 
@@ -137,7 +133,6 @@ register int	fd, on;
     }
     if (fcntl(fd, F_SETFL, on ? blockf : nonblockf) == -1)
 	finish(SIGHUP);
-    return;
 }
 #endif SYSV
 
@@ -500,6 +495,8 @@ do_sgtty()
 	TABS = !((sg1.c_oflag & TAB3) == TAB3);
 	ospeed = sg1.c_cflag & CBAUD;
 
+	if (OKXonXoff)
+		sg2.c_iflag &= ~(IXON | IXOFF);
 	sg2.c_iflag &= ~(INLCR|ICRNL|IGNCR);
 	sg2.c_lflag &= ~(ISIG|ICANON|ECHO);
 	sg2.c_oflag &= ~(OCRNL|ONLCR);
@@ -662,7 +659,7 @@ getch()
 
 dorecover()
 {
-	execl(Recover, "jove_recover", "-d", TmpFilePath, (char *)0);
+	execl(Recover, "jove_recover", "-d", TmpFilePath, (char *) 0);
 	printf("%s: execl failed!\n", Recover);
 	flusho();
 	_exit(-1);
@@ -846,13 +843,13 @@ DoKeys(nocmdline)
 		if (RecDepth == 0) {
 			if (ModMacs()) {
 				rbell();
-				if (Upper(*ask("No",
+				if (CharUpcase(*ask("No",
 "Some MACROS haven't been saved; leave anyway? ")) != 'Y')
 					break;
 			}
 			if (ModBufs(0)) {
 				rbell();
-				if (Upper(*ask("No",
+				if (CharUpcase(*ask("No",
 "Some buffers haven't been saved; leave anyway? ")) != 'Y')
 					break;
 			}
@@ -1051,8 +1048,9 @@ char	*argv[];
 	}
 	if (scanvec(argv, "-r"))
 		dorecover();
+	if (scanvec(argv, "-rc"))
+		FullRecover();
 
-	(void) time(&time0);
 	ttinit();	/* initialize terminal (after ~/.joverc) */
 	settout(ttbuf);	/* not until we know baudrate */
 	ResetTerm();
@@ -1071,7 +1069,8 @@ char	*argv[];
 
 	/* set things up to update the modeline every UpdFreq seconds */
 	(void) signal(SIGALRM, updmode);
-	(void) alarm((unsigned) UpdFreq);
+	(void) time(&time0);
+	(void) alarm((unsigned) 1 + (time0 % 60));
 
 	cl_scr(1);
 	flusho();

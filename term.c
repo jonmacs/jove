@@ -48,10 +48,6 @@ char	*UP,
 	*SF,	/* Scroll forward */
 	*SR,
 	*SP,	/* Send Cursor Position */
-#ifdef LSRHS
-	*RS,	/* Reverse video start */
-	*RE,	/* Reverse end */
-#endif
 	*VB,
 	*IP,	/* insert pad after character inserted */
 	*lPC;
@@ -70,25 +66,15 @@ int	LI,
 	HOlen,
 	LLlen;
 
-#ifdef SYSV /* release 2, at least */
+#ifdef SYSVR2 /* release 2, at least */
 char PC ;
 #else
 extern char	PC;
-#endif SYSV
+#endif SYSVR2
 
 static char	tspace[256];
 
 /* The ordering of ts and meas must agree !! */
-#ifdef LSRHS
-static char	*ts="vsvealdlspcssosecmclcehoupbcicimdceillsfsrvbksketiteALDLICDCrsrepcip";
-static char	**meas[] = {
-	&VS, &VE, &AL, &DL, &SP, &CS, &SO, &SE,
-	&CM, &CL, &CE, &HO, &UP, &BC, &IC, &IM,
-	&DC, &EI, &LL, &SF, &SR, &VB, &KS, &KE,
-	&TI, &TE, &M_AL, &M_DL, &M_IC, &M_DC,
-	&RS, &RE, &lPC, &IP, 0
-};
-#else
 static char	*ts="vsvealdlspcssosecmclcehoupbcicimdceillsfsrvbksketiteALDLICDCpcip";
 static char	**meas[] = {
 	&VS, &VE, &AL, &DL, &SP, &CS, &SO, &SE,
@@ -97,7 +83,6 @@ static char	**meas[] = {
 	&TI, &TE, &M_AL, &M_DL, &M_IC, &M_DC,
 	&lPC, &IP, 0
 };
-#endif
 
 static
 gets(buf)
@@ -172,18 +157,6 @@ getTERM()
 
 	UL = tgetflag("ul");
 
-#ifdef LSRHS		/* We, at the high school, are the only ones who
-			   do SO right in termcap, but unfortunately the
-			   right SO doesn't look as good with modelines. */
-	if (RS)
-		SO = RS;
-	if (RE)
-		SE = RE;
-			/* I only ever use SO for the modeline anyway. */
-
-/* SO is really BOLDFACE!  Why is LS always right and the rest of the
-   world wrong? */
-#endif
 #ifdef ID_CHAR
 	disp_opt_init();
 #endif

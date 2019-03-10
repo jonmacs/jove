@@ -8,7 +8,6 @@
 #include "jove.h"
 
 struct macro	*macros = 0;		/* Macros */
-data_obj	*LastCmd;
 
 private
 add_mac(new)

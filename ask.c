@@ -230,7 +230,7 @@ va_dcl
 		Asking = strlen(prompt);	/* so redisplay works */
 		c = getch();
 		Asking = NO;
-		switch (Upper(c)) {
+		switch (CharUpcase(c)) {
 		case 'Y':
 			return YES;
 

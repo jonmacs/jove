@@ -146,7 +146,7 @@ system-wide .joverc to the right place automatically.)  After that JOVE
 reads an initialization file in the user's home directory, and "example.rc"
 is mine.
 
-The files "jove.[1234]" in DOC are the official JOVE manual.  I got
+The files "jove.[12345]" in DOC are the official JOVE manual.  I got
 permission from Richard Stallman to use his manual for the original EMACS,
 modifying it where necessary for JOVE.  Lots of work was done by Brian
 Harvey on this manual.

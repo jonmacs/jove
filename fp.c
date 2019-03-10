@@ -7,6 +7,7 @@
 
 #include "jove.h"
 #include "io.h"
+#include "ctype.h"
 #include "termcap.h"
 #include <sys/stat.h>
 #include <sys/file.h>
@@ -106,6 +107,8 @@ File	*fp;
 		return EOF;
 	fp->f_ptr = fp->f_base;
 	fp->f_cnt = read(fp->f_fd, fp->f_base, fp->f_bufsize);
+	while (fp->f_cnt == -1 && errno == EINTR)
+		fp->f_cnt = read(fp->f_fd, fp->f_base, fp->f_bufsize);
 	if (fp->f_cnt == -1) {
 		printf("[Read error %d]", errno);
 		fp->f_flags |= F_ERR;
@@ -182,7 +185,7 @@ char	*buf;
 		return EOF;
 	while (((c = getc(fp)) != EOF) && (c != '\n')) {
 		if (c == NULL)
-			continue;	/* sorry we don't read nulls */
+			break;		/* sorry we don't read nulls */
 		if (cp >= endp) {
 			add_mess(" [Line too long]");
 			rbell();
@@ -199,6 +202,26 @@ char	*buf;
 	}
 	io_lines++;
 	return NIL;	/* this means okay */
+}
+
+f_readn(fp, addr, n)
+register File	*fp;
+register char	*addr;
+register int	n;
+{
+	while (--n >= 0)
+		*addr++ = getc(fp);
+}
+
+f_getint(fp)
+File	*fp;
+{
+	int	n = 0,
+		c;
+
+	while (isdigit(c = getc(fp)))
+		n = (n * 10) + c;
+	return n;
 }
 
 /* Deals with output to the terminal, setting up the amount of characters

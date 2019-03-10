@@ -568,6 +568,7 @@ struct file_pair	*fp;
 		return 1;
 	}
 	makblist();
+	list();
 
 	for (;;) {
 		tellme("(Type '?' for options): ", answer);
@@ -699,9 +700,10 @@ char	*argv[];
 		printf("recover: usage: recover [-d directory]\n");
 		printf("Use \"recover\" after JOVE has died for some\n");
 		printf("unknown reason.\n\n");
-		printf("Use \"recover -syscrash\" when the system is in the process\n");
+/*		printf("Use \"recover -syscrash\" when the system is in the process\n");
 		printf("of rebooting.  This is done automatically at reboot time\n");
 		printf("and so most of you don't have to worry about that.\n\n");
+ */
 		printf("Use \"recover -d directory\" when the tmp files are store\n");
 		printf("in DIRECTORY instead of the default one (/tmp).\n");
 		exit(0);

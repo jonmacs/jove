@@ -264,8 +264,9 @@ DoNewline(indentp)
 #ifdef LISP
 	if (MajorMode(LISPMODE))
 		DelWtSpace();
+	else
 #endif
-	else if (blnkp(linebuf))
+	    if (blnkp(linebuf))
 		DelWtSpace();
 		
 	/* If there is more than 2 blank lines in a row then don't make
