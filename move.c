@@ -10,17 +10,15 @@
 
 static int	line_pos;
 
-ForChar()
+f_char(n)
+register int	n;
 {
-	register int	num = exp;
 
-	if (exp < 0) {
-		exp = -exp;
-		BackChar();
+	if (n < 0) {
+		b_char(-n);
 		return;
 	}
-	exp = 1;
-	while (--num >= 0) {
+	while (--n >= 0) {
 		if (eolp()) {			/* Go to the next Line */
 			if (curline->l_next == 0)
 				break;
@@ -30,17 +28,15 @@ ForChar()
 	}
 }
 
-BackChar()
+b_char(n)
+register int	n;
 {
-	register int	num = exp;
 
-	if (exp < 0) {
-		exp = -exp;
-		ForChar();
+	if (n < 0) {
+		f_char(-n);
 		return;
 	}
-	exp = 1;
-	while (--num >= 0) {
+	while (--n >= 0) {
 		if (bolp()) {
 			if (curline->l_prev == 0)
 				break;
@@ -51,30 +47,40 @@ BackChar()
 	}
 }
 
+ForChar()
+{
+	f_char(arg_value());
+}
+
+BackChar()
+{
+	b_char(arg_value());
+}
+
 NextLine()
 {
 	if ((curline == curbuf->b_last) && eolp())
 		complain(NullStr);
-	line_move(FORWARD, YES);
+	line_move(FORWARD, arg_value(), YES);
 }
 
 PrevLine()
 {
 	if ((curline == curbuf->b_first) && bolp())
 		complain(NullStr);
-	line_move(BACKWARD, YES);
+	line_move(BACKWARD, arg_value(), YES);
 }
 
 /* moves to a different line in DIR; LINE_CMD says whether this is
    being called from NextLine() or PrevLine(), in which case it tries
    to line up the column with the column of the current line */
 
-line_move(dir, line_cmd)
+line_move(dir, n, line_cmd)
 {
 	Line	*(*proc)() = (dir == FORWARD) ? next_line : prev_line;
 	Line	*line;
 
-	line = (*proc)(curline, exp);
+	line = (*proc)(curline, n);
 	if (line == curline) {
 		(dir == FORWARD) ? Eol() : Bol();
 		return;
@@ -142,6 +148,7 @@ Bof()
    with all the kludgery involved with paragraphs, and moving backwards
    is particularly yucky. */
 
+private
 to_sent(dir)
 {
 	Bufpos	*new,
@@ -152,7 +159,7 @@ to_sent(dir)
 
 	new = dosearch("^[ \t]*$\\|[?.!]", dir, 1);
 	if (new == 0) {
-		(dir < 0) ? ToFirst() : ToLast();
+		(dir == BACKWARD) ? ToFirst() : ToLast();
 		return;
 	}
 	SetDot(new);
@@ -168,7 +175,7 @@ to_sent(dir)
 	}
 	if (blnkp(linebuf)) {
 		Bol();
-		BackChar();
+		b_char(1);
 		if (old.p_line == curline && old.p_char >= curchar) {
 			to_word(1);	/* Oh brother this is painful */
 			to_sent(1);
@@ -186,15 +193,13 @@ to_sent(dir)
 
 Bos()
 {
-	int	num = exp;
+	register int	num = arg_value();
 
-	if (exp < 0) {
-		exp = -exp;
+	if (num < 0) {
+		negate_arg_value();
 		Eos();
 		return;
 	}
-
-	exp = 1;
 
 	while (--num >= 0) {
 		to_sent(-1);
@@ -205,15 +210,13 @@ Bos()
 
 Eos()
 {
-	int	num = exp;
+	register int	num = arg_value();
 
-	if (exp < 0) {
-		exp = -exp;
+	if (num < 0) {
+		negate_arg_value();
 		Bos();
 		return;
 	}
-
-	exp = 1;
 
 	while (--num >= 0) {
 		to_sent(1);
@@ -222,19 +225,17 @@ Eos()
 	}
 }
 
-ForWord()
+f_word(num)
+register int	num;
 {
 	register char	c;
-	register int	num = exp;
 
-	if (exp < 0) {
-		exp = -exp;
-		BackWord();
+	if (num < 0) {
+		b_word(-num);
 		return;
 	}
-	exp = 1;
 	while (--num >= 0) {
-		to_word(1);
+		to_word(FORWARD);
 		while ((c = linebuf[curchar]) != 0 && isword(c))
 			curchar++;
 		if (eobp())
@@ -243,19 +244,17 @@ ForWord()
 	this_cmd = 0;	/* Semi kludge to stop some unfavorable behavior */
 }
 
-BackWord()
+b_word(num)
+register int	num;
 {
-	register int	num = exp;
 	register char	c;
 
-	if (exp < 0) {
-		exp = -exp;
-		ForWord();
+	if (num < 0) {
+		f_word(-num);
 		return;
 	}
-	exp = 1;
 	while (--num >= 0) {
-		to_word(-1);
+		to_word(BACKWARD);
 		while (!bolp() && (c = linebuf[curchar - 1], isword(c)))
 			--curchar;
 		if (bobp())
@@ -263,3 +262,14 @@ BackWord()
 	}
 	this_cmd = 0;
 }
+
+ForWord()
+{
+	f_word(arg_value());
+}
+
+BackWord()
+{
+	b_word(arg_value());
+}
+

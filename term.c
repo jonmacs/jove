@@ -6,6 +6,7 @@
  ************************************************************************/
 
 #include "jove.h"
+#include <ctype.h>
 #include <errno.h>
 #ifdef SYSV
 #   include <termio.h>
@@ -49,8 +50,10 @@ char	*UP,
 	*SR,
 	*SP,	/* Send Cursor Position */
 	*VB,
+	*BL,
 	*IP,	/* insert pad after character inserted */
-	*lPC;
+	*lPC,
+	*NL;
 
 int	LI,
 	ILI,	/* Internal lines, i.e., 23 of LI is 24. */
@@ -67,7 +70,7 @@ int	LI,
 	LLlen;
 
 #ifdef SYSVR2 /* release 2, at least */
-char PC ;
+char	PC;
 #else
 extern char	PC;
 #endif SYSVR2
@@ -75,13 +78,13 @@ extern char	PC;
 static char	tspace[256];
 
 /* The ordering of ts and meas must agree !! */
-static char	*ts="vsvealdlspcssosecmclcehoupbcicimdceillsfsrvbksketiteALDLICDCpcip";
+static char	*ts="vsvealdlspcssosecmclcehoupbcicimdceillsfsrvbksketiteALDLICDCpcipblnl";
 static char	**meas[] = {
 	&VS, &VE, &AL, &DL, &SP, &CS, &SO, &SE,
 	&CM, &CL, &CE, &HO, &UP, &BC, &IC, &IM,
 	&DC, &EI, &LL, &SF, &SR, &VB, &KS, &KE,
 	&TI, &TE, &M_AL, &M_DL, &M_IC, &M_DC,
-	&lPC, &IP, 0
+	&lPC, &IP, &BL, &NL, 0
 };
 
 static
@@ -156,6 +159,18 @@ getTERM()
 		MI = tgetflag("mi");
 
 	UL = tgetflag("ul");
+
+	if (NL == 0)
+		NL = "\n";
+	else {			/* strip stupid padding information */
+		while (isdigit(*NL))
+			NL++;
+		if (*NL == '*')
+			NL++;
+	}
+
+	if (BL == 0)
+		BL = "\007";
 
 #ifdef ID_CHAR
 	disp_opt_init();

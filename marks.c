@@ -17,7 +17,7 @@ register Line	*line;
 
 	MarkSet(newmark, line, column);
 	newmark->m_next = curbuf->b_marks;
-	newmark->m_floater = type;
+	newmark->m_flags = type;
 	curbuf->b_marks = newmark;
 	return newmark;
 }
@@ -70,7 +70,7 @@ PopMark()
 				pmark = NMARKS - 1;
 		} while (curbuf->b_markring[pmark] != 0);
 
-		curbuf->b_markring[pmark] = MakeMark(curline, curchar, MarksShouldFloat);
+		curbuf->b_markring[pmark] = MakeMark(curline, curchar, MarksShouldFloat ? M_FLOATER : M_FIXED);
 		ToMark(curmark);
 		DelMark(curmark);
 		curmark = 0;
@@ -85,18 +85,23 @@ PopMark()
 
 SetMark()
 {
-	if (exp_p)
+	if (is_an_arg())
 		PopMark();
 	else
-		DoSetMark(curline, curchar);
+		set_mark();
 }
 
-DoSetMark(l, c)
+set_mark()
+{
+	do_set_mark(curline, curchar);
+}
+
+do_set_mark(l, c)
 Line	*l;
 {
 	curbuf->b_themark = (curbuf->b_themark + 1) % NMARKS;
 	if (curmark == 0)
-		curmark = MakeMark(l, c, MarksShouldFloat);
+		curmark = MakeMark(l, c, MarksShouldFloat ? M_FLOATER : M_FIXED);
 	else
 		MarkSet(curmark, l, c);
 	s_mess("[Point pushed]");
@@ -151,17 +156,12 @@ register Line	*line1,
 	if (curbuf->b_marks == 0)
 		return;
 	while (lp != line2->l_next) {
-		for (m = curbuf->b_marks; m != 0; m = m->m_next) {
-/*			if (!m->m_floater)
-				continue; */
+		for (m = curbuf->b_marks; m != 0; m = m->m_next)
 			if (m->m_line == lp)
 				m->m_char |= (1 << 15);
-		}
 		lp = lp->l_next;
 	}
 	for (m = curbuf->b_marks; m; m = m->m_next) {
-/*		if (!m->m_floater)
-			continue; */
 		if ((m->m_char & (1 << 15)) == 0)
 			continue;	/* Not effected */
 		m->m_char &= ~(1 << 15);
@@ -178,10 +178,12 @@ register Line	*line1,
 				m->m_char = char1 + (m->m_char - char2);
 			else
 				m->m_char = char1;
+			m->m_flags |= M_BIG_DELETE;
 			m->m_line = line1;
 		} else {
 			m->m_char = char1;
 			m->m_line = line1;
+			m->m_flags |= M_BIG_DELETE;
 		}
 	}
 }
@@ -196,7 +198,7 @@ register Line	*line1,
 	register Mark	*m;
 
 	for (m = curbuf->b_marks; m != 0; m = m->m_next) {
-		if (!m->m_floater)
+		if ((m->m_flags & M_FLOATER) == 0)
 			continue;
 		if (m->m_line == line1) {
 			if (m->m_char > char1) {

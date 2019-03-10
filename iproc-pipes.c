@@ -23,6 +23,7 @@
 #define KILLED	2
 
 #define isdead(p)	(p == 0 || proc_state(p) == DEAD || p->p_toproc == -1)
+#define makedead(p)	(proc_state(p) = DEAD)
 
 #define proc_buf(p)	(p->p_buffer->b_name)
 #define proc_cmd(p)	(p->p_name)
@@ -34,7 +35,7 @@ int	ProcInput,
 	ProcOutput,
 	NumProcs = 0;
 
-static char *
+char *
 pstate(p)
 Process	*p;
 {
@@ -52,12 +53,12 @@ Process	*p;
 		if (p->p_howdied == EXITED) {
 			if (p->p_reason == 0)
 				return "Done";
-			return sprint("[Exit %d]", p->p_reason);
+			return sprint("Exit %d", p->p_reason);
 		}
-		return sprint("[Killed %d]", p->p_reason);
+		return sprint("Killed %d", p->p_reason);
 
 	default:
-		return "Unknown state.";
+		return "Unknown state";
 	}
 }
 
@@ -96,7 +97,6 @@ procs_read()
 			finish(1);
 		read_proc(header.pid, header.nbytes);
 	}
-	redisplay();
 	here = 0;
 	sigrelse(SIGCHLD);
 }
@@ -258,7 +258,7 @@ va_dcl
 	/* Pop_wind() after everything is set up; important!
 	   Bindings won't work right unless newbuf->b_process is already
 	   set up BEFORE NEWBUF is first SetBuf()'d. */
-	newp->p_mark = MakeMark(curline, curchar, FLOATER);
+	newp->p_mark = MakeMark(curline, curchar, M_FLOATER);
 
 	newp->p_toproc = toproc[1];
 	newp->p_reason = 0;

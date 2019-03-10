@@ -124,7 +124,6 @@ char	*fmtstr;
 	}
 	if (cur_error != 0)
 		ShowErr();
-	exp = 1;
 }
 
 /* Free up all the errors */
@@ -145,9 +144,8 @@ private char	errbounds[] = "You're at the %s error.",
 		noerrs[] = "No errors!";
 
 private
-toerror(forward)
+toerror(forward, num)
 {
-	register int	i;
 	register struct error	*e = cur_error;
 
 	if (e == 0)
@@ -156,7 +154,7 @@ toerror(forward)
 	    (!forward && (e->er_prev == 0)))
 		complain(errbounds, forward ? "last" : "first");
 
-	for (i = 0; i < exp; i++) {
+	while (--num >= 0) {
 		if ((e = forward ? e->er_next : e->er_prev) == 0)
 			break;
 		cur_error = e;
@@ -187,8 +185,7 @@ okay_error()
 ToError(forward)
 {
 	do {
-		toerror(forward);
-		exp = 1;
+		toerror(forward, arg_value());
 	} while (!okay_error());
 	ShowErr();
 }
@@ -293,11 +290,10 @@ MakeErrors()
 	   default command and let the person decide. */
 
 	compilation = (sindex("make", make_cmd) || sindex("cc", make_cmd));
-	if (exp_p || !compilation) {
+	if (is_an_arg() || !compilation) {
 		if (!compilation) {
 			rbell();
-			Inputp = make_cmd;	/* insert the default for the
-						   user */
+			Inputp = make_cmd;	/* insert the default for the user */
 		}
 		null_ncpy(make_cmd, ask(make_cmd, "Compilation command: "),
 				sizeof (make_cmd) - 1);
@@ -367,7 +363,7 @@ char	*bname;
 					  curline, curchar);
 		}
 		SetBuf(wordsb);
-		line_move(FORWARD, NO);
+		line_move(FORWARD, 1, NO);
 	}
 	add_mess("Done.");
 	SetBuf(buftospel);
@@ -378,10 +374,12 @@ char	*bname;
 
 ShToBuf()
 {
-	char	bufname[100];
+	char	bufname[128],
+		cmd[128];
 
 	strcpy(bufname, ask((char *) 0, "Buffer: "));
-	DoShell(bufname, ask(ShcomBuf, "Command: "));
+	strcpy(cmd, ask(ShcomBuf, "Command: "));
+	DoShell(bufname, cmd);
 }
 
 ShellCom()
@@ -402,8 +400,7 @@ char	*bufname,
 	Window	*savewp = curwind;
 	int	status;
 
-	exp = 1;
-	status = UnixToBuf(bufname, YES, 0, !exp_p, Shell,
+	status = UnixToBuf(bufname, YES, 0, !is_an_arg(), Shell,
 			   ShFlags, command, (char *) 0);
 	com_finish(status, command);
 	SetWind(savewp);
@@ -465,7 +462,7 @@ int	pid,
    to fix everything up after we're done.  (Usually there's nothing to
    fix up.) */
 
-/* VARARGS5 */
+/* VARARGS4 */
 
 UnixToBuf(bufname, disp, wsize, clobber, va_alist)
 char	*bufname;
@@ -517,7 +514,6 @@ va_dcl
 #else
 	old_int = signal(SIGINT, SIG_IGN),
 #endif
-	exp = 1;
 	dopipe(p);
 	pid = fork();
 	if (pid == -1) {
@@ -621,26 +617,27 @@ char	*cmd;
 {
 	Mark	*m = CurMark();
 	char	*tname = mktemp("/tmp/jfilterXXXXXX"),
-		combuf[130];
+		combuf[128];
 	Window	*save_wind = curwind;
-	int	status;
+	int	status,
+		error = NO;
 	File	*fp;
 
-    CATCH
 	fp = open_file(tname, iobuff, F_WRITE, COMPLAIN, QUIET);
+    CATCH
 	putreg(fp, m->m_line, m->m_char, curline, curchar, YES);
 	DelReg();
 	sprintf(combuf, "%s < %s", cmd, tname);
 	status = UnixToBuf(outbuf->b_name, NO, 0, outbuf->b_type == B_SCRATCH,
 			   Shell, ShFlags, combuf, (char *) 0);
     ONERROR
-	;	/* Do nothing ... but fall through and delete the tmp
-		   file. */
+	error = YES;
     ENDCATCH
 	f_close(fp);
 	(void) unlink(tname);
 	SetWind(save_wind);
-	com_finish(status, combuf);
+	if (error == NO)
+		com_finish(status, combuf);
 }
 
 isprocbuf(bufname)

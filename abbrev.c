@@ -102,9 +102,8 @@ AbbrevExpand()
 	struct abbrev	*ap;
 
 	DOTsave(&point);
-	exp = 1;
     WITH_TABLE(curbuf->b_major)
-	BackWord();
+	b_word(1);
 	while (curchar < point.p_char && ismword(c = linebuf[curchar])) {
 		if (AutoCaseAbbrev) {
 			if (isupper(c)) {
@@ -112,7 +111,6 @@ AbbrevExpand()
 				c = tolower(c);
 			}
 		}
-
 		*wp++ = c;
 		curchar++;
 	}
@@ -124,18 +122,16 @@ AbbrevExpand()
 		SetDot(&point);
 		return;
 	}
-	DoTimes(DelPChar(), (wp - wordbuf));
+	del_char(BACKWARD, (wp - wordbuf));
 
 	for (cp = ap->a_phrase; c = *cp; ) {
 		if (AutoCaseAbbrev) {
-			Insert(islower(c) && UC_count &&
-			       (cp == ap->a_phrase || (UC_count > 1 && (*(cp - 1) == ' '))) ?
-				toupper(c) : c);
-		}
-		else {
-			Insert(c);
-		}
-		cp++;
+			insert_c(islower(c) && UC_count &&
+			       (cp == ap->a_phrase || (UC_count > 1 && (cp[-1] == ' '))) ?
+				toupper(c) : c, 1);
+		} else
+			insert_c(c, 1);
+		cp += 1;
 	}
 
 	if (ap->a_cmdhook != 0)

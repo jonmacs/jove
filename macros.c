@@ -83,7 +83,7 @@ struct macro	*mac;
 		complain("[Too many macros at once!]");
 	macstack[stackp] = mac;
 	mac->m_offset = 0;
-	mac->m_ntimes = exp;
+	mac->m_ntimes = arg_value();
 	mac->m_flags |= EXECUTE;
 }
 
@@ -361,7 +361,7 @@ retry:		bodylen = int_fmt(tmp);
 		if (!InJoverc) {
 			TOstart("Warning", TRUE);
 			Typeout("Warning: your macros file is in the old format.");
-			Typeout("Do you want me to convert \"%s\" to the new", pr_name(file));
+			Typeout("Do you want me to convert \"%s\" to the new", pr_name(file, YES));
 			Typeout("format?");
 			f_mess(msg);
 			TOstop();

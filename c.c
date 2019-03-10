@@ -167,21 +167,20 @@ register int	dir;
 	register char	c,
 			syntax = (dir == FORWARD) ? _Op : _Cl;
 
-	exp = 1;
 	if (dir == BACKWARD)
-		BackChar();
+		b_char(1);
 	c = linebuf[curchar];
 	for (;;) {
 		if (!skip_words && ismword(c)) {
 		    WITH_TABLE(curbuf->b_major)
-			(dir == FORWARD) ? ForWord() : BackWord();
+			(dir == FORWARD) ? f_word(1) : b_word(1);
 		    END_TABLE();
 		    break;
 		} else if (has_syntax(c, syntax)) {
 			FindMatch(dir);
 			break;
 		}
-		DoTimes(ForChar(), dir);
+		f_char(dir);
 		if (eobp() || bobp())
 			return;
 		c = linebuf[curchar];
@@ -190,10 +189,10 @@ register int	dir;
 
 FSexpr()
 {
-	register int	num = exp;
+	register int	num = arg_value();
 
-	if (exp < 0) {
-		exp = -exp;
+	if (num < 0) {
+		set_arg_value(-num);
 		BSexpr();
 	}
 	while (--num >= 0)
@@ -202,10 +201,10 @@ FSexpr()
 
 FList()
 {
-	register int	num = exp;
+	register int	num = arg_value();
 
-	if (exp < 0) {
-		exp = -exp;
+	if (num < 0) {
+		set_arg_value(-num);
 		BList();
 	}
 	while (--num >= 0)
@@ -214,10 +213,10 @@ FList()
 
 BSexpr()
 {
-	register int	num = exp;
+	register int	num = arg_value();
 
-	if (exp < 0) {
-		exp = -exp;
+	if (num < 0) {
+		negate_arg_value();
 		FSexpr();
 	}
 	while (--num >= 0)
@@ -226,10 +225,10 @@ BSexpr()
 
 BList()
 {
-	register int	num = exp;
+	register int	num = arg_value();
 
-	if (exp < 0) {
-		exp = -exp;
+	if (num < 0) {
+		negate_arg_value();
 		FList();
 	}
 	while (--num >= 0)
@@ -275,10 +274,10 @@ FindMatch(dir)
 	    (backslashed(linebuf, curchar)))
 		complain((char *) 0);
 	if (dir == FORWARD)
-		ForChar();
+		f_char(1);
 	bp = m_paren(c, dir, YES, NO);
 	if (dir == FORWARD)
-		BackChar();
+		b_char(1);
 	if (bp != 0)
 		SetDot(bp);
 	mp_error();	/* if there is an error the user wants to
@@ -482,16 +481,16 @@ char	*format;
 		SetDot(match_c);
 	}
 	SetDot(&open_c_pt);
-	open_c_mark = MakeMark(curline, curchar, FLOATER);
+	open_c_mark = MakeMark(curline, curchar, M_FLOATER);
 	indent_pos = calc_pos(linebuf, curchar);
 	/* search for a close comment; delete it if it exits */
 	SetDot(&close_c_pt);
 	if (close_at_dot == 0) {
 		slen = strlen(close_pat);
 		while (slen--)
-			DelPChar();
+			del_char(BACKWARD, 1);
 	}
-	entry_mark = MakeMark(curline, curchar, FLOATER);
+	entry_mark = MakeMark(curline, curchar, M_FLOATER);
 	ToMark(open_c_mark);
 	/* always separate the comment body from anything preceeding it */
 	LineInsert(1);
@@ -502,17 +501,17 @@ char	*format;
 			if (!eolp())
 				LineInsert(1);
 			else
-				line_move(FORWARD, NO);
+				line_move(FORWARD, 1, NO);
 		} else if (*cp == ' ' || *cp == '\t') {
 			if (linebuf[curchar] != *cp)
-				Insert(*cp);
+				insert_c(*cp, 1);
 		} else
 			/* Since we matched the open comment string on this
 			   line, we don't need to worry about crossing line
 			   boundaries. */
 			curchar++;
 	}
-	savedot = MakeMark(curline, curchar, FLOATER);
+	savedot = MakeMark(curline, curchar, M_FLOATER);
 
 	/* We need to strip the line header pattern of leading white space
 	   since we need to match the line after all of its leading
@@ -529,28 +528,26 @@ char	*format;
 		Bol();
 		DelWtSpace();
 		if (header_len && !strncmp(linebuf, cp, header_len))
-			DoTimes(DelNChar(), header_len);
+			del_char(FORWARD, header_len);
 		if (trailer_len) {
 			Eol();
 			if ((curchar > trailer_len) &&
 			    (!strncmp(&linebuf[curchar - trailer_len],
 				      l_trailer, trailer_len)))
-				DoTimes(DelPChar(), trailer_len);
+				del_char(BACKWARD, trailer_len);
 		}
 		if (curline->l_next != 0)
-			line_move(FORWARD, NO);
+			line_move(FORWARD, 1, NO);
 		else
 			break;
 	} while (curline != entry_mark->m_line->l_next);
 
-	DoSetMark(savedot->m_line, savedot->m_char);
+	do_set_mark(savedot->m_line, savedot->m_char);
 	ToMark(entry_mark);
 	saveRMargin = RMargin;
 	RMargin = saveRMargin - strlen(l_header) -
 		  strlen(l_trailer) - indent_pos + 2;
-	/* do not use the left margin */
-	exp_p = NO;
-	do_rfill();
+	do_rfill(NO);
 	RMargin = saveRMargin;
 	/* get back to the start of the comment */
 	PopMark(); 
@@ -567,13 +564,13 @@ char	*format;
 		else
 			ins_str(l_trailer, NO);
 		if (curline->l_next != 0)
-			line_move(FORWARD, NO);
+			line_move(FORWARD, 1, NO);
 		else 
 			break;
 	} while (curline != entry_mark->m_line->l_next);
 	/* handle the close comment symbol */
 	if (curline == entry_mark->m_line->l_next) {
-		line_move(BACKWARD, NO);
+		line_move(BACKWARD, 1, NO);
 		Eol();
 	}
 	DelWtSpace();
@@ -588,12 +585,11 @@ char	*format;
 			LineInsert(1);
 			n_indent(indent_pos);
 		} else
-			Insert(*cp);
+			insert_c(*cp, 1);
 	}
 	ToMark(open_c_mark);
 	Eol();
-	exp_p = NO;
-	DelNChar();
+	del_char(FORWARD, 1);
 }
 
 #endif CMT_FMT

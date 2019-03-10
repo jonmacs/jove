@@ -768,7 +768,7 @@ RErecur()
 		repbuf[sizeof rep_str],
 		*altbuf[NALTS];
 	int	npars;
-	Mark	*m = MakeMark(curline, REbom, FLOATER);
+	Mark	*m = MakeMark(curline, REbom, M_FLOATER);
 
 	message("Type C-X C-C to continue with query replace.");
 
@@ -783,7 +783,7 @@ RErecur()
 	byte_copy(sbuf, searchstr, sizeof searchstr);
 	byte_copy(repbuf, rep_str, sizeof rep_str);
 	byte_copy((char *) altbuf, (char *) alternates, sizeof alternates);
-	if (!exp_p)
+	if (!is_an_arg())
 		ToMark(m);
 	DelMark(m);
 }

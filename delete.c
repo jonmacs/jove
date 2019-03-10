@@ -99,7 +99,7 @@ register Line	*line1,
 
 DelNChar()
 {
-	del_char(1);
+	del_char(FORWARD, arg_value());
 }
 
 /* Delete character backward */
@@ -107,28 +107,32 @@ DelNChar()
 DelPChar()
 {
 	if (MinorMode(OverWrite)) {
-		int	count = min(exp, curchar);
+		int	count = min(arg_value(), curchar);
 
-		DoTimes(BackChar(), count);
-		LastKeyStruck = ' ';	/* can you say gross? */
-		DoTimes(SelfInsert(), count);
-		DoTimes(BackChar(), count);
+		b_char(count);
+
+		/* overwrite with spaces */
+		set_arg_value(count);
+		LastKeyStruck = ' ';
+		SelfInsert();
+
+		b_char(count);
 	} else		
-		del_char(0);
+		del_char(BACKWARD, arg_value());
 }
 
-/* Delete some characters.  If deleting `forward' then call for_char
+/* Delete some characters.  If deleting forward then call for_char
    to the final position otherwise call back_char.  Then delete the
    region between the two with patchup(). */
 
-del_char(forward)
+del_char(dir, num)
 {
 	Bufpos	before,
 		after;
-	int	killp = (exp_p && abs(exp) > 1);
+	int	killp = (abs(num) > 1);
 
 	DOTsave(&before);
-	(forward) ? ForChar() : BackChar();
+	(dir == FORWARD) ? f_char(num) : b_char(num);
 	if (before.p_line == curline && before.p_char == curchar)
 		complain((char *) 0);
 	if (killp)
@@ -249,23 +253,22 @@ DelBlnkLines()
 	register Mark	*dot;
 	int	all;
 
-	exp = 1;
 	if (!blnkp(&linebuf[curchar]))
 		return;
-	dot = MakeMark(curline, curchar, FLOATER);
+	dot = MakeMark(curline, curchar, M_FLOATER);
 	all = !blnkp(linebuf);
 	while (blnkp(linebuf) && curline->l_prev)
 		SetLine(curline->l_prev);
 	all |= (firstp(curline));
 	Eol();
 	DelWtSpace();
-	line_move(FORWARD, NO);
+	line_move(FORWARD, 1, NO);
 	while (blnkp(linebuf) && !eobp()) {
 		DelWtSpace();
-		DelNChar();
+		del_char(FORWARD, 1);
 	}
 	if (!all && !eobp())
-		OpenLine();
+		open_lines(1);
 	ToMark(dot);
 	DelMark(dot);
 }

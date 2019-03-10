@@ -34,7 +34,7 @@ keymap	mainmap = {
 	"search-reverse",		/* ^R */
 	"search-forward",		/* ^S */
 	"transpose-characters",		/* ^T */
-	"quadruple-numeric-argument",	/* ^U */
+	"gather-numeric-argument",	/* ^U */
 	"next-page",			/* ^V */
 	"kill-region",			/* ^W */
 	"prefix-2",			/* ^X */

@@ -15,9 +15,9 @@
 
 #define MAXFILES	20	/* good enough for my purposes */
 
-static File	_openfiles[MAXFILES] = {0};
+private File	_openfiles[MAXFILES] = {0};
 
-static File *
+private File *
 f_alloc(name, flags, fd, buffer, buf_size)
 char	*name,
 	*buffer;
@@ -150,6 +150,17 @@ File	*fp;
 	_flush(EOF, fp);
 }
 
+f_seek(fp, offset)
+register File	*fp;
+off_t	offset;
+{
+	if (fp->f_flags & F_WRITE)
+		flush(fp);
+	fp->f_cnt = 0;		/* next read will filbuf(), next write
+				   will flush() with no bad effects */
+	lseek(fp->f_fd, (long) offset, L_SET);
+}
+
 _flush(c, fp)
 register File	*fp;
 {
@@ -204,6 +215,21 @@ char	*buf;
 	return NIL;	/* this means okay */
 }
 
+/* skip to beginning of next line, i.e., next read returns first
+   character of new line */
+f_toNL(fp)
+register File	*fp;
+{
+	register int	c;
+
+	if (fp->f_flags & F_EOF)
+		return;
+	while (((c = getc(fp)) != EOF) && (c != '\n'))
+		;
+	if (c == EOF)
+		fp->f_flags |= F_EOF;
+}
+
 f_readn(fp, addr, n)
 register File	*fp;
 register char	*addr;
@@ -228,11 +254,11 @@ File	*fp;
    to be buffered depending on the output baud rate.  Why it's in a 
    separate file I don't know ... */
 
-static char	one_buf;
+private char	one_buf;
 
 int	BufSize = 1;
 
-static File	_stdout = {1, 1, 1, F_WRITE, &one_buf, &one_buf};
+private File	_stdout = {1, 1, 1, F_WRITE, &one_buf, &one_buf};
 File	*stdout = &_stdout;
 
 /* put a string with padding */

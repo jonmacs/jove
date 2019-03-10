@@ -65,10 +65,10 @@ register Line	*lp;
 	return lp;
 }
 
-int	alarmed = 0;
+private int	*slowp = 0;
 
 char	key_strokes[100];
-static char	*key_p = key_strokes;
+private char	*key_p = key_strokes;
 
 init_strokes()
 {
@@ -86,7 +86,8 @@ add_stroke(c)
 
 slowpoke()
 {
-	alarmed++;
+	if (slowp)
+		*slowp = YES;
 	f_mess(key_strokes);
 }
 
@@ -96,7 +97,8 @@ slowpoke()
 #	define N_SEC	2	/* but from 1 to 2 seconds otherwise */
 #endif
 
-waitchar()
+waitchar(slow)
+int	*slow;
 {
 #ifdef EUNICE
 	return getch();
@@ -105,7 +107,9 @@ waitchar()
 	int	c;
 	int	(*oldproc)();
 
-	alarmed = 0;
+	slowp = slow;
+	if (slow)
+		*slow = NO;
 	oldproc = signal(SIGALRM, slowpoke);
 
 	if ((old_time = alarm((unsigned) N_SEC)) == 0)
@@ -212,7 +216,7 @@ ToLast()
 	Eol();
 }
 
-int	MarkThresh = 22;	/* Average screen size ... */
+int	MarkThresh = 22;	/* average screen size ... */
 static int	line_diff;
 
 LineDist(nextp, endp)
@@ -253,9 +257,8 @@ register Line	*nextp,
 PushPntp(line)
 register Line	*line;
 {
-	exp_p = NO;
 	if (LineDist(curline, line) >= MarkThresh)
-		SetMark();
+		set_mark();
 }
 
 ToFirst()
@@ -274,7 +277,7 @@ register int	dir;
 {
 	register char	c;
 
-	if (dir > 0) {
+	if (dir == FORWARD) {
 		while ((c = linebuf[curchar]) != 0 && !isword(c))
 			curchar++;
 		if (eolp()) {
@@ -317,7 +320,7 @@ char *
 filename(b)
 register Buffer	*b;
 {
-	return b->b_fname ? pr_name(b->b_fname) : "[No file]";
+	return b->b_fname ? pr_name(b->b_fname, YES) : "[No file]";
 }
 
 char *
@@ -606,8 +609,8 @@ jmp_buf	savejmp;
 }
 
 #ifdef LOAD_AV
-#  ifdef BSD4_2
-#    ifdef PURDUE_EE
+# ifdef BSD4_2
+#   ifdef PURDUE_EE && (vax || gould)
 
 get_la(dp)
 double *dp;
@@ -615,8 +618,11 @@ double *dp;
 	*dp = (double) loadav(0) / 100.0;
 }
 
-#    else PURDUE_EE
+#   else PURDUE_EE
 
+#ifdef sun
+#   include <sys/param.h>
+#endif
 #include <nlist.h>
 
 static struct	nlist nl[] = {
@@ -628,7 +634,11 @@ static struct	nlist nl[] = {
 get_la(dp)
 double	*dp;
 {
+#ifdef sun
+	long	avenrun[3];
+#else
 	double	avenrun[3];
+#endif
 	static int	kmem = 0;
 
 	if (kmem == -1) {
@@ -644,7 +654,11 @@ double	*dp;
 	}
 	lseek(kmem, (long) nl[X_AVENRUN].n_value, 0);
 	read(kmem, (char *) avenrun, sizeof(avenrun));
+#ifdef sun
+	*dp = (double) avenrun[0] / FSCALE;
+#else
 	*dp = avenrun[0];
+#endif
 }
 
 #    endif PURDUE_EE

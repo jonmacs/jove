@@ -12,155 +12,18 @@
 #include "termcap.h"
 #endif
 
-Digit()
-{
-	GetExp(LastKeyStruck);
-}
-
-Digit0()
-{
-	GetExp('0');
-}
-
-Digit1()
-{
-	GetExp('1');
-}
-
-Digit2()
-{
-	GetExp('2');
-}
-
-Digit3()
-{
-	GetExp('3');
-}
-
-Digit4()
-{
-	GetExp('4');
-}
-
-Digit5()
-{
-	GetExp('5');
-}
-
-Digit6()
-{
-	GetExp('6');
-}
-
-Digit7()
-{
-	GetExp('7');
-}
-
-Digit8()
-{
-	GetExp('8');
-}
-
-Digit9()
-{
-	GetExp('9');
-}
-
 prCTIME()
 {
 	s_mess(": %f %s", get_time((time_t *) 0, (char *) 0, 0, -1));
 }
 
-extern int	alarmed;
-
-FourTime()
-{
-	int	oldc = LastKeyStruck,
-		newc;
-	int	nexp;
-
-	alarmed = 0;
-	exp_p = YES;
-	this_cmd = ARG_CMD;
-	do {
-		if ((nexp = exp * 4) != 0)
-			exp = nexp;
-		if (!alarmed)
-			newc = waitchar();
-		else
-			newc = getch();
-		if (isdigit(newc) || newc == '-') {
-		     exp_p = NO;
-		     GetExp(newc);
-		     return;
-		}
-		if (alarmed)
-			message(key_strokes);
-	} while (newc == oldc);
-	Ungetc(newc);
-}
-
-int	exp_p,
-	exp;
-
-GetExp(c)
-{
-	int	sign = 0;
-	static int	digited;
-
-	if (!isdigit(c) && c != '-')
-		complain((char *) 0);
-	if (exp_p == NO) {	/* if we just got here */
-		exp = 0;	/* start over */
-		digited = NO;
-	} else if (exp_p == YES_NODIGIT) {
-		sign = (exp < 0) ? -1 : 1;
-		exp = 0;
-	}
-
-	if (!sign)
-		sign = (exp < 0) ? -1 : 1;
-	if (sign == -1)
-		exp = -exp;
-	if (c == '-') {
-		sign = -sign;
-		goto goread;
-	}
-	for (;;) {
-		if (alarmed)
-			message(key_strokes);
-		if (isdigit(c)) {
-			exp = (exp * 10) + (c - '0');
-			digited++;
-		} else {
-			if (digited)
-				exp_p = YES;
-			else {
-				exp = 1;
-				if (exp_p == NO)
-					exp_p = YES_NODIGIT;
-			}
-			exp *= sign;
-			this_cmd = ARG_CMD;
-			Ungetc(c);
-			return;
-		}
-goread:		if (!alarmed)
-			c = waitchar();
-		else {
-			add_mess(NullStr);
-			c = getch();
-		}
-	}
-}
-
 ChrToOct()
 {
-	int	c;
+	int	c,
+		slow;
 
-	c = waitchar();
-	if (alarmed)
+	c = waitchar(&slow);
+	if (slow)
 		message(key_strokes);
 	ins_str(sprint("\\%03o", c), NO);
 }
@@ -202,13 +65,12 @@ TransChar()
 
 	if (curchar == 0 || (eolp() && curchar == 1))
 		complain((char *) 0);	/* BEEP */
-	exp = 1;
 	if (eolp())
-		BackChar();
+		b_char(1);
 	before = linebuf[curchar - 1];
-	DelPChar();
-	ForChar();
-	Insert(before);
+	del_char(BACKWARD, 1);
+	f_char(1);
+	insert_c(before, 1);
 }
 
 /* Switch current line with previous one */
@@ -219,14 +81,13 @@ TransLines()
 
 	if (firstp(curline))
 		return;
-	exp = 1;
 	lsave();
 	old_prev = curline->l_prev->l_dline;
 	curline->l_prev->l_dline = curline->l_dline;
 	curline->l_dline = old_prev;
 	getDOT();
 	if (!lastp(curline))
-		line_move(FORWARD, NO);
+		line_move(FORWARD, 1, NO);
 	modify();
 }
 
@@ -244,14 +105,15 @@ KillEOL()
 {
 	Line	*line2;
 	int	char2;
+	int	num = arg_value();
 
-	if (exp_p) {
-		if (exp == 0) {	/* Kill to beginning of line */
+	if (is_an_arg()) {
+		if (num == 0) {	/* Kill to beginning of line */
 			line2 = curline;
 			char2 = 0;
 		} else {
-			line2 = next_line(curline, exp);
-			if ((LineDist(curline, line2) < exp) || (line2 == curline))
+			line2 = next_line(curline, num);
+			if ((LineDist(curline, line2) < num) || (line2 == curline))
 				char2 = length(line2);
 			else
 				char2 = 0;
@@ -269,11 +131,11 @@ KillEOL()
 	reg_kill(line2, char2, 0);
 }
 
-/* Kill to beginning of sentence */
+/* kill to beginning of sentence */
 
 KillBos()
 {
-	exp = -exp;
+	negate_arg_value();
 	KillEos();
 }
 
@@ -321,15 +183,16 @@ data_obj	**map;
 {
 	register data_obj	*cp;
 	register int	c;
+	int	slow;
 
-	c = waitchar();
-	if (c == CTL(G)) {
+	c = waitchar(&slow);
+	if (c == CTL('G')) {
 		message("[Aborted]");
 		rbell();
 		return;
 	}
 
-	if (alarmed)
+	if (slow)
 		message(key_strokes);
 
 	cp = map[c];
@@ -353,7 +216,7 @@ Yank()
 	line = killbuf[killptr];
 	lp = lastline(line);
 	dot = DoYank(line, 0, lp, length(lp), curline, curchar, curbuf);
-	SetMark();
+	set_mark();
 	SetDot(dot);
 }
 
@@ -362,7 +225,7 @@ WtModBuf()
 	if (!ModBufs(NO))
 		message("[No buffers need saving]");
 	else
-		put_bufs(exp_p);
+		put_bufs(is_an_arg());
 }
 
 put_bufs(askp)
@@ -408,16 +271,16 @@ GoLine()
 	Line	*newline;
 
 #ifndef ANSICODES
-	if (exp_p == NO)
+	if (!is_an_arg())
 		return;
 #else
-	if (exp_p == NO || exp <= 0) {
+	if (!is_an_arg() || arg_value() <= 0) {
 		if (SP)
 			putpad(SP, 1);	/* Ask for cursor position */
 		return;
 	}
 #endif
-	newline = next_line(curbuf->b_first, exp - 1);
+	newline = next_line(curbuf->b_first, arg_value() - 1);
 	PushPntp(newline);
 	SetLine(newline);
 }
@@ -464,10 +327,10 @@ AnsiCodes()
 		}
 		break;
 	case 'A':
-		line_move(BACKWARD, YES);
+		PrevLine();
 		break;
 	case 'B':
-		line_move(FORWARD, YES);
+		NextLine();
 		break;
 	case 'C':
 		ForChar();
