@@ -579,19 +579,19 @@ int	this_cmd,
 dispatch(c)
 register int	c;
 {
-	data_obj	*fp;
+	data_obj	*cp;
 
 	this_cmd = 0;
-	fp = mainmap[c & 0177];
+	cp = mainmap[c & 0177];
 
-	if (fp == 0) {
+	if (cp == 0) {
 		rbell();
 		exp = 1;
 		exp_p = errormsg = 0;
 		message(NullStr);
 		return;
 	}
-	ExecFunc(fp);
+	ExecCmd(cp);
 }
 
 int	LastKeyStruck,
@@ -689,10 +689,12 @@ char	*argv[];
 	ShowVersion();
 	while (argc > 1) {
 		if (argv[1][0] != '-' && argv[1][0] != '+') {
-			minib_add(argv[1]);
+			int	force = (nwinds > 0 || lineno != 0);
+
+			minib_add(argv[1], force ? YES : NO);
 			b = do_find(nwinds > 0 ? curwind : (Window *) 0,
-				    argv[1], 0);
-			if (nwinds > 0 || lineno != 0) {
+				    argv[1], force);
+			if (force) {
 				SetABuf(curbuf);
 				SetBuf(b);
 				SetLine(next_line(curbuf->b_first, lineno));
@@ -727,7 +729,10 @@ char	*argv[];
 				break;
 
 			case 'w':
-				nwinds += -1 + chr_to_int(&argv[1][2], 10, NIL);
+				if (argv[1][2] == '\0')
+					nwinds++;
+				else
+					nwinds += -1 + chr_to_int(&argv[1][2], 10, NIL);
 				(void) div_wind(curwind, nwinds - 1);
 				break;
 

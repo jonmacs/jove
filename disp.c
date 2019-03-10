@@ -63,7 +63,7 @@ redisplay()
 		RingBell = 0;
 	}
 	if (UpdMesg)
-		DrawMesg();
+		DrawMesg(YES);
 
 	for (lineno = 0, w = fwind; lineno < ILI; w = w->w_next) {
 		UpdWindow(w, lineno);
@@ -121,14 +121,7 @@ dobell(n)
 find_pos(line, c_char)
 Line	*line;
 {
-	register char	*lp;
-	char	buf[LBSIZE];
-
-	if (line == curline)
-		lp = linebuf;
-	else
-		lp = getcptr(line, buf);
-	return calc_pos(lp, c_char);
+	return calc_pos(lcontents(line), c_char);
 }
 
 calc_pos(lp, c_char)
@@ -261,19 +254,24 @@ retry:
 			des_p->s_vln = 0;
 
 		if (lp == w->w_line) {
-			int	strt_col = phys_p->s_offset,
-				end_col = strt_col + (CO - 2);
+			int	diff = w->w_numlines ? 8 : 0,
+				strt_col = phys_p->s_offset,
+				end_col = strt_col + (CO - 2) - diff;
 
+			/* Right now we are displaying from strt_col to
+			   end_col of the buffer line.  These are PRINT
+			   colums, not actual characters. */
 			w->w_dotline = i;
 			w->w_dotcol = find_pos(lp, w->w_char);
-			if (w->w_numlines)
-				w->w_dotcol += 8;
+			/* if the new dotcol is out of range, reselect
+			   a horizontal window */
 			if (w->w_dotcol < strt_col || w->w_dotcol >= end_col) {
-				if (w->w_dotcol < (CO - 2))
+				if (w->w_dotcol < ((CO - 2) - diff))
 					strt_col = 0;
 				else
 					strt_col = w->w_dotcol - (CO / 2);
 			}
+			w->w_dotcol += diff;
 			des_p->s_offset = strt_col;
 			DotIsHere++;
 		} else
@@ -305,12 +303,12 @@ retry:
 /* Write whatever is in mesgbuf (maybe we are Asking, or just printed
    a message).  Turns off the UpdateMesg line flag. */
 
-DrawMesg()
+DrawMesg(abortable)
 {
 	if (charp())
 		return;
 	i_set(ILI, 0);
-	if (swrite(mesgbuf, 0)) {
+	if (swrite(mesgbuf, NIL, abortable)) {
 		cl_eol();
 		UpdMesg = 0;
 	}
@@ -330,7 +328,7 @@ GotoDot()
 	flusho();
 }
 
-static
+private
 UntilEqual(start)
 register int	start;
 {
@@ -408,27 +406,23 @@ register int	linenum;
 #else
 		if (w->w_numlines)
 #endif
-			(void) swrite(sprint("%6d  ", des_p->s_vln), 0);
+			(void) swrite(sprint("%6d  ", des_p->s_vln), NIL, YES);
 
 #ifdef ID_CHAR
 		if (UseIC) {
-			char	outbuf[132],
-				buff[LBSIZE],
-				*bptr;
+			char	outbuf[256],
+				*lptr;
 			int	fromcol = w->w_numlines ? 8 : 0;
 
-			if (w->w_numlines) {
-				sprintf(buff, "%6d  ", des_p->s_vln);
-				(void) getright(des_p->s_lp, buff + fromcol);
-				bptr = buff;
-			} else
-				bptr = getcptr(des_p->s_lp, buff);
-			DeTab(des_p->s_offset, bptr,
-				outbuf, (sizeof outbuf) - 1,
+			if (w->w_numlines)
+				sprintf(outbuf, "%6d  ", des_p->s_vln);
+			lptr = lcontents(des_p->s_lp);
+			DeTab(des_p->s_offset, lptr, outbuf + fromcol,
+				(sizeof outbuf) - 1 - fromcol,
 				des_p->s_window->w_visspace);
 			if (IDchar(outbuf, linenum, 0))
 				PhysScreen[linenum] = *des_p;
-			else if (i_set(linenum, 0), swrite(outbuf, 0))
+			else if (i_set(linenum, 0), swrite(outbuf, NIL, YES))
 				do_cl_eol(linenum);
 			else
 				PhysScreen[linenum].s_id = -1;
@@ -491,7 +485,7 @@ INSmode(on)
 	}
 }
 
-static
+private
 DeTab(s_offset, buf, outbuf, limit, visspace)
 register char	*buf;
 char	*outbuf;
@@ -538,7 +532,7 @@ char	*outbuf;
 
   	Returns Non-Zero if you are finished (no differences left). */
 
-static
+private
 IDchar(new, lineno, col)
 register char	*new;
 {
@@ -581,7 +575,7 @@ register char	*new;
 	return 0;
 }
 
-static
+private
 NumSimilar(s, t, n)
 register char	*s,
 		*t;
@@ -594,7 +588,7 @@ register char	*s,
 	return num;
 }
 
-static
+private
 IDcomp(s, t, len)
 register char	*s,
 		*t;
@@ -616,7 +610,7 @@ register char	*s,
 	return num;
 }
 
-static
+private
 OkayDelete(Saved, num, samelength)
 {
 	/* If the old and the new are the same length, then we don't
@@ -626,7 +620,7 @@ OkayDelete(Saved, num, samelength)
 		> min(MDClen, DClen * num));
 }
 
-static
+private
 OkayInsert(Saved, num)
 {
 	register int	n = 0;
@@ -648,7 +642,7 @@ extern int	CapCol;
 extern char	*cursend;
 extern struct screenline	*Curline;
 
-static
+private
 DelChar(lineno, col, num)
 {
 	register char	*from,
@@ -675,7 +669,7 @@ DelChar(lineno, col, num)
 	sp->s_length -= num;
 }
 
-static
+private
 InsChar(lineno, col, num, new)
 char	*new;
 {
@@ -765,11 +759,11 @@ chkmail(force)
 
 /* Print the mode line. */
 
-static char	*mode_p,
+private char	*mode_p,
 		*mend_p;
 int	BriteMode = 1;		/* modeline should standout */
 
-static
+private
 mode_app(str)
 register char	*str;
 {
@@ -972,7 +966,7 @@ outahere:
 #endif
 		putpad(SO, 1);
 	}
-	if (swrite(line, BriteMode))
+	if (swrite(line, BriteMode, YES))
 		do_cl_eol(i_line);
 	if (BriteMode)
 		putpad(SE, 1);
@@ -1115,10 +1109,10 @@ Bow()
 	SetLine(next_line(curwind->w_top, min(SIZE(curwind) - 1, exp - 1)));
 }
 
-static int	LineNo,
+private int	LineNo,
 		last_col,
 		DoAutoNL;
-static Window	*old_wind;	/* save the window we were in BEFORE
+private Window	*old_wind;	/* save the window we were in BEFORE
 				   before we were called, if UseBuffers
 				   is nonzero */
 
@@ -1177,7 +1171,7 @@ va_dcl
 			ins_str(string, NO);
 		else {
 			i_set(LineNo, last_col);
-			(void) swrite(string, 0);
+			(void) swrite(string, NIL, YES);
 			last_col = i_col;
 		}
 	}

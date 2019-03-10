@@ -256,27 +256,27 @@ struct variable {
 		v_flags;
 };
 
-struct funct {
+struct cmd {
 	int	Type;
 	char	*Name;
-	int	(*f_func)();
+	int	(*c_proc)();
 };
 
 typedef struct data_obj {
 	int	Type;
 	char	*Name;
-} data_obj;	/* points to funct, macro, or variable */
+} data_obj;	/* points to cmd, macro, or variable */
 
 extern data_obj
 	*mainmap[],	/* various key maps */
 	*pref1map[],
 	*pref2map[],
 	*miscmap[],
-	*LastFunc;	/* Last function invoked */
+	*LastCmd;	/* Last command invoked */
 
 extern char	*ProcFmt;
 
-extern struct funct	commands[];
+extern struct cmd	commands[];
 extern struct macro	*macros;
 extern struct variable	variables[];
 
@@ -490,13 +490,14 @@ extern char
 	*ask_buf(),
 	*ask_file(),
 	*getline(),
+	*lcontents(),
 	*getblock(),
 	*malloc(),
 	*emalloc(),
 	*mktemp(),
 	*realloc(),
-	*getright(),
-	*getcptr(),
+	*ltobuf(),
+	*lbptr(),
 	*rindex(),
 	*getenv(),
 	*tgoto(),

@@ -173,13 +173,18 @@ defb_wind(b)
 register Buffer *b;
 {
 	register Window	*w = fwind;
+	char	*alt;
 
-	if (lastbuf == b)
+	if (lastbuf == b || lastbuf == 0) {
 		lastbuf = 0;
+		alt = (b->b_next != 0) ? b->b_next->b_name : Mainbuf;
+	} else
+		alt = lastbuf->b_name;
+
 	do {
 		if (w->w_bufp == b) {
-			if (b == curbuf)
-				(void) do_select(w, lastbuf ? lastbuf->b_name : Mainbuf);
+			if (one_windp())
+				(void) do_select(w, alt);
 			else {
 				register Window	*save = w->w_next;
 
@@ -263,8 +268,6 @@ KillSome()
 
 	for (b = world; b != 0; b = next) {
 		next = b->b_next;
-/*		if (b->b_type == B_SCRATCH)
-			continue; */
 		y_or_n = ask("No", "Kill %s? ", b->b_name);
 		if (Upper(*y_or_n) != 'Y')
 			continue;
@@ -552,10 +555,10 @@ register Buffer	*newbuf;
 
 	lsave();
 	curbuf = newbuf;
+	getDOT();
 	/* Do the read now ... */
 	if (curbuf->b_ntbf)
 		read_file(curbuf->b_fname, 0);
-	getDOT();
 
 #ifdef IPROCS
 	if (oldb != 0 && oldb->b_type != curbuf->b_type) {

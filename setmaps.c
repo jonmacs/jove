@@ -19,7 +19,7 @@
 #include <stdio.h>
 
 match(choices, what)
-register struct funct	choices[];
+register struct cmd	choices[];
 register char	*what;
 {
 	register int	len;

@@ -7,4 +7,4 @@
  * included with a Unix system distribution and the source is provided.  *
  *************************************************************************/
 
-char	*version = "4.4.2.1";
+char	*version = "4.5";

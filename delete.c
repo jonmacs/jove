@@ -24,11 +24,7 @@ register int	char1,
 		ChkWindows(line1, line2);
 	DotTo(line1, char1);
 	modify();
-	if (line1 == line2)
-		linecopy(linebuf, curchar, linebuf + char2);
-	else
-		linecopy(linebuf, curchar,
-			getline(line2->l_dline, genbuf) + char2);
+	linecopy(linebuf, curchar, lcontents(line2) + char2);
 
 	/* The following is a redisplay optimization. */
 	if (line1 != line2 && (char1 == 0 && char2 == 0))
@@ -55,7 +51,7 @@ Line	*line1,
 
 	retline = nbufline();	/* New buffer line */
 
-	(void) getright(line1, genbuf);
+	(void) ltobuf(line1, genbuf);
 	if (line1 == line2)
 		genbuf[char2] = '\0';
 
@@ -67,7 +63,7 @@ Line	*line1,
 		retline->l_next = 0;
 	else {
 		retline->l_next = line1->l_next;
-		(void) getright(line2, genbuf);
+		(void) ltobuf(line2, genbuf);
 		genbuf[char2] = '\0';
 		line2->l_dline = putline(genbuf);
 		/* Shorten this line */
@@ -253,11 +249,13 @@ DelWtSpace()
 DelBlnkLines()
 {
 	register Mark	*dot;
+	int	all;
 
 	exp = 1;
-	if (!eolp())
+	if (!blnkp(&linebuf[curchar]))
 		return;
 	dot = MakeMark(curline, curchar, FLOATER);
+	all = !blnkp(linebuf);
 	while (blnkp(linebuf) && curline->l_prev)
 		SetLine(curline->l_prev);
 	Eol();
@@ -267,6 +265,8 @@ DelBlnkLines()
 		DelWtSpace();
 		DelNChar();
 	}
+	if (!all && !eobp())
+		OpenLine();
 	ToMark(dot);
 	DelMark(dot);
 }

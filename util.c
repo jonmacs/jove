@@ -11,40 +11,40 @@
 #include "ctype.h"
 #include <signal.h>
 
-struct funct *
-FindFunc(func)
-register int 	(*func)();
+struct cmd *
+FindCmd(proc)
+register int 	(*proc)();
 {
-	register struct funct	*fp;
+	register struct cmd	*cp;
 
-  	for (fp = commands; fp->Name; fp++)
-		if (fp->f_func == func)
-			return fp;
+  	for (cp = commands; cp->Name; cp++)
+		if (cp->c_proc == proc)
+			return cp;
 	return 0;
 }
 
 int	Interactive;	/* True when we invoke with the command handler? */
 char	*ProcFmt = ": %f ";
 
-ExecFunc(fp)
-data_obj	*fp;
+ExecCmd(cp)
+data_obj	*cp;
 {
-	LastFunc = fp;
-	if (fp->Type & MAJOR_MODE)
-		SetMajor((fp->Type >> 8));
-	else if (fp->Type & MINOR_MODE)
-		TogMinor((fp->Type >> 8));
-	else	switch (fp->Type&TYPEMASK) {
+	LastCmd = cp;
+	if (cp->Type & MAJOR_MODE)
+		SetMajor((cp->Type >> 8));
+	else if (cp->Type & MINOR_MODE)
+		TogMinor((cp->Type >> 8));
+	else	switch (cp->Type&TYPEMASK) {
 		case MACRO:
-			do_macro((struct macro *) fp);
+			do_macro((struct macro *) cp);
 			break;
 
 		case FUNCTION:
 		    {
-		    	struct funct	*func = (struct funct *) fp;
+		    	struct cmd	*cmd = (struct cmd *) cp;
 
-			if (func->f_func)
-				(*func->f_func)();
+			if (cmd->c_proc)
+				(*cmd->c_proc)();
 		    }
 	}
 }
@@ -102,16 +102,16 @@ waitchar()
 #endif
 	unsigned int	old_time;
 	int	c;
-	int	(*oldfunc)();
+	int	(*oldproc)();
 
 	alarmed = 0;
-	oldfunc = signal(SIGALRM, slowpoke);
+	oldproc = signal(SIGALRM, slowpoke);
 
 	if ((old_time = alarm((unsigned) N_SEC)) == 0)
 		old_time = UpdFreq;
 	c = getch();
 	(void) alarm(old_time);
-	(void) signal(SIGALRM, oldfunc);
+	(void) signal(SIGALRM, oldproc);
 
 	return c;
 }
@@ -263,12 +263,9 @@ ToFirst()
 }
 
 length(line)
-register Line	*line;
+Line	*line;
 {
-	extern int	Jr_Len;
-
-	(void) getcptr(line, genbuf);
-	return Jr_Len;
+	return strlen(lcontents(line));
 };
 
 to_word(dir)
@@ -358,27 +355,18 @@ register Buffer	*bp;
 
 extern int	Jr_Len;
 
-/* Use this when you just want to look at a line without
-   changing anything.  It'll return linebuf if it is the
-   current line of the current buffer (no copying).  It
-   will write into BUF when LINE isn't CURLINE. */
-
 char *
-getcptr(line, buf)
+lcontents(line)
 register Line	*line;
-char	*buf;
 {
-	if (line == curline) {
-		Jr_Len = strlen(linebuf);
+	if (line == curline)
 		return linebuf;
-	} else
-		return getline(line->l_dline, buf);
+	else
+		return lbptr(line);
 }
 
-/* Use this when getcptr is not appropiate */
-
 char *
-getright(line, buf)
+ltobuf(line, buf)
 Line	*line;
 char	*buf;
 {
@@ -516,12 +504,12 @@ char	c, *buf;
 
 TwoBlank()
 {
-	register Line	*next;
+	register Line	*next = curline->l_next;
 
-	return ((curline->l_next != 0) &&
-		(getline(curline->l_next->l_dline, genbuf)[0] == '\0') &&
-		((next = curline->l_next->l_next) != 0) &&
-		(getline(next->l_dline, genbuf)[0] == '\0'));
+	return ((next != 0) &&
+		(*(lcontents(next)) == '\0') &&
+		(next->l_next != 0) &&
+		(*(lcontents(next->l_next)) == '\0'));
 }
 
 linecopy(onto, atchar, from)
