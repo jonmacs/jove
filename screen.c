@@ -180,7 +180,7 @@ register char	*line;
 	OkayAbort = 0;
 	while (c = *line++) {
 		if (OkayAbort) {
-			OkayAbort = 0;
+			OkayAbort = NO;
 			if (InputPending = charp()) {
 				aborted = 1;
 				break;
@@ -266,7 +266,7 @@ BufSwrite(linenum)
 	OkayAbort = 0;
 	while (c = (*bp++ & 0177)) {
 		if (OkayAbort) {
-			OkayAbort = 0;
+			OkayAbort = NO;
 			if (InputPending = charp()) {
 				aborted = 1;
 				break;

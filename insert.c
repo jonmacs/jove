@@ -184,7 +184,7 @@ DoParen()
 	int	nx,
 		c = LastKeyStruck;
 
-	if (!index(")}]>", c)) {
+	if (!index(")}]", c)) {
 		SelfInsert();
 		return;
 	}
@@ -202,24 +202,22 @@ DoParen()
 	SelfInsert();
 	if (MinorMode(ShowMatch) && !charp() && !in_macro()) {
 		BackChar();	/* Back onto the ')' */
-		if (NotInQuotes(linebuf, curchar)) {
-			if ((int) bp == -1)
-				bp = m_paren(c, curbuf->b_first);
-			if (bp != 0) {
-				nx = in_window(curwind, bp->p_line);
-				if (nx != -1) {		/* is visible */
-					Bufpos	b;
+		if ((int) bp == -1)
+			bp = m_paren(c, BACKWARD);
+		if (bp != 0) {
+			nx = in_window(curwind, bp->p_line);
+			if (nx != -1) {		/* is visible */
+				Bufpos	b;
 
-					DOTsave(&b);
-					SetDot(bp);
-					(void) SitFor(PDelay);
-					SetDot(&b);
-				} else
-					s_mess("%s", getright(bp->p_line, genbuf));
-			} else {
-				rbell();
-				message("[No match]");
-			}
+				DOTsave(&b);
+				SetDot(bp);
+				(void) SitFor(PDelay);
+				SetDot(&b);
+			} else
+				s_mess("%s", getright(bp->p_line, genbuf));
+		} else {
+			rbell();
+			message("[Mismatched parentheses]");
 		}
 		ForChar();
 	}
@@ -570,7 +568,7 @@ GSexpr()
 	if (linebuf[curchar] != '(')
 		complain((char *) 0);
 	DOTsave(&dot);
-	Fparen();
+	FSexpr();
 	DOTsave(&end);
 	exp = 1;
 	SetDot(&dot);
@@ -596,7 +594,7 @@ lisp_indent()
 		savedot;
 	int	goal;
 
-	bp = m_paren(')', curbuf->b_first);
+	bp = m_paren(')', BACKWARD);
 
 	if (bp == 0)
 		return 0;

@@ -10,114 +10,136 @@
 /* Contains commands for C mode.  Paren matching routines are in here. */
 
 #include "jove.h"
+#include "re.h"
 #include "ctype.h"
 
-Bufpos *
-m_paren(orig, stop)
-char	orig;		/* One we are on */
-Line	*stop;
+private
+backslashed(cpos)
+register int	cpos;
 {
-	char	*origs = "(){}[]<>",
-		*matches = ")(}{][><",
-		matcher;
-	int	which,
-		forward,
-		count = 0;
-	char	c;
-	Bufpos	savedot,
-		lastdot,
-		*bp;
-	static Bufpos	ret;
-	char	REstr[10],
-		REbuf[30],
-		*REalts[4];
-	extern Line	*RElimit;
+	register int	cnt = 0;
 
-	which = index(origs, orig) - origs;
-	forward = (which % 2) == 0;
-	matcher = matches[which];
-	sprintf(REstr, "[\\%c\\%c]", orig, matcher);
+	while (cpos > 0 && linebuf[--cpos] == '\\')
+		cnt++;
+	return (cnt % 2);
+}
+
+private char	*p_types = "(){}[]";
+
+Bufpos *
+m_paren(p_type, dir)
+register char	p_type;		/* One we are on */
+register int	dir;
+{
+	static Bufpos	ret;
+	Bufpos	savedot,
+		*sp;
+	static char	re_buf[100],
+			*re_alts[NALTS];
+	register int	count = 0;
+	char	p_match,
+		re_str[128],
+		c,
+		*cp,
+		quote_c = 0;
+	Line	*quote_line = 0;
+	int	c_char;
+
+	sprintf(re_str, "[(){}[\\]%s]", (MajorMode(CMODE)) ? "\"'" : "\"");
+	REcompile(re_str, 1, re_buf, re_alts);
+	if (cp = index(p_types, p_type))
+		p_match = cp[dir];
+	else
+		complain("[Cannot match %c's]", p_type);
 	DOTsave(&savedot);
-	REcompile(REstr, 1, REbuf, REalts);
 
 	while (count >= 0) {
-		RElimit = stop;		/* Set his EVERY time. */
-		bp = docompiled(forward ? FORWARD : BACKWARD, REbuf, REalts);
-		if (bp == 0)
+		sp = docompiled(dir, re_buf, re_alts);
+		if (sp == 0)
 			break;
-		SetDot(bp);
-		DOTsave(&lastdot);
-		c = linebuf[curchar - forward];	/* Get it? */
-		if (c == matcher)
-			count -= NotInQuotes(linebuf, curchar - forward);
-		else if (c == orig)
-			count += NotInQuotes(linebuf, curchar - forward);
+		SetDot(sp);
+		c_char = curchar;
+		if (dir == FORWARD)
+			c_char--;
+
+		if (backslashed(c_char))
+			continue;
+		c = linebuf[c_char];
+		if (quote_line != 0 && curline != quote_line) {
+			quote_line = 0;
+			quote_c = 0;
+		}
+		if (c == '"' || c == '\'') {
+			if (quote_c == c) {
+				quote_c = 0;
+				quote_line = 0;
+			} else if (quote_c == 0) {
+				quote_c = c;
+				quote_line = curline;
+			}
+		}
+		if (quote_line != 0)
+			continue;
+		if (openpp(c))
+			count += dir;
+		else if (closepp(c))
+			count -= dir;
 	}
+
 	ret.p_line = curline;
 	ret.p_char = curchar;
 	SetDot(&savedot);
-	if (count >= 0)
+	if (count >= 0 || c != p_match)
 		return 0;
 	return &ret;
 }
 
-static
+private
 do_expr(dir)
 {
-	char	c;
+	char	c,
+		syntax = (dir == FORWARD) ? _Op : _Cl;
 
 	exp = 1;
 	if (dir == BACKWARD)
 		BackChar();
 	c = linebuf[curchar];
 	for (;;) {
-		if ((ismword(c)) ||
-		    (index("[({", c) != 0 && dir == FORWARD) ||
-		    (index("})]", c) != 0 && dir == BACKWARD))
+		if (ismword(c)) {
+		    WITH_TABLE(curbuf->b_major)
+			(dir == FORWARD) ? ForWord() : BackWord();
+		    END_TABLE();
+		    break;
+		} else if (has_syntax(c, syntax)) {
+			FindMatch(dir);
 			break;
-		if (dir == BACKWARD) {
-			if (bobp())
-				return;
-			BackChar();
-		} else {
-			if (eobp())
-				return;
-			ForChar();
 		}
+		DoTimes(ForChar(), dir);
+		if (eobp() || bobp())
+			return;
 		c = linebuf[curchar];
-	}
-
-	if (((c == '(' || c == '{') && dir == FORWARD) ||
-	    ((c == ')' || c == '}') && dir == BACKWARD)) {
-		FindMatch(dir);
-	} else {
-	    WITH_TABLE(curbuf->b_major)
-
-		(dir == FORWARD) ? ForWord() : BackWord();
-
-	    END_TABLE();
 	}
 }
 
-Fparen()
+FSexpr()
 {
 	register int	num = exp;
 
 	if (exp < 0) {
 		exp = -exp;
-		Bparen();
+		BSexpr();
 	}
 	while (--num >= 0)
 		do_expr(FORWARD);
 }
 
-Bparen()
+BSexpr()
 {
 	register int	num = exp;
 
 	if (exp < 0) {
 		exp = -exp;
-		Fparen();
+		FSexpr();
 	}
 	while (--num >= 0)
 		do_expr(BACKWARD);
@@ -131,52 +153,16 @@ FindMatch(dir)
 	Bufpos	*bp;
 	char	c = linebuf[curchar];
 
-	if ((index("){}(", linebuf[curchar]) == 0) ||
-	    !NotInQuotes(linebuf, curchar))
+	if ((index(p_types, linebuf[curchar]) == 0) ||
+	    (backslashed(curchar)))
 		complain((char *) 0);
 	if (dir == FORWARD)
 		ForChar();
-	bp = m_paren(c, (dir == FORWARD) ? curbuf->b_last : curbuf->b_first);
+	bp = m_paren(c, dir);
 	if (bp)
 		SetDot(bp);
 	else
-		complain("[No match]");
-}
-
-/* Make sure character at c_char is not surrounded by double
-   or single quotes. */
-
-NotInQuotes(buf, pos)
-register char	*buf;
-{
-	char	quotchar = 0,
-		c,
-		*quots;
-	register int	i;
-
-	if (MajorMode(CMODE))
-		quots = "\"'";
-#ifdef LISP
-	else if (MajorMode(LISPMODE))
-		quots = "\"";
-#endif
-	else
-		return 1;	/* Not in quotes */
-
-	for (i = 0; i < pos && buf[i]; i++) {
-		if ((c = buf[i]) == '\\') {
-			if (++i == pos)
-				return 0;	/* The char is BackSlash'd */
-			continue;
-		}
-		if (!index(quots, c))
-			continue;
-		if (quotchar == 0)
-			quotchar = c;
-		else if (c == quotchar)
-			quotchar = 0;	/* Terminated string */
-	}
-	return (quotchar == 0);
+		complain("[Mismatched parentheses]");
 }
 
 Bufpos *
@@ -187,7 +173,7 @@ c_indent()
 	int	indent;
 
 	DOTsave(&save);
-	bp = m_paren('}', curbuf->b_first);
+	bp = m_paren('}', BACKWARD);
 	if (bp == 0)
 		return 0;
 	SetDot(bp);

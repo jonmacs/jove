@@ -70,7 +70,8 @@ REgetc()
 #define NPAR	9	/* [1-9] */
 static int	nparens;
 static char	*comp_p,
-		**alt_p;
+		**alt_p,
+		**alt_endp;
 
 REcompile(pattern, re, into_buf, alt_bufp)
 char	*pattern,
@@ -81,6 +82,7 @@ char	*pattern,
 	REpeekc = -1;
 	comp_p = cur_compb = into_buf;
 	alt_p = alt_bufp;
+	alt_endp = alt_p + NALTS;
 	*alt_p++ = comp_p;
 	nparens = 0;
 	(void) do_comp(re ? OKAY_RE : NORM);
@@ -158,7 +160,7 @@ do_comp(kind)
 				continue;
 
 			case '|':
-				if (alt_p > &alternates[NALTS - 1])
+				if (alt_p >= alt_endp)
 					complain("Too many alternates; max %d.", NALTS);
 				*comp_p++ = EOP;
 				*alt_p++ = comp_p;
@@ -270,7 +272,8 @@ static char	*pstrtlst[NPAR],	/* index into REbuf. */
 		*loc2;
 
 int	REbom,
-	REeom;		/* Beginning and end of match. */
+	REeom,		/* beginning and end of match */
+	REalt_num;	/* if alternatives, which one matched? */
 
 static
 backref(n, linep)
@@ -506,12 +509,15 @@ char	*expr,
 
 		if (isquick && *locs != firstc)
 			continue;
-		while (*altp)
+		REalt_num = 1;
+		while (*altp) {
 			if (REmatch(locs, *altp++)) {
 				loc1 = locs;
 				REbom = loc1 - REbolp;
 				return 1;
 			}
+			REalt_num++;
+		}
 	} while ((re_dir == FORWARD) ? *locs++ : locs-- > REbolp);
 
 	return 0;
@@ -536,11 +542,6 @@ char	*pattern;
 	okay_wrap = 0;
 	return pos;
 }
-
-/* Perform the search.  If RElimit is nonzero it's the line to stop the
-   search at. */
-
-Line	*RElimit = 0;
 
 Bufpos *
 docompiled(dir, expr, alts)
@@ -572,10 +573,6 @@ char	*expr,
 	do {
 		if (re_lindex(lp, offset, expr, alts, 1))
 			break;
-		if (lp == RElimit) {
-			lp = 0;
-			break;
-		}
 doit:		lp = (dir == FORWARD) ? lp->l_next : lp->l_prev;
 		if (lp == 0) {
 			if (okay_wrap && WrapScan) {
@@ -595,7 +592,6 @@ doit:		lp = (dir == FORWARD) ? lp->l_next : lp->l_prev;
 	if (lp == push_dot.p_line && we_wrapped)
 		lp = 0;
 	SetDot(&push_dot);
-	RElimit = 0;
 	if (lp == 0)
 		return 0;
 	ret.p_line = lp;
@@ -701,7 +697,8 @@ RErecur()
 	byte_copy(sbuf, searchstr, sizeof searchstr);
 	byte_copy(repbuf, rep_str, sizeof rep_str);
 	byte_copy((char *) altbuf, (char *) alternates, sizeof alternates);
-	ToMark(m);
+	if (!exp_p)
+		ToMark(m);
 	DelMark(m);
 }
 

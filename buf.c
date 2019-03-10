@@ -412,29 +412,30 @@ register char	*name;
 	return 0;
 }
 
-/* Returns buffer pointer with a file name FNAME.  Stat's the file and
-   compares inodes, in case FNAME is a link, as well as the actual
+/* Returns buffer pointer with a file name NAME, if one exists.  Stat's the
+   file and compares inodes, in case NAME is a link, as well as the actual
    characters that make up the file name. */
 
 Buffer *
-file_exists(fname)
-register char	*fname;
+file_exists(name)
+register char	*name;
 {
 	struct stat	stbuf;
 	register struct stat	*s = &stbuf;
-	register Buffer	*b;
+	register Buffer	*b = 0;
+	char	fnamebuf[FILESIZE];
 
-	if (fname) {
-		if (stat(fname, s) == -1)
+	if (name) {
+		PathParse(name, fnamebuf);
+		if (stat(fnamebuf, s) == -1)
 			s->st_ino = 0;
 		for (b = world; b != 0; b = b->b_next) {
-			if (b->b_ino != 0 && b->b_ino == s->st_ino)
-				return b;
-			if (strcmp(pr_name(b->b_fname), fname) == 0)
-				return b;
+			if ((b->b_ino != 0 && b->b_ino == s->st_ino) ||
+			    (strcmp(b->b_fname, fnamebuf) == 0))
+				break;
 		}
 	}
-	return 0;
+	return b;
 }
 
 char *

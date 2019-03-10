@@ -139,10 +139,10 @@ register int	c_char;
 	register int	c;
 
 	while ((--c_char >= 0) && ((c = *lp++) & 0177) != 0) {
-		if (isctrl(c))
-			pos += 2;
-		else if (c == '\t')
+		if (c == '\t')
 			pos += (tabstop - (pos % tabstop));
+		else if (isctrl(c))
+			pos += 2;
 		else
 			pos++;
  	}

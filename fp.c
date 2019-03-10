@@ -162,6 +162,8 @@ register File	*fp;
 		error("[I/O error(%d); file = %s, fd = %d]",
 			errno, fp->f_name, fp->f_fd);
 
+	if (fp == stdout)
+		OkayAbort = YES;
 	fp->f_cnt = fp->f_bufsize;
 	fp->f_ptr = fp->f_base;
 	if (c != EOF)

@@ -16,6 +16,8 @@
 #   include "tune.h"
 #endif
 
+#define private	static
+
 #ifndef BSD4_2
 #   ifdef MENLO_JCL
 #	ifndef EUNICE

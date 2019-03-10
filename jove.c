@@ -1003,7 +1003,7 @@ char	*argv[];
 	   out of stack space UNLESS I have some kind of infinite
 	   recursive bug.  So why use up some valuable memory, when
 	   there is plenty of space on the stack?  (This only matters
-	   on wimpy pdp11's, of course. */
+	   on wimpy pdp11's, of course.) */
 
 	iobuff = s_iobuff;
 	genbuf = s_genbuf;
