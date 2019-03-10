@@ -1,11 +1,9 @@
-/*************************************************************************
- * This program is copyright (C) 1985, 1986 by Jonathan Payne.  It is    *
- * provided to you without charge for use only on a licensed Unix        *
- * system.  You may copy JOVE provided that this notice is included with *
- * the copy.  You may not sell copies of this program or versions        *
- * modified for use on microcomputer systems, unless the copies are      *
- * included with a Unix system distribution and the source is provided.  *
- *************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 #ifdef BSD4_2
 #   include <sys/wait.h>
@@ -32,23 +30,7 @@ typedef struct process	Process;
 #define proc_cmd(p)	(p->p_name)
 #define proc_state(p)	(p->p_state)
 
-struct process {
-	Process	*p_next;
-	int	p_toproc,	/* read p_fromproc and write p_toproc */
-		p_portpid,	/* Pid of child (the portsrv) */
-		p_pid;		/* Pid of real child i.e. not portsrv */
-	Buffer	*p_buffer;	/* Add output to end of this buffer */
-	char	*p_name;	/* ... */
-	char	p_state,	/* State */
-		p_howdied,	/* Killed? or Exited? */
-		p_reason,	/* If signaled, p_reason is the signal; else
-				   it is the the exit code */
-		p_eof;		/* Received EOF, so can be free'd up */
-	Mark	*p_mark;	/* Where output left us. */
-	data_obj
-		*p_cmd;		/* Command to call when process dies */
-} *procs = 0,
-  *cur_proc = 0;
+private Process	*procs = 0;
 
 int	ProcInput,
 	ProcOutput,
@@ -160,17 +142,17 @@ register int	nbytes;
 
 ProcKill()
 {
-	proc_kill(cur_proc, SIGKILL);
+	proc_kill(curbuf->b_process, SIGKILL);
 }
 
 ProcInt()
 {
-	proc_kill(cur_proc, SIGINT);
+	proc_kill(curbuf->b_process, SIGINT);
 }
 
 ProcQuit()
 {
-	proc_kill(cur_proc, SIGQUIT);
+	proc_kill(curbuf->b_process, SIGQUIT);
 }
 
 static
@@ -184,7 +166,7 @@ Process	*p;
 do_rtp(mp)
 register Mark	*mp;
 {
-	register Process	*p = cur_proc;
+	register Process	*p = curbuf->b_process;
 	Line	*line1 = curline,
 		*line2 = mp->m_line;
 	int	char1 = curchar,
@@ -207,30 +189,27 @@ register Mark	*mp;
 	}
 }
 
-/* VARARGS2 */
+/* VARARGS3 */
 
-static
-proc_strt(bufname, procname, cmd)
-char	*bufname,
-	*procname,
-	*cmd;
+private
+proc_strt(bufname, clobber, va_alist)
+char	*bufname;
+va_dcl
 {
 	Window	*owind = curwind;
 	int	toproc[2],
 		pid;
 	Process	*newp;
-	Buffer	*bp;
-    	char	*args[25],
-    		**cp,
+	Buffer	*newbuf;
+    	char	*argv[32],
+    		*cp,
     		foo[10],
 		cmdbuf[128];
     	int	i;
+	va_list	ap;
 
-	bp = buf_exists(bufname);
-	if (bp != 0 && IsModified(bp) && bp->b_type != B_IPROCESS && bp->b_type != B_PROCESS)
-		complain("Command would over-write buffer %s.", procname, bufname);
-	pop_wind(bufname, YES, B_IPROCESS);
-
+	isprocbuf(bufname);	/* make sure BUFNAME is either nonexistant
+				   or is of type B_PROCESS */
 	dopipe(toproc);
 
 	switch (pid = fork()) {
@@ -239,12 +218,12 @@ char	*bufname,
 		complain("[Fork failed.]");
 
 	case 0:
-	    	args[0] = "portsrv";
-	    	args[1] = foo;
+	    	argv[0] = "portsrv";
+	    	argv[1] = foo;
 		sprintf(foo, "%d", ProcInput);
-	    	for (i = 0, cp = &cmd; cp[i] != 0; i++)
-	    		args[2 + i] = cp[i];
-	    	args[2 + i] = 0;
+		va_start(ap);
+		make_argv(&argv[2], ap);
+		va_end(ap);
 		(void) dup2(toproc[0], 0);
 		(void) dup2(ProcOutput, 1);
 		(void) dup2(ProcOutput, 2);
@@ -255,21 +234,34 @@ char	*bufname,
 	}
 
 	sighold(SIGCHLD);
-	cur_proc = newp = (Process *) malloc(sizeof *newp);
+	newp = (Process *) malloc(sizeof *newp);
 	newp->p_next = procs;
 	newp->p_state = NEW;
-	newp->p_mark = MakeMark(curline, curchar, FLOATER);
 	newp->p_cmd = 0;
 
-	cp = &cmd + 1;
 	cmdbuf[0] = '\0';
-	while (*cp != 0)
-		sprintf(&cmdbuf[strlen(cmdbuf)], "%s ", *cp++);
+	va_start(ap);
+	while (cp = va_arg(ap, char *))
+		sprintf(&cmdbuf[strlen(cmdbuf)], "%s ", cp);
+	va_end(ap);
 	newp->p_name = copystr(cmdbuf);
 	procs = newp;
 	newp->p_portpid = pid;
 	newp->p_pid = -1;
-	newp->p_buffer = curbuf;
+
+	newbuf = do_select((Window *) 0, bufname);
+	newbuf->b_type = B_PROCESS;
+	newp->p_buffer = newbuf;
+	newbuf->b_process = newp;	/* sorta circular, eh? */
+	pop_wind(bufname, clobber, B_PROCESS);
+	ToLast();
+	if (!bolp())
+		LineInsert(1);
+	/* Pop_wind() after everything is set up; important!
+	   Bindings won't work right unless newbuf->b_process is already
+	   set up BEFORE NEWBUF is first SetBuf()'d. */
+	newp->p_mark = MakeMark(curline, curchar, FLOATER);
+
 	newp->p_toproc = toproc[1];
 	newp->p_reason = 0;
 	newp->p_eof = 0;

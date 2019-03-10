@@ -1,11 +1,9 @@
-/*************************************************************************
- * This program is copyright (C) 1985, 1986 by Jonathan Payne.  It is    *
- * provided to you without charge for use only on a licensed Unix        *
- * system.  You may copy JOVE provided that this notice is included with *
- * the copy.  You may not sell copies of this program or versions        *
- * modified for use on microcomputer systems, unless the copies are      *
- * included with a Unix system distribution and the source is provided.  *
- *************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 #ifdef BSD4_2
 #   include <sys/wait.h>
@@ -14,8 +12,6 @@
 #endif
 #include <signal.h>
 #include <sgtty.h>
-
-typedef struct process	Process;
 
 #define DEAD	1	/* Dead but haven't informed user yet */
 #define STOPPED	2	/* Job stopped */
@@ -32,22 +28,7 @@ typedef struct process	Process;
 #define proc_cmd(p)	(p->p_name)
 #define proc_state(p)	(p->p_state)
 
-struct process {
-	Process	*p_next;
-	int	p_fd,		/* File descriptor of ptyp? opened r/w */
-		p_pid;		/* pid of child (the shell) */
-	Buffer	*p_buffer;	/* Add output to end of this buffer */
-	char	*p_name;	/* ... */
-	char	p_state,	/* State */
-		p_howdied,	/* Killed? or Exited? */
-		p_reason,	/* If signaled, p_reason is the signal; else
-				   it is the the exit code */
-		p_eof;		/* Received EOF, so can be free'd up */
-	Mark	*p_mark;	/* Where output left us. */
-	data_obj
-		*p_cmd;		/* Command to call when process dies */
-} *procs = 0,
-  *cur_proc = 0;
+private Process	*procs = 0;
 
 int	global_fd = 1,
 	NumProcs = 0;
@@ -130,38 +111,27 @@ register int	fd;
 ProcKill()
 {
 	register Buffer	*b;
-	register Process	*p;
 	Process	*buf_to_proc();
 	char	*bname;
 
-	bname = ask_buf(cur_proc ? cur_proc->p_buffer : (Buffer *) 0);
+	bname = ask_buf(curbuf);
 
 	if ((b = buf_exists(bname)) == 0)
 		complain("[No such buffer]");
-	if ((p = buf_to_proc(b)) == 0)
+	if (b->b_process == 0)
 		complain("%s not tied to a process.", bname);
-	proc_kill(p, SIGKILL);
-}
-
-Process *
-buf_to_proc(b)
-register Buffer *b;
-{
-	register Process *p;
-
-	for (p = procs; p != 0; p = p->p_next)
-		if (p->p_buffer == b)
-			return p;
-	return 0;
+	proc_kill(b->b_process, SIGKILL);
 }
 
 ProcCont()
 {
-	if (cur_proc == 0)
-		complain("[No processes]");
-	if (cur_proc->p_state != DEAD) {
-		proc_kill(cur_proc, SIGCONT);
-		cur_proc->p_state = RUNNING;
+	Process	*p;
+
+	if ((p = curbuf->b_process) == 0)
+		complain("[No process]");
+	if (p->p_state != DEAD) {
+		proc_kill(p, SIGCONT);
+		p->p_state = RUNNING;
 	}		
 }
 
@@ -180,8 +150,6 @@ ProcQuit()
 	send_p(tc1.t_quitc);
 }
 
-#ifdef TIOCSLTC
-
 ProcStop()
 {
 	send_p(ls1.t_suspc);
@@ -192,16 +160,15 @@ ProcDStop()
 	send_p(ls1.t_dsuspc);
 }
 
-#endif
-
 send_p(c)
 char	c;
 {
-	if (cur_proc == 0)
-		complain("[No processes]");
-	if (cur_proc->p_buffer == curbuf)
-		ToLast();
-	(void) write(cur_proc->p_fd, &c, 1);
+	Process	*p;
+
+	if ((p = curbuf->b_process) == 0)
+		complain("[No process]");
+	ToLast();
+	(void) write(p->p_fd, &c, 1);
 }
 
 static
@@ -216,7 +183,7 @@ Process *p;
 do_rtp(mp)
 register Mark	*mp;
 {
-	register Process	*p = cur_proc;
+	register Process	*p = curbuf->b_process;
 	Line	*line1 = curline,
 		*line2 = mp->m_line;
 	int	char1 = curchar,
@@ -239,18 +206,20 @@ register Mark	*mp;
 	}
 }
 
-/* VARARGS2 */
-static
-proc_strt(bufname, procname, cmd)
-char	*bufname,
-	*procname,
-	*cmd;
+/* VARARGS3 */
+
+private
+proc_strt(bufname, clobber, va_alist)
+char	*bufname;
+va_dcl
 {
+	va_list	ap;
+	char	*argv[32],
+		*cp;
 	Window *owind	= curwind;
 	int	pid;
 	Process	*newp;
-	Buffer 	*bp;
-	char	**cp;
+	Buffer 	*newbuf;
 	int	i,
 		f,
 		ttyfd;
@@ -259,7 +228,6 @@ char	*bufname,
 	register char	*s,
 			*t;
 	extern int	errno;
-	extern char 	**environ;
 	static char	ttybuf[11],
 			ptybuf[11];
 	char	cmdbuf[128];
@@ -278,11 +246,8 @@ char	*bufname,
 #  endif
 #endif
 
-	bp = buf_exists(bufname);
-	if (bp != 0 && IsModified(bp) && bp->b_type != B_IPROCESS && bp->b_type != B_PROCESS)
-		complain("Command would over-write buffer %s.", procname, bufname);
-	pop_wind(bufname, YES, B_IPROCESS);
-
+	isprocbuf(bufname);	/* make sure BUFNAME is either nonexistant
+				   or is of type B_PROCESS */
 	for (s = "pqrs"; *s; s++) {
 		for (t = "0123456789abcdef"; *t; t++) {
 			sprintf(ptybuf, "/dev/pty%c%c", *s, *t);
@@ -321,8 +286,6 @@ out:	if (s == 0 && t == 0)
 		complain("[Fork failed!]");
 
 	case 0:
-		cp = &cmd;
-
 		for (i = 0; i < 32; i++)
 			(void) close(i);
 
@@ -369,7 +332,10 @@ out:	if (s == 0 && t == 0)
 		i = getpid();
 		(void) ioctl(0, TIOCSPGRP, (struct sgttyb *) &i);
 		(void) setpgrp(0, i);
-		execve(cp[0], &cp[1], environ);
+		va_start(ap);
+		make_argv(argv, ap);
+		va_end(ap);
+		execve(argv[0], &argv[1]);
 		(void) write(1, "execve failed!\n", 15);
 		_exit(errno + 1);
 	}
@@ -378,17 +344,29 @@ out:	if (s == 0 && t == 0)
 #ifdef SIGWINCH
 	sighold(SIGWINCH);
 #endif
-	cur_proc = newp = (Process *) emalloc(sizeof *newp);
+	newp = (Process *) emalloc(sizeof *newp);
 
 	newp->p_fd = ttyfd;
 	newp->p_pid = pid;
 	newp->p_eof = 0;
-	newp->p_buffer = curbuf;
 
-	cp = &cmd + 1;
+	newbuf = do_select((Window *) 0, bufname);
+	newbuf->b_type = B_PROCESS;
+	newp->p_buffer = newbuf;
+	newbuf->b_process = newp;	/* sorta circular, eh? */
+	pop_wind(bufname, clobber, B_PROCESS);
+	/* Pop_wind() after everything is set up; important!
+	   Bindings won't work right unless newbuf->b_process is already
+	   set up BEFORE NEWBUF is first SetBuf()'d. */
+	ToLast();
+	if (!bolp())
+		LineInsert(1);
+
 	cmdbuf[0] = '\0';
-	while (*cp != 0)
-		(void) sprintf(&cmdbuf[strlen(cmdbuf)], "%s ", *cp++);
+	va_start(ap);
+	while (cp = va_arg(ap, char *))
+		sprintf(&cmdbuf[strlen(cmdbuf)], "%s ", cp++);
+	va_end(ap);
 
 	newp->p_name = copystr(cmdbuf);
 	newp->p_state = RUNNING;

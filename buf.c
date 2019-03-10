@@ -1,11 +1,9 @@
-/*************************************************************************
- * This program is copyright (C) 1985, 1986 by Jonathan Payne.  It is    *
- * provided to you without charge for use only on a licensed Unix        *
- * system.  You may copy JOVE provided that this notice is included with *
- * the copy.  You may not sell copies of this program or versions        *
- * modified for use on microcomputer systems, unless the copies are      *
- * included with a Unix system distribution and the source is provided.  *
- *************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 /* Contains commands that deal with creating, selecting, killing and
    listing buffers, and buffer modes, and find-file, etc. */
@@ -87,7 +85,9 @@ mak_buf()
 	newb->b_major = TEXT;
 	newb->b_first = 0;
 	newb->b_keybinds = 0;
+	newb->b_process = 0;
 	initlist(newb);
+
 	return newb;
 }
 
@@ -230,7 +230,7 @@ register Buffer	*delbuf;
 	extern Buffer	*perr_buf;
 
 #ifdef IPROCS
-	pbuftiedp(delbuf);	/* Make sure buffer is not tied to a process */
+	pbuftiedp(delbuf);	/* check for lingering processes */
 #endif
 	for (b = world; b != 0; lastb = b, b = b->b_next)
 		if (b == delbuf)
@@ -312,7 +312,6 @@ static char	*TypeNames[] = {
 	"Scratch",
 	"File",
 	"Process",
-	"I-process"
 };
 
 BufList()
@@ -322,7 +321,6 @@ BufList()
 	int	bcount = 1,		/* To give each buffer a number */
 		buf_width = 11;
 	char	nbuf[10];
-	extern int	ModCount;
 
 	for (b = world; b != 0; b = b->b_next)
 		buf_width = max(buf_width, strlen(b->b_name));
@@ -530,10 +528,7 @@ register char	*fname;
 			SetBuf(b);	/* this'll read the file */
 			SetBuf(oldb);
 		}
-	} else
-		/* check NOW to make sure that the file hasn't been
-		   messed with by someone else (just issues a warning) */
-		chk_mtime(b, b->b_fname, (char *) 0);
+	}
 
 	if (w)
 		tiewind(w, b);
@@ -559,19 +554,20 @@ register Buffer	*newbuf;
 
 	lsave();
 	curbuf = newbuf;
+	curline = newbuf->b_dot;
+	curchar = newbuf->b_char;
 	getDOT();
 	/* Do the read now ... */
 	if (curbuf->b_ntbf)
 		read_file(curbuf->b_fname, 0);
 
 #ifdef IPROCS
-	if (oldb != 0 && oldb->b_type != curbuf->b_type) {
-		if (curbuf->b_type == B_IPROCESS)
+	if (oldb != 0 && ((oldb->b_process == 0) != (curbuf->b_process == 0))) {
+		if (curbuf->b_process)
 			PushPBs();		/* Push process bindings */
-		else if (oldb->b_type == B_IPROCESS)
+		else if (oldb->b_process)
 			PopPBs();
 	}
-	assign_p();		/* Set cur_proc */
 #endif
 }
 
@@ -586,10 +582,7 @@ register char	*name;
 		new = mak_buf();
 		setfname(new, (char *) 0);
 		setbname(new, name);
-	} else
-		/* check NOW to make sure that the file hasn't been
-		   messed with by someone else (just issues a warning) */
-		chk_mtime(new, new->b_fname, (char *) 0);
+	}
 	if (w)
 		tiewind(w, new);
 	return new;

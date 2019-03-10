@@ -1,72 +1,71 @@
-/*************************************************************************
- * This program is copyright (C) 1985, 1986 by Jonathan Payne.  It is    *
- * provided to you without charge for use only on a licensed Unix        *
- * system.  You may copy JOVE provided that this notice is included with *
- * the copy.  You may not sell copies of this program or versions        *
- * modified for use on microcomputer systems, unless the copies are      *
- * included with a Unix system distribution and the source is provided.  *
- *************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
-/* This algorithm is just like the VI and ED ones.  There are several
-   differences though.  The first is that I don't just have THREE or TWO
-   incore blocks of the tmp file.  Instead there is a buffer cache of NBUF
-   buffers (64 on VM machines and the normal 3 on smaller ones).  Each block
-   is stored in LRU order and in a hash table by block #.  When a block is
-   requested it can quickly be looked up in the hash table.  If it's not
-   there the LRU block is used.  If it finds that the LRU block is dirty it
-   syncs the whole tmp file, i.e., does all the pending writes.  This works
-   really well on floppy disk systems, like the IBM PC, if the blocks are
-   sorted first.
+/* The tmp file is indexed in chunks of CH_SIZE characters.  CH_SIZE is
+   (1 << CH_BITS).  New lines are added to the end of the tmp file.  The
+   file is not garbage collected because that would be too painful.  As a
+   result, commands like Yank and Kill are really easy; basically all we
+   do is make copies of the disk addresses of the lines (as opposed to
+   the contents).  So, putline(buf) writes BUF to the disk and returns a
+   new disk address.  Getline(addr, buf) is the opposite of putline().
+   f_getputl(line, fp) reads from open FP directly into the tmp file (into
+   the buffer cache (see below)) and stores the address in LINE.  This is
+   used during read_file to minimize compying.
 
-   The constants below are sorta hard to grok because they are in disguise,
-   but the basic idea is this:  The tmp file is allocated in chunks of
-   BNDRY/2 (or is it BNDRY? I can't remember) characters.  New lines are
-   added to the end of the tmp file.  The file is not garbage collected
-   because that would be too painful.  As a result, commands like Yank and
-   Kill are really easy.  Basically all we do is make copies of the disk
-   addresses of the lines.  It's fast--very.  So, putline(buf) writes BUF to
-   the disk and returns a new disk address.  Getline(addr, buf) is the
-   opposite of putline().  Lines do NOT cross block bounderies (as in VI and
-   ED) so that accessing the contents of lines can be much faster.  Pointers
-   to offsets into disk buffers are returned instead of copying the contents
-   into local arrays and then using them.  This cut down on the amount of
-   copying a great deal, at the expense of less efficiency.  But it's not a
-   big deal, really.  Incrementing the logical disk pointer by INCRMT is
-   like incrementing the physical disk pointer by a block.  The lower bit is
-   left alone, so JOVE uses that to mark lines as needing redisplay done to
-   them. */
+   Lines do NOT cross block bounderies in the tmp file so that accessing
+   the contents of lines can be much faster.  Pointers to offsets into
+   disk buffers are returned instead of copying the contents into local
+   arrays and then using them.  This cuts down on the amount of copying a
+   great deal, at the expense of less efficiency.  The lower bit of disk
+   addresses is used for marking lines as needing redisplay done.
 
-#ifndef VMUNIX
+   There is a buffer cache of NBUF buffers (64 on !SMALL machines and the
+   3 on small ones).  The blocks are stored in LRU order and each block
+   is also stored in a hash table by block #.  When a block is requested
+   it can quickly be looked up in the hash table.  If it's not there the
+   LRU block is assigned the new block #.  If it finds that the LRU block
+   is dirty (i.e., has pending IO) it syncs the WHOLE tmp file, i.e.,
+   does all the pending writes.  This works much better on floppy disk
+   systems, like the IBM PC, if the blocks are sorted before sync'ing. */
+
+#ifdef SMALL
+#   define CH_BITS		4
+#   if BUFSIZ == 512
+#	define MAX_BLOCKS	1024
+#   else
+#	define MAX_BLOCKS	512
+#   endif
+#else
+#   define CH_BITS		0
+#   define MAX_BLOCKS		4096	/* basically unlimited */
+#endif SMALL
 
 #if BUFSIZ == 512
-#	define	BLKMSK	01777
-#	define	BNDRY	16
-#	define	INCRMT	0100
-#	define	LBTMSK	0760
-#	define	NMBLKS	1018
-#	define	OFFBTS	6
-#	define	OFFMSK	077
-#	define	SHFT	3
+#   define BNO_SHIFT		(9 - CH_BITS)
 #else
-#	define	BLKMSK	0777
-#	define	BNDRY	16
-#	define	INCRMT	0200
-#	define	LBTMSK	01760
-#	define	NMBLKS	506
-#	define	OFFBTS	7
-#	define	OFFMSK	0177
-#	define	SHFT	3
+#   define BNO_SHIFT		(10 - CH_BITS)
 #endif
 
-#else
+/* CH_SIZE is how big each chunk is.  For each 1 the DFree pointer
+   is incremented we extend the tmp file by CH_SIZE characters.
+   CH_PBLOCK is the # of chunks per block.  RND_MASK is used to mask
+   off the lower order bits of the daddr to round down to the beginning
+   of a block.  OFF_MASK masks off the higher order bits so we can get
+   at the offset into the disk buffer.
 
-#define	BLKMSK	077777
-#define	BNDRY	2
-#define	INCRMT	02000
-#define	LBTMSK	01776
-#define	NMBLKS	077770
-#define	OFFBTS	10
-#define	OFFMSK	01777
-#define	SHFT	0
+   NOTE:  It's pretty important that these numbers be multiples of
+	  2.  Be careful if you change things. */
 
-#endif VMUNIX
+#define CH_SIZE			(1 << CH_BITS)
+#define CH_PBLOCK		(BUFSIZ / CH_SIZE)
+#define RND_MASK		(CH_PBLOCK - 1)
+#define OFF_MASK		(BUFSIZ - 1)
+#define BNO_MASK		(MAX_BLOCKS - 1)
+#define blk_round(daddr)	(daddr & ~RND_MASK)
+#define forward_block(daddr)	(daddr + CH_PBLOCK)
+#define daddr_to_bno(daddr)	((daddr >> BNO_SHIFT) & BNO_MASK)
+#define daddr_to_off(daddr)	((daddr << CH_BITS) & OFF_MASK)

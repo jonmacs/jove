@@ -1,13 +1,12 @@
-/*************************************************************************
- * This program is copyright (C) 1985, 1986 by Jonathan Payne.  It is    *
- * provided to you without charge for use only on a licensed Unix        *
- * system.  You may copy JOVE provided that this notice is included with *
- * the copy.  You may not sell copies of this program or versions        *
- * modified for use on microcomputer systems, unless the copies are      *
- * included with a Unix system distribution and the source is provided.  *
- *************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 #include "jove.h"
+#include <varargs.h>
 
 #ifdef IPROCS
 
@@ -24,8 +23,8 @@ char	proc_prompt[80] = "% ";
 KillProcs()
 {
 	register Process	*p;
-	int	killem = -1;		/* -1 means undetermined */
-	char	*yorn;
+	register int	killem = -1;		/* -1 means undetermined */
+	register char	*yorn;
 
 	for (p = procs; p != 0; p = p->p_next)
 		if (!isdead(p)) {
@@ -38,44 +37,14 @@ KillProcs()
 		}
 }
 
-static Process *
-proc_exists(name)
-char	*name;
-{
-	register Process	*p;
-
-	for (p = procs; p != 0; p = p->p_next)
-		if (strcmp(proc_buf(p), name) == 0) {
-			(void) pstate(p);
-			if (p->p_eof) {
-				DealWDeath();
-				return 0;
-			}
-			break;
-		}
-
-	return p;
-}
-
-assign_p()
-{
-	register Process	*p;
-
-	for (p = procs; p != 0; p = p->p_next)
-		if (p->p_buffer == curbuf) {
-			cur_proc = p;
-			break;
-		}
-}
-
 pbuftiedp(b)
-Buffer	*b;
+register Buffer	*b;
 {
-	register Process	*p;
+	register Process	*p = b->b_process;
 
-	for (p = procs; p != 0; p = p->p_next)
-		if (p->p_buffer == b && !p->p_eof)
-			complain("[There is a process tied to %s]", proc_buf(p));
+	if (!isdead(p))
+		complain("Process %s, attached to %b, is %s.",
+			 proc_cmd(p), b, pstate(p));
 }
 
 /* Process receive: receives the characters in buf, and appends them to
@@ -87,8 +56,8 @@ register Process	*p;
 char	*buf;
 {
 	Buffer	*saveb = curbuf;
-	Window	*w;
-	Mark	*savepoint;
+	register Window	*w;
+	register Mark	*savepoint;
 	int	sameplace = 0,
 		do_disp = 0;
 
@@ -118,9 +87,9 @@ char	*buf;
 }
 
 proc_kill(p, sig)
-Process	*p;
+register Process	*p;
 {
-	if (p == 0 || p->p_state == DEAD)
+	if (isdead(p))
 		return;
 	if (killpg(p->p_pid, sig) == -1)
 		s_mess("Cannot kill %s!", proc_buf(p));
@@ -130,7 +99,7 @@ Process	*p;
    it gets the "EOF" from portsrv.  FREEUP'd processes get unlinked from
    the list, and the proc stucture and proc_buf(p) get free'd up, here. */
 
-static
+private
 DealWDeath()
 {
 	register Process	*p,
@@ -143,9 +112,9 @@ DealWDeath()
 			prev = p;
 			continue;
 		}
-		if (cur_proc == p)
-			cur_proc = next ? next : prev;
 		proc_close(p);
+		PopPBs();			/* not a process anymore */
+		p->p_buffer->b_process = 0;	/* we're killing ourself */
 		free((char *) p->p_name);
 		free((char *) p);
 		if (prev)
@@ -190,14 +159,16 @@ ProcSendData()
 private
 SendData(newlinep)
 {
-	if (isdead(cur_proc))
+	register Process	*p = curbuf->b_process;
+
+	if (isdead(p))
 		return;
 	if (lastp(curline)) {
 		Eol();
 		if (newlinep)
 			LineInsert(1);
-		do_rtp(cur_proc->p_mark);
-		MarkSet(cur_proc->p_mark, curline, curchar);
+		do_rtp(p->p_mark);
+		MarkSet(p->p_mark, curline, curchar);
 	} else {
 		Bol();
 		while (LookingAt(proc_prompt, linebuf, curchar))
@@ -208,44 +179,32 @@ SendData(newlinep)
 	}
 }
 
-ShelCmd()
+ShellProc()
 {
-	if (cur_proc == 0)
-		IShell();
-	else {
-		tiewind(curwind, cur_proc->p_buffer);
-		SetBuf(cur_proc->p_buffer);
-	}
-}
+	char	*shbuf = "*shell*";
+	register Buffer	*b;
 
-IShell()
-{
-	char	shell[30];
-	int	number = 1;
-
-	do
-		sprintf(shell, "shell-%d", number++);
-	while (proc_exists(shell));
-
-	proc_strt(shell, "i-shell", Shell, basename(Shell), "-i", 0);
-	SetWind(windlook(shell));
+	b = buf_exists(shbuf);
+	if (b == 0 || isdead(b->b_process))
+		proc_strt(shbuf, NO, Shell, "-i", (char *) 0);
+	pop_wind(shbuf, NO, -1);
 }
 
 Iprocess()
 {
 	extern char	ShcomBuf[100],
 			*MakeName();
-	char	*command;
+	register char	*command;
 
 	command = ask(ShcomBuf, ProcFmt);
 	null_ncpy(ShcomBuf, command, (sizeof ShcomBuf) - 1);
-	proc_strt(MakeName(command), command, Shell, basename(Shell), ShFlags, command, 0);
+	proc_strt(MakeName(command), YES, Shell, ShFlags, command, (char *) 0);
 }
 
 proc_child()
 {
 	union wait	w;
-	int	pid;
+	register int	pid;
 
 	for (;;) {
 #ifndef VMUNIX
@@ -260,10 +219,11 @@ proc_child()
 }
 
 kill_off(pid, w)
-int	pid;
+register int	pid;
 union wait	w;
 {
-	Process	*child;
+	char	str[128];
+	register Process	*child;
 
 	if ((child = proc_pid(pid)) == 0)
 		return;
@@ -280,7 +240,10 @@ union wait	w;
 		}
 		proc_close(child);
 	}
-	s_mess("%s [%s]    %s", pstate(child), proc_buf(child), proc_cmd(child));
+	sprintf(str, "[Process %s: %s]\n",
+		proc_cmd(child),
+		pstate(child));
+	proc_rec(child, str);
 }
 
 /* Push/pod process bindings.  I openly acknowledge that this is a
@@ -317,7 +280,7 @@ PushPBs()
 
 ProcBind()
 {
-	data_obj	*d;
+	register data_obj	*d;
 
 	if ((d = findcom(ProcFmt)) == 0)
 		return;
@@ -330,7 +293,7 @@ data_obj	**map,
 		*cmd;
 {
 	register struct proc_bind *p;
-	data_obj	**nextmap;
+	register data_obj	**nextmap;
 	int	c;
 
 	c = addgetc();
@@ -342,7 +305,7 @@ data_obj	**map,
 		if (nextmap = IsPrefix(map[c]))
 			ProcB2(nextmap, c, cmd);
 		else {
-			if (curbuf->b_type == B_IPROCESS)
+			if (curbuf->b_process)
 				PopPBs();
 
 			for (p = PBinds; p != 0; p = p->pb_next)
@@ -357,7 +320,7 @@ data_obj	**map,
 			p->pb_key = c;
 			p->pb_cmd = cmd;
 
-			if (curbuf->b_type == B_IPROCESS)
+			if (curbuf->b_process)
 				PushPBs();
 		}
 	}

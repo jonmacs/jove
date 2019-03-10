@@ -1,16 +1,13 @@
-/*************************************************************************
- * This program is copyright (C) 1985, 1986 by Jonathan Payne.  It is    *
- * provided to you without charge for use only on a licensed Unix        *
- * system.  You may copy JOVE provided that this notice is included with *
- * the copy.  You may not sell copies of this program or versions        *
- * modified for use on microcomputer systems, unless the copies are      *
- * included with a Unix system distribution and the source is provided.  *
- *************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 #include "jove.h"
 #include "io.h"
 #include "ctype.h"
-#include "temp.h"
 #include "termcap.h"
 
 extern int	BufSize;
@@ -52,9 +49,7 @@ make_scr()
 	if (Savelines)
 		free((char *) Savelines);
 	if (Screen) {
-		ns = Screen;
-		for (i = 0; i < LI; i++)
-			free((ns++)->s_line);
+		free(Screen->s_line);	/* free all the screen data */
 		free((char *) Screen);
 	}
 #endif RESHAPING
@@ -721,7 +716,7 @@ GENi_lines(top, bottom, num)
 	register int	i;
 
 	if (CS) {
-		printf(tgoto(CS, bottom, top));
+		putstr(tgoto(CS, bottom, top));
 		CapCol = CapLine = 0;
 		Placur(top, 0);
 		for (i = 0; i < num; i++)

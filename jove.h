@@ -1,11 +1,9 @@
-/*************************************************************************
- * This program is copyright (C) 1985, 1986 by Jonathan Payne.  It is    *
- * provided to you without charge for use only on a licensed Unix        *
- * system.  You may copy JOVE provided that this notice is included with *
- * the copy.  You may not sell copies of this program or versions        *
- * modified for use on microcomputer systems, unless the copies are      *
- * included with a Unix system distribution and the source is provided.  *
- *************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 /* jove.h header file to be included by EVERYONE */
 
@@ -65,7 +63,7 @@
 #define LF		CTL(J)
 #define CR		CTL(M)
 #define BS		CTL(H)
-#define ESC		`\033'
+#define ESC		'\033'
 
 #define DoTimes(f, n)	exp_p = YES, exp = n, f
 #define HALF(wp)	((wp->w_height - 1) / 2)
@@ -97,7 +95,6 @@ extern int	OkayAbort,	/* okay to abort redisplay */
 #define B_SCRATCH	1	/* for internal things, e.g. minibuffer ... */
 #define B_FILE		2	/* normal file (We Auto-save these.) */
 #define B_PROCESS	3	/* process output in this buffer */
-#define B_IPROCESS	4	/* interactive process attached to this buffer */
 
 /* Major modes */
 #define FUNDAMENTAL	0	/* Fundamental mode */
@@ -169,6 +166,9 @@ extern int	errno;
 
 extern jmp_buf	mainjmp;
 
+#ifdef IPROCS
+typedef struct process	Process;
+#endif
 typedef struct window	Window;
 typedef struct position	Bufpos;
 typedef struct mark	Mark;
@@ -186,6 +186,30 @@ struct line {
 		*l_next;		/* pointer to next */
 	disk_line	l_dline;	/* pointer to disk location */
 };
+
+#ifdef IPROCS
+struct process {
+	Process	*p_next;
+#ifdef PIPEPROCS
+	int	p_toproc,	/* read p_fromproc and write p_toproc */
+		p_portpid,	/* Pid of child (the portsrv) */
+		p_pid;		/* Pid of real child i.e. not portsrv */
+#else
+	int	p_fd,		/* File descriptor of ptyp? opened r/w */
+		p_pid;		/* pid of child (the shell) */
+#endif
+	Buffer	*p_buffer;	/* Add output to end of this buffer */
+	char	*p_name;	/* ... */
+	char	p_state,	/* State */
+		p_howdied,	/* Killed? or Exited? */
+		p_reason,	/* If signaled, p_reason is the signal; else
+				   it is the the exit code */
+		p_eof;		/* Received EOF, so can be free'd up */
+	Mark	*p_mark;	/* Where output left us. */
+	data_obj
+		*p_cmd;		/* Command to call when process dies */
+};
+#endif IPROCS
 
 struct window {
 	Window	*w_prev,	/* circular list */
@@ -247,6 +271,7 @@ struct buffer {
 	int	b_major,		/* major mode */
 		b_minor;		/* and minor mode */
 	keymap	*b_keybinds;		/* local bindings (if any) */
+	Process	*b_process;		/* process we're attached to */
 };
 
 struct macro {
@@ -301,8 +326,11 @@ extern struct macro
 #define DefMajor(x)	(FUNCTION|MAJOR_MODE|(x << 8))
 #define DefMinor(x)	(FUNCTION|MINOR_MODE|(x << 8))
 
-extern Buffer	*world,			/* first buffer */
-		*curbuf;		/* pointer into world for current buffer */
+extern Buffer	*world,		/* first buffer */
+		*curbuf;	/* pointer into world for current buffer */
+
+#define curline	curbuf->b_dot
+#define curchar curbuf->b_char
 
 #define NUMKILLS	10	/* number of kills saved in the kill ring */
 
@@ -377,6 +405,7 @@ extern int
 				   processesing */
 	SExitChar,		/* type this to stop i-search */
 #endif
+	IntChar,		/* ttysets this to generate QUIT */
 	EWSize;			/* size to make the error window */
 
 extern char
@@ -417,9 +446,6 @@ extern int
 	inIOread;	/* so we know whether we can do a redisplay. */
 
 extern char	Minibuf[LBSIZE];
-
-#define curline	curbuf->b_dot
-#define curchar curbuf->b_char
 
 #define curmark		(curbuf->b_markring[curbuf->b_themark])
 #define b_curmark(b)	(b->b_markring[b->b_themark])
@@ -493,7 +519,6 @@ extern char
 	*copystr(),
 	*basename(),
 	*filename(),
-	*getblock(),
 	*IOerr(),
 	*index(),
 	*ask(),
@@ -501,7 +526,6 @@ extern char
 	*ask_buf(),
 	*ask_file(),
 	*lcontents(),
-	*getblock(),
 	*malloc(),
 	*emalloc(),
 	*mktemp(),
@@ -530,7 +554,6 @@ extern Mark
 	*MakeMark();
 
 extern Window
-	*windlook(),
 	*windbp(),
 	*div_wind();
 

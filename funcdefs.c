@@ -1,14 +1,11 @@
-/*************************************************************************
- * This program is copyright (C) 1985, 1986 by Jonathan Payne.  It is    *
- * provided to you without charge for use only on a licensed Unix        *
- * system.  You may copy JOVE provided that this notice is included with *
- * the copy.  You may not sell copies of this program or versions        *
- * modified for use on microcomputer systems, unless the copies are      *
- * included with a Unix system distribution and the source is provided.  *
- *************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 #include "jove.h"
-#include <sys/ioctl.h>
 
 #ifndef TXT_TO_C
 extern int
@@ -187,18 +184,15 @@ extern int
 	WNumLines(),
 
 #ifdef IPROCS
-	ShelCmd(),
-	IShell(),
+	ShellProc(),
 	ProcInt(),
 	ProcQuit(),
 	ProcKill(),
 #  ifndef PIPEPROCS
-#    ifdef TIOCSLTC
 	ProcEof(),
 	ProcStop(),
 	ProcCont(),
 	ProcDStop(),
-#    endif
 #  endif
 	ProcSendData(),
 	ProcNewline(),
@@ -337,9 +331,7 @@ struct cmd	commands[] = {
 	FUNCTION, "end-of-window", WIRED_CMD(Eow),
 #ifdef IPROCS
 #  ifndef PIPEPROCS
-#    ifdef TIOCSLTC
 	FUNCTION, "eof-process", WIRED_CMD(ProcEof),
-#    endif
 #  endif
 #endif
 	FUNCTION, "erase-buffer", WIRED_CMD(BufErase),
@@ -376,7 +368,6 @@ struct cmd	commands[] = {
 	FUNCTION, "insert-file", WIRED_CMD(InsFile),
 #ifdef IPROCS
 	FUNCTION, "interrupt-process", WIRED_CMD(ProcInt),
-	FUNCTION, "i-shell", WIRED_CMD(IShell),
 	FUNCTION, "i-shell-command", WIRED_CMD(Iprocess),
 #endif
 	FUNCTION, "kill-next-word", WIRED_CMD(DelNWord),
@@ -469,7 +460,7 @@ struct cmd	commands[] = {
 	FUNCTION, "set", WIRED_CMD(SetVar),
 	FUNCTION, "set-mark", WIRED_CMD(SetMark),
 #ifdef IPROCS	/* for GNU compatibility */
-	FUNCTION, "shell", WIRED_CMD(ShelCmd),
+	FUNCTION, "shell", WIRED_CMD(ShellProc),
 #endif
 	FUNCTION, "shell-command", WIRED_CMD(ShellCom),
 	FUNCTION, "shell-command-to-buffer", WIRED_CMD(ShToBuf),
@@ -483,9 +474,7 @@ struct cmd	commands[] = {
 	FUNCTION, "start-remembering", WIRED_CMD(Remember),
 #ifdef IPROCS
 #  ifndef PIPEPROCS
-#    ifdef TIOCSLTC
 	FUNCTION, "stop-process", WIRED_CMD(ProcStop),
-#    endif
 #  endif
 #endif
 	FUNCTION, "stop-remembering", WIRED_CMD(Forget),
