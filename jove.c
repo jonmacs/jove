@@ -20,6 +20,7 @@
 #include <errno.h>
 #ifndef SYSV
 #include <sgtty.h>
+#include <fcntl.h>
 #else
 #include <termio.h>
 #endif SYSV
@@ -29,8 +30,10 @@ struct ltchars	ls1,
 		ls2;
 #endif TIOCSLTC
 
+#ifdef TIOCGETC
 struct tchars	tc1,
 		tc2;
+#endif
 
 #ifdef BRLUNIX
 struct sg_brl	sg1, sg2;
@@ -117,6 +120,28 @@ static int	nchars = 0;
 
 static char	peekbuf[10],
 		*peekp = peekbuf;
+
+#ifdef SYSV
+void
+setblock(fd, on)	/* turn blocking on or off */
+register int	fd, on;
+{
+    static int blockf, nonblockf;
+    static int first = 1;
+    int flags;
+
+    if (first) {
+	first = 0;
+	if ((flags = fcntl(fd, F_GETFL, 0)) == -1)
+	    finish(SIGHUP);
+	blockf = flags & ~O_NDELAY;	/* make sure O_NDELAY is off */
+	nonblockf = flags | O_NDELAY;	/* make sure O_NDELAY is on */
+    }
+    if (fcntl(fd, F_SETFL, on ? blockf : nonblockf) == -1)
+	finish(SIGHUP);
+    return;
+}
+#endif SYSV
 
 Peekc()
 {
@@ -285,24 +310,13 @@ charp()
 		some = (c > 0);
 	}
 #endif FIONREAD
-#ifdef TIOCEMPTY
-	{
-		int c;
-
-		if (ioctl(0, TIOCEMPTY, (char *) &c) == -1)
-			c = 0;
-		return (c > 0);
-	}
-#endif TIOCEMPTY
 #ifdef SYSV
-	{
-		int c;
-
-		c = read(Input, smbuf, sizeof smbuf);
-		if (c > 0)
-			nchars = c;
-		return (c > 0);
-	}
+	setblock(0, 0);		/* turn blocking off */
+	nchars = read(0, smbuf, sizeof smbuf);	/* Is anything there? */
+	setblock(0, 1);		/* turn blocking on */
+	if (nchars > 0)		/* something was there */
+	    bp = smbuf;		/* make sure bp points to it */
+	some = (nchars > 0);	/* just say we found something */
 #endif SYSV
 #ifdef c70
 	some = !empty(0);
@@ -493,8 +507,8 @@ do_sgtty()
 	sg2.c_iflag &= ~(INLCR|ICRNL|IGNCR);
 	sg2.c_lflag &= ~(ISIG|ICANON|ECHO);
 	sg2.c_oflag &= ~(OCRNL|ONLCR);
-	sg2.c_cc[VMIN] = 0;
-	sg2.c_cc[VTIME] = 0;
+	sg2.c_cc[VMIN] = sizeof smbuf;
+	sg2.c_cc[VTIME] = 1;
 #else
 	TABS = !(sg1.sg_flags & XTABS);
 	ospeed = sg1.sg_ospeed;
@@ -507,7 +521,6 @@ do_sgtty()
 #else
 	sg2.sg_flags &= ~(ECHO | CRMOD);
 #endif BRLUNIX
-#endif SYSV
 
 #ifdef EUNICE
 	sg2.sg_flags |= RAW;	/* Eunice needs RAW mode last I heard. */
@@ -522,6 +535,7 @@ do_sgtty()
 	sg2.sg_flags |= (MetaKey ? RAW : CBREAK);
 #endif PURDUE_EE
 #endif EUNICE
+#endif SYSV
 }
 
 tty_reset()
@@ -1049,9 +1063,12 @@ char	*argv[];
 
 		ignore(joverc(sprintf(tmpbuf, "%s/.joverc", HomeDir)));
 	}
+#ifdef SYSV
+	sprintf(MailBox, "/usr/mail/%s", getenv("LOGNAME"));
+#else
 	sprintf(Mailbox, "/usr/spool/mail/%s", getenv("USER"));
+#endif SYSV
 	ignorl(time(&time0));
-
 	ttinit();	/* initialize terminal (after ~/.joverc) */
 	settout(ttbuf);	/* not until we know baudrate */
 	ResetTerm();

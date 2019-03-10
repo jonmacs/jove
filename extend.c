@@ -324,6 +324,64 @@ char	*pref;
 	}
 }
 
+static
+find_binds(fp, buf)
+struct funct	*fp;
+char	*buf;
+{
+	char	*endp;
+
+	buf[0] = '\0';
+	fb_aux(fp, mainmap, (char *) 0, buf);
+	endp = buf + strlen(buf) - 2;
+	if ((endp > buf) && (strcmp(endp, ", ") == 0))
+		*endp = '\0';
+}
+
+static
+fb_aux(fp, map, prefix, buf)
+register data_obj	*fp,
+			**map;
+char	*buf,
+	*prefix;
+{
+	int	c1,
+		c2;
+	char	*bufp = buf + strlen(buf),
+		prefbuf[20];
+	data_obj	**prefp;
+
+	for (c1 = c2 = 0; c1 < 0200 && c2 < 0200; c1 = c2 + 1) {
+		c2 = c1;
+		if (map[c1] == fp) {
+			while (++c2 < 0200 && map[c1] == map[c2])
+				;
+			c2--;
+			if (prefix)
+				sprintf(bufp, "%s ", prefix);
+			bufp += strlen(bufp);
+			switch (c2 - c1) {
+			case 0:
+				sprintf(bufp, "%p, ", c1);
+				break;
+	
+			case 1:
+				sprintf(bufp, "{%p,%p}, ", c1, c2);
+				break;
+	
+			default:
+				sprintf(bufp, "[%p-%p], ", c1, c2);
+				break;
+			}
+		}
+		if (prefp = IsPrefix(map[c1])) {
+			sprintf(prefbuf, "%p", c1);
+			fb_aux(fp, prefp, prefbuf, bufp);
+		}
+		bufp += strlen(bufp);
+	}
+}
+
 Apropos()
 {
 	register struct funct	*fp;
@@ -332,12 +390,21 @@ Apropos()
 	char	*ans;
 	int	anyfs = 0,
 		anyvs = 0;
+	char	buf[256];
 
 	ans = ask((char *) 0, ": %f (keyword) ");
 	TOstart("Help", TRUE);
 	for (fp = commands; fp->Name != 0; fp++)
 		if (sindex(ans, fp->Name)) {
-			Typeout(": %s", fp->Name);
+			if (anyfs == 0) {
+				Typeout("Commands");
+				Typeout("--------");
+			}
+			find_binds(fp, buf);
+			if (buf[0])
+				Typeout(": %-30s(%s)", fp->Name, buf);
+			else
+				Typeout(": %s", fp->Name);
 			anyfs++;
 		}
 	for (v = variables; v->Name != 0; v++)
@@ -346,21 +413,27 @@ Apropos()
 
 			if (anyfs) {
 				Typeout(NullStr);
+				Typeout("Variables");
+				Typeout("---------");
 				anyfs = 0;
 			}
 			anyvs++;
-			Typeout(": set %s %s", v->Name,
-				(type == V_BOOL) ?	"[ON or OFF]" :
-				(type == V_STRING) ?	"\"value\"" :
-							"[number]");
+			vpr_aux(v, buf);
+			Typeout(": set %-26s%s", v->Name, buf);
 		}
 	for (m = macros; m != 0; m = m->m_nextm)
 		if (sindex(ans, m->Name)) {
-			if (anyvs) {
+			if (anyvs || anyfs) {
 				Typeout(NullStr);
+				Typeout("Macros");
+				Typeout("------");
 				anyvs = 0;
 			}
-			Typeout(": execute-macro %s", m->Name);
+			find_binds((data_obj *) m, buf);
+			if (buf[0])
+				Typeout(": %-30s(%s)", m->Name, buf);
+			else
+				Typeout(": %-30s%s", "execute-macro", m->Name);
 		}
 	TOstop();
 }
@@ -412,34 +485,43 @@ int	base;
 	return value;
 }
 
-PrVar()
+static
+vpr_aux(vp, buf)
+register struct variable	*vp;
+char	*buf;
 {
-	struct variable	*vp;
-
-	if ((vp = (struct variable *) findvar(ProcFmt, NOTHING)) == 0)
-		return;
-	s_mess(": %f %s => ", vp->Name);
 	switch (vp->v_flags & V_TYPEMASK) {
 	case V_BASE10:
-		add_mess("%d", *(vp->v_value));
+		sprintf(buf, "%d", *(vp->v_value));
 		break;
 
 	case V_BASE8:
-		add_mess("%o", *(vp->v_value));
+		sprintf(buf, "%o", *(vp->v_value));
 		break;
 
 	case V_BOOL:
-		add_mess((*(vp->v_value)) ? "on" : "off");
+		sprintf(buf, (*(vp->v_value)) ? "on" : "off");
 		break;
 
 	case V_STRING:
-		add_mess("%s", (char *) vp->v_value);
+		sprintf(buf, "%s", (char *) vp->v_value);
 		break;
 
 	case V_CHAR:
-		add_mess("%p", *(vp->v_value));
+		sprintf(buf, "%p", *(vp->v_value));
 		break;
 	}
+}
+
+PrVar()
+{
+	struct variable	*vp;
+	char	prbuf[256];
+
+	if ((vp = (struct variable *) findvar(ProcFmt, NOTHING)) == 0)
+		return;
+	vpr_aux(vp, prbuf);
+	s_mess(": %f %s => %s", vp->Name, prbuf);
 }
 
 SetVar()

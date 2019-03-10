@@ -99,10 +99,15 @@ recover:	recover.o tune.o rec.h temp.h
 	cc -o recover -n recover.o tune.o $(LIBS)
 
 teachjove:	teachjove.o
-	cc -o teachjove -n -DTEACHJOVE=\"$(TEACH-JOVE)\" teachjove.o $(LIBS)
+	cc -o teachjove -n teachjove.o $(LIBS)
 
-setmaps:	setmaps.o
+setmaps:	setmaps.o funcdefs.c
 	cc -o setmaps setmaps.o
+
+teachjove.o:	teachjove.c
+	cc -c $(CFLAGS) -DTEACHJOVE=\"$(TEACH-JOVE)\" teachjove.c
+
+setmaps.o:	funcdefs.c keymaps.txt
 
 keymaps.c:	setmaps keymaps.txt
 	setmaps < keymaps.txt > keymaps.c

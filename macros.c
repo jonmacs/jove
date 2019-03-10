@@ -242,6 +242,69 @@ static int	int_how = NEWWAY;
 
 /* Formatting int's the old way or the new "improved" way? */
 
+#ifndef BSD4_2
+
+/* 4.2 (at least) has these functions defined. */
+
+#if vax || pdp11
+long htonl(x)
+register long x;
+{
+	return(	(((x >>  0) & 0377) << 24) |
+		(((x >>  8) & 0377) << 16) |
+		(((x >> 16) & 0377) <<  8) |
+		(((x >> 24) & 0377) <<  0) );
+}
+
+short htons(x)
+register short x;
+{
+	return(	(((x >>  0) & 0377) << 8) |
+		(((x >>  8) & 0377) << 0) );
+}
+
+long ntohl(x)
+register long x;
+{
+	return(	(((x >>  0) & 0377) << 24) |
+		(((x >>  8) & 0377) << 16) |
+		(((x >> 16) & 0377) <<  8) |
+		(((x >> 24) & 0377) <<  0) );
+}
+
+short ntohs(x)
+register short x;
+{
+	return(	(((x >>  0) & 0377) << 8) |
+		(((x >>  8) & 0377) << 0) );
+}
+#else
+long htonl(x)
+register long x;
+{
+	return(x);
+}
+
+short htons(x);
+register short x;
+{
+	return(x);
+}
+
+long ntohl(x)
+register long x;
+{
+	return(x);
+}
+
+short ntohs(x)
+register short x;
+{
+	return(x);
+}
+#endif
+#endif BSD4_2
+
 int_fmt(i)
 {
 	if (int_how == NEWWAY)

@@ -67,8 +67,8 @@ register Window	*wp;
 	free((char *) wp);
 }
 
-/* Divide the window WP N times.  Complains if WP is too small to be split
-   into that many pieces.  It returns the new window. */
+/* Divide the window WP N times, or at least once.  Complains if WP is too
+   small to be split into that many pieces.  It returns the new window. */
 
 Window *
 div_wind(wp, n)
@@ -78,7 +78,7 @@ register Window	*wp;
 	int	amt;
 
 	if (n < 1)
-		return;
+		n = 1;
 	amt = wp->w_height / (n + 1);
 	if (amt < 2)
 		complain(toosmall);
@@ -334,7 +334,7 @@ register char	*name;
 
 	if ((wp = w_nam_typ(name, btype)) == 0) {
 		if (one_windp())
-			SplitWind();
+			SetWind(div_wind(curwind, 1));
 		else
 			PrevWindow();
 	} else
