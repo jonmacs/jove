@@ -63,12 +63,11 @@ char	*sbrk();
 
 char *
 malloc(nbytes)
-unsigned	nbytes;
+unsigned int	nbytes;
 {
 	register union store	*p,
 				*q;
 	register int	nw;
-
 	static int	temp;	/* coroutines assume no auto */
 
 	if (allocs[0].ptr == 0) {	/* first time */

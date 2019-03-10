@@ -8,6 +8,7 @@
  *************************************************************************/
 
 #include "jove.h"
+#include "io.h"
 #include "termcap.h"
 #include "ctype.h"
 #ifdef JOB_CONTROL
@@ -236,50 +237,50 @@ KeyDesc()
 
 DescCom()
 {
-	data_obj	*fp;
-	char	lbuf[LBSIZE],
-		pattern[100],
+	data_obj	*dp;
+	char	pattern[100],
 		key_bind[40],
 		*file = CMD_DB;
+	File	*fp;
 
 	if (!strcmp(LastFunc->Name, "describe-variable"))
-		fp = (data_obj *) findvar(ProcFmt, NOTHING);
+		dp = (data_obj *) findvar(ProcFmt, NOTHING);
 	else
-		fp = (data_obj *) findcom(ProcFmt, NOTHING);
+		dp = (data_obj *) findcom(ProcFmt, NOTHING);
 
-	if (fp == 0)
+	if (dp == 0)
 		return;
-	open_file(file, O_READ, COMPLAIN, QUIET);
+	fp = open_file(file, iobuff, F_READ, COMPLAIN, QUIET);
 	Placur(ILI, 0);
 	flusho();
-	ignore(sprintf(pattern, "^\\.dc \"%s\" \"\\([^\"]*\\)\"", fp->Name));
+	ignore(sprintf(pattern, "^\\.dc \"%s\" \"\\([^\"]*\\)\"", dp->Name));
 	TOstart("Help", TRUE);
 	for (;;) {
-		if (getfline(lbuf) == EOF) {
-			Typeout("There is no documentation for \"%s\".", fp->Name);
+		if (f_gets(fp, genbuf) == EOF) {
+			Typeout("There is no documentation for \"%s\".", dp->Name);
 			goto outahere;
 		}
-		if ((strncmp(lbuf, ".dc", 3) == 0) && LookingAt(pattern, lbuf, 0))
+		if ((strncmp(genbuf, ".dc", 3) == 0) && LookingAt(pattern, genbuf, 0))
 			break;
 	}
 	/* found it ... let's print it */
 	putmatch(1, key_bind, sizeof key_bind);
 	if (strcmp("Not Bound", key_bind) == 0)
 		Typeout("To invoke %s, type \"ESC X %s<cr>\".",
-			fp->Name,
-			fp->Name);
+			dp->Name,
+			dp->Name);
 	else if (strcmp("(variable)", key_bind) == 0)
-		Typeout(fp->Name);
+		Typeout(dp->Name);
 	else
-		Typeout("Type \"%s\" to invoke %s.", key_bind, fp->Name);
+		Typeout("Type \"%s\" to invoke %s.", key_bind, dp->Name);
 	Typeout("");
-	while (getfline(lbuf) != EOF)
-		if (strncmp(lbuf, ".dc", 3) == 0)
+	while (f_gets(fp, genbuf) != EOF)
+		if (strncmp(genbuf, ".dc", 3) == 0)
 			goto outahere;
 		else
-			Typeout("%s", lbuf);
+			Typeout("%s", genbuf);
 outahere:
-	IOclose();
+	f_close(fp);
 	TOstop();
 }
 
@@ -551,7 +552,6 @@ aux_complete(c)
 		int	minmatch = 1000,
 	    		maxmatch = 0,
 	    		numfound = 0,
-	    		exactmatch = -1,
 	    		lastmatch = -1,
 			length = strlen(linebuf);
 
@@ -567,10 +567,8 @@ aux_complete(c)
 					minmatch = strlen(Possible[i]);
 				numfound++;
 				lastmatch = i;
-				if (strcmp(linebuf, Possible[i]) == 0) {
-					exactmatch = i;
+				if (strcmp(linebuf, Possible[i]) == 0)
 					break;
-				}
 			}
 		}
 
@@ -638,9 +636,9 @@ char	*prompt;
 	   faster than initializing the minibuffer for each line. */
 	{
 		char	cmdbuf[128];
-		register char	*cp = cmdbuf,
+		register char	*cp = cmdbuf;
+		register int	i,
 				c;
-		register int	i;
 
 		while (((c = getch()) != EOF) && !index(" \t\r\n", c))
 			*cp++ = c;
@@ -649,7 +647,8 @@ char	*prompt;
 		*cp = '\0';
 		if ((i = match(possible, cmdbuf)) >= 0 || i == NULLSTRING)
 			return i;
-		complain("[\"%s\" unknown]", cmdbuf);
+		complain("[\"%s\" unknown]", linebuf);
+		/* NOTREACHED */
 	}
 }
 
@@ -771,16 +770,15 @@ char	*cmd;
 joverc(file)
 char	*file;
 {
-	char	buf[LBSIZE];
+	char	buf[LBSIZE],
+		lbuf[LBSIZE];
 	int	lnum = 0,
 		eof = FALSE;
 	jmp_buf	savejmp;
-	int	push_io = io,
-		IfStatus = IF_UNBOUND;
+	int	IfStatus = IF_UNBOUND;
+	File	*fp;
 
-	open_file(file, O_READ, !COMPLAIN, QUIET);
-	if (io == -1)
-		goto outahere;
+	fp = open_file(file, buf, F_READ, COMPLAIN, QUIET);
 
 	/* Catch any errors, here, and do the right thing with them,
 	   and then restore the error handle to whoever did a setjmp
@@ -791,31 +789,31 @@ char	*file;
 		Buffer	*savebuf = curbuf;
 
 		SetBuf(do_select((Window *) 0, "RC errors"));
-		ins_str(sprint("%s:%d:%s\t%s\n", pr_name(file), lnum, buf, mesgbuf), NO);
+		ins_str(sprint("%s:%d:%s\t%s\n", pr_name(file), lnum, lbuf, mesgbuf), NO);
 		unmodify();
 		SetBuf(savebuf);
 		Asking = 0;
 	}
 	InJoverc = 1;
 	if (!eof) do {
-		eof = (getfline(buf) == EOF);
+		eof = (f_gets(fp, lbuf) == EOF);
 		lnum++;
-		if (casencmp(buf, "if", 2) == 0) {
+		if (casencmp(lbuf, "if", 2) == 0) {
 			char	cmd[128];
 
 			if (IfStatus != IF_UNBOUND)
 				complain("[Cannot have nested if's]");
-			if (LookingAt("if[ \t]*\\(.*\\)$", buf, 0) == 0)
+			if (LookingAt("if[ \t]*\\(.*\\)$", lbuf, 0) == 0)
 				complain("[If syntax error]");
 			putmatch(1, cmd, sizeof cmd);
 			IfStatus = do_if(cmd) ? IF_TRUE : IF_FALSE;
 			continue;
-		} else if (casencmp(buf, "else", 4) == 0) {
+		} else if (casencmp(lbuf, "else", 4) == 0) {
 			if (IfStatus == IF_UNBOUND)
 				complain("[Unexpected `else']");
 			IfStatus = !IfStatus;
 			continue;
-		} else if (casencmp(buf, "endif", 5) == 0) {
+		} else if (casencmp(lbuf, "endif", 5) == 0) {
 			if (IfStatus == IF_UNBOUND)
 				complain("[Unexpected `endif']");
 			IfStatus = IF_UNBOUND;
@@ -823,20 +821,18 @@ char	*file;
 		}
 		if (IfStatus == IF_FALSE)
 			continue;
-		ignore(strcat(buf, "\n"));
-		Inputp = buf;
+		ignore(strcat(lbuf, "\n"));
+		Inputp = lbuf;
 		while (*Inputp == ' ' || *Inputp == '\t')
 			Inputp++;	/* skip white space */
 		Extend();
 	} while (!eof);
 
+	f_close(fp);
 	pop_env(savejmp);
 	Inputp = 0;
-	InJoverc = 0;
-	IOclose();
-outahere:
-	io = push_io;
 	Asking = 0;
+	InJoverc = 0;
 	if (IfStatus != IF_UNBOUND)
 		complain("[Missing endif]");
 	return 1;

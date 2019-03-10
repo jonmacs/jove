@@ -52,8 +52,7 @@ struct process {
 
 char	proc_prompt[80] = "% ";
 
-int	ProcOutput,
-	global_fd = 1,
+int	global_fd = 1,
 	NumProcs = 0;
 
 #ifdef BRLUNIX
@@ -367,10 +366,10 @@ out:	if (s == 0 && t == 0)
 
 		sg = sg1;
 		sg.sg_flags &= ~(ECHO | CRMOD);
-		stty(0, &sg);
+		ignore(stty(0, &sg));
 
 		i = getpid();
-		setpgrp(0, i);
+		ignore(setpgrp(0, i));
 		ignore(ioctl(0, TIOCSPGRP, (struct sgttyb *) &i));
 		execve(cp[0], &cp[1], environ);
 		ignore(write(1, "execve failed!\n", 15));

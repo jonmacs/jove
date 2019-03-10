@@ -183,11 +183,11 @@ register Line	*lp;
 	do {
 		if ((get_indent(lp->l_next) != i) || bslash)
 			/* BH line with backslash is head of next para */
-			return lp;
+			break;
 	} while ((lp = lp->l_next) != 0);
 	if (lp == 0)
 		complain((char *) 0);
-	/* NOTREACHED */
+	return lp;
 }
 
 /* Finds the beginning, end and indent of the current paragraph, and sets
@@ -360,8 +360,7 @@ RegJustify()
 
 do_rfill()
 {
-	Mark	*mp = CurMark(),
-		*tailmark;
+	Mark	*mp = CurMark();
 	Line	*l1 = curline,
 		*l2 = mp->m_line;
 	int	c1 = curchar,

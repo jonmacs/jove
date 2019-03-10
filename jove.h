@@ -26,6 +26,7 @@
 
 #define EOF	-1
 #define NULL	0
+#define NIL	0
 
 /* kinds of regular expression compiles */
 #define NORM	0	/* nothing special */
@@ -55,8 +56,6 @@
 #define FORWARD		1
 #define BACKWARD	-1
 
-#define flusho()	flushout(-1, &termout)
-
 #define CTL(c)		('c' & 037)
 #define META(c)		('c' | 0200)
 #define RUBOUT		'\177'
@@ -84,10 +83,6 @@
 
 extern int	OkayAbort,	/* okay to abort redisplay */
 		BufSize;
-
-#define outchar(c)	Putc(c, (&termout))
-#define Putc(x,p)	(--(p)->io_cnt>=0 ? ((int)(*(p)->io_ptr++=(unsigned)(x))):flushout(x, p))
-#define putchar(c)	Putc(c, (&termout))
 
 /* C doesn't have a (void) cast, so we have to fake it for lint's sake. */
 
@@ -145,11 +140,7 @@ extern char	CharTable[NMAJORS][128];
 #define COMPLAIN	2	/* do the error without a getDOT */
 #define QUIT		3	/* leave this level of recusion */
 
-/* flags to open_file() */
-#define O_READ		0	/* how to open files ... */
-#define O_WRITE		1
-#define O_APPND		2
-#define QUIET		0	/* don't print all that info */
+#define QUIET		1	/* sure, why not? */
 
 #define YES		1
 #define NO		0
@@ -176,6 +167,7 @@ extern int	InJoverc,
 
 #define	READ	0
 #define	WRITE	1
+extern int	errno;
 
 extern jmp_buf	mainjmp;
 
@@ -185,15 +177,6 @@ typedef struct mark	Mark;
 typedef struct buffer	Buffer;
 typedef struct line	Line;
 typedef struct iobuf	IOBUF;
-
-typedef int	(*FUNC)();
-
-struct iobuf {
-	int	io_cnt;
-	char	*io_ptr;
-	char	*io_base;
-	char	io_fd;
-};
 
 struct line {
 	Line	*l_prev,		/* pointer to prev */
@@ -342,8 +325,6 @@ extern struct scrimage
 	*DesiredScreen,		/* what we want */
 	*PhysScreen;		/* what we got */
 
-extern IOBUF	termout;
-
 /* Variable flags (that can be set). */
 #define V_BASE10	01	/* is integer in base 10 */
 #define V_BASE8		02	/* is integer in base 8 */
@@ -482,9 +463,8 @@ extern int
 	write();
 	getch();
 
-extern long
-	time(),
-	lseek();
+extern time_t	time();
+extern long	lseek();
 
 extern disk_line
 	putline();
@@ -561,5 +541,3 @@ extern Buffer
 	*mak_buf(),
 	*buf_exists(),
 	*file_exists();
-
-extern int	(*sigset())();	/* sigset returns a pointer to a procedure */

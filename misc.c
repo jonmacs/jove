@@ -306,9 +306,8 @@ MiscPrefix()
 HandlePref(map)
 data_obj	**map;
 {
-	data_obj	*fp;
-	int	c,
-		invokingchar = LastKeyStruck;
+	register data_obj	*fp;
+	register int	c;
 
 	c = waitchar();
 	if (c == CTL(G)) {
@@ -434,7 +433,7 @@ MoveToCursor(line, col)
 	while (sp->s_id == NULL)
 		sp = &PhysScreen[--line];
 	if (sp->s_flags & MODELINE)
-		complain(0);
+		complain((char *) 0);
 	if (curwind != sp->s_window)
 		SetWind(sp->s_window);
 	SetLine(sp->s_lp);

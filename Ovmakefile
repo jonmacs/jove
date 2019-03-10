@@ -65,7 +65,7 @@ CFLAGS = -O -V
 
 COFLAGS = -rworking -q
 
-BASESEG = funcdefs.o keymaps.o ask.o buf.o ctype.o delete.o disp.o fmt.o \
+BASESEG = funcdefs.o keymaps.o ask.o buf.o ctype.o delete.o disp.o fmt.o fp.o \
 	  insert.o io.o jove.o malloc.o macros.o marks.o misc.o move.o re.o \
 	  screen.o tune.o util.o vars.o version.o
 OVLAY1 = abbrev.o rec.o paragraph.o
@@ -77,12 +77,12 @@ OVLAY5 = proc.o scandir.o term.o case.o
 OBJECTS = $(BASESEG) $(OVLAY1) $(OVLAY2) $(OVLAY3) $(OVLAY4) $(OVLAY5)
 
 C-FILES = funcdefs.c abbrev.c ask.c buf.c c.c case.c ctype.c delete.c disp.c \
-	extend.c fmt.c insert.c io.c iproc.c iproc-pipes.c iproc-ptys.c \
+	extend.c fmt.c fp.c insert.c io.c iproc.c iproc-pipes.c iproc-ptys.c \
 	jove.c macros.c malloc.c marks.c misc.c move.c paragraph.c proc.c \
 	re.c re1.c rec.c scandir.c screen.c term.c util.c vars.c version.c \
 	wind.c
 
-H-FILES = ctype.h jove.h re.h rec.h temp.h termcap.h tune.h
+H-FILES = ctype.h io.h jove.h re.h rec.h temp.h termcap.h tune.h
 
 BACKUPS = $(C-FILES) $(H-FILES) teachjove.c recover.c setmaps.c portsrv.c \
 	tune.template Makefile Ovmakefile keymaps.txt README tags \
@@ -196,7 +196,7 @@ tape-backup:
 	tar cbf 20 /dev/rmt0 $(BACKUPS)
 
 clean:
-	rm -f a.out core *.o keymaps.c xjove \
+	rm -f a.out core $(OBJECTS) keymaps.c xjove \
 		portsrv recover setmaps teachjove
 
 # abbrev.o: jove.h tune.h

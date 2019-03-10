@@ -187,13 +187,26 @@ do_rtp(mp)
 register Mark	*mp;
 {
 	register Process	*p = cur_proc;
+	Line	*line1 = curline,
+		*line2 = mp->m_line;
+	int	char1 = curchar,
+		char2 = mp->m_char;
+	char	*gp;
 
 	if (isdead(p) || p->p_buffer != curbuf)
 		return;
 
-	io = p->p_toproc;
-	putreg(mp->m_line, mp->m_char, curline, curchar, YES);
-	io = -1;
+	ignore(fixorder(&line1, &char1, &line2, &char2));
+	while (line1 != line2->l_next) {
+		gp = getright(line1, genbuf) + char1;
+		if (line1 == line2)
+			gp[char2] = '\0';
+		else
+			strcat(gp, "\n");
+		ignore(write(p->p_toproc, gp, strlen(gp)));
+		line1 = line1->l_next;
+		char1 = 0;
+	}
 }
 
 /* VARARGS2 */
@@ -277,4 +290,13 @@ pinit()
 	ProcOutput = p[1];
 	ignorf(signal(INPUT_SIG, procs_read));
 	sighold(INPUT_SIG);	/* Released during terminal read */
+}
+
+doread(fd, buf, n)
+char	*buf;
+{
+	int	nread;
+
+	if ((nread = read(fd, buf, n)) != n)
+		complain("Cannot read %d (got %d) bytes.", n, nread);
 }

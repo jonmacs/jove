@@ -8,6 +8,7 @@
  *************************************************************************/
 
 #include "jove.h"
+#include "io.h"
 #include "ctype.h"
 #include "temp.h"
 #include "termcap.h"
@@ -58,15 +59,15 @@ make_scr()
 	}
 #endif RESHAPING
 
-	DesiredScreen = (struct scrimage *) malloc(LI * sizeof (struct scrimage));
-	PhysScreen = (struct scrimage *) malloc(LI * sizeof (struct scrimage));
+	DesiredScreen = (struct scrimage *) malloc((unsigned) LI * sizeof (struct scrimage));
+	PhysScreen = (struct scrimage *) malloc((unsigned) LI * sizeof (struct scrimage));
 
 	Savelines = (struct screenline *)
-			malloc(LI * sizeof(struct screenline));
+			malloc((unsigned) LI * sizeof(struct screenline));
 	ns = Screen = (struct screenline *)
-			malloc(LI * sizeof(struct screenline));
+			malloc((unsigned) LI * sizeof(struct screenline));
 
-	nsp = (char *) malloc(CO * LI);
+	nsp = (char *) malloc((unsigned)CO * LI);
 	if (nsp == 0) {
 		printf("\n\rCannot malloc screen!\n");
 		finish(1);
@@ -150,7 +151,7 @@ register char	c;
 		if (UL && (c & 0177) == '_' && (*cursor & 0177) != ' ')
 			putstr(" \b");		/* Erase so '_' looks right. */
 		*cursor++ = c;
-		outchar(c & 0177);
+		putchar(c & 0177);
 		CapCol++;
 		i_col++;
 	} else {

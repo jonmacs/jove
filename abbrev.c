@@ -11,6 +11,7 @@
 
 #ifdef ABBREV
 
+#include "io.h"
 #include "ctype.h"
 
 #define HASHSIZE	20
@@ -157,26 +158,25 @@ static
 save_abbrevs(file)
 char	*file;
 {
+	File	*fp;
 	struct abbrev	*ap,
 			**tp;
-	char	line[160];
+	char	buf[LBSIZE];
 	int	i,
 		count = 0;
 
-	open_file(file, O_WRITE, COMPLAIN, QUIET);
+	fp = open_file(file, buf, F_WRITE, COMPLAIN, QUIET);
 	for (i = 0; i <= GLOBAL; i++) {
-		ignore(sprintf(line, "------%s abbrevs------\n", mode_names[i]));
-		ignore(write(io, line, strlen(line)));
+		fprintf(fp, "------%s abbrevs------\n", mode_names[i]);
 		for (tp = A_tables[i]; tp < &A_tables[i][HASHSIZE]; tp++)
 			for (ap = *tp; ap; ap = ap->a_next) {
-				ignore(sprintf(line, "%s:%s\n",
+				fprintf(fp, "%s:%s\n",
 					ap->a_abbrev,
-					ap->a_phrase));
-				ignore(write(io, line, strlen(line)));
+					ap->a_phrase);
 				count++;
 			}
 	}
-	IOclose();
+	f_close(fp);
 	add_mess(" %d written.", count);
 }
 
@@ -188,10 +188,12 @@ char	*file;
 		mode = -1,	/* Will be ++'d immediately */
 		lnum = 0;
 	char	*phrase_p;
+	File	*fp;
+	char	buf[LBSIZE];
 
-	open_file(file, O_READ, COMPLAIN, QUIET);
+	fp = open_file(file, buf, F_READ, COMPLAIN, QUIET);
 	while (mode <= GLOBAL) {
-		eof = getfline(genbuf);
+		eof = f_gets(fp, genbuf);
 		if (eof || genbuf[0] == '\0')
 			break;
 		lnum++;
@@ -207,7 +209,7 @@ fmterr:			complain("Abbrev. format error, line %d.", file, lnum);
 		*phrase_p++ = '\0';	/* Null terminate the abbrev. */
 		define(A_tables[mode], genbuf, phrase_p);
 	}
-	IOclose();
+	f_close(fp);
 	message(NullStr);
 }
 

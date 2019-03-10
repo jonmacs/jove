@@ -11,6 +11,7 @@
    type things, e.g. putting terminal in CBREAK mode, etc. */
 
 #include "jove.h"
+#include "io.h"
 #include "termcap.h"
 
 #include <varargs.h>
@@ -184,7 +185,7 @@ getchar()
 			do {
 				do {
 					reads = global_fd;
-					nfds = select(32, &reads, (char *) 0, (char *) 0, 0);
+					nfds = select(32, &reads, (int *) 0, (int *) 0, (struct timeval *) 0);
 				} while (nfds < 0 && errno == EINTR);
 
 				switch (nfds) {
@@ -321,6 +322,8 @@ ResetTerm()
 	   biff */
 #endif
 	chkmail(YES);	/* force it to check to we can be accurate */
+	do_sgtty();	/* this is so if you change baudrate or stuff
+			   like that, JOVE will notice. */
 	ttyset(ON);
 }
 
@@ -360,10 +363,10 @@ Push()
 
 	case 0:
 		UnsetTerm(NullStr);
-		signal(SIGTERM, SIG_DFL);
-		signal(SIGINT, SIG_DFL);
+		ignorf(signal(SIGTERM, SIG_DFL));
+		ignorf(signal(SIGINT, SIG_DFL));
 		execl(Shell, basename(Shell), 0);
-		message("Execl failed.");
+		message("[Execl failed]");
 		_exit(1);
 
 	default:
@@ -380,8 +383,8 @@ Push()
 #endif
 	    	ResetTerm();
 	    	ClAndRedraw();
-	    	signal(SIGINT, old_int);
-		signal(SIGQUIT, old_quit);
+	    	ignorf(signal(SIGINT, old_int));
+		ignorf(signal(SIGQUIT, old_quit));
 	    }
 	}
 }
@@ -469,21 +472,32 @@ ttinit()
 		tc2.t_startc = (char) -1;
 	}
 #endif TIOCGETC
+	do_sgtty();
+}
 
+static int	done_ttinit = 0;
+
+do_sgtty()
+{
 #ifdef SYSV
-	if (ioctl (0, TCGETA, (char *)&sg1) < 0) {
+	ignore(ioctl(0, TCGETA, (char *) &sg1));
 #else
 	ignore(gtty(0, &sg1));
 #endif SYSV
 	sg2 = sg1;
 
 #ifdef SYSV
+	TABS = !((sg1.c_oflag & TAB3) == TAB3);
+	ospeed = sg1.c_cflag & CBAUD;
+
 	sg2.c_iflag &= ~(INLCR|ICRNL|IGNCR);
 	sg2.c_lflag &= ~(ISIG|ICANON|ECHO);
 	sg2.c_oflag &= ~(OCRNL|ONLCR);
 	sg2.c_cc[VMIN] = 0;
 	sg2.c_cc[VTIME] = 0;
 #else
+	TABS = !(sg1.sg_flags & XTABS);
+	ospeed = sg1.sg_ospeed;
 #ifdef BRLUNIX
 	sg2.sg_flags &= ~(ECHO | CRMOD);
 	sg2.sg_flags |= CBREAK;
@@ -510,13 +524,11 @@ ttinit()
 #endif EUNICE
 }
 
-static int	done_ttinit = 0;
-
 tty_reset()
 {
 	if (!done_ttinit)
 		return;
-	ttyset(OFF);	/* Go back to original modes. */
+	ttyset(OFF);	/* go back to original modes */
 	ttinit();
 	ttyset(ON);
 }
@@ -863,10 +875,10 @@ DoKeys(nocmdline)
 		getDOT();	/* God knows what state linebuf was in */
 
 	case COMPLAIN:
-		IOclose();
+		gc_openfiles();	/* close any files we left open */
 		errormsg++;
 		fix_macros();
-		Asking = 0;		/* Not anymore we ain't */
+		Asking = 0;
 		curwind->w_bufp = curbuf;
 		redisplay();
 		break;
@@ -914,7 +926,7 @@ updmode()
 #ifndef JOB_CONTROL
 	ignorf(signal(SIGALRM, updmode));
 #endif
-	ignore(alarm(UpdFreq));
+	ignore(alarm((unsigned) UpdFreq));
 }
 
 #ifdef TIOCGWINSZ
@@ -1003,7 +1015,6 @@ char	*argv[];
 		MetaKey = 1;
 	ttsize();
 	InitCM();
-	settout(ttbuf);
 
 	tmpinit();	/* Init temp file. */
 
@@ -1041,7 +1052,8 @@ char	*argv[];
 	sprintf(Mailbox, "/usr/spool/mail/%s", getenv("USER"));
 	ignorl(time(&time0));
 
-	ttinit();	/* Initialize terminal (after ~/.joverc) */
+	ttinit();	/* initialize terminal (after ~/.joverc) */
+	settout(ttbuf);	/* not until we know baudrate */
 	ResetTerm();
 
 	ignorf(signal(SIGHUP, finish));
@@ -1059,7 +1071,7 @@ char	*argv[];
 
 	/* Set things up to update the modeline every UpdFreq seconds. */
 	ignorf(signal(SIGALRM, updmode));
-	ignore(alarm(UpdFreq));
+	ignore(alarm((unsigned) UpdFreq));
 
 	cl_scr(1);
 	flusho();

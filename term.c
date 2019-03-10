@@ -54,7 +54,9 @@ char	*UP,
 	*RS,	/* Reverse video start */
 	*RE,	/* Reverse end */
 #endif
-	*VB;
+	*VB,
+	*IP,	/* insert pad after character inserted */
+	*lPC;
 
 int	LI,
 	ILI,	/* Internal lines, i.e., 23 of LI is 24. */
@@ -62,35 +64,37 @@ int	LI,
 
 	UL,
 	MI,
-	SG,	/* Number of magic cookies left by SO and SE */
-	XS,	/* Wether standout is braindamaged */
+	SG,	/* number of magic cookies left by SO and SE */
+	XS,	/* whether standout is braindamaged */
 
 	TABS,
 	UPlen,
 	HOlen,
 	LLlen;
 
-int ospeed;
+int	ospeed;
+extern char	PC;
 
 static char	tspace[256];
 
 /* The ordering of ts and meas must agree !! */
 #ifdef LSRHS
-static char	*ts="vsvealdlspcssosecmclcehoupbcicimdceillsfsrvbksketiteALDLICDCrsre";
+static char	*ts="vsvealdlspcssosecmclcehoupbcicimdceillsfsrvbksketiteALDLICDCrsrepcip";
 static char	**meas[] = {
 	&VS, &VE, &AL, &DL, &SP, &CS, &SO, &SE,
 	&CM, &CL, &CE, &HO, &UP, &BC, &IC, &IM,
 	&DC, &EI, &LL, &SF, &SR, &VB, &KS, &KE,
 	&TI, &TE, &M_AL, &M_DL, &M_IC, &M_DC,
-	&RS, &RE, 0
+	&RS, &RE, &lPC, &IP, 0
 };
 #else
-static char	*ts="vsvealdlspcssosecmclcehoupbcicimdceillsfsrvbksketiteALDLICDC";
+static char	*ts="vsvealdlspcssosecmclcehoupbcicimdceillsfsrvbksketiteALDLICDCpcip";
 static char	**meas[] = {
 	&VS, &VE, &AL, &DL, &SP, &CS, &SO, &SE,
 	&CM, &CL, &CE, &HO, &UP, &BC, &IC, &IM,
 	&DC, &EI, &LL, &SF, &SR, &VB, &KS, &KE,
-	&TI, &TE, &M_AL, &M_DL, &M_IC, &M_DC, 0
+	&TI, &TE, &M_AL, &M_DL, &M_IC, &M_DC,
+	&lPC, &IP, 0
 };
 #endif
 
@@ -119,26 +123,6 @@ getTERM()
 		*termp = tspace,
 		tbuff[2048];	/* Good grief! */
 	int	i;
-
-#ifdef SYSV
-	struct termio tty;
-
-	if (ioctl (0, TCGETA, &tty) == 0) {
-		TABS = !((tty.c_oflag & TAB3) == TAB3);
-		ospeed = tty.c_cflag & CBAUD;
-	}
-#else
-	struct sgttyb tty;
-
-	if (gtty(0, &tty) == 0) {
-		TABS = !(tty.sg_flags & XTABS);
-		ospeed = tty.sg_ospeed;
-	}
-#endif SYSV
-	else {
-		TABS = 0;
-		ospeed = B1200;
-	}
 
 	termname = getenv("TERM");
 	if (termname == 0) {
@@ -169,6 +153,8 @@ getTERM()
 		*(meas[i]) = (char *) tgetstr(ts, &termp);
 		ts += 2;
 	}
+	if (lPC)
+		PC = *lPC;
 	if (XS)
 		SO = SE = 0;
 

@@ -76,8 +76,8 @@ int	(*sorter)();
 	DIR	*dirp;
 	struct direct	*entry;
 	char	**ourarray;
-	int	nalloc = 10,
-		nentries = 0;
+	unsigned int	nalloc = 10,
+			nentries = 0;
 
 	if ((dirp = opendir(dir)) == 0)
 		return -1;
@@ -86,20 +86,20 @@ int	(*sorter)();
 		if (qualify != 0 && (*qualify)(entry->d_name) == 0)
 			continue;
 		if (nentries == nalloc) {
-			ourarray = (char **) realloc(ourarray, (nalloc += 10) * sizeof (char *));
+			ourarray = (char **) realloc((char *) ourarray, (nalloc += 10) * sizeof (char *));
 			if (ourarray == 0)
 				return -1;
 		}
 		ourarray[nentries] = (char *) malloc(DIRSIZE(entry) + 1);
-		null_ncpy(ourarray[nentries], entry->d_name, DIRSIZE(entry));
+		null_ncpy(ourarray[nentries], entry->d_name, (int) DIRSIZE(entry));
 		nentries++;
 	}
 	closedir(dirp);
 	if ((nentries + 1) != nalloc)
-		ourarray = (char **) realloc(ourarray,
+		ourarray = (char **) realloc((char *) ourarray,
 					((nentries + 1) * sizeof (char *)));
 	if (sorter != 0)
-		qsort(ourarray, nentries, sizeof (char **), sorter);
+		qsort((char *) ourarray, nentries, sizeof (char **), sorter);
 	*nmptr = ourarray;
 	ourarray[nentries] = 0;		/* guarenteed 0 pointer */
 	return nentries;
@@ -112,7 +112,7 @@ char	***nmptr;
 
 	while (--nentries >= 0)
 		free(*ourarray++);
-	free(*nmptr);
+	free((char *) *nmptr);
 	*nmptr = 0;
 }
 

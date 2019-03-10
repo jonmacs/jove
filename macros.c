@@ -235,6 +235,20 @@ WriteMacs()
 	add_mess(" %d macro%n saved.", nmacs, nmacs);
 }
 
+#define NEWWAY	1
+#define OLDWAY	0
+
+static int	int_how = NEWWAY;
+
+/* Formatting int's the old way or the new "improved" way? */
+
+int_fmt(i)
+{
+	if (int_how == NEWWAY)
+		return ntohl(i);
+	return i;
+}
+
 ReadMacs()
 {
 	char	*file,
@@ -243,7 +257,8 @@ ReadMacs()
 	int	nmacs = 0,
 		namelen,
 		bodylen,
-		he_is_sure = 0;
+		he_is_sure = 0,
+		save_em = FALSE;
 
 	file = ask_file((char *) 0, filebuf);
 	if ((mac_fd = open(file, 0)) == -1)
@@ -251,10 +266,15 @@ ReadMacs()
 
 	f_mess("\"%s\"", file);
 	while (read(mac_fd, (char *) &bodylen, sizeof m->m_len) == (sizeof m->m_len)) {
-		bodylen = ntohl(bodylen);
+		bodylen = int_fmt(bodylen);
 		if (!he_is_sure && (bodylen <= 0 || bodylen > 1000)) {
-			confirm("Are you sure \"%s\" is a JOVE macro file? ", filebuf);
-			he_is_sure = 1;
+			if (int_how == NEWWAY) {
+				int_how = OLDWAY;
+				save_em = TRUE;
+			} else {
+				confirm("Are you sure \"%s\" is a JOVE macro file? ", filebuf);
+				he_is_sure = 1;
+			}
 		}
 		nmacs++;
 		m = (struct macro *) emalloc (sizeof *m);
@@ -262,7 +282,7 @@ ReadMacs()
 		m->m_len = bodylen;
 		m->m_buflen = (m->m_len + 16) & ~017;
 		mac_io(read, (char *) &namelen, sizeof namelen);
-		namelen = ntohl(namelen);
+		namelen = int_fmt(namelen);
 		m->Name = emalloc(namelen);
 		mac_io(read, m->Name, namelen);
 		m->m_body = emalloc(m->m_buflen);
@@ -271,6 +291,25 @@ ReadMacs()
 	}
 	ignore(close(mac_fd));
 	add_mess(" %d macro%n defined.", nmacs, nmacs);
+	if (save_em) {
+		char	ibuf[FILESIZE + 1];
+
+		if (!InJoverc) {
+			char	*msg = "Convert to the new format? ";
+
+			TOstart("Warning", TRUE);
+			Typeout("Warning: your macros file is in the old format.");
+			Typeout("Do you want me to convert \"%s\" to the new", pr_name(file));
+			Typeout("format?");
+			confirm("Convert macros file to new format? ");
+			f_mess(msg);
+			TOstop();
+			confirm(msg);
+		}
+		sprintf(ibuf, "%s\n", file);
+		Inputp = ibuf;
+		WriteMacs();
+	}		
 }
 
 Remember()
@@ -304,17 +343,13 @@ Forget()
 
 	UpdModLine++;
 	if (m->m_flags & DEFINE) {
-		if (m->m_len == 0)
-			message("Empty macro.");
-		else {
-			message("Keyboard macro defined.");
-			m->m_flags &= ~DEFINE;
-			cp = &m->m_body[m->m_len - 2];
-			if (PrefChar(*cp))
-				m->m_len -= 2;
-			else if (commands[*++cp].f_func == Forget)
-				m->m_len--;
-		}
+		message("Keyboard macro defined.");
+		m->m_flags &= ~DEFINE;
+		cp = &m->m_body[m->m_len - 2];
+		if (PrefChar(*cp))
+			m->m_len -= 2;
+		else if (commands[*++cp].f_func == Forget)
+			m->m_len--;
 	}
 }
 

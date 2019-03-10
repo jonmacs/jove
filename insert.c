@@ -78,20 +78,6 @@ LineInsert()
 	IFixMarks(olddot, oldchar, curline, curchar);
 }	
 
-/* Make the indent of the current line match that of "from" */
-
-copy_ind(from)
-register char	*from;
-{
-	char	c,
-		*base = from;
-	extern int	tabstop;
-
-	while ((c = *from) && (c == ' ' || c == '\t'))
-		from++;
-	n_indent(calc_pos(base, from - base));
-}
-
 n_indent(goal)
 register int	goal;
 {
