@@ -134,7 +134,7 @@ replace(query, inreg)
 		m = CurMark();
 		l2 = m->m_line;
 		char2 = m->m_char;
-		ignore(fixorder(&l1, &char1, &l2, &char2));
+		(void) fixorder(&l1, &char1, &l2, &char2);
 	}
 
 	/* Get search string. */
@@ -185,7 +185,7 @@ char	*searchbuf,
 	fp = open_file(file, iobuff, F_READ, !COMPLAIN, QUIET);
 	if (fp == NIL)
 		return 0;
-	ignore(sprintf(pattern, "^%s[^\t]*\t\\([^\t]*\\)\t[?/]\\(.*\\)[?/]$", tag));
+	sprintf(pattern, "^%s[^\t]*\t\\([^\t]*\\)\t[?/]\\(.*\\)[?/]$", tag);
 	while (f_gets(fp, line) != EOF) {
 		if (line[0] != *tag || strncmp(tag, line, taglen) != 0)
 			continue;

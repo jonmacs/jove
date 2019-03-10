@@ -79,7 +79,7 @@ add_stroke(c)
 {
 	if (key_p + 5 > &key_strokes[(sizeof key_strokes) - 1])
 		key_p = key_strokes;
-	ignore(sprintf(key_p, "%p ", c));
+	sprintf(key_p, "%p ", c);
 	key_p += strlen(key_p);
 }
 
@@ -110,8 +110,8 @@ waitchar()
 	if ((old_time = alarm((unsigned) N_SEC)) == 0)
 		old_time = UpdFreq;
 	c = getch();
-	ignore(alarm(old_time));
-	ignorf(signal(SIGALRM, oldfunc));
+	(void) alarm(old_time);
+	(void) signal(SIGALRM, oldfunc);
 
 	return c;
 }
@@ -218,7 +218,7 @@ LineDist(nextp, endp)
 register Line	*nextp,
 		*endp;
 {
-	ignore(inorder(nextp, 0, endp, 0));
+	(void) inorder(nextp, 0, endp, 0);
 	return line_diff;
 }
 
@@ -267,7 +267,7 @@ register Line	*line;
 {
 	extern int	Jr_Len;
 
-	ignore(getcptr(line, genbuf));
+	(void) getcptr(line, genbuf);
 	return Jr_Len;
 };
 
@@ -326,9 +326,10 @@ char *
 itoa(num)
 register int	num;
 {
-	static char	line[10];
+	static char	line[15];
 
-	return sprintf(line, "%d", num);
+	sprintf(line, "%d", num);
+	return line;
 }
 
 min(a, b)
@@ -386,7 +387,7 @@ char	*buf;
 			strcpy(buf, linebuf);
 		Jr_Len = strlen(linebuf);
 	} else
-		ignore(getline(line->l_dline, buf));
+		(void) getline(line->l_dline, buf);
 	return buf;
 }
 
@@ -545,8 +546,8 @@ char	*err, *file;
 pclose(p)
 int	*p;
 {
-	ignore(close(p[0]));
-	ignore(close(p[1]));
+	(void) close(p[0]);
+	(void) close(p[1]);
 }
 
 dopipe(p)
@@ -670,7 +671,7 @@ time_t	*timep;
 	if (timep != 0)
 		now = *timep;
 	else
-		ignorl(time(&now));
+		(void) time(&now);
 	cp = ctime(&now) + from;
 	if (to == -1)
 		cp[strlen(cp) - 1] = '\0';		/* Get rid of \n */
@@ -750,7 +751,7 @@ null_ncpy(to, from, n)
 char	*to,
 	*from;
 {
-	ignore(strncpy(to, from, n));
+	(void) strncpy(to, from, n);
 	to[n] = '\0';
 }
 

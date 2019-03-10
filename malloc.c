@@ -35,7 +35,7 @@
  *	a different implementation may need to redefine
  *	ALIGN, NALIGN, BLOCK, BUSY, INT
  *	where INT is integer type to which a pointer can be cast
-*/
+ */
 
 #define INT		int
 #define ALIGN		int

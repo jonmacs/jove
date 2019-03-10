@@ -51,11 +51,11 @@ Line	*line1,
 
 	if ((line1 == line2 && char1 == char2) || line2 == 0)
 		complain((char *) 0);
-	ignore(fixorder(&line1, &char1, &line2, &char2));
+	(void) fixorder(&line1, &char1, &line2, &char2);
 
 	retline = nbufline();	/* New buffer line */
 
-	ignore(getright(line1, genbuf));
+	(void) getright(line1, genbuf);
 	if (line1 == line2)
 		genbuf[char2] = '\0';
 
@@ -67,7 +67,7 @@ Line	*line1,
 		retline->l_next = 0;
 	else {
 		retline->l_next = line1->l_next;
-		ignore(getright(line2, genbuf));
+		(void) getright(line2, genbuf);
 		genbuf[char2] = '\0';
 		line2->l_dline = putline(genbuf);
 		/* Shorten this line */
@@ -141,7 +141,7 @@ del_char(forward)
 		reg_kill(before.p_line, before.p_char, 1);
 	else {
 		DOTsave(&after);
-		ignore(fixorder(&before.p_line, &before.p_char, &after.p_line, &after.p_char));
+		(void) fixorder(&before.p_line, &before.p_char, &after.p_line, &after.p_char);
 		patchup(before.p_line, before.p_char, after.p_line, after.p_char);
 		lremove(before.p_line, after.p_line);
 	}
@@ -184,11 +184,11 @@ Line	*line2;
 		Line	*lastln = lastline(nl);
 
 		if (backwards)
-			ignore(DoYank(nl, 0, lastln, length(lastln), killbuf[killptr], 0, (Buffer *) 0));
+			(void) DoYank(nl, 0, lastln, length(lastln), killbuf[killptr], 0, (Buffer *) 0);
 		else {
 			Line	*olastln = lastline(killbuf[killptr]);
 
-			ignore(DoYank(nl, 0, lastln, length(lastln), olastln, length(olastln), (Buffer *) 0));
+			(void) DoYank(nl, 0, lastln, length(lastln), olastln, length(olastln), (Buffer *) 0);
 		}
 	}
 	this_cmd = KILLCMD;
@@ -225,11 +225,11 @@ CopyRegion()
 		return;
 
 	if (status)
-		ignore(DoYank(mp->m_line, mp->m_char, curline, curchar,
-				nl, 0, (Buffer *) 0));
+		(void) DoYank(mp->m_line, mp->m_char, curline, curchar,
+				nl, 0, (Buffer *) 0);
 	else
-		ignore(DoYank(curline, curchar, mp->m_line, mp->m_char,
-				nl, 0, (Buffer *) 0));
+		(void) DoYank(curline, curchar, mp->m_line, mp->m_char,
+				nl, 0, (Buffer *) 0);
 }
 
 DelWtSpace()

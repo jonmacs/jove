@@ -30,12 +30,12 @@ main()
 		printf("teachjove: cannot find your home!\n");
 		exit(-1);
 	}
-	sprintf(fname, "%s/teach-jove", home);
+	(void) sprintf(fname, "%s/teach-jove", home);
 	if (access(fname, F_OK) != 0) {
-		sprintf(cmd, "cp %s %s", TEACHJOVE, fname);
+		(void) sprintf(cmd, "cp %s %s", TEACHJOVE, fname);
 		system(cmd);
 	}
-	execlp("jove", "teachjove", fname, (char *) 0);
+	(void) execlp("jove", "teachjove", fname, (char *) 0);
 	printf("teachjove: cannot execl jove!\n");
 }
 

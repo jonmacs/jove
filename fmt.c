@@ -48,11 +48,11 @@ char	*str;
 	if (c == '\033')
 		strcpy(cp, "ESC");
 	else if (c < ' ')
-		ignore(sprintf(cp, "C-%c", c + '@'));
+		sprintf(cp, "C-%c", c + '@');
 	else if (c == '\177')
 		strcpy(cp, "^?");
 	else
-		ignore(sprintf(cp, "%c", c));
+		sprintf(cp, "%c", c);
 }
 
 static
@@ -260,7 +260,6 @@ va_dcl
 
 /* VARARGS2 */
 
-char *
 sprintf(str, fmt, va_alist)
 char	*str,
 	*fmt;
@@ -271,7 +270,6 @@ va_dcl
 	va_start(ap);
 	format(str, 130, fmt, ap);
 	va_end(ap);
-	return str;
 }
 
 /* VARARGS1 */

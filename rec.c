@@ -29,7 +29,7 @@ recinit()
 	rec_fd = creat(recfname, 0644);
 	if (rec_fd == -1) {
 		f_mess("Cannot open \"%s\"; recovery disabled.", recfname);
-		ignore(SitFor(7));
+		(void) SitFor(7);
 		return;
 	}
 	/* Initialize the record IO. */
@@ -40,15 +40,15 @@ recinit()
 	Header.Pid = getpid();
 	Header.UpdTime = 0L;
 	Header.Nbuffers = 0;
-	ignore(write(rec_fd, (char *) &Header, sizeof Header));
+	(void) write(rec_fd, (char *) &Header, sizeof Header);
 }
 
 recclose()
 {
 	if (rec_fd == -1)
 		return;
-	ignore(close(rec_fd));
-	ignore(unlink(recfname));
+	(void) close(rec_fd);
+	(void) unlink(recfname);
 }
 
 static
@@ -116,7 +116,7 @@ SyncRec()
 	if (rec_fd == -1)
 		return;
 	lseek(rec_fd, 0L, L_SET);
-	ignorl(time(&Header.UpdTime));
+	(void) time(&Header.UpdTime);
 	Header.Nbuffers = 0;
 	for (b = world; b != 0; b = b->b_next)
 		if (b->b_type == B_SCRATCH || !IsModified(b))

@@ -137,9 +137,9 @@ Buffer	*def;
 	char	prompt[100];
 
 	if (def != 0 && def->b_name != 0)
-		ignore(sprintf(prompt, ": %f (default %s) ", def->b_name));
+		sprintf(prompt, ": %f (default %s) ", def->b_name);
 	else
-		ignore(sprintf(prompt, ProcFmt));
+		sprintf(prompt, ProcFmt);
 	mkbuflist(bnames);
 	offset = complete(bnames, prompt, RET_STATE);
 	if (offset == EOF)
@@ -179,8 +179,7 @@ register Buffer *b;
 	do {
 		if (w->w_bufp == b) {
 			if (b == curbuf)
-				ignore(do_select(w, lastbuf ?
-						 lastbuf->b_name : Mainbuf));
+				(void) do_select(w, lastbuf ? lastbuf->b_name : Mainbuf);
 			else {
 				register Window	*save = w->w_next;
 
@@ -301,7 +300,8 @@ char	*buf;
 
 	for (lp = b->b_first; lp != 0; lp = lp->l_next, nlines++)
 		;
-	return sprintf(buf, "%d", nlines);
+	sprintf(buf, "%d", nlines);
+	return buf;
 }
 
 static char	*TypeNames[] = {
@@ -360,7 +360,7 @@ register Buffer	*b;
 	cp = basename(b->b_fname);
 	strcpy(tmp, cp);
 	while (buf_exists(tmp)) {
-		ignore(sprintf(tmp, "%s.%d", cp, try));
+		sprintf(tmp, "%s.%d", cp, try);
 		try++;
 	}
 	setbname(b, tmp);
@@ -371,7 +371,7 @@ register Buffer	*b;
 {
 	lfreelist(b->b_first);
 	b->b_first = b->b_dot = b->b_last = 0;
-	ignore(listput(b, b->b_first));
+	(void) listput(b, b->b_first);
 	
 	SavLine(b->b_dot, NullStr);
 	b->b_char = 0;

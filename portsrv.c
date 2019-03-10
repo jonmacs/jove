@@ -66,7 +66,7 @@ char	*ptr;
 	if (nbytes == 0)
 		kill(ppid, INPUT_SIG);
 
-	ignore(write(1, ptr, n));
+	(void) write(1, ptr, n);
 	alarm(1);
 }
 
@@ -74,7 +74,7 @@ read_pipe()
 {
 	register int	n;
 	
-	ignorf(signal(SIGALRM, p_inform));
+	(void) signal(SIGALRM, p_inform);
 
 	while ((header.nbytes = read(InputFD, header.buf, sizeof header.buf)) > 0) {
 		n = HEADSIZE + header.nbytes;
@@ -99,40 +99,40 @@ char	*argv[];
 
 	case 0:
 		/* We'll intercept childs output in p[0] */
-		ignore(dup2(p[1], 1));
-		ignore(dup2(p[1], 2));
-		ignore(close(p[0]));
-		ignore(close(p[1]));
+		(void) dup2(p[1], 1);
+		(void) dup2(p[1], 2);
+		(void) close(p[0]);
+		(void) close(p[1]);
 			
-		ignore(setpgrp(getpid(), getpid()));
+		(void) setpgrp(getpid(), getpid());
 		execv(argv[2], &argv[3]);
 		_exit(-4);
 
 	default:
-		ignore(close(0));
+		(void) close(0);
 				/* Don't want this guy to read anything
 				   jove sends to our soon to be created
 				   child */
 
 		JovesInput = atoi(argv[1]);
-		ignorf(signal(SIGINT, SIG_IGN));
-		ignorf(signal(SIGQUIT, SIG_IGN));
-		ignore(close(p[1]));
+		(void) signal(SIGINT, SIG_IGN);
+		(void) signal(SIGQUIT, SIG_IGN);
+		(void) close(p[1]);
 
 		/* Tell jove the pid of the real child as opposed to us. */
 		header.pid = getpid();
 		header.nbytes = sizeof (int);
 		*(int *) header.buf = pid;
-		ignore(write(1, (char *) &header, sizeof pid + HEADSIZE));
+		(void) write(1, (char *) &header, sizeof pid + HEADSIZE);
 		p_inform();	/* Inform jove */
 
 		/* Read proc's output and send it to jove */
 		InputFD = p[0];
 		read_pipe();
-		ignore(close(p[0]));
+		(void) close(p[0]);
 		header.pid = getpid();
 		header.nbytes = EOF;	/* Tell jove we are finished */
-		ignore(write(1, (char *) &header, HEADSIZE));
+		(void) write(1, (char *) &header, HEADSIZE);
 		p_inform();
 		/* Try to exit like our child did ... */
 		{

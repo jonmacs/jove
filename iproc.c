@@ -44,7 +44,7 @@ char	*name;
 
 	for (p = procs; p != 0; p = p->p_next)
 		if (strcmp(proc_buf(p), name) == 0) {
-			ignore(pstate(p));
+			(void) pstate(p);
 			if (p->p_eof) {
 				DealWDeath();
 				return 0;
@@ -200,7 +200,7 @@ IShell()
 	int	number = 1;
 
 	do
-		ignore(sprintf(shell, "shell-%d", number++));
+		sprintf(shell, "shell-%d", number++);
 	while (proc_exists(shell));
 
 	proc_strt(shell, "i-shell", Shell, basename(Shell), "-i", 0);

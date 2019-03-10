@@ -235,7 +235,7 @@ WindFind()
 	}
 
 	if (one_windp())
-		ignore(div_wind(curwind, 1));
+		(void) div_wind(curwind, 1);
 
 	tiewind(curwind->w_next, curbuf);
 	SetBuf(savebuf);	/* Back to original buffer */

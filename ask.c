@@ -114,7 +114,7 @@ cont:		s_mess("%s%s", prompt, linebuf);
 				CurAskPtr = next_line(CurAskPtr, n);
 				if (CurAskPtr == curbuf->b_first && CurAskPtr->l_next != 0)
 					CurAskPtr = CurAskPtr->l_next;
-				ignore(getright(CurAskPtr, linebuf));
+				(void) getright(CurAskPtr, linebuf);
 				modify();
 				makedirty(curline);
 				Eol();
@@ -303,7 +303,7 @@ register char	**dir_vec;
 		    (isdir(linebuf)));
 	if (the_same && !is_ntdir) {
 		add_mess(n == 1 ? " [Unique]" : " [Ambiguous]");
-		ignore(SitFor(7));
+		(void) SitFor(7);
 	}
 	if (is_ntdir)
 		Insert('/');
@@ -337,12 +337,12 @@ f_complete(c)
 	}
 	if ((nentries = scandir(dir, &dir_vec, f_match, alphacomp)) == -1) {
 		add_mess(" [Unknown directory: %s]", dir);
-		ignore(SitFor(7));
+		(void) SitFor(7);
 		return 1;
 	}
 	if (nentries == 0) {
 		add_mess(" [No match]");
-		ignore(SitFor(7));
+		(void) SitFor(7);
 	} else if (c == ' ')
 		fill_in(dir_vec, nentries);
 	else {

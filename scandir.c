@@ -44,7 +44,7 @@ char	*dir;
 closedir(dp)
 DIR	*dp;
 {
-	ignore(close(dp->d_fd));
+	(void) close(dp->d_fd);
 	free((char *) dp);
 }
 

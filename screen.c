@@ -724,7 +724,7 @@ GENi_lines(top, bottom, num)
 		if (M_DL && (num > 1)) {
 			char	minibuf[16];
 
-			ignore(sprintf(minibuf, M_DL, num));
+			sprintf(minibuf, M_DL, num);
 			putpad(minibuf, ILI - CapLine);
 		} else {
 			for (i = 0; i < num; i++)
@@ -734,7 +734,7 @@ GENi_lines(top, bottom, num)
 		if (M_AL && (num > 1)) {
 			char	minibuf[16];
 
-			ignore(sprintf(minibuf, M_AL, num));
+			sprintf(minibuf, M_AL, num);
 			putpad(minibuf, ILI - CapLine);
 		} else {
 			for (i = 0; i < num; i++)
@@ -793,7 +793,7 @@ GENd_lines(top, bottom, num)
 		if (M_DL && (num > 1)) {
 			char	minibuf[16];
 
-			ignore(sprintf(minibuf, M_DL, num));
+			sprintf(minibuf, M_DL, num);
 			putpad(minibuf, ILI - top);
 		} else {
 			for (i = 0; i < num; i++)
@@ -803,7 +803,7 @@ GENd_lines(top, bottom, num)
 		if (M_AL && (num > 1)) {
 			char	minibuf[16];
 
-			ignore(sprintf(minibuf, M_AL, num));
+			sprintf(minibuf, M_AL, num);
 			putpad(minibuf, ILI - CapLine);
 		} else {
 			for (i = 0; i < num; i++)

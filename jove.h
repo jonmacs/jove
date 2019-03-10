@@ -84,18 +84,6 @@
 extern int	OkayAbort,	/* okay to abort redisplay */
 		BufSize;
 
-/* C doesn't have a (void) cast, so we have to fake it for lint's sake. */
-
-#ifdef lint
-#	define	ignore(a)	Ignore((char *) (a))
-#	define	ignorf(a)	Ignorf((int (*) ()) (a))
-#	define	ignorl(a)	Ignorl(a)
-#else
-#	define	ignore(a)	a
-#	define	ignorf(a)	a
-#	define	ignorl(a)	a
-#endif
-
 #define ARG_CMD		1
 #define LINECMD		2
 #define KILLCMD		3	/* so we can merge kills */
@@ -493,7 +481,6 @@ extern char
 	*basename(),
 	*filename(),
 	*getblock(),
-	*sprintf(),
 	*IOerr(),
 	*index(),
 	*ask(),

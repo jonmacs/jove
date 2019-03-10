@@ -133,6 +133,11 @@ int	c;
 	KeyMacro.m_len++;
 }
 
+in_macro()
+{
+	return ((stackp >= 0) && ((macstack[stackp])->m_flags & EXECUTE));
+}
+
 mac_getc()
 {
 	struct macro	*m;
@@ -231,7 +236,7 @@ WriteMacs()
 		mac_io(write, m->m_body, m->m_len);
 		m->m_flags &= ~SAVE;
 	}
-	ignore(close(mac_fd));
+	(void) close(mac_fd);
 	add_mess(" %d macro%n saved.", nmacs, nmacs);
 }
 
@@ -354,7 +359,7 @@ retry:		bodylen = int_fmt(tmp);
 		mac_io(read, m->m_body, m->m_len);
 		add_mac(m);
 	}
-	ignore(close(mac_fd));
+	(void) close(mac_fd);
 	add_mess(" %d macro%n defined.", nmacs, nmacs);
 	if (save_em) {
 		char	*msg = "OK to convert to the new format? ",

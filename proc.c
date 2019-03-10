@@ -311,8 +311,8 @@ SpelBuffer()
 	Window	*savewp = curwind;
 
 	put_bufs(0);
-	ignore(sprintf(com, "spell %s", curbuf->b_fname));
-	ignore(UnixToBuf(Spell, YES, EWSize, YES, Shell, basename(Shell), ShFlags, com, 0));
+	sprintf(com, "spell %s", curbuf->b_fname);
+	(void) UnixToBuf(Spell, YES, EWSize, YES, Shell, basename(Shell), ShFlags, com, 0);
 	message("[Delete the irrelevant words and then type C-X C-C]");
 	Recur();
 	SetWind(savewp);
@@ -349,7 +349,7 @@ char	*bname;
 	ToFirst();
 	f_mess("Finding misspelled words ... ");
 	while (!lastp(curline)) {
-		ignore(sprintf(wordspel, "\\<%s\\>", linebuf));
+		sprintf(wordspel, "\\<%s\\>", linebuf);
 		SetBuf(buftospel);
 		ToFirst();
 		while (bp = dosearch(wordspel, 1, 1)) {
@@ -480,15 +480,15 @@ char	*bufname,
 		complain("[Fork failed]");
 	}
 	if (pid == 0) {
-		ignore(close(0));
-		ignore(open("/dev/null", 0));
-		ignore(close(1));
-		ignore(close(2));
-		ignore(dup(p[1]));
-		ignore(dup(p[1]));
+		(void) close(0);
+		(void) open("/dev/null", 0);
+		(void) close(1);
+		(void) close(2);
+		(void) dup(p[1]);
+		(void) dup(p[1]);
 		pclose(p);
 		execv(func, (char **) &args);
-		ignore(write(1, "Execl failed.\n", 14));
+		(void) write(1, "Execl failed.\n", 14);
 		_exit(1);
 	} else {
 		int	status;
@@ -500,7 +500,7 @@ char	*bufname,
 		sighold(SIGCHLD);
 #endif
 
-		ignore(close(p[1]));
+		(void) close(p[1]);
 		fp = fd_open(func, F_READ, p[0], iobuff, LBSIZE);
 		while (inIOread = 1, f_gets(fp, genbuf) != EOF) {
 			inIOread = 0;
@@ -529,7 +529,7 @@ char	*bufname,
 		if (disp)
 			DrawMesg();
 		close_file(fp);
-		ignorf(signal(SIGINT, oldint));
+		(void) signal(SIGINT, oldint);
 		dowait(pid, &status);
 #ifdef IPROCS
 		sigrelse(SIGCHLD);
@@ -545,12 +545,12 @@ static int	SigMask = 0;
 
 sighold(sig)
 {
-	ignore(sigblock(SigMask |= (1 << (sig - 1))));
+	(void) sigblock(SigMask |= (1 << (sig - 1)));
 }
 
 sigrelse(sig)
 {
-	ignore(sigsetmask(SigMask &= ~(1 << (sig - 1))));
+	(void) sigsetmask(SigMask &= ~(1 << (sig - 1)));
 }
 
 #endif
@@ -580,7 +580,7 @@ char	*cmd;
 	fp = open_file(tname, iobuff, F_WRITE, COMPLAIN, QUIET);
 	putreg(fp, m->m_line, m->m_char, curline, curchar, YES);
 	DelReg();
-	ignore(sprintf(combuf, "%s < %s", cmd, tname));
+	sprintf(combuf, "%s < %s", cmd, tname);
 	status = UnixToBuf(outbuf->b_name, NO, 0, outbuf->b_type == B_SCRATCH,
 			   Shell, basename(Shell), ShFlags, combuf, 0);
     ONERROR
@@ -588,7 +588,7 @@ char	*cmd;
 		   file. */
     ENDCATCH
 	f_close(fp);
-	ignore(unlink(tname));
+	(void) unlink(tname);
 	SetWind(save_wind);
 	com_finish(status, combuf);
 }

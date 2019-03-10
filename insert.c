@@ -143,7 +143,7 @@ Tab()
 
 		Bol();
 		DelWtSpace();
-		ignore(lisp_indent());
+		(void) lisp_indent();
 		if (m) {
 			ToMark(m);
 			DelMark(m);
@@ -154,7 +154,7 @@ Tab()
 	}
 #endif
 	if (MajorMode(CMODE) && strlen(linebuf) == 0)
-		ignore(c_indent());
+		(void) c_indent();
 	SelfInsert();
 }
 
@@ -200,7 +200,7 @@ DoParen()
 	}
 #endif
 	SelfInsert();
-	if (MinorMode(ShowMatch)) {
+	if (MinorMode(ShowMatch) && !charp() && !in_macro()) {
 		BackChar();	/* Back onto the ')' */
 		if (NotInQuotes(linebuf, curchar)) {
 			if ((int) bp == -1)
@@ -212,7 +212,7 @@ DoParen()
 
 					DOTsave(&b);
 					SetDot(bp);
-					ignore(SitFor(PDelay));
+					(void) SitFor(PDelay);
 					SetDot(&b);
 				} else
 					s_mess("%s", getright(bp->p_line, genbuf));
@@ -269,7 +269,7 @@ DoNewline(indentp)
 	if (indentp)
 #ifdef LISP
 	    if (MajorMode(LISPMODE))
-		ignore(lisp_indent());
+		(void) lisp_indent();
 	    else
 #endif
 		n_indent((LMargin == 0) ? indent : LMargin);
@@ -331,10 +331,10 @@ Buffer	*whatbuf;
 	lsave();
 	if (whatbuf)
 		modify();
-	ignore(getright(atline, genbuf));
+	(void) getright(atline, genbuf);
 	strcpy(save, &genbuf[atchar]);
 
-	ignore(getright(fline, buf));
+	(void) getright(fline, buf);
 	if (fline == tline)
 		buf[tchar] = '\0';
 
@@ -352,7 +352,7 @@ Buffer	*whatbuf;
 		atchar = 0;
 	}
 
-	ignore(getline(atline->l_dline, genbuf));
+	(void) getline(atline->l_dline, genbuf);
 	atchar += tchar;
 	linecopy(genbuf, atchar, save);
 	atline->l_dline = putline(genbuf);
@@ -580,7 +580,7 @@ GSexpr()
 		line_move(FORWARD, NO);
 		if (!blnkp(linebuf)) {
 			DelWtSpace();
-			ignore(lisp_indent());
+			(void) lisp_indent();
 		}
 	}
 	SetDot(&dot);

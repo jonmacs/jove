@@ -53,7 +53,9 @@
 
 #define CMT_FMT		/* include the comment formatting routines */
 
-#define MY_MALLOC	/* use more memory efficient malloc */
+#if !sun
+#   define MY_MALLOC	/* use more memory efficient malloc */
+#endif
 
 #define BSD4_2		/* Berkeley 4.2 BSD */
 
@@ -73,7 +75,7 @@
 #	define	byte_copy bcopy	/* use fast assembler version */
 #endif
 
-#if vax || sel || sun || pyr
+#if vax || sel || sun || pyr || mc68000 || tahoe
 #	define VMUNIX		/* Virtual Memory UNIX */
 #endif
 

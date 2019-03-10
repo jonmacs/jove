@@ -83,7 +83,7 @@ char	*pattern,
 	alt_p = alt_bufp;
 	*alt_p++ = comp_p;
 	nparens = 0;
-	ignore(do_comp(re ? OKAY_RE : NORM));
+	(void) do_comp(re ? OKAY_RE : NORM);
 	*alt_p = 0;
 }
 
@@ -223,7 +223,7 @@ do_comp(kind)
 		    	if ((REpeekc = REgetc()) == '^') {
 		    		*last_p = NONE_OF;
 		    		/* Get it for real this time. */
-		    		ignore(REgetc());
+		    		(void) REgetc();
 		    	}
 		    	chrcnt = 1;
 		    	while ((c = REgetc()) != ']' && c != 0) {
