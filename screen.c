@@ -716,12 +716,12 @@ GENi_lines(top, bottom, num)
 	register int	i;
 
 	if (CS) {
-		putstr(tgoto(CS, bottom, top));
+		putpad(tgoto(CS, bottom, top));
 		CapCol = CapLine = 0;
 		Placur(top, 0);
 		for (i = 0; i < num; i++)
 			putpad(SR, bottom - top);
-		printf(tgoto(CS, ILI, 0));
+		putpad(tgoto(CS, ILI, 0));
 		CapCol = CapLine = 0;
 	} else {
 		Placur(bottom - num + 1, 0);
@@ -785,12 +785,12 @@ GENd_lines(top, bottom, num)
 	register int	i;
 
 	if (CS) {
-		printf(tgoto(CS, bottom, top));
+		putpad(tgoto(CS, bottom, top));
 		CapCol = CapLine = 0;
 		Placur(bottom, 0);
 		for (i = 0; i < num; i++)
 			putpad(SF, bottom - top);
-		printf(tgoto(CS, ILI, 0));
+		putpad(tgoto(CS, ILI, 0));
 		CapCol = CapLine = 0;
 	} else {
 		Placur(top, 0);

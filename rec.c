@@ -33,7 +33,7 @@ recinit()
 		return;
 	}
 	/* Initialize the record IO. */
-	rec_out = fd_open(recfname, F_WRITE|F_LOCK, rec_fd, iobuff, LBSIZE);
+	rec_out = fd_open(recfname, F_WRITE|F_LOCKED, rec_fd, iobuff, LBSIZE);
 
 	/* Initialize the record header. */
 	Header.Uid = getuid();

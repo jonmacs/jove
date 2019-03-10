@@ -12,8 +12,13 @@
 #include <signal.h>
 #include <varargs.h>
 
+/* This disgusting RE search string parses output from the GREP
+   family, from the pdp11 compiler, pcc, and lint.  Jay (HACK)
+   Fenlasen changed this to work for the lint errors. */
 private char
-	*errfmt = "^\\{\",\\}\\([^:\"( \t]*\\)\\{\"\\, line ,:,(\\} *\\([0-9][0-9]*\\)[:)]";
+	*errfmt = "^\\{\",\\}\\([^:\"( \t]*\\)\\{\"\\, line ,:,(\\} *\\([0-9][0-9]*\\)[:)]\
+\\|::  *\\([^(]*\\)(\\([0-9]*\\))$\
+\\|( \\([^(]*\\)(\\([0-9]*\\)) ),";
 
 struct error {
 	Buffer		*er_buf;	/* Buffer error is in */
@@ -84,7 +89,7 @@ char	*fmtstr;
 	Bufpos	*bp;
 	char	fname[FILESIZE],
 		lineno[10],
-		REbuf[128],
+		REbuf[256],
 		*REalts[10];
 	int	lnum,
 		last_lnum = -1;
@@ -520,7 +525,9 @@ va_dcl
 		complain("[Fork failed]");
 	}
 	if (pid == 0) {
+#ifdef IPROCS
 		sigrelse(SIGCHLD);   /* don't know if this matters */
+#endif IPROCS
 		(void) signal(SIGINT, SIG_DFL);
 #ifdef JOB_CONTROL
 		sigrelse(SIGINT);

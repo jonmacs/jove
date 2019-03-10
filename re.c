@@ -10,10 +10,10 @@
 #include "jove.h"
 #include "ctype.h"
 
-#define NALTS	10	/* number of alternate search strings */
+#define NALTS	16	/* number of alternate search strings */
 
 char	searchstr[128],
-	compbuf[128],		/* global default compbuf */
+	compbuf[256],		/* global default compbuf */
 	rep_search[128],	/* replace search string */
 	rep_str[128],		/* contains replacement string */
 	*cur_compb,		/* usually points at compbuf */
@@ -183,6 +183,7 @@ toolong:		complain("Search string too long/complex.");
 					complain("Too many alternates; max %d.", NALTS);
 				*comp_p++ = EOP;
 				*alt_p++ = comp_p;
+				nparens = 0;
 				break;
 
 			case '1':

@@ -231,9 +231,6 @@ extern int
 #endif TXT_TO_C
 
 struct cmd	commands[] = {
-	FUNCTION, "prefix-1", WIRED_CMD(EscPrefix),
-	FUNCTION, "prefix-2", WIRED_CMD(CtlxPrefix),
-	FUNCTION, "prefix-3", WIRED_CMD(MiscPrefix),
 #ifdef LISP
 	FUNCTION, "add-lisp-special", WIRED_CMD(AddSpecial),
 #endif
@@ -417,6 +414,9 @@ struct cmd	commands[] = {
 #ifdef CHDIR
 	FUNCTION, "popd", WIRED_CMD(Popd),
 #endif
+	FUNCTION, "prefix-1", WIRED_CMD(EscPrefix),
+	FUNCTION, "prefix-2", WIRED_CMD(CtlxPrefix),
+	FUNCTION, "prefix-3", WIRED_CMD(MiscPrefix),
 	FUNCTION, "previous-error", WIRED_CMD(PrevError),
 	FUNCTION, "previous-line", WIRED_CMD(PrevLine),
 	FUNCTION, "previous-page", WIRED_CMD(PrevPage),

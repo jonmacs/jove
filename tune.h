@@ -22,17 +22,21 @@
 #ifdef MSDOS
 #   define SMALL
 #else			/* assume we're UNIX or something */
-#   if vax || sel || sun || pyr || mc68000 || tahoe
+#   if vax || sel || sun || pyr || mc68000 || tahoe || iAPX286
 #	define VMUNIX		/* Virtual Memory UNIX */
 #	define BUFSIZ	1024
-#	define NBUF	64	/* number of disk buffers */
+#	if iAPX286
+#	    define NBUF	48
+#	else
+#	    define NBUF	64	/* number of disk buffers */
+#	endif iAPX286
 #   else
 #	define SMALL
 #	define BUFSIZ	512	/* or 1024 */
 #	define NBUF	3
 #   endif
 #
-#   define LOAD_AV	/* Use the load average for various commands.
+/* #   define LOAD_AV	/* Use the load average for various commands.
 #			   Do not define this if you lack a load average
 #			   system call and kmem is read protected. */
 #
@@ -49,8 +53,12 @@
 #ifdef SMALL
     typedef	short	disk_line;
 #else
-    typedef	int	disk_line;
-#endif
+#   if iAPX286
+	typedef long	disk_line;
+#   else
+	typedef	int	disk_line;
+#   endif iAPX286
+#endif SMALL
 
 #ifndef SMALL
 #   define ABBREV		/* word abbreviation mode */
@@ -59,7 +67,7 @@
 #       define BIFF		/* if you have biff (or the equivalent) */
 #       define F_COMPLETION	/* filename completion */
 #       define CHDIR		/* cd command and absolute pathnames */
-        /*#define	KILL0	/* kill(pid, 0) returns 0 if proc exists */
+#       define	KILL0	/* kill(pid, 0) returns 0 if proc exists */
 #       define SPELL		/* spell words and buffer commands */
 #       define ID_CHAR		/* include code to IDchar */
 #       define WIRED_TERMS	/* include code for wired terminals */
@@ -69,7 +77,7 @@
 #   define CMT_FMT		/* include the comment formatting routines */
 #endif SMALL
 
-#if !sun
+#if !sun && !iAPX286
 #   define MY_MALLOC	/* use more memory efficient malloc (not on suns) */
 #endif
 
@@ -93,6 +101,8 @@
 #endif
 
 #ifdef SYSV
+#   define byte_copy(s2, s1, n)	memcpy(s1, s2, n)
+#   define bzero(s, n)	memset(s, 0, n)
 #   define index	strchr
 #   define rindex	strrchr
 #endif

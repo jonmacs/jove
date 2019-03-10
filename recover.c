@@ -649,7 +649,8 @@ savetmps()
 			exit(-1);
 
 		case 0:
-			execl("/bin/cp", "cp", fp->file_data, fp->file_rec, REC_DIR, 0);
+			execl("/bin/cp", "cp", fp->file_data, fp->file_rec, 
+				  REC_DIR, (char *)0);
 			fprintf(stderr, "recover: cannot execl /bin/cp.\n");
 			exit(-1);
 

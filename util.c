@@ -10,6 +10,10 @@
 #include <signal.h>
 #include <varargs.h>
 
+#ifdef SYSV /* release 2, at least */
+short ospeed ;
+#endif
+
 struct cmd *
 FindCmd(proc)
 register int 	(*proc)();

@@ -26,7 +26,7 @@ typedef struct {
 #define F_EOF		010
 #define F_STRING	020
 #define F_ERR		040
-#define F_LOCK		0100	/* don't close this file upon error */
+#define F_LOCKED	0100	/* don't close this file upon error */
 #define F_MYBUF		0200	/* f_alloc allocated the buffer, so
 				   f_close knows to free it up */
 

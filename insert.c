@@ -291,6 +291,8 @@ register char	*str;
 	Bufpos	save;
 	int	llen;
 
+	if (*str == 0)
+		return;	/* ain't nothing to insert! */
 	DOTsave(&save);
 	llen = strlen(linebuf);
 	while (c = *str++) {
