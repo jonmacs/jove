@@ -242,7 +242,8 @@ char	*dirname;
 	CurDir = dirname;
 	nentries = jscandir(dirname, &nmptr, add_name,
 		(int (*) ptrproto((UnivConstPtr, UnivConstPtr)))NULL);
-	freedir(&nmptr, nentries);
+	if (nentries != -1)
+		freedir(&nmptr, nentries);
 }
 
 private bool
