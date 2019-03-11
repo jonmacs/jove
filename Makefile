@@ -109,7 +109,7 @@ JOVETOOLM = $(MANDIR)/jovetool.$(MANEXT)
 #	Irix 5.0 onwards		SYSDEFS="-DIRIX -prototypes"
 #	LINUX (older, eg. RedHat 4, 5)	SYSDEFS=-DBSDPOSIX
 #	LINUX (with UNIX98 PTYS)	SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500"
-#       				some need TERMCAPLIB=-lcurses
+#       				some need TERMCAPLIB=-lcurses or TERMCAPLIB=-lncurses
 #	MIPS RiscOS4.x			SYSDEFS="-systype bsd43 -DBSD4"
 #	NetBSD 1.5			SYSDEFS="-DBSDPOSIX -DUSE_OPENPTY" EXTRALIBS=-lutil
 #	OpenBSD 2.x			SYSDEFS="-DBSDPOSIX -DUSE_OPENPTY" EXTRALIBS=-lutil
