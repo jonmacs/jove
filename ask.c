@@ -558,6 +558,8 @@ ZXchar	c;
 		fill_in(dir_vec, nentries);
 	} else {
 		/* we're a '?' */
+		const int
+			towidth = min((CO - 2), MAX_TYPEOUT);
 		int
 			i,
 			maxlen = 0,
@@ -572,7 +574,9 @@ ZXchar	c;
 		for (i = 0; i < nentries; i++)
 			maxlen = max((int)strlen(dir_vec[i]), maxlen);
 		maxlen += 4;	/* pad each column with at least 4 spaces */
-		ncols = min((CO - 2), MAX_TYPEOUT) / maxlen;
+		if (maxlen > towidth)
+		    maxlen = towidth;
+		ncols = towidth / maxlen;
 		entriespercol = (nentries + ncols - 1) / ncols;
 
 		for (line = 0; line < entriespercol; line++) {
