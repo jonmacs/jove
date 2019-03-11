@@ -108,8 +108,8 @@ int	(*sorter) ptrproto((UnivConstPtr, UnivConstPtr));
 	DIR	*dirp;
 	struct  dirent	*entry;
 	char	**ourarray;
-	unsigned int	nalloc = 10,
-			nentries = 0;
+	unsigned int	nalloc = 10;
+	size_t	nentries = 0;
 
 	if ((dirp = opendir(dir)) == NULL)
 		return -1;

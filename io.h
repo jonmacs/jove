@@ -40,7 +40,7 @@ extern void
 	close_file proto((File *fp)),
 	d_cache_init proto((void)),
 	file_write proto((char *fname, bool app)),
-	getline proto((daddr addr, char *buf)),
+	jgetline proto((daddr addr, char *buf)),
 	lsave proto((void)),
 	putreg proto((File *fp,LinePtr line1,int char1,LinePtr line2,int char2,bool makesure)),
 	read_file proto((char *file, bool is_insert)),
@@ -52,7 +52,7 @@ extern bool
 	chkCWD proto((char *dn));
 
 extern daddr
-	putline proto((char *buf));
+	jputline proto((char *buf));
 
 /* Commands: */
 

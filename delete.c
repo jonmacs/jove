@@ -63,7 +63,7 @@ int	char1,
 		genbuf[char2] = '\0';
 
 	retline->l_prev = NULL;
-	retline->l_dline = putline(&genbuf[char1]);
+	retline->l_dline = jputline(&genbuf[char1]);
 	patchup(line1, char1, line2, char2);
 
 	if (line1 == line2)
@@ -72,7 +72,7 @@ int	char1,
 		retline->l_next = line1->l_next;
 		(void) ltobuf(line2, genbuf);
 		genbuf[char2] = '\0';
-		line2->l_dline = putline(genbuf);
+		line2->l_dline = jputline(genbuf);
 		/* Shorten this line */
 	}
 
@@ -308,7 +308,7 @@ DelWtSpace()
 		sp -= 1;
 	if (sp != ep) {
 		curchar = sp - linebuf;
-		DFixMarks(curline, curchar, curline, curchar + (ep - sp));
+		DFixMarks(curline, curchar, curline, curchar + (int)(ep - sp));
 		/* Shift the remaining characters left in the buffer to close the gap.
 		 * strcpy(sp, ep) won't do because the destination overlaps the source.
 		 */

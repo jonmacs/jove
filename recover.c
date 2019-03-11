@@ -166,7 +166,7 @@ size_t	n;
 private char	*getblock proto((daddr atl));
 
 void
-getline(tl, buf)
+jgetline(tl, buf)
 daddr	tl;
 char	*buf;
 {
@@ -201,7 +201,7 @@ daddr	atl;
 
 	if (bno != curblock) {
 		ssize_t r;
-		char *what;
+		const char *what;
 
 		errno = 0;
 		what = "lseek";
@@ -489,9 +489,9 @@ char	*dest;
 	if (src == NULL || dest == NULL)
 		return;
 
-	if (dest == tty)
+	if (dest == tty) {
 		outfile = stdout;
-	else {
+	} else {
 		if ((outfile = fopen(dest, "wb")) == NULL) {
 			printf("recover: cannot create %s.\n", dest);
 			(void) signal(SIGINT, SIG_DFL);
@@ -501,7 +501,7 @@ char	*dest;
 	}
 	if (setjmp(int_env) == 0) {
 		(void) signal(SIGINT, catch);
-		dump_file(src - buflist, outfile);
+		dump_file((int)(src - buflist), outfile);
 	} else {
 		printf("\nAborted!\n");
 	}
@@ -597,7 +597,7 @@ FILE	*out;
 	Nchars = Nlines = 0L;
 	while (--nlines >= 0) {
 		addr = getaddr(ptrs_fp);
-		getline(addr, buf);
+		jgetline(addr, buf);
 		Nlines += 1;
 		Nchars += 1 + strlen(buf);
 		fputs(buf, out);

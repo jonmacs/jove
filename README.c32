@@ -42,3 +42,23 @@ dasliva@alum.mit.edu
 
 Dave Curry
 davy@ers.ibm.com
+
+[Addendum from Mark Moraes, 2013 April]
+
+I recently built jove on a Cygwin environment (1.7.18) with the
+default cc (gcc 3.4.4), and noted that our instructions in README.c32
+and Makefile are slightly obsolete.  With the changes/notes below,
+jove 4.16.0.73 seemed to compile and run fine with
+
+	make SYSDEFS=-DCYGWIN32 TERMCAPLIB=-lcurses XEXT=.exe
+
+1. Rather than building 'GNU Termcap 1.3 or ncurses' from source, all
+one needs to do is include the ncurses-devel package when installing
+Cygwin.
+
+2. Setting CYGWIN=tty is no longer needed, it seems, since the cygwin
+default shell runs under mintty which emulates a terminal.  (Once upon
+a time, I used to have to set TERM=ansi to avoid some sort of
+redisplay misbehaviour, it currently says TERM=xterm and I wonder if
+that misbehaviour still exists, I'll have to search my archive to see
+what it was).  Or just use xterm or rxvt...

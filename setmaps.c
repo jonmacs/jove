@@ -168,7 +168,7 @@ for (fnp = fnt; fnp->in != NULL; fnp++) {
 	lino = 0;
 	ch = 0;
 	for (;;) {
-		if (fgets(line, sizeof line, ifile) == NULL) {
+		if (fgets(line, (int)sizeof(line), ifile) == NULL) {
 			if (sp != stackspace) {
 				fprintf(stderr, "EOF inside #if\n");
 				exit(1);

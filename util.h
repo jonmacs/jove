@@ -11,14 +11,14 @@ extern int
 	fnamecomp proto((UnivConstPtr, UnivConstPtr));	/* order file names */
 
 #define IsModified(b)	((b)->b_modified)
-#define SavLine(a, b)	((a)->l_dline = putline((b)))
+#define SavLine(a, b)	((a)->l_dline = jputline((b)))
 #define SetLine(line)	DotTo((line), 0)
 #define bobp()		(firstp(curline) && bolp())
 #define bolp()		(curchar == 0)
 #define eobp()		(lastp(curline) && eolp())
 #define eolp()		(linebuf[curchar] == '\0')
 #define firstp(line)	((line) == curbuf->b_first)
-#define getDOT()	getline(curline->l_dline, linebuf)
+#define getDOT()	jgetline(curline->l_dline, linebuf)
 #define lastp(line)	((line) == curbuf->b_last)
 
 extern UnivPtr

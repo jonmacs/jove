@@ -609,12 +609,13 @@ parse_cmt_fmt()
 }
 
 void
-Comment()
+FillComment()
 {
 	int	saveRMargin,
 		indent_pos;
 	bool	found_close;
-	size_t	header_len,
+	char	*trimmed_header;	/* l_header without leading spaces */
+	int	trimmed_header_len,	/* length without leading or trailing spaces */
 		trailer_len;
 	register char	*cp;
 	Bufpos	open_c_pt,
@@ -622,7 +623,7 @@ Comment()
 		tmp_bp,
 		*match_o,
 		*match_c;
-	Mark	*entry_mark,	/* end of comment (we may terminate it) */
+	Mark	*close_c_mark,	/* end of comment (we may terminate it) */
 		*open_c_mark,	/* start of comment (reference to curmark) */
 		*savedot;
 
@@ -672,12 +673,18 @@ Comment()
 
 	/* move to end; delete close if it exists */
 	SetDot(&close_c_pt);
-	CopyRegion();
-	if (found_close)
+	CopyRegion();	/* enable yank-pop for undo */
+	if (found_close) {
 		del_char(BACKWARD, (int)strlen(close_pat), NO);
-	entry_mark = MakeMark(curline, curchar);
+		DelWtSpace();
+		if (bolp())
+			del_char(BACKWARD, 1, NO);
+	}
+	close_c_mark = MakeMark(curline, curchar);
 
-	/* always separate the comment body from anything preceeding it */
+	/* Separate the comment body from anything preceeding it.
+	 * Delete separator later.
+	 */
 	ToMark(open_c_mark);
 	LineInsert(1);
 	DelWtSpace();
@@ -705,71 +712,97 @@ Comment()
 
 	/* We need to strip the line header pattern of leading
 	 * white space since we need to match the line after all of
-	 * its leading whitespace is gone.
+	 * its leading whitespace is gone.  We also need to note
+	 * how long that string is without counting trailing whitespace.
 	 */
-	for (cp = l_header; *cp && (jiswhite(*cp)); cp++)
+	for (cp = l_header; jiswhite(*cp); cp++)
 		;
-	header_len = strlen(cp);
+	trimmed_header = cp;
+	for (trimmed_header_len = strlen(cp)
+	; trimmed_header_len > 0 && jiswhite(cp[trimmed_header_len - 1])
+	; trimmed_header_len--)
+		;
+
 	trailer_len = strlen(l_trailer);
 
-	/* Strip each comment line of the open and close comment strings
+	/* Strip each comment line of the open and close comment line strings
 	 * before reformatting it.
+	 * Any whitespace at the end of the open line string is optional.
+	 * This allows empty comment lines (paragraph separators) without
+	 * trailing whitespace.
 	 */
-	do {
+	for (;;) {
 		Bol();
 		DelWtSpace();
-		if (header_len && strncmp(linebuf, cp, header_len)==0)
-			del_char(FORWARD, (int)header_len, NO);
+		if (trimmed_header_len) {
+			int	hmw = numcomp(linebuf, trimmed_header);
+
+			if (hmw >= trimmed_header_len)
+				del_char(FORWARD, hmw, NO);
+		}
+
 		if (trailer_len) {
 			Eol();
-			if ((size_t)curchar > trailer_len
+			if (curchar > trailer_len
 			&& strncmp(&linebuf[curchar - trailer_len],
-				      l_trailer, trailer_len)==0)
-				del_char(BACKWARD, (int)trailer_len, NO);
+				      l_trailer, (size_t)trailer_len)==0)
+				del_char(BACKWARD, trailer_len, NO);
 		}
-		if (curline->l_next != NULL)
-			line_move(FORWARD, 1, NO);
-		else
+		if (curline == close_c_mark->m_line)
 			break;
-	} while (curline != entry_mark->m_line->l_next);
+
+		line_move(FORWARD, 1, NO);
+	}
 
 	/* Now that comment decoration is gone, use normal fill
 	 * routine to format body.
+	 * Adjust RMargin to allow for decoration to be added back,
+	 * but always allow at least 10 characters (arbitrary).
 	 */
 
 	do_set_mark(savedot->m_line, savedot->m_char);	/* user visible mark! */
 	DelMark(savedot);
-	ToMark(entry_mark);
+	ToMark(close_c_mark);
 	saveRMargin = RMargin;
-	RMargin = saveRMargin - strlen(l_header) -
-		  strlen(l_trailer) - indent_pos + 2;
+	RMargin = max(10,
+		saveRMargin - (int)strlen(l_header) - trailer_len - indent_pos + 2);
 	do_rfill(NO);	/* justify from mark through point */
 	RMargin = saveRMargin;
 	PopMark();	/* get back to the start of the comment; discard mark */
 
 	/* redecorate newly filled comment text */
 
-	do {
+	for (;;) {
 		if (curline != open_c_mark->m_line->l_next) {
+			/* Not first line: insert line header.
+			 * Slightly tricky: preserve interesting leading
+			 * whitespace in line (n_indent would eat it).
+			 */
 			Bol();
-			n_indent(indent_pos);
-			ins_str(l_header);
+			ins_str(trimmed_header);
+			Bol();
+			n_indent(indent_pos + (int)(trimmed_header - l_header));
+			if (eolp() && trailer_len == 0)
+				DelWtSpace();
 		}
 		Eol();
-		if (nl_in_close_c || (curline != entry_mark->m_line))
-			ins_str(l_trailer);
-		if (curline->l_next != NULL)
-			line_move(FORWARD, 1, NO);
-		else
+
+		if (curline == close_c_mark->m_line)
 			break;
-	} while (curline != entry_mark->m_line->l_next);
+
+		/* not last line: insert line trailer */
+		ins_str(l_trailer);
+		line_move(FORWARD, 1, NO);
+	}
+	if (nl_in_close_c) {
+		/* since NewLine is included in comment close,
+		 * add line trailer first
+		 */
+		ins_str(l_trailer);
+	}
 
 	/* handle the close comment symbol */
-	if (curline == entry_mark->m_line->l_next) {
-		line_move(BACKWARD, 1, NO);
-		Eol();
-	}
-	DelMark(entry_mark);
+	DelMark(close_c_mark);
 	DelWtSpace();
 	/* if the addition of the close symbol would cause the line
 	 * to be too long, put the close symbol on the next line.
@@ -784,12 +817,13 @@ Comment()
 		if (*cp == '\n') {
 			LineInsert(1);
 			n_indent(indent_pos);
-		} else
+		} else {
 			insert_c(*cp, 1);
+		}
 	}
 	ExchPtMark();
 	Eol();
-	del_char(FORWARD, 1, NO);
+	del_char(FORWARD, 1, NO);	/* Delete separator added earlier */
 	this_cmd = UNDOABLECMD;	/* allow yank-pop to undo */
 }
 

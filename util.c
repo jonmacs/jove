@@ -120,16 +120,20 @@ int	char1,
 		if (prevp == endp)
 			return NO;
 	}
-	while (nextp!=NULL && nextp!=endp) {
+	while (nextp!=NULL) {
 		nextp = nextp->l_next;
 		line_diff += 1;
+		if (nextp == endp)
+			return YES;
 	}
-	while (prevp!=NULL && prevp!=endp) {
+	while (prevp!=NULL) {
 		prevp = prevp->l_prev;
 		line_diff += 1;
+		if (prevp == endp)
+			return NO;
 	}
-	/* nextp == prevp implies both are NULL: the lines are not ordered */
-	return nextp==prevp? -1 : nextp==endp;
+	/* the lines are not ordered */
+	return -1;
 }
 
 /* Number of lines (forward OR back) from nextp to endp.
@@ -279,8 +283,9 @@ char	*buf;
 		if (buf != linebuf)
 			strcpy(buf, linebuf);
 		Jr_Len = strlen(linebuf);
-	} else
-		getline(line->l_dline, buf);
+	} else {
+		jgetline(line->l_dline, buf);
+	}
 	return buf;
 }
 
@@ -687,8 +692,8 @@ const char *str;
 void
 jamstrsub(buf, str, bufsz)
 char *buf;
-size_t bufsz;
 const char *str;
+size_t bufsz;
 {
 	if (strlen(str) < bufsz)
 		strcpy(buf, str);

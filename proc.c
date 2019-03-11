@@ -159,11 +159,13 @@ char	*fname,
 void
 ErrFree()
 {
-	register struct error	*ep;
+	cur_error = NULL;
+	while (errorlist != NULL) {
+		struct error	*nel = errorlist->er_next;
 
-	for (ep = errorlist; ep != NULL; ep = ep->er_next)
-		free((UnivPtr) ep);
-	errorlist = cur_error = NULL;
+		free((UnivPtr) errorlist);
+		errorlist = nel;
+	}
 }
 
 /* Parse errors of the form specified in ErrFmtStr in the current
@@ -795,7 +797,7 @@ UnixToBuf(flags, bnm, InFName, cmd)
 		complain("[Fork failed: %s]", strerror(fork_errno));
 	}
 	if (ChildPid == 0) {
-		char	*a;	/* action name (for error message) */
+		const char	*a;	/* action name (for error message) */
 # ifdef USE_VFORK
 		/* There are several other forks in Jove, but this is
 		 * the only one we execute often enough to make it worth

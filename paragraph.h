@@ -15,8 +15,8 @@ extern void
 extern void
 	BackPara proto((void)),
 	ForPara proto((void)),
-	Justify proto((void)),
-	RegJustify proto((void));
+	FillParagraph proto((void)),
+	FillRegion proto((void));
 
 /* Variables: */
 

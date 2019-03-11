@@ -325,7 +325,7 @@ strt:
 }
 
 void
-Justify()
+FillParagraph()
 {
 	use_lmargin = is_an_arg();
 	find_para(BACKWARD);
@@ -350,39 +350,19 @@ LinePtr	l1,
 }
 
 void
-RegJustify()
+FillRegion()
 {
-	Mark	*mp = CurMark(),
-		*tailmark;
-	LinePtr	l1 = curline,
-		l2 = mp->m_line;
-	int	c1 = curchar,
-		c2 = mp->m_char;
-	LinePtr	rl1,
-		rl2;
-
-	use_lmargin = is_an_arg();
-	(void) fixorder(&l1, &c1, &l2, &c2);
-	do {
-		DotTo(l1, c1);
-		find_para(FORWARD);
-		rl1 = max_line(l1, para_head);
-		rl2 = min_line(l2, para_tail);
-		tailmark = MakeMark(para_tail, 0);
-		DoJustify(rl1, (rl1 == l1) ? c1 : 0, rl2,
-			  (rl2 == l2) ? c2 : length(rl2),
-			  NO, use_lmargin ? LMargin : body_indent);
-		l1 = tailmark->m_line->l_next;
-		DelMark(tailmark);
-		c1 = 0;
-	} while (l1 != NULL && l2 != rl2);
+	CopyRegion();	/* enable yank-pop for undo */
+	do_rfill(is_an_arg());
+	this_cmd = UNDOABLECMD;	/* allow yank-pop to undo */
 }
 
 void
 do_rfill(ulm)
 bool	ulm;
 {
-	Mark	*mp = CurMark();
+	Mark	*mp = CurMark(),
+		*endmark;
 	LinePtr	l1 = curline,
 		l2 = mp->m_line;
 	int	c1 = curchar,
@@ -390,7 +370,34 @@ bool	ulm;
 
 	use_lmargin = ulm;
 	(void) fixorder(&l1, &c1, &l2, &c2);
-	DoJustify(l1, c1, l2, c2, NO, use_lmargin ? LMargin : 0);
+	endmark = MakeMark(l2, c2);
+	for (;;) {
+		Mark	*tailmark;
+		LinePtr	rl1,
+			rl2;
+		int	rc1,
+			rc2;
+
+		DotTo(l1, c1);
+		find_para(FORWARD);
+		rl1 = max_line(l1, para_head);
+		rc1 = (rl1 == l1) ? c1 : 0;
+		rl2 = min_line(endmark->m_line, para_tail);
+		rc2 = (rl2 == endmark->m_line) ? endmark->m_char : length(rl2);
+		tailmark = MakeMark(rl2, rc2);
+		if (rl1 != rl2 || rc1 != rc2)
+			DoJustify(rl1, rc1, rl2, rc2, NO,
+				use_lmargin ? LMargin : body_indent);
+		ToMark(tailmark);
+		DelMark(tailmark);
+		if (curline == endmark->m_line)
+			break;
+		l1 = curline->l_next;
+		c1 = 0;
+		if (l1 == NULL || (l1 == endmark->m_line && c1 >= endmark->m_char))
+			break;
+	}
+	DelMark(endmark);
 }
 
 private void
@@ -477,6 +484,12 @@ bool
 		while (!eolp() && !jiswhite(linebuf[curchar]))
 			curchar += 1;
 
+		/* stop if we've run out of range */
+		if (curline == endmark->m_line && curchar >= endmark->m_char) {
+			curchar = endmark->m_char;
+			break;
+		}
+
 		if (word_start != curchar && okay_char != start_char
 		&& calc_pos(linebuf, curchar) > RMargin) {
 			/* This non-empty word won't fit in output line
@@ -504,9 +517,6 @@ bool
 		} else {
 			/* this word fits (it might be empty, but that's OK) */
 			okay_char = curchar;	/* nail down success */
-			/* stop if we've run out of range */
-			if (curline == endmark->m_line && curchar >= endmark->m_char)
-				break;
 
 			/* process word separator */
 			if (eolp() && !lastp(curline)) {

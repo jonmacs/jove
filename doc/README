@@ -32,6 +32,7 @@ jove.rc.sun-cmd
 jove.rc.vt100
 jove.rc.wyse
 jove.rc.xterm
+jove.rc.xterm-256color
 jove.rc.z29
 
 keychart.		keyboard binding descriptions for specific terminals
@@ -41,6 +42,7 @@ keychart.sun-cmd
 keychart.vt100
 keychart.wyse
 keychart.xterm
+keychart.xterm-256color
 keychart.z29
 
 XTermresource	X Window System resource file to improve the codes

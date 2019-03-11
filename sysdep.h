@@ -578,7 +578,11 @@
 # endif
 #endif /* UNIX */
 
-/* lint suppression macros; GCC requires use of extensions! */
+/* lint suppression macros; GCC requires use of extensions! Clang mimics. */
+#if !defined(GCC_LINT) && (defined(__GNUC__) || defined(__clang__))
+# define GCC_LINT
+#endif
+
 #ifdef GCC_LINT
 # define UNUSED(x)	x __attribute__ ((unused))
 # define NEVER_RETURNS	__attribute__ ((noreturn))
