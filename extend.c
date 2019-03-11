@@ -568,6 +568,11 @@ BufPos()
 		nchars += length(lp) + (lp->l_next != NULL);	/* include the NL */
 	}
 
+	/* Note: percent calculation might overflow if there are more
+	 * than 20 megs in a buffer (LONG_MAX may be as small as 2**31 - 1).
+	 * Does not seem worth fixing.  Using unsigned long would double
+	 * the limit, but unsigned long is not in K&R C.
+	 */
 	f_mess("[\"%s\" line %d/%d, char %D/%D (%d%%), cursor = %d/%d]",
 	       filename(curbuf), dotline, i, dotchar, nchars,
 	       (nchars == 0) ? 100 : (int) (((long) dotchar * 100) / nchars),

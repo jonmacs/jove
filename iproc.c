@@ -65,7 +65,6 @@ struct process {
 };
 
 private void
-	jputenv proto((const char *)),
 	proc_rec proto((Process, char *, size_t)),
 	proc_close proto ((Process)),
 	SendData proto((bool)),
@@ -127,6 +126,110 @@ va_list	ap;
 	argv[i++] = va_arg(ap, char *);
 	argv[i++] = (char *)jbasename(argv[0]);	/* lose const (but it's safe) */
 	do ; while ((argv[i++] = va_arg(ap, char *)) != NULL);
+}
+
+/* environment manipulation (always for process) */
+
+extern char **environ;	/* <unistd.h> */
+static int	env_headroom = 0;	/* remaining room in environ array */
+
+/* Put a definition into the environment.
+ * Same as putenv(3) in SVID 3, POSIX, and BSD 4.3.
+ */
+private void
+jputenv(def)
+const char *def;	/* Note: caller must ensure string persists */
+{
+	static bool env_malloced = NO;	/* should we free it when replacing? */
+	const char
+		**const e = (const char **)environ,	/* to avoid type complaints from gcc */
+		**p,
+		*eq;
+
+	if ((eq = strchr(def, '=')) == NULL)
+		return;
+
+	for (p = e; ; p++) {
+		if (*p == NULL) {
+			if (env_headroom == 0) {
+#				define JENV_INCR	5
+				size_t	sz = ((p-e) + 1) * sizeof(char *);
+				const char	**ne = (const char **)
+					malloc(sz + JENV_INCR*sizeof(char *));
+
+				if (ne == NULL)
+					break;	/* malloc failed: give up -- doesn't matter much */
+
+				byte_copy(environ, ne, sz);
+				p = ne + (p-e);
+				if (env_malloced)
+					free((UnivPtr)environ);
+				env_headroom = JENV_INCR;
+				environ = (char **)ne;
+				env_malloced = YES;
+#				undef JENV_INCR
+			}
+			env_headroom -= 1;
+			*p++ = def;
+			*p = NULL;
+			break;
+		}
+		if (strncmp(*p, def, (size_t) (eq - def + 1)) == 0) {
+			*p = def;
+			break;
+		}
+	}
+}
+
+/* Remove any definitions of name from the environment.
+ * Same as 4.3BSD's unsetenv(3).
+ */
+private void
+junsetenv(name)
+const char *name;
+{
+	char
+		**p = environ,
+		**q = environ;
+	size_t l = strlen(name);
+
+	for (;;) {
+		char *e = *p++;
+
+		*q = e;
+
+		if (e == NULL)
+			break;
+
+		if (strncmp(e, name, l) == 0 && e[l] == '=') {
+			/* unset this one by not advancing q */
+			env_headroom += 1;
+		} else {
+			q += 1;
+		}
+	}
+}
+
+/* Erase misleading knowledge of the terminal type from the environment.
+ * The value of variable TERMCAP has two interpretations:
+ * If it starts with /, it is a path to the database.
+ * If it does not, it is the database entry.
+ *
+ * We also set EMACS=t to mimic GNU EMACS.  The GNU EMACS manual says:
+ *	Emacs defines the environment variable `EMACS' in the subshell,
+ *	with value `t'.  A shell script can check this variable to
+ *	determine whether it has been run from an Emacs subshell.
+ */
+private void
+set_process_env()
+{
+	static const char tcn[] = "TERMCAP";
+	const char *tc = getenv(tcn);
+
+	if (tc != NULL && tc[0] != '/')
+		junsetenv(tcn);
+	junsetenv("TERM");
+	jputenv("EMACS=t");	
 }
 
 /* There are two very different implementation techniques: pipes and ptys.
@@ -297,10 +400,7 @@ proc_strt(bufname, clobber, procname, va_alist)
 		(void) dup2(ProcOutput, 2);
 		pipeclose(toproc);
 		jcloseall();
-		jputenv("EMACS=t");
-		jputenv("TERM=emacs");
-		/* ??? the following line is not useful for terminfo systems */
-		jputenv(sprint("TERMCAP=emacs:co#%d:tc=unknown:", CO-1));
+		set_process_env();
 		execv(Portsrv, argv);
 		raw_complain("execl failed: %s", strerror(errno));
 		_exit(1);
@@ -1109,10 +1209,7 @@ proc_strt(bufname, clobber, procname, va_alist)
 		}
 # endif /* POSIX_PROCS */
 
-		jputenv("EMACS=t");
-		jputenv("TERM=emacs");
-		/* ??? the following line is not useful for terminfo systems */
-		jputenv(sprint("TERMCAP=emacs:co#%d:tc=unknown:", CO-1));
+		set_process_env();
 		execvp(argv[0], &argv[1]);
 		raw_complain("execvp failed! %s", strerror(errno));
 		_exit(errno + 1);
@@ -1222,52 +1319,6 @@ closeiprocs()
 }
 
 #endif /* !PIPEPROCS */
-
-extern char **environ;	/* <unistd.h> */
-
-private void
-jputenv(def)
-const char *def;	/* Note: caller must ensure string persists */
-{
-	const char
-		**const e = (const char **)environ,	/* to avoid type complaints from gcc */
-		**p,
-		*eq;
-	static int	headroom = -1;	/* trick: -1 is flag for first time */
-
-	if ((eq = strchr(def, '=')) == NULL)
-		return;
-
-	for (p = e; ; p++) {
-		if (*p == NULL) {
-			if (headroom <= 0) {
-#				define JENV_INCR	5
-				size_t	sz = ((p-e) + 1) * sizeof(char *);
-				const char	**ne = (const char **)
-					malloc(sz + JENV_INCR*sizeof(char *));
-
-				if (ne == NULL)
-					break;
-
-				byte_copy(environ, ne, sz);
-				p = ne + (p-e);
-				if (headroom == 0)
-					free((UnivPtr)environ);
-				headroom = JENV_INCR;
-				environ = (char **)ne;
-#				undef JENV_INCR
-			}
-			headroom -= 1;
-			*p++ = def;
-			*p = NULL;
-			break;
-		}
-		if (strncmp(*p, def, (size_t) (eq - def + 1)) == 0) {
-			*p = def;
-			break;
-		}
-	}
-}
 
 char	proc_prompt[128] = "% ";	/* VAR: process prompt */
 

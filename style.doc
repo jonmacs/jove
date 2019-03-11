@@ -1,0 +1,63 @@
+This is a catalogue of coding conventions used in JOVE.  It is
+incomplete -- we only list ones that are surprising or needed to be
+corrected in contributions.  Much can be inferred by reading the code.
+Consistency is valued.
+
+Bugs in an editor are very bad.  Top priority is given to correctness.
+We try to code in a way that lets the compiler detect problems (lint).
+One consequence is that we try to eliminate things that cause
+warnings, even if they are correct.  Misbehaving on bad input counts
+as a bug -- buffer overruns are to be protected against.
+
+Indentation is done by tabs.  Since 8 columns per indentation level is
+excessive, we recommend setting the "tab-width" variable to 4.  You
+are using JOVE to edit JOVE, right?
+
+C allows you to increment or decrement a variable using ++ or --.  If
+the expression's value is not going to be used, we avoid these operators.
+Instead of the statement
+	i++;
+write
+	i += 1;
+Jon felt strongly about this.
+
+JOVE is intended to be highly portable.  It supports many ancient
+systems.  We cannot assume anything beyond K&R C.  We cannot assume
+POSIX.  Some features of each are valuable enough that we use
+conditional compilation to let us exploit them.
+
+Many odd parts of JOVE are scar tissue from portability battles.  We
+try to document these.  Don't assume that odd code is pointless.
+
+All functions (except ones with a variable number of arguments) are
+defined in the old style; all other declarations include prototypes
+using the proto and ptrproto macros.
+
+All functions are declared before use.  Remember that a definition is
+a kind of declaration.
+
+All extern functions that we define are also declared in a header.
+There are no other declarations of this function.  The header is
+included in the file defining the function so that the compiler can
+check that the two declarations are consistent.
+
+Use "const" and "void" wherever appropriate.
+Use "NULL" wherever appropriate.
+Use '\0' as the NUL character (not 0).
+
+We define and use "bool", "YES", and "NO".
+
+In a switch statement, if a case is meant to fall through into
+another, add the comment /*FALLTHROUGH*/.  This tells the reader (and
+a certain C compiler) that the lack of "break;" is intentional.
+
+The comment /*NOTREACHED*/ specifies that control will not reach this
+point.
+
+JOVE tries to be small and simple, but not too simple.  Historically,
+it could run on a PDP-11 with only 64K of memory for code and 64K for
+data.  Simplicity means that it can be understood completely.
+
+JOVE does not use stdio.  Historically, stdio didn't provide
+facilities that were worth the cost.  This may no longer be the right
+tradeoff, but changing would be disruptive.

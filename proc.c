@@ -650,13 +650,15 @@ UnixToBuf(flags, bnm, InFName, cmd)
 	wait_status_t	status;
 	SIGHANDLERTYPE	old_int;
 	char	bfn[FILESIZE];	/* buffer file name */
+	char	bln[10];	/* buffer line number (big enough for any line number) */
+	char	bc[6];	/* buffer column (big enough for any column) */
 #else /* MSDOS_PROCS */
 	char	cmdbuf[129];
 	int	status;
 	char	pipename[FILESIZE];
 #endif /* MSDOS_PROCS */
 	bool	eof;
-	char	*argv[7];	/* worst case: /bin/sh sh -cf "echo $1" $1 $1 NULL */
+	char	*argv[9];	/* worst case: /bin/sh sh -cf "echo $1" $1 $1 $2 $3 NULL */
 	char	**ap = argv;
 	File	*fp;
 #ifdef SIGINTMASK_DECL
@@ -708,6 +710,17 @@ UnixToBuf(flags, bnm, InFName, cmd)
 				strcpy(bfn, pr_name(curbuf->b_fname, NO));
 				*ap++ = bfn;
 				*ap++ = bfn;
+				{
+					int ln = 1;	/* origin 1 */
+					LinePtr lp;
+
+					for (lp = curbuf->b_first; lp != curline; lp = lp->l_next)
+						ln++;
+					swritef(bln, sizeof(bln), "%d", ln);
+					*ap++ = bln;
+				}
+				swritef(bc, sizeof(bc), "%d", curchar + 1);	/* origin 1 */
+				*ap++ = bc;
 			}
 #endif /* !MSDOS_PROCS */
 	} else {
