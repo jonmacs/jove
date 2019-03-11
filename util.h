@@ -91,8 +91,8 @@ extern UnivPtr
 #define truncstr(buf, str)	truncstrsub(buf, str, sizeof(buf))
 #define jamstr(buf, str)	jamstrsub(buf, str, sizeof(buf))
 extern void
-	truncstrsub proto((unsigned char *buf, const unsigned char *str, size_t bufsz)),
-	jamstrsub proto((unsigned char *buf, const unsigned char *str, size_t bufsz));
+	truncstrsub proto((char *buf, const char *str, size_t bufsz)),
+	jamstrsub proto((char *buf, const char *str, size_t bufsz));
 
 /* Variables: */
 

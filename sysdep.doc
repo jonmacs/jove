@@ -136,6 +136,17 @@ define IPROCS.  Beware: doc/jove.rc (the standard system-wide rc file)
 binds several process commands, so it will need changing if interactive
 process support is not compiled in.
 
+IPROC_TERM specifies what $TERM should be set to for the IPROC
+process.  The simulated terminal has very few properties.  The choice
+that works best depends on the termcap and terminfo databases of the
+system, and other arcane things such as the shell startup scripts.  If
+the IPROC_TERM macro is undefined (the default), JOVE will arrange
+that $TERM to the unset in the interactive process.  If the macro is
+defined, JOVE will use it to set the environment; It must be a string,
+including double quotes, like "TERM=emacs", "TERM=dumb" or
+"TERM=vanilla".
+
+
 To multiplex between different processes and the keyboard (when IPROCS
 is defined), define USE_SELECT.
 USE_SELECT	Have the select() system call.  Almost essential!

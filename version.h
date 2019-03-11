@@ -7,11 +7,16 @@
 
 /* Note: jove.spec must be updated when version number changes */
 
-#define	jversion     "4.16.0.56" /* 2002 March 20 */
-#define	jversion_lnum 4,16,0,56  /* list-of-numbers form for Win32 jjove.rc */
+#define	jversion     "4.16.0.57" /* 2002 December 12 */
+#define	jversion_lnum 4,16,0,57  /* list-of-numbers form for Win32 jjove.rc */
 
 /*
  * $Log: version.h,v $
+ * Revision 1.407  2002/12/13 01:52:47  hugh
+ * - allow $TERM for iprocs to be configured
+ * - adjust types of parameters of truncstrsub and jamstrsub (lint)
+ * - refine jove.spec (for RPM building); iproc TERM=vanilla
+ *
  * Revision 1.406  2002/03/21 07:06:04  hugh
  * update Copyright to satisfy Debian
  *
