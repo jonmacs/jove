@@ -155,12 +155,12 @@ PIPEPROCS	Use pipes for interactive processes.  Older UNIXes.
 
 
 If PTYPROCS is defined, then one of the following must be defined.  Or
-add your own code in iproc-ptys.c.  SVR4_PTYS are more secure that
+add your own code in iproc-ptys.c.  SVR4_PTYS are more secure than
 BSD_PTYS (Jove isn't run setuid root, so it cannot chown the PTY to
 prevent strangers from fiddling).  SVR4_PTYS are also known (at least
 in the LINUX world) as UNIX98 PTYS.  They are part of "The Single UNIX
 Specification", Version 2.
-SVR4_PTYS	SYSVR4 pty allocation.  ptym, grantpt() and friends.
+SVR4_PTYS	SYSVR4 pty allocation.  Use /dev/ptmx, ptsname, grantpt, etc
 BSD_PTYS	canonical BSD ptys, search through pty[pqrst]
 IRIX_PTYS	Irix 3.x onwards -- open a master device, then fstat to get
 		major and minor numbers.
