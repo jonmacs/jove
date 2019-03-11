@@ -7,11 +7,16 @@
 
 /* Note: jove.spec must be updated when version number changes */
 
-#define	jversion     "4.16.0.64" /* 2004 January 31 */
-#define	jversion_lnum 4,16,0,64  /* list-of-numbers form for Win32 jjove.rc */
+#define	jversion     "4.16.0.65" /* 2004 July 11 */
+#define	jversion_lnum 4,16,0,65  /* list-of-numbers form for Win32 jjove.rc */
 
 /*
  * $Log: version.h,v $
+ * Revision 1.415  2004/07/11 20:04:32  hugh
+ * - dodge yet another xterm bug in hilite mode
+ * - set default buffer size to 4kB (ups line length limit to same)
+ * - tweak documentation
+ *
  * Revision 1.414  2004/02/01 19:27:03  hugh
  * - introduce sysdef BSDPOSIX_STDC
  * - update README

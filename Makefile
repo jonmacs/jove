@@ -127,7 +127,7 @@ JOVETOOLM = $(MANDIR)/jovetool.$(MANEXT)
 # processes.  This bug can be worked around by defining GRANTPT_BUG.
 # Read the explanation of GRANTPT_BUG in sysdep.doc.
 #
-# Some of the MIPS based Ultrix (upto 4.2 at least), RiscOS and Irix (up to
+# Some of the MIPS based Ultrix (up to 4.2 at least), RiscOS and Irix (up to
 # 3.3 at least) also need -DMIPS_CC_BUG.
 #
 # Some old versions of the HPUX C compiler have a bug in handling forward
@@ -662,7 +662,7 @@ msgetch.o: $(JOVE_H) chars.h disp.h
 mac.o: $(TUNE_H) $(JOVE_H) mac.h ask.h chars.h disp.h extend.h fp.h commands.h fmt.h marks.h misc.h move.h screen.h scandir.h term.h vars.h version.h wind.h
 keymaps.o: $(JOVE_H) list.h fp.h jctype.h chars.h disp.h re.h ask.h commands.h macros.h extend.h fmt.h screen.h vars.h sysprocs.h iproc.h
 ibmpcdos.o: $(JOVE_H) fp.h chars.h screen.h term.h
-mouse.o: $(JOVE_H) disp.h misc.h ask.h chars.h delete.h fmt.h insert.h marks.h move.h wind.h term.h jctype.h mouse.h xjove/mousemsg.h
+mouse.o: $(JOVE_H) disp.h misc.h ask.h chars.h delete.h fmt.h insert.h marks.h move.h wind.h term.h jctype.h mouse.h xjove/mousemsg.h fp.h
 win32.o: $(JOVE_H) fp.h chars.h screen.h disp.h
 portsrv.o: $(JOVE_H) sysprocs.h iproc.h
 recover.o: $(JOVE_H) temp.h sysprocs.h rec.h paths.h recover.h scandir.c jctype.h

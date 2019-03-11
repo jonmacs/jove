@@ -5,13 +5,16 @@
 # this notice is included in all the source files and documentation.     #
 ##########################################################################
 
-[Updated in 2004 February]
+[Updated in 2004 July]
 
 JOVE on UNIX Systems
 --------------------
 
-For information about other systems, see the other READMEs.
-
+For information about other systems, see the other README files:
+  README.c32 for Cygwin32
+  README.dos for MS DOS
+  README.mac for Macintosh
+  README.w32 for MS Win32
 
 Quick Summary of Installation
 -----------------------------
@@ -21,7 +24,8 @@ Usually only SYSDEFS is critical and this can be specified in the make
 command line.
 
 Unpack the tar file somewhere convenient and cd into it:
-tar tzf jove*.tgz
+  tar tzf jove*.tgz
+  cd jove___
 
 BSD:
   use the first of the following that works:
