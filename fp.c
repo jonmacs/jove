@@ -94,7 +94,7 @@ int	flags,
 	case F_APPEND:
 		fd = open(name, O_WRONLY | O_BINARY);
 		if (fd != -1) {
-			(void) lseek(fd, 0L, 2);
+			(void) lseek(fd, (off_t)0, 2);
 			break;
 		}
 		/* FALLTHROUGH */
@@ -222,7 +222,7 @@ off_t	offset;
 		flushout(fp);
 	fp->f_cnt = 0;		/* next read will f_filbuf(), next write
 				   will flush() with no bad effects */
-	lseek(fp->f_fd, (long) offset, L_SET);
+	lseek(fp->f_fd, offset, L_SET);
 }
 
 void

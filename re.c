@@ -558,11 +558,11 @@ register char	*linep,
 		return NO;
 
 	case OPENP:
-		pstrtlst[*comp_ptr++] = linep;
+		pstrtlst[(int) *comp_ptr++] = linep;
 		continue;
 
 	case CLOSEP:
-		pendlst[*comp_ptr++] = linep;
+		pendlst[(int) *comp_ptr++] = linep;
 		continue;
 
 	case BACKREF:

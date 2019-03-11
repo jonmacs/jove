@@ -260,7 +260,7 @@ GROUP(mode_menu)
 #endif
 	FUNCTION("L1   over-write-mode", "over-write-mode")
 #if defined(IPROCS)
-	FUNCTION("     process-dbx-output", "process-dbx-output")
+	FUNCTION("     dbx-mode", "dbx-mode")
 #endif
 	FUNCTION("     read-only-mode", "read-only-mode")
 	FUNCTION("     show-match-mode", "show-match-mode")

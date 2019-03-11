@@ -795,6 +795,7 @@ UnixToBuf(flags, bnm, InFName, cmd)
 		complain("[Fork failed: %s]", strerror(fork_errno));
 	}
 	if (ChildPid == 0) {
+		char	*a;	/* action name (for error message) */
 # ifdef USE_VFORK
 		/* There are several other forks in Jove, but this is
 		 * the only one we execute often enough to make it worth
@@ -811,12 +812,16 @@ UnixToBuf(flags, bnm, InFName, cmd)
 		SIGINT_UNBLOCK();
 #  endif
 # endif /* !USE_VFORK */
-		(void) close(0);
-		(void) open(InFName==NULL? "/dev/null" : InFName, O_RDONLY | O_BINARY);
-		(void) close(1);
-		(void) dup(p[1]);
-		(void) close(2);
-		(void) dup(p[1]);
+		if (!((a = "close 0", close(0)) == 0
+		&& (a = "open", open(InFName==NULL? "/dev/null" : InFName, O_RDONLY | O_BINARY)) == 0
+		&& (a = "close 1", close(1)) == 0
+		&& (a = "dup 1", dup(p[1])) == 1
+		&& (a = "close 2", close(2)) == 0
+		&& (a = "dup 2", dup(p[1])) == 2)) {
+			raw_complain("% in setup for child failed: %s", a, strerror(errno));
+			_exit(1);
+		}
+
 		pipeclose(p);
 		jcloseall();
 		execv(argv[0], &argv[1]);

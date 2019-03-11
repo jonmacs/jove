@@ -18,6 +18,7 @@
  * Look in Makefile to change the default directories.
  */
 
+#include <errno.h>
 #include <stdio.h>	/* Do stdio first so it doesn't override OUR
 			   definitions. */
 #include "jove.h"
@@ -199,8 +200,24 @@ daddr	atl;
 	nleft = JBUFSIZ - off;
 
 	if (bno != curblock) {
-		lseek(data_fd, (long) bno * JBUFSIZ, L_SET);
-		read(data_fd, (UnivPtr)blk_buf, (size_t)JBUFSIZ);
+		ssize_t r;
+		char *what;
+
+		errno = 0;
+		what = "lseek";
+		lseek(data_fd, (off_t) bno * JBUFSIZ, L_SET);
+		if (errno == 0) {
+			what = "read";
+			r = read(data_fd, (UnivPtr)blk_buf, (size_t)JBUFSIZ);
+			if (errno == 0 && r != JBUFSIZ) {
+				fprintf(stderr, "read of JOVE tempfile failed -- too short\n");
+				exit(1);
+			}
+		}
+		if (errno != 0) {
+			fprintf(stderr, "%s of JOVE tempfile failed %s\n", what, strerror(errno));
+			exit(1);
+		}
 		curblock = bno;
 	}
 	return blk_buf + off;
@@ -619,7 +636,11 @@ struct file_pair	*fp;
 			fprintf(stderr, "recover: cannot read rec file (%s).\n", pntrfile);
 		return 0;
 	}
-	fread((UnivPtr) &Header, sizeof Header, (size_t)1, ptrs_fp);
+	if (fread((UnivPtr) &Header, sizeof Header, (size_t)1, ptrs_fp) != 1) {
+		if (Verbose)
+			fprintf(stderr, "recover: cannot read header from rec file (%s).\n", pntrfile);
+		return 0;
+	}
 	if (Header.Uid != UserID)
 		return 0;
 

@@ -365,10 +365,10 @@ install: $(LIBDIR) $(SHAREDIR) \
 	@echo so that the system recovers jove files on reboot after a crash
 
 $(LIBDIR)::
-	test -d $(LIBDIR) || mkdir $(LIBDIR)
+	test -d $(LIBDIR) || mkdir -p $(LIBDIR)
 
 $(SHAREDIR)::
-	test -d $(SHAREDIR) || mkdir $(SHAREDIR)
+	test -d $(SHAREDIR) || mkdir -p $(SHAREDIR)
 
 $(TEACH-JOVE): doc/teach-jove
 	$(TINSTALL) doc/teach-jove $(TEACH-JOVE)

@@ -349,6 +349,7 @@ EVexpand()
 
 private char	*fc_filebase;
 bool	DispBadFs = YES;	/* VAR: display filenames with bad extensions? */
+bool	DispDefFs = YES;	/* VAR: display default filenames in prompt? */
 
 char	BadExtensions[sizeof(BadExtensions)] =	/* VAR: extensions to ignore */
 # ifndef MSFILESYSTEM
@@ -639,7 +640,7 @@ char
 		swritef(prompt, sizeof(prompt), ProcFmt);
 	else
 		jamstr(prompt, prmt);
-	if (def != NULL && *def != '\0') {
+	if (DispDefFs && def != NULL && *def != '\0') {
 		size_t	pl = strlen(prompt);
 
 		swritef(prompt + pl, sizeof(prompt)-pl, "(default %s) ", pretty_name);

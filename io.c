@@ -676,14 +676,16 @@ doPushd(newdir)
 {
 	UpdModLine = YES;
 	if (*newdir == '\0') {	/* Wants to swap top two entries */
-		char	*old_top;
-
 		if (list_next(DirStack) == NULL)
 			complain("pushd: no other directory.");
-		old_top = PWD;
-		list_data(DirStack) = (UnivPtr) dir_name(list_next(DirStack));
-		list_data(list_next(DirStack)) = (UnivPtr) old_top;
-		(void) Dchdir(PWD);
+		newdir = dir_name(list_next(DirStack));
+		if (Dchdir(newdir) == -1)
+		{
+			s_mess("pushd: cannot change back into %s.", newdir);
+			return;
+		}
+		list_data(list_next(DirStack)) = list_data(DirStack);
+		list_data(DirStack) = (UnivPtr) newdir;
 	} else {
 		if (Dchdir(newdir) == -1)
 		{
@@ -717,11 +719,18 @@ Pushlibd()
 void
 Popd()
 {
+	char *newdir;
+
 	if (list_next(DirStack) == NULL)
 		complain("popd: directory stack is empty.");
+	newdir = dir_name(list_next(DirStack));
+	if (Dchdir(newdir) == -1)
+	{
+		s_mess("popd: cannot change back into %s.", newdir);
+		return;
+	}
 	UpdModLine = YES;
 	free((UnivPtr) list_pop(&DirStack));
-	(void) Dchdir(PWD);	/* If this doesn't work, we's in deep shit. */
 	prDIRS();
 }
 
@@ -1518,7 +1527,7 @@ real_blkio(b, iofcn)
 register Block	*b;
 register SSIZE_T	(*iofcn) ptrproto((int, UnivPtr, size_t));
 {
-	(void) lseek(tmpfd, (long)b->b_bno << JLGBUFSIZ, 0);
+	(void) lseek(tmpfd, (off_t)b->b_bno << JLGBUFSIZ, 0);
 	if ((*iofcn)(tmpfd, (UnivPtr) b->b_buf, (size_t)JBUFSIZ) != JBUFSIZ)
 		error("[Tmp file %s error: to continue editing would be dangerous]",
 			(iofcn == read) ? "READ" : "WRITE");

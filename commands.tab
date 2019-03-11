@@ -214,7 +214,6 @@ const struct cmd	commands[] = {
 	{ COMMAND, "process-bind-keymap-to-key", WIRED_CMD(PBindMap) },
 	{ COMMAND, "process-bind-macro-to-key", WIRED_CMD(PBindMac) },
 	{ COMMAND, "process-bind-to-key", WIRED_CMD(PBindAKey) },
-	{ DefMinor(DbxMode), "process-dbx-output", WIRED_CMD(NULL) },
 	{ MODCMD, "process-newline", WIRED_CMD(ProcNewline) },
 	{ COMMAND, "process-send-data-no-return", WIRED_CMD(ProcSendData) },
 #endif

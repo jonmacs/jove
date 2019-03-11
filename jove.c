@@ -1359,12 +1359,20 @@ raw_complain(fmt, va_alist)
 {
 	char	buf[MESG_SIZE];
 	va_list	ap;
+	UnivConstPtr	bp;
+	size_t	rem;
+	ssize_t r;
 
 	va_init(ap, fmt);
 	format(buf, sizeof(buf) - 2, fmt, ap);
 	va_end(ap);
 	strcat(buf, "\r\n");	/* \r *may* be redundant */
-	(void) write(2, (UnivConstPtr)buf, strlen(buf));
+	for (bp = buf, rem = strlen(buf)
+	; rem > 0 && (r = write(2, bp, rem)) != rem
+	; bp += r, rem -=r) {
+		if (r < 0 || errno != EINTR)
+		    break;	/* give up */
+	}
 }
 
 #ifdef STDARGS
