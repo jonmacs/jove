@@ -341,6 +341,7 @@
 
 #ifdef _MSC_VER	/* System: Microsoft C for the IBM-PC under MSDOS or WIN32 */
 /* 4.16.0.38 tested under VC++ 5.0 / VS 97 */
+/* 4.16.0.62 tested under Visual C++ 6.0 SP5 */
 # if defined(_WIN32) && !defined(WIN32)
 #  define WIN32 _WIN32
 # endif
@@ -359,6 +360,7 @@
 # define REALSTDC	1	/* MS C only defines __STDC__ if you use /Za */
 # define NO_MKSTEMP	1
 # define _POSIX_	1	/* suppresses MS's min and max in VC++ 5.0 */
+# define jmode_t	int	/* no mode_t on WIN32 */
 #endif
 
 #ifdef ZTCDOS	/* System: Zortech C V3.0 for the IBM-PC under MSDOS */
