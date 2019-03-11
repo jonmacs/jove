@@ -7,11 +7,14 @@
 
 /* Note: jove.spec must be updated when version number changes */
 
-#define	jversion     "4.16.0.62" /* 2003 March 9 */
-#define	jversion_lnum 4,16,0,62  /* list-of-numbers form for Win32 jjove.rc */
+#define	jversion     "4.16.0.63" /* 2003 April 5 */
+#define	jversion_lnum 4,16,0,63  /* list-of-numbers form for Win32 jjove.rc */
 
 /*
  * $Log: version.h,v $
+ * Revision 1.413  2003/05/05 01:37:05  hugh
+ * refine modified flag in list-buffers output
+ *
  * Revision 1.412  2003/03/09 23:49:55  hugh
  * 4.16.0.62: fix for WIN32; note tested environments [Jim Patterson]
  *

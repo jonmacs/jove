@@ -404,26 +404,32 @@ BufList()
 	int	bcount = 1,		/* To give each buffer a number */
 		buf_width = 11;
 	bool
-		any_modified = NO,
+		any_needsaving = NO,
+		any_tempmodified = NO,
 		any_ntbf = NO,
 		any_diverged = NO;
 
 	for (b = world; b != NULL; b = b->b_next) {
 		buf_width = max(buf_width, (int)strlen(b->b_name));
-		any_modified |= IsModified(b);
+		if (b->b_type == B_FILE)
+		    any_needsaving |= IsModified(b);
+		else
+		    any_tempmodified |= IsModified(b);
 		any_ntbf |= b->b_ntbf;
 		any_diverged |= b->b_diverged;
 	}
 
 	TOstart("Buffer list");
 
-	if (any_modified)
+	if (any_needsaving)
 		Typeout("(* means buffer needs saving)");
+	if (any_tempmodified)
+		Typeout("(+ means temporary buffer has been modified)");
 	if (any_ntbf)
-		Typeout("(+ means file hasn't been read yet)");
+		Typeout("(- means file hasn't been read yet)");
 	if (any_diverged)
 		Typeout("(# means file has been changed since buffer was read or written)");
-	if (any_modified | any_ntbf | any_diverged)
+	if (any_needsaving | any_tempmodified | any_ntbf | any_diverged)
 		Typeout(NullStr);
 	Typeout(fmt, "NO", "Lines", "Type", NullStr, NullStr, buf_width, "Name", "File");
 	Typeout(fmt, "--", "-----", "----", NullStr, NullStr, buf_width, "----", "----");
@@ -440,8 +446,9 @@ BufList()
 				LinesTo(b->b_first, (LinePtr)NULL));
 		Typeout(fmt, bnostr, linestr, TypeNames[b->b_type],
 				b->b_diverged ? "#" : NullStr,
-				IsModified(b) ? "*" :
-					 b->b_ntbf ? "+" : NullStr,
+				IsModified(b)
+				    ? (b->b_type==B_FILE? "*" : "+")
+				    : b->b_ntbf ? "-" : NullStr,
 				buf_width,	/* For the * (variable length field) */
 				b->b_name,
 				filename(b));
