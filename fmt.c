@@ -6,43 +6,34 @@
  ***************************************************************************/
 
 #include "jove.h"
-#include "io.h"
+#include "fp.h"
 #include "termcap.h"
+#include "ctype.h"
+#include "disp.h"
 
 #ifdef MAC
-#	include  "mac.h"
+# include  "mac.h"
 #else
-#	include <varargs.h>
+# include <varargs.h>
 #endif
 
 #ifdef MAC
-#	undef private
-#	define private
+# undef private
+# define private
 #endif
 
-#ifdef	LINT_ARGS
 private void
-	doformat(File *, char *, ...),
-	outld(long, int),
-	pad(int, int),
-	PPchar(int, char *),
-	putld(long, int),
-	puts(char *);
-#else
-private void
-	doformat(),
-	outld(),
-	pad(),
-	PPchar(),
-	putld(),
-	puts();
-#endif	/* LINT_ARGS */
+	doformat proto((File *, char *, ...)),
+	outld proto((long, int)),
+	pad proto((int, int)),
+	PPchar proto((int, char *)),
+	putld proto((long, int)),
+	puts proto((char *));
 
 #ifdef MAC
-#	undef private
-#	define private static
+# undef private
+# define private static
 #endif
-
 
 char	mesgbuf[MESG_SIZE];
 
@@ -57,7 +48,7 @@ va_list	ap;
 	File	strbuf,
 		*sp = &strbuf;
 
- 	sp->f_ptr = sp->f_base = buf;
+	sp->f_ptr = sp->f_base = buf;
 	sp->f_fd = -1;		/* Not legit for files */
 	sp->f_cnt = len;
 	sp->f_flags = F_STRING;
@@ -75,22 +66,22 @@ int	specialmap = 0,
 
 char *altseq[133] = {
 Empty, Empty, Empty, "Ctrl-@", Empty, Empty, Empty, Empty,
-Empty, Empty, Empty, Empty, Empty, Empty, Empty, "Left", 
+Empty, Empty, Empty, Empty, Empty, Empty, Empty, "Left",
 "Alt-Q", "Alt-W", "Alt-E", "Alt-R", "Alt-T", "Alt-Y", "Alt-U", "Alt-I",
 "Alt-O", "Alt-P", Empty, Empty, Empty, Empty, "Alt-A", "Alt-S",
 "Alt-D", "Alt-F", "Alt-G", "Alt-H", "Alt-J", "Alt-K", "Alt-L", Empty,
 Empty, Empty, Empty, Empty, "Alt-Z", "Alt-X", "Alt-C", "Alt-V",
 "Alt-B", "Alt-N", "Alt-M", Empty, Empty, Empty, Empty, Empty,
-Empty, Empty, Empty, "F1", "F2", "F3", "F4", "F5", 
+Empty, Empty, Empty, "F1", "F2", "F3", "F4", "F5",
 "F6", "F7", "F8", "F9", "F10", Empty, Empty, "Home",
 "Up", "PageUp", Empty, "Left", Empty, "Right", Empty, "End",
-"Down", "PageDown", "Ins", "Del", "Shift F1", "Shift F2", "Shift F3", "Shift F4", 
+"Down", "PageDown", "Ins", "Del", "Shift F1", "Shift F2", "Shift F3", "Shift F4",
 "Shift F5", "Shift F6", "Shift F7", "Shift F8", "Shift F9", "Shift F10", "Ctrl F1", "Ctrl F2",
-"Ctrl F3", "Ctrl F4", "Ctrl F5", "Ctrl F6", "Ctrl F7", "Ctrl F8", "Ctrl F9", "Ctrl F10", 
+"Ctrl F3", "Ctrl F4", "Ctrl F5", "Ctrl F6", "Ctrl F7", "Ctrl F8", "Ctrl F9", "Ctrl F10",
 "Alt F1", "Alt F2", "Alt F3", "Alt F4", "Alt F5", "Alt F6", "Alt F7", "Alt F8",
 "Alt F9", "Alt F10", "Ctrl PrtSc", "Ctrl Left", "Ctrl Right", "Ctrl End", "Ctrl PageDown", "Ctrl Home",
 "Alt 1", "Alt 2", "Alt 3", "Alt 4", "Alt 5", "Alt 6", "Alt 7", "Alt 8",
-"Alt 9", "Alt 0", "Alt Minus", "Alt Equals", "Ctrl PageUp" 
+"Alt 9", "Alt 0", "Alt Minus", "Alt Equals", "Ctrl PageUp"
 };
 #endif
 
@@ -108,7 +99,7 @@ char	*str;
 			c = 0;
 		strcpy(cp, altseq[c]);
 	} else
-#endif	
+#endif
 	if (c == '\033')
 		strcpy(cp, "ESC");
 #ifdef IBMPC				/* this character is invisible */
@@ -117,11 +108,11 @@ char	*str;
 	}
 #endif /* IBMPC */
 	else if (c < ' ')
-		sprintf(cp, "C-%c", c + '@');
+		swritef(cp, "C-%c", c + '@');
 	else if (c == '\177')
 		strcpy(cp, "^?");
 	else
-		sprintf(cp, "%c", c);
+		swritef(cp, "%c", c);
 }
 
 private struct fmt_state {
@@ -262,14 +253,14 @@ va_list	ap;
 		case '%':
 			putc('%', current_fmt.iop);
 			break;
-	
+
 		case 'O':
 		case 'D':
 		case 'X':
 			putld(va_arg(ap, long), (c == 'O') ? 8 :
 						(c == 'D') ? 10 : 16);
 			break;
-	
+
 		case 'b':
 		    {
 			Buffer	*b = va_arg(ap, Buffer *);
@@ -281,14 +272,14 @@ va_list	ap;
 		case 'c':
 			putc(va_arg(ap, int), current_fmt.iop);
 			break;
-	
+
 		case 'o':
 		case 'd':
 		case 'x':
 			putld((long) va_arg(ap, int), (c == 'o') ? 8 :
 						(c == 'd') ? 10 : 16);
 			break;
-	
+
 		case 'f':	/* current command name gets inserted here! */
 			puts(LastCmd->Name);
 			break;
@@ -296,7 +287,7 @@ va_list	ap;
 		case 'l':
 			c = CharUpcase(*++fmt);
 			goto reswitch;
-	
+
 		case 'n':
 			if (va_arg(ap, int) != 1)
 				puts("s");
@@ -304,17 +295,17 @@ va_list	ap;
 
 		case 'p':
 		    {
-		    	char	cbuf[20];
+			char	cbuf[20];
 
-		    	PPchar(va_arg(ap, int), cbuf);
-		    	puts(cbuf);
-		    	break;
+			PPchar(va_arg(ap, int), cbuf);
+			puts(cbuf);
+			break;
 		    }
 
 		case 's':
 			puts(va_arg(ap, char *));
 			break;
-		
+
 		default:
 			complain("Unknown format directive: \"%%%c\"", c);
 		}
@@ -341,7 +332,7 @@ va_dcl
 /* VARARGS1 */
 
 void
-printf(fmt, va_alist)
+writef(fmt, va_alist)
 char	*fmt;
 va_dcl
 {
@@ -360,7 +351,7 @@ va_dcl
 /* VARARGS1 */
 
 void
-fprintf(fp, fmt, va_alist)
+fwritef(fp, fmt, va_alist)
 File	*fp;
 char	*fmt;
 va_dcl
@@ -375,7 +366,7 @@ va_dcl
 /* VARARGS2 */
 
 void
-sprintf(str, fmt, va_alist)
+swritef(str, fmt, va_alist)
 char	*str,
 	*fmt;
 va_dcl
@@ -417,6 +408,7 @@ va_dcl
 	format(mesgbuf, sizeof mesgbuf, fmt, ap);
 	va_end(ap);
 	DrawMesg(NO);
+	errormsg = NO;
 	UpdMesg = YES;	/* still needs updating (for convenience) */
 }
 

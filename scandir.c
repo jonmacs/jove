@@ -7,31 +7,28 @@
 
 #include "jove.h"
 
+#ifdef F_COMPLETION
+
 #ifdef MSDOS
-#include <dos.h>
-#include <search.h>
+# include <dos.h>
+# include <search.h>
 #endif
 
 #ifdef UNIX
-#include <sys/stat.h>
-#ifdef M_XENIX
-#include <sys/ndir.h>
-#else
-#include <sys/dir.h>
-#endif /* M_XENIX */
+# include <sys/stat.h>
+# ifdef M_XENIX
+#  include <sys/ndir.h>
+# else
+#  include <sys/dir.h>
+# endif /* M_XENIX */
 #endif
-
-#ifdef F_COMPLETION
 
 #ifdef UNIX
 
 #if defined(BSD4_2) || defined(M_XENIX)
-
-#define DIRSIZE(entry)	DIRSIZ(entry)
-
+# define DIRSIZE(entry)	DIRSIZ(entry)
 #else
-
-#define DIRSIZE(entry)	(entry->d_name[DIRSIZ-1]=='\0' ? strlen(entry->d_name) : DIRSIZ)
+# define DIRSIZE(entry)	(entry->d_name[DIRSIZ-1]=='\0' ? strlen(entry->d_name) : DIRSIZ)
 
 typedef struct {
 	int	d_fd;		/* File descriptor for this directory */
@@ -131,8 +128,8 @@ memfail:	complain("[Malloc failed: cannot scandir]");
 #endif /* UNIX */
 
 #ifdef MSDOS
-#define	DIRSIZ	13
-#define DIRSIZE(entry)	strlen(entry.name)
+# define DIRSIZ	13
+# define DIRSIZE(entry)	strlen(entry.name)
 
 /* Scandir returns the number of entries or -1 if the directory cannoot
    be opened or malloc fails. */

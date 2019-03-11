@@ -12,31 +12,24 @@
 #include "ctype.h"
 
 #ifdef MAC
-#	undef private
-#	define private
+# undef private
+# define private
 #endif
 
-#ifdef	LINT_ARGS
 private int
-	backslashed(char *, int);
-private void	
-	do_expr(int, int),
-	FindMatch(int),
-	parse_cmt_fmt(char *),
-	strip_c(char *, char *);
-#else
-private int
-	backslashed();
-private void	
-	do_expr(),
-	FindMatch(),
-	parse_cmt_fmt(),
-	strip_c();
-#endif	/* LINT_ARGS */
+	backslashed proto((char *, int));
+private void
+#if defined(CMT_FMT)
+	FillComment proto((char *format)),
+#endif
+	do_expr proto((int, int)),
+	FindMatch proto((int)),
+	parse_cmt_fmt proto((char *)),
+	strip_c proto((char *, char *));
 
-#ifdef MAC
-#	undef private
-#	define private static
+#if defined(MAC)
+# undef private
+# define private static
 #endif
 
 
@@ -95,8 +88,7 @@ register int	dir;
 	static Bufpos	ret;
 	Bufpos	savedot,
 		*sp;
-	char	re_buf[100],
-		*re_alts[NALTS];
+	struct RE_block	re_blk;
 	int	count = 0;
 	register char	*lp,
 			c;
@@ -108,8 +100,8 @@ register int	dir;
 	int	in_comment = -1,
 		stopped = NO;
 
-	sprintf(re_str, "[(){}[\\]%s]", (MajorMode(CMODE)) ? "/\"'" : "\"");
-	REcompile(re_str, 1, re_buf, re_alts);
+	swritef(re_str, "[(){}[\\]%s]", (MajorMode(CMODE)) ? "/\"'" : "\"");
+	REcompile(re_str, 1, &re_blk);
 	if (cp = index(p_types, p_type))
 		p_match = cp[dir];
 	else
@@ -122,16 +114,16 @@ register int	dir;
 	   lots of problems with procedures that expect the contents of
 	   curline to be in linebuf. */
 	while (count >= 0) {
-		sp = docompiled(dir, re_buf, re_alts);
+		sp = docompiled(dir, &re_blk);
 		if (sp == 0)
 			break;
 		lp = lbptr(sp->p_line);
 
-		if (sp->p_line != curline)
+/*		if (sp->p_line != curline)
 			/* let's assume that strings do NOT go over line
 			   bounderies (for now don't check for wrapping
- 			   strings) */
-			quote_c = 0;
+			   strings)
+			quote_c = 0; */
 		curline = sp->p_line;
 		curchar = sp->p_char;	/* here's where I cheat */
 		c_char = curchar;
@@ -219,8 +211,10 @@ register int	dir;
 	for (;;) {
 		if (!skip_words && ismword(c)) {
 		    WITH_TABLE(curbuf->b_major)
-		    if(dir == FORWARD) f_word(1);
-		    	else b_word(1);	
+		    if (dir == FORWARD)
+			f_word(1);
+		    else
+			b_word(1);
 		    END_TABLE();
 		    break;
 		} else if (has_syntax(c, syntax)) {
@@ -347,8 +341,8 @@ c_indent(incrmt)
 		Bufpos	save;
 
 		DOTsave(&save);
-		SetDot(bp);
-		ToIndent();
+		SetDot(bp);		/* go to matching paren */
+		ToIndent();		/* calculate indent for that line */
 		indent = calc_pos(linebuf, curchar);
 		SetDot(&save);
 	}
@@ -362,7 +356,7 @@ c_indent(incrmt)
 	return bp;
 }
 
-#ifdef CMT_FMT
+#if defined(CMT_FMT)
 
 char	CmtFmt[80] = "/*%n%! * %c%!%n */";
 
@@ -408,12 +402,12 @@ private char	open_c[20],	/* the open comment format string */
 		close_pat[20];
 
 private char	*comment_body[] = {
- 	open_c,
+	open_c,
 	l_header,
 	l_trailer,
 	close_c
 };
-					
+
 private int	nlflags;
 
 /* Fill in the data structures above from the format string.  Don't return
@@ -427,7 +421,7 @@ char	*str;
 	register char	**c_body = comment_body,
 			*body_p = *c_body;
 	int	c,
-	 	newlines = 1;
+		newlines = 1;
 
 	/* pick apart the comment string */
 	while (c = *fmtp++) {
@@ -470,7 +464,7 @@ char	*str;
 #define NL_IN_OPEN_C  ((nlflags % 4) == 1)
 #define NL_IN_CLOSE_C (nlflags >= 4)
 
-void
+private void
 FillComment(format)
 char	*format;
 {
@@ -493,18 +487,18 @@ char	*format;
 
 	parse_cmt_fmt(format);
 	/* figure out if we're "inside" a comment */
- 	if ((match_o = dosearch(open_pat, BACKWARD, 0)) == 0)
+	if ((match_o = dosearch(open_pat, BACKWARD, 0)) == 0)
 		/* VARARGS */
 		complain("No opening %s to match to.", open_pat);
 	open_c_pt = *match_o;
 	if ((match_c = dosearch(close_pat, BACKWARD, NO)) != 0 &&
 	    inorder(open_c_pt.p_line, open_c_pt.p_char,
 		    match_c->p_line, match_c->p_char))
-	  	complain(inside_err, open_pat, close_pat);
+		complain(inside_err, open_pat, close_pat);
 	if ((match_o = dosearch(open_pat, FORWARD, NO)) != 0) {
 		tmp_bp = *match_o;
 		match_o = &tmp_bp;
-	} 
+	}
 	if ((match_c = dosearch(close_pat, FORWARD, 0)) != (Bufpos *) 0)
 		close_c_pt = *match_c;
 
@@ -541,8 +535,7 @@ char	*format;
 	SetDot(&close_c_pt);
 	if (close_at_dot == 0) {
 		slen = strlen(close_pat);
-		while (slen--)
-			del_char(BACKWARD, 1);
+		del_char(BACKWARD, slen, NO);
 	}
 	entry_mark = MakeMark(curline, curchar, M_FLOATER);
 	ToMark(open_c_mark);
@@ -582,13 +575,13 @@ char	*format;
 		Bol();
 		DelWtSpace();
 		if (header_len && !strncmp(linebuf, cp, header_len))
-			del_char(FORWARD, header_len);
+			del_char(FORWARD, header_len, NO);
 		if (trailer_len) {
 			Eol();
 			if ((curchar > trailer_len) &&
 			    (!strncmp(&linebuf[curchar - trailer_len],
 				      l_trailer, trailer_len)))
-				del_char(BACKWARD, trailer_len);
+				del_char(BACKWARD, trailer_len, NO);
 		}
 		if (curline->l_next != 0)
 			line_move(FORWARD, 1, NO);
@@ -604,7 +597,7 @@ char	*format;
 	do_rfill(NO);
 	RMargin = saveRMargin;
 	/* get back to the start of the comment */
-	PopMark(); 
+	PopMark();
 	do {
 		if (curline == open_c_mark->m_line->l_next) {
 			;
@@ -619,7 +612,7 @@ char	*format;
 			ins_str(l_trailer, NO);
 		if (curline->l_next != 0)
 			line_move(FORWARD, 1, NO);
-		else 
+		else
 			break;
 	} while (curline != entry_mark->m_line->l_next);
 	/* handle the close comment symbol */
@@ -644,7 +637,7 @@ char	*format;
 	}
 	ToMark(open_c_mark);
 	Eol();
-	del_char(FORWARD, 1);
+	del_char(FORWARD, 1, NO);
 }
 
 #endif /* CMT_FMT */

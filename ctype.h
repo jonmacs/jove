@@ -49,3 +49,7 @@ extern int	SyntaxTable;
 #define END_TABLE() \
 	SyntaxTable = push; \
 }
+
+extern char	CharTable[NMAJORS][NCHARS];
+extern char	CaseEquiv[NCHARS];
+#define CharUpcase(c)	(CaseEquiv[c])

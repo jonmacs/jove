@@ -8,51 +8,40 @@
 #include "jove.h"
 #include "termcap.h"
 #include "ctype.h"
+#include "chars.h"
+#include "disp.h"
+
 #include <signal.h>
 
-#ifdef MAC
-#	include "mac.h"
+#if defined(MAC)
+# include "mac.h"
 #else
-#	include <varargs.h>
-#	ifdef F_COMPLETION
-#   	include <sys/stat.h>
-#	endif
+# include <varargs.h>
+# if defined(F_COMPLETION)
+#  include <sys/stat.h>
+# endif
 #endif /* MAC */
 
-#ifdef MAC
-#	undef private
-#	define private
+#if defined(MAC)
+# undef private
+# define private
 #endif
 
-#ifdef	LINT_ARGS
-private Buffer * get_minibuf(void);
-private char * real_ask(char *, int (*)(), char *, char *);
+private Buffer * get_minibuf proto((void));
+private char * real_ask proto((char *, int (*)(), char *, char *));
 
 private int
-	f_complete(int),
-	bad_extension(char *, char *),
-	crush_bads(char **, int),
-	isdir(char *);
+	f_complete proto((int)),
+	bad_extension proto((char *)),
+	crush_bads proto((char **, int)),
+	isdir proto((char *));
 private void
-	fill_in(char **, int),
-	EVexpand(void);
-#else
-private Buffer * get_minibuf();
-private char * real_ask();
+	fill_in proto((char **, int)),
+	EVexpand proto((void));
 
-private int
-	f_complete(),
-	bad_extension(),
-	crush_bads(),
-	isdir();
-private void
-	fill_in(),
-	EVexpand();
-#endif	/* LINT_ARGS */
-
-#ifdef MAC
-#	undef private
-#	define private static
+#if defined(MAC)
+# undef private
+# define private static
 #endif
 
 int	AbortChar = CTL('G'),
@@ -130,11 +119,11 @@ EVexpand()
 		/* if we find an env. variable with the right
 		   name, we insert it in linebuf, and then delete
 		   the variable name that we're replacing - and
- 		   then we continue in case there are others ... */
+		   then we continue in case there are others ... */
 		if (ep = getenv(varname)) {
 			curchar = lp_start - linebuf;
 			ins_str(ep, NO);
-			del_char(FORWARD, strlen(varname) + 1);
+			del_char(FORWARD, strlen(varname) + 1, NO);
 			lp = linebuf + curchar;
 		}
 	}
@@ -159,7 +148,7 @@ int	(*d_proc)();
 	data_obj	*push_cmd = LastCmd;
 	int	o_a_v = arg_value(),
 		o_i_an_a = is_an_arg();
-#ifdef MAC
+#if defined(MAC)
 		menus_off();
 #endif
 
@@ -335,57 +324,51 @@ va_dcl
 	/* NOTREACHED */
 }
 
-#ifdef F_COMPLETION
+#if defined(F_COMPLETION)
 static char	*fc_filebase;
 int	DispBadFs = YES;	/* display bad file names? */
-#ifndef MSDOS
+# if !defined(MSDOS)
 char	BadExtensions[128] = ".o";
-#else /* MSDOS */
+# else /* MSDOS */
 char	BadExtensions[128] = ".obj .exe .com .bak .arc .lib .zoo";
-#endif /* MSDOS */
+# endif /* MSDOS */
 
 static
-bad_extension(name, bads)
-char	*name,
-	*bads;
+bad_extension(name)
+char	*name;
 {
-	char	*ip;
+	char	*ip,
+		*bads = BadExtensions;
 	int	namelen = strlen(name),
 		ext_len,
 		stop = 0;
 
 	do {
-		if (ip = index(bads, ' '))
-			*ip = 0;
-		else {
+		if ((ip = index(bads, ' ')) == 0) {
 			ip = bads + strlen(bads);
 			stop = YES;
 		}
 		if ((ext_len = ip - bads) == 0)
 			continue;
 		if ((ext_len < namelen) &&
-		    (strcmp(&name[namelen - ext_len], bads) == 0))
+		    (strncmp(&name[namelen - ext_len], bads, ext_len) == 0))
 			return YES;
 	} while ((bads = ip + 1), !stop);
 	return NO;
 }
 
-int
+private int
 f_match(file)
 char	*file;
 {
 	int	len = strlen(fc_filebase);
-	char	bads[128];
 
-	if (DispBadFs == NO) {
-		strcpy(bads, BadExtensions);
-		/* bad_extension() is destructive */
-		if (bad_extension(file, bads))
+	if (DispBadFs == NO)
+		if (bad_extension(file))
 			return NO;
-	}
 
 	return ((len == 0) ||
-#ifdef MSDOS
+#if defined(MSDOS)
 		(casencmp(file, fc_filebase, strlen(fc_filebase)) == 0)
 #else
 		(strncmp(file, fc_filebase, strlen(fc_filebase)) == 0)
@@ -410,21 +393,18 @@ fill_in(dir_vec, n)
 register char	**dir_vec;
 {
 	int	minmatch = 0,
-    		numfound = 0,
-    		lastmatch = -1,
+		numfound = 0,
+		lastmatch = -1,
 		i,
 		the_same = TRUE, /* After filling in, are we the same
 				    as when we were called? */
 		is_ntdir;	/* Is Newly Typed Directory name */
-	char	bads[128];
 
 	for (i = 0; i < n; i++) {
 		/* if it's no, then we have already filtered them out
 		   in f_match() so there's no point in doing it again */
 		if (DispBadFs == YES) {
-			strcpy(bads, BadExtensions);
-			/* bad_extension() is destructive */
-			if (bad_extension(dir_vec[i], bads))
+			if (bad_extension(dir_vec[i]))
 				continue;
 		}
 		if (numfound)
@@ -475,7 +455,7 @@ f_complete(c)
 
 	if (c == CR || c == LF)
 		return 0;	/* tells ask to return now */
-#ifndef MSDOS		/* kg */
+#if !defined(MSDOS		/* kg */)
 	if ((fc_filebase = rindex(linebuf, '/')) != 0) {
 #else /* MSDOS */
 	fc_filebase = rindex(linebuf, '/');
@@ -492,7 +472,7 @@ f_complete(c)
 		if (tmp[0] == '\0')
 			strcpy(tmp, "/");
 		PathParse(tmp, dir);
-	} else {		
+	} else {
 		fc_filebase = linebuf;
 		strcpy(dir, ".");
 	}
@@ -530,15 +510,13 @@ f_complete(c)
 			for (col = 0; col < ncols; col++) {
 				int	isbad,
 					which;
-				char	bads[128];
 
 				which = (col * linespercol) + lines;
 				if (which >= nentries)
 					break;
-				if (DispBadFs == YES) {
-					strcpy(bads, BadExtensions);
-					isbad = bad_extension(dir_vec[which], bads);
-				} else
+				if (DispBadFs == YES)
+					isbad = bad_extension(dir_vec[which]);
+				else
 					isbad = NO;
 				Typeout("%s%-*s", isbad ? "!" : NullStr,
 					maxlen - isbad, dir_vec[which]);
@@ -562,16 +540,19 @@ char	*prmt,
 	char	*ans,
 		prompt[128],
 		*pretty_name = pr_name(def, YES);
+
 	if (prmt)
-		sprintf(prompt, prmt);
+		strcpy(prompt, prmt);
 	else {
-		if (def != 0 && *def != '\0')
-			sprintf(prompt, ": %f (default %s) ", pretty_name);
-		else
-			sprintf(prompt, ProcFmt);
+		if (def != 0 && *def != '\0') {
+			swritef(prompt, ": %f (default %s) ", pretty_name);
+			if (strlen(prompt) * 2 >= CO)
+				swritef(prompt, ProcFmt);
+		} else
+			swritef(prompt, ProcFmt);
 	}
-#ifdef F_COMPLETION
-  	ans = real_ask("\r\n \t?", f_complete, pretty_name, prompt);
+#if defined(F_COMPLETION)
+	ans = real_ask("\r\n \t?", f_complete, pretty_name, prompt);
 	if (ans == 0 && (ans = pretty_name) == 0)
 		complain("[No default file name]");
 #else

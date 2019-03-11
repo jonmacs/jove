@@ -8,21 +8,17 @@
 #include "jove.h"
 
 #ifdef MAC
-#	undef private
-#	define private
+# undef private
+# define private
 #endif
 
-#ifdef	LINT_ARGS
-private int	get_indent(Line *);
-private Line	* tailrule(Line *);
-#else
-private int	get_indent();
-private Line	* tailrule();
-#endif
+private int	get_indent proto((Line *));
+private Line	*tailrule proto((Line *));
+private void	DoPara proto((int dir));
 
 #ifdef MAC
-#	undef private
-#	define private static
+# undef private
+# define private static
 #endif
 
 /* Thanks to Brian Harvey for this paragraph boundery finding algorithm.
@@ -34,11 +30,11 @@ private Line	* tailrule();
    really quite nice.  Here's Brian's algorithm.
 
    Definitions:
-   
+
    THIS means the line containing the cursor.
    PREV means the line above THIS.
    NEXT means the line below THIS.
-   
+
    BLANK means empty, empty except for spaces and tabs, starts with a period
    or a backslash, or nonexistent (because the edge of the buffer is
    reached).  ((BH 12/24/85 A line starting with backslash is blank only if
@@ -47,25 +43,25 @@ private Line	* tailrule();
    rearranged.  It still isn't perfect but it's better.))
 
    BSBLANK means BLANK or starts with a backslash.  (BH 12/24/85)
-   
+
    HEAD means the first (nonblank) line of the paragraph containing THIS.
    BODY means all other (nonblank) lines of the paragraph.
    TAIL means the last (nb) line of the paragraph.  (TAIL is part of BODY.)
-   
+
    HEAD INDENT means the indentation of HEAD.  M-J should preserve this.
    BODY INDENT means the indentation of BODY.  Ditto.
-   
+
    Subprocedures:
-   
+
    TAILRULE(BODYLINE)
    If BODYLINE is BLANK, the paragraph has only one line, and there is no
    BODY and therefore no TAIL.  Return.  Otherwise, starting from BODYLINE,
    move down until you find a line that either is BSBLANK or has a different
    indentation from BODYLINE.  The line above that different line is TAIL.
    Return.
-   
+
    Rules:
-   
+
    1.  If THIS is BLANK, which command are you doing?  If M-J or M-[, then go
    up to the first non-BLANK line and start over.  (If there is no non-BLANK
    line before THIS, ring the bell.)  If M-], then the first non-BLANK line
@@ -78,42 +74,43 @@ private Line	* tailrule();
 
    3.  If NEXT is BSBLANK, then THIS is TAIL, therefore part of BODY.  Go to
    rule 5 to find HEAD.
-   
+
    4.  If either NEXT or PREV has the same indentation as THIS, then THIS is
    part of BODY.  Do TAILRULE(THIS).  Go to rule 5 to find HEAD.  Otherwise,
    go to rule 6.
-   
+
    5.  Go up until you find a line that is either BSBLANK or has a different
-   indentation from THIS.  If that line is BLANK, the line below it is HEAD.
+   indentation from THIS.  If that line is BLANK, the line below it is HEAD;
    If that line is non-BLANK, then call that new line THIS for what follows.
-   If (the new) PREV has the same indent as THIS, then (the new) NEXT is
-   HEAD.  If PREV has a different indent from THIS, then THIS is HEAD.  Go to
-   rule A.
-   
+   If THIS is BSBLANK (that is, THIS starts with backslash), THIS is HEAD;
+   otherwise, if (the new) PREV has the same indent as THIS, then (the new)
+   NEXT is HEAD; if PREV has a different indent from THIS, then THIS is
+   HEAD.  Go to rule A.	
+
    6.  If you got here, then both NEXT and PREV are nonblank and are
    differently indented from THIS.  This is a tricky case and there is no
    guarantee that you're going to win.  The most straightforward thing to do
    is assume that we are not using hanging indentation.  In that case:
    whichever of PREV and THIS is indented further is HEAD.  Do
    TAILRULE(HEAD+1).  Go to rule A.
-   
+
    6+.  A more complicated variant would be this: if THIS is indented further
    than PREV, we are using regular indentation and rule 6 applies.  If PREV
    is indented further than THIS, look at both NEXT and the line after NEXT.
    If those two lines are indented equally, and more than THIS, then we are
    using hanging indent, THIS is HEAD, and NEXT is the first line of BODY.
    Do TAILRULE(NEXT).  Otherwise, rule 6 applies.
-   
+
    A.  You now know where HEAD and TAIL are.  The indentation of HEAD is HEAD
    INDENT; the indentation of TAIL is BODY INDENT.
-   
+
    B.  If you are trying to M-J, you are now ready to do it.
-   
+
    C.  If you are trying to M-], leave point after the newline that ends
    TAIL.  In other words, leave the cursor at the beginning of the line
    after TAIL.  It is not possible for this to leave point where it started
    unless it was already at the end of the buffer.
-   
+
    D.  If you are trying to M-[, if the line before HEAD is not BLANK, then
    leave point just before HEAD.  That is, leave the cursor at the beginning
    of HEAD.  If the line before HEAD is BLANK, then leave the cursor at the
@@ -139,7 +136,7 @@ static int	use_lmargin;
 static int	bslash;		/* Nonzero if get_indent finds line starting
 				   with backslash */
 
-int
+private int
 i_bsblank(lp)
 Line	*lp;
 {
@@ -148,7 +145,7 @@ Line	*lp;
 	return bslash;
 }
 
-int
+private int
 i_blank(lp)
 Line	*lp;
 {
@@ -169,7 +166,7 @@ register Line	*lp;
 	SetLine(lp);
 	if (blnkp(linebuf))
 		indent = I_EMPTY;
- 	else if (linebuf[0] == '.')
+	else if (linebuf[0] == '.')
 		indent = I_PERIOD;
 	else if (linebuf[0] == '\\') {
 		/* BH 12/24/85.  Backslash is BLANK only if next line
@@ -213,7 +210,7 @@ register Line	*lp;
    paragraphs.  That is, it's either FORWARD or BACKWARD depending on which
    way we're favoring. */
 
-void
+private void
 find_para(how)
 {
 	Line	*this,
@@ -294,7 +291,9 @@ strt:
 			i = get_indent(lp->l_prev);
 			if (i < 0)	/* is blank */
 				head = lp;
-			else if (i != this_indent || bslash) {
+			else if (bslash)
+				head = lp->l_prev;
+			else if (i != this_indent) {
 				Line	*this = lp->l_prev;
 
 				if (get_indent(this->l_prev) == i)
@@ -392,7 +391,7 @@ do_rfill(ulm)
 	DoJustify(l1, c1, l2, c2, NO, use_lmargin ? LMargin : 0);
 }
 
-void
+private void
 do_space()
 {
 	int	c1 = curchar,
@@ -427,7 +426,7 @@ do_space()
 		nspace = 0;
 
 	if (diff > nspace)
-		del_char(BACKWARD, (diff - nspace));
+		del_char(BACKWARD, (diff - nspace), NO);
 	else if (diff < nspace)
 		insert_c(' ', (nspace - diff));
 }
@@ -458,12 +457,16 @@ Line	*l1,
 	endmark = MakeMark(l2, c2, M_FLOATER);
 
 	for (;;) {
+		/* The while loop succeeds at least once, when curchar ==
+		   indent.  So we know that okay_char >= indent when we
+		   exit the loop. */
 		while (calc_pos(linebuf, curchar) < RMargin) {
 			if (curline == endmark->m_line && curchar >= endmark->m_char)
 				goto outahere;
 			okay_char = curchar;
 			if (eolp()) {
-				del_char(FORWARD, 1);	/* Delete line separator. */
+				/* delete line separator */
+				del_char(FORWARD, 1, NO);
 				ins_str("  ", NO);
 			} else {
 				cp = StrIndex(1, linebuf, curchar + 1, ' ');
@@ -474,24 +477,29 @@ Line	*l1,
 			}
 			do_space();
 		}
-		if (okay_char > 0)
-			curchar = okay_char;			
+		if (okay_char > indent)
+			curchar = okay_char;
 		if (curline == endmark->m_line && curchar >= endmark->m_char)
 			goto outahere;
 
-		/* Can't fit in small margin, so we do the best we can. */
+		/* Can't fit in small margin, so if' we're at the end of
+		   the line then we just move to the next line.  Otherwise
+		   we divide the line where we are and start over. */
 		if (eolp()) {
+			Line	*l = curline;
+
 			line_move(FORWARD, 1, NO);
-			n_indent(indent);
+			if (l == curline)	/* didn't actuall go anywhere */
+				goto outahere;
 		} else {
 			DelWtSpace();
 			LineInsert(1);
 			if (scrunch && TwoBlank()) {
 				Eol();
-				del_char(FORWARD, 1);
+				del_char(FORWARD, 1, NO);
 			}
-			n_indent(indent);
 		}
+		n_indent(indent);
 	}
 outahere:
 	ToMark(savedot);	/* Back to where we were */
@@ -508,18 +516,18 @@ outahere:
 extern Line	*para_head,
 		*para_tail;
 
-void
+private void
 DoPara(dir)
 {
 	register int	num = arg_value(),
-			first_time = TRUE;	
+			first_time = TRUE;
 
 	while (--num >= 0) {
 tryagain:	find_para(dir);		/* find paragraph bounderies */
 		if ((dir == BACKWARD) &&
 		    ((!first_time) || ((para_head == curline) && bolp()))) {
-		    	if (bobp())
-		    		complain((char *) 0);
+			if (bobp())
+				complain((char *) 0);
 			b_char(1);
 			first_time = !first_time;
 			goto tryagain;

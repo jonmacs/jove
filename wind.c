@@ -9,6 +9,8 @@
 
 #include "jove.h"
 #include "termcap.h"
+#include "chars.h"
+#include "disp.h"
 
 private char	onlyone[] = "You only have one window!",
 		toosmall[] = "Resulting window would be too small.";
@@ -51,7 +53,7 @@ register Window	*wp;
 
 	wp->w_prev->w_next = wp->w_next;
 	wp->w_next->w_prev = wp->w_prev;
-	
+
 	if (fwind == wp) {
 		fwind = wp->w_next;
 		fwind->w_height += wp->w_height;
@@ -241,18 +243,24 @@ WindFind()
 	register Buffer	*obuf = curbuf,
 			*nbuf;
 	Line	*ltop = curwind->w_top;
-	Bufpos	savedot;
+	Bufpos	odot,
+		ndot;
 	extern void
 		FindTag(),
+		FDotTag(),
 		BufSelect(),
 		FindFile();
 
-	DOTsave(&savedot);
+	DOTsave(&odot);
 
 	switch (waitchar((int *) 0)) {
 	case 't':
 	case 'T':
 		ExecCmd((data_obj *) FindCmd(FindTag));
+		break;
+
+	case CTL('T'):
+		ExecCmd((data_obj *) FindCmd(FDotTag));
 		break;
 
 	case 'b':
@@ -266,12 +274,13 @@ WindFind()
 		break;
 
 	default:
-		complain("T: find-tag, F: find-file, B: select-buffer.");
+		complain("T: find-tag, ^T: find-tag-at-point, F: find-file, B: select-buffer.");
 	}
 
 	nbuf = curbuf;
+	DOTsave(&ndot);
 	SetBuf(obuf);
-	SetDot(&savedot);
+	SetDot(&odot);
 	SetTop(curwind, ltop);	/* there! it's as if we did nothing */
 
 	if (one_windp())
@@ -279,6 +288,7 @@ WindFind()
 
 	tiewind(curwind->w_next, nbuf);
 	SetWind(curwind->w_next);
+	SetDot(&ndot);
 }
 
 /* Go into one window mode by deleting all the other windows */
@@ -451,7 +461,7 @@ register Line	*line;
 void
 WNumLines()
 {
-	curwind->w_flags ^= W_NUMLINES; 
+	curwind->w_flags ^= W_NUMLINES;
 	SetTop(curwind, curwind->w_top);
 }
 

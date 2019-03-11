@@ -6,7 +6,7 @@
  ***************************************************************************/
 
 #include "jove.h"
-#include "io.h"
+#include "fp.h"
 #include "ctype.h"
 #include "termcap.h"
 
@@ -25,29 +25,22 @@
 #include <errno.h>
 
 #ifdef MAC
-#	undef private
-#	define private
+# undef private
+# define private
 #endif
 
-#ifdef	LINT_ARGS
-private File * f_alloc(char *, int, int, char *, int);
+private File * f_alloc proto((char *, int, int, char *, int));
 #ifdef RAINBOW
-private int rbwrite(int, char *, int);
+private int rbwrite proto((int, char *, int));
 #endif
-#else
-private File * f_alloc();
-#ifdef RAINBOW
-private int rbwrite();
-#endif
-#endif	/* LINT_ARGS */
 
 #ifdef MAC
-#	undef private
-#	define private static
+# undef private
+# define private static
 #endif
 
 #ifndef L_SET
-#	define L_SET 0
+# define L_SET 0
 #endif
 
 #define MAXFILES	20	/* good enough for my purposes */
@@ -132,10 +125,10 @@ f_close(fp)
 File	*fp;
 {
 	flush(fp);
-#ifdef BSD4_2 
+#ifdef BSD4_2
 	if (fp->f_flags & (F_WRITE|F_APPEND))
 		(void) fsync(fp->f_fd);
-#endif 
+#endif
 	(void) close(fp->f_fd);
 	if (fp->f_flags & F_MYBUF)
 		free(fp->f_base);
@@ -158,7 +151,7 @@ File	*fp;
 	while (fp->f_cnt == -1 && errno == EINTR);
 #endif /* MSDOS */
 	if (fp->f_cnt == -1) {
-		printf("[Read error %d]", errno);
+		writef("[Read error %d]", errno);
 		fp->f_flags |= F_ERR;
 	}
 	if (fp->f_cnt == 0) {
@@ -235,7 +228,7 @@ register File	*fp;
 	    (rbwrite(fp->f_fd, fp->f_base, n) != n) &&
 #endif
 	    (fp != stdout)) {
-	    	fp->f_flags |= F_ERR;
+		fp->f_flags |= F_ERR;
 		error("[I/O error(%d); file = %s, fd = %d]",
 			errno, fp->f_name, fp->f_fd);
 	}
@@ -244,6 +237,7 @@ register File	*fp;
 	fp->f_ptr = fp->f_base;
 	if (c != EOF)
 		return putc(c, fp);
+	return EOF;
 }
 
 int
@@ -303,14 +297,22 @@ register File	*fp;
 		fp->f_flags |= F_EOF;
 }
 
-void
+int
 f_readn(fp, addr, n)
 register File	*fp;
 register char	*addr;
 register int	n;
 {
-	while (--n >= 0)
-		*addr++ = getc(fp);
+	int	c,
+		nbytes = n;
+
+	while (--n >= 0) {
+		c = getc(fp);
+		if (f_eof(fp))
+			break;
+		*addr++ = c;
+	}
+	return (nbytes - (n + 1));
 }
 
 int
@@ -326,7 +328,7 @@ File	*fp;
 }
 
 /* Deals with output to the terminal, setting up the amount of characters
-   to be buffered depending on the output baud rate.  Why it's in a 
+   to be buffered depending on the output baud rate.  Why it's in a
    separate file I don't know ... */
 
 private char	one_buf;
@@ -336,79 +338,12 @@ int	BufSize = 1;
 private File	_stdout = {1, 1, 1, F_WRITE, &one_buf, &one_buf};
 File	*stdout = &_stdout;
 
-/* put a string with padding */
-
-#ifndef IBMPC
-void
-tputc(c)
-{
-	putchar(c);
-}
-
-#undef putchar		/* for files which forget to include io.h,
-					   here's a real putchar procedure. */
+#undef putchar		/* for files which forget to include fp.h,
+			   here's a real putchar procedure. */
 void
 putchar(c)
 {
 	putc(c, stdout);
-}
-
-#endif /* IBMPC */
-#ifndef MAC
-void
-putpad(str, lines)
-char	*str;
-{
-#ifndef IBMPC
-	if (str)
-		tputs(str, lines, tputc);
-#else /* IBMPC */
-	write_emif(str);
-#endif /* IBMPC */
-}
-#endif
-
-/* Determine the number of characters to buffer at each baud rate.  The
-   lower the number, the quicker the response when new input arrives.  Of
-   course the lower the number, the more prone the program is to stop in
-   output.  Decide what matters most to you. This sets BufSize to the right
-   number or chars, and initiaizes `stdout'.  */
-
-void
-settout(ttbuf)
-char	*ttbuf;
-{
-#ifndef MAC
-#ifndef MSDOS
-	static int speeds[] = {
-		1,	/* 0	*/
-		1,	/* 50	*/
-		1,	/* 75	*/
-		1,	/* 110	*/
-		1,	/* 134	*/
-		1,	/* 150	*/
-		1,	/* 200	*/
-		2,	/* 300	*/
-		4,	/* 600	*/
-		8,	/* 1200 */
-		16,	/* 1800	*/
-		32,	/* 2400	*/
-		128,	/* 4800	*/
-		256,	/* 9600	*/
-		512,	/* EXTA	*/
-		1024	/* EXT	*/
-	};
-	flusho();		/* flush the one character buffer */
-	BufSize = min(MAXTTYBUF, speeds[ospeed] * max(LI / 24, 1));
-	stdout = fd_open("/dev/tty", F_WRITE|F_LOCKED, 1, ttbuf, BufSize);
-#else /* MSDOS */
-#ifndef IBMPC
-	flusho();		/* flush the one character buffer */
-	BufSize = BUFSIZ; 
-	stdout = fd_open("con", F_WRITE|F_LOCKED, 1, ttbuf, BufSize);
-#endif	/* IBMPC */
-#endif /* MSDOS */
-#endif /* MAC */
 }
 
 #ifdef RAINBOW

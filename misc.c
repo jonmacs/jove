@@ -7,10 +7,12 @@
 
 #include "jove.h"
 #include "ctype.h"
-#include <signal.h>
-#ifdef ANSICODES
-#include "termcap.h"
+#if defined(ANSICODES)
+# include "termcap.h"
+# include "disp.h"
 #endif
+
+#include <signal.h>
 
 void
 prCTIME()
@@ -22,11 +24,9 @@ void
 ChrToOct()
 {
 	int	c,
-		slow;
+		slow = NO;
 
 	c = waitchar(&slow);
-	if (slow)
-		message(key_strokes);
 	ins_str(sprint("\\%03o", c), NO);
 }
 
@@ -72,7 +72,7 @@ TransChar()
 	if (eolp())
 		b_char(1);
 	before = linebuf[curchar - 1];
-	del_char(BACKWARD, 1);
+	del_char(BACKWARD, 1, NO);
 	f_char(1);
 	insert_c(before, 1);
 }
@@ -82,7 +82,7 @@ TransChar()
 void
 TransLines()
 {
-	disk_line	old_prev;
+	daddr	old_prev;
 
 	if (firstp(curline))
 		return;
@@ -174,50 +174,6 @@ KillExpr()
 }
 
 void
-EscPrefix()
-{
-	HandlePref(pref1map);
-}
-
-void
-CtlxPrefix()
-{
-	HandlePref(pref2map);
-}
-
-void
-MiscPrefix()
-{
-	HandlePref(miscmap);
-}
-
-void
-HandlePref(map)
-data_obj	**map;
-{
-	register data_obj	*cp;
-	register int	c;
-	int	slow;
-
-	c = waitchar(&slow);
-	if (c == AbortChar) {
-		message("[Aborted]");
-		rbell();
-		return;
-	}
-
-	if (slow)
-		message(key_strokes);
-
-	cp = map[c];
-	if (cp == 0) {
-		s_mess("[%sunbound]", key_strokes);
-		rbell();
-	} else
-		ExecCmd(cp);
-}
-
-void
 Yank()
 {
 	Line	*line,
@@ -247,8 +203,8 @@ WtModBuf()
 void
 put_bufs(askp)
 {
-	register Buffer	*oldb = curbuf,	
-			*b;		
+	register Buffer	*oldb = curbuf,
+			*b;
 
 	for (b = world; b != 0; b = b->b_next) {
 		if (!IsModified(b) || b->b_type != B_FILE)
@@ -265,13 +221,10 @@ put_bufs(askp)
 		if (askp && (yes_or_no_p("Write %s? ", curbuf->b_fname) == NO))
 			continue;
 		filemunge(curbuf->b_fname);
-#ifndef MAC
-#ifndef MSDOS
+#if !(defined(MSDOS) || defined(MAC))
 		chk_mtime(curbuf, curbuf->b_fname, "save");
-#endif /* MSDOS */
-#endif /* MAC */
+#endif
 		file_write(curbuf->b_fname, 0);
-		unmodify();
 	}
 	SetBuf(oldb);
 }
@@ -293,177 +246,14 @@ ToIndent()
 void
 GoLine()
 {
-  	Line	*newline;
+	Line	*newline;
 
-#ifndef ANSICODES
- 	if (!is_an_arg())
- 		set_arg_value(ask_int("Line: ",10));
-#else /* not ANSICODES */
- 	if (!is_an_arg() || arg_value() <= 0) {
-  		if (SP) {
-  			putpad(SP, 1);	/* Ask for cursor position */
-			return;
-		}
- 		set_arg_value(ask_int("Line: ", 10));
-  	}
-#endif /* ANSICODES */
- 	newline = next_line(curbuf->b_first, arg_value() - 1);
-  	PushPntp(newline);
-  	SetLine(newline);
+	if (!is_an_arg())
+		set_arg_value(ask_int("Line: ",10));
+	newline = next_line(curbuf->b_first, arg_value() - 1);
+	PushPntp(newline);
+	SetLine(newline);
 }
-
-#ifdef ANSICODES
-void
-MoveToCursor(line, col)
-{
-	register struct scrimage *sp = &PhysScreen[line];
-
-	while (sp->s_id == 0)
-		sp = &PhysScreen[--line];
-	if (sp->s_flags & MODELINE)
-		complain((char *) 0);
-	if (curwind != sp->s_window)
-		SetWind(sp->s_window);
-	SetLine(sp->s_lp);
-	curchar = how_far(sp->s_lp, col);
-}
-
-void
-AnsiCodes()
-{
-	int	c;
-	int	num1 = 0;
-	int	num2;
-	static char *unsupported = "[Unsupported ANSI code received]";
-
-	while (isdigit(c = getch()))
-		num1 = (num1 * 10) + (c - '0');
-
-	switch (c) {
-	case ';':
-		num2 = 0;
-		while (isdigit(c = getch()))
-			num2 = (num2 * 10) + (c - '0');
-		switch (c) {
-		case 'R':
-			MoveToCursor(--num1, --num2);
-			break;
-		case 'H':
-			Eow();
-			Bol();
-			break;
-		default:
-			complain(unsupported);
-		}
-		break;
-	case 'A':
-		PrevLine();
-		break;
-	case 'B':
-		NextLine();
-		break;
-	case 'C':
-		ForChar();
-		break;
-	case 'D':
-		BackChar();
-		break;
-	case 'H':
-		Bow();
-		break;
-	case 'J':
-		if (num1 == 2) {
-			ClAndRedraw();
-			break;
-		}
-	case 'z':	/* Sun function keys send <esc>[Nz */
-		switch(num1) {
-			case 193:	/* L2 */
-				SetMark();
-				break;
-			case 194:	/* L3 */
-				PopMark();
-				break;
-			case 195:	/* L4 */
-				DelReg();
-				break;
-			case 208:	/* R1 */
-				QRepSearch();
-				break;
-			case 209:	/* R2 */
-				IncFSearch();
-				break;
-			case 210:	/* R3 */
-				WtModBuf();
-				break;
-			case 211:	/* R4 */
-				RepSearch();
-				break;
-			case 212:	/* R5 */
-				IncRSearch();
-				break;
-			case 213:	/* R6 */
-				Leave();
-				break;
-			case 214:	/* R7 */
-				BackWord();
-				break;
-			case 215:	/* R8 == UpArrow */
-				break;
-			case 216:	/* R9 */
-				ForWord();
-				break;
-			case 217:	/* R10 == LeftArrow */
-				break;
-			case 218:	/* R11 */
-				NextWindow();
-				break;
-			case 219:	/* R12 == RightArrow */
-				break;
-			case 220:	/* R13 */
-			case 221:	/* R14 == DownArrow */
-				break;
-			case 222:	/* R15 */
-			case 225:	/* F2 */
-			case 226:	/* F3 */
-			case 227:	/* F4 */
-				break;
-			case 228:	/* F5 */
-				break;
-			case 229:	/* F6 */
-				break;
-			case 230:	/* F7 */
-				break;
-			case 231:	/* F8 */
-				break;
-			case 232:	/* F9 */
-				break;
-			default:
-				num1 = -1;	/* Hack flags failure */
-				break;
-		}
-		if (num1 >= 0)
-			break;
-	case 'P':
-		PrevPage();
-		break;
-
-	case 'Q':
-		NextPage();
-		break;
-
-	case 'R':
-		UpScroll();
-		break;
-
-	case 'S':
-		DownScroll();
-		break;
-	default:
-		complain(unsupported);
-	}
-}
-#endif /* ANSICODES */
 
 void
 NotModified()
@@ -474,11 +264,20 @@ NotModified()
 void
 SetLMargin()
 {
-	LMargin = calc_pos(linebuf, curchar);
+	int	lmarg = calc_pos(linebuf, curchar);
+
+	if (lmarg >= RMargin)
+		complain("[Left margin must be left of right margin]");
+	LMargin = lmarg;
 }
 
 void
 SetRMargin()
 {
-	RMargin = calc_pos(linebuf, curchar);
+	int	rmarg = calc_pos(linebuf, curchar);
+
+	if (rmarg <= LMargin)
+		complain("[Right margin must be right of left margin]");
+	RMargin = rmarg;
 }
+

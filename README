@@ -45,7 +45,7 @@ possible for your change to be #ifdef'd in, that would be best, since I
 want to avoid making JOVE huge.  For instance, if it's a new package type
 thing (say, like word abbrev. mode, or something) then it would be best
 if that were a compile-time option.  I will send out periodic updates to
-mod.sources.  I will report all significant bug fixes there, and to
+comp.sources.unix.  I will report all significant bug fixes there, and to
 net.emacs as well.
 
 Here's a list of the compile time options and what they mean:
@@ -165,8 +165,13 @@ features, in particular, the comment formatter.
 
 Thanks to Karl Gegenfurtner for making the PC version.
 
+Thanks to Ken Mitchum for the Macintosh verison.
+
+Thanks to Hugh Redelmeier for his input, his experience, countless bug
+fixes, and ... that's it, I guess.
+
 (Thanks to Brian Harvey for teaching me about linked lists ...)
 
 Good luck, have fun.
 
-	Jonathan Payne (jpayne@cs.rochester.edu until '88)
+	Jonathan Payne (jpayne@sun.com until further notice :-)

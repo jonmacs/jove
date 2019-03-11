@@ -6,25 +6,22 @@
  ***************************************************************************/
 
 #include "jove.h"
+#include "re.h"
 #include "ctype.h"
 
 #ifdef MAC
-#	undef private
-#	define private
+# undef private
+# define private
 #endif
 
-#ifdef	LINT_ARGS
-private void to_sent(int);
-#else
-private void to_sent();
-#endif
+private void to_sent proto((int));
 
 #ifdef MAC
-#	undef private
-#	define private static
+# undef private
+# define private static
 #endif
 
-static int	line_pos;
+private int	line_pos;
 
 void
 f_char(n)
@@ -103,8 +100,10 @@ line_move(dir, n, line_cmd)
 
 	line = (*proc)(curline, n);
 	if (line == curline) {
-		if (dir == FORWARD) Eol();
-			else Bol();
+		if (dir == FORWARD)
+			Eol();
+		else
+			Bol();
 		return;
 	}
 
@@ -154,7 +153,7 @@ Bol()
 void
 Eol()
 {
-	curchar = strlen(linebuf);
+	curchar = length(curline);
 }
 
 void
@@ -184,10 +183,12 @@ to_sent(dir)
 
 	DOTsave(&old);
 
-	new = dosearch("^[ \t]*$\\|[?.!]", dir, 1);
+	new = dosearch("^[ \t]*$\\|[?.!]", dir, YES);
 	if (new == 0) {
-		if (dir == BACKWARD) ToFirst();
-			else ToLast();
+		if (dir == BACKWARD)
+			ToFirst();
+		else
+			ToLast();
 		return;
 	}
 	SetDot(new);
@@ -196,8 +197,8 @@ to_sent(dir)
 		if ((old.p_line == curline && old.p_char <= curchar) ||
 		    (inorder(new->p_line, new->p_char, old.p_line, old.p_char) &&
 		     inorder(old.p_line, old.p_char, curline, curchar))) {
-		     	SetDot(new);
-		     	to_sent(dir);
+			SetDot(new);
+			to_sent(dir);
 		}
 		return;		/* We're there? */
 	}

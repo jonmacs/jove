@@ -8,6 +8,7 @@
 #include "jove.h"
 #include "ctype.h"
 #include "termcap.h"
+#include "disp.h"
 #include <signal.h>
 
 #ifdef MAC
@@ -26,7 +27,7 @@ register void 	(*proc)();
 {
 	register struct cmd	*cp;
 
-  	for (cp = commands; cp->Name; cp++)
+	for (cp = commands; cp->Name; cp++)
 		if (cp->c_proc == proc)
 			return cp;
 	return 0;
@@ -38,7 +39,7 @@ char	*ProcFmt = ": %f ";
 
 void
 ExecCmd(cp)
-data_obj	*cp;
+register data_obj	*cp;
 {
 	LastCmd = cp;
 	if (cp->Type & MAJOR_MODE)
@@ -52,10 +53,16 @@ data_obj	*cp;
 
 		case FUNCTION:
 		    {
-		    	struct cmd	*cmd = (struct cmd *) cp;
+			register struct cmd	*cmd = (struct cmd *) cp;
 
-			if (cmd->c_proc)
-				(*cmd->c_proc)();
+			if (cmd->c_proc) {
+				if ((cmd->Type & MODIFIER) &&
+				    (BufMinorMode(curbuf, ReadOnly))) {
+					rbell();
+					message("[Buffer is read-only]");
+				} else
+					(*cmd->c_proc)();
+			}
 		    }
 	}
 }
@@ -71,43 +78,46 @@ register Line	*lp;
 	return lp;
 }
 
-private int	*slowp = 0;
+char	key_strokes[100],
+	*keys_p = key_strokes;
 
-char	key_strokes[100];
-private char	*key_p = key_strokes;
-
-void
-init_strokes()
+pp_key_strokes(buffer, size)
+char	*buffer;
 {
-	key_strokes[0] = 0;
-	key_p = key_strokes;
+	char	*buf_end = buffer + size - 5,	/* leave some extra space */
+		*kp = key_strokes,
+		c;
+
+	*buffer = '\0';
+	while (c = *kp++) {
+		swritef(buffer, "%p ", c);
+		buffer += strlen(buffer);
+		if (buffer > buf_end)
+			break;
+	}
 }
 
-void
-add_stroke(c)
-{
-	if (key_p + 5 > &key_strokes[(sizeof key_strokes) - 1])
-		key_p = key_strokes;
-	sprintf(key_p, "%p ", c);
-	key_p += strlen(key_p);
-}
+private int	*slowp = 0;	/* for waitchar() */
 
-void
+private void
 slowpoke()
 {
+	char	buffer[100];
+
 	if (slowp)
 		*slowp = YES;
-	f_mess(key_strokes);
+	pp_key_strokes(buffer, sizeof (buffer));
+	f_mess(buffer);
 }
 
 #ifdef UNIX
-#ifdef BSD4_2
-#	define N_SEC	1	/* will be precisely 1 second on 4.2 */
-#else
-#	define N_SEC	2	/* but from 1 to 2 seconds otherwise */
-#endif
+# ifdef BSD4_2
+#  define N_SEC	1	/* will be precisely 1 second on 4.2 */
+# else
+#  define N_SEC	2	/* but from 1 to 2 seconds otherwise */
+# endif
 #else /* MSDOS or MAC */
-#define N_SEC	1
+# define N_SEC	1
 int in_macro();
 #endif /* UNIX */
 
@@ -115,20 +125,27 @@ int
 waitchar(slow)
 int	*slow;
 {
-#ifdef UNIX
-#ifdef EUNICE
-	return getch();
-#endif
-	unsigned int	old_time;
 	int	c;
+#ifdef UNIX
+	unsigned int	old_time;
 	int	(*oldproc)();
 #else /* MSDOS or MAC */
 	long sw, time();
 #endif /* UNIX */
 
 	slowp = slow;
-	if (slow)
-		*slow = NO;
+
+	if (in_macro())		/* make macros faster ... */
+		return getch();
+
+	/* If slow is a valid pointer and it's value is yes, then
+	   we know we have already been slow during this sequence,
+	   so we just wait for the character and then echo it. */
+	if (slow != 0 && *slow == YES) {
+		c = getch();
+		slowpoke();
+		return c;
+	}
 #ifdef UNIX
 	oldproc = signal(SIGALRM, slowpoke);
 
@@ -138,22 +155,33 @@ int	*slow;
 	(void) alarm(old_time);
 	(void) signal(SIGALRM, oldproc);
 
+	if (slow != 0 && *slow == YES)
+		slowpoke();
 	return c;
+
 #else /* MSDOS or MAC */
 #ifdef MAC
 	Keyonly = 1;
-	if(charp() || in_macro()) return getch();	/* to avoid flicker */
+	if (charp() || in_macro()) {
+		c = getch();	/* to avoid flicker */
+		if (slow != 0 && *slow == YES)
+			slowpoke();
+		return c;
+	}
 #endif
 	time(&sw);
 	sw += N_SEC;
-	while(time(NULL) <= sw)
+	while (time(NULL) <= sw)
 		if (charp() || in_macro())
 			return getch();
 #ifdef MAC
 	menus_off();
 #endif
 	slowpoke();
-	return getch();
+	c = getch();
+	slowpoke();
+
+	return c;
 #endif /* UNIX */
 }
 
@@ -378,7 +406,7 @@ register int	num;
 {
 	static char	line[15];
 
-	sprintf(line, "%d", num);
+	swritef(line, "%d", num);
 	return line;
 }
 
@@ -557,8 +585,10 @@ len_error(flag)
 {
 	char	*mesg = "[line too long]";
 
-	if (flag == COMPLAIN) complain(mesg);
-		else error(mesg);
+	if (flag == COMPLAIN)
+		complain(mesg);
+	else
+		error(mesg);
 }
 
 /* Insert num number of c's at offset atchar in a linebuf of LBSIZE */
@@ -700,7 +730,7 @@ double *dp;
 	*dp = (double) loadav(0) / 100.0;
 }
 
-#   else /* !PURDUE_EE || (!vax && !gould) */ 
+#   else /* !PURDUE_EE || (!vax && !gould) */
 
 #ifdef sun
 #   include <sys/param.h>
@@ -790,19 +820,6 @@ time_t	*timep;
 		return cp;
 }
 
-#ifndef MSDOS
-#ifndef MAC
-int
-strlen(s)
-register char	*s;
-{
-	register char	*base = s;
-
-	while (*s++)
-		;
-	return (s - base) - 1;
-}
-
 char *
 index(s, c)
 register char	*s;
@@ -818,20 +835,14 @@ register int	c;
 }
 
 int
-strcmp(s1, s2)
+my_strcmp(s1, s2)
 register char	*s1,
 		*s2;
 {
 	if (!s1 || !s2)
 		return 1;	/* which is not zero ... */
-	while (*s1 == *s2++)
-		if (*s1++ == '\0')
-			return 0;
-	return (*s1 - *--s2);
+	return strcmp(s1, s2);
 }
-
-#endif /* MAC */
-#endif /* MSDOS */
 
 int
 casecmp(s1, s2)
@@ -869,20 +880,6 @@ char	*to,
 	to[n] = '\0';
 }
 
-#ifndef MSDOS
-#ifndef MAC
-void
-strcpy(t, f)
-register char	*t,
-		*f;
-{
-	while (*t++ = *f++)
-		;
-}
-
-#endif /* MAC */
-#endif /* MSDOS */
-
 /* Tries to pause for delay/10 seconds OR until a character is typed
    at the keyboard.  This works well on BSD4_2 and not so well on the
    rest.  Returns 1 if it returned because of keyboard input, or 0
@@ -891,7 +888,7 @@ register char	*t,
 #ifdef MAC
 void
 SitFor(delay)
-unsigned int	delay;
+int	delay;
 {
 	long	start,
 		end;
@@ -911,7 +908,7 @@ unsigned int	delay;
 
 void
 SitFor(delay)
-unsigned int	delay;
+int	delay;
 {
 #ifndef MSDOS
 #if defined(BSD4_2) && !defined(BSD2_10)
@@ -975,7 +972,7 @@ unsigned int	delay;
 		end;
 #ifndef IBMPC
 	struct dostime_t tc;
-#endif	
+#endif
 
 	redisplay();
 #ifdef IBMPC
@@ -983,18 +980,18 @@ unsigned int	delay;
 #else
 	_dos_gettime(&tc);
 	start = (long)(tc.hour*60L*60L*10L)+(long)(tc.minute*60L*10L)+
-            (long)(tc.second*10)+(long)(tc.hsecond/10);
+	    (long)(tc.second*10)+(long)(tc.hsecond/10);
 #endif
 	end = (start + delay);
 	do  {
 		if (InputPending = charp())
 			break;
 #ifdef IBMPC
-        if (_bios_timeofday(_TIME_GETCLOCK, &start))
+	if (_bios_timeofday(_TIME_GETCLOCK, &start))
 		    break;	/* after midnight */
 #else
 	    start = (long)(tc.hour*60L*60L*10L)+(long)(tc.minute*60L*10L)+
-                (long)(tc.second*10)+(long)(tc.hsecond/10);
+		(long)(tc.second*10)+(long)(tc.hsecond/10);
 #endif
 	}
 	while (start < end);
@@ -1043,3 +1040,17 @@ pnt_line()
 			break;
 	return i + 1;
 }
+
+char *
+ralloc(obj, size)
+register char	*obj;
+{
+	register char	*new;
+
+	if (obj)
+		new = realloc(obj, (unsigned) size);
+	if (new == 0 || !obj)
+		new = emalloc(size);
+	return new;
+}
+

@@ -234,6 +234,6 @@ register Line	*line1,
 				else
 					m->m_char = char2 + (m->m_char - char1);
 			}
-		} 
+		}
 	}
 }

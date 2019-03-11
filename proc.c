@@ -6,48 +6,38 @@
  ***************************************************************************/
 
 #include "jove.h"
-#include "io.h"
+#include "ctype.h"
+#include "fp.h"
+#include "re.h"
 #include "termcap.h"
 
 #include <signal.h>
 #include <varargs.h>
 
 #ifdef MSDOS
-#include <io.h>
-#include <process.h>
+# include <io.h>
+# include <process.h>
 #endif
 
-
-#ifdef	LINT_ARGS
 private void
-	DoShell(char *, char *),
-	com_finish(int, char *),
-	toerror(int, int),
-	closepipe(void);
-	
-private int
-	okay_error(void),
-	openforpipe(void),
-	reopenforpipe(void);
-
-private struct error
-	* AddError(struct error *, Line *, Buffer *, Line *, int);
-#else
-private void
-	DoShell(),
-	com_finish(),
-	toerror(),
-	closepipe();
+	DoShell proto((char *, char *)),
+	com_finish proto((int, char *)),
+	toerror proto((int, int)),
+	closepipe proto((void));
 
 private int
-	openforpipe(),
-	okay_error(),
-	reopenforpipe();
+	okay_error proto((void));
 
-private struct error
-	* AddError();
+#if defined(MSDOS)
+private int
+	openforpipe proto((void)),
+	reopenforpipe proto((void));
 #endif
 
+private struct error
+	*AddError proto((struct error *, Line *, Buffer *, Line *, int));
+
+long	SigMask = 0;
 
 /* This disgusting RE search string parses output from the GREP
    family, from the pdp11 compiler, pcc, and lint.  Jay (HACK)
@@ -109,28 +99,36 @@ Buffer	*buf;
 void
 ErrParse()
 {
+	struct RE_block	re_blk;
 	Bufpos	*bp;
 	char	fname[FILESIZE],
-		lineno[10],
-		REbuf[256],
-		*REalts[10];
+		lineno[FILESIZE];
 	int	lnum,
 		last_lnum = -1;
 	struct error	*ep = 0;
 	Buffer	*buf,
 		*lastb = 0;
-	Line	*err_line;	
+	Line	*err_line;
 
 	ErrFree();		/* This is important! */
 	ToFirst();
 	perr_buf = curbuf;
-	REcompile(ErrFmtStr, 1, REbuf, REalts);
+	REcompile(ErrFmtStr, YES, &re_blk);
 	/* Find a line with a number on it. */
-	while (bp = docompiled(FORWARD, REbuf, REalts)) {
+	while (bp = docompiled(FORWARD, &re_blk)) {
 		SetDot(bp);
 		putmatch(1, fname, sizeof fname);
 		putmatch(2, lineno, sizeof lineno);
-		buf = do_find((Window *) 0, fname, 1);
+
+		/* error had lineno followed fname, so switch the two */
+		if (!isdigit(lineno[0])) {
+			char	tmp[FILESIZE];
+
+			strcpy(tmp, lineno);
+			strcpy(lineno, fname);
+			strcpy(fname, tmp);
+		}
+		buf = do_find((Window *) 0, fname, YES);
 		if (buf != lastb) {
 			lastb = buf;
 			last_lnum = -1;		/* signals new file */
@@ -220,7 +218,7 @@ ToError(forward)
 int	EWSize = 20;	/* percentage of screen the error window
 			   should be */
 
-void
+private void
 set_wsize(wsize)
 int	wsize;
 {
@@ -274,7 +272,7 @@ ShowErr()
 	DotTo(cur_error->er_text, cur_error->er_char);
 }
 
-char	ShcomBuf[128] = {0};
+char	ShcomBuf[LBSIZE];
 
 /* Make a buffer name given the command `command', i.e. "fgrep -n foo *.c"
    will return the buffer name "fgrep".  */
@@ -301,7 +299,7 @@ char	*command;
 /* Run make, first writing all the modified buffers (if the WtOnMk flag is
    non-zero), parse the errors, and go the first error. */
 
-char	make_cmd[128] = "make";
+char	make_cmd[LBSIZE] = "make";
 
 void
 MakeErrors()
@@ -309,7 +307,7 @@ MakeErrors()
 	Window	*old = curwind;
 	int	status,
 		compilation;
-	
+
 	if (WtOnMk)
 		put_bufs(0);
 	/* When we're not doing make or cc (i.e., the last command
@@ -322,6 +320,8 @@ MakeErrors()
 	compilation = (sindex("make", make_cmd) || sindex("cc", make_cmd));
 	if (is_an_arg() || !compilation) {
 		if (!compilation) {
+			extern char	*Inputp;
+
 			rbell();
 			Inputp = make_cmd;	/* insert the default for the user */
 		}
@@ -347,7 +347,7 @@ SpelBuffer()
 	Window	*savewp = curwind;
 
 	put_bufs(0);
-	sprintf(com, "spell %s", curbuf->b_fname);
+	swritef(com, "spell %s", curbuf->b_fname);
 	(void) UnixToBuf(Spell, YES, EWSize, YES, Shell, ShFlags, com, (char *) 0);
 	message("[Delete the irrelevant words and then type C-X C-C]");
 	ToFirst();
@@ -388,7 +388,7 @@ char	*bname;
 	ToFirst();
 	f_mess("Finding misspelled words ... ");
 	while (!lastp(curline)) {
-		sprintf(wordspel, "\\<%s\\>", linebuf);
+		swritef(wordspel, "\\<%s\\>", linebuf);
 		SetBuf(buftospel);
 		ToFirst();
 		while (bp = dosearch(wordspel, 1, 1)) {
@@ -429,7 +429,8 @@ ShNoBuf()
 	int	status;
 
 	null_ncpy(ShcomBuf, ask(ShcomBuf, ProcFmt), (sizeof ShcomBuf) - 1);
-	status = UnixToBuf((char *) 0, NO, 0, NO, Shell, ShFlags, ShcomBuf, (char *) 0);
+	status = UnixToBuf((char *) 0, NO, 0, NO, Shell, ShFlags, ShcomBuf,
+		curbuf->b_fname, curbuf->b_fname, (char *) 0);
 	com_finish(status, ShcomBuf);
 }
 
@@ -438,7 +439,8 @@ Shtypeout()
 	int	status;
 
 	null_ncpy(ShcomBuf, ask(ShcomBuf, ProcFmt), (sizeof ShcomBuf) - 1);
-	status = UnixToBuf((char *) 0, YES, 0, NO, Shell, ShFlags, ShcomBuf, (char *) 0);
+	status = UnixToBuf((char *) 0, YES, 0, NO, Shell, ShFlags, ShcomBuf,
+		curbuf->b_fname, curbuf->b_fname, (char *) 0);
 	if (status == 0)
 		Typeout("[%s: completed successfully]", ShcomBuf);
 	else
@@ -458,8 +460,8 @@ char	*bufname,
 	Window	*savewp = curwind;
 	int	status;
 
-	status = UnixToBuf(bufname, YES, 0, !is_an_arg(), Shell,
-			   ShFlags, command, (char *) 0);
+	status = UnixToBuf(bufname, YES, 0, !is_an_arg(), Shell, ShFlags,
+		command, curbuf->b_fname, curbuf->b_fname, (char *) 0);
 	com_finish(status, command);
 	SetWind(savewp);
 }
@@ -483,29 +485,25 @@ dowait(pid, status)
 int	pid,
 	*status;
 {
-#ifndef IPROCS
+# ifndef IPROCS
 
 	int	rpid;
 
 	while ((rpid = wait(status)) != pid)
 		;
-#else
+# else
 
-#ifdef BSD4_2
-#   include <sys/wait.h>
-#else
-#   include <wait.h>
-#endif
+# include "wait.h"
 
 	union wait	w;
 	int	rpid;
 
 	for (;;) {
-#ifndef BSD4_2
+#  ifndef BSD4_2
 		rpid = wait2(&w.w_status, 0);
-#else
+#  else
 		rpid = wait3(&w, 0, (struct rusage *) 0);
-#endif
+#  endif
 		if (rpid == pid) {
 			if (status)
 				*status = w.w_status;
@@ -513,17 +511,17 @@ int	pid,
 		} else
 			kill_off(rpid, w);
 	}
-#endif /* IPROCS */
+# endif /* IPROCS */
 }
-
 #endif /* MSDOS */
+
 /* Run the command to bufname, erase the buffer if clobber is non-zero,
    and redisplay if disp is non-zero.  Leaves current buffer in `bufname'
    and leaves any windows it creates lying around.  It's up to the caller
    to fix everything up after we're done.  (Usually there's nothing to
    fix up.) */
 
-/* VARARGS5 */
+/* VARARGS4 */
 
 int
 UnixToBuf(bufname, disp, wsize, clobber, va_alist)
@@ -583,28 +581,42 @@ va_dcl
 	   in that you just have to type it twice. */
 
 #ifndef MSDOS
-#ifdef IPROCS
-	sighold(SIGCHLD);
-#endif
-#ifdef JOB_CONTROL
-	sighold(SIGINT);
-#else
+# ifdef IPROCS
+	SigHold(SIGCHLD);
+# endif
+# ifdef JOB_CONTROL
+	SigHold(SIGINT);
+# else
 	old_int = signal(SIGINT, SIG_IGN),
-#endif
+# endif
 	dopipe(p);
-	pid = fork();
+	pid = vfork();
 	if (pid == -1) {
 		pclose(p);
 		complain("[Fork failed]");
 	}
 	if (pid == 0) {
-#ifdef IPROCS
-		sigrelse(SIGCHLD);   /* don't know if this matters */
-#endif /* IPROCS */
+# ifdef BSD4_2
+		/*
+		 * We want to release SIGCHLD and SIGINT in the child, but
+		 * we can't use SigRelse because that would change Jove's
+		 * copy of the SigMask variable (because we're in a
+		 * vfork).  So we simply set set the mask directly.  There
+		 * are several other forks in Jove, but this is the only
+		 * one we execute often enough to make it worth using a
+		 * vfork.
+		 */
 		(void) signal(SIGINT, SIG_DFL);
-#ifdef JOB_CONTROL
-		sigrelse(SIGINT);
-#endif
+		(void) sigsetmask(SigMask & ~(sigmask(SIGCHLD)|sigmask(SIGINT)));
+# else /* BSD4_2 */
+# ifdef IPROCS
+		SigRelse(SIGCHLD);   /* don't know if this matters */
+# endif /* IPROCS */
+		(void) signal(SIGINT, SIG_DFL);
+# ifdef JOB_CONTROL
+		SigRelse(SIGINT);
+# endif
+# endif /* BSD4_2 */
 		(void) close(0);
 		(void) open("/dev/null", 0);
 		(void) close(1);
@@ -616,9 +628,9 @@ va_dcl
 		(void) write(1, "Execl failed.\n", 14);
 		_exit(1);
 	}
-#ifdef JOB_CONTROL
+# ifdef JOB_CONTROL
 	old_int = signal(SIGINT, SIG_IGN);
-#endif	
+# endif
 	(void) close(p[1]);
 	fp = fd_open(argv[1], F_READ, p[0], iobuff, LBSIZE);
 #else /* MSDOS */
@@ -650,7 +662,7 @@ va_dcl
 #ifndef MSDOS
 		inIOread = 1;
 #endif
- 		eof = f_gets(fp, genbuf, LBSIZE);
+		eof = f_gets(fp, genbuf, LBSIZE);
 #ifndef MSDOS
 		inIOread = 0;
 #endif
@@ -663,7 +675,7 @@ va_dcl
 		if (bufname != 0 && disp != 0 && fp->f_cnt <= 0) {
 #ifdef LOAD_AV
 		    {
-		    	double	theavg;
+			double	theavg;
 
 			get_la(&theavg);
 			if (theavg < 2.0)
@@ -687,48 +699,23 @@ va_dcl
 	close_file(fp);
 #ifndef MSDOS
 	dowait(pid, &status);
-#ifdef JOB_CONTROL
-	(void) sigrelse(SIGINT);
-#endif
+# ifdef JOB_CONTROL
+	(void) SigRelse(SIGINT);
+# endif
 #else /* MSDOS */
 	closepipe();
 #endif /* MSDOS */
 	(void) signal(SIGINT, old_int);
 #ifndef MSDOS
-#ifdef IPROCS
-	sigrelse(SIGCHLD);
-#endif
+# ifdef IPROCS
+	SigRelse(SIGCHLD);
+# endif
 	return status;
 #else /* MSDOS */
-#ifdef CHDIR
 	getCWD();
-#endif	
 	return retcode;
 #endif /* MSDOS */
 }
-
-#ifndef MSDOS
-#ifdef BSD4_2
-
-private long	SigMask = 0;
-
-#ifndef sigmask
-#	define	sigmask(s)	(1L << ((s)-1))
-#endif
-
-sighold(sig)
-{
-	(void) sigblock(SigMask |= sigmask(sig));
-}
-
-sigrelse(sig)
-{
-	(void) sigsetmask(SigMask &= ~sigmask(sig));
-}
-
-#endif
-
-#endif /* MSDOS */
 
 void
 FilterRegion()
@@ -748,7 +735,8 @@ char	*cmd;
 {
 	Mark	*m = CurMark();
 #ifndef MSDOS
-	char	*tname = mktemp("/tmp/jfilterXXXXXX"),
+	static char     tnambuf[20];
+	char    *tname,
 		combuf[128];
 #endif /* MSDOS */
 	Window	*save_wind = curwind;
@@ -760,6 +748,8 @@ char	*cmd;
 	File	*fp;
 
 #ifndef MSDOS
+	strcpy (tnambuf, "/tmp/jfilterXXXXXX");
+	tname = mktemp(tnambuf);
 	fp = open_file(tname, iobuff, F_WRITE, COMPLAIN, QUIET);
 #else /* MSDOS */
 	p0 = openforpipe();
@@ -771,7 +761,7 @@ char	*cmd;
 	putreg(fp, m->m_line, m->m_char, curline, curchar, YES);
 	DelReg();
 #ifndef MSDOS
-	sprintf(combuf, "%s < %s", cmd, tname);
+	swritef(combuf, "%s < %s", cmd, tname);
 #else /* MSDOS */
 	f_close(fp);
 	p0 = reopenforpipe();
@@ -834,15 +824,15 @@ extern char TmpFilePath[];
 private int
 openforpipe()
 {
-   sprintf(pipeiname, "%s/%s", TmpFilePath, "Jove-I");
-   sprintf(pipeoname, "%s/%s", TmpFilePath, "Jove-O");
+   swritef(pipeiname, "%s/%s", TmpFilePath, "Jove-I");
+   swritef(pipeoname, "%s/%s", TmpFilePath, "Jove-O");
 
    return(pipehandle = creat(pipeoname, S_IWRITE|S_IREAD));
 }
 
 private int
 reopenforpipe()
-{		       
+{
    close(pipehandle);
    unlink(pipeiname);
    rename(pipeoname, pipeiname);
@@ -854,18 +844,18 @@ reopenforpipe()
 
 private void
 closepipe()
-{	 
+{
    unlink(pipeoname);
    unlink(pipeiname);
 }
-         
-char 
+
+char
 switchar()
 {
   union REGS regs;
-  
+
   regs.h.ah = 0x37;
-  regs.h.al = 0;   
+  regs.h.al = 0;
   intdos(&regs, &regs);
   return(regs.h.dl);
 }

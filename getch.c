@@ -14,11 +14,7 @@
 
 #include "jove.h"
 
-#ifdef LINT_ARGS
-private void waitfun(void);
-#else
-private void waitfun();
-#endif
+private void waitfun proto((void));
 
 extern int UpdModLine;
 #ifdef IBMPC
@@ -33,7 +29,7 @@ getrawinchar()
 #endif /* RAINBOW */
 #ifdef IBMPC
 	unsigned scan;
-	
+
 	if (specialkey = last) {
 		scan = last;
 		last = 0;
@@ -77,7 +73,7 @@ rawkey_ready()
 	if (waiting)
 		return 0;
 #ifdef IBMPC
-	if (last) 
+	if (last)
 		return 1;
 
 	return _bios_keybrd(_KEYBRD_READY);
@@ -118,7 +114,7 @@ waitfun()
 	}
 #ifdef IBMPC
 	if (_bios_timeofday(_TIME_GETCLOCK, &timecount) ||  /* after midnight */
-            (timecount > lastcount + 0x444) ) {
+	    (timecount > lastcount + 0x444) ) {
 		lastcount = timecount;
 		UpdModLine = 1;
 	}

@@ -8,11 +8,12 @@
 /* Routines to perform all kinds of deletion.  */
 
 #include "jove.h"
+#include "disp.h"
 
 /* Assumes that either line1 or line2 is actual the current line, so it can
    put its result into linebuf. */
 
-void
+private void
 patchup(line1, char1, line2, char2)
 Line	*line1,
 	*line2;
@@ -97,12 +98,12 @@ register Line	*line1,
 	lfreereg(next, line2);	/* Put region at end of free line list. */
 }
 
-/* Delete character forward */
+/* delete character forward */
 
 void
 DelNChar()
 {
-	del_char(FORWARD, arg_value());
+	del_char(FORWARD, arg_value(), YES);
 }
 
 /* Delete character backward */
@@ -121,8 +122,8 @@ DelPChar()
 		SelfInsert();
 
 		b_char(count);
-	} else		
-		del_char(BACKWARD, arg_value());
+	} else
+		del_char(BACKWARD, arg_value(), YES);
 }
 
 /* Delete some characters.  If deleting forward then call for_char
@@ -130,15 +131,17 @@ DelPChar()
    region between the two with patchup(). */
 
 void
-del_char(dir, num)
+del_char(dir, num, OK_kill)
 {
 	Bufpos	before,
 		after;
-	int	killp = (abs(num) > 1);
+	int	killp = (OK_kill && (abs(num) > 1));
 
 	DOTsave(&before);
-	if (dir == FORWARD) f_char(num);
-		else b_char(num);
+	if (dir == FORWARD)
+		f_char(num);
+	else
+		b_char(num);
 	if (before.p_line == curline && before.p_char == curchar)
 		complain((char *) 0);
 	if (killp)
@@ -276,12 +279,25 @@ DelBlnkLines()
 	line_move(FORWARD, 1, NO);
 	while (blnkp(linebuf) && !eobp()) {
 		DelWtSpace();
-		del_char(FORWARD, 1);
+		del_char(FORWARD, 1, NO);
 	}
 	if (!all && !eobp())
 		open_lines(1);
 	ToMark(dot);
 	DelMark(dot);
+}
+
+private void
+dword(forward)
+{
+	Bufpos	savedot;
+
+	DOTsave(&savedot);
+	if (forward)
+		ForWord();
+	else
+		BackWord();
+	reg_kill(savedot.p_line, savedot.p_char, 1);
 }
 
 void
@@ -294,15 +310,4 @@ void
 DelPWord()
 {
 	dword(0);
-}
-
-void
-dword(forward)
-{
-	Bufpos	savedot;
-
-	DOTsave(&savedot);
-	if(forward)  ForWord();
-		else BackWord();
-	reg_kill(savedot.p_line, savedot.p_char, 1);
 }

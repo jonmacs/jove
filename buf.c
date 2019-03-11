@@ -9,47 +9,35 @@
    listing buffers, and buffer modes, and find-file, etc. */
 
 #include "jove.h"
+#include "ctype.h"
+#include "disp.h"
 
 #ifdef MAC
-#	include "mac.h"
+# include "mac.h"
 #else
-#	include <sys/stat.h>
+# include <sys/stat.h>
 #endif
 
-#ifdef MAC
-#	undef private
-#	define private
+#if defined(MAC)
+# undef private
+# define private
 #endif
 
-#ifdef	LINT_ARGS
 private Buffer
-	* buf_alloc(void),
-	* mak_buf(void);
+	*buf_alloc proto((void)),
+	*mak_buf proto((void));
 
-private char * line_cnt(Buffer *, char *);
-
-private void	
-	BufNSelect(int),
-	defb_wind(Buffer *),
-	kill_buf(Buffer *),
-	mkbuflist(char **);
-#else
-private Buffer
-	* buf_alloc(),
-	* mak_buf();
-
-private char * line_cnt();
+private char *line_cnt proto((Buffer *, char *));
 
 private void
-	BufNSelect(),
-	defb_wind(),
-	kill_buf(),
-	mkbuflist();
-#endif	/* LINT_ARGS */
+	BufNSelect proto((int)),
+	defb_wind proto((Buffer *)),
+	kill_buf proto((Buffer *)),
+	mkbuflist proto((char **));
 
-#ifdef MAC
-#	undef private
-#	define private static
+#if defined(MAC)
+# undef private
+# define private static
 #endif
 
 char	*Mainbuf = "Main",
@@ -80,7 +68,7 @@ TogMinor(bit)
 /* Creates a new buffer, links it at the end of the buffer chain, and
    returns it. */
 
-static Buffer *
+private Buffer *
 buf_alloc()
 {
 	register Buffer	*b,
@@ -97,7 +85,7 @@ buf_alloc()
 		world = b;
 	b->b_first = 0;
 	b->b_next = 0;
-#ifdef MAC
+#if defined(MAC)
 	b->Type = BUFFER;	/* kludge, but simplifies menu handlers */
 	b->Name = 0;
 #endif
@@ -107,7 +95,7 @@ buf_alloc()
 /* Makes a buffer and initializes it.  Obsolete.  Used to take two
    arguments, a buffer name and a file name. */
 
-static Buffer *
+private Buffer *
 mak_buf()
 {
 	register Buffer	*newb;
@@ -128,12 +116,12 @@ mak_buf()
 	newb->b_minor = 0;
 	newb->b_major = TEXT;
 	newb->b_first = 0;
-	newb->b_keybinds = 0;
-#ifdef IPROCS
+	newb->b_map = 0;
+#if defined(IPROCS)
 	newb->b_process = 0;
 #endif
 	initlist(newb);
-#ifdef MAC
+#if defined(MAC)
 	Bufchange = 1;
 #endif
 	return newb;
@@ -188,9 +176,9 @@ Buffer	*def;
 	char	prompt[100];
 
 	if (def != 0 && def->b_name != 0)
-		sprintf(prompt, ": %f (default %s) ", def->b_name);
+		swritef(prompt, ": %f (default %s) ", def->b_name);
 	else
-		sprintf(prompt, ProcFmt);
+		swritef(prompt, ProcFmt);
 	mkbuflist(bnames);
 	offset = complete(bnames, prompt, RET_STATE);
 	if (offset == EOF)
@@ -220,7 +208,7 @@ BufSelect()
 	SetBuf(do_select(curwind, bname));
 }
 
-#ifdef MSDOS
+#if defined(MSDOS)
 
 private void
 BufNSelect(n)
@@ -230,7 +218,7 @@ BufNSelect(n)
 	int i;
 
 	mkbuflist(bnames);
-   	for (i=0; i<n; i++)
+	for (i=0; i<n; i++)
 	    if (bnames[i] == 0)
 	       complain("[No such buffer]");
 	bname = bnames[n-1];
@@ -278,7 +266,7 @@ register Buffer *b;
 	} while (w != fwind || w->w_bufp == b);
 }
 
-Buffer *
+private Buffer *
 getNMbuf()
 {
 	register Buffer	*delbuf;
@@ -309,11 +297,11 @@ register Buffer	*delbuf;
 {
 	register Buffer	*b,
 			*lastb = 0;
-#ifndef MAC
+#if !defined(MAC)
 	extern Buffer	*perr_buf;
 #endif
 
-#ifdef IPROCS
+#if defined(IPROCS)
 	pbuftiedp(delbuf);	/* check for lingering processes */
 #endif
 	for (b = world; b != 0; lastb = b, b = b->b_next)
@@ -334,7 +322,7 @@ register Buffer	*delbuf;
 
 	if (delbuf == lastbuf)
 		SetABuf(curbuf);
-#ifndef MAC
+#if !defined(MAC)
 	if (perr_buf == delbuf) {
 		ErrFree();
 		perr_buf = 0;
@@ -343,7 +331,7 @@ register Buffer	*delbuf;
 	defb_wind(delbuf);
 	if (curbuf == delbuf)
 		SetBuf(curwind->w_bufp);
-#ifdef MAC
+#if defined(MAC)
 	Bufchange = 1;
 #endif
 }
@@ -395,7 +383,7 @@ char	*buf;
 
 	for (lp = b->b_first; lp != 0; lp = lp->l_next, nlines++)
 		;
-	sprintf(buf, "%d", nlines);
+	swritef(buf, "%d", nlines);
 	return buf;
 }
 
@@ -455,7 +443,7 @@ register Buffer	*b;
 	cp = basename(b->b_fname);
 	strcpy(tmp, cp);
 	while (buf_exists(tmp)) {
-		sprintf(tmp, "%s.%d", cp, try);
+		swritef(tmp, "%s.%d", cp, try);
 		try += 1;
 	}
 	setbname(b, tmp);
@@ -468,7 +456,7 @@ register Buffer	*b;
 	lfreelist(b->b_first);
 	b->b_first = b->b_dot = b->b_last = 0;
 	(void) listput(b, b->b_first);
-	
+
 	SavLine(b->b_dot, NullStr);
 	b->b_char = 0;
 	AllMarkSet(b, b->b_dot, 0);
@@ -521,7 +509,7 @@ register char	*name;
 	register Buffer	*b = 0;
 	char	fnamebuf[FILESIZE];
 
-#ifdef MSDOS
+#if defined(MSDOS)
 	strlwr(name);
 #endif /* MSDOS */
 	if (name) {
@@ -529,30 +517,17 @@ register char	*name;
 		if (stat(fnamebuf, s) == -1)
 			s->st_ino = 0;
 		for (b = world; b != 0; b = b->b_next) {
-#ifndef MSDOS
-			if ((b->b_ino != 0 && b->b_ino == s->st_ino &&
+			if (
+#if !defined(MSDOS)
+			    (b->b_ino != 0 && b->b_ino == s->st_ino &&
 			     b->b_dev != 0 && b->b_dev == s->st_dev) ||
-#else /* MSDOS */
-			if ( /* (b->b_ino != 0 && b->b_ino == s->st_ino) || */
 #endif /* MSDOS */
-			    (strcmp(b->b_fname, fnamebuf) == 0))
+			    (b->b_fname != 0 &&
+			     strcmp(b->b_fname, fnamebuf) == 0))
 				break;
 		}
 	}
 	return b;
-}
-
-char *
-ralloc(obj, size)
-register char	*obj;
-{
-	register char	*new;
-
-	if (obj)
-		new = realloc(obj, (unsigned) size);
-	if (new == 0 || !obj)
-		new = emalloc(size);
-	return new;
 }
 
 void
@@ -568,7 +543,7 @@ register char	*name;
 		strcpy(b->b_name, name);
 	} else
 		b->b_name = 0;
-#ifdef MAC
+#if defined(MAC)
 	Bufchange = 1;
 #endif
 }
@@ -590,7 +565,7 @@ register char	*name;
 	else
 		strcpy(oldname, b->b_fname);
 	if (name) {
-#ifdef MSDOS
+#if defined(MSDOS)
 		strlwr(name);
 #endif /* MSDOS */
 		PathParse(name, wholename);
@@ -601,7 +576,7 @@ register char	*name;
 	DoAutoExec(curbuf->b_fname, oldptr);
 	curbuf->b_mtime = curbuf->b_dev = curbuf->b_ino = 0;	/* until they're known. */
 	SetBuf(save);
-#ifdef MAC
+#if defined(MAC)
 	Bufchange = 1;
 #endif
 }
@@ -613,17 +588,19 @@ register Buffer	*b;
 	struct stat	stbuf;
 
 	if (b->b_fname == 0 || stat(pr_name(b->b_fname, NO), &stbuf) == -1) {
- 		b->b_dev = 0;
+		b->b_dev = 0;
 		b->b_ino = 0;
 		b->b_mtime = 0;
 	} else {
- 		b->b_dev = stbuf.st_dev;
+		b->b_dev = stbuf.st_dev;
 		b->b_ino = stbuf.st_ino;
 		b->b_mtime = stbuf.st_mtime;
 	}
 }
 
 /* Find the file `fname' into buf and put in in window `w' */
+
+int	DefReadOnly = NO;	/* find files read-only by default */
 
 Buffer *
 do_find(w, fname, force)
@@ -663,7 +640,7 @@ Buffer	*b;
 
 
 /* check to see if BP is a valid buffer pointer */
-int
+private int
 valid_bp(bp)
 register Buffer	*bp;
 {
@@ -679,9 +656,6 @@ void
 SetBuf(newbuf)
 register Buffer	*newbuf;
 {
-	register Buffer	*oldb = curbuf,
-			*b;
-
 	if (newbuf == curbuf || newbuf == 0)
 		return;
 
@@ -695,17 +669,8 @@ register Buffer	*newbuf;
 	/* do the read now ... */
 	if (curbuf->b_ntbf)
 		read_file(curbuf->b_fname, 0);
-#ifdef MAC
+#if defined(MAC)
 	Modechange = 1;
-#endif
-
-#ifdef IPROCS
-	if (oldb != 0 && ((oldb->b_process == 0) != (curbuf->b_process == 0))) {
-		if (curbuf->b_process)
-			PushPBs();		/* Push process bindings */
-		else if (oldb->b_process)
-			PopPBs();
-	}
 #endif
 }
 
@@ -724,4 +689,9 @@ register char	*name;
 	if (w)
 		tiewind(w, new);
 	return new;
+}
+
+buf_init()
+{
+	SetBuf(do_select(curwind, Mainbuf));
 }

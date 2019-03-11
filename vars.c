@@ -10,96 +10,97 @@
 #endif
 
 struct variable	variables[] = {
-	VARIABLE, "abort-char", &AbortChar, V_CHAR,
+	VARIABLE, "abort-char", (char *) &AbortChar, V_CHAR,
 #ifdef UNIX
-	VARIABLE, "allow-^S-and-^Q", &OKXonXoff, V_BOOL|V_TTY_RESET,
+	VARIABLE, "allow-^S-and-^Q", (char *) &OKXonXoff, V_BOOL|V_TTY_RESET,
 #endif /* UNIX */
-	VARIABLE, "allow-bad-filenames", &OkayBadChars, V_BOOL,
+	VARIABLE, "allow-bad-filenames", (char *) &OkayBadChars, V_BOOL,
 #ifdef ABBREV
-	VARIABLE, "auto-case-abbrev", &AutoCaseAbbrev, V_BOOL,
+	VARIABLE, "auto-case-abbrev", (char *) &AutoCaseAbbrev, V_BOOL,
 #endif
 #ifdef IBMPC
-	VARIABLE, "background-color", &Bgcolor, V_BASE10|V_CLRSCREEN,
+	VARIABLE, "background-color", (char *) &Bgcolor, V_BASE10|V_CLRSCREEN,
 #endif /* IBMPC */
 #ifdef F_COMPLETION
-	VARIABLE, "bad-filename-extensions", (int *) BadExtensions, V_STRING,
+	VARIABLE, "bad-filename-extensions", BadExtensions, V_STRING,
 #endif
-	VARIABLE, "c-indentation-increment", &CIndIncrmt, V_BASE10,
-	VARIABLE, "case-ignore-search", &CaseIgnore, V_BOOL,
+	VARIABLE, "c-indentation-increment", (char *) &CIndIncrmt, V_BASE10,
+	VARIABLE, "case-ignore-search", (char *) &CaseIgnore, V_BOOL,
 #ifdef CMT_FMT
- 	VARIABLE, "comment-format", (int *) CmtFmt, V_STRING,
+	VARIABLE, "comment-format", CmtFmt, V_STRING,
 #endif
 #ifdef BIFF
-	VARIABLE, "disable-biff", &BiffChk, V_BOOL,
+	VARIABLE, "disable-biff", (char *) &BiffChk, V_BOOL,
 #endif
 #ifdef F_COMPLETION
-	VARIABLE, "display-bad-filenames", &DispBadFs, V_BOOL,
+	VARIABLE, "display-bad-filenames", (char *) &DispBadFs, V_BOOL,
 #endif
 #ifndef MAC
-	VARIABLE, "error-format-string", (int *) ErrFmtStr, V_STRING,
-	VARIABLE, "error-window-size", &EWSize, V_BASE10,
+	VARIABLE, "error-format-string", ErrFmtStr, V_STRING,
+	VARIABLE, "error-window-size", (char *) &EWSize, V_BASE10,
 #endif
-	VARIABLE, "expand-environment-variables", &DoEVexpand, V_BOOL,
-	VARIABLE, "file-creation-mode", &CreatMode, V_BASE8,
-	VARIABLE, "files-should-end-with-newline", &EndWNewline, V_BOOL,
+	VARIABLE, "expand-environment-variables", (char *) &DoEVexpand, V_BOOL,
+	VARIABLE, "file-creation-mode", (char *) &CreatMode, V_BASE8,
+	VARIABLE, "files-should-end-with-newline", (char *) &EndWNewline, V_BOOL,
+	VARIABLE, "find-files-read-only", (char *) &DefReadOnly, V_BOOL,
 #ifdef IBMPC
-	VARIABLE, "foreground-color", &Fgcolor, V_BASE10|V_CLRSCREEN,
+	VARIABLE, "foreground-color", (char *) &Fgcolor, V_BASE10|V_CLRSCREEN,
 #endif /* IBMPC */
-	VARIABLE, "internal-tabstop", &tabstop, V_BASE10|V_CLRSCREEN,
-	VARIABLE, "left-margin", &LMargin, V_BASE10,
+	VARIABLE, "internal-tabstop", (char *) &tabstop, V_BASE10|V_CLRSCREEN,
+	VARIABLE, "left-margin", (char *) &LMargin, V_BASE10,
 #ifdef UNIX
-	VARIABLE, "mailbox", (int *) Mailbox, V_FILENAME,
-	VARIABLE, "mail-check-frequency", (int *) &MailInt, V_BASE10,
+	VARIABLE, "mailbox", Mailbox, V_FILENAME,
+	VARIABLE, "mail-check-frequency", (char *) &MailInt, V_BASE10,
 #endif /* UNIX */
 #ifdef MAC
-	VARIABLE, "macify", &Macmode, V_BOOL,
+	VARIABLE, "macify", (char *) &Macmode, V_BOOL,
 #endif
 #ifdef BACKUPFILES
-	VARIABLE, "make-backup-files", &BkupOnWrite, V_BOOL,
+	VARIABLE, "make-backup-files", (char *) &BkupOnWrite, V_BOOL,
 #endif
-	VARIABLE, "mark-threshold", &MarkThresh, V_BASE10,
-	VARIABLE, "marks-should-float", &MarksShouldFloat, V_BOOL,
-	VARIABLE, "match-regular-expressions", &UseRE, V_BOOL,
-	VARIABLE, "meta-key", &MetaKey, V_BOOL|V_TTY_RESET,
-	VARIABLE, "mode-line", (int *) ModeFmt, V_STRING|V_MODELINE,
+	VARIABLE, "mark-threshold", (char *) &MarkThresh, V_BASE10,
+	VARIABLE, "marks-should-float", (char *) &MarksShouldFloat, V_BOOL,
+	VARIABLE, "match-regular-expressions", (char *) &UseRE, V_BOOL,
+	VARIABLE, "meta-key", (char *) &MetaKey, V_BOOL|V_TTY_RESET,
+	VARIABLE, "mode-line", ModeFmt, V_STRING|V_MODELINE,
 #ifdef IBMPC
-	VARIABLE, "mode-line-color", &Mdcolor, V_BASE10|V_MODELINE,
-#endif	
-	VARIABLE, "mode-line-should-standout", &BriteMode, V_BOOL|V_MODELINE,
-	VARIABLE, "paren-flash-delay", &PDelay, V_BASE10,
+	VARIABLE, "mode-line-color", (char *) &Mdcolor, V_BASE10|V_MODELINE,
+#endif
+	VARIABLE, "mode-line-should-standout", (char *) &BriteMode, V_BOOL|V_MODELINE,
+	VARIABLE, "paren-flash-delay", (char *) &PDelay, V_BASE10,
 #ifndef MAC
-	VARIABLE, "physical-tabstop", &phystab, V_BASE10|V_CLRSCREEN,
+	VARIABLE, "physical-tabstop", (char *) &phystab, V_BASE10|V_CLRSCREEN,
 #endif
 #ifdef IPROCS
-	VARIABLE, "process-prompt", (int *) proc_prompt, V_STRING,
+	VARIABLE, "process-prompt", proc_prompt, V_STRING,
 #endif
-	VARIABLE, "interrupt-character", &IntChar, V_CHAR|V_TTY_RESET,
-	VARIABLE, "right-margin", &RMargin, V_BASE10,
-	VARIABLE, "scroll-step", &ScrollStep, V_BASE10,
-	VARIABLE, "scroll-all-lines", &ScrollAll, V_BOOL,
-	VARIABLE, "search-exit-char", &SExitChar, V_CHAR,
-	VARIABLE, "send-typeout-to-buffer", &UseBuffers, V_BOOL,
+	VARIABLE, "interrupt-character", (char *) &IntChar, V_CHAR|V_TTY_RESET,
+	VARIABLE, "right-margin", (char *) &RMargin, V_BASE10,
+	VARIABLE, "scroll-step", (char *) &ScrollStep, V_BASE10,
+	VARIABLE, "scroll-all-lines", (char *) &ScrollAll, V_BOOL,
+	VARIABLE, "search-exit-char", (char *) &SExitChar, V_CHAR,
+	VARIABLE, "send-typeout-to-buffer", (char *) &UseBuffers, V_BOOL,
 #ifndef MAC
-	VARIABLE, "shell", (int *) Shell, V_STRING,
-	VARIABLE, "shell-flags", (int *) ShFlags, V_STRING,
+	VARIABLE, "shell", Shell, V_STRING,
+	VARIABLE, "shell-flags", ShFlags, V_STRING,
 #endif
 #ifndef MSDOS
-	VARIABLE, "sync-frequency", &SyncFreq, V_BASE10,
+	VARIABLE, "sync-frequency", (char *) &SyncFreq, V_BASE10,
 #endif /* MSDOS */
-	VARIABLE, "tag-file", (int *) TagFile, V_FILENAME,
+	VARIABLE, "tag-file", TagFile, V_FILENAME,
 #ifndef MAC
-	VARIABLE, "tmp-file-pathname", (int *) TmpFilePath, V_FILENAME,
+	VARIABLE, "tmp-file-pathname", TmpFilePath, V_FILENAME,
 #endif
 #ifdef UNIX
-	VARIABLE, "update-time-frequency", &UpdFreq, V_BASE10,
+	VARIABLE, "update-time-frequency", (char *) &UpdFreq, V_BASE10,
 #endif /* UNIX */
 #ifdef ID_CHAR
-	VARIABLE, "use-i/d-char", &UseIC, V_BOOL,
+	VARIABLE, "use-i/d-char", (char *) &UseIC, V_BOOL,
 #endif
-	VARIABLE, "visible-bell", &VisBell, V_BOOL,
-	VARIABLE, "wrap-search", &WrapScan, V_BOOL,
+	VARIABLE, "visible-bell", (char *) &VisBell, V_BOOL,
+	VARIABLE, "wrap-search", (char *) &WrapScan, V_BOOL,
 #ifndef MAC
-	VARIABLE, "write-files-on-make", &WtOnMk, V_BOOL,
+	VARIABLE, "write-files-on-make", (char *) &WtOnMk, V_BOOL,
 #endif
 	VARIABLE, 0, 0, 0
 };

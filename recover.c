@@ -114,7 +114,7 @@ DIR	*dp;
    long. */
 
 getline(tl, buf)
-disk_line	tl;
+daddr	tl;
 char	*buf;
 {
 	register char	*bp,
@@ -138,7 +138,7 @@ char	*buf;
 
 char *
 getblock(atl)
-disk_line	atl;
+daddr	atl;
 {
 	int	bno,
 		off;
@@ -252,7 +252,7 @@ struct direct	*dp;
 	if ((fd = open(rfile, 0)) != -1) {
 		if ((read(fd, (char *) &header, sizeof header) != sizeof header)) {
 			close(fd);
-		    	return 0;
+			return 0;
 		} else
 			close(fd);
 	}
@@ -455,7 +455,7 @@ seekto(which)
 
 	offset = sizeof (Header) + (Header.Nbuffers * sizeof (rec));
 	for (i = 1; i < which; i++)
-		offset += buflist[i]->r_nlines * sizeof (disk_line);
+		offset += buflist[i]->r_nlines * sizeof (daddr);
 	fseek(ptrs_fp, offset, L_SET);
 }
 
@@ -476,12 +476,12 @@ makblist()
 	}
 }
 
-disk_line
+daddr
 getaddr(fp)
 register FILE	*fp;
 {
-	register int	nchars = sizeof (disk_line);
-	disk_line	addr;
+	register int	nchars = sizeof (daddr);
+	daddr	addr;
 	register char	*cp = (char *) &addr;
 
 	while (--nchars >= 0)
@@ -494,15 +494,15 @@ dump_file(which, out)
 FILE	*out;
 {
 	register int	nlines;
-	register disk_line	daddr;
+	register daddr	addr;
 	char	buf[BUFSIZ];
 
 	seekto(which);
 	nlines = buflist[which]->r_nlines;
 	Nchars = Nlines = 0L;
 	while (--nlines >= 0) {
-		daddr = getaddr(ptrs_fp);
-		getline(daddr, buf);
+		addr = getaddr(ptrs_fp);
+		getline(addr, buf);
 		Nlines += 1;
 		Nchars += 1 + strlen(buf);
 		fputs(buf, out);
@@ -554,7 +554,7 @@ struct file_pair	*fp;
 		ask_del(" ", fp);
 		return 1;
 	}
-		
+
 	if (Header.Nbuffers < 0) {
 		fprintf(stderr, "recover: %s doesn't look like a jove file.\n", pntrfile);
 		ask_del("Should I delete it? ", fp);
@@ -597,12 +597,12 @@ struct file_pair	*fp;
 
 		case 'g':
 		    {	/* So it asks for src first. */
-		    	char	*dest;
-		    	struct rec_entry	**src;
+			char	*dest;
+			struct rec_entry	**src;
 
-		    	if ((src = getsrc()) == 0)
-		    		break;
-		    	dest = getdest();
+			if ((src = getsrc()) == 0)
+				break;
+			dest = getdest();
 			get(src, dest);
 			break;
 		    }
@@ -653,7 +653,7 @@ savetmps()
 			exit(-1);
 
 		case 0:
-			execl("/bin/cp", "cp", fp->file_data, fp->file_rec, 
+			execl("/bin/cp", "cp", fp->file_data, fp->file_rec,
 				  REC_DIR, (char *)0);
 			fprintf(stderr, "recover: cannot execl /bin/cp.\n");
 			exit(-1);

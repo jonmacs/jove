@@ -6,30 +6,28 @@
  ***************************************************************************/
 
 #include "jove.h"
+#include "disp.h"
 #include "ctype.h"
 
-#ifdef MAC
-#	undef private
-#	define private
+#if defined(MAC)
+# undef private
+# define private
 #endif
 
-#ifdef	LINT_ARGS
 private	int
-#if !(defined(IBMPC) || defined(MAC))
-	lower(char *),
-#endif
-	upper(char *);
-#else
-private	int
-#if !(defined(IBMPC) || defined(MAC))
-	lower(),
-#endif
-	upper();
-#endif	/* LINT_ARGS */
+# if !(defined(IBMPC) || defined(MAC))
+	lower proto((char *)),
+# endif
+	upper proto((char *));
 
-#ifdef MAC
-#	undef private
-#	define private static
+private void
+	CaseReg proto((int up)),
+	case_reg proto((struct line *line1,int char1,struct line *line2,int char2,int up)),
+	case_word proto((int up));
+
+#if defined(MAC)
+# undef private
+# define private static
 #endif
 
 void
@@ -98,7 +96,7 @@ CapWord()
 		SetDot(&b);
 }
 
-void
+private void
 case_word(up)
 {
 	Bufpos	before;
@@ -113,19 +111,19 @@ upper(c)
 register char	*c;
 {
 	if (islower(*c)) {
-#ifndef ASCII			/* check for IBM extended character set */
+#if !defined(ASCII)			/* check for IBM extended character set */
 		if (*c <= 127)
 #endif /* ASCII */
 		*c -= ' ';
-#ifdef IBMPC			/* ... and change Umlaute	*/
-		else 
+#if defined(IBMPC)			/* ... and change Umlaute	*/
+		else
 		   switch (*c) {
 		     case 129: *c = 154; break;		/* ue */
 		     case 132: *c = 142; break;		/* ae */
 		     case 148: *c = 153; break;		/* oe */
 		   }
 #endif /* IBMPC */
-#ifdef MAC
+#if defined(MAC)
 		else *c = CaseEquiv[*c];
 #endif
 		return 1;
@@ -141,22 +139,22 @@ lower(c)
 char	*c;
 {
 	if (isupper(*c)) {
-#ifndef ASCII
-		if (*c <= 127) 
+#if !defined(ASCII)
+		if (*c <= 127)
 #endif /* ASCII */
 		*c += ' ';
-#ifdef IBMPC
+#if defined(IBMPC)
 		else
-   		   switch (*c) {
+		   switch (*c) {
 		     case 142: *c = 132; break;		/* Ae */
 		     case 153: *c = 148; break;		/* Oe */
 		     case 154: *c = 129; break;		/* Ue */
 		   }
 #endif /* IBMPC */
-#ifdef MAC
+#if defined(MAC)
 		else {
 			int n;
-			
+
 			for(n = 128; n < 256; n++) {
 				if((CaseEquiv[n] == *c) && islower(n)) {
 					*c = n;
@@ -165,14 +163,14 @@ char	*c;
 			}
 			if(n > 255) return(0);
 		}
-#endif /* MAC */		
+#endif /* MAC */
 		return 1;
 	}
 	return 0;
 }
 
-void
-case_reg(line1, char1, line2, char2, up)
+private void
+case_reg(line1, char1, line2, char2, up)	
 Line	*line1,
 	*line2;
 int	char1;
@@ -204,7 +202,7 @@ CasRegUpper()
 	CaseReg(1);
 }
 
-void
+private void
 CaseReg(up)
 {
 	register Mark	*mp = CurMark();

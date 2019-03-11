@@ -5,29 +5,26 @@
  * included in all the files.                                              *
  ***************************************************************************/
 
-/* This is a server for jove sub processes.  It runs the command and
-   signals jove when there is some output ready to send to jove. By the
-   time we get here, out standard output goes to jove's process input. */
+/* This is a server for jove sub processes.  By the time we get here, our
+   standard output goes to jove's process input. */
 
 #include "tune.h"
 
 #ifdef PIPEPROCS	/* the whole file! */
 
-#include "jove.h"
+#define EOF	-1
 
 #include <signal.h>
 #include <sys/ioctl.h>
-#ifdef BSD4_2
-#   include <sys/wait.h>
-#else
-#   include <wait.h>
-#endif
+#include "wait.h"
 
 struct header {
 	int	pid;
 	int	nbytes;
 	char	buf[512];
 } header;
+
+int	tty_fd;
 
 #define HEADSIZE	((sizeof header.pid) + sizeof (header.nbytes))
 
@@ -38,43 +35,21 @@ char	*str;
 	header.nbytes = strlen(str);
 	strcpy(header.buf, str);
 	proc_write(&header, header.nbytes + HEADSIZE);
+	write(tty_fd, str, strlen(str));
 	exit(-2);
-}
-
-int	ppid,
-	InputFD,
-	JovesInput;
-
-p_inform()
-{
-	long	nbytes;
-
-	ioctl(JovesInput, FIONREAD, (char *) &nbytes);
-	if (nbytes > 0)
-		kill(ppid, INPUT_SIG);
 }
 
 proc_write(ptr, n)
 char	*ptr;
 {
-	long	nbytes;
-
-	ioctl(1, FIONREAD, (char *) &nbytes);
-	
-	if (nbytes == 0)
-		kill(ppid, INPUT_SIG);
-
 	(void) write(1, ptr, n);
-	alarm(1);
 }
 
-read_pipe()
+read_pipe(fd)
 {
 	register int	n;
-	
-	(void) signal(SIGALRM, p_inform);
 
-	while ((header.nbytes = read(InputFD, header.buf, sizeof header.buf)) > 0) {
+	while ((header.nbytes = read(fd, header.buf, sizeof header.buf)) > 0) {
 		n = HEADSIZE + header.nbytes;
 		proc_write(&header, n);
 	}
@@ -86,21 +61,11 @@ char	*argv[];
 {
 	int	p[2];
 	int	pid;
-	int	tty_fd,
-		i;
-
-/*	tty_fd = open("/dev/tty", 1); */
+	int	i;
 
 	if (pipe(p) == -1)
 		error("Cannot pipe jove portsrv.\n");
 
-/*	for (i = 0; i < argc; i++) {
-		write(tty_fd, "*argv++ = ", 10);
-		write(tty_fd, argv[i], strlen(argv[i]));
-		write(tty_fd, "\n", 1);
-	} */
-
-	ppid = getppid();
 	switch (pid = fork()) {
 	case -1:
 		error("portsrv: cannot fork.\n");
@@ -111,18 +76,23 @@ char	*argv[];
 		(void) dup2(p[1], 2);
 		(void) close(p[0]);
 		(void) close(p[1]);
-			
+
 		(void) setpgrp(getpid(), getpid());
-		execv(argv[2], &argv[3]);
+		execv(argv[1], &argv[2]);
 		_exit(-4);
 
 	default:
 		(void) close(0);
+		tty_fd = open("/dev/tty", 1);
 
-		 /* don't want this guy to read anything jove sends to
-		    our soon to be created child */
+		/*
+		for (i = 0; i < argc; i++) {
+			write(tty_fd, "*argv++ = ", 10);
+			write(tty_fd, argv[i], strlen(argv[i]));
+			write(tty_fd, "\n", 1);
+		}
+		*/
 
-		JovesInput = atoi(argv[1]);
 		(void) signal(SIGINT, SIG_IGN);
 		(void) signal(SIGQUIT, SIG_IGN);
 		(void) close(p[1]);
@@ -132,31 +102,31 @@ char	*argv[];
 		header.nbytes = sizeof (int);
 		*(int *) header.buf = pid;
 		(void) write(1, (char *) &header, sizeof pid + HEADSIZE);
-		p_inform();	/* Inform jove */
 
 		/* read proc's output and send it to jove */
-		InputFD = p[0];
-		read_pipe();
+		read_pipe(p[0]);
+
+		/* received EOF - wait for child to die and then exit
+		   ourself in the same way so that JOVE knows how the
+		   child died.  This is sort of a kludge, but the alternative
+		   is to write the childs status to JOVE, which seems sorta
+		   yucky, too.
+
+		   Actually, 4 or 5 years later I like that idea much better,
+		   so remind me to implement it that way when I get a chance. */
+
 		(void) close(p[0]);
 		header.pid = getpid();
 		header.nbytes = EOF;	/* tell jove we are finished */
-		(void) write(1, (char *) &header, HEADSIZE);
-		p_inform();
 		/* try to exit like our child did ... */
 		{
-			union wait	w;
+			int	status;
 
-#ifndef BSD4_2
-			while (wait2(&w.w_status, 0) != pid)
-#else
-			while (wait3(&w.w_status, 0, 0) != pid)
-#endif
+			while (wait(&status) != pid)
 				;
-			if (WIFEXITED(w))
-				exit(w.w_retcode);
-			else if (WIFSIGNALED(w))
-				kill(getpid(), w.w_termsig);
+			*(int *) header.buf = status;
 		}
+		(void) write(1, (char *) &header, HEADSIZE + sizeof (int));
 	}
 }
 
