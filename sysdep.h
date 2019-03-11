@@ -217,12 +217,14 @@
 /* System: DEC OSF/1 V2.0 or later -- use SYSVR4 */
 /* System: DEC OSF R1.3MK -- use SYSVR4 */
 /* System: Digital UNIX V4.0 and later -- use SYSVR4 and GRANTPT_BUG */
+/* System: Red Hat LINUX 6.x -- use SYSVR4 and _XOPEN_SOURCE=500 */
 /* System: Solaris 2.0, SunOS 5.0 -- use SYSVR4 and GRANTPT_BUG */
 /* System: Solaris 2.x, SunOS 5.x -- use SYSVR4 */
 /* Note: some versions of System V Release 4 have a bug in that affects
  * interactive processes.  Examples include Consensys V4 and SunOS 5.0
  * also known as Solaris 5.0.  See the description of GRANTPT_BUG in
- * sysdep.doc
+ * sysdep.doc.  It turns out that this bug is documented as a feature
+ * in "The Single UNIX Specification", Version 2!
  */
 # define TERMIOS	1
 # define USE_GETCWD	1

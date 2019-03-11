@@ -318,6 +318,12 @@ bool	n;	/* also used as subscript! */
 
 #ifdef BIFF
 
+# ifdef S_IXUSR
+#  define BIFF_BIT S_IXUSR	/* POSIX name */
+# else
+#  define BIFF_BIT S_IEXEC	/* BSD name */
+# endif
+
 	/* biff state is an honorary part of the tty state.
 	 * On the other hand, it is different from the rest of the state
 	 * since we only want to examine the setting if DisBiff
@@ -348,15 +354,15 @@ bool	n;	/* also used as subscript! */
 					((tt_name != NULL) || (tt_name = ttyname(0)) != NULL)
 					&& stat(tt_name, &tt_stat) != -1
 # endif
-				&& (tt_stat.st_mode & S_IEXEC))
+				&& (tt_stat.st_mode & BIFF_BIT))
 				{
 					/* so let's suppress it */
 # ifdef USE_FCHMOD
-					(void) fchmod(0, tt_stat.st_mode & ~S_IEXEC);
+					(void) fchmod(0, tt_stat.st_mode & ~BIFF_BIT);
 					biff_state = BS_DISABLED;
 # else
 					if ((tt_name != NULL || (tt_name = ttyname(0)) != NULL)
-					&& chmod(tt_name, tt_stat.st_mode & ~S_IEXEC) != -1)
+					&& chmod(tt_name, tt_stat.st_mode & ~BIFF_BIT) != -1)
 					{
 						/* Note: only change biff_state if we were able to
 						 * get the tt_name -- this prevents the other
@@ -383,6 +389,7 @@ bool	n;	/* also used as subscript! */
 #		undef BS_DISABLED
 #		undef BS_UNCHANGED
 	}
+# undef BIFF_BIT
 
 #endif /* BIFF */
 }
