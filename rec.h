@@ -6,8 +6,10 @@
  ***************************************************************************/
 
 struct rec_head {
-	int		Uid,		/* uid of owner */
-			Pid;		/* pid of jove process */
+#ifdef UNIX
+	int		Uid;		/* uid of owner */
+	pid_t		Pid;		/* pid of jove process */
+#endif
 	time_t		UpdTime;	/* last time this was updated */
 	int		Nbuffers;	/* number of buffers */
 	daddr		FreePtr;	/* position of DFree */
@@ -24,4 +26,9 @@ struct rec_entry {
 extern void
 	SyncRec proto((void)),
 	recclose proto((void)),
+	recremove proto((void)),
 	FullRecover proto((void));
+
+/* Variables: */
+
+extern int	SyncFreq;		/* how often to sync the file pointers */

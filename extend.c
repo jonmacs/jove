@@ -10,29 +10,36 @@
 #include "termcap.h"
 #include "ctype.h"
 #include "chars.h"
+#include "commands.h"
 #include "disp.h"
 #include "re.h"
+#include "ask.h"
+#include "extend.h"
+#include "fmt.h"
+#include "insert.h"
+#include "move.h"
+#include "sysprocs.h"
+#include "proc.h"
+#include "vars.h"
 
-#if defined(JOB_CONTROL) || defined(IPROCS)
+#ifdef	IPROCS
 # include <signal.h>
 #endif
 
-#ifdef MAC
+#ifdef	MAC
 # include "mac.h"
-#else
-# ifdef	STDARGS
-#  include <stdarg.h>
-# else
-#  include <varargs.h>
-# endif
 #endif
 
-#ifdef MSDOS
+#ifdef	MSDOS
 # include <process.h>
 #endif
 
+#ifdef	IBMPC
+# include "pcscr.h"
+#endif
+
 private void
-	DefAutoExec proto((struct data_obj *(*proc)()));
+	DefAutoExec proto((struct data_obj *(*proc) ptrproto((const char *))));
 
 private int
 	match proto((char **, char *));
@@ -43,7 +50,7 @@ int	InJoverc = 0;
 
 #define NEXECS	20
 
-private struct {
+private struct AutoExec {
 	char	*a_pattern;
 	data_obj	*a_cmd;
 } AutoExecs[NEXECS];	/* must be initialized by system to 0 */
@@ -68,11 +75,7 @@ MAutoExec()
 
 private void
 DefAutoExec(proc)
-#if defined(MAC) || defined(IBMPC)
-data_obj	*(*proc)();
-#else
-data_obj	*(*proc) proto((char *));
-#endif
+data_obj	*(*proc) ptrproto((const char *));
 {
 	data_obj	*d;
 	char	*pattern;
@@ -80,10 +83,10 @@ data_obj	*(*proc) proto((char *));
 
 	if (ExecIndex >= NEXECS)
 		complain("Too many auto-executes, max %d.", NEXECS);
-	if ((d = (*proc)(ProcFmt)) == 0)
+	if ((d = (*proc)(ProcFmt)) == NULL)
 		return;
-	pattern = do_ask("\r\n", (int (*) proto((int))) 0, (char *) 0, ": %f %s ",
-		d->Name);
+	pattern = do_ask("\r\n", (bool (*) ptrproto((int))) NULL, (char *) NULL,
+		": %f %s ", d->Name);
 	for (i = 0; i < ExecIndex; i++) {
 	    if (AutoExecs[i].a_cmd == d) {
 		char    *ipat = AutoExecs[i].a_pattern;
@@ -99,8 +102,8 @@ data_obj	*(*proc) proto((char *));
 }
 
 /* DoAutoExec: NEW and OLD are file names, and if NEW and OLD aren't the
-   same kind of file (i.e., match the same pattern) or OLD is 0 and it
-   matches, OR if the pattern is 0 (none was specified) then, we execute
+   same kind of file (i.e., match the same pattern) or OLD is NULL and it
+   matches, OR if the pattern is NULL (none was specified) then, we execute
    the command associated with that kind of file. */
 
 void
@@ -108,14 +111,21 @@ DoAutoExec(new, old)
 register char	*new,
 		*old;
 {
-	register int	i;
+	register struct AutoExec	*p;
 
-	set_arg_value(1);
-	for (i = 0; i < ExecIndex; i++)
-		if ((AutoExecs[i].a_pattern == 0) ||
-		    ((new != 0 && LookingAt(AutoExecs[i].a_pattern, new, 0)) &&
-		     (old == 0 || !LookingAt(AutoExecs[i].a_pattern, old, 0))))
-			ExecCmd(AutoExecs[i].a_cmd);
+	for (p = AutoExecs; p != &AutoExecs[ExecIndex]; p++) {
+		if (p->a_pattern == NULL
+		|| ((new != NULL && LookingAt(p->a_pattern, new, 0))
+		   && !(old != NULL && LookingAt(p->a_pattern, old, 0))))
+		{
+			if (p->a_cmd->Type & MINOR_MODE) {
+				set_arg_value(1);	/* force mode setting */
+			} else {
+				clr_arg_value();
+			}
+			ExecCmd(p->a_cmd);
+		}
+	}
 }
 
 int
@@ -124,9 +134,10 @@ addgetc()
 	int	c;
 
 	if (!InJoverc) {
-		Asking = strlen(mesgbuf);
+		Asking = YES;
+		AskingWidth = strlen(mesgbuf);
 		c = getch();
-		Asking = 0;
+		Asking = NO;
 		add_mess("%p ", c);
 	} else {
 		c = getch();
@@ -138,7 +149,7 @@ addgetc()
 		} else if (c == '^') {
 			if ((c = getch()) == '?')
 				c = RUBOUT;
-			else if (isalpha(c) || strchr("@[\\]^_", c))
+			else if (jisalpha(c) || strchr("@[\\]^_", c))
 				c = CTL(c);
 			else
 				complain("[Unknown control character]");
@@ -178,7 +189,7 @@ register int	*result;
 	} else
 		sign = 1;
 	while ((c = *cp++) != '\0') {
-		if (!isdigit(c)) {
+		if (!jisdigit(c)) {
 			if (allints == YES)
 				return INT_BAD;
 			break;
@@ -197,7 +208,7 @@ ask_int(prompt, base)
 char	*prompt;
 int	base;
 {
-	char	*val = ask((char *) 0, prompt);
+	char	*val = ask((char *)NULL, prompt);
 	int	value;
 
 	if (chr_to_int(val, base, YES, &value) == INT_BAD)
@@ -206,30 +217,31 @@ int	base;
 }
 
 void
-vpr_aux(vp, buf)
+vpr_aux(vp, buf, size)
 register const struct variable	*vp;
 char	*buf;
+size_t	size;
 {
 	switch (vp->v_flags & V_TYPEMASK) {
 	case V_BASE10:
-		swritef(buf, "%d", *((int *) vp->v_value));
+		swritef(buf, size, "%d", *((int *) vp->v_value));
 		break;
 
 	case V_BASE8:
-		swritef(buf, "%o", *((int *) vp->v_value));
+		swritef(buf, size, "%o", *((int *) vp->v_value));
 		break;
 
 	case V_BOOL:
-		swritef(buf, (*((int *) vp->v_value)) ? "on" : "off");
+		swritef(buf, size, (*((int *) vp->v_value)) ? "on" : "off");
 		break;
 
 	case V_STRING:
 	case V_FILENAME:
-		swritef(buf, "%s", vp->v_value);
+		swritef(buf, size, "%s", vp->v_value);
 		break;
 
 	case V_CHAR:
-		swritef(buf, "%p", *((int *) vp->v_value));
+		swritef(buf, size, "%p", *((int *) vp->v_value));
 		break;
 	}
 }
@@ -240,9 +252,9 @@ PrVar()
 	struct variable	*vp;
 	char	prbuf[256];
 
-	if ((vp = (struct variable *) findvar(ProcFmt)) == 0)
+	if ((vp = (struct variable *) findvar(ProcFmt)) == NULL)
 		return;
-	vpr_aux(vp, prbuf);
+	vpr_aux(vp, prbuf, sizeof(prbuf));
 	s_mess(": %f %s => %s", vp->Name, prbuf);
 }
 
@@ -250,39 +262,37 @@ void
 SetVar()
 {
 	struct variable	*vp;
-	char	*prompt;
+	char	prompt[128];
 
-	if ((vp = (struct variable *) findvar(ProcFmt)) == 0)
+	if ((vp = (struct variable *) findvar(ProcFmt)) == NULL)
 		return;
-	prompt = sprint(": %f %s ", vp->Name);
+	swritef(prompt, sizeof(prompt), ": %f %s ", vp->Name);
 
 	switch (vp->v_flags & V_TYPEMASK) {
 	case V_BASE10:
 	case V_BASE8:
-	    {
-		int	value;
-
-		value = ask_int(prompt, ((vp->v_flags & V_TYPEMASK) == V_BASE10)
-					  ? 10 : 8);
-		*((int *) vp->v_value) = value;
+		*((int *) vp->v_value) = ask_int(prompt,
+		    ((vp->v_flags & V_TYPEMASK) == V_BASE10)? 10 : 8);
 		break;
-	    }
 
 	case V_BOOL:
 	    {
-		char	*def = *((int *) vp->v_value) ? "off" : "on",
+		char	*def = *((bool *) vp->v_value) ? "off" : "on",
 			*on_off;
-		int	value;
+		bool	value;
 
 		on_off = ask(def, prompt);
 		if (casecmp(on_off, "on") == 0)
-			value = ON;
+			value = YES;
 		else if (casecmp(on_off, "off") == 0)
-			value = OFF;
-		else
-			complain("Boolean variables must be ON or OFF.");
-		*((int *) vp->v_value) = value;
-#ifdef MAC
+			value = NO;
+		else {
+			value = NO;	/* avoid uninitialized complaint from gcc -W */
+			complain("Boolean variables must be YES or NO.");
+			/* NOTREACHED */
+		}
+		*((bool *) vp->v_value) = value;
+#ifdef	MAC
 		MarkVar(vp,-1,0);	/* mark the menu item */
 #endif
 		s_mess("%s%s", prompt, value ? "on" : "off");
@@ -292,8 +302,10 @@ SetVar()
 	case V_FILENAME:
 	    {
 		char	fbuf[FILESIZE];
+		size_t	pl = strlen(prompt);
 
-		swritef(&prompt[strlen(prompt)], "(default %s) ", vp->v_value);
+		swritef(&prompt[pl], sizeof(prompt)-pl, "(default %s) ",
+			(char *)vp->v_value);
 		(void) ask_file(prompt, (char *) vp->v_value, fbuf);
 		strcpy((char *) vp->v_value, fbuf);
 		break;
@@ -304,26 +316,27 @@ SetVar()
 		char	*str;
 
 		/* Do_ask() so you can set string to "" if you so desire. */
-		str = do_ask("\r\n", (int (*) proto((int))) 0, (char *) vp->v_value,
-			prompt);
-		if (str == 0)
+		str = do_ask("\r\n", (bool (*) ptrproto((int))) NULL,
+			(char *) vp->v_value, prompt);
+		if (str == NULL)
 			str = NullStr;
-		strcpy(vp->v_value, str);
-		/* ... and hope there is enough room. */
+		if (strlen(str) >= vp->v_size)
+			complain("string too long");
+		strcpy((char *) vp->v_value, str);
 		break;
 	    }
+
 	case V_CHAR:
 		f_mess(prompt);
 		*((int *) vp->v_value) = addgetc();
 		break;
-
 	}
 	if (vp->v_flags & V_MODELINE)
 		UpdModLine = YES;
 	if (vp->v_flags & V_CLRSCREEN) {
-#ifdef IBMPC
+#ifdef	IBMPC
 		setcolor(Fgcolor, Bgcolor);
-#endif /* IBMPC */
+#endif	/* IBMPC */
 		ClAndRedraw();
 	}
 	if (vp->v_flags & V_TTY_RESET)
@@ -340,7 +353,7 @@ private char	**Possible;
 private int	comp_value,
 		comp_flags;
 
-int
+private bool
 aux_complete(c)
 int	c;
 {
@@ -351,32 +364,28 @@ int	c;
 		char	*lp;
 
 		for (lp = linebuf; *lp != '\0'; lp++)
-#if (defined(IBMPC) || defined(MAC))
-			lower(lp);
-#else
-			if (isupper(*lp))
-				*lp = tolower(*lp);
-#endif
+			if (jisupper(*lp))
+				*lp = jtolower(*lp);
 	}
 	switch (c) {
 	case EOF:
 		comp_value = -1;
-		return 0;
+		return NO;
 
 	case '\r':
 	case '\n':
 		command = match(Possible, linebuf);
 		if (command >= 0) {
 			comp_value = command;
-			return 0;	/* tells ask to stop */
+			return NO;	/* tells ask to stop */
 		}
 		if (eolp() && bolp()) {
 			comp_value = NULLSTRING;
-			return 0;
+			return NO;
 		}
 		if (comp_flags & RET_STATE) {
 			comp_value = command;
-			return 0;
+			return NO;
 		}
 		if (InJoverc)
 			complain("[\"%s\" unknown]", linebuf);
@@ -386,26 +395,26 @@ int	c;
 	case '\t':
 	case ' ':
 	    {
-		int	minmatch = 1000,
+		int
+			len = strlen(linebuf),
+			minmatch = 1000,	/* init with dummy to placate picky compilers */
 			maxmatch = 0,
 			numfound = 0,
-			lastmatch = -1,
-			len = strlen(linebuf);
+			lastmatch = -1;	/* init with dummy to placate picky compilers */
 
 		for (i = 0; Possible[i] != 0; i++) {
-			int	this_len;
+			int	this_len = numcomp(Possible[i], linebuf);
 
-			this_len = numcomp(Possible[i], linebuf);
-			maxmatch = max(maxmatch, this_len);
+			if (maxmatch < this_len)
+				maxmatch = this_len;
 			if (this_len >= len) {
-				if (numfound)
-					minmatch = min(minmatch, numcomp(Possible[lastmatch], Possible[i]));
-				else
-					minmatch = strlen(Possible[i]);
+				minmatch = numfound == 0
+					? strlen(Possible[i])
+					: min(minmatch, numcomp(Possible[lastmatch], Possible[i]));
 				numfound += 1;
 				lastmatch = i;
-				if (strcmp(linebuf, Possible[i]) == 0)
-					break;
+				if (this_len == len && Possible[i][len] == '\0')
+					break;	/* exact match */
 			}
 		}
 
@@ -420,19 +429,19 @@ int	c;
 				char	*cp;
 
 				cp = linebuf + maxmatch;
-				*cp = 0;
+				*cp = '\0';
 				Eol();
 			}
-			break;
+		} else {
+			if (c != '\t' && numfound == 1) {
+				comp_value = lastmatch;
+				return NO;
+			}
+			null_ncpy(linebuf, Possible[lastmatch], (size_t) minmatch);
+			Eol();
+			if (minmatch == len)	/* No difference */
+				rbell();
 		}
-		if (c != '\t' && numfound == 1) {
-			comp_value = lastmatch;
-			return 0;
-		}
-		null_ncpy(linebuf, Possible[lastmatch], (size_t) minmatch);
-		Eol();
-		if (minmatch == len)	/* No difference */
-			rbell();
 		break;
 	    }
 
@@ -441,16 +450,16 @@ int	c;
 		int	len;
 
 		if (InJoverc)
-			complain((char *) 0);
+			complain((char *)NULL);
 		/* kludge: in case we're using UseBuffers, in which case
 		   linebuf gets written all over */
 		strcpy(Minibuf, linebuf);
 		len = strlen(Minibuf);
-		TOstart("Completion", TRUE);	/* for now ... */
+		TOstart("Completion", YES);	/* for now ... */
 		for (i = 0; Possible[i]; i++)
 			if (numcomp(Possible[i], Minibuf) >= len) {
 				Typeout(Possible[i]);
-				if (TOabort != 0)
+				if (TOabort)
 					break;
 			}
 
@@ -458,13 +467,13 @@ int	c;
 		}
 		break;
 	}
-	return !FALSE;
+	return YES;
 }
 
 int
 complete(possible, prompt, flags)
 register char	*possible[];
-char	*prompt;
+const char	*prompt;
 int	flags;
 {
 	/* protect static "Possible" from being overwritten due to recursion */
@@ -485,7 +494,7 @@ register char	**choices,
 	register size_t	len;
 	int	i,
 		found = 0,
-		save,
+		save = ORIGINAL,
 		exactmatch = -1;
 
 	len = strlen(what);
@@ -493,16 +502,14 @@ register char	**choices,
 		return NULLSTRING;
 	for (i = 0; choices[i]; i++) {
 		if (strncmp(what, choices[i], len) == 0) {
-			if (strcmp(what, choices[i]) == 0)
+			if (choices[i][len] == '\0')
 				exactmatch = i;
 			save = i;
 			found += 1;	/* found one */
 		}
 	}
 
-	if (found == 0)
-		save = ORIGINAL;
-	else if (found > 1) {
+	if (found > 1) {
 		if (exactmatch != -1)
 			save = exactmatch;
 		else
@@ -518,16 +525,13 @@ Source()
 	char	*com,
 		buf[FILESIZE];
 
-#ifndef MSDOS
-	swritef(buf, "%s/.joverc", HomeDir);
-#else /* MSDOS */
-	if (com = getenv("JOVERC"))
-		strcpy(buf, com);
-	else
-		strcpy(buf, Joverc);
-#endif /* MSDOS */
-	com = ask_file((char *) 0, buf, buf);
-	if (joverc(buf) == 0)
+#ifdef	MSDOS
+	strcpy(buf, (com = getenv("JOVERC")) == NULL? Joverc : com);
+#else	/* !MSDOS */
+	swritef(buf, sizeof(buf), "%s/.joverc", HomeDir);
+#endif	/* !MSDOS */
+	com = ask_file((char *)NULL, buf, buf);
+	if (!joverc(buf))
 		complain(IOerr("read", com));
 }
 
@@ -535,17 +539,18 @@ void
 BufPos()
 {
 	register Line	*lp = curbuf->b_first;
-	register int	i,
-			dotline;
-	long	dotchar,
-		nchars;
+	register int
+		i,
+		dotline = 0;	/* avoid uninitialized complaint from gcc -W */
+	long	dotchar = 0;	/* avoid uninitialized complaint from gcc -W */
+	long	nchars;
 
-	for (i = nchars = 0; lp != 0; i++, lp = lp->l_next) {
+	for (i = nchars = 0; lp != NULL; i++, lp = lp->l_next) {
 		if (lp == curline) {
 			dotchar = nchars + curchar;
 			dotline = i + 1;
 		}
-		nchars += length(lp) + (lp->l_next != 0); /* include the NL */
+		nchars += length(lp) + (lp->l_next != NULL); /* include the NL */
 	}
 
 	s_mess("[\"%s\" line %d/%d, char %D/%D (%d%%), cursor = %d/%d]",
@@ -555,88 +560,141 @@ BufPos()
 	       calc_pos(linebuf, (int)strlen(linebuf)));
 }
 
-#define IF_UNBOUND	(-1)
-#define IF_TRUE		1
-#define IF_FALSE	(!IF_TRUE)
+#ifdef	SUBSHELL
 
-#ifndef MAC
 private int
 do_if(cmd)
 char	*cmd;
 {
-#ifdef MSDOS
-	int status;
-#else
-	int	pid,
-		status;
-#endif /* MSDOS */
-#ifndef MSDOS
+	char	*args[12];
 
-	switch (pid = fork()) {
-	case -1:
-		complain("[Fork failed: if]");
-		/*NOTREACHED*/
-
-	case 0:
-	    {
-#endif /* MSDOS */
-		char	*args[12],
-			*cp = cmd,
+	/* Parse cmd into an argv.  Handle various quotes
+	 * but not environment variable references.
+	 */
+	{
+		char
+			*ip = cmd,
+			*op = cmd,
 			**ap = args;
 
-		*ap++ = cmd;
 		for (;;) {
-			if ((cp = strchr(cp, ' ')) == 0)
+			while (*ip == ' ' || *ip == '\t')
+			    ip++;
+			if (*ip == '\0')
 				break;
-			*cp++ = '\0';
-			*ap++ = cp;
+			if (ap == &args[sizeof(args) / sizeof(*args)])
+				complain("Too many args for IF shell command");
+			*ap++ = op;
+			for (;;) {
+				char
+					c = *ip++,
+					c2;
+
+				switch (c) {
+				case '\0':
+					ip -= 1;
+					/*FALLTHROUGH*/
+				case ' ':
+				case '\t':
+					break;
+				case '"':
+				case '\'':
+					while ((c2 = *ip++) != c) {
+						switch (c2) {
+						case '\0':
+							complain("Unpaired quote in IF command");
+							/*NOTREACHED*/
+						case '\\':
+							if (c == '"') {
+								c2 = *ip++;
+								if (c2 == '\0')
+									complain("Misplaced \\ in IF command");
+							}
+							/*FALLTHROUGH*/
+						default:
+							*op++ = c2;
+							break;
+						}
+					}
+					continue;
+				case '\\':
+					c = *ip++;
+					if (c == '\0')
+						complain("Misplaced \\ in IF command");
+					/*FALLTHROUGH*/
+				default:
+					*op++ = c;
+					continue;
+				}
+				break;
+			}
+			*op++ = '\0';
 		}
-		*ap = 0;
-
-#ifndef MSDOS
-		close(0);	/*	we want reads to fail */
-		/* close(1);	 but not writes or ioctl's
-		close(2);    */
-#else /* MSDOS */
-	if ((status = spawnvp(0, args[0], args)) < 0)
-		complain("[Spawn failed: if]");
-#endif /* MSDOS */
-
-#ifndef MSDOS
-		(void) execvp(args[0], (const char **)args);
-		_exit(-10);	/* signals exec error (see below) */
-	    }
+		*ap = NULL;
 	}
-#ifdef IPROCS
-	SigHold(SIGCHLD);
-#endif
-	dowait(pid, &status);
-#ifdef IPROCS
-	SigRelse(SIGCHLD);
-#endif
-	if (status == -10)
-		complain("[Exec failed]");
-	if (status < 0)
-		complain("[Exit %d]", status);
-#endif /* MSDOS */
-	return (status == 0);	/* 0 means successful */
-}
-#endif /* MAC */
 
-int
+	/* Exec the parsed command */
+#ifndef	MSDOS
+	{
+		wait_status_t status;
+		pid_t	pid;
+
+		switch (pid = fork()) {
+		case -1:
+			complain("[Fork failed: if: %s]", strerror(errno));
+			/*NOTREACHED*/
+
+		case 0:
+			close(0);	/*	we want reads to fail */
+			/* close(1);	 but not writes or ioctl's */
+			/* close(2); */
+			(void) execvp(args[0], args);
+			_exit(errno);
+			/*NOTREACHED*/
+		}
+#ifdef	IPROCS
+		SigHold(SIGCHLD);
+#endif
+		dowait(pid, &status);
+#ifdef	IPROCS
+		SigRelse(SIGCHLD);
+#endif
+		if (WIFSIGNALED(status))
+			complain("[if test terminated by signal %d]", WTERMSIG(status));
+		return WIFEXITED(status) && WEXITSTATUS(status)==0;
+	}
+#else	/* MSDOS */
+	{
+		int	status;
+
+		if ((status = spawnvp(0, args[0], args)) < 0)
+			complain("[Spawn failed: if]");
+		return (status == 0);	/* 0 means successful */
+	}
+#endif	/* MSDOS */
+}
+#endif	/* SUBSHELL */
+
+bool
 joverc(file)
 char	*file;
 {
 	char	buf[LBSIZE],
 		lbuf[LBSIZE];
-	int	lnum = 0,
-		eof = FALSE;
+
 	jmp_buf	savejmp;
-	int	IfStatus = IF_UNBOUND;
-	File	*fp;
+	volatile int	lnum = 0;
+	File	*volatile fp;
+	volatile bool	eof;
+#ifdef	SUBSHELL
+	volatile unsigned int	/* bitstrings */
+			finger = 1,
+			skipping = 0,
+			inelse = 0;
+#endif
 
 	fp = open_file(file, buf, F_READ, NO, YES);
-	if (fp == NIL)
+	if (fp == NULL)
 		return NO;	/* joverc returns an integer */
 
 	/* Catch any errors, here, and do the right thing with them,
@@ -648,55 +706,86 @@ char	*file;
 	if (setjmp(mainjmp)) {
 		Buffer	*savebuf = curbuf;
 
-		SetBuf(do_select((Window *) 0, "RC errors"));
-		ins_str(sprint("%s:%d:%s\t%s\n", pr_name(file, YES), lnum, lbuf, mesgbuf), NO, -1);
+		SetBuf(do_select((Window *)NULL, "RC errors"));
+		ins_str(sprint("%s:%d:%s", pr_name(file, YES), lnum, lbuf), NO);
+		ins_str(sprint("\t%s\n", mesgbuf), NO);
 		unmodify();
 		SetBuf(savebuf);
-		Asking = 0;
+		Asking = NO;
 	}
-	if (!eof) do {
-		eof = (f_gets(fp, lbuf, sizeof lbuf) == EOF);
-		lnum += 1;
-		if (lbuf[0] == '#')		/* a comment */
-			continue;
-#ifndef MAC
-		if (casencmp(lbuf, "if", (size_t)2) == 0) {
-			char	cmd[128];
+	do {
+		/* This peculiar delayed EOF testing allows the last line to
+		 * end without a NL.  We add NL later, so we leave room for it.
+		 */
+		static const char	ifstr[] = "if";
 
-			if (IfStatus != IF_UNBOUND)
-				complain("[Cannot have nested if's]");
-			if (LookingAt("if[ \t]*\\(.*\\)$", lbuf, 0) == 0)
-				complain("[If syntax error]");
-			putmatch(1, cmd, sizeof cmd);
-			IfStatus = do_if(cmd) ? IF_TRUE : IF_FALSE;
-			continue;
-		} else if (casencmp(lbuf, "else", (size_t)4) == 0) {
-			if (IfStatus == IF_UNBOUND)
-				complain("[Unexpected `else']");
-			IfStatus = !IfStatus;
-			continue;
-		} else if (casencmp(lbuf, "endif", (size_t)5) == 0) {
-			if (IfStatus == IF_UNBOUND)
-				complain("[Unexpected `endif']");
-			IfStatus = IF_UNBOUND;
-			continue;
-		}
-#endif
-		if (IfStatus == IF_FALSE)
-			continue;
-		(void) strcat(lbuf, "\n");
+		eof = f_gets(fp, lbuf, sizeof(lbuf)-1);
+		lnum += 1;
 		Inputp = lbuf;
 		while (*Inputp == ' ' || *Inputp == '\t')
 			Inputp += 1;	/* skip white space */
-		Extend();
+		if (*Inputp == '#') {
+			/* a comment */
+#ifdef	SUBSHELL
+		} else if (casencmp(Inputp, ifstr, sizeof(ifstr)-1) == 0) {
+			finger <<= 1;
+			if (finger == 0)
+				complain("[`if' nested too deeply]");
+			if (LookingAt("ifenv\\>[ \t]*\\<\\([^ \t][^ \t]*\\)\\>[ \t]\\(.*\\)$", Inputp, 0)) {
+				if (skipping == 0) {
+					char	envname[128],
+						envpat[128],
+						*envval;
+
+					putmatch(1, envname, sizeof envname);
+					putmatch(2, envpat, sizeof envpat);
+					envval = getenv(envname);
+					if (envval==NULL || !LookingAt(envpat, envval, 0))
+						skipping |= finger;
+				}
+			} else if (LookingAt("if\\>[ \t]*\\(.*\\)$", Inputp, 0)) {
+				char	cmd[128];
+
+				putmatch(1, cmd, sizeof cmd);
+				if (skipping == 0 && !do_if(cmd))
+					skipping |= finger;
+			} else {
+				complain("[`if' syntax error]");
+			}
+		} else if (casecmp(Inputp, "else") == 0) {
+			if (finger == 1 || (inelse & finger))
+				complain("[Unexpected `else']");
+			inelse |= finger;
+			skipping ^= finger;
+		} else if (casecmp(Inputp, "endif") == 0) {
+			if (finger == 1)
+				complain("[Unexpected `endif']");
+			inelse &= ~finger;
+			skipping &= ~finger;
+			finger >>= 1;
+		} else if (skipping != 0) {
+			/* do nothing */
+#endif	/* SUBSHELL */
+		} else {
+			(void) strcat(Inputp, "\n");
+			Extend();
+			if (Inputp) {
+				while (*Inputp == ' ' || *Inputp == '\t')
+					Inputp += 1;	/* skip white space */
+				if (*Inputp!='\0' && *Inputp!='\n')
+					complain("[junk at end of line]");
+			}
+		}
 	} while (!eof);
 
 	f_close(fp);
 	pop_env(savejmp);
-	Inputp = 0;
-	Asking = 0;
+	Inputp = NULL;
+	Asking = NO;
 	InJoverc -= 1;
-	if (IfStatus != IF_UNBOUND)
+#ifdef	SUBSHELL
+	if (finger != 1)
 		complain("[Missing endif]");
-	return 1;
+#endif
+	return YES;
 }

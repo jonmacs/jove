@@ -1,0 +1,226 @@
+Jove has two classes of ifdefs.  Some are used to select system-dependent
+features, others are to select Jove features.  The former are defined in
+sysdep.h, the latter in tune.h.  This file describes the ones in sysdep.h.
+
+sysdep.h is structured as a set of #ifdefs for different systems, each system
+being identified by some unique symbol. (eg. SUNOS41 for SunOS version 4.1
+and 4.1.*).  We do not use symbols pre-defined by the compilers, they're too
+hard to predict and often do not provide the granularity that's necessary to
+differentiate between system versions or types.  If the system you run is
+included in sysdep.h, just use it.  If not, select a symbol to define your
+system (eg. SOMEOS) and choose the appropriate system-dependent options that
+characterise your systems terminal handling, process handling, header files,
+etc from the list below.
+
+NOTE: We've removed almost all the "#ifdef system-type" ifdefs from the body
+of jove code, replacing those with the feature ifdefs documented below.
+This sort of approach is necessary in this day & age of hybrid systems.
+If you're porting Jove to a new system, please follow the feature-based
+approach and don't stick "#ifdef system-type" ifdefs in the code.
+
+For terminal handling under Unix, define one of the following, in
+decreasing order of preference.
+TERMIOS		Have "struct termios" and termios.h.  Posix systems,
+		most modern Unixes.
+SGTTY		Have stty() and gtty() for tty characteristics.
+		BSD4.3 and precursors, including V7.
+TERMIO		Have "struct termio" and termio.h for tty characteristics.
+		System V derivatives.  Warning: if your system supports
+		BSD-style Job Control, don't use TERMIO: it cannot
+		suppress the action of some magic characters.
+
+Jove needs to know the current working directory for pathname optimization
+and the directory functions that it provides ("cd", "pushd", etc).
+Define one of the following, in order of decreasing preference:
+USE_GETCWD	have the getcwd() routine for the name of the current
+		directory.  Posix.
+USE_GETWD	have the getwd() routine for the name of the current dir.
+		BSD4.2 and derivatives (SunOS3, old Ultrix)
+USE_PWD		Run the 'pwd' program to find the name of the current
+		directory.  Old Unixes.
+
+If the compiler is ANSI C, then prototyping will be supported
+automatically (this is determined by checking that __STDC__ is
+defined (by the system), and it is greater than 0).  For other
+systems, you may define:
+USE_PROTOTYPES	for non-ANSI systems that nevertheless support prototypes
+NO_PTRPROTO	for systems that botch prototypes in function pointer decls.
+STDARGS		for non-ANSI systems that nevertheless support stdargs.h,
+		as opposed to varargs.h
+MIPS_CC_BUG	avoid function definition syntax that provokes a MIPS cc bug.
+		This bug manifests itself as compiler complaints around the
+		extern declarations that have parentheses around them.
+		(eg. select).  One version of the error looks like this:
+		externs.h, line 145: ccom: Internal: compiler takes size of function
+
+Newer systems tend to have header files with more system calls defined,
+sometimes with prototypes.  Choose one of the following, depending on your
+system.  If neither of the following is defined, then the declarations in
+externs.h are used.
+POSIX_UNISTD	Have Posix P1003.1 compliant unistd.h with declarations.
+FULL_UNISTD	Have fully-prototyped header files, superset of Posix P1003.1
+
+
+To multiplex between different processes and the keyboard (when IPROCS
+is defined), define USE_SELECT, or failing that, NONBLOCKINGREAD.
+USE_SELECT	Have the select() system call. Almost essential!
+USE_SELECT_H	sys/select.h needed for FD_* macros.  AIX.
+NONBLOCKINGREAD	doesn't have select, supports fcntl(... O_NDELAY)
+		M_XENIX, SYSV
+Jove also uses select() for delays if available.  Without select(),
+the code is a kludge, but it may work...
+
+
+If IPROCS is defined in tune.h, one of the following two must be defined.
+If your system supports neither PTYS nor PIPES, don't define IPROCS unless
+you feel in the mood for very serious hacking.
+PTYPROCS	Use pseudo-ttys.  BSD and most modern Unixes.
+PIPEPROCS	Use pipes for interactive processes.  Older Unixes.
+
+
+If PTYPROCS is defined, then one of the following must be defined.  Or add
+your own code in iproc-ptys.c.
+SVR4_PTYS	SYSVR4 pty allocation.  ptym, grantpt() and friends.
+BSD_PTYS	canonical BSD ptys, search through pty[pqrst]
+IRIX_PTYS	Irix 3.x onwards -- open a master device, then fstat to get
+		major and minor numbers.
+
+
+To deal with SUBSHELL and IPROCS (both in tune.h), define one of the
+following:
+POSIX_PROCS	Supports Posix processes, waitpid()
+BSD_WAIT	Has sys/wait.h and "union wait".
+If neither POSIX_PROCS nor BSD_WAIT is not defined, Jove uses wait(). (old Unixes)
+
+
+If BSD_WAIT was defined, also consider defining
+WAIT3		use wait3() on systems that have it.  (BSD4.2 and modern
+		non-Posix Unixes).  If this is not defined, we try wait2().
+
+
+BSD_SIGS	Berkeley style signals (sigblock, sigsetmask).  If BSD_SIGS
+		is not defined, jove uses sighold() and sigrelse().
+
+
+JOB_CONTROL	System supports job control (SIGTSTP, ^Z etc.  for pause-jove)
+
+
+USE_VFORK	system has a vfork that is much faster than fork.  This
+		capability should be nuked (any self-respecting copy-on-write
+		memory implementation should be able to do fork almost as
+		fast as vfork)!
+
+
+The following are only needed for IPROCS.
+BSD_SETPGRP	setpgrp takes two arguments.   If this is not defined,
+		assume System V setpgrp with no arguments.
+USE_KILLPG	Uses the BSD killpg() system call.  If this is not defined,
+		Jove assumes that kill(-pid, ...) is equivalent (SysV).
+
+
+If F_COMPLETION is defined, then Jove needs to be able to scan directories.
+By default, Jove assumes the system has "struct dirent" and "dirent.h".
+If not, define one of the following
+BSD_DIR		has "struct direct" and "sys/dir.h".  BSD4.2.  (maybe 4.1?)
+DIRENT_EMULATE	emulate dirent routines by open()ing and read()ing the
+		directory.
+
+
+If F_COMPLETION is defined, and you want ~username to be expanded, then
+you may need to define the following, especially on systems running YP/NIS,
+or using a database form of the password file.
+USE_GETPWNAM	has the getpwnam() system call.  Just about every modern
+		Unix.
+
+
+Choose the type of signal handler.  If you don't define these, Jove
+defaults to "void" and "/*void!*/".
+SIGRESTYPE	the return type of signal handlers.  "void" on most modern
+		systems, "int" on older systems.
+SIGRESVALUE	the return value of signal handlers.  "/*void!*/" on systems
+		where SIGRESTYPE is "void", usually 0 on systems where
+		SIGRESTYPE is "int".
+
+
+Either of following two is useful to the "recover" program, but not both.
+USE_UNAME	has the uname() system call.  True on System V and Posix
+		and most hybrids.
+USE_GETHOSTNAME	has gethostname() system call.  True on most BSD machines.
+
+
+NO_STRERROR	If you do not have the strerror() routine.  Needed for
+		pre-ANSI systems (SunOS older than 4.1, BSD, older Unixes)
+		With this defined, Jove provides an emulation using
+		sys_errlist, which should work on most Unixes.
+
+USE_FSYNC	Have the fsync() system call.  True on just about all modern
+		Unixes.  Not defining this does little harm (it's used only
+		to force a flush on files)
+
+If BIFF is defined, you can usefully define either or both of the following:
+USE_FSTAT	Have the fstat() call.  Just about every modern Unix does.
+USE_FCHMOD	Have the fchmod() call.  Again, true on most modern Unixes
+		after BSD4.2.
+
+If you define LOAD_AV, you need to define one of the following:
+USE_AVENRUN	open /dev/kmem and use the _avenrun symbol to get load average.
+		BSD4 and systems similar to it.
+USE_LOADAV	has the loadav() system call (library routine?)
+USE_GLDAV	has the gldav() system call (library routine?)
+
+
+DEFINE_PC_BC_UP_OSPEED
+		Certain variables used by termcap/terminfo are
+		declared in the library on almost all systems.  For
+		those systems that don't define them, this macro
+		enables declarations within JOVE.  Needed for HPUX
+		and possibly other SysV Rel.2 machines.  If you get
+		messages like "ospeed undefined" when linking, try
+		this.
+
+USE_MEMORY_H	include memory.h for declarations of memcpy() et al.
+		Older SysV, IBMPCs, Xenix.
+		
+
+USE_BCOPY	use bcopy in place of missing memcpy.
+		BSD4.2 and precursors from Berkeley.
+
+USE_INDEX	use index in place of missing strchr.
+		BSD4.2 and precursors, including V7.
+
+ASCII7		defined for systems with only 7-bit ASCII.
+		Anachronistically, automatically defined for UNIX systems.
+
+USE_EXIT	Normally, JOVE exits by calling _exit, to avoid stdio.
+		When this symbol is defined, exit() is used instead.
+		This is needed when profiling JOVE or running it under
+		debugging tools like purify.
+
+UNIX		This is automatically defined if we're neither MAC nor MSDOS.
+		Yuk!
+
+TERMCAP		Support display diversity via termcap database.
+		This is automatically defined for UNIX.
+
+TERMINFO	Support for System V variant of TERMCAP.  TERMCAP
+		must also be defined.  This differentiates between
+		tparm and tgoto.  It is untested.
+
+SMALL		Small address space.  PDP-11 and small/medium model on x86.
+
+
+The following have not been tested recently.  It is likely that some
+work is needed to make them function.
+
+MAC		An old version of Think C on the Macintosh.
+		Much has changed in JOVE and Think C since the last test.
+
+MSDOS		MSDOS or MSDOS-like system, such as IBM PC, DEC Rainbow,
+		or Atari ST.  Only tested on IBMPC in recently, and that
+		not currently.
+
+IBMPC		An old version of MS C on IBM PC or clone, under MSDOS.
+		Some change to both MS C and JOVE since the last test.
+
+M_XENIX		Support for some versions of XENIX, dealing with
+		peculiarities of directory handling.

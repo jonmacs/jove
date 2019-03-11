@@ -7,10 +7,15 @@
 
 #include "jove.h"
 #include "disp.h"
+#include "delete.h"
+#include "insert.h"
+#include "fmt.h"
+#include "marks.h"
+#include "misc.h"
+#include "move.h"
+#include "paragraph.h"
 
 private int	get_indent proto((Line *));
-private Line	*tailrule proto((Line *));
-private void	DoPara proto((int dir));
 
 /* Thanks to Brian Harvey for this paragraph boundery finding algorithm.
    It's really quite hairy figuring it out.  This deals with paragraphs that
@@ -76,7 +81,7 @@ private void	DoPara proto((int dir));
    If THIS is BSBLANK (that is, THIS starts with backslash), THIS is HEAD;
    otherwise, if (the new) PREV has the same indent as THIS, then (the new)
    NEXT is HEAD; if PREV has a different indent from THIS, then THIS is
-   HEAD.  Go to rule A.	
+   HEAD.  Go to rule A.
 
    6.  If you got here, then both NEXT and PREV are nonblank and are
    differently indented from THIS.  This is a tricky case and there is no
@@ -117,30 +122,28 @@ private Line	*para_head,
 	*para_tail;
 private int	head_indent,
 	body_indent;
-static int	use_lmargin;
+private bool	use_lmargin;
 
 /* some defines for paragraph boundery checking */
 #define I_EMPTY		(-1)	/* line "looks" empty (spaces and tabs) */
 #define I_PERIOD	(-2)	/* line begins with "." or "\" */
 #define I_BUFEDGE	(-3)	/* line is nonexistent (edge of buffer) */
 
-static int	bslash;		/* Nonzero if get_indent finds line starting
+static bool	bslash;		/* Nonzero if get_indent finds line starting
 				   with backslash */
 
-private int
+private bool
 i_blank(lp)
 Line	*lp;
 {
-	return (get_indent(lp) < 0);
+	return get_indent(lp) < 0;
 }
 
-private int
+private bool
 i_bsblank(lp)
 Line	*lp;
 {
-	if (i_blank(lp))
-		return 1;
-	return bslash;
+	return i_blank(lp) || bslash;
 }
 
 private int
@@ -150,8 +153,8 @@ register Line	*lp;
 	Bufpos	save;
 	register int	indent;
 
-	bslash = 0;
-	if (lp == 0)
+	bslash = NO;
+	if (lp == NULL)
 		return I_BUFEDGE;
 	DOTsave(&save);
 	SetLine(lp);
@@ -162,7 +165,7 @@ register Line	*lp;
 	else if (linebuf[0] == '\\') {
 		/* BH 12/24/85.  Backslash is BLANK only if next line
 		   also starts with Backslash. */
-		bslash += 1;
+		bslash = YES;
 		SetLine(lp->l_next);
 		if (linebuf[0] == '\\')
 			indent = I_PERIOD;
@@ -190,9 +193,9 @@ register Line	*lp;
 		if ((get_indent(lp->l_next) != i) || bslash)
 			/* BH line with backslash is head of next para */
 			break;
-	} while ((lp = lp->l_next) != 0);
-	if (lp == 0)
-		complain((char *) 0);
+	} while ((lp = lp->l_next) != NULL);
+	if (lp == NULL)
+		complain((char *) NULL);
 	return lp;
 }
 
@@ -208,9 +211,9 @@ int	how;
 	Line	*this,
 		*prev,
 		*next,
-		*head = 0,
-		*body = 0,
-		*tail = 0;
+		*head = NULL,
+		*body = NULL,
+		*tail = NULL;
 	int	this_indent;
 	Bufpos	orig;		/* remember where we were when we started */
 
@@ -225,22 +228,19 @@ strt:
 		if (how == BACKWARD) {
 			while (i_blank(curline))
 				if (firstp(curline))
-					complain((char *) 0);
+					complain((char *)NULL);
 				else
 					line_move(BACKWARD, 1, NO);
 			goto strt;
 		} else {
 			while (i_blank(curline))
 				if (lastp(curline))
-					complain((char *) 0);
+					complain((char *)NULL);
 				else
 					line_move(FORWARD, 1, NO);
 			head = curline;
 			next = curline->l_next;
-			if (!i_bsblank(next))
-				body = next;
-			else
-				body = head;
+			body = !i_bsblank(next)? next : head;
 		}
 	} else if (i_bsblank(this) || i_blank(prev)) {	/* rule 2 */
 		head = this;
@@ -250,13 +250,14 @@ strt:
 		tail = this;
 		body = this;
 	} else if ((get_indent(next) == this_indent) ||	/* rule 4 */
-		   (get_indent(prev) == this_indent))
+		   (get_indent(prev) == this_indent)) {
 		body = this;
-	else {		/* rule 6+ */
+	} else {		/* rule 6+ */
 		if (get_indent(prev) > this_indent) {
 			/* hanging indent maybe? */
-			if ((next != 0) &&
-			    (get_indent(next) == get_indent(next->l_next))) {
+			if (next != NULL
+			&& get_indent(next) == get_indent(next->l_next))
+			{
 				head = this;
 				body = next;
 			}
@@ -265,16 +266,13 @@ strt:
 		   case of this_indent > get_indent(prev).  That is,
 		   if we didn't resolve HEAD in the above if, then
 		   we are not a hanging indent. */
-		if (head == 0) {	/* still don't know */
-			if (this_indent > get_indent(prev))
-				head = this;
-			else
-				head = prev;
+		if (head == NULL) {	/* still don't know */
+			head =  this_indent > get_indent(prev)? this : prev;
 			body = head->l_next;
 		}
 	}
 	/* rule 5 -- find the missing parts */
-	if (head == 0) {    /* haven't found head of paragraph so do so now */
+	if (head == NULL) {    /* haven't found head of paragraph so do so now */
 		Line	*lp;
 		int	i;
 
@@ -292,15 +290,15 @@ strt:
 				else
 					head = this;
 			}
-		} while (head == 0 && (lp = lp->l_prev) != 0);
-		if (lp == 0)
-			complain((char *) 0);
+		} while (head == NULL && (lp = lp->l_prev) != NULL);
+		if (lp == NULL)
+			complain((char *)NULL);
 	}
-	if (body == 0)		/* this must be a one line paragraph */
+	if (body == NULL)		/* this must be a one line paragraph */
 		body = head;
-	if (tail == 0)
+	if (tail == NULL)
 		tail = tailrule(body);
-	if (tail == 0 || head == 0 || body == 0)
+	if (tail == NULL || head == NULL || body == NULL)
 		complain("BUG! tail(%d),head(%d),body(%d)!", tail, head, body);
 	para_head = head;
 	para_tail = tail;
@@ -319,24 +317,20 @@ Justify()
 		  use_lmargin ? LMargin : body_indent);
 }
 
-Line *
+private Line *
 max_line(l1, l2)
 Line	*l1,
 	*l2;
 {
-	if (inorder(l1, 0, l2, 0))
-		return l2;
-	return l1;
+	return inorder(l1, 0, l2, 0)? l2 : l1;
 }
 
-Line *
+private Line *
 min_line(l1, l2)
 Line	*l1,
 	*l2;
 {
-	if (inorder(l1, 0, l2, 0))
-		return l1;
-	return l2;
+	return inorder(l1, 0, l2, 0)? l1 : l2;
 }
 
 void
@@ -365,12 +359,12 @@ RegJustify()
 		l1 = tailmark->m_line->l_next;
 		DelMark(tailmark);
 		c1 = 0;
-	} while (l1 != 0 && l2 != rl2);
+	} while (l1 != NULL && l2 != rl2);
 }
 
 void
 do_rfill(ulm)
-int	ulm;
+bool	ulm;
 {
 	Mark	*mp = CurMark();
 	Line	*l1 = curline,
@@ -423,7 +417,7 @@ do_space()
 		insert_c(' ', (nspace - diff));
 }
 
-#ifdef MSDOS
+#ifdef	MSDOS
 /*#pragma loop_opt(off) */
 #endif
 
@@ -433,8 +427,9 @@ Line	*l1,
 	*l2;
 int	c1,
 	c2,
-	scrunch,
 	indent;
+bool
+	scrunch;
 {
 	int	okay_char = -1;
 	char	*cp;
@@ -447,7 +442,7 @@ int	c1,
 		if (use_lmargin) {
 			Bol();
 			n_indent(indent + (head_indent - body_indent));
-			use_lmargin = 0;	/* turn this off now */
+			use_lmargin = NO;	/* turn this off now */
 		}
 		ToIndent();
 	}
@@ -464,10 +459,10 @@ int	c1,
 			if (eolp()) {
 				/* delete line separator */
 				del_char(FORWARD, 1, NO);
-				ins_str("  ", NO, -1);
+				ins_str("  ", NO);
 			} else {
-				cp = StrIndex(1, linebuf, curchar + 1, ' ');
-				if (cp == 0)
+				cp = StrIndex(FORWARD, linebuf, curchar + 1, ' ');
+				if (cp == NULL)
 					Eol();
 				else
 					curchar = (cp - linebuf);
@@ -494,6 +489,7 @@ int	c1,
 			if (scrunch && TwoBlank()) {
 				Eol();
 				del_char(FORWARD, 1, NO);
+				Bol();
 			}
 		}
 		n_indent(indent);
@@ -502,11 +498,11 @@ outahere:
 	ToMark(savedot);	/* Back to where we were */
 	DelMark(endmark);	/* Free up marks */
 	DelMark(savedot);
-	this_cmd = last_cmd = 0; /* So everything is under control */
-	f_mess("");
+	this_cmd = last_cmd = OTHER_CMD; /* So everything is under control */
+	f_mess(NullStr);
 }
 
-#ifdef MSDOS
+#ifdef	MSDOS
 /*#pragma loop_opt() */
 #endif
 
@@ -515,23 +511,25 @@ DoPara(dir)
 int	dir;
 {
 	register int	num = arg_value(),
-			first_time = TRUE;
+			first_time = YES;
 
 	while (--num >= 0) {
-tryagain:	find_para(dir);		/* find paragraph bounderies */
-		if ((dir == BACKWARD) &&
-		    ((!first_time) || ((para_head == curline) && bolp()))) {
+tryagain:
+		find_para(dir);		/* find paragraph bounderies */
+		if (dir == BACKWARD
+		&& (!first_time || (para_head == curline && bolp())))
+		{
 			if (bobp())
-				complain((char *) 0);
+				complain((char *)NULL);
 			b_char(1);
 			first_time = !first_time;
 			goto tryagain;
 		}
 		SetLine((dir == BACKWARD) ? para_head : para_tail);
-		if (dir == BACKWARD && !firstp(curline) &&
-		    i_blank(curline->l_prev))
+		if (dir == BACKWARD && !firstp(curline)
+		&& i_blank(curline->l_prev)) {
 			line_move(BACKWARD, 1, NO);
-		else if (dir == FORWARD) {
+		} else if (dir == FORWARD) {
 			if (lastp(curline)) {
 				Eol();
 				break;

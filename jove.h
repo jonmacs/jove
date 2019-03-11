@@ -8,11 +8,11 @@
 /* jove.h header file to be included by EVERYONE */
 
 #include <setjmp.h>
-#ifndef TUNED
+#ifndef	TUNED
 # include "tune.h"
 #endif
 
-#if !defined(MAC)
+#ifndef	MAC
 # include <sys/types.h>
 # include <string.h>
 #else
@@ -23,36 +23,73 @@
  * without upsetting old compilers.
  */
 
-#if defined(__STDC__) || defined(USE_PROTOTYPES)
+#ifdef	REALSTDC
+# define    USE_PROTOTYPES  1
+#endif
+
+#ifdef	USE_PROTOTYPES
 # define proto(x)        x
+# ifdef	NO_PTRPROTO
+   /* on these systems, a prototype cannot be used for a pointer to function */
+#  define ptrproto(x)		()
+# else
+#  define ptrproto(x)		x
+# endif
 #else
 # define proto(x)		()
+# define ptrproto(x)		()
 #endif
 
 /* There are two ways to handle functions with a variable number of args.
  * The old portable way uses varargs.h.  The way sanctioned by ANSI X3J11
  * uses stdarg.h.
  */
-#if defined(__STDC__)
+#ifdef	REALSTDC
 #define	STDARGS	1
+#endif
+
+#ifdef	STDARGS
+# include <stdarg.h>
 # define	va_init(ap, parmN)	{ va_start((ap), (parmN)); }
 #else
+# include <varargs.h>
 # define	va_init(ap, parmN)	{ va_start((ap)); }
 #endif
 
-/* const: readonly type qualifier */
-#ifndef	__STDC__
-#define	const	/* Only in ANSI C.  Pity */
-#endif	/* !__STDC__ */
+/* ANSI Goodies and their substitutes
+ *
+ * const: readonly type qualifier
+ *
+ * volatile: type qualifier indicating one of two kinds of magic.
+ * 1. This object may be modified by an event unknown to the implementation
+ *    (eg. asynchronous signal or memory-mapped I/O device).
+ * 2. This automatic variable might be modified between a setjmp()
+ *    and a longjmp(), and we wish it to have the correct value after
+ *    the longjmp().  This second meaning is an X3J11 abomination.
+ * So far, only the second meaning is used.
+ *
+ * UnivPtr: universal pointer type
+ *
+ * UnivConstPtr: universal pointer to const
+ */
 
-/* UnivPtr: universal pointer type */
-#ifdef	__STDC__
-typedef void	*UnivPtr;
-typedef const void	*UnivConstPtr;
-#else	/* !__STDC__ */
-typedef char	*UnivPtr;
-typedef const char	*UnivConstPtr;
-#endif	/* !__STDC__ */
+#ifdef	REALSTDC
+
+  typedef void	*UnivPtr;
+  typedef const void	*UnivConstPtr;
+
+#else	/* !REALSTDC */
+
+# ifndef const
+#  define	const	/* Only in ANSI C.  Pity */
+# endif
+# ifndef volatile
+#  define	volatile
+# endif
+  typedef char	*UnivPtr;
+  typedef const char	*UnivConstPtr;
+
+#endif	/* !REALSTDC */
 
 /* According to the ANSI standard for C, any library routine may
  * be defined as a macro with parameters.  In order to prevent
@@ -65,59 +102,58 @@ typedef const char	*UnivConstPtr;
  * these declarations (at least at the current time, 1989 August).
  * To avoid this bug, we conditionally define and use UNMACRO.
  */
-#if defined(mips)
+#ifdef	MIPS_CC_BUG
 # define UNMACRO(proc)	proc
 #else
 # define UNMACRO(proc)	(proc)
+#endif
+
+/* Since we don't use stdio.h, we may have to define NULL and EOF */
+
+#ifndef	NULL
+# define NULL	0
 #endif
 
 #ifndef	EOF
 #define EOF	(-1)
 #endif
 
-/* typedef structure definitions */
-#ifdef IPROCS
-typedef struct process	Process;
+#define private		static
+
+typedef int	bool;
+#define NO		0
+#define YES		1
+
+/* Pervasive exports of other modules */
+
+/* disp.c */
+extern bool	UpdModLine;	/* Does the mode line need to be updated? */
+
+/* typedef pervasive structure definitions */
+
+#ifdef	IPROCS
+typedef struct process	Process;	/* iproc.h */
 #endif
-typedef struct window	Window;
-typedef struct position	Bufpos;
-typedef struct mark	Mark;
-typedef struct buffer	Buffer;
-typedef struct line	Line;
-typedef struct iobuf	IOBUF;
+typedef struct window	Window;	/* wind.h */
+typedef struct position	Bufpos;	/* buf.h */
+typedef struct mark	Mark;	/* buf.h (not mark.h!) */
+typedef struct buffer	Buffer;	/* buf.h */
+typedef struct line	Line;	/* buf.h */
+typedef struct FileStruct	File;	/* fp.h */
 
 #include "buf.h"
-#include "wind.h"
 #include "io.h"
 #include "dataobj.h"
 #include "keymaps.h"
 #include "argcount.h"
 #include "util.h"
-#include "vars.h"
-#include "screen.h"
-#include "style.h"
 
-/* return codes for command completion (all < 0 because >= 0 are
-   legitimate offsets into array of strings */
-
-#define AMBIGUOUS	(-2)	/* matches more than one at this point */
-#define UNIQUE		(-3)	/* matches only one string */
-#define ORIGINAL	(-4)	/* matches no strings at all! */
-#define NULLSTRING	(-5)	/* just hit return without typing anything */
-
-/* values for the `flags' argument to complete */
-#define NOTHING		0	/* opposite of RET_STATE */
-#define RET_STATE	1	/* return state when we hit return */
-#define RCOMMAND	2	/* we are reading a joverc file */
-#define CASEIND		4	/* map all to lower case */
+#include "externs.h"
 
 #define FORWARD		1
 #define BACKWARD	(-1)
 
-#define ARG_CMD		1
-#define LINECMD		2
-#define KILLCMD		3	/* so we can merge kills */
-#define YANKCMD		4	/* so we can do ESC Y (yank-pop) */
+/* jove.c exports: */
 
 extern jmp_buf	mainjmp;
 
@@ -127,57 +163,68 @@ extern jmp_buf	mainjmp;
 #define COMPLAIN	2	/* do the error without a getDOT */
 #define QUIT		3	/* leave this level of recursion */
 
-#define YES_NODIGIT	2
-
-#define INT_OKAY	0
-#define INT_BAD		(-1)
-
 extern char	NullStr[];
-extern char	*ProcFmt;
 
 extern int
-	InMacDefine,	/* are we defining a macro right now? */
+	LastKeyStruck,	/* used by SelfInsert and friends */
+	RecDepth;	/* recursion depth (used by disp.c for modeline) */
 
-	LastKeyStruck,
-
+extern bool
 	TOabort,	/* flag set by Typeout() */
 	errormsg,	/* last message was an error message
 			   so don't erase the error before it
 			   has been read */
-	RecDepth,	/* recursion depth */
 	InputPending,	/* nonzero if there is input waiting to
 			   be processed */
-
-	InJoverc,
 	Interactive,
-
-	Crashing,	/* we are in the middle of crashing */
-	Asking,		/* are we on read a string from the terminal? */
-	InRealAsk,	/* are we currently executing real_ask()? */
 	inIOread;	/* so we know whether we can do a redisplay. */
 
-extern char
-	*Inputp,
-	Minibuf[LBSIZE],
-	ShcomBuf[LBSIZE],
-	*version;
+extern char	*Inputp;
 
-#define MESG_SIZE 128
-extern char	mesgbuf[MESG_SIZE];
+#ifdef USE_SELECT
+extern fd_set	global_fd;
+extern int	global_maxfd;
+#endif
 
-#define CATCH \
-{\
-	jmp_buf	sav_jmp; \
-\
-	push_env(sav_jmp); \
-	if (setjmp(mainjmp) == 0) {
+#ifdef	SUBSHELL
+extern void	jcloseall proto((void));
+#endif
 
-#define ONERROR \
-	} else { \
+extern SIGRESTYPE
+	finish proto((int code)),	/* doesn't return at all! */
+	win_reshape proto((int /*junk*/));
 
-#define ENDCATCH \
-	} \
-	pop_env(sav_jmp); \
-}
+extern int
+	charp proto((void)),
+	getch proto((void)),
+	jgetchar proto((void)),
+	waitchar proto((int *slow));
 
-#include "externs.h"
+extern void
+	error proto((const char *, ...)),
+	complain proto((const char *, ...)),
+	raw_complain proto((const char *, ...)),
+	confirm proto((const char *, ...)),
+	SitFor proto((int delay)),
+	pp_key_strokes proto((char *buffer, size_t size)),
+	tty_reset proto ((void)),
+	Ungetc proto((int c));
+
+/* Commands: */
+
+extern void
+#ifdef	JOB_CONTROL
+	PauseJove proto((void)),
+#endif
+#ifdef	SUBSHELL
+	Push proto((void)),
+#endif
+	Recur proto((void)),
+	ShowVersion proto((void));
+
+/* Variables: */
+
+extern int	IntChar;		/* ttysets this to generate QUIT */
+extern bool	MetaKey;		/* this terminal has a meta key */
+extern bool	OKXonXoff;		/* disable start/stop characters */
+extern int	UpdFreq;		/* how often to update modeline */

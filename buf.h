@@ -18,7 +18,7 @@
 #define FUNDAMENTAL	0	/* Fundamental mode */
 #define TEXT		1	/* Text mode */
 #define CMODE		2	/* C mode */
-#ifdef LISP
+#ifdef	LISP
 # define LISPMODE	3	/* Lisp mode */
 # define NMAJORS	4
 #else
@@ -36,25 +36,29 @@
 #define Abbrev		(1 << 4)	/* abbrev mode */
 #define ReadOnly	(1 << 5)	/* buffer is read only */
 
-#define BufMinorMode(b, x)	((b)->b_minor & (x))
+#define BufMinorMode(b, x)	(((b)->b_minor & (x)) != 0)
 #define MinorMode(x)		BufMinorMode(curbuf, (x))
 
 /* global line scratch buffers */
-#if defined(VMUNIX) || defined(MSDOS)
-extern char	genbuf[LBSIZE],
-		linebuf[LBSIZE],
-		iobuff[LBSIZE];
-#else
+#ifdef	pdp11
 extern char	*genbuf,	/* scratch pad points at s_genbuf (see main()) */
 		*linebuf,	/* points at s_linebuf */
 		*iobuff;	/* for file reading ... points at s_iobuff */
+#else
+extern char	genbuf[LBSIZE],
+		linebuf[LBSIZE],
+		iobuff[LBSIZE];
 #endif
+
+/* typedef struct line Line in jove.h */
 
 struct line {
 	Line	*l_prev,		/* pointer to prev */
 		*l_next;		/* pointer to next */
 	daddr	l_dline;		/* pointer to disk location */
 };
+
+/* typedef struct mark Mark in jove.h */
 
 struct mark {
 	Line	*m_line;
@@ -66,8 +70,16 @@ struct mark {
 	char	m_flags;	/* FLOATERing mark? */
 };
 
+/* typedef struct buffer Buffer in jove.h */
+
+#ifdef ZORTECH
+/* FUDGE FUDGE FUDGE */
+typedef short	dev_t;
+typedef short	ino_t;
+#endif
+
 struct buffer {
-#ifdef MAC
+#ifdef	MAC
 	int Type;		/* kludge... to look like a data_obj */
 	char *Name;		/* Name will not be used */
 #endif
@@ -92,106 +104,86 @@ struct buffer {
 		*b_marks;		/* all the marks for this buffer */
 	char	b_themark,		/* current mark (in b_markring) */
 		b_type,			/* file, scratch, process, iprocess */
-		b_ntbf,			/* needs to be found when we
+		b_ntbf,			/* (bool) needs to be found when we
 					   first select? */
-		b_modified;		/* is the buffer modified? */
+		b_modified;		/* (bool) is the buffer modified? */
 	int	b_major,		/* major mode */
 		b_minor;		/* and minor mode */
 	struct keymap	*b_map;		/* local bindings (if any) */
-#ifdef IPROCS
+#ifdef	IPROCS
 	Process	*b_process;		/* process we're attached to */
 #endif
 };
 
-extern Buffer	*world,		/* first buffer */
-		*curbuf,	/* pointer into world for current buffer */
-		*lastbuf,	/* Last buffer we were in so we have a default
-				   buffer during a select buffer. */
-		*perr_buf;	/* Buffer with error messages */
+extern Buffer
+	*world,		/* first buffer */
+	*curbuf,	/* pointer into world for current buffer */
+	*lastbuf,	/* Last buffer we were in so we have a default
+			   buffer during a select buffer. */
+	*perr_buf;	/* Buffer with error messages */
 
 #define curline	(curbuf->b_dot)
 #define curchar (curbuf->b_char)
 
-/* kill buffer */
-#define NUMKILLS	10	/* number of kills saved in the kill ring */
-extern Line	*killbuf[NUMKILLS];
+/* typedef struct position Bufpos in jove.h */
 
 struct position {
 	Line	*p_line;
 	int	p_char;
 };
 
-extern int	killptr;	/* index into killbuf */
+extern bool
+	valid_bp proto((Buffer	*bp));
 
 extern Buffer
 	*buf_exists proto((char *name)),
-	*do_find proto((struct window *w,char *fname,int force)),
+	*do_find proto((struct window *w, char *fname, bool force)),
 	*do_select proto((struct window *w,char *name)),
 	*file_exists proto((char *name));
 
 extern char
-	*ask_buf proto((struct buffer *def)),
-	*ralloc proto((char *obj, size_t size));
+	*ask_buf proto((struct buffer *def));
 
-#ifdef	__STDC__
-struct macro;
-#endif	/* __STDC__ */
+#ifdef	USE_PROTOTYPES
+struct macro;	/* forward declaration preventing prototype scoping */
+#endif	/* USE_PROTOTYPES */
 
 extern void
 	TogMinor proto((int bit)),
-	bufname proto((struct buffer *b)),
 	initlist proto((struct buffer *b)),
-	setbname proto((struct buffer *b,char *name)),
 	setfname proto((struct buffer *b,char *name)),
 	set_ino proto((struct buffer *b)),
 	SetABuf proto((struct buffer *b)),
 	SetBuf proto((struct buffer *newbuf)),
-	AllMarkSet proto((struct buffer *b,struct line *line,int col)),
-	DFixMarks proto((struct line *line1,int char1,struct line *line2,int char2)),
-	DelMark proto((struct mark *m)),
-	IFixMarks proto((struct line *line1, int char1, struct line *line2, int char2)),
-	MarkSet proto((struct mark *m, struct line *line, int column)),
-	ToMark proto((struct mark *m)),
-	flush_marks proto((Buffer *)),
-	b_char proto((int n)),
-	b_word proto((int num)),
-	del_char proto((int dir,int num,int OK_kill)),
-	do_macro proto((struct macro *mac)),
-	do_set_mark proto((struct line *l, int c)),
-	f_char proto((int n)),
-	f_word proto((int num)),
-	freeline proto((struct line *line)),
-	ins_str proto((char *str,int ok_nl, int max_off)),
-	insert_c proto((int c,int n)),
-	lfreelist proto((struct line *first)),
-	lfreereg proto((struct line *line1,struct line *line2)),
-	line_move proto((int dir, int n, int line_cmd)),
-	lremove proto((struct line *line1, struct line *line2)),
-	mac_putc proto((int c)),
-	n_indent proto((int goal)),
-	open_lines proto((int n)),
-	reg_kill proto((struct line *line2,int char2,int dot_moved)),
-	set_mark proto((void)),
-	unwind_macro_stack proto((void)),
 	buf_init proto((void));
-
-extern int
-	ModMacs proto((void)),
-	in_macro proto((void)),
-	mac_getc proto((void)),
-	how_far proto((struct line *line,int col));
 
 extern  struct line
 	*lastline proto((struct line *lp)),
 	*listput proto((struct buffer *buf,struct line *after)),
-	*max_line proto((struct line *l1,struct line *l2)),
-	*min_line proto((struct line *l1,struct line *l2)),
-	*nbufline proto((void)),
 	*next_line proto((struct line *line,int num)),
-	*prev_line proto((struct line *line,int num)),
-	*reg_delete proto((struct line *line1,int char1,struct line *line2,int char2));
+	*prev_line proto((struct line *line,int num));
 
-extern Mark
-	*CurMark proto((void)),
-	*MakeMark proto((struct line *line,int column,int type));
+/* Commands: */
 
+extern void
+	BufErase proto((void)),
+	BufKill proto((void)),
+	BufList proto((void)),
+	BufSelect proto((void)),
+	FindFile proto((void)),
+	KillSome proto((void)),
+	ReNamBuf proto((void));
+
+#ifdef	MSDOS
+extern void
+	Buf1Select proto((void)),
+	Buf2Select proto((void)),
+	Buf3Select proto((void)),
+	Buf4Select proto((void)),
+	Buf5Select proto((void)),
+	Buf6Select proto((void)),
+	Buf7Select proto((void)),
+	Buf8Select proto((void)),
+	Buf9Select proto((void)),
+	Buf10Select proto((void));
+#endif	/* MSDOS */

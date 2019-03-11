@@ -5,197 +5,193 @@
  * included in all the files.                                              *
  ***************************************************************************/
 
-#include "jove.h"
+/*
+ * This file is used as a compiled module by Jove and also included as
+ * source in recover.c
+ */
+#ifndef TUNED
+# include "jove.h"
+#endif
 #include "scandir.h"
 
-#ifdef F_COMPLETION
+#ifdef	F_COMPLETION
 
-#ifdef MSDOS
-# include <dos.h>
-# include <search.h>
-#endif
+#ifdef	UNIX
 
-#ifdef UNIX
 # include <sys/stat.h>
-# ifdef M_XENIX
+
+# ifdef	M_XENIX
 #  include <sys/ndir.h>
-# else
+#  ifndef dirent
+#   define dirent direct
+#  endif
+# endif
+
+# ifdef BSD_DIR
 #  include <sys/dir.h>
-# endif /* M_XENIX */
-#endif
+#  ifndef dirent
+#   define dirent direct
+#  endif
+# endif
 
-#ifdef UNIX
+/* default to dirent.h */
+# if !defined(dirent) && !defined(DIRENT_EMULATE)
+#  include <dirent.h>
+# endif
 
-#ifdef mips
-# undef scandir
-#endif
-
-#ifdef BSD_DIR
-# define DIRSIZE(entry)	DIRSIZ((entry))
-#else
-# define DIRSIZE(entry)	((entry)->d_name[DIRSIZ-1]=='\0' ? strlen((entry)->d_name) : DIRSIZ)
+# ifdef DIRENT_EMULATE
 
 typedef struct {
 	int	d_fd;		/* File descriptor for this directory */
 } DIR;
 
-DIR *
-opendir(dir)
-char	*dir;
-{
-	DIR	*dp = (DIR *) malloc(sizeof *dp);
-	struct stat	stbuf;
-
-	if ((dp->d_fd = open(dir, 0)) == -1)
-		return 0;
-	if ((fstat(dp->d_fd, &stbuf) == -1) || !(stbuf.st_mode & S_IFDIR)) {
-		closedir(dp);
-		return 0;	/* this isn't a directory! */
-	}
-	return dp;
-}
-
+private int
 closedir(dp)
 DIR	*dp;
 {
 	(void) close(dp->d_fd);
-	free((char *) dp);
+	free((UnivPtr) dp);
+	return 0;   /* don't know how to fail */
 }
 
-struct direct *
+private DIR *
+opendir(dir)
+char	*dir;
+{
+	DIR	*dp = (DIR *) emalloc(sizeof *dp);
+	struct stat	stbuf;
+
+	if ((dp->d_fd = open(dir, 0)) == -1) {
+		/* this doesn't exist */
+	} else if ((fstat(dp->d_fd, &stbuf) == -1) || !(stbuf.st_mode & S_IFDIR)) {
+		/* this isn't a directory! */
+		(void) close(dp->d_fd);
+	} else {
+		return dp;
+	}
+	free((UnivPtr) dp);
+	return NULL;
+}
+
+private dirent *
 readdir(dp)
 DIR	*dp;
 {
-	static struct direct	dir;
+	static dirent	dir;
 
-	do
-		if (read(dp->d_fd, &dir, sizeof dir) != sizeof dir)
-			return 0;
-#if defined(elxsi) && defined(SYSV)
-	/*
-	 * Elxsi has a BSD4.2 implementation which may or may not use
-	 * `twisted inodes' ...  Anyone able to check?
-	 */
-	while (*(unsigned short *)&dir.d_ino == 0);
-#else
-	while (dir.d_ino == 0);
-#endif
+	do {
+		if (read(dp->d_fd, (UnivPtr) &dir, sizeof dir) != sizeof dir)
+			return NULL;
+	} while (dir.d_ino == 0);
 
 	return &dir;
 }
 
-#endif /* BSD_DIR */
+#endif	/* DIRENT_EMULATE */
 
-/* Scandir returns the number of entries or -1 if the directory cannoot
+/* jscandir returns the number of entries or -1 if the directory cannot
    be opened or malloc fails. */
 
 int
-scandir(dir, nmptr, qualify, sorter)
+jscandir(dir, nmptr, qualify, sorter)
 char	*dir;
 char	***nmptr;
-int	(*qualify) proto((char *));
+bool	(*qualify) proto((char *));
 int	(*sorter) proto((UnivConstPtr, UnivConstPtr));
 {
 	DIR	*dirp;
-	struct direct	*entry;
+	struct  dirent	*entry;
 	char	**ourarray;
 	unsigned int	nalloc = 10,
 			nentries = 0;
 
-	if ((dirp = opendir(dir)) == 0)
+	if ((dirp = opendir(dir)) == NULL)
 		return -1;
-	if ((ourarray = (char **) malloc(nalloc * sizeof (char *))) == 0)
-memfail:	complain("[Malloc failed: cannot scandir]");
-	while ((entry = readdir(dirp)) != 0) {
-		if (qualify != 0 && (*qualify)(entry->d_name) == 0)
+	ourarray = (char **) emalloc(nalloc * sizeof (char *));
+	while ((entry = readdir(dirp)) != NULL) {
+		if (qualify != NULL && !(*qualify)(entry->d_name))
 			continue;
-		if (nentries == nalloc) {
-			ourarray = (char **) realloc((char *) ourarray, (nalloc += 10) * sizeof (char *));
-			if (ourarray == 0)
-				goto memfail;
-		}
-		ourarray[nentries] = (char *) malloc(DIRSIZE(entry) + 1);
-		null_ncpy(ourarray[nentries], entry->d_name, (size_t) DIRSIZE(entry));
-		nentries += 1;
+		/* note: test ensures one space left in ourarray for NULL */
+		if (nentries+1 == nalloc)
+			ourarray = (char **) erealloc((UnivPtr) ourarray, (nalloc += 10) * sizeof (char *));
+		ourarray[nentries++] = copystr(entry->d_name);
 	}
 	closedir(dirp);
-	if ((nentries + 1) != nalloc)
-		ourarray = (char **) realloc((char *) ourarray,
-					((nentries + 1) * sizeof (char *)));
-	if (sorter != 0)
-		qsort((char *) ourarray, nentries, sizeof (char **), sorter);
+	ourarray[nentries] = NULL;
+
+	if (sorter != NULL)
+		qsort((UnivPtr) ourarray, nentries, sizeof (char **), sorter);
 	*nmptr = ourarray;
-	ourarray[nentries] = 0;		/* guaranteed 0 pointer */
 
 	return nentries;
 }
 
-#endif /* UNIX */
+#endif	/* UNIX */
 
-#ifdef MSDOS
-# define DIRSIZ	13
-# define DIRSIZE(entry)	strlen((entry).name)
+#ifdef	MSDOS
+# include <dos.h>
+
+# ifndef ZORTECH
+#  include <search.h>
+# endif
 
 /* Scandir returns the number of entries or -1 if the directory cannot
    be opened or malloc fails. */
 
-unsigned int fmask = _A_NORMAL|_A_RDONLY|_A_HIDDEN|_A_SUBDIR;
+bool	MatchDir = NO;
 
 int
-scandir(dir, nmptr, qualify, sorter)
+jscandir(dir, nmptr, qualify, sorter)
 char	*dir;
 char	***nmptr;
-int	(*qualify) proto((char *));
+bool	(*qualify) proto((char *));
 int	(*sorter) proto((UnivConstPtr, UnivConstPtr));
 {
-	char dirname[FILESIZE];
 	struct find_t entry;
-	char *ptr;
 	char	**ourarray;
 	unsigned int	nalloc = 10,
 			nentries = 0;
 
-	strcpy(dirname, dir);
-	ptr = &dirname[strlen(dirname)-1];
-	if ((dirname[1] == ':' && !dirname[2]) || (*ptr == '/') || (*ptr == '\\'))
-	   strcat(dirname, "*.*");
-	else
-	   strcat(dirname, "/*.*");
+	{
+		char dirname[FILESIZE];
+		char *ptr;
 
-	if (_dos_findfirst(dirname, fmask, &entry))
-	   return -1;
-	if ((ourarray = (char **) malloc(nalloc * sizeof (char *))) == 0)
-memfail:	complain("[Malloc failed: cannot scandir]");
+		strcpy(dirname, dir);
+		ptr = &dirname[strlen(dirname)-1];
+		if (!((dirname[1] == ':' && dirname[2] == '\0') || *ptr == '/' || *ptr == '\\'))
+			*++ptr = '/';
+		strcpy(ptr+1, "*.*");
+
+		if (_dos_findfirst(dirname, MatchDir? _A_SUBDIR : _A_NORMAL|_A_RDONLY|_A_HIDDEN|_A_SUBDIR, &entry))
+		   return -1;
+	}
+	ourarray = (char **) emalloc(nalloc * sizeof (char *));
 	do  {
-		if ((fmask == 0x10) && !(entry.attrib&fmask))
-			goto skip;
-		strlwr(entry.name);
-		if (qualify != (int (*)())0 && (*qualify)(entry.name) == 0)
-			goto skip;
-		if (nentries == nalloc) {
-			ourarray = (char **) realloc((char *) ourarray, (nalloc += 10) * sizeof (char *));
-			if (ourarray == 0)
-				goto memfail;
-		}
-		ourarray[nentries] = (char *) malloc(DIRSIZE(entry) + 1);
-		null_ncpy(ourarray[nentries], entry.name, (int) DIRSIZE(entry));
-		nentries++;
-skip:	;
-    }
-    while (_dos_findnext(&entry) == 0);
+		char filename[FILESIZE];
 
-	if ((nentries + 1) != nalloc)
-		ourarray = (char **) realloc((char *) ourarray,
-					((nentries + 1) * sizeof (char *)));
-	if (sorter != (int (*)())0)
+		if (MatchDir && (entry.attrib&_A_SUBDIR) == 0)
+			continue;
+		strlwr(entry.name);
+		if (qualify != NULL && !(*qualify)(entry.name))
+			continue;
+		/* note: test ensures one space left in ourarray for NULL */
+		if (nentries+1 == nalloc)
+			ourarray = (char **) erealloc((char *) ourarray, (nalloc += 10) * sizeof (char *));
+		strcpy(filename, entry.name);
+		if ((entry.attrib&_A_SUBDIR) != 0)
+			strcat(filename, "/");
+		ourarray[nentries++] = copystr(filename);
+	} while (_dos_findnext(&entry) == 0);
+	ourarray[nentries] = NULL;
+
+	if (sorter != (int (*)())NULL)
 		qsort((char *) ourarray, nentries, sizeof (char **), sorter);
 	*nmptr = ourarray;
-	ourarray[nentries] = 0;		/* guaranteed 0 pointer */
 
 	return nentries;
 }
 
-#endif /* MSDOS */
+#endif	/* MSDOS */
 
 void
 freedir(nmptr, nentries)
@@ -205,9 +201,9 @@ int	nentries;
 	char	**ourarray = *nmptr;
 
 	while (--nentries >= 0)
-		free(*ourarray++);
-	free((char *) *nmptr);
-	*nmptr = 0;
+		free((UnivPtr) *ourarray++);
+	free((UnivPtr) *nmptr);
+	*nmptr = NULL;
 }
 
 int
@@ -217,4 +213,4 @@ UnivConstPtr	a,
 {
 	return strcmp(*(const char **)a, *(const char **)b);
 }
-#endif
+#endif /* F_COMPLETION */

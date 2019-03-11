@@ -5,20 +5,25 @@
  * included in all the files.                                              *
  ***************************************************************************/
 
-#if defined(BSD_WAIT)
-# include <sys/wait.h>
-# define w_termsignum(w)	((w).w_termsig)
-#else
-# define WIFSTOPPED(w)		(((w).w_status & 0377) == 0177)
-# define WIFEXITED(w)		(((w).w_status & 0377) == 0)
-# define WIFSIGNALED(w)		((((w).w_status >> 8) & 0377) == 0)
-# define w_termsignum(w)	((w).w_status & 0177)
-# define wait2(w, x)		wait(w)
+extern void
+	skip_wht_space proto((void));
 
-union wait {
-	int	w_status;
-};
-#endif
+/* Commands: */
 
 extern void
-	kill_off proto((int, union wait));
+	ChrToOct proto((void)),
+	GoLine proto((void)),
+	KillBos proto((void)),
+	KillEOL proto((void)),
+	KillEos proto((void)),
+	KillExpr proto((void)),
+	Leave proto((void)),
+	NotModified proto((void)),
+	SetLMargin proto((void)),
+	SetRMargin proto((void)),
+	StrLength proto((void)),
+	ToIndent proto((void)),
+	TransChar proto((void)),
+	TransLines proto((void)),
+	Yank proto((void)),
+	prCTIME proto((void));

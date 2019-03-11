@@ -6,8 +6,10 @@
  ***************************************************************************/
 
 #include "jove.h"
+#include "fmt.h"
+#include "marks.h"
 
-int	MarksShouldFloat = 1;
+bool	MarksShouldFloat = YES;
 
 Mark *
 MakeMark(line, column, type)
@@ -32,9 +34,9 @@ Buffer	*b;
 			*next;
 
 	m = b->b_marks;
-	while (m != 0) {
+	while (m != NULL) {
 		next = m->m_next;
-		free((char *) m);
+		free((UnivPtr) m);
 		m = next;
 	}
 }
@@ -48,13 +50,13 @@ register Mark	*m;
 	if (m == mp)
 		curbuf->b_marks = m->m_next;
 	else {
-		while (mp != 0 && mp->m_next != m)
+		while (mp != NULL && mp->m_next != m)
 			mp = mp->m_next;
-		if (mp == 0)
+		if (mp == NULL)
 			complain("Unknown mark!");
 		mp->m_next = m->m_next;
 	}
-	free((char *) m);
+	free((UnivPtr) m);
 }
 
 void
@@ -65,7 +67,7 @@ int	col;
 {
 	register Mark	*mp;
 
-	for (mp = b->b_marks; mp != 0; mp = mp->m_next)
+	for (mp = b->b_marks; mp != NULL; mp = mp->m_next)
 		MarkSet(mp, line, col);
 }
 
@@ -84,19 +86,20 @@ PopMark()
 {
 	int	pmark;
 
-	if (curmark == 0)
+	if (curmark == NULL)
 		return;
-	if (curbuf->b_markring[(curbuf->b_themark + 1) % NMARKS] == 0) {
+	if (curbuf->b_markring[(curbuf->b_themark + 1) % NMARKS] == NULL) {
 		pmark = curbuf->b_themark;
 		do {
 			if (--pmark < 0)
 				pmark = NMARKS - 1;
-		} while (curbuf->b_markring[pmark] != 0);
+		} while (curbuf->b_markring[pmark] != NULL);
 
-		curbuf->b_markring[pmark] = MakeMark(curline, curchar, MarksShouldFloat ? M_FLOATER : M_FIXED);
+		curbuf->b_markring[pmark] = MakeMark(curline,
+			curchar, MarksShouldFloat ? M_FLOATER : M_FIXED);
 		ToMark(curmark);
 		DelMark(curmark);
-		curmark = 0;
+		curmark = NULL;
 	} else
 		PtToMark();
 
@@ -127,8 +130,9 @@ Line	*l;
 int	c;
 {
 	curbuf->b_themark = (curbuf->b_themark + 1) % NMARKS;
-	if (curmark == 0)
-		curmark = MakeMark(l, c, MarksShouldFloat ? M_FLOATER : M_FIXED);
+	if (curmark == NULL)
+		curmark = MakeMark(l, c,
+			MarksShouldFloat ? M_FLOATER : M_FIXED);
 	else
 		MarkSet(curmark, l, c);
 	s_mess("[Point pushed]");
@@ -142,7 +146,7 @@ Mark	*m;
 {
 	int	len;
 
-	if (m == 0)
+	if (m == NULL)
 		return;
 	DotTo(m->m_line, m->m_char);
 	if (curchar > (len = length(curline)))
@@ -152,7 +156,7 @@ Mark	*m;
 Mark *
 CurMark()
 {
-	if (curmark == 0)
+	if (curmark == NULL)
 		complain("No mark.");
 	return curmark;
 }
@@ -183,39 +187,23 @@ int	char1,
 	char2;
 {
 	register Mark	*m;
-	Line	*lp = line1;
+	Line	*lp;
 
-	if (curbuf->b_marks == 0)
+	if (curbuf->b_marks == NULL)
 		return;
-	while (lp != line2->l_next) {
-		for (m = curbuf->b_marks; m != 0; m = m->m_next)
-			if (m->m_line == lp)
-				m->m_char |= (1 << 15);
-		lp = lp->l_next;
-	}
-	for (m = curbuf->b_marks; m; m = m->m_next) {
-		if ((m->m_char & (1 << 15)) == 0)
-			continue;	/* Not effected */
-		m->m_char &= ~(1 << 15);
-		if (m->m_line == line1 && m->m_char < char1)
-			continue;	/* This mark is not affected */
-		if (line1 == line2) {
-			if (m->m_char >= char1 && m->m_char <= char2)
-				m->m_char = char1;
-			else if (m->m_char > char2)
-				m->m_char -= (char2 - char1);
-			/* Same line move the mark backward */
-		} else if (m->m_line == line2) {
-			if (m->m_char > char2)
-				m->m_char = char1 + (m->m_char - char2);
-			else
-				m->m_char = char1;
-			m->m_flags |= M_BIG_DELETE;
-			m->m_line = line1;
-		} else {
-			m->m_char = char1;
-			m->m_line = line1;
-			m->m_flags |= M_BIG_DELETE;
+	for (lp = line1; lp != line2->l_next; lp = lp->l_next) {
+		for (m = curbuf->b_marks; m != NULL; m = m->m_next) {
+			if (m->m_line == lp
+			&& (lp != line1 || m->m_char > char1))
+			{
+				if (lp == line2 && m->m_char >= char2)
+					m->m_char -= char2-char1;
+				else
+					m->m_char = char1;
+				m->m_line = line1;
+				if (line1 != line2)
+					m->m_flags |= M_BIG_DELETE;
+			}
 		}
 	}
 }
@@ -232,17 +220,13 @@ int	char1,
 {
 	register Mark	*m;
 
-	for (m = curbuf->b_marks; m != 0; m = m->m_next) {
-		if ((m->m_flags & M_FLOATER) == 0)
-			continue;
-		if (m->m_line == line1) {
-			if (m->m_char > char1) {
-				m->m_line = line2;
-				if (line1 == line2)
-					m->m_char += (char2 - char1);
-				else
-					m->m_char = char2 + (m->m_char - char1);
-			}
+	for (m = curbuf->b_marks; m != NULL; m = m->m_next) {
+		if ((m->m_flags & M_FLOATER)
+		&& m->m_line == line1
+		&& m->m_char > char1)
+		{
+			m->m_line = line2;
+			m->m_char += char2 - char1;
 		}
 	}
 }

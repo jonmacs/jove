@@ -5,51 +5,73 @@
  * included in all the files.                                              *
  ***************************************************************************/
 
-#define TUNED		/* don't touch this */
+/* Tuning: configure JOVE to installer's taste */
+
+#define TUNED		1	/* don't touch this */
 
 #include "sysdep.h"
 
-#ifdef UNIX
-# define SUBPROCS	/* only on UNIX systems (NOT INCORPORATED YET) */
-# define IPROCS		/* interactive processes */
-#endif /* UNIX */
+/*
+ * Select or comment out as many of the following features of Jove as you'd
+ * like.  In general, most of them are useful or pleasant, but many of them
+ * are non-portable, or make Jove larger.
+ *
+ * By default, most are included if appropriate.  BAREBONES suppresses most
+ * of them.  With BAREBONES defined, Jove should compile on a lot of systems.
+ * It should be considered the starting point for any port of Jove to a new
+ * system.  An advantage of BAREBONES is that it shrinks JOVE's already
+ * modest size.
+ */
 
-#define BACKUPFILES	/* enable the backup files code */
-#define F_COMPLETION	/* filename completion */
-#define ABBREV		/* word abbreviation mode */
-#if !(defined(IBMPC) || defined(MAC))
-# define ID_CHAR	/* include code to IDchar */
-# define WIRED_TERMS	/* include code for wired terminals */
-#endif
-#define LISP		/* include the code for Lisp Mode */
-#define CMT_FMT		/* include the comment formatting routines */
+#ifndef BAREBONES
 
-#ifdef UNIX
-# define LOAD_AV	/* Use the load average for various commands.
-#			   Do not define this if you lack a load average
-#			   system call and kmem is read protected. */
-#
-# define BIFF		/* if you have biff (or the equivalent) */
-# define SPELL		/* spell words and buffer commands */
+#define ABBREV		1	/* word abbreviation mode */
+#define BACKUPFILES	1	/* enable the backup files code */
+
+#ifdef	UNIX
+#define BIFF		1	/* if you have biff (or the equivalent) */
 #endif
+
+#define CMT_FMT		1	/* include the comment formatting routines */
+#define F_COMPLETION	1	/* filename completion */
+
+/* Include code to IDchar (optimize for terminals with character
+ * insert/delete modes
+ */
+#ifdef	TERMCAP
+#define ID_CHAR		1	
+#endif
+
+#ifdef	UNIX
+#define IPROCS		1	/* interactive processes */
+#endif
+
+/* Use the load average for various commands.
+ * Do not define LOAD_AV if you lack a load average
+ * system call and kmem is read protected.
+ */
+#ifdef	UNIX
+/* # define LOAD_AV	1 */
+#endif
+
+#define LISP		1	/* include the code for Lisp Mode */
+#define SPELL		1	/* spell words and buffer commands */
+#define	SUBSHELL	1	/* enable various uses of subshells */
+
+#endif /* !BAREBONES */
 
 #define DFLT_MODE	0666	/* file will be created with this mode */
 
-#ifdef MAC
-# undef F_COMPLETION
-# define F_COMPLETION 1
-# define byte_zero(s,n) setmem((s),(n),0)
-# define swritef sprintf
-# define USE_PROTOTYPES	1
-# define NBUF 64
-# define JBUFSIZ 1024
-# undef LISP
-# define LISP 1
-# undef ABBREV
-# define ABBREV 1
-# undef CMT_FMT
-# define CMT_FMT 1
-#endif
+/* If the compiler does not support void, use -Dvoid=int or
+ * typedef int	void;
+ */
+
+/*
+ * USE_PROTOTYPE must be defined for compilers that support prototypes but are
+ * NOT ANSI C, i.e. do not have __STDC__ == 1.  USE_PROTOTYPE will be
+ * automatically defined for ANSI compilers.
+ */
+/* #define USE_PROTOTYPES	1 */
 
 /* These are here since they define things in tune.c.  If you add things to
    tune.c, add them here too, if necessary. */
@@ -57,20 +79,26 @@
 extern char
 	*d_tempfile,
 	*p_tempfile,
+#ifdef	ABBREV
+	*a_tempfile,
+#endif
 	*Recover,
 	*Joverc,
 
-#if defined(IPROCS) && defined(PIPEPROCS)
+#if	defined(IPROCS) && defined(PIPEPROCS)
 	*Portsrv,
-	*Kbd_Proc,
 #endif
 
-#ifdef MSDOS
-	CmdDb[],
+#ifdef	MSDOS
+	CmdDb[],	/* path for cmds.doc */
 #else
-	*CmdDb,
+	*CmdDb,	/* path for cmds.doc */
 #endif
 
-	TmpFilePath[],
-	Shell[],
-	ShFlags[];
+	TmpFilePath[FILESIZE];	/* directory/device to store tmp files */
+
+#ifdef	SUBSHELL
+extern char
+	Shell[FILESIZE],		/* shell to use */
+	ShFlags[16];
+#endif

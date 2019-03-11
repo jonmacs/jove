@@ -9,40 +9,24 @@
  * This file is "included" into iproc.c -- it is not compiled separately!
  */
 
-#include <signal.h>
 #include <sgtty.h>
-#include "wait.h"
 
-#define DEAD	1	/* Dead but haven't informed user yet */
-#define STOPPED	2	/* Job stopped */
-#define RUNNING	3	/* Just running */
-#define NEW	4	/* This process is brand new */
-
-/* If process is dead, flags says how. */
-#define EXITED	1
-#define KILLED	2
+int	NumProcs = 0;
 
 #define isdead(p)	((p) == NULL || proc_state((p)) == DEAD || (p)->p_toproc == -1)
-#define makedead(p)	{ proc_state((p)) = DEAD; }
-
-#define proc_buf(p)	((p)->p_buffer->b_name)
-#define proc_cmd(p)	((p)->p_name)
-#define proc_state(p)	((p)->p_state)
-
-private Process	*procs = 0;
 
 File	*ProcInput;
-int	ProcOutput,
-	kbd_pid = 0,
-	NumProcs = 0;
+int	ProcOutput = -1;
+
+pid_t	kbd_pid = -1;
 
 private Process *
 proc_pid(pid)
-int	pid;
+pid_t	pid;
 {
 	register Process	*p;
 
-	for (p = procs; p != 0; p = p->p_next)
+	for (p = procs; p != NULL; p = p->p_next)
 		if (p->p_portpid == pid)
 			break;
 
@@ -51,49 +35,45 @@ int	pid;
 
 void
 read_proc(pid, nbytes)
-int	pid;
+pid_t	pid;
 register int	nbytes;
 {
-	register Process	*p;
-	int	n;
-	char	ibuf[512];
+	register Process	*p = proc_pid(pid);
 
-	if ((p = proc_pid(pid)) == 0) {
-		writef("\riproc: unknown pid (%d)", pid);
-		return;
-	}
+	if (p == NULL) {
+		writef("\riproc: unknown pid (%d)", (int)pid);
+	} else if (proc_state(p) == NEW) {
+		/* first message: pid of real child, not of portsrv */
+		pid_t	rpid;
 
-	if (proc_state(p) == NEW) {
-		int	rpid;
-		/* pid of real child, not of portsrv */
-
-		(void) f_readn(ProcInput, (char *) &rpid, sizeof (int));
+		(void) f_readn(ProcInput, (char *) &rpid, sizeof(pid_t));
 		p->p_pid = rpid;
 		p->p_state = RUNNING;
-		return;
-	}
+	} else if (nbytes == EOF) {
+		/* okay to clean up this process */
+		wait_status_t	status;
+		pid_t	dead_pid;
 
-	if (nbytes == EOF) {		/* okay to clean up this process */
-		int	status, pid;
-
-		f_readn(ProcInput, &status, sizeof (int));
+		(void) f_readn(ProcInput, (char *) &status, sizeof(status));
 		do {
-			pid = wait((int *) 0);
-			if (pid < 0)
+			dead_pid = wait(&status);
+			if (dead_pid < 0)
 				break;
-			kill_off(pid, status);
-		} while (pid != p->p_portpid);
+			kill_off(dead_pid, status);
+		} while (dead_pid != p->p_portpid);
 		proc_close(p);
 		makedead(p);
-		return;
-	}
+	} else {
+		/* regular data */
+		while (nbytes > 0) {
+			char	ibuf[512];
+			size_t n = f_readn(ProcInput, ibuf,
+				(size_t)min((int)(sizeof ibuf) - 1, nbytes));
 
-	while (nbytes > 0) {
-		n = min((sizeof ibuf) - 1, nbytes);
-		f_readn(ProcInput, ibuf, n);
-		ibuf[n] = 0;	/* Null terminate for convenience */
-		nbytes -= n;
-		proc_rec(p, ibuf);
+			ibuf[n] = '\0';	/* Null terminate for convenience */
+			nbytes -= n;
+			proc_rec(p, ibuf);
+		}
 	}
 }
 
@@ -126,21 +106,21 @@ Process	*p;
 	}
 }
 
-void
+private void
 proc_write(p, buf, nbytes)
 Process	*p;
 char	*buf;
 size_t	nbytes;
 {
-	(void) write(p->p_toproc, buf, nbytes);
+	(void) write(p->p_toproc, (UnivConstPtr)buf, nbytes);
 }
 
 
 #ifdef	STDARGS
-	private void
+private void
 proc_strt(char *bufname, int clobber, ...)
 #else
-	private /*VARARGS3*/ void
+private /*VARARGS3*/ void
 proc_strt(bufname, clobber, va_alist)
 	char	*bufname;
 	int	clobber;
@@ -148,25 +128,33 @@ proc_strt(bufname, clobber, va_alist)
 #endif
 {
 	Window	*owind = curwind;
-	int	toproc[2],
-		pid;
+	int	toproc[2];
+	pid_t	pid;
 	Process	*newp;
 	Buffer	*newbuf;
 	char	*argv[32],
 		*cp,
-		foo[10],
 		cmdbuf[LBSIZE];
-	int	i;
 	va_list	ap;
 
 	isprocbuf(bufname);	/* make sure BUFNAME is either nonexistant
 				   or is of type B_PROCESS */
+	if (access(Portsrv, X_OK) < 0) {
+		complain("[Couldn't access %s: %s]", Portsrv, strerror(errno));
+		/* NOTREACHED */
+	}
+
 	dopipe(toproc);
 
+	if (NumProcs++ == 0)
+		kbd_strt();	/* may create kbd process: must be done before fork */
 	switch (pid = fork()) {
 	case -1:
 		pipeclose(toproc);
-		complain("[Fork failed.]");
+		if (--NumProcs == 0)
+			kbd_stop();
+		complain("[Fork failed: %s]", strerror(errno));
+		/* NOTREACHED */
 
 	case 0:
 		argv[0] = "portsrv";
@@ -177,19 +165,26 @@ proc_strt(bufname, clobber, va_alist)
 		(void) dup2(ProcOutput, 1);
 		(void) dup2(ProcOutput, 2);
 		pipeclose(toproc);
+		jcloseall();
+		jputenv("EMACS=t");
+		jputenv("TERM=emacs");
+		jputenv("TERMCAP=emacs:co#80:tc=unknown:");
 		execv(Portsrv, argv);
-		writef("execl failed\n");
+		raw_complain("execl failed: %s\n", strerror(errno));
 		_exit(1);
 	}
 
-	newp = (Process *) malloc(sizeof *newp);
+	newp = (Process *) emalloc(sizeof *newp);
 	newp->p_next = procs;
 	newp->p_state = NEW;
 
 	cmdbuf[0] = '\0';
 	va_init(ap, clobber);
-	while (cp = va_arg(ap, char *))
-		swritef(&cmdbuf[strlen(cmdbuf)], "%s ", cp);
+	while ((cp = va_arg(ap, char *)) != NULL) {
+		size_t	pl = strlen(cmdbuf);
+
+		swritef(&cmdbuf[pl], sizeof(cmdbuf)-pl, "%s ", cp);
+	}
 	va_end(ap);
 	va_init(ap, clobber);
 	newp->p_name = copystr(cmdbuf);
@@ -197,7 +192,7 @@ proc_strt(bufname, clobber, va_alist)
 	newp->p_portpid = pid;
 	newp->p_pid = -1;
 
-	newbuf = do_select((Window *) 0, bufname);
+	newbuf = do_select((Window *)NULL, bufname);
 	newbuf->b_type = B_PROCESS;
 	newp->p_buffer = newbuf;
 	newbuf->b_process = newp;	/* sorta circular, eh? */
@@ -213,68 +208,85 @@ proc_strt(bufname, clobber, va_alist)
 
 	newp->p_toproc = toproc[1];
 	newp->p_reason = 0;
-	NumProcs += 1;
-	if (NumProcs == 1)
-		(void) kbd_strt();
 	(void) close(toproc[0]);
 	SetWind(owind);
 }
 
 void
-pinit()
+closeiprocs()
 {
+	Process	*p;
+
+	if (ProcOutput != -1)
+		close(ProcOutput);
+	for (p=procs; p!=NULL; p=p->p_next)
+		close(p->p_toproc);
+}
+
+private void
+kbd_init()
+{
+	/* Initiate the keyboard process.
+	 * We only get here after a portsrv process has been started
+	 * so we know that the portsrv program must exist -- no need to test.
+	 */
 	int	p[2];
 
 	(void) pipe(p);
 	ProcInput = fd_open("process-input", F_READ|F_LOCKED, p[0],
-			    (char *) 0, 512);
+			    (char *)NULL, 512);
 	ProcOutput = p[1];
-	if ((kbd_pid = fork()) == -1) {
-		printf("Cannot fork kbd process!\n");
-		finish(1);
-	}
-	if (kbd_pid == 0) {
+	switch (kbd_pid = fork()) {
+	case -1:
+		complain("Cannot fork kbd process! %s\n", strerror(errno));
+		/* NOTREACHED */
+
+	case 0:
 		signal(SIGINT, SIG_IGN);
 		signal(SIGALRM, SIG_IGN);
 		close(1);
 		dup(ProcOutput);
-		execl(Kbd_Proc, "kbd", 0);
-		write(2, "kdb exec failed\n", 16);
+		jcloseall();
+		execl(Portsrv, "kbd", (char *)NULL);
+		raw_complain("kbd exec failed: %s\n", strerror(errno));
 		exit(-1);
 	}
 }
 
-private int	kbd_state = OFF;
+/* kbd_stop() returns true if it changes the state of (i.e. stops)
+   the keyboard process.  This is so kbd stopping and starting in
+   pairs works - see finish() in jove.c. */
 
-/* kbd_strt() and kbd_stop() return true if they changed the state
-   of the keyboard process.  E.g., kbd_strt() returns TRUE if the
-   kbd process was previously stopped.  This is so kbd starting and
-   stopping in pairs works - see finish() in jove.c. */
+private int	kbd_state = NO;
 
+void
 kbd_strt()
 {
-	if (kbd_state == OFF) {
-		kbd_state = ON;
-		kill(kbd_pid, KBDSIG);
-		return TRUE;
+	if (kbd_state == NO) {
+		if (kbd_pid == -1)
+			kbd_init();
+		else
+			kill(kbd_pid, KBDSIG);
+		kbd_state = YES;
 	}
-	return FALSE;
 }
 
+bool
 kbd_stop()
 {
-	if (kbd_state == ON) {
-		kbd_state = OFF;
+	if (kbd_state == YES) {
+		kbd_state = NO;
 		kill(kbd_pid, KBDSIG);
-		return TRUE;
+		return YES;
 	}
-	return FALSE;
+	return NO;
 }
 
+void
 kbd_kill()
 {
-	if (kbd_pid != 0) {
+	if (kbd_pid != -1) {
 		kill(kbd_pid, SIGKILL);
-		kbd_pid = 0;
+		kbd_pid = -1;
 	}
 }

@@ -18,11 +18,11 @@ What follows is a description of those variables.
 ENVIRONMENT VARIABLES USED BY JOVE:
 ===================================
 
-TMP (or TMPDIR)
-Jove uses the value of TMP to determine the directory where it should
+TEMP (or TMPDIR)
+Jove uses the value of TEMP to determine the directory where it should
 put its temporary file. The default is the current directory, and this
-is probably not what you want. In general editing is faster, if TMP
-points to a ramdisk, like "set tmp=d:". You have to know however that
+is probably not what you want. In general editing is faster, if TEMP
+points to a ramdisk, like "set temp=d:". You have to know however that
 the temporary file can grow quite big when editing many big files at
 once. So please make sure that you have enough space available on your
 ramdisk. If Jove runs out of space on the device which holds the
@@ -36,7 +36,7 @@ DESCRIBE
 This variable tells Jove, where it can find the file that holds the
 online documentation. You should set DESCRIBE to the complete
 path-specification of the file "cmds.doc", which is included as part
-of the documentation. The default for DESCRIBE is "c:/unix/cmds.doc".
+of the documentation.
 
 JOVERC
 This is the complete path for Jove's startup file. All commands in the
@@ -46,12 +46,12 @@ then it is also "sourced", ie. the commands in that file are executed.
 That way you can customize Jove to your own taste.
 
 The next two variables are not used by the IBMPC version, and have to
-do with specifying the type of terminal in use on a generic msdos
+do with specifying the type of terminal in use on a generic MSDOS
 computer.
 
 TERM
 This variable should specify the name of the terminal you are using.
-For example, if you have a DEC vt-100 terminal attached to your msdos
+For example, if you have a DEC vt-100 terminal attached to your MSDOS
 computer, you should give the command "set TERM=vt100" prior to
 starting Jove.
 
@@ -98,11 +98,11 @@ to recompile Jove from the sources (see below), or you can get get
 it from someone else who has compiled it, for example from me.
 
 There currently exist versions of Jove for three different types of
-msdos computers. PCJOVE is for IBMPC compatible computers. Compatible
+MSDOS computers. PCJOVE is for IBMPC compatible computers. Compatible
 means here that the ROM Bios of your computer has to support the same
 Video output calls as the PC's. So even if your "clone" has trouble
 with many other programs, there's a high chance that Jove will work.
-MSJOVE should generally run on any computer that runs the msdos
+MSJOVE should generally run on any computer that runs the MSDOS
 operating system. It strictly uses only well documented system calls
 to do its task. RBJOVE is a special version of MSJOVE for DEC Rainbow
 computers, which uses the Rainbows Bios for screen output and keyboard
@@ -112,8 +112,8 @@ input. This makes it much faster than MSJOVE on the Rainbow.
 DIFFERENCES BETWEEN JOVE UNDER MSDOS AND UNIX JOVE:
 ===================================================
 
-The msdos version of Jove currently supports all of the features that
-are possible to implement under msdos in a reasonable way.
+The MSDOS version of Jove currently supports all of the features that
+are possible to implement under MSDOS in a reasonable way.
 Version 4.8b in particular supports:
 	filename completion
 	comment filling 
@@ -122,10 +122,10 @@ Version 4.8b in particular supports:
 	Lisp mode
 	change directory within Jove
 	executing commands from within Jove
-	filtering regions through msdos commands
+	filtering regions through MSDOS commands
 You have to look into the manual for more explanations of these
-features. The things that are missing under msdos are:
-	spell-buffer (obsolete under msdos)
+features. The things that are missing under MSDOS are:
+	spell-buffer (obsolete under MSDOS)
 	interactive shells in a window (not possible)
 There are however some features added, which are specific to the PC
 version.

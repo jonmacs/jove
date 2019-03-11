@@ -8,13 +8,23 @@
 #include "jove.h"
 #include "ctype.h"
 #include "disp.h"
+#include "ask.h"
+#include "c.h"
+#include "delete.h"
+#include "insert.h"
+#include "extend.h"
+#include "fmt.h"
+#include "marks.h"
+#include "misc.h"
+#include "move.h"
+#include "paragraph.h"
 
 #include <signal.h>
 
 void
 prCTIME()
 {
-	s_mess(": %f %s", get_time((time_t *) 0, (char *) 0, 0, -1));
+	s_mess(": %f %s", get_time((time_t *)NULL, (char *)NULL, 0, -1));
 }
 
 void
@@ -24,19 +34,19 @@ ChrToOct()
 		slow = NO;
 
 	c = waitchar(&slow);
-	ins_str(sprint("\\%03o", c), NO, -1);
+	ins_str(sprint("\\%03o", c), NO);
 }
 
 void
 StrLength()
 {
-	static char	inquotes[] = "Where are the quotes?";
-	char	*first = StrIndex(-1, linebuf, curchar, '"'),
-		*last = StrIndex(1, linebuf, curchar + 1, '"'),
+	static const char	inquotes[] = "Where are the quotes?";
+	char	*first = StrIndex(BACKWARD, linebuf, curchar, '"'),
+		*last = StrIndex(FORWARD, linebuf, curchar + 1, '"'),
 		c;
 	int	numchars = 0;
 
-	if (first == 0 || last == 0)
+	if (first == NULL || last == NULL)
 		complain(inquotes);
 	first += 1;
 	while (first < last) {
@@ -44,12 +54,11 @@ StrLength()
 		if (c == '\\') {
 			int	num;
 
-			if (!isdigit(*first))
+			if (!jisdigit(*first)) {
 				first += 1;
-			else {
+			} else {
 				num = 3;
-				while (num-- && isdigit(*first++) && first < last)
-					;
+				do ; while (num-- && jisdigit(*first++) && first < last);
 			}
 		}
 		numchars += 1;
@@ -65,7 +74,7 @@ TransChar()
 	char	before;
 
 	if (curchar == 0 || (eolp() && curchar == 1))
-		complain((char *) 0);	/* BEEP */
+		complain((char *)NULL);	/* BEEP */
 	if (eolp())
 		b_char(1);
 	before = linebuf[curchar - 1];
@@ -84,13 +93,16 @@ TransLines()
 	if (firstp(curline))
 		return;
 	lsave();
+	/* Exchange l_dline values.
+	 * This somewhat breaks the buffer abstraction.
+	 */
 	old_prev = curline->l_prev->l_dline;
 	curline->l_prev->l_dline = curline->l_dline;
 	curline->l_dline = old_prev;
-	getDOT();
 	if (!lastp(curline))
 		line_move(FORWARD, 1, NO);
 	modify();
+	DOLsave = NO;	/* contents of linebuf need not override l_dline. */
 }
 
 void
@@ -132,7 +144,7 @@ KillEOL()
 		line2 = curline;
 		char2 = length(curline);
 	}
-	reg_kill(line2, char2, 0);
+	reg_kill(line2, char2, NO);
 }
 
 /* kill to beginning of sentence */
@@ -140,7 +152,7 @@ KillEOL()
 void
 KillBos()
 {
-	negate_arg_value();
+	negate_arg();
 	KillEos();
 }
 
@@ -155,7 +167,7 @@ KillEos()
 	line1 = curline;
 	char1 = curchar;
 	Eos();
-	reg_kill(line1, char1, 1);
+	reg_kill(line1, char1, YES);
 }
 
 void
@@ -167,7 +179,7 @@ KillExpr()
 	line1 = curline;
 	char1 = curchar;
 	FSexpr();
-	reg_kill(line1, char1, 1);
+	reg_kill(line1, char1, YES);
 }
 
 void
@@ -177,7 +189,7 @@ Yank()
 		*lp;
 	Bufpos	*dot;
 
-	if (killbuf[killptr] == 0)
+	if (killbuf[killptr] == NULL)
 		complain("[Nothing to yank!]");
 	lsave();
 	this_cmd = YANKCMD;
@@ -186,45 +198,6 @@ Yank()
 	dot = DoYank(line, 0, lp, length(lp), curline, curchar, curbuf);
 	set_mark();
 	SetDot(dot);
-}
-
-void
-WtModBuf()
-{
-	if (!ModBufs(NO))
-		message("[No buffers need saving]");
-	else
-		put_bufs(is_an_arg());
-}
-
-void
-put_bufs(askp)
-int	askp;
-{
-	register Buffer	*oldb = curbuf,
-			*b;
-
-	for (b = world; b != 0; b = b->b_next) {
-		if (!IsModified(b) || b->b_type != B_FILE)
-			continue;
-		SetBuf(b);	/* Make this current Buffer */
-		if (curbuf->b_fname == 0) {
-			char	*newname;
-
-			newname = ask(NullStr, "Buffer \"%s\" needs a file name; type Return to skip: ", b->b_name);
-			if (*newname == 0)
-				continue;
-			setfname(b, newname);
-		}
-		if (askp && (yes_or_no_p("Write %s? ", curbuf->b_fname) == NO))
-			continue;
-		filemunge(curbuf->b_fname);
-#if !(defined(MSDOS) || defined(MAC))
-		chk_mtime(curbuf, curbuf->b_fname, "save");
-#endif
-		file_write(curbuf->b_fname, 0);
-	}
-	SetBuf(oldb);
 }
 
 void
@@ -285,4 +258,3 @@ SetRMargin()
 		complain("[Right margin must be right of left margin]");
 	RMargin = rmarg;
 }
-

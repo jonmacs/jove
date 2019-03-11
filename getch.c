@@ -5,9 +5,11 @@
  * included in all the files.                                              *
  ***************************************************************************/
 
+/* MSDOS keyboard routines */
+
 #include "tune.h"
 
-#ifdef MSDOS
+#ifdef	MSDOS
 
 #include <bios.h>
 #include <dos.h>
@@ -16,114 +18,120 @@
 
 private void waitfun proto((void));
 
-#ifdef IBMPC
-static char last = 0;
-extern int specialkey;
+#ifdef	IBMPC
+int	specialkey = '\0';
+private char last = '\0';
 #endif
 
+int
 getrawinchar()
 {
-#ifdef RAINBOW
-	union REGS regs;
-#endif /* RAINBOW */
-#ifdef IBMPC
+#ifdef	IBMPC
 	unsigned scan;
 
-	if (specialkey = last) {
+	if ((specialkey = last) != '\0') {
 		scan = last;
-		last = 0;
+		last = '\0';
 		return scan;
 	}
-#endif /* IBMPC */
 
 	while (!rawkey_ready())
 		waitfun();
 
-#ifdef IBMPC
 	scan = _bios_keybrd(_KEYBRD_READ);
 	if ((scan&0xff) == 0) {
 		last = (char) (scan >> 8);
 		return 0xff;
 	}
 	return scan&0xff;
-#else /* IBMPC */
-#ifdef RAINBOW
-waitloop:
-	regs.x.di = 2;
-	int86(0x18, &regs, &regs);
-	if (regs.h.al != 0)	/* should never happen, but who knows */
-		return regs.h.al;
-	else
-		goto waitloop;
-#else /* RAINBOW */
+
+#else	/* !IBMPC */
+#ifdef	RAINBOW
+
+	union REGS regs;
+
+	while (!rawkey_ready())
+		waitfun();
+
+	for (;;) {
+		regs.x.di = 2;
+		int86(0x18, &regs, &regs);
+		if (regs.h.al != 0)	/* should never happen, but who knows */
+			return regs.h.al;
+	}
+#else	/* !RAINBOW */
+
+	while (!rawkey_ready())
+		waitfun();
 	return bdos(0x06, 0x00ff, 0xff) & 0xff;
-#endif /* RAINBOW */
-#endif /* IBMPC */
+#endif	/* !RAINBOW */
+#endif	/* !IBMPC */
 }
 
-static int waiting = 0;
+private bool waiting = NO;
 
+bool
 rawkey_ready()
 {
-#ifndef IBMPC
+#ifdef	IBMPC
+	if (waiting)
+		return NO;
+	if (last)
+		return YES;
+
+	return _bios_keybrd(_KEYBRD_READY) != 0;
+#else	/* !IBMPC */
 	union REGS regs;
-#endif
 
 	if (waiting)
-		return 0;
-#ifdef IBMPC
-	if (last)
-		return 1;
-
-	return _bios_keybrd(_KEYBRD_READY);
-#else /* IBMPC */
-#ifdef RAINBOW
+		return NO;
+#ifdef	RAINBOW
 	regs.x.di = 4;
 	int86(0x18, &regs, &regs);
 	return regs.h.cl != 0;
-#else /* RAINBOW */
+#else	/* !RAINBOW */
 	regs.h.ah = 0x44;		/* ioctl call */
 	regs.x.bx = 0;			/* stdin file handle */
 	regs.h.al = 0x06;		/* get input status */
 	intdos(&regs, &regs);
 	return regs.h.al & 1;
-#endif /* RAINBOW */
-#endif /* IBMPC */
+#endif	/* !RAINBOW */
+#endif	/* !IBMPC */
 }
 
-#ifdef IBMPC
-static long timecount, lastcount = 0;
+#ifdef	IBMPC
+private long timecount, lastcount = 0;
 #else
-static char lastmin = 0;
+private char lastmin = 0;
 #endif
 
 
 private void
 waitfun()
 {
-#ifndef IBMPC
-	struct dostime_t tc;
-#endif
-
 	if (UpdModLine) {
-		waiting = 1;
+		waiting = YES;
 		redisplay();
-		waiting = 0;
+		waiting = NO;
 		return;
 	}
-#ifdef IBMPC
+#ifdef	IBMPC
 	if (_bios_timeofday(_TIME_GETCLOCK, &timecount) ||  /* after midnight */
 	    (timecount > lastcount + 0x444) ) {
 		lastcount = timecount;
 		UpdModLine = YES;
 	}
 #else
-	_dos_gettime(&tc);
-	if (tc.minute != lastmin) {
-		UpdModLine = YES;
-		lastmin = tc.minute;
+	{
+		struct dostime_t tc;
+
+		_dos_gettime(&tc);
+		if (tc.minute != lastmin) {
+			UpdModLine = YES;
+			lastmin = tc.minute;
+		}
 	}
 #endif
 }
 
-#endif /* MSDOS */
+#endif	/* MSDOS */

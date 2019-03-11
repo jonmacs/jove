@@ -9,7 +9,7 @@
 #define VARIABLE	2
 #define MACRO		3
 #define KEYMAP		4
-#ifdef MAC
+#ifdef	MAC
 # define BUFFER		6	/* menus can point to buffers, too */
 # define STRING		7	/* a menu string or divider */
 #endif
@@ -23,45 +23,16 @@
 #define DefMajor(x)	(FUNCTION|MAJOR_MODE|((x) << 8))
 #define DefMinor(x)	(FUNCTION|MINOR_MODE|((x) << 8))
 
-struct macro {
-	int	Type;		/* in this case a macro */
-	char	*Name;		/* name is always second ... */
-	int	m_len,		/* length of macro so we can use ^@ */
-		m_buflen,	/* memory allocated for it */
-		m_flags;
-	char	*m_body;	/* actual body of the macro */
-	struct macro
-		*m_nextm;
-};
-
-struct cmd {
-	int	Type;
-	char	*Name;
-	void (*c_proc) proto((void));
-#ifdef MAC
-	char c_map;			/* prefix map for About Jove... */
-	char c_key;			/* key binding for About Jove... */
-#endif
-};
-
 typedef struct data_obj {
 	int	Type;
 	char	*Name;
-} data_obj;	/* points to cmd, macro, keymap or variable */
+} data_obj;	/* prefix of cmd, macro, keymap and variable structs */
 
 extern data_obj	*LastCmd;	/* last command invoked */
 
-extern const struct cmd	commands[];
-extern struct macro	*macros;
-
-extern struct macro
-	*macstack[],
-	KeyMacro;
-
-extern const struct cmd
-	*FindCmd proto((void (*proc) proto((void))));
+extern char	*ProcFmt;	/* ": %f " -- name of LastCmd */
 
 extern data_obj
-	*findcom proto((char *prompt)),
-	*findmac proto((char *prompt)),
-	*findvar proto((char *prompt));
+	*findcom proto((const char *prompt)),
+	*findmac proto((const char *prompt)),
+	*findvar proto((const char *prompt));

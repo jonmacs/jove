@@ -7,13 +7,13 @@
 
 extern int
 	alphacomp proto((UnivConstPtr, UnivConstPtr)),
-	scandir proto((char *dir, char ***nmptr,
-		int (*qualify) proto((char *)),
-		int (*sorter)(UnivConstPtr, UnivConstPtr)));
+	jscandir proto((char *dir, char ***nmptr,
+		bool (*qualify) proto((char *)),
+		int (*sorter) proto((UnivConstPtr, UnivConstPtr))));
 
 extern void
-	freedir proto((char * * *nmptr,int nentries));
+	freedir proto((char ***nmptr,int nentries));
 
-#ifdef MSDOS
-extern unsigned int	fmask;
+#ifdef	MSDOS
+extern bool	MatchDir;
 #endif

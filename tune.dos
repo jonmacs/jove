@@ -5,18 +5,42 @@
  * included in all the files.                                              *
  ***************************************************************************/
 
-#define NOEXTERNS
+/* tune.dos is manually derived from tune.template */
 
-#include "tune.h"
+#include "jove.h"
+
+#ifndef	MAC
+
+char
+	*d_tempfile = "joveXXXXXX",	/* buffer lines go here */
+	*p_tempfile = "jrecXXXXXX",	/* line pointers go here */
+#ifdef	ABBREV
+	*a_tempfile = "jabbXXXXXX",	/* abbreviation editing tempfile */
+#endif
+	*Recover = LIBDIR "/recover",	/* use ANSI C string concat */
+#ifdef	MSDOS
+	CmdDb[FILESIZE] = SHAREDIR "/cmds.doc",	/* use ANSI C string concat */
+		/* copy of "cmds.doc" lives in the doc subdirectory */
+#else
+	*CmdDb = SHAREDIR "/cmds.doc",	/* use ANSI C string concat */
+		/* copy of "cmds.doc" lives in the doc subdirectory */
+#endif
+
+	*Joverc = SHAREDIR "/jove.rc",	/* use ANSI C string concat */
+
+#if defined(IPROCS) && defined(PIPEPROCS)
+	*Portsrv = "<LIBDIR>/portsrv",
+#endif
 
 /* these are variables that can be set with the set command, so they are
    allocated more memory than they actually need for the defaults */
-char	TmpFilePath[64] = ".",
-	Shell[64] = "command",
-	ShFlags[16] = "-c",
-	CmdDb[64] = "c:/unix/cmds.doc";
 
-/* these guys are not settable */
-char	*d_tempfile = "joveXXXXXX",	/* buffer lines go here */
-	*Joverc = "jove.rc";
+	TmpFilePath[FILESIZE];
 
+#ifdef	SUBSHELL
+char
+	Shell[FILESIZE] = "command",
+	ShFlags[16] = "-c";
+#endif
+
+#endif	/* !MAC */

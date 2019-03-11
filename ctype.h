@@ -5,51 +5,37 @@
  * included in all the files.                                              *
  ***************************************************************************/
 
-/* The code in this file was snarfed from ctype.h and modified for JOVE. */
+#define	C_UPPER	0001	/* UPPER case */
+#define	C_LOWER	0002	/* LOWER case */
+#define	C_DIGIT	0004	/* DIGIT */
+#define	C_PUNCT	0010	/* PUNCTuation */
+#define	C_CTRL	0020	/* ConTRoL */
+#define	C_WORD	0040	/* WORD */
+#define	C_BRA	0100	/* open BRAket */
+#define	C_KET	0200	/* close braKET */
 
-#define	_U	01
-#define	_L	02
-#define	_N	04
-#define _P	010
-#define _C	020
-#define _W	040
-#define _Op	0100
-#define _Cl	0200
+#define	has_syntax(c,s)	((CharTable[FUNDAMENTAL][c]&(s)) != 0)
+#define	jisword(c)	has_syntax(c, C_WORD)
+#define	jisalpha(c)	has_syntax(c, C_UPPER|C_LOWER)
+#define	jisupper(c)	has_syntax(c, C_UPPER)
+#define	jislower(c)	has_syntax(c, C_LOWER)
+#define	jisdigit(c)	has_syntax(c, C_DIGIT)
+#define	jisopenp(c)	has_syntax(c, C_BRA)
+#define	jisclosep(c)	has_syntax(c, C_KET)
 
-extern int	SyntaxTable;
-#define iswhite(c)	(isspace(c))
-#define isword(c)	((CharTable[SyntaxTable])[c]&(_W))
-#define	isalpha(c)	((CharTable[SyntaxTable])[c]&(_U|_L))
-#define	isupper(c)	((CharTable[SyntaxTable])[c]&_U)
-#define	islower(c)	((CharTable[SyntaxTable])[c]&_L)
-#define	isdigit(c)	((CharTable[SyntaxTable])[c]&_N)
-#define	isspace(c)	((c) == ' ' || (c) == '\t')
-#define ispunct(c)	((CharTable[SyntaxTable])[c]&_P)
+#define	jiswhite(c)	((c) == ' ' || (c) == '\t')	/* NOT isspace! */
 
+extern bool	jisident proto((int));
 
-#define toascii(c)	((c)&CHARMASK)
-#define isctrl(c)	((CharTable[0][c&CHARMASK])&_C)
-#define isopenp(c)	((CharTable[0][c&CHARMASK])&_Op)
-#define isclosep(c)	((CharTable[0][c&CHARMASK])&_Cl)
-#define has_syntax(c,s)	((CharTable[SyntaxTable][(c)&CHARMASK])&(s))
+/* #define	jtoascii(c)	((c)&CHARMASK) */
+#define	jiscntrl(c)	(((CharTable[FUNDAMENTAL][(c)&CHARMASK]) & C_CTRL) != 0)
 
-#ifdef ASCII
-#define toupper(c)	((c)&~040)
-#define tolower(c)	((c)|040)
-#else /* IBMPC or MAC */
-#define toupper(c)	(CaseEquiv[c])
-/* #define tolower(c)	((c)|040)	*/
-#endif /* IBMPC */
-
-#define WITH_TABLE(x) \
-{ \
-	int	push = SyntaxTable; \
-	SyntaxTable = (x);
-
-#define END_TABLE() \
-	SyntaxTable = push; \
-}
+#ifdef	ASCII7
+# define	jtolower(c)	((c)|040)
+#else	/* !ASCII7 */
+  extern int jtolower proto((int));
+#endif	/* !ASCII7 */
 
 extern const unsigned char	CharTable[NMAJORS][NCHARS];
-extern const char	CaseEquiv[NCHARS];
-#define CharUpcase(c)	(CaseEquiv[c])
+extern const char	RaiseTable[NCHARS];
+#define	CharUpcase(c)	(RaiseTable[c])

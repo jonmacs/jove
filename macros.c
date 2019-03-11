@@ -10,28 +10,28 @@
 #include "fp.h"
 #include "chars.h"
 #include "disp.h"
+#include "ask.h"
+#include "commands.h"
+#include "macros.h"
+#include "extend.h"
+#include "fmt.h"
 
 private void
-	add_mac proto((struct macro *)),
-	del_mac proto((struct macro *)),
-	pop_macro_stack proto((void)),
-	push_macro_stack proto((struct macro *, int));
-
-private struct macro *mac_exists proto((char *));
+	pop_macro_stack proto((void));
 
 #define SAVE		01	/* this macro needs saving to a file */
 
-struct macro	*macros = 0;		/* macros */
-int	InMacDefine = NO;
+struct macro	*macros = NULL;		/* macros */
+bool	InMacDefine = NO;
 
 private void
 add_mac(new)
 struct macro	*new;
 {
 	register struct macro	*mp,
-				*prev = 0;
+				*prev = NULL;
 
-	for (mp = macros; mp != 0; prev = mp, mp = mp->m_nextm)
+	for (mp = macros; mp != NULL; prev = mp, mp = mp->m_nextm)
 		if (mp == new)
 			return;
 
@@ -39,7 +39,7 @@ struct macro	*new;
 		prev->m_nextm = new;
 	else
 		macros = new;
-	new->m_nextm = 0;
+	new->m_nextm = NULL;
 	new->Type = MACRO;
 }
 
@@ -49,17 +49,17 @@ struct macro	*mac;
 {
 	register struct macro	*m;
 
-	for (m = macros; m != 0; m = m->m_nextm)
+	for (m = macros; m != NULL; m = m->m_nextm)
 		if (m->m_nextm == mac) {
 			m->m_nextm = mac->m_nextm;
 			break;
 		}
-	free(mac->Name);
-	free(mac->m_body);
-	free((char *) mac);
+	free((UnivPtr) mac->Name);
+	free((UnivPtr) mac->m_body);
+	free((UnivPtr) mac);
 }
 
-struct macro	KeyMacro;	/* Macro used for defining */
+private struct macro	KeyMacro;	/* Macro used for defining */
 
 /* To execute a macro, we have a "stack" of running macros.  Whenever
    we execute a macro, we push it on the stack, run it, then pop it
@@ -71,7 +71,7 @@ struct m_thread {
 		mt_count;
 };
 
-private struct m_thread	*mac_stack = 0;
+private struct m_thread	*mac_stack = NULL;
 
 private struct m_thread *
 alloc_mthread()
@@ -83,13 +83,13 @@ private void
 free_mthread(t)
 struct m_thread	*t;
 {
-	free((char *) t);
+	free((UnivPtr) t);
 }
 
 void
 unwind_macro_stack()
 {
-	while (mac_stack != 0)
+	while (mac_stack != NULL)
 		pop_macro_stack();
 }
 
@@ -98,7 +98,7 @@ pop_macro_stack()
 {
 	register struct m_thread	*m;
 
-	if ((m = mac_stack) == 0)
+	if ((m = mac_stack) == NULL)
 		return;
 	mac_stack = m->mt_prev;
 	free_mthread(m);
@@ -111,7 +111,7 @@ int	count;
 {
 	register struct m_thread	*t;
 
-	for (t = mac_stack; t != 0; t = t->mt_prev)
+	for (t = mac_stack; t != NULL; t = t->mt_prev)
 		if (t->mt_mp == m)
 			complain("[Cannot execute macro recusively]");
 	if (count <= 0)
@@ -140,7 +140,7 @@ char	*name;
 	for (mp = macros; mp; mp = mp->m_nextm)
 		if (strcmp(mp->Name, name) == 0)
 			return mp;
-	return 0;
+	return NULL;
 }
 
 void
@@ -159,8 +159,8 @@ int	c;
 {
 	if (KeyMacro.m_len >= KeyMacro.m_buflen) {
 		KeyMacro.m_buflen += 16;
-		KeyMacro.m_body = realloc(KeyMacro.m_body, (size_t) KeyMacro.m_buflen);
-		if (KeyMacro.m_body == 0) {
+		KeyMacro.m_body = realloc((UnivPtr) KeyMacro.m_body, (size_t) KeyMacro.m_buflen);
+		if (KeyMacro.m_body == NULL) {
 			KeyMacro.m_buflen = KeyMacro.m_len = 0;
 			complain("[Can't allocate storage for keyboard macro]");
 		}
@@ -168,7 +168,7 @@ int	c;
 	KeyMacro.m_body[KeyMacro.m_len++] = c;
 }
 
-int
+bool
 in_macro()
 {
 	return (mac_stack != NULL);
@@ -202,13 +202,13 @@ NameMac()
 		complain("[No keyboard macro to name!]");
 	if (in_macro() || InMacDefine)
 		complain("[Can't name while defining/executing]");
-	if ((m = mac_exists(name = ask((char *) 0, ProcFmt))) == 0)
+	if ((m = mac_exists(name = ask((char *) NULL, ProcFmt))) == NULL)
 		m = (struct macro *) emalloc(sizeof *m);
 	else {
 		if (strcmp(name, KeyMacro.Name) == 0)
 			complain("[Can't name it that!]");
-		free(m->Name);
-		free(m->m_body);
+		free((UnivPtr) m->Name);
+		free((UnivPtr) m->m_body);
 	}
 	name = copystr(name);
 	m->Type = KeyMacro.Type;
@@ -235,9 +235,9 @@ pr_putc(c, fp)
 int	c;
 File	*fp;
 {
-	if (c == '\\' || c == '^')
+	if (c == '\\' || c == '^') {
 		jputc('\\', fp);
-	 else if (isctrl(c)) {
+	} else if (jiscntrl(c)) {
 		jputc('^', fp);
 		c = (c == RUBOUT) ? '?' : (c + '@');
 	}
@@ -253,11 +253,11 @@ WriteMacs()
 	File	*fp;
 	int	i;
 
-	file = ask_file((char *) 0, (char *) 0, filebuf);
+	file = ask_file((char *)NULL, (char *)NULL, filebuf);
 	fp = open_file(file, iobuff, F_WRITE, YES, YES);
 
 	/* Don't write the keyboard macro which is always the first */
-	for (m = macros->m_nextm; m != 0; m = m->m_nextm) {
+	for (m = macros->m_nextm; m != NULL; m = m->m_nextm) {
 		fwritef(fp, "define-macro %s ", m->Name);
 		for (i = 0; i < m->m_len; i++)
 			pr_putc(m->m_body[i], fp);
@@ -278,14 +278,14 @@ DefKBDMac()
 	int	i;
 	struct macro	*m;
 
-	macro_name = do_ask(" \r\n", (int (*) proto((int))) 0, (char *) 0,
+	macro_name = do_ask(" \r\n", (bool (*) ptrproto((int))) NULL, (char *) NULL,
 		ProcFmt);
-	if (macro_name == 0)
+	if (macro_name == NULL)
 		complain("[No default]");
 	macro_name = copystr(macro_name);
 	if ((m = mac_exists(macro_name)) != NULL)
 		del_mac(m);
-	macro_body = ask((char *) 0, ": %f %s enter body: ", macro_name);
+	macro_body = ask((char *)NULL, ": %f %s enter body: ", macro_name);
 	i = 0;
 	while ((c = *macro_body++) != '\0') {
 		if (c == '\\') {
@@ -295,7 +295,7 @@ DefKBDMac()
 		} else if (c == '^') {
 			if ((nextc = *macro_body++) == '?')
 				c = RUBOUT;
-			else if (isalpha(nextc) || strchr("@[\\]^_", nextc))
+			else if (jisalpha(nextc) || strchr("@[\\]^_", nextc))
 				c = CTL(nextc);
 			else
 				complain("Bad control-character: '%c'", nextc);
@@ -358,17 +358,16 @@ ExecMacro()
 void
 MacInter()
 {
-	if (!Asking)
-		return;
-	Interactive = 1;
+	if (Asking)
+		Interactive = YES;
 }
 
-int
+bool
 ModMacs()
 {
 	register struct macro	*m;
 
-	for (m = macros->m_nextm; m != 0; m = m->m_nextm)
+	for (m = macros->m_nextm; m != NULL; m = m->m_nextm)
 		if (m->m_flags & SAVE)
 			return YES;
 	return NO;
@@ -376,19 +375,19 @@ ModMacs()
 
 data_obj *
 findmac(prompt)
-char	*prompt;
+const char	*prompt;
 {
 	char	*strings[100];
 	register char	**strs = strings;
 	register int	com;
 	register struct macro	*m = macros;
 
-	for (; m != 0; m = m->m_nextm)
+	for (; m != NULL; m = m->m_nextm)
 		*strs++ = m->Name;
-	*strs = 0;
+	*strs = NULL;
 
 	if ((com = complete(strings, prompt, NOTHING)) < 0)
-		return 0;
+		return NULL;
 	m = macros;
 	while (--com >= 0)
 		m = m->m_nextm;
@@ -400,7 +399,7 @@ DelMacro()
 {
 	struct macro	*m;
 
-	if ((m = (struct macro *) findmac(ProcFmt)) == 0)
+	if ((m = (struct macro *) findmac(ProcFmt)) == NULL)
 		return;
 	if (m == &KeyMacro)
 		complain("[It's illegal to delete the keyboard-macro!]");

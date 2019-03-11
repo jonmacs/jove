@@ -5,24 +5,42 @@
  * included in all the files.                                              *
  ***************************************************************************/
 
+/* tune.c is mechanically derived from tune.template */
+
 #include "jove.h"
 
-char	*d_tempfile = "joveXXXXXX",	/* buffer lines go here */
-	*p_tempfile = "jrecXXXXXX",	/* line pointers go here */
-	*Recover = "LIBDIR/recover",
-	*CmdDb = "LIBDIR/cmds.doc",
-		/* copy of "cmds.doc" lives in the doc subdirectory */
+#ifndef	MAC
 
-	*Joverc = "LIBDIR/jove.rc",
+char
+	*d_tempfile = "joveXXXXXX",	/* buffer lines go here */
+	*p_tempfile = "jrecXXXXXX",	/* line pointers go here */
+#ifdef	ABBREV
+	*a_tempfile = "jabbXXXXXX",	/* abbreviation editing tempfile */
+#endif
+	*Recover = "<LIBDIR>/recover",
+#ifdef	MSDOS
+	CmdDb[FILESIZE] = "<SHAREDIR>/cmds.doc",
+		/* copy of "cmds.doc" lives in the doc subdirectory */
+#else
+	*CmdDb = "<SHAREDIR>/cmds.doc",
+		/* copy of "cmds.doc" lives in the doc subdirectory */
+#endif
+
+	*Joverc = "<SHAREDIR>/jove.rc",
 
 #if defined(IPROCS) && defined(PIPEPROCS)
-	*Portsrv = "LIBDIR/portsrv",
-	*Kbd_Proc = "LIBDIR/kbd",
+	*Portsrv = "<LIBDIR>/portsrv",
 #endif
 
 /* these are variables that can be set with the set command, so they are
    allocated more memory than they actually need for the defaults */
 
-	TmpFilePath[FILESIZE] = "TMPDIR",
-	Shell[FILESIZE] = "SHELL",
+	TmpFilePath[FILESIZE] = "<TMPDIR>";
+
+#ifdef	SUBSHELL
+char
+	Shell[FILESIZE] = "<SHELL>",
 	ShFlags[16] = "-c";
+#endif
+
+#endif	/* !MAC */

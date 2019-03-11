@@ -7,20 +7,16 @@
 
 #include "jove.h"
 
-#ifdef IBMPC
+#ifdef	IBMPC
+
+#include "pcscr.h"
+#include "chars.h"
+#include "screen.h"
 
 /* here come the actual emulation routines	*/
 
 #include <dos.h>
 #include <conio.h>
-
-#define BYTE	unsigned char
-#define WORD	unsigned int
-
-#ifdef MAC
-# undef private
-# define private
-#endif
 
 private BYTE near get_mode proto((void));
 
@@ -40,16 +36,6 @@ private void
 	near set_cur proto((WORD)),
 	near set_mode proto((BYTE)),
 	near wherexy proto((BYTE *, BYTE *));
-
-void	near normfun proto((char)),
-	near scr_win proto((int, BYTE, BYTE, BYTE, BYTE)),
-	near clr_page(),
-	near clr_eoln();
-
-#ifdef MAC
-# undef private
-# define private static
-#endif
 
 #define VIDEO   0x10
 
@@ -79,7 +65,7 @@ WORD near cur_page()
 
    vr.h.ah = 0x0f;
    intr(VIDEO, &vr);
-   return(vr.h.bh);
+   return vr.h.bh;
 }
 
 private
@@ -105,29 +91,34 @@ WORD near get_cur()
    return (vr.x.dx);
 }
 
-private
-BYTE near get_mode()
+private BYTE near
+get_mode()
 {
   union REGS vr;
 
   vr.h.ah = 0x0f;
   intr(VIDEO, &vr);
-  return(vr.h.al);
+  return vr.h.al;
 }
 
-BYTE lpp()
+BYTE
+lpp()
 {
    int far *regen = (int far *) 0x44C;
-   int what;
    BYTE chpl();
 
-   what = (*regen&0xff00)/2/chpl();
-   return (what > 43 ? 25 : what);
+   return (*regen&0xff00)/2/chpl();
 }
 
-private
-void near set_mode(n)
+#ifdef	USE_PROTOTYPES
+/* BYTE is subject to default argument promotions */
+private void near
+set_mode(BYTE n)
+#else
+private void near
+set_mode(n)
 BYTE n;
+#endif
 {
   union REGS vr;
 
@@ -140,7 +131,8 @@ BYTE n;
 #define cur_mov(x,y)	set_cur((C_X=(x))<<8|((C_Y=(y))&0xff))
 
 private
-void near wherexy( x, y)
+void near
+wherexy( x, y)
 BYTE *x, *y;
 {
   register WORD xy;
@@ -153,9 +145,16 @@ BYTE *x, *y;
 #define wherex()	C_X
 #define wherey()	C_Y
 
-void near scr_win(no, ulr, ulc, lrr, lrc)
+#ifdef	USE_PROTOTYPES
+/* BYTE is subject to default argument promotions */
+void /*near*/
+scr_win(int no, BYTE ulr, BYTE ulc, BYTE lrr, BYTE lrc)
+#else
+void /*near*/
+scr_win(no, ulr, ulc, lrr, lrc)
 int no;
 BYTE ulr, ulc, lrr, lrc;
+#endif
 {
   union REGS vr;
 
@@ -172,57 +171,64 @@ BYTE ulr, ulc, lrr, lrc;
   intr(VIDEO, &vr);
 }
 
-BYTE chpl()
+BYTE
+chpl()
 {
   union REGS vr;
 
   vr.h.ah = 0x0f;
   intr(VIDEO, &vr);
-  return(vr.h.ah);
+  return vr.h.ah;
 }
 
-void near
+void /*near*/
 clr_page()
 {
 	scr_win(0, 0, 0, LPP-1, CHPL-1);
 	gotoxy(C_X = 0, C_Y = 0);
 }
 
-private
-void near cur_right()
+private void near
+cur_right()
 {
    if (C_Y < CHPL-1)
       C_Y++;
    gotoxy(C_X, C_Y);
 }
 
-private
-void near cur_up()
+private void near
+cur_up()
 {
    if (C_X)
       C_X--;
    gotoxy(C_X, C_Y);
 }
 
-private
-void near cur_left()
+private void near
+cur_left()
 {
    if (C_Y)
       C_Y--;
    gotoxy(C_X, C_Y);
 }
 
-private
-void near cur_down()
+private void near
+cur_down()
 {
    if (C_X < LPP-1)
       C_X++;
    gotoxy(C_X, C_Y);
 }
 
-private
-void near ch_out(c, n)
+#ifdef	USE_PROTOTYPES
+/* BYTE is subject to default argument promotions */
+private void near
+ch_out(BYTE c, BYTE n)
+#else
+private void near
+ch_out(c, n)
 BYTE c, n;
+#endif
 {
   union REGS vr;
 
@@ -238,20 +244,21 @@ BYTE c, n;
 
 #define home_cur()	gotoxy(C_X = 0, C_Y = 0)
 
-void near
+void /*near*/
 clr_eoln()
 {
 	ch_out(' ', CHPL-wherey());
 }
 
-private
-void near clr_eop()
+private void near
+clr_eop()
 {
   clr_eoln();
   scr_win(LPP-1-wherex(), wherex()+1, 0, LPP-1, CHPL-1);
 }
 
-void init_43()
+void
+init_43()
 {
    BYTE far *info = (BYTE far *) 0x487;
    WORD far *CRTC = (WORD far *) 0x463;
@@ -289,7 +296,8 @@ void init_43()
    wherexy(&C_X, &C_Y);
 }
 
-void reset_43()
+void
+reset_43()
 {
    BYTE far *info = (BYTE far *) 0x487;
    WORD far *CRTC = (WORD far *) 0x463;
@@ -311,8 +319,8 @@ void reset_43()
 #define scr_up()		scr_win(1, 0, 0, LPP-1, CHPL-1)
 #define back_space()	cur_left()
 
-private
-void near line_feed()
+private void near
+line_feed()
 {
    if (++C_X > LPP-1) {
       C_X = LPP-1;
@@ -326,7 +334,8 @@ void near line_feed()
 #define TIME_P 0x40			/* timer   */
 #define TINI   182			/* 10110110b timer initialization */
 
-void dobell(x)
+void
+dobell(x)
 {
    unsigned int n = 0x8888;
    int orgval;
@@ -336,15 +345,14 @@ void dobell(x)
    outp(TIME_P+2, BELL_D>>8);
    orgval = inp(BELL_P);
    outp(BELL_P, orgval|3);		/* turn speaker on  */
-   while (--n > 0)
-	 ;
+   do ; while (--n > 0);
    outp(BELL_P, orgval);
 }
 
 #define carriage_return()	gotoxy(wherex(), C_Y = 0)
 
-private
-void near cur_advance()
+private void near
+cur_advance()
 {
    if (++C_Y > CHPL-1) {
       C_Y = 0;
@@ -356,7 +364,8 @@ void near cur_advance()
    gotoxy(C_X, C_Y);
 }
 
-void init_term()
+void
+init_term()
 {
    if (lpp() == 43)
       reset_43();
@@ -366,23 +375,24 @@ void init_term()
    wherexy(&C_X, &C_Y);
 }
 
-void near normfun();
-
-void write_em(s)
+void
+write_em(s)
 char *s;
 {
   while (*s)
 	normfun(*s++);
 }
 
-void write_emif(s)
+void
+write_emif(s)
 char *s;
 {
   if (s)
 	 write_em(s);
 }
 
-void write_emc(s, n)
+void
+write_emc(s, n)
 char *s;
 int n;
 {
@@ -390,22 +400,26 @@ int n;
 	 normfun(*s++);
 }
 
-void near normfun(c)
+#ifdef	USE_PROTOTYPES
+/* char is subject to default argument promotions */
+void /*near*/
+normfun(char c)
+#else
+void near
+normfun(c)
 char c;
+#endif
 {
-      switch (c) {
-	case 10: line_feed(); break;
-	case 13: carriage_return(); break;
-	case  8: back_space(); break;
-	case  7: dobell(0); break;
-		case  0: break;
+	switch (c) {
+	case LF: line_feed(); break;
+	case CR: carriage_return(); break;
+	case BS: back_space(); break;
+	case CTL('G'): dobell(0); break;
+	case '\0': break;
 	default: wrch(c);
-      }
+	}
 }
 
-#endif	/* IBMPC */
-
-#ifdef IBMPC
 
 /* No cursor optimization on an IBMPC, this simplifies things a lot.
    Think about it: it would be silly!
@@ -436,33 +450,23 @@ SO_off()
    setcolor(Fgcolor, Bgcolor);
 }
 
-extern int EGA;
+extern bool EGA;
 
 void
-
-UnsetTerm(foo)
-char *foo;
+pcUnsetTerm()
 {
-  extern int ILI;
-
-  Placur(ILI, 0);
-  clr_eoln();
   if (EGA)
 	 reset_43();
 }
 
 
 void
-ResetTerm()
+pcResetTerm()
 {
 	if (EGA)
 	   init_43();
 	else
 	   init_term();
-
-	do_sgtty();		/* this is so if you change baudrate or stuff
-				   like that, JOVE will notice. */
-	ttyset(ON);
 }
 
-#endif
+#endif	IBMPC

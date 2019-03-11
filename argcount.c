@@ -6,163 +6,151 @@
  ***************************************************************************/
 
 #include "jove.h"
-#include <ctype.h>
+#include "ctype.h"
 
-private	void
-	gather_numeric_argument proto((int)),
-	quad_numeric_arg proto((void));
-
-int	arg_supplied_p,
+int	arg_state = AS_NONE,
 	arg_count;
 
-/* called by C-U to gather a numeric argument, either C-U's or digits,
-   but not both */
+void
+negate_arg()
+{
+	if (arg_count < 0) {
+		arg_count = -arg_count;
+		if (arg_count < 0)
+			complain("arg count overflow");
+	} else {
+		arg_count = -arg_count;
+	}
+}
+
+private void
+gather_argument(ns, nc)
+	int
+		ns,	/* new state */
+		nc;	/* new count */
+{
+	int	slow = NO;
+
+	for (;;) {
+		int	c;
+		bool	neg = NO;
+
+		if (arg_count < 0) {
+			neg = YES;
+			negate_arg();
+		}
+		if (ns != arg_state) {
+			/* First time in this state */
+			arg_state = ns;
+			arg_count = nc;	/* ignore previous value (but remember sign) */
+		} else {
+			/* Continuing in this state. */
+			int	t = arg_count;
+
+			switch (ns) {
+			case AS_NUMERIC:
+				t = t*10 + nc;	/* add a digit to previous value */
+				break;
+			case AS_NEGSIGN:
+				neg = !neg;	/* change previous sign */
+				break;
+			case AS_TIMES:
+				t *= nc;	/* multiply by factor */
+				break;
+			}
+			if (t < arg_count)
+				complain("arg count overflow");
+			arg_count = t;
+		}
+		if (neg)
+			negate_arg();
+
+		/* Treat a following digit as AS_NUMERIC.
+		 * If in AS_TIMES, accept a '-'.
+		 */
+		c = waitchar(&slow);
+		if (jisdigit(c)) {
+			ns = AS_NUMERIC;
+			nc = c - '0';
+		} else if (arg_state==AS_TIMES && c=='-') {
+			ns = AS_NEGSIGN;	/* forget multiplication */
+			nc = -1;
+		} else {
+			Ungetc(c);
+			break;
+		}
+	}
+	this_cmd = ARG_CMD;
+}
 
 void
 TimesFour()
 {
-	quad_numeric_arg();
-}
-
-/* This initializes the numeric argument to 1 and starts multiplying
-   by 4 (the magic number Stallman came up with).  It is an error to
-   invoke quad_numeric_arg() interactively (via TimesFour()), because
-   it uses the LastKeyStruck variable to know what character signals
-   to multiply again (in the loop). */
-private void
-quad_numeric_arg()
-{
-	int	oldc = LastKeyStruck,
-		newc,
-		narg_count,
-		slow;
-
-	slow = NO;
-	arg_supplied_p = YES;
-	arg_count = 1;
-	this_cmd = ARG_CMD;
-	do {
-		if ((narg_count = arg_count * 4) != 0)
-			arg_count = narg_count;
-		newc = waitchar(&slow);
-		if (isdigit(newc) || newc == '-') {
-		     arg_supplied_p = NO;
-		     gather_numeric_argument(newc);
-		     return;
-		}
-	} while (newc == oldc);
-	Ungetc(newc);
-}
-
-private void
-gather_numeric_argument(c)
-	int	c;
-{
-	int	sign = 0;
-	static int	digited;
-	int	slow = NO;
-
-	if (!isdigit(c) && c != '-')
-		complain((char *) 0);
-	if (arg_supplied_p == NO) {	/* if we just got here */
-		arg_count = 0;	/* start over */
-		digited = NO;
-	} else if (arg_supplied_p == YES_NODIGIT) {
-		sign = (arg_count < 0) ? -1 : 1;
-		arg_count = 0;
-	}
-
-	if (!sign)
-		sign = (arg_count < 0) ? -1 : 1;
-	if (sign == -1)
-		arg_count = -arg_count;
-	if (c == '-') {
-		sign = -sign;
-		goto goread;
-	}
-	for (;;) {
-		if (isdigit(c)) {
-			arg_count = (arg_count * 10) + (c - '0');
-			digited = YES;
-		} else {
-			if (digited)
-				arg_supplied_p = YES;
-			else {
-				arg_count = 1;
-				if (arg_supplied_p == NO)
-					arg_supplied_p = YES_NODIGIT;
-			}
-			arg_count *= sign;
-			this_cmd = ARG_CMD;
-			Ungetc(c);
-			return;
-		}
-goread:		c = waitchar(&slow);
-	}
-}
-
-void
-Digit()
-{
-	gather_numeric_argument(LastKeyStruck);
+	gather_argument(AS_TIMES, 4);
 }
 
 void
 Digit0()
 {
-	gather_numeric_argument('0');
+	gather_argument(AS_NUMERIC, 0);
 }
 
 void
 Digit1()
 {
-	gather_numeric_argument('1');
+	gather_argument(AS_NUMERIC, 1);
 }
 
 void
 Digit2()
 {
-	gather_numeric_argument('2');
+	gather_argument(AS_NUMERIC, 2);
 }
 
 void
 Digit3()
 {
-	gather_numeric_argument('3');
+	gather_argument(AS_NUMERIC, 3);
 }
 
 void
 Digit4()
 {
-	gather_numeric_argument('4');
+	gather_argument(AS_NUMERIC, 4);
 }
 
 void
 Digit5()
 {
-	gather_numeric_argument('5');
+	gather_argument(AS_NUMERIC, 5);
 }
 
 void
 Digit6()
 {
-	gather_numeric_argument('6');
+	gather_argument(AS_NUMERIC, 6);
 }
 
 void
 Digit7()
 {
-	gather_numeric_argument('7');
+	gather_argument(AS_NUMERIC, 7);
 }
 
 void
 Digit8()
 {
-	gather_numeric_argument('8');
+	gather_argument(AS_NUMERIC, 8);
 }
 
 void
 Digit9()
 {
-	gather_numeric_argument('9');
+	gather_argument(AS_NUMERIC, 9);
+}
+
+void
+DigitMinus()
+{
+	gather_argument(AS_NEGSIGN, -1);
 }

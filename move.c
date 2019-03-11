@@ -9,7 +9,8 @@
 #include "re.h"
 #include "ctype.h"
 #include "disp.h"
-private void to_sent proto((int));
+#include "move.h"
+#include "screen.h"	/* for tabstop */
 
 private int	line_pos;
 
@@ -23,7 +24,7 @@ register int	n;
 	}
 	while (--n >= 0) {
 		if (eolp()) {			/* Go to the next Line */
-			if (curline->l_next == 0)
+			if (curline->l_next == NULL)
 				break;
 			SetLine(curline->l_next);
 		} else
@@ -41,7 +42,7 @@ register int	n;
 	}
 	while (--n >= 0) {
 		if (bolp()) {
-			if (curline->l_prev == 0)
+			if (curline->l_prev == NULL)
 				break;
 			SetLine(curline->l_prev);
 			Eol();
@@ -85,10 +86,10 @@ PrevLine()
 void
 line_move(dir, n, line_cmd)
 int	dir,
-	n,
-	line_cmd;
+	n;
+bool	line_cmd;
 {
-	Line	*(*proc) proto((Line *, int)) =
+	Line	*(*proc) ptrproto((Line *, int)) =
 		(dir == FORWARD) ? next_line : prev_line;
 	Line	*line;
 
@@ -128,8 +129,8 @@ int	col;
 
 	while (pos < col && (c = (*lp & CHARMASK)) != '\0') {
 		if (c == '\t')
-			pos += (tabstop - (pos % tabstop));
-		else if (isctrl(c))
+			pos += TABDIST(pos);
+		else if (jiscntrl(c))
 			pos += 2;
 		else
 			pos += 1;
@@ -179,7 +180,7 @@ int	dir;
 	DOTsave(&old);
 
 	new = dosearch("^[ \t]*$\\|[?.!]", dir, YES);
-	if (new == 0) {
+	if (new == NULL) {
 		if (dir == BACKWARD)
 			ToFirst();
 		else
@@ -189,9 +190,10 @@ int	dir;
 	SetDot(new);
 	if (dir < 0) {
 		to_word(1);
-		if ((old.p_line == curline && old.p_char <= curchar) ||
-		    (inorder(new->p_line, new->p_char, old.p_line, old.p_char) &&
-		     inorder(old.p_line, old.p_char, curline, curchar))) {
+		if ((old.p_line == curline && old.p_char <= curchar)
+		|| (inorder(new->p_line, new->p_char, old.p_line, old.p_char)
+		  && inorder(old.p_line, old.p_char, curline, curchar)))
+		{
 			SetDot(new);
 			to_sent(dir);
 		}
@@ -219,15 +221,14 @@ Bos()
 	register int	num = arg_value();
 
 	if (num < 0) {
-		negate_arg_value();
+		negate_arg();
 		Eos();
-		return;
-	}
-
-	while (--num >= 0) {
-		to_sent(-1);
-		if (bobp())
-			break;
+	} else {
+		while (--num >= 0) {
+			to_sent(-1);
+			if (bobp())
+				break;
+		}
 	}
 }
 
@@ -237,15 +238,14 @@ Eos()
 	register int	num = arg_value();
 
 	if (num < 0) {
-		negate_arg_value();
+		negate_arg();
 		Bos();
-		return;
-	}
-
-	while (--num >= 0) {
-		to_sent(1);
-		if (eobp())
-			break;
+	} else {
+		while (--num >= 0) {
+			to_sent(1);
+			if (eobp())
+				break;
+		}
 	}
 }
 
@@ -253,39 +253,28 @@ void
 f_word(num)
 register int	num;
 {
-	register char	c;
 	if (num < 0) {
-		b_word(-num);
-		return;
-	}
-	while (--num >= 0) {
-		to_word(FORWARD);
-		while ((c = linebuf[curchar]) != 0 && isword(c))
-			curchar += 1;
-		if (eobp())
-			break;
-	}
-	this_cmd = 0;	/* Semi kludge to stop some unfavorable behavior */
-}
+		while (++num <= 0) {
+			register char	c;
 
-void
-b_word(num)
-register int	num;
-{
-	register char	c;
+			to_word(BACKWARD);
+			while (!bolp() && (c = linebuf[curchar - 1], jisword(c)))
+				curchar -= 1;
+			if (bobp())
+				break;
+		}
+	} else {
+		while (--num >= 0) {
+			register char	c;
 
-	if (num < 0) {
-		f_word(-num);
-		return;
+			to_word(FORWARD);
+			while ((c = linebuf[curchar]) != '\0' && jisword(c))
+				curchar += 1;
+			if (eobp())
+				break;
+		}
 	}
-	while (--num >= 0) {
-		to_word(BACKWARD);
-		while (!bolp() && (c = linebuf[curchar - 1], isword(c)))
-			curchar -= 1;
-		if (bobp())
-			break;
-	}
-	this_cmd = 0;
+	this_cmd = OTHER_CMD;	/* Semi kludge to stop some unfavorable behavior */
 }
 
 void
@@ -297,5 +286,5 @@ ForWord()
 void
 BackWord()
 {
-	b_word(arg_value());
+	f_word(-arg_value());
 }

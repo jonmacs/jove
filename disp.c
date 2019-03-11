@@ -11,25 +11,39 @@
 #include "chars.h"
 #include "fp.h"
 #include "disp.h"
-#if defined(IPROCS)
+#include "ask.h"
+#include "extend.h"
+#include "fmt.h"
+#include "insert.h"
+#include "io.h"	/* for pwd() */
+#ifdef	IPROCS
+# include "sysprocs.h"
 # include "iproc.h"
 #endif
+#include "loadavg.h"
+#include "mac.h"
+#include "move.h"
+#include "macros.h"
+#include "screen.h"
+#include "term.h"
+#include "wind.h"
 
-#ifdef MAC
+#ifdef	MAC
 # include "mac.h"
 #else
-# ifdef	STDARGS
-#  include <stdarg.h>
-# else
-#  include <varargs.h>
-# endif
 # include <sys/stat.h>
 #endif
 
 #include <signal.h>
 
+#define	NOWHERE_DADDR	(~NULL_DADDR)	/* Note: DIRTY is on */
+
+struct screenline
+	*Screen = NULL,	/* the screen (a bunch of screenline) */
+	*Curline = NULL;	/* current line */
+
 private void
-#ifdef ID_CHAR
+#ifdef	ID_CHAR
 	DeTab proto((int, char *, char *, size_t, int)),
 	DelChar proto((int, int, int)),
 	InsChar proto((int, int, int, char *)),
@@ -41,23 +55,24 @@ private void
 	UpdLine proto((int)),
 	UpdWindow proto((Window *, int));
 
-#ifdef MSDOS
+#ifdef	MSDOS
 extern void	dobell proto((int x));
 #else
 private void	dobell proto((int x));
 #endif
 
-private int
-#ifdef ID_CHAR
-	IDchar proto ((char *, int, int)),
-	NumSimilar proto ((char *, char *, int)),
-	IDcomp proto ((char *, char *, int)),
+#ifdef	ID_CHAR
+private bool
+	IDchar proto ((char *, int)),
 	OkayDelete proto ((int, int, int)),
-	OkayInsert proto ((int, int)),
+	OkayInsert proto ((int, int));
+private int
+	NumSimilar proto ((char *, char *, int)),
+	IDcomp proto ((char *, char *, int));
 #endif
+private int
 	AddLines proto((int, int)),
-	DelLines proto((int, int)),
-	UntilEqual proto((int));
+	DelLines proto((int, int));
 
 
 
@@ -69,24 +84,43 @@ int	DisabledRedisplay = NO;
 
 void
 ChkWindows(line1, line2)
-Line	*line1;
-register Line	*line2;
+Line	*line1,
+	*line2;
 {
 	register Window	*w = fwind;
-	register Line	*lp;
+	register Line	*lp,
+			*lend = line2->l_next;
 
 	do {
-		for (lp = line1->l_next; lp != line2->l_next; lp = lp->l_next) {
-			if (lp == w->w_top)
-				w->w_flags |= W_TOPGONE;
-			if (lp == w->w_line)
-				w->w_flags |= W_CURGONE;
+		if (w->w_bufp == curbuf) {
+			for (lp = line1->l_next; lp != lend; lp = lp->l_next) {
+				if (lp == w->w_top)
+					w->w_flags |= W_TOPGONE;
+				if (lp == w->w_line)
+					w->w_flags |= W_CURGONE;
+			}
 		}
 		w = w->w_next;
 	} while (w != fwind);
 }
 
-private int	RingBell;	/* So if we have a lot of errors ...
+/* Deleted and killed Lines are about to be recycled: check for dangling refs */
+
+void
+ChkWinLines()
+{
+	register Window	*w = fwind;
+
+	do {
+		if (w->w_top == NULL || w->w_top->l_dline == NULL_DADDR)
+			w->w_flags |= W_TOPGONE;
+		if (w->w_line == NULL || w->w_line->l_dline == NULL_DADDR)
+			w->w_flags |= W_CURGONE;
+		w = w->w_next;
+	} while (w != fwind);
+}
+
+private bool	RingBell;	/* So if we have a lot of errors ...
 				  ring the bell only ONCE */
 
 void
@@ -103,19 +137,23 @@ redisplay()
 		return;
 	curwind->w_line = curwind->w_bufp->b_dot;
 	curwind->w_char = curwind->w_bufp->b_char;
-#ifdef MAC
-	InputPending = 0;
+#ifdef	MAC
+	/* To avoid calling redisplay() recursively,
+	 * we must avoid calling CheckEvent(),
+	 * so we must avoid calling charp().
+	 */
+	InputPending = NO;
 #else
-	if ((InputPending = charp()) != '\0')	/* calls CheckEvent, which could */
-		return;	/* result in a call to rediplay(). We don't want that. */
+	if ((InputPending = charp()) != NO)
+		return;
 #endif
-#ifdef JOB_CONTROL
+#ifdef	BSD_SIGS
 	if (UpdFreq)
 		SigHold(SIGALRM);
 #endif
 	if (RingBell) {
 		dobell(1);
-		RingBell = 0;
+		RingBell = NO;
 	}
 	AbortCnt = BufSize;		/* initialize this now */
 	if (UpdMesg)
@@ -126,7 +164,7 @@ redisplay()
 		lineno += w->w_height;
 	}
 
-	UpdModLine = 0;	/* Now that we've called update window, we can
+	UpdModLine = NO;/* Now that we've called update window, we can
 			   assume that the modeline will be updated.  But
 			   if while redrawing the modeline the user types
 			   a character, ModeLine() is free to set this on
@@ -140,56 +178,58 @@ redisplay()
 			DoIDline(i);
 			done_ID = YES;
 		}
-		if ((des_p->s_flags & (DIRTY | L_MOD)) ||
-		    (des_p->s_id != phys_p->s_id) ||
-		    (des_p->s_vln != phys_p->s_vln) ||
-		    (des_p->s_offset != phys_p->s_offset))
+		if ((des_p->s_flags & (DIRTY | L_MOD))
+		|| des_p->s_id != phys_p->s_id
+		|| des_p->s_vln != phys_p->s_vln
+		|| des_p->s_offset != phys_p->s_offset)
 			UpdLine(i);
 		if (InputPending)
 			goto ret;
 	}
 
 	if (Asking) {
-		Placur(LI - 1, min(CO - 2, calc_pos(mesgbuf, Asking)));
+		Placur(LI - 1, min(CO - 2, calc_pos(mesgbuf, AskingWidth)));
 			/* Nice kludge */
-		flusho();
-	} else
+		flushscreen();
+	} else {
 		GotoDot();
+	}
 ret:
-#ifdef JOB_CONTROL
+    ;	/* yuck */
+
+#ifdef	BSD_SIGS
 	if (UpdFreq)
 		SigRelse(SIGALRM);
-#else
-	;	/* yuck */
 #endif
-#ifdef MAC
-	if(Windchange) docontrols();
-#endif /* MAC */
+#ifdef	MAC
+	if (Windchange)
+		docontrols();
+#endif	/* MAC */
 }
 
-#ifndef IBMPC
+#ifndef	IBMPC
 private void
 dobell(n)
 int	n;
 {
 	while (--n >= 0) {
-#ifndef MAC
+#ifdef	MAC
+		SysBeep(5);
+#else
 		if (VisBell && VB)
 			putstr(VB);
 		else
 			putpad(BL, 1);
-#else
-		SysBeep(5);
 #endif
 	}
-	flusho();
+	flushscreen();
 }
-#endif /* IBMPC */
+#endif	/* IBMPC */
 
 /* find_pos() returns the position on the line, that C_CHAR represents
    in LINE */
 
-int
+private int
 find_pos(line, c_char)
 Line	*line;
 int	c_char;
@@ -208,8 +248,8 @@ register int	c_char;
 
 	while ((--c_char >= 0) && ((c = *lp++) & CHARMASK) != 0) {
 		if (c == '\t')
-			pos += (tabstop - (pos % tabstop));
-		else if (isctrl(c))
+			pos += TABDIST(pos);
+		else if (jiscntrl(c))
 			pos += 2;
 		else
 			pos += 1;
@@ -217,8 +257,8 @@ register int	c_char;
 	return pos;
 }
 
-int	UpdModLine = 0,
-	UpdMesg = 0;
+bool	UpdModLine = NO,
+	UpdMesg = NO;
 
 private void
 DoIDline(start)
@@ -248,10 +288,10 @@ int	start;
 		for (j = i + 1; j < ILI; j++) {
 			des_p = &DesiredScreen[j];
 			phys_p = &PhysScreen[j];
-			if (des_p->s_id != 0 && des_p->s_id == phys_p->s_id)
+			if (des_p->s_id != NULL_DADDR && des_p->s_id == phys_p->s_id)
 				break;
 			if (des_p->s_id == PhysScreen[i].s_id) {
-				if (des_p->s_id == 0)
+				if (des_p->s_id == NULL_DADDR)
 					continue;
 				if (AddLines(i, j - i)) {
 					DoIDline(j);
@@ -260,7 +300,7 @@ int	start;
 				break;
 			}
 			if ((des_p = &DesiredScreen[i])->s_id == phys_p->s_id) {
-				if (des_p->s_id == 0)
+				if (des_p->s_id == NULL_DADDR)
 					continue;
 				if (DelLines(i, j - i)) {
 					DoIDline(i);
@@ -276,7 +316,7 @@ int	start;
    with the redisplay.  This deals with horizontal scrolling.  Also makes
    sure the current line of the Window is in the window. */
 
-int	ScrollAll = NO;
+bool	ScrollAll = NO;
 
 private void
 UpdWindow(w, start)
@@ -305,10 +345,10 @@ retry:
 	/* make sure that the current line is in the window */
 	upper = start;
 	lower = upper + w->w_height - 1;	/* don't include modeline */
-	for (i = upper, lp = w->w_top; i < lower && lp != 0; lp = lp->l_next, i++)
+	for (i = upper, lp = w->w_top; i < lower && lp != NULL; lp = lp->l_next, i++)
 		if (lp == w->w_line)
 			break;
-	if (i == lower || lp == 0) {
+	if (i == lower || lp == NULL) {
 		ntries += 1;
 		if (ntries == 1) {
 			CalcWind(w);
@@ -320,7 +360,7 @@ retry:
 			goto retry;
 		} else if (ntries == 3) {
 			writef("\n\rOops, still lost, quitting ...\r\n");
-			finish(1);
+			finish(SIGTERM);	/* die! die! die! */
 		}
 	}
 
@@ -329,8 +369,7 @@ retry:
 		int	diff = (w->w_flags & W_NUMLINES) ? 8 : 0,
 			end_col;
 
-		strt_col = (ScrollAll == YES) ? w->w_LRscroll :
-			   PhysScreen[i].s_offset;
+		strt_col = ScrollAll? w->w_LRscroll : PhysScreen[i].s_offset;
 		end_col = strt_col + (CO - 2) - diff;
 		/* Right now we are displaying from strt_col to
 		   end_col of the buffer line.  These are PRINT
@@ -338,14 +377,15 @@ retry:
 		w->w_dotcol = find_pos(w->w_line, w->w_char);
 		/* if the new dotcol is out of range, reselect
 		   a horizontal window */
-		if ((PhysScreen[i].s_offset == -1) ||
-		    (w->w_dotcol < strt_col) ||
-		    (w->w_dotcol >= end_col)) {
+		if (PhysScreen[i].s_offset == -1
+		|| w->w_dotcol < strt_col
+		|| w->w_dotcol >= end_col)
+		{
 			if (w->w_dotcol < ((CO - 2) - diff))
 				strt_col = 0;
 			else
 				strt_col = w->w_dotcol - (CO / 2);
-			if (ScrollAll == YES) {
+			if (ScrollAll) {
 				if (w->w_LRscroll != strt_col)
 					UpdModLine = YES;
 				w->w_LRscroll = strt_col;
@@ -357,10 +397,11 @@ retry:
 
 	des_p = &DesiredScreen[upper];
 	phys_p = &PhysScreen[upper];
-	for (i = upper, lp = w->w_top; lp != 0 && i < lower; i++, des_p++, phys_p++, lp = lp->l_next) {
+	for (i = upper, lp = w->w_top; lp != NULL && i < lower; i++, des_p++, phys_p++, lp = lp->l_next) {
 		des_p->s_window = w;
 		des_p->s_lp = lp;
-		des_p->s_id = lp->l_dline & ~DIRTY;
+		des_p->s_id = (lp == curline && DOLsave)?
+			NOWHERE_DADDR : lp->l_dline & ~DIRTY;
 		des_p->s_flags = isdirty(lp) ? L_MOD : 0;
 		if (w->w_flags & W_NUMLINES)
 			des_p->s_vln = w->w_topnum + (i - upper);
@@ -375,23 +416,43 @@ retry:
 
 	/* Is structure assignment faster than copy each field separately? */
 	if (i < lower) {
-		static const struct scrimage	dirty_plate = { 0, DIRTY, 0, 0, 0, 0 },
-					clean_plate = { 0, 0, 0, 0, 0, 0 };
+		for (; i < lower; i++, des_p++, phys_p++) {
+			static const struct scrimage	clean_plate = { 0, 0, 0, 0, 0, 0 };
 
-		for (; i < lower; i++, des_p++, phys_p++)
-			if (phys_p->s_id != 0)
-				*des_p = dirty_plate;
-			else
-				*des_p = clean_plate;
+			*des_p = clean_plate;
+			if (phys_p->s_id != NULL_DADDR)
+				des_p->s_flags = DIRTY;
+		}
 	}
 
 	des_p->s_window = w;
 	des_p->s_flags = 0;
-	if (((des_p->s_id = (int) w->w_bufp) != phys_p->s_id) || UpdModLine)
+
+	/* ??? The following assignment is very questionable:
+	 * it stores a pointer in a daddr variable!
+	 *
+	 * We count on the cast pointer value being distinct from
+	 * any other daddr, but equal to itself.  Turning
+	 * the "DIRTY" bit on should ensure that it is distinct
+	 * from legitimate daddr values (except for NOWHERE_DADDR).
+	 * If sizeof(Buffer *)>sizeof(daddr), nothing ensures that
+	 * these pointers are distinct from each other.
+	 *
+	 * There also seems to be an assumption that every modeline
+	 * for a particular buffer will be the same.  This is not
+	 * always the case: the last modeline on the screen is usually
+	 * different from any other modeline, even for the same buffer.
+	 * Remember this if the modeline is changed to reflect window
+	 * state.
+	 *
+	 * -- DHR
+	 */
+	des_p->s_id = (daddr) w->w_bufp | DIRTY;
+	if (des_p->s_id != phys_p->s_id || UpdModLine)
 		des_p->s_flags = MODELINE | DIRTY;
-#ifdef MAC
+#ifdef	MAC
 	if (UpdModLine)
-		Modechange = 1;
+		Modechange = YES;
 	if (w == curwind && w->w_control)
 		SetScrollBar(w->w_control);
 #endif
@@ -402,18 +463,18 @@ retry:
 
 void
 DrawMesg(abortable)
-int	abortable;
+bool	abortable;
 {
-#ifndef MAC		/* same reason as in redisplay() */
+#ifndef	MAC		/* same reason as in redisplay() */
 	if (charp())
 		return;
 #endif
 	i_set(ILI, 0);
 	if (swrite(mesgbuf, NO, abortable)) {
 		cl_eol();
-		UpdMesg = 0;
+		UpdMesg = NO;
 	}
-	flusho();
+	flushscreen();
 }
 
 /* Goto the current position in the current window.  Presumably redisplay()
@@ -423,11 +484,11 @@ int	abortable;
 private void
 GotoDot()
 {
-	if (InputPending)
-		return;
-	Placur(curwind->w_dotline, curwind->w_dotcol -
-				PhysScreen[curwind->w_dotline].s_offset);
-	flusho();
+	if (!InputPending) {
+		Placur(curwind->w_dotline,
+			curwind->w_dotcol - PhysScreen[curwind->w_dotline].s_offset);
+		flushscreen();
+	}
 }
 
 private int
@@ -466,7 +527,7 @@ register int	at,
 	for (i = bottom - 1; i - num >= at; i--)
 		PhysScreen[i] = PhysScreen[i - num];
 	for (i = 0; i < num; i++)
-		PhysScreen[at + i].s_id = 0;
+		PhysScreen[at + i].s_id = NULL_DADDR;
 	return YES;					/* we did something */
 }
 
@@ -485,7 +546,7 @@ register int	at,
 	for (i = at; num + i < bottom; i++)
 		PhysScreen[i] = PhysScreen[num + i];
 	for (i = bottom - num; i < bottom; i++)
-		PhysScreen[i].s_id = 0;
+		PhysScreen[i].s_id = NULL_DADDR;
 	return YES;
 }
 
@@ -501,44 +562,47 @@ register int	linenum;
 	register Window	*w = des_p->s_window;
 
 	i_set(linenum, 0);
-	if (des_p->s_flags & MODELINE)
+	if (des_p->s_flags & MODELINE) {
 		ModeLine(w);
-	else if (des_p->s_id) {
+	} else if (des_p->s_id != NULL_DADDR) {
 		des_p->s_lp->l_dline &= ~DIRTY;
 		des_p->s_flags &= ~(DIRTY | L_MOD);
-#ifdef ID_CHAR
-		if (!UseIC && (w->w_flags & W_NUMLINES))
-#else
-		if (w->w_flags & W_NUMLINES)
-#endif
-			(void) swrite(sprint("%6d  ", des_p->s_vln), NO, YES);
-
-#ifdef ID_CHAR
+#ifdef	ID_CHAR
 		if (UseIC) {
 			char	outbuf[MAXCOLS],
 				*lptr;
 			int	fromcol = (w->w_flags & W_NUMLINES) ? 8 : 0;
 
 			if (w->w_flags & W_NUMLINES)
-				swritef(outbuf, "%6d  ", des_p->s_vln);
+				swritef(outbuf, sizeof(outbuf), "%6d  ",
+					des_p->s_vln);
 			lptr = lcontents(des_p->s_lp);
 			DeTab(des_p->s_offset, lptr, outbuf + fromcol,
 				(sizeof outbuf) - 1 - fromcol,
 				des_p->s_window->w_flags & W_VISSPACE);
-			if (IDchar(outbuf, linenum, 0))
+			if (IDchar(outbuf, linenum))
 				PhysScreen[linenum] = *des_p;
-			else if (i_set(linenum, 0), swrite(outbuf, NO, YES))
+			else {
+				i_set(linenum, 0);
+				if (swrite(outbuf, NO, YES))
+					do_cl_eol(linenum);
+				else
+					PhysScreen[linenum].s_id = NOWHERE_DADDR;
+			}
+		} else {
+#endif	/* ID_CHAR */
+			if (w->w_flags & W_NUMLINES)
+				(void) swrite(sprint("%6d  ", des_p->s_vln), NO, YES);
+			if (BufSwrite(linenum))
 				do_cl_eol(linenum);
 			else
-				PhysScreen[linenum].s_id = -1;
-		} else
-#endif /* ID_CHAR */
-		    if (BufSwrite(linenum))
-			do_cl_eol(linenum);
-		else
-			PhysScreen[linenum].s_id = -1;
-	} else if (PhysScreen[linenum].s_id)	/* not the same ... make sure */
+				PhysScreen[linenum].s_id = NOWHERE_DADDR;
+#ifdef	ID_CHAR
+		}
+#endif
+	} else if (PhysScreen[linenum].s_id != NULL_DADDR) { /* not the same ... make sure */
 		do_cl_eol(linenum);
+	}
 }
 
 private void
@@ -549,22 +613,24 @@ register int	linenum;
 	PhysScreen[linenum] = DesiredScreen[linenum];
 }
 
-#ifdef ID_CHAR
+#ifdef	ID_CHAR
 
 /* From here to the end of the file is code that tries to utilize the
    insert/delete character feature on some terminals.  It is very confusing
    and not so well written code, AND there is a lot of it.  You may want
    to use the space for something else. */
 
-int	IN_INSmode = 0;
+bool	IN_INSmode = NO;
 
-int	UseIC;
+bool	UseIC = NO;
 
-int	DClen,
-	MDClen,
+int	IMlen;
+
+private int
+	DClen,
 	IClen,
+	MDClen,
 	MIClen,
-	IMlen,
 	CElen;
 
 void
@@ -582,16 +648,17 @@ disp_opt_init()
 
 void
 INSmode(on)
-int	on;
+bool	on;
 {
-	if (on && !IN_INSmode) {
-		putpad(IM, 1);
-		IN_INSmode = YES;
-	} else if (!on && IN_INSmode) {
-		putpad(EI, 1);
-		IN_INSmode = NO;
+	if (on != IN_INSmode) {
+		putpad(on? IM : EI, 1);
+		IN_INSmode = on;
 	}
 }
+
+/* Expand tabs (and other funny characters) of a section of "buf"
+   into "outbuf".  NOTE: DeTab ought to agree with swrite() and
+   BufSwrite() on how to display characters. */
 
 private void
 DeTab(s_offset, buf, outbuf, limit, visspace)
@@ -613,7 +680,7 @@ int	visspace;
 
 	while ((c = *buf++) != '\0') {
 		if (c == '\t') {
-			int	nchars = (tabstop - (pos % tabstop));
+			int	nchars = TABDIST(pos);
 
 			if (visspace) {
 				OkayOut('>');
@@ -622,7 +689,7 @@ int	visspace;
 			while (--nchars >= 0)
 				OkayOut(' ');
 
-		} else if (isctrl(c)) {
+		} else if (jiscntrl(c)) {
 			OkayOut('^');
 			OkayOut(c == 0177 ? '?' : c + '@');
 		} else {
@@ -636,8 +703,7 @@ int	visspace;
 			break;
 		}
 	}
-	*phys_p = 0;
-
+	*phys_p = '\0';
 #undef	OkayOut
 }
 
@@ -646,49 +712,68 @@ int	visspace;
 
 	Returns Non-Zero if you are finished (no differences left). */
 
-private int
-IDchar(new, lineno, col)
+private bool
+IDchar(new, lineno)
 register char	*new;
-int	lineno,
-	col;
+int	lineno;
 {
-	register int	i;
-	int	j,
-		oldlen,
-		NumSaved;
-	register struct screenline	*sline = &Screen[lineno];
+	register int	col = 0;
+	struct screenline	*sline = &Screen[lineno];
+	register char	*old = sline->s_line;
+	int	oldlen = sline->s_roof - old;
+	int	newlen = strlen(new);
 
-	oldlen = sline->s_length - sline->s_line;
+	for (;;) {
+		int	i;
 
-	for (i = col; i < oldlen && new[i] != 0; i++)
-		if (sline->s_line[i] != new[i])
-			break;
-	if (new[i] == 0 || i == oldlen)
-		return (new[i] == 0 && i == oldlen);
+		for (; ; col++) {
+			if (col == oldlen || col == newlen)
+				return oldlen == newlen;	/* one ended; happy if both ended */
 
-	for (j = i + 1; j < oldlen && new[j]; j++) {
-		if (new[j] == sline->s_line[i]) {
-			NumSaved = IDcomp(new + j, sline->s_line + i,
-					(int)strlen(new)) + NumSimilar(new + i,
-						sline->s_line + i, j - i);
-			if (OkayInsert(NumSaved, j - i)) {
-				InsChar(lineno, i, j - i, new);
-				return(IDchar(new, lineno, j));
+			if (old[col] != new[col])
+				break;
+		}
+
+		/* col now is first difference, and not the end of either */
+
+		/* see if an insertion will help */
+
+		for (i = col + 1; i < newlen; i++) {
+			if (new[i] == old[col]) {
+				/* The number of saved characters is (roughly)
+				 * the number of characters we can retain after
+				 * the insertion, minus the number that we
+				 * could have salvaged without moving them.
+				 */
+				int	NumSaved = IDcomp(new + i, old + col, oldlen-col)
+						- NumSimilar(new + col, old + col, min(i, oldlen)-col);
+
+				if (OkayInsert(NumSaved, i - col)) {
+					InsChar(lineno, col, i - col, new);
+					col = i;
+					break;
+				}
 			}
 		}
-	}
+		if (i != newlen)
+			continue;
 
-	for (j = i + 1; j < oldlen && new[i]; j++) {
-		if (new[i] == sline->s_line[j]) {
-			NumSaved = IDcomp(new + i, sline->s_line + j,
-					oldlen - j);
-			if (OkayDelete(NumSaved, j - i, new[oldlen] == 0)) {
-				DelChar(lineno, i, j - i);
-				return(IDchar(new, lineno, j));
+		/* see if a deletion will help */
+
+		for (i = col + 1; i < oldlen; i++) {
+			if (new[col] == old[i]) {
+				int	NumSaved = IDcomp(new + col, old + i, oldlen - i);
+
+				if (OkayDelete(NumSaved, i - col, newlen == oldlen)) {
+					DelChar(lineno, col, i - col);
+					break;
+				}
 			}
 		}
+		if (i != oldlen)
+			continue;
+		return NO;
 	}
-	return 0;
 }
 
 private int
@@ -707,47 +792,50 @@ int	n;
 
 private int
 IDcomp(s, t, len)
-register char	*s,
-		*t;
+register char	*s,	/* NUL terminated */
+		*t;	/* len chars */
 int	len;
 {
 	register int	i;
 	int	num = 0,
 		nonspace = 0;
-	char	c;
 
 	for (i = 0; i < len; i++) {
-		if ((c = *s++) != *t++)
+		char	c = *s++;
+
+		if (c == '\0' || c != *t++)
 			break;
 		if (c != ' ')
-			nonspace++;
-		if (nonspace)
-			num += 1;
+			nonspace = 1;
+		num += nonspace;
 	}
 
 	return num;
 }
 
-private int
+private bool
 OkayDelete(Saved, num, samelength)
 int	Saved,
 	num,
 	samelength;
 {
-	/* If the old and the new are the same length, then we don't
-	 * have to clear to end of line.  We take that into consideration.
+	/* If the old and the new have different lengths, then the competition
+	 * will have to clear to end of line.  We take that into consideration.
 	 */
-	return ((Saved + (!samelength ? CElen : 0))
-		> min(MDClen, DClen * num));
+	return Saved + (samelength ? 0 : CElen) > min(MDClen, DClen * num);
 }
 
-private int
+private bool
 OkayInsert(Saved, num)
 int	Saved,
 	num;
 {
 	register int	n = 0;
 
+	/* Note: the way termcap/terminfo is defined, we must use *both*
+	 * IC and IM, but normally only one will be defined.
+	 * See terminfo(5), under the heading "Insert/Delete Character".
+	 */
 	if (IC)		/* Per character prefixes */
 		n = min(num * IClen, MIClen);
 
@@ -769,23 +857,17 @@ int	lineno,
 {
 	register char	*from,
 			*to;
-	register int	i;
 	struct screenline *sp = (&Screen[lineno]);
 
 	Placur(lineno, col);
-	if (M_DC && num > 1) {
-		putargpad(M_DC, num, num);
-	} else {
-		for (i = num; --i >= 0; )
-			putpad(DC, 1);
-	}
+	putmulti(DC, M_DC, num, 1);
 
 	to = sp->s_line + col;
 	from = to + num;
 
-	byte_copy(from, to, (size_t) (sp->s_length - from + 1));
-	clrline(sp->s_length - num, sp->s_length);
-	sp->s_length -= num;
+	byte_copy(from, to, (size_t) (sp->s_roof - from));
+	clrline(sp->s_roof - num, sp->s_roof);
+	sp->s_roof -= num;
 }
 
 private void
@@ -801,35 +883,37 @@ char	*new;
 	int	i;
 
 	i_set(lineno, 0);
-	sp2 = Curline->s_length + num;
+	sp2 = Curline->s_roof + num;
 
 	if (sp2 >= cursend) {
 		i_set(lineno, CO - num - 1);
 		cl_eol();
 		sp2 = cursend - 1;
 	}
-	Curline->s_length = sp2;
+	Curline->s_roof = sp2;
 	sp1 = sp2 - num;
 	sp3 = Curline->s_line + col;
 
-	while (sp1 >= sp3)
-		*sp2-- = *sp1--;
+	while (sp1 > sp3)
+		*--sp2 = *--sp1;
 
 	new += col;
 	byte_copy(new, sp3, (size_t) num);
+
 	/* The internal screen is correct, and now we have to do
 	   the physical stuff. */
 
 	Placur(lineno, col);
-	if (IM) {
-		if (!IN_INSmode)
-			INSmode(1);
-	} else if (M_IC && num > 1) {
-		putargpad(M_IC, num, num);
-	} else if (IC) {
-		for (i = 0; i < num; i++)
-			putpad(IC, 1);
-	}
+
+	/* Note: the way termcap/terminfo is defined, we must use *both*
+	 * IC and IM, but normally only one will be defined.
+	 * See terminfo(5), under the heading "Insert/Delete Character".
+	 */
+	if (IC)
+		putmulti(IC, M_IC, num, 1);
+	if (IM)
+		INSmode(YES);
+
 	for (i = 0; i < num; i++) {
 		jputchar(new[i]);
 		if (IN_INSmode)
@@ -838,17 +922,17 @@ char	*new;
 	CapCol += num;
 }
 
-#endif /* ID_CHAR */
+#endif	/* ID_CHAR */
 
-#ifdef UNIX		/* obviously ... no mail today if not Unix*/
+#ifdef	UNIX		/* obviously ... no mail today if not Unix*/
 
 /* chkmail() returns nonzero if there is new mail since the
    last time we checked. */
 
-char	Mailbox[FILESIZE];	/* initialized in main */
+char	Mailbox[FILESIZE];		/* initialized in main */
 int	MailInt = 60;		/* check no more often than 60 seconds */
-#ifdef BIFF
-int	BiffChk = NO;		/* whether to turn off biff while in JOVE */
+#ifdef	BIFF
+bool	BiffChk = NO;		/* whether to turn off biff while in JOVE */
 #endif
 
 int
@@ -861,7 +945,7 @@ int	force;
 			mbox_time = 0;
 	struct stat	stbuf;
 
-	if (MailInt == 0)
+	if (MailInt == 0 || Mailbox[0] == '\0')
 		return NO;
 	time(&now);
 	if ((force == NO) && (now < last_chk + MailInt))
@@ -871,9 +955,9 @@ int	force;
 		state = NO;		/* no mail */
 		return NO;
 	}
-	if (((stbuf.st_atime > stbuf.st_mtime) &&
-	     (stbuf.st_atime > mbox_time)) ||
-	    (stbuf.st_size == 0)) {
+	if ((stbuf.st_atime > stbuf.st_mtime && stbuf.st_atime > mbox_time)
+	|| stbuf.st_size == 0)
+	{
 		mbox_time = stbuf.st_atime;
 		state = NO;
 	} else if (stbuf.st_mtime > mbox_time) {
@@ -885,20 +969,19 @@ int	force;
 	return state;
 }
 
-#endif /* UNIX */
+#endif	/* UNIX */
 
 /* Print the mode line. */
 
 private char	*mode_p,
 		*mend_p;
-int	BriteMode = 1;		/* modeline should standout */
+bool	BriteMode = YES;		/* modeline should standout */
 
 private void
 mode_app(str)
 register const char	*str;
 {
-	while ((mode_p < mend_p) && (*mode_p++ = *str++)!='\0')
-		;
+	do ; while ((mode_p < mend_p) && (*mode_p++ = *str++)!='\0');
 	mode_p -= 1;	/* back over the null */
 }
 
@@ -909,8 +992,8 @@ ModeLine(w)
 register Window	*w;
 {
 	int	n,
-		ign_some = NO,
 		glue = 0;
+	bool	ign_some = NO;
 	char	line[MAXCOLS],
 		*fmt = ModeFmt,
 		fillc,
@@ -921,18 +1004,18 @@ register Window	*w;
 	mode_p = line;
 	mend_p = &line[(sizeof line) - 1];
 
-#ifdef IBMPC
+#ifdef	IBMPC
 	/* very subtle - don't mess up attributes too much */
 	fillc = '-';
-#else /* !IBMPC */
-#  ifdef MAC
+#else	/* !IBMPC */
+#  ifdef	MAC
 	fillc = '_';	/* looks better on a Mac */
-#  else /* !MAC */
-	if (SO == 0)
-		BriteMode = 0;
+#  else	/* !MAC */
+	if (SO == NULL)
+		BriteMode = NO;
 	fillc = BriteMode ? ' ' : '-';
-#  endif /* !MAC */
-#endif /* !IBMPC */
+#  endif	/* !MAC */
+#endif	/* !IBMPC */
 
 	while ((c = *fmt++)!='\0' && mode_p<mend_p) {
 		if (c != '%') {
@@ -973,13 +1056,13 @@ register Window	*w;
 				*mode_p++ = c;
 			break;
 
-#ifdef UNIX
+#ifdef	UNIX
 		case 'C':	/* check mail here */
 			if (chkmail(NO) == YES)
 				mode_app("[New mail]");
 			break;
 
-#endif /* UNIX */
+#endif	/* UNIX */
 
 		case 'M':
 		    {
@@ -987,10 +1070,10 @@ register Window	*w;
 				"Fundamental ",
 				"Text ",
 				"C ",
-#ifdef LISP
+#ifdef	LISP
 				"Lisp ",
 #endif
-				0
+				NULL
 			};
 
 			mode_app(mmodes[thisbuf->b_major]);
@@ -1002,7 +1085,7 @@ register Window	*w;
 			if (BufMinorMode(thisbuf, OverWrite))
 				mode_app("OvrWt ");
 			if (BufMinorMode(thisbuf, Indent))
-				mode_app("AI ");
+				mode_app("Indent ");
 			if (BufMinorMode(thisbuf, ReadOnly))
 				mode_app("RO ");
 			if (InMacDefine)
@@ -1031,7 +1114,7 @@ register Window	*w;
 
 		case 'f':
 		case 'F':
-			if (thisbuf->b_fname == 0)
+			if (thisbuf->b_fname == NULL)
 				mode_app("[No file]");
 			else {
 				if (c == 'f')
@@ -1041,17 +1124,14 @@ register Window	*w;
 			}
 			break;
 
-#ifdef LOAD_AV
+#ifdef	LOAD_AV
 		case 'l':
 		    {
-			double	theavg;
+			int	la = get_la();
 			char	minibuf[10];
 
-			get_la(&theavg);
-			theavg += .005;	/* round to nearest .01 */
-			swritef(minibuf, "%d.%02d",
-			       (int) theavg,
-			       (int)((theavg - (int) theavg) * 100));
+			swritef(minibuf, sizeof(minibuf), "%d.%02d",
+			       la/100, la%100);
 			mode_app(minibuf);
 			break;
 		    }
@@ -1069,25 +1149,26 @@ register Window	*w;
 		case 'n':
 		    {
 			char	tmp[16];
-			for (bp = world, n = 1; bp != 0; bp = bp->b_next, n++)
+
+			for (bp = world, n = 1; bp != NULL; bp = bp->b_next, n++)
 				if (bp == thisbuf)
 					break;
 
-			swritef(tmp, "%d", n);
+			swritef(tmp, sizeof(tmp), "%d", n);
 			mode_app(tmp);
 			break;
 		    }
 
-#ifdef IPROCS
+#ifdef	IPROCS
 		case 'p':
 			if (thisbuf->b_type == B_PROCESS) {
 				char	tmp[40];
 				Process	*p = thisbuf->b_process;
 
-				swritef(tmp, "(%s%s)",
-					((p == 0 || p->p_dbx_mode == NO)
-					 ? "" : "DBX "),
-					((p == 0) ? "No process" :
+				swritef(tmp, sizeof(tmp), "(%s%s)",
+					((p == NULL || p->p_dbx_mode == NO)
+					 ? NullStr : "DBX "),
+					((p == NULL) ? "No process" :
 					 pstate(p)));
 				mode_app(tmp);
 			}
@@ -1103,13 +1184,17 @@ register Window	*w;
 		    {
 			char	timestr[12];
 
-			mode_app(get_time((time_t *) 0, timestr, 11, 16));
+			mode_app(get_time((time_t *)NULL, timestr, 11, 16));
 			break;
 		    }
 
 		case 'w':
 			if (w->w_LRscroll > 0)
 				mode_app(">");
+			break;
+
+		default:
+			mode_app("?");
 			break;
 		}
 	}
@@ -1143,20 +1228,19 @@ register Window	*w;
 		}
 	}
 
-	*mode_p = 0;
+	*mode_p = '\0';
 
 	/* Highlight mode line. */
 	if (BriteMode) {
-#ifdef ID_CHAR
-		if (IN_INSmode)
-			INSmode(0);
+#ifdef	ID_CHAR
+		INSmode(NO);
 #endif
 		SO_on();
 	}
 	if (swrite(line, BriteMode, YES))
 		do_cl_eol(i_line);
 	else
-		UpdModLine = 1;
+		UpdModLine = YES;
 	if (BriteMode)
 		SO_off();
 }
@@ -1174,7 +1258,7 @@ int	line2;
 	while (line1 <= line2) {
 		i_set(line1, 0);
 		cl_eol();
-		phys_p->s_id = des_p->s_id = 0;
+		phys_p->s_id = des_p->s_id = NULL_DADDR;
 		phys_p += 1;
 		des_p += 1;
 		line1 += 1;
@@ -1212,16 +1296,14 @@ NextPage()
 {
 	Line	*newline;
 
-	if (Asking)
-		return;
-	if (arg_value() < 0) {
-		negate_arg_value();
+	if (Asking) {
+		/* don't do it */
+	} else if (arg_value() < 0) {
+		negate_arg();
 		PrevPage();
-		return;
-	}
-	if (arg_type() == YES)
+	} else if (is_an_arg()) {
 		UpScroll();
-	else {
+	} else {
 		if (in_window(curwind, curwind->w_bufp->b_last) != -1) {
 			rbell();
 			return;
@@ -1233,7 +1315,7 @@ NextPage()
 	}
 }
 
-#ifdef MSDOS		/* kg */
+#ifdef	MSDOS
 
 void
 PageScrollUp()
@@ -1258,23 +1340,21 @@ PageScrollDown()
 	    redisplay();
 	}
 }
-#endif /* MSDOS */
+#endif	/* MSDOS */
 
 void
 PrevPage()
 {
 	Line	*newline;
 
-	if (Asking)
-		return;
-	if (arg_value() < 0) {
-		negate_arg_value();
+	if (Asking) {
+		/* don't do it */
+	} else if (arg_value() < 0) {
+		negate_arg();
 		NextPage();
-		return;
-	}
-	if (arg_type() == YES)
+	} else if (is_an_arg()) {
 		DownScroll();
-	else {
+	} else {
 		newline = prev_line(curwind->w_top, max(1, SIZE(curwind) - 1));
 		SetTop(curwind, curwind->w_line = newline);
 		if (curwind->w_bufp == curbuf)
@@ -1286,8 +1366,8 @@ void
 UpScroll()
 {
 	SetTop(curwind, next_line(curwind->w_top, arg_value()));
-	if ((curwind->w_bufp == curbuf) &&
-	    (in_window(curwind, curline) == -1))
+	if (curwind->w_bufp == curbuf
+	&& in_window(curwind, curline) == -1)
 		SetLine(curwind->w_top);
 }
 
@@ -1295,12 +1375,12 @@ void
 DownScroll()
 {
 	SetTop(curwind, prev_line(curwind->w_top, arg_value()));
-	if ((curwind->w_bufp == curbuf) &&
-	    (in_window(curwind, curline) == -1))
+	if (curwind->w_bufp == curbuf
+	&& in_window(curwind, curline) == -1)
 		SetLine(curwind->w_top);
 }
 
-int	VisBell = NO;
+bool	VisBell = NO;
 
 void
 rbell()
@@ -1347,14 +1427,15 @@ Bow()
 }
 
 private int	LineNo,
-		last_col,
+		last_col;
+private bool
 		DoAutoNL;
 private Window	*old_wind;	/* save the window we were in BEFORE
 				   before we were called, if UseBuffers
 				   is nonzero */
 
-int	UseBuffers = FALSE;
-int	TOabort = 0;
+bool	UseBuffers = NO,
+	TOabort = NO;
 
 /* This initializes the typeout.  If send-typeout-to-buffers is set
    the buffer NAME is created (emptied if it already exists) and output
@@ -1364,22 +1445,23 @@ int	TOabort = 0;
 void
 TOstart(name, auto_newline)
 char	*name;
-int	auto_newline;
+bool	auto_newline;
 {
 	if (UseBuffers) {
 		old_wind = curwind;
 		pop_wind(name, YES, B_SCRATCH);
 	} else
 		DisabledRedisplay = YES;
-	TOabort = LineNo = last_col = 0;
+	TOabort = NO;
+	LineNo = last_col = 0;
 	DoAutoNL = auto_newline;
 }
 
 #ifdef	STDARGS
-	void
+void
 Typeout(char *fmt, ...)
 #else
-	/*VARARGS1*/ void
+/*VARARGS1*/ void
 Typeout(fmt, va_alist)
 	char	*fmt;
 	va_dcl
@@ -1411,24 +1493,24 @@ Typeout(fmt, va_alist)
 		va_init(ap, fmt);
 		format(string, sizeof string, fmt, ap);
 		va_end(ap);
-		if (UseBuffers)
-			ins_str(string, NO, -1);
-		else {
+		if (UseBuffers) {
+			ins_str(string, NO);
+		} else {
 			i_set(LineNo, last_col);
 			(void) swrite(string, NO, YES);
 			last_col = i_col;
 		}
 	}
 	if (!UseBuffers) {
-		PhysScreen[LineNo].s_id = -1;
-		if (fmt == 0 || DoAutoNL == YES) {
+		PhysScreen[LineNo].s_id = NOWHERE_DADDR;
+		if (fmt == NULL || DoAutoNL) {
 			cl_eol();
-			flusho();
+			flushscreen();
 			LineNo += 1;
 			last_col = 0;
 		}
-	} else if (fmt == 0 || DoAutoNL != 0)
-		ins_str("\n", NO, -1);
+	} else if (fmt == NULL || DoAutoNL)
+		ins_str("\n", NO);
 }
 
 void
@@ -1442,16 +1524,16 @@ TOstop()
 	} else {
 		if (TOabort) {
 			DisabledRedisplay = NO;
-			return;
+		} else {
+			if (last_col != 0)
+				Typeout((char *)NULL);
+			Typeout("----------");
+			cl_eol();
+			flushscreen();
+			c = jgetchar();
+			if (c != ' ')
+				Ungetc(c);
+			DisabledRedisplay = NO;
 		}
-		if (last_col != 0)
-			Typeout((char *) 0);
-		Typeout("----------");
-		cl_eol();
-		flusho();
-		c = jgetchar();
-		if (c != ' ')
-			Ungetc(c);
-		DisabledRedisplay = NO;
 	}
 }

@@ -7,18 +7,16 @@
 
 /* generic singly linked list package */
 
-typedef char	*Element;
-
 typedef struct cons	List;
 
 struct cons {
-	Element	*car;
+	UnivPtr	car;	/* pointer to element */
 	List	*cdr;
 };
 
 #define list_next(lp)	((lp)->cdr)
 #define list_data(lp)	((lp)->car)
 
-extern Element
-	*list_push proto((List **, Element *)),
-	*list_pop proto((List **));
+extern UnivPtr
+	list_push proto((List **, UnivPtr)),
+	list_pop proto((List **));
