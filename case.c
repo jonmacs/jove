@@ -1,13 +1,38 @@
-/************************************************************************
- * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/***************************************************************************
+ * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
+ * is provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is    *
+ * included in all the files.                                              *
+ ***************************************************************************/
 
 #include "jove.h"
 #include "ctype.h"
 
+#ifdef MAC
+#	undef private
+#	define private
+#endif
+
+#ifdef	LINT_ARGS
+private	int
+#if !(defined(IBMPC) || defined(MAC))
+	lower(char *),
+#endif
+	upper(char *);
+#else
+private	int
+#if !(defined(IBMPC) || defined(MAC))
+	lower(),
+#endif
+	upper();
+#endif	/* LINT_ARGS */
+
+#ifdef MAC
+#	undef private
+#	define private static
+#endif
+
+void
 CapChar()
 {
 	register int	num,
@@ -38,6 +63,7 @@ CapChar()
 		SetDot(&b);
 }
 
+void
 CapWord()
 {
 	register int	num,
@@ -72,6 +98,7 @@ CapWord()
 		SetDot(&b);
 }
 
+void
 case_word(up)
 {
 	Bufpos	before;
@@ -81,14 +108,14 @@ case_word(up)
 	case_reg(before.p_line, before.p_char, curline, curchar, up);
 }
 
-private
+private int
 upper(c)
 register char	*c;
 {
 	if (islower(*c)) {
-#ifdef IBMPC			/* check for IBM extended character set */
+#ifndef ASCII			/* check for IBM extended character set */
 		if (*c <= 127)
-#endif /* IBMPC */
+#endif /* ASCII */
 		*c -= ' ';
 #ifdef IBMPC			/* ... and change Umlaute	*/
 		else 
@@ -98,21 +125,25 @@ register char	*c;
 		     case 148: *c = 153; break;		/* oe */
 		   }
 #endif /* IBMPC */
+#ifdef MAC
+		else *c = CaseEquiv[*c];
+#endif
 		return 1;
 	}
 	return 0;
 }
 
-#ifndef IBMPC
-static
+#if !(defined(IBMPC) || defined(MAC))
+private
 #endif
+int
 lower(c)
-register char	*c;
+char	*c;
 {
 	if (isupper(*c)) {
-#ifdef IBMPC
+#ifndef ASCII
 		if (*c <= 127) 
-#endif /* IBMPC */
+#endif /* ASCII */
 		*c += ' ';
 #ifdef IBMPC
 		else
@@ -122,11 +153,25 @@ register char	*c;
 		     case 154: *c = 129; break;		/* Ue */
 		   }
 #endif /* IBMPC */
+#ifdef MAC
+		else {
+			int n;
+			
+			for(n = 128; n < 256; n++) {
+				if((CaseEquiv[n] == *c) && islower(n)) {
+					*c = n;
+					break;
+				}
+			}
+			if(n > 255) return(0);
+		}
+#endif /* MAC */		
 		return 1;
 	}
 	return 0;
 }
 
+void
 case_reg(line1, char1, line2, char2, up)
 Line	*line1,
 	*line2;
@@ -147,16 +192,19 @@ int	char1;
 	}
 }
 
+void
 CasRegLower()
 {
 	CaseReg(0);
 }
 
+void
 CasRegUpper()
 {
 	CaseReg(1);
 }
 
+void
 CaseReg(up)
 {
 	register Mark	*mp = CurMark();
@@ -167,11 +215,13 @@ CaseReg(up)
 	SetDot(&savedot);
 }
 
+void
 UppWord()
 {
 	case_word(1);
 }
 
+void
 LowWord()
 {
 	case_word(0);

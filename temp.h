@@ -1,9 +1,9 @@
-/************************************************************************
- * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/***************************************************************************
+ * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
+ * is provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is    *
+ * included in all the files.                                              *
+ ***************************************************************************/
 
 /* The tmp file is indexed in chunks of CH_SIZE characters.  CH_SIZE is
    (1 << CH_BITS).  New lines are added to the end of the tmp file.  The
@@ -59,7 +59,7 @@
 
    NOTE:  It's pretty important that these numbers be multiples of
 	  2.  Be careful if you change things. */
-
+#ifndef MAC
 #define CH_SIZE			(1 << CH_BITS)
 #define CH_PBLOCK		(BUFSIZ / CH_SIZE)
 #define RND_MASK		(CH_PBLOCK - 1)
@@ -67,6 +67,18 @@
 #define BNO_MASK		(MAX_BLOCKS - 1)
 #define blk_round(daddr)	(daddr & ~RND_MASK)
 #define forward_block(daddr)	(daddr + CH_PBLOCK)
-#define daddr_to_bno(daddr)	((daddr >> BNO_SHIFT) & BNO_MASK)
-#define daddr_to_off(daddr)	((daddr << CH_BITS) & OFF_MASK)
-#define daddr_too_huge(daddr)	((daddr >> BNO_SHIFT) >= MAX_BLOCKS)
+#define da_to_bno(daddr)	((daddr >> BNO_SHIFT) & BNO_MASK)
+#define da_to_off(daddr)	((daddr << CH_BITS) & OFF_MASK)
+#define da_too_huge(daddr)	((daddr >> BNO_SHIFT) >= MAX_BLOCKS)
+#else
+#define CH_SIZE			((disk_line)1 << CH_BITS)
+#define CH_PBLOCK		((disk_line)BUFSIZ / CH_SIZE)
+#define RND_MASK		((disk_line)CH_PBLOCK - 1)
+#define OFF_MASK		((disk_line)BUFSIZ - 1)
+#define BNO_MASK		((disk_line)MAX_BLOCKS - 1)
+#define blk_round(daddr)	((disk_line)daddr & ~RND_MASK)
+#define forward_block(daddr)	((disk_line)daddr + CH_PBLOCK)
+#define da_to_bno(daddr)	((disk_line)(daddr >> BNO_SHIFT) & BNO_MASK)
+#define da_to_off(daddr)	((disk_line)(daddr << CH_BITS) & OFF_MASK)
+#define da_too_huge(daddr)	((disk_line)(daddr >> BNO_SHIFT) >= MAX_BLOCKS)
+#endif

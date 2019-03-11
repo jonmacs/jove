@@ -1,11 +1,29 @@
-/************************************************************************
- * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/***************************************************************************
+ * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
+ * is provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is    *
+ * included in all the files.                                              *
+ ***************************************************************************/
 
 #include "jove.h"
+
+#ifdef MAC
+#	undef private
+#	define private
+#endif
+
+#ifdef	LINT_ARGS
+private int	get_indent(Line *);
+private Line	* tailrule(Line *);
+#else
+private int	get_indent();
+private Line	* tailrule();
+#endif
+
+#ifdef MAC
+#	undef private
+#	define private static
+#endif
 
 /* Thanks to Brian Harvey for this paragraph boundery finding algorithm.
    It's really quite hairy figuring it out.  This deals with paragraphs that
@@ -121,6 +139,7 @@ static int	use_lmargin;
 static int	bslash;		/* Nonzero if get_indent finds line starting
 				   with backslash */
 
+int
 i_bsblank(lp)
 Line	*lp;
 {
@@ -129,13 +148,14 @@ Line	*lp;
 	return bslash;
 }
 
+int
 i_blank(lp)
 Line	*lp;
 {
 	return (get_indent(lp) < 0);
 }
 
-static 
+private int
 get_indent(lp)
 register Line	*lp;
 {
@@ -169,7 +189,7 @@ register Line	*lp;
 	return indent;
 }
 
-static Line *
+private Line *
 tailrule(lp)
 register Line	*lp;
 {
@@ -193,6 +213,7 @@ register Line	*lp;
    paragraphs.  That is, it's either FORWARD or BACKWARD depending on which
    way we're favoring. */
 
+void
 find_para(how)
 {
 	Line	*this,
@@ -299,6 +320,7 @@ strt:
 	SetDot(&orig);
 }
 
+void
 Justify()
 {
 	use_lmargin = is_an_arg();
@@ -327,6 +349,7 @@ Line	*l1,
 	return l2;
 }
 
+void
 RegJustify()
 {
 	Mark	*mp = CurMark(),
@@ -355,6 +378,7 @@ RegJustify()
 	} while (l1 != 0 && l2 != rl2);
 }
 
+void
 do_rfill(ulm)
 {
 	Mark	*mp = CurMark();
@@ -368,6 +392,7 @@ do_rfill(ulm)
 	DoJustify(l1, c1, l2, c2, NO, use_lmargin ? LMargin : 0);
 }
 
+void
 do_space()
 {
 	int	c1 = curchar,
@@ -407,6 +432,11 @@ do_space()
 		insert_c(' ', (nspace - diff));
 }
 
+#ifdef MSDOS
+/*#pragma loop_opt(off) */
+#endif
+
+void
 DoJustify(l1, c1, l2, c2, scrunch, indent)
 Line	*l1,
 	*l2;
@@ -471,9 +501,14 @@ outahere:
 	f_mess("");
 }
 
+#ifdef MSDOS
+/*#pragma loop_opt() */
+#endif
+
 extern Line	*para_head,
 		*para_tail;
 
+void
 DoPara(dir)
 {
 	register int	num = arg_value(),
@@ -504,11 +539,13 @@ tryagain:	find_para(dir);		/* find paragraph bounderies */
 	}
 }
 
+void
 BackPara()
 {
 	DoPara(BACKWARD);
 }
 
+void
 ForPara()
 {
 	DoPara(FORWARD);

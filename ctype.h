@@ -1,9 +1,9 @@
-/************************************************************************
- * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/***************************************************************************
+ * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
+ * is provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is    *
+ * included in all the files.                                              *
+ ***************************************************************************/
 
 /* The code in this file was snarfed from ctype.h and modified for JOVE. */
 
@@ -25,23 +25,22 @@ extern int	SyntaxTable;
 #define	isdigit(c)	((CharTable[SyntaxTable])[c]&_N)
 #define	isspace(c)	(c == ' ' || c == '\t')
 #define ispunct(c)	((CharTable[SyntaxTable])[c]&_P)
-#ifndef IBMPC
+
+
+#define toascii(c)	((c)&CHARMASK)
+#define isctrl(c)	((CharTable[0][c&CHARMASK])&_C)
+#define isopenp(c)	((CharTable[0][c&CHARMASK])&_Op)
+#define isclosep(c)	((CharTable[0][c&CHARMASK])&_Cl)
+#define has_syntax(c,s)	((CharTable[SyntaxTable][c&CHARMASK])&s)
+
+#ifdef ASCII
 #define toupper(c)	((c)&~040)
 #define tolower(c)	((c)|040)
-#define toascii(c)	((c)&0177)
-#define isctrl(c)	((CharTable[0][c&0177])&_C)
-#define isopenp(c)	((CharTable[0][c&0177])&_Op)
-#define isclosep(c)	((CharTable[0][c&0177])&_Cl)
-#define has_syntax(c,s)	((CharTable[SyntaxTable][c&0177])&s)
-#else /* IBMPC */
+#else /* IBMPC or MAC */
 #define toupper(c)	(CaseEquiv[c])
 /* #define tolower(c)	((c)|040)	*/
-#define toascii(c)	((c))
-#define isctrl(c)	((CharTable[0][c])&_C)
-#define isopenp(c)	((CharTable[0][c])&_Op)
-#define isclosep(c)	((CharTable[0][c])&_Cl)
-#define has_syntax(c,s)	((CharTable[SyntaxTable][c])&s)
 #endif /* IBMPC */
+
 #define WITH_TABLE(x) \
 { \
 	int	push = SyntaxTable; \

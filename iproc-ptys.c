@@ -1,9 +1,9 @@
-/************************************************************************
- * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/***************************************************************************
+ * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
+ * is provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is    *
+ * included in all the files.                                              *
+ ***************************************************************************/
 
 #ifdef BSD4_2
 #   include <sys/wait.h>
@@ -109,8 +109,12 @@ register int	fd;
 		proc_close(p);
 		makedead(p);
 		return;
-	} else
-		proc_state(p) = RUNNING;
+	} else {
+		if (proc_state(p) != RUNNING) {
+			proc_state(p) = RUNNING;
+			UpdModLine = YES;
+		}
+	}
 	if (n <= 0) {
 		if (n == 0)
 			strcpy(ibuf, "[Process EOF]");
@@ -420,3 +424,4 @@ pinit()
 {
 	(void) signal(SIGCHLD, proc_child);
 }
+

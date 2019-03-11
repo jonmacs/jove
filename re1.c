@@ -1,15 +1,52 @@
-/************************************************************************
- * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/***************************************************************************
+ * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
+ * is provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is    *
+ * included in all the files.                                              *
+ ***************************************************************************/
 
 #include "jove.h"
 #include "io.h"
 #include "re.h"
 #include "ctype.h"
-#include <sys/stat.h>
+
+#ifdef MAC
+#	include "mac.h"
+#else
+#	include <sys/stat.h>
+#endif
+
+#ifdef MAC
+#	undef private
+#	define private
+#endif
+
+#ifdef	LINT_ARGS
+private Bufpos * doisearch(int, int, int);
+
+private void
+	IncSearch(int),
+	replace(int, int);
+private int
+	isearch(int, Bufpos *),
+	lookup(char *, char *, char *, char *),
+	substitute(int, Line *, int, Line *, int);
+#else
+private Bufpos * doisearch();
+
+private void
+	IncSearch(),
+	replace();
+private int
+	isearch(),
+	lookup(),
+	substitute();
+#endif	/* LINT_ARGS */
+
+#ifdef MAC
+#	undef private
+#	define private static
+#endif
 
 private int
 substitute(query, l1, char1, l2, char2)
@@ -116,7 +153,7 @@ done:	return numdone;
 }
 
 /* prompt for search and replacement strings and do the substitution */
-private
+private void
 replace(query, inreg)
 {
 	Mark	*m;
@@ -154,16 +191,19 @@ replace(query, inreg)
 	add_mess("(%d substitution%n)", numdone, numdone);
 }
 
+void
 RegReplace()
 {
 	replace(0, YES);
 }
 
+void
 QRepSearch()
 {
 	replace(1, NO);
 }
 
+void
 RepSearch()
 {
 	replace(0, NO);
@@ -175,7 +215,7 @@ RepSearch()
    it is possible to comment out the fast tag code (which is clearly
    labeled) and everything else will just work. */
 
-private
+private int
 lookup(searchbuf, filebuf, tag, file)
 char	*searchbuf,
 	*filebuf,
@@ -238,7 +278,7 @@ char	*searchbuf,
 	while (f_gets(fp, line, sizeof line) != EOF) {
 		int	cmp;
 
-look_harder:	if (line[0] > *tag)
+		if (line[0] > *tag)
 			break;
 		else if ((cmp = strncmp(line, tag, taglen)) > 0)
 			break;
@@ -263,11 +303,12 @@ found:		if (!LookingAt(pattern, line, 0)) {
 }
 
 #ifndef MSDOS
-char	TagFile[128] = "./tags";
+char	TagFile[FILESIZE] = "./tags";
 #else /* MSDOS */
-char	TagFile[64] = "tags";
+char	TagFile[FILESIZE] = "tags";
 #endif /* MSDOS */
 
+void
 find_tag(tag, localp)
 char	*tag;
 {
@@ -299,6 +340,7 @@ char	*tag;
 		SetDot(bp);
 }
 
+void
 FindTag()
 {
 	int	localp = !is_an_arg();
@@ -310,6 +352,7 @@ FindTag()
 
 /* Find Tag at Dot. */
 
+void
 FDotTag()
 {
 	int	c1 = curchar,
@@ -380,17 +423,19 @@ dosrch:	okay_wrap = YES;
 	return bp;
 }
 
+void
 IncFSearch()
 {
 	IncSearch(FORWARD);
 }
 
+void
 IncRSearch()
 {
 	IncSearch(BACKWARD);
 }
 
-static
+private void
 IncSearch(dir)
 {
 	Bufpos	save_env;
@@ -409,7 +454,7 @@ IncSearch(dir)
 
 /* Nicely recursive. */
 
-static
+private int
 isearch(dir, bp)
 Bufpos	*bp;
 {
@@ -496,14 +541,10 @@ Bufpos	*bp;
 
 		default:
 			if (c & 0400)
-#ifndef IBMPC
-				c &= 0177;
-#else /* IBMPC */
-				c &= 0377;
-#endif /* IBMPC */
+				c &= CHARMASK;
 			else {
 #ifdef IBMPC
-				if (c == RUBOUT || (c < ' ' && c != '\t')) {
+				if (c == RUBOUT || c == 0xff || (c < ' ' && c != '\t')) {
 #else
 				if (c > RUBOUT || (c < ' ' && c != '\t')) {
 #endif

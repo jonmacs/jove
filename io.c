@@ -1,10 +1,10 @@
-/************************************************************************
- * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
-
+/***************************************************************************
+ * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
+ * is provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is    *
+ * included in all the files.                                              *
+ ***************************************************************************/
+ 
 #include "jove.h"
 #include "io.h"
 #include "termcap.h"
@@ -13,13 +13,89 @@
 #   include <signal.h>
 #endif
 
-#include <sys/stat.h>
-#ifndef MSDOS
+#ifdef MAC
+#	include "mac.h"
+#else
+#	include <sys/stat.h>
+#endif
+
+#ifdef UNIX
 #include <sys/file.h>
-#else /* MSDOS */
+#endif
+
+#ifdef MSDOS
 #include <fcntl.h>
+#include <io.h>
+#ifdef CHDIR
+#include <direct.h>
+#include <dos.h>
+#endif
 #endif /* MSDOS */
 #include <errno.h>
+
+#ifdef MAC
+#	undef private
+#	define private
+#endif
+
+#ifdef	LINT_ARGS
+private struct block
+	* b_unlink(struct block *),
+	* lookup(short);
+
+private char
+	* dbackup(char *, char *, char),
+#if defined(MSDOS) && defined(CHDIR)
+	* fixpath(char *),
+#endif
+	* getblock(disk_line, int);
+	
+private void
+#if defined(MSDOS) && defined(CHDIR)
+	abspath(char *, char *),
+#endif
+	fake_blkio(struct block *, int (*)()),
+	LRUunlink(struct block *),
+	real_blkio(struct block *, int (*)());
+
+private int
+#if defined(MSDOS) && defined(CHDIR)
+	Dchdir(char *),
+#endif	
+	dfollow(char *, char *);
+	
+#else
+private struct block
+	* b_unlink(),
+	* lookup();
+
+private char
+	* dbackup(),
+#if defined(MSDOS) && defined(CHDIR)
+	* fixpath(),
+#endif
+	* getblock();
+
+private void
+#if defined(MSDOS) && defined(CHDIR)
+	abspath(),
+#endif
+	fake_blkio(),
+	LRUunlink(),
+	real_blkio();
+
+private int
+#if defined(MSDOS) && defined(CHDIR)
+	Dchdir(),
+#endif	
+	dfollow();
+#endif	/* LINT_ARGS */
+
+#ifdef MAC
+#	undef private
+#	define private static
+#endif
+
 
 #ifndef W_OK
 #   define W_OK	2
@@ -43,6 +119,7 @@ char	*iobuff,
 int	BkupOnWrite = 0;
 #endif
 
+void
 close_file(fp)
 File	*fp;
 {
@@ -60,6 +137,7 @@ File	*fp;
 
 int	EndWNewline = 1;
 
+void
 putreg(fp, line1, char1, line2, char2, makesure)
 register File	*fp;
 Line	*line1,
@@ -93,12 +171,12 @@ Line	*line1,
 	flush(fp);
 }
 
+void
 read_file(file, is_insert)
 char	*file;
 {
 	Bufpos	save;
 	File	*fp;
-
 	if (!is_insert) {
 		curbuf->b_ntbf = 0;
 		set_ino(curbuf);
@@ -122,6 +200,7 @@ char	*file;
 	close_file(fp);
 }
 
+void
 dofread(fp)
 register File	*fp;
 {
@@ -144,6 +223,7 @@ register File	*fp;
 	IFixMarks(savel, savec, curline, curchar);
 }
 
+void
 SaveFile()
 {
 	if (IsModified(curbuf)) {
@@ -151,9 +231,11 @@ SaveFile()
 			WriteFile();
 		else {
 			filemunge(curbuf->b_fname);
+#ifndef MAC
 #ifndef MSDOS	/* not sure - kg - */
 			chk_mtime(curbuf, curbuf->b_fname, "save");
 #endif /* MSDOS */
+#endif /* MAC */
 			file_write(curbuf->b_fname, 0);
 			unmodify();
 		}
@@ -221,20 +303,35 @@ char	*fname;
 	return fname;	/* return entire path name */
 }
 
+extern unsigned int fmask;
+
 Chdir()
 {
 	char	dirbuf[FILESIZE];
 
+#ifdef MSDOS
+	fmask = 0x10;
+#endif	
 	(void) ask_file((char *) 0, PWD, dirbuf);
-	if (chdir(dirbuf) == -1) {
+#ifdef MSDOS
+	fmask = 0x13;
+	if (Dchdir(dirbuf) == -1)
+#else
+	if (chdir(dirbuf) == -1)
+#endif
+	{
 		s_mess("cd: cannot change into %s.", dirbuf);
 		return;
 	}
 	UpdModLine = YES;
 	setCWD(dirbuf);
+	prCWD();
+#ifdef MAC
+	Bufchange++;
+#endif
 }
 
-#ifndef MSDOS
+#ifdef UNIX
 #ifndef JOB_CONTROL
 char *
 getwd()
@@ -251,7 +348,7 @@ getwd()
 	return ret_val;
 }
 #endif
-#endif /* MSDOS */
+#endif /* UNIX */
 
 setCWD(d)
 char	*d;
@@ -290,7 +387,7 @@ getCWD()
 		cwd = getwd();
 #endif
 #else /* MSDOS */
-		cwd = getcwd(pathname, FILESIZE);
+		cwd = fixpath(getcwd(pathname, FILESIZE));
 #endif /* MSDOS */
 
 	setCWD(cwd);
@@ -315,7 +412,13 @@ Pushd()
 	char	*newdir,
 		dirbuf[FILESIZE];
 
+#ifdef MSDOS
+	fmask = 0x10;
+#endif	
 	newdir = ask_file((char *) 0, NullStr, dirbuf);
+#ifdef MSDOS
+	fmask = 0x13;
+#endif	
 	UpdModLine = YES;
 	if (*newdir == 0) {	/* Wants to swap top two entries */
 		char	*old_top;
@@ -325,9 +428,17 @@ Pushd()
 		old_top = PWD;
 		DirStack[DirSP] = DirStack[DirSP - 1];
 		DirStack[DirSP - 1] = old_top;
+#ifdef MSDOS
+		(void) Dchdir(PWD);
+#else
 		(void) chdir(PWD);
+#endif
 	} else {
+#ifdef MSDOS
+		if (Dchdir(dirbuf) == -1) {
+#else
 		if (chdir(dirbuf) == -1) {
+#endif
 			s_mess("pushd: cannot change into %s.", dirbuf);
 			return;
 		}
@@ -348,7 +459,11 @@ Popd()
 	free(PWD);
 	PWD = 0;
 	DirSP -= 1;
+#ifdef MSDOS
+	(void) Dchdir(PWD);	/* If this doesn't work, we's in deep shit. */
+#else
 	(void) chdir(PWD);	/* If this doesn't work, we's in deep shit. */
+#endif
 	prDIRS();
 }
 
@@ -369,13 +484,24 @@ char	*file,
 	*into;
 {
 	char	*dp,
+#ifdef MSDOS
+		filefix[FILESIZE],
+#endif		
 		*sp;
 
+#ifndef MSDOS
 	if (*file == '/') {		/* Absolute pathname */
 		strcpy(into, "/");
 		file += 1;
 	} else
 		strcpy(into, PWD);
+#else
+	abspath(file, filefix);		/* convert to absolute pathname */
+	strcpy(into, filefix);		/* and forget about drives	*/
+	into[3] = 0;
+	into = &(into[2]);
+	file = &(filefix[3]);
+#endif	
 	dp = into + strlen(into);
 
 	sp = file;
@@ -392,7 +518,7 @@ char	*file,
 				strcpy(into, "/"), dp = into + 1;
 		} else {
 			if (into[strlen(into) - 1] != '/')
-				(void) strcat(into, "/");
+				(void) strcat(into, "/"), dp += 1;
 			(void) strcat(into, file);
 			dp += strlen(file);	/* stay at the end */
 		}
@@ -402,7 +528,7 @@ char	*file,
 
 #endif /* CHDIR */
 
-#ifndef MSDOS
+#ifdef UNIX
 private
 get_hdir(user, buf)
 register char	*user,
@@ -426,8 +552,9 @@ register char	*user,
 	f_close(fp);
 	complain("[unknown user: %s]", user);
 }
-#endif /* MSDOS */
+#endif /* UNIX */
 
+void
 PathParse(name, intobuf)
 char	*name,
 	*intobuf;
@@ -441,7 +568,7 @@ char	*name,
 		if (name[1] == '/' || name[1] == '\0') {
 			strcpy(localbuf, HomeDir);
 			name += 1;
-#ifndef MSDOS
+#if !(defined(MSDOS) || defined(MAC))	/* may add for mac in future */
 		} else {
 			char	*uendp = index(name, '/'),
 				unamebuf[30];
@@ -452,7 +579,7 @@ char	*name,
 			null_ncpy(unamebuf, name, uendp - name);
 			get_hdir(unamebuf, localbuf);
 			name = uendp;
-#endif /* MSDOS */
+#endif 
 		}
 	} 
 #ifndef MSDOS
@@ -467,6 +594,7 @@ char	*name,
 #endif
 }
 
+void
 filemunge(newname)
 char	*newname;
 {
@@ -482,18 +610,22 @@ char	*newname;
 #else /* MSDOS */
 	if ( /* (stbuf.st_ino != curbuf->b_ino) && */
 #endif /* MSDOS */
+#ifndef MAC
 	    ((stbuf.st_mode & S_IFMT) != S_IFCHR) &&
+#endif
 	    (strcmp(newname, curbuf->b_fname) != 0)) {
 		rbell();
 		confirm("\"%s\" already exists; overwrite it? ", newname);
 	}
 }
 
+void
 WrtReg()
 {
 	DoWriteReg(NO);
 }
 
+void
 AppReg()
 {
 	DoWriteReg(YES);
@@ -501,6 +633,7 @@ AppReg()
 
 int	CreatMode = DFLT_MODE;
 
+void
 DoWriteReg(app)
 {
 	char	fnamebuf[FILESIZE],
@@ -530,30 +663,43 @@ DoWriteReg(app)
 
 int	OkayBadChars = 0;
 
+void
 WriteFile()
 {
 	char	*fname,
 		fnamebuf[FILESIZE];
+#ifdef MAC
+	if(Macmode) {
+		if(!(fname = pfile(fnamebuf))) return;
+	}
+	else
+#endif /* MAC */
 
 	fname = ask_file((char *) 0, curbuf->b_fname, fnamebuf);
 	/* Don't allow bad characters when creating new files. */
 	if (!OkayBadChars && strcmp(curbuf->b_fname, fnamebuf) != 0) {
-#ifndef MSDOS
+#ifdef UNIX
 		static char	*badchars = "!$^&*()~`{}\"'\\|<>? ";
-#else /* MSDOS */
+#endif /* UNIX */
+#ifdef MSDOS
 		static char	*badchars = "*|<>? ";
 #endif /* MSDOS */
+#ifdef MAC
+		static char *badchars = ":";
+#endif /* MAC */
 		register char	*cp = fnamebuf;
 		register int	c;
 
-		while (c = *cp++)
+		while (c = *cp++ & CHARMASK)	/* avoid sign extension... */
 			if (c < ' ' || c == '\177' || index(badchars, c))
 				complain("'%p': bad character in filename.", c);
 	}
 
+#ifndef MAC
 #ifndef MSDOS
 	chk_mtime(curbuf, fname, "write");
 #endif /* MSDOS */
+#endif /* MAC */
 	filemunge(fname);
 	curbuf->b_type = B_FILE;  	/* in case it wasn't before */
 	setfname(curbuf, fname);
@@ -595,10 +741,10 @@ register int	how;
 			complain((char *) 0);
 	} else {
 		int	readonly = FALSE;
-
+#ifndef MAC
 		if (access(pr_name(fname, NO), W_OK) == -1 && errno != ENOENT)
 			readonly = TRUE;
-							 
+#endif				 
 		if (loudness != QUIET) {
 			fp->f_flags |= F_TELLALL;
 			f_mess("\"%s\"%s", pr_name(fname, YES),
@@ -653,6 +799,7 @@ char	*fname,
 
 #endif /* MSDOS */
 
+void
 file_write(fname, app)
 char	*fname;
 {
@@ -679,6 +826,7 @@ char	*fname;
 	close_file(fp);
 }
 
+void
 ReadFile()
 {
 	Buffer	*bp;
@@ -686,10 +834,18 @@ ReadFile()
 		fnamebuf[FILESIZE];
 	int	lineno;
 
+#ifdef MAC
+	if(Macmode) {
+		if(!(fname = gfile(fnamebuf))) return;
+	}
+	else
+#endif /* MAC */
 	fname = ask_file((char *) 0, curbuf->b_fname, fnamebuf);
+#ifndef MAC
 #ifndef MSDOS
 	chk_mtime(curbuf, fname, "read");
 #endif /* MSDOS */
+#endif /* MAC */
 
 	if (IsModified(curbuf)) {
 		char	*y_or_n;
@@ -719,11 +875,17 @@ ReadFile()
 	SetLine(next_line(curbuf->b_first, lineno));
 }
 
+void
 InsFile()
 {
 	char	*fname,
 		fnamebuf[FILESIZE];
-
+#ifdef MAC
+	if(Macmode) {
+		if(!(fname = gfile(fnamebuf))) return;
+	}
+	else
+#endif /* MAC */
 	fname = ask_file((char *) 0, curbuf->b_fname, fnamebuf);
 	read_file(fname, 1);
 }
@@ -741,11 +903,16 @@ disk_line	DFree = 1;
 			/* pointer to end of tmp file */
 private char	*tfname;
 
+void
 tmpinit()
 {
 	char	buf[FILESIZE];
 
+#ifdef MAC
+	sprintf(buf, "%s/%s", HomeDir, d_tempfile);
+#else
 	sprintf(buf, "%s/%s", TmpFilePath, d_tempfile);
+#endif
 	tfname = copystr(buf);
 	tfname = mktemp(tfname);
 	(void) close(creat(tfname, 0600));
@@ -758,6 +925,7 @@ tmpinit()
 		complain("Warning: cannot create tmp file!");
 }
 
+void
 tmpclose()
 {
 	if (tmpfd == -1)
@@ -771,8 +939,13 @@ tmpclose()
    long */
 
 int	Jr_Len;		/* length of Just Read Line */
-private char	*getblock();
 
+#ifdef MAC	/* The Lighspeed compiler can't copy with static here */
+	char	*getblock();
+#else
+private char	*getblock();
+#endif
+void
 getline(addr, buf)
 disk_line	addr;
 register char	*buf;
@@ -897,7 +1070,7 @@ register File	*fp;
 		return EOF;
 	}
 	io_lines += 1;
-	return NIL;
+	return 0;
 }
 
 typedef struct block {
@@ -913,26 +1086,51 @@ typedef struct block {
 #define HASHSIZE	7	/* Primes work best (so I'm told) */
 #define B_HASH(bno)	(bno % HASHSIZE)
 
+#ifdef MAC
+private Block	*b_cache,
+#else
 private Block	b_cache[NBUF],
+#endif
 		*bht[HASHSIZE] = {0},		/* Block hash table */
 		*f_block = 0,
 		*l_block = 0;
 private int	max_bno = -1,
 		NBlocks;
 
-private int	(*blkio)();
+#ifdef MAC
+void (*blkio)();
+#else
+#ifdef LINT_ARGS
+private int	(*blkio)(Block *, int (*)());
+#else
+private int (*blkio)();
+#endif
+#endif /* MAC */
 
-private
+#ifdef MAC
+make_cache()	/* Only 32K of static space on Mac, so... */
+{
+	return((b_cache = (Block *) calloc(NBUF,sizeof(Block))) == 0 ? 0 : 1);
+}
+#endif /* MAC */
+
+extern int read(), write();
+
+private void
 real_blkio(b, iofcn)
 register Block	*b;
+#ifdef LINT_ARGS
+register int	(*iofcn)(int, char *, unsigned int);
+#else
 register int	(*iofcn)();
+#endif
 {
 	(void) lseek(tmpfd, (long) ((unsigned) b->b_bno) * BUFSIZ, 0);
 	if ((*iofcn)(tmpfd, b->b_buf, BUFSIZ) != BUFSIZ)
 		error("[Tmp file %s error; to continue editing would be dangerous]", (iofcn == read) ? "READ" : "WRITE");
 }
 
-private
+private void
 fake_blkio(b, iofcn)
 register Block	*b;
 register int	(*iofcn)();
@@ -942,6 +1140,7 @@ register int	(*iofcn)();
 	real_blkio(b, iofcn);
 }
 
+void
 d_cache_init()
 {
 	register Block	*bp,	/* Block pointer */
@@ -966,6 +1165,7 @@ d_cache_init()
 	blkio = fake_blkio;
 }
 
+void
 SyncTmp()
 {
 	register Block	*b;
@@ -1001,7 +1201,7 @@ register short	bno;
 	return bp;
 }
 
-private
+private void
 LRUunlink(b)
 register Block	*b;
 {
@@ -1060,9 +1260,9 @@ disk_line	atl;
 	register Block	*bp;
 	static Block	*lastb = 0;
 
-	bno = daddr_to_bno(atl);
-	off = daddr_to_off(atl);
-	if (daddr_too_huge(atl))
+	bno = da_to_bno(atl);
+	off = da_to_off(atl);
+	if (da_too_huge(atl))
 		error("Tmp file too large.  Get help!");
 	nleft = BUFSIZ - off;
 	if (lastb != 0 && lastb->b_bno == bno) {
@@ -1134,6 +1334,7 @@ Line	*line;
 
 /* save the current contents of linebuf, if it has changed */
 
+void
 lsave()
 {
 	if (curbuf == 0 || !DOLsave)	/* Nothing modified recently */
@@ -1145,6 +1346,7 @@ lsave()
 }
 
 #ifdef BACKUPFILES
+void
 file_backup(fname)
 char *fname;
 {
@@ -1170,9 +1372,11 @@ char *fname;
 		return;
 
 	/* create backup file with same mode as input file */
+#ifndef MAC
 	if (fstat(fd1, &buf) != 0)
 		mode = CreatMode;
 	else
+#endif
 		mode = buf.st_mode;
 		
 	if ((fd2 = creat(tmp2, mode)) < 0) {
@@ -1203,4 +1407,74 @@ char *fname;
 	rename(fname, tmp);
 #endif /* MSDOS */
 }
+#endif
+
+#if defined(MSDOS) && defined (CHDIR)
+
+private int			/* chdir + drive */
+Dchdir(to)
+char *to;
+{
+	unsigned d, dd, n;
+	
+	if (to[1] == ':') {
+		d = to[0];
+		if (d >= 'a') d = d - 'a' + 1;
+		if (d >= 'A') d = d - 'A' + 1;
+		_dos_getdrive(&dd);
+		if (dd != d)
+			_dos_setdrive(d, &n);
+		if (to[2] == 0)
+			return 0;
+	}
+	return chdir(to);
+}
+
+private char *
+fixpath(p)
+char *p;
+{
+	char *pp = p;
+
+	while (*p) {
+		if (*p == '\\')
+			*p = '/';
+		p++;
+	}
+	return(strlwr(pp));
+}
+	
+
+private void
+abspath(so, dest)
+char *so, *dest;
+{
+	char cwd[FILESIZE], cwdD[3], cwdDIR[FILESIZE], cwdF[9], cwdEXT[5],
+	     soD[3], soDIR[FILESIZE], soF[9], soEXT[5];
+	char *drive, *path;
+
+	_splitpath(fixpath(so), soD, soDIR, soF, soEXT);
+	getcwd(cwd, FILESIZE);
+	if (*soD != 0) {
+		Dchdir(soD);				/* this is kinda messy	*/
+		getcwd(cwdDIR, FILESIZE);	/* should probably just	*/
+		Dchdir(cwd);				/* call DOS to do it	*/
+		strcpy(cwd, cwdDIR);
+	}
+	(void) fixpath(cwd);
+	if (cwd[strlen(cwd)-1] != '/')
+		strcat(cwd, "/x.x");	/* need dummy filename */
+
+	_splitpath(fixpath(cwd), cwdD, cwdDIR, cwdF, cwdEXT);
+
+	drive = (*soD == 0) ? cwdD : soD;
+		
+	if (*soDIR != '/')
+		path = strcat(cwdDIR, soDIR);
+	else
+		path = soDIR;
+	_makepath(dest, drive, path, soF, soEXT);
+	fixpath(dest);	/* can't do it often enough */
+}
+
 #endif

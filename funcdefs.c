@@ -1,15 +1,15 @@
-/************************************************************************
- * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/***************************************************************************
+ * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
+ * is provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is    *
+ * included in all the files.                                              *
+ ***************************************************************************/
 
 #include "jove.h"
 #include "ctype.h"
 
-#ifndef TXT_TO_C
-extern int
+#if !defined(TXT_TO_C) 
+extern void
 	EscPrefix(),
 	CtlxPrefix(),
 	MiscPrefix(),
@@ -63,7 +63,9 @@ extern int
 	prCTIME(),
 	ChrToOct(),
 	ClAndRedraw(),
+#ifndef MAC
 	MakeErrors(),
+#endif
 	CopyRegion(),
 	BufSelect(),
 	DelBlnkLines(),
@@ -132,13 +134,17 @@ extern int
 	Newline(),
 	OpenLine(),
 	LineAI(),
+#ifndef MAC
 	ShowErr(),
 	NextError(),
+#endif /* MAC */
 #ifdef MSDOS
 	PageScrollUp(),
 	PageScrollDown(),
 #endif /* MSDOS */
+#ifndef MAC
 	PrevError(),
+#endif /* MAC */
 	NextLine(),
 	NextPage(),
 	NextWindow(),
@@ -147,8 +153,9 @@ extern int
 	PageNWind(),
 	Tab(),
 	DoParen(),
+#ifndef MAC
 	ParseAll(),
-	XParse(),
+#endif
 #ifdef SPELL
 	SpelWords(),
 #endif
@@ -158,7 +165,9 @@ extern int
 	PrevLine(),
 	PrevPage(),
 	PrevWindow(),
+#ifndef MAC
 	Push(),
+#endif
 	RegReplace(),
 	QRepSearch(),
 	QuotChar(),
@@ -176,10 +185,12 @@ extern int
 	SelfInsert(),
 	SetVar(),
  	SetMark(),
+#ifndef MAC
 	ShellCom(),
 	ShNoBuf(),
 	Shtypeout(),
 	ShToBuf(),
+#endif
 	ShrWindow(),
 	Source(),
 #ifdef SPELL
@@ -198,9 +209,10 @@ extern int
 	WriteMacs(),
 	WrtReg(),
 	Yank(),
-	YankPop(),
-	PrVar(),
+	YankPop(),	PrVar(),
+#ifndef MAC
 	FilterRegion(),
+#endif
 	WNumLines(),
 #ifdef IPROCS
 	ShellProc(),
@@ -238,15 +250,24 @@ extern int
 	Comment(),
 #endif
 
+	ScrollLeft(),
+	ScrollRight(),
 	MacInter();		/* This is the last one. */
 
 
+#ifdef MAC
+#	define WIRED_CMD(c) c,'\0','\0'	/* for About Jove... */
+#else
 #	define WIRED_CMD(c)	c
+#endif /* MAC */
 
 #else /* TXT_TO_C */
 
+#ifdef MAC
+#	define WIRED_CMD(c) 0,'\0','\0'
+#else
 #	define WIRED_CMD(c)	0
-
+#endif
 #endif /* TXT_TO_C */
 
 struct cmd	commands[] = {
@@ -260,8 +281,8 @@ struct cmd	commands[] = {
 	FUNCTION, "apropos", WIRED_CMD(Apropos),
 	FUNCTION, "auto-execute-command", WIRED_CMD(CAutoExec),
 	FUNCTION, "auto-execute-macro", WIRED_CMD(MAutoExec),
-	DefMinor(Fill), "auto-fill-mode", 0,
-	DefMinor(Indent), "auto-indent-mode", 0,
+	DefMinor(Fill), "auto-fill-mode", WIRED_CMD(0),
+	DefMinor(Indent), "auto-indent-mode", WIRED_CMD(0),
 	FUNCTION, "backward-character", WIRED_CMD(BackChar),
 	FUNCTION, "backward-list", WIRED_CMD(BList),
 	FUNCTION, "backward-paragraph", WIRED_CMD(BackPara),
@@ -279,7 +300,7 @@ struct cmd	commands[] = {
 	FUNCTION, "bind-macro-to-word-abbrev", WIRED_CMD(BindMtoW),
 #endif
 	FUNCTION, "buffer-position", WIRED_CMD(BufPos),
-	DefMajor(CMODE), "c-mode", 0,
+	DefMajor(CMODE), "c-mode", WIRED_CMD(0),
 	FUNCTION, "case-character-capitalize", WIRED_CMD(CapChar),
 	FUNCTION, "case-region-lower", WIRED_CMD(CasRegLower),
 	FUNCTION, "case-region-upper", WIRED_CMD(CasRegUpper),
@@ -291,7 +312,9 @@ struct cmd	commands[] = {
 	FUNCTION, "cd", WIRED_CMD(Chdir),
 #endif
 	FUNCTION, "clear-and-redraw", WIRED_CMD(ClAndRedraw),
+#ifndef MAC
 	FUNCTION, "compile-it", WIRED_CMD(MakeErrors),
+#endif
 #ifdef IPROCS
 #  ifndef PIPEPROCS
 #    ifdef TIOCSLTC
@@ -300,7 +323,9 @@ struct cmd	commands[] = {
 #  endif
 #endif
 	FUNCTION, "copy-region", WIRED_CMD(CopyRegion),
+#ifndef MAC
 	FUNCTION, "current-error", WIRED_CMD(ShowErr),
+#endif
 	FUNCTION, "date", WIRED_CMD(prCTIME),
 #ifdef ABBREV
 	FUNCTION, "define-global-word-abbrev", WIRED_CMD(DefGAbbrev),
@@ -364,7 +389,9 @@ struct cmd	commands[] = {
 #endif /* CMT_FMT */
 	FUNCTION, "fill-paragraph", WIRED_CMD(Justify),
 	FUNCTION, "fill-region", WIRED_CMD(RegJustify),
+#ifndef MAC
 	FUNCTION, "filter-region", WIRED_CMD(FilterRegion),
+#endif
 	FUNCTION, "find-file", WIRED_CMD(FindFile),
 	FUNCTION, "find-tag", WIRED_CMD(FindTag),
 	FUNCTION, "find-tag-at-point", WIRED_CMD(FDotTag),
@@ -375,7 +402,7 @@ struct cmd	commands[] = {
 	FUNCTION, "forward-s-expression", WIRED_CMD(FSexpr),
 	FUNCTION, "forward-sentence", WIRED_CMD(Eos),
 	FUNCTION, "forward-word", WIRED_CMD(ForWord),
-	DefMajor(FUNDAMENTAL), "fundamental-mode", 0,
+	DefMajor(FUNDAMENTAL), "fundamental-mode", WIRED_CMD(0),
 	FUNCTION, "gather-numeric-argument", WIRED_CMD(TimesFour),
 #ifdef LISP
 	FUNCTION, "grind-s-expr", WIRED_CMD(GSexpr),
@@ -404,7 +431,7 @@ struct cmd	commands[] = {
 	FUNCTION, "kill-to-end-of-sentence", WIRED_CMD(KillEos),
 	FUNCTION, "left-margin-here", WIRED_CMD(SetLMargin),
 #ifdef LISP
-	DefMajor(LISPMODE), "lisp-mode", 0,
+	DefMajor(LISPMODE), "lisp-mode", WIRED_CMD(0),
 #endif
 	FUNCTION, "list-buffers", WIRED_CMD(BufList),
 #ifdef IPROCS
@@ -416,23 +443,28 @@ struct cmd	commands[] = {
 	FUNCTION, "newline", WIRED_CMD(Newline),
 	FUNCTION, "newline-and-backup", WIRED_CMD(OpenLine),
 	FUNCTION, "newline-and-indent", WIRED_CMD(LineAI),
+#ifndef MAC
 	FUNCTION, "next-error", WIRED_CMD(NextError),
+#endif
 	FUNCTION, "next-line", WIRED_CMD(NextLine),
 	FUNCTION, "next-page", WIRED_CMD(NextPage),
 	FUNCTION, "next-window", WIRED_CMD(NextWindow),
 	FUNCTION, "number-lines-in-window", WIRED_CMD(WNumLines),
-	DefMinor(OverWrite), "over-write-mode", 0,
+	DefMinor(OverWrite), "over-write-mode", WIRED_CMD(0),
 	FUNCTION, "page-next-window", WIRED_CMD(PageNWind),
 	FUNCTION, "paren-flash", WIRED_CMD(DoParen),
-	FUNCTION, "parse-errors", WIRED_CMD(ParseAll),
-	FUNCTION, "parse-special-errors", WIRED_CMD(XParse),
+#ifndef MAC
+	FUNCTION, "parse-errors", WIRED_CMD(ErrParse),
+#endif
 #ifdef SPELL
 	FUNCTION, "parse-spelling-errors-in-buffer", WIRED_CMD(SpelWords),
 #endif
 #ifdef JOB_CONTROL
 	FUNCTION, "pause-jove", WIRED_CMD(PauseJove),
 #else
+#	ifndef MAC
 	FUNCTION, "pause-jove", WIRED_CMD(Push),
+#	endif
 #endif
 	FUNCTION, "pop-mark", WIRED_CMD(PopMark),
 #ifdef CHDIR
@@ -441,7 +473,9 @@ struct cmd	commands[] = {
 	FUNCTION, "prefix-1", WIRED_CMD(EscPrefix),
 	FUNCTION, "prefix-2", WIRED_CMD(CtlxPrefix),
 	FUNCTION, "prefix-3", WIRED_CMD(MiscPrefix),
+#ifndef MAC
 	FUNCTION, "previous-error", WIRED_CMD(PrevError),
+#endif
 	FUNCTION, "previous-line", WIRED_CMD(PrevLine),
 	FUNCTION, "previous-page", WIRED_CMD(PrevPage),
 	FUNCTION, "previous-window", WIRED_CMD(PrevWindow),
@@ -451,7 +485,9 @@ struct cmd	commands[] = {
 	FUNCTION, "process-newline", WIRED_CMD(ProcNewline),
 	FUNCTION, "process-send-data-no-return", WIRED_CMD(ProcSendData),
 #endif
+#ifndef MAC
 	FUNCTION, "push-shell", WIRED_CMD(Push),
+#endif
 #ifdef CHDIR
 	FUNCTION, "pushd", WIRED_CMD(Pushd),
 	FUNCTION, "pwd", WIRED_CMD(prCWD),
@@ -472,10 +508,12 @@ struct cmd	commands[] = {
 	FUNCTION, "right-margin-here", WIRED_CMD(SetRMargin),
 	FUNCTION, "save-file", WIRED_CMD(SaveFile),
 	FUNCTION, "scroll-down", WIRED_CMD(DownScroll),
+	FUNCTION, "scroll-left", WIRED_CMD(ScrollLeft),
 #ifdef MSDOS
 	FUNCTION, "scroll-next-page", WIRED_CMD(PageScrollUp),
 	FUNCTION, "scroll-previous-page", WIRED_CMD(PageScrollDown),
 #endif /* MSDOS */
+	FUNCTION, "scroll-right", WIRED_CMD(ScrollRight),
 	FUNCTION, "scroll-up", WIRED_CMD(UpScroll),
 	FUNCTION, "search-forward", WIRED_CMD(ForSearch),
 	FUNCTION, "search-forward-nd", WIRED_CMD(FSrchND),
@@ -500,11 +538,13 @@ struct cmd	commands[] = {
 #ifdef IPROCS	/* for GNU compatibility */
 	FUNCTION, "shell", WIRED_CMD(ShellProc),
 #endif
+#ifndef MAC
 	FUNCTION, "shell-command", WIRED_CMD(ShellCom),
 	FUNCTION, "shell-command-no-buffer", WIRED_CMD(ShNoBuf),
 	FUNCTION, "shell-command-to-buffer", WIRED_CMD(ShToBuf),
 	FUNCTION, "shell-command-with-typeout", WIRED_CMD(Shtypeout),
-	DefMinor(ShowMatch), "show-match-mode", 0,
+#endif
+	DefMinor(ShowMatch), "show-match-mode", WIRED_CMD(0),
 	FUNCTION, "shrink-window", WIRED_CMD(ShrWindow),
 	FUNCTION, "source", WIRED_CMD(Source),
 #ifdef SPELL
@@ -522,7 +562,7 @@ struct cmd	commands[] = {
 #ifdef JOB_CONTROL
 	FUNCTION, "suspend-jove", WIRED_CMD(PauseJove),
 #endif
-	DefMajor(TEXT), "text-mode", 0,
+	DefMajor(TEXT), "text-mode", WIRED_CMD(0),
 	FUNCTION, "transpose-characters", WIRED_CMD(TransChar),
 	FUNCTION, "transpose-lines", WIRED_CMD(TransLines),
 	FUNCTION, "unbind-key", WIRED_CMD(UnbindC),
@@ -531,7 +571,7 @@ struct cmd	commands[] = {
 	FUNCTION, "visit-file", WIRED_CMD(ReadFile),
 	FUNCTION, "window-find", WIRED_CMD(WindFind),
 #ifdef ABBREV
-	DefMinor(Abbrev), "word-abbrev-mode", 0,
+	DefMinor(Abbrev), "word-abbrev-mode", WIRED_CMD(0),
 	FUNCTION, "write-word-abbrev-file", WIRED_CMD(SaveAbbrevs),
 #endif
 	FUNCTION, "write-file", WIRED_CMD(WriteFile),
@@ -556,7 +596,7 @@ char	*prompt;
 		char	cmdbuf[128];
 		register struct cmd	*cmd;
 		register char	*cp = cmdbuf;
-#ifndef IBMPC
+#if !(defined(IBMPC) || defined(MAC))
 		register int	c;
 #else
 		int c;
@@ -581,10 +621,12 @@ char	*prompt;
 				}
 			beenhere = YES;
 		}
-
+#ifdef MAC
+		menus_off();	/* Block menu choices during input */
+#endif
 		/* gather the cmd name */
 		while (((c = getch()) != EOF) && !index(" \t\r\n", c)) {
-#ifdef IBMPC
+#if (defined(IBMPC) || defined(MAC))
 			lower(&c);
 #else			
 			if (isupper(c))

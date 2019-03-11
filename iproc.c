@@ -1,9 +1,9 @@
-/************************************************************************
- * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/***************************************************************************
+ * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
+ * is provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is    *
+ * included in all the files.                                              *
+ ***************************************************************************/
 
 #include "jove.h"
 #include "re.h"
@@ -107,7 +107,9 @@ Process	*child;
 {
 	register Process	*p,
 				*prev = 0;
-	
+
+	if (!isdead(child))
+		return;	
 	for (p = procs; p != child; prev = p, p = p->p_next)
 		;
 	if (prev == 0)
@@ -120,9 +122,11 @@ Process	*child;
 	   between the time CHILD dies and CHILD's death is noticed (via
 	   list-processes).  So we only set it the buffer's process to
 	   0 if CHILD is still the controlling process. */
-	if (child->p_buffer->b_process == child)
+	if (child->p_buffer->b_process == child) {
 		child->p_buffer->b_process = 0;
-	PopPBs();
+		if (curbuf == child->p_buffer)
+			PopPBs();
+	}
 	{
 		Buffer	*old = curbuf;
 
@@ -416,3 +420,4 @@ data_obj	**map,
 }
 
 #endif /* IPROCS */
+

@@ -1,9 +1,9 @@
-/************************************************************************
- * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/***************************************************************************
+ * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
+ * is provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is    *
+ * included in all the files.                                              *
+ ***************************************************************************/
 
 #include "jove.h"
 #include "ctype.h"
@@ -12,11 +12,13 @@
 #include "termcap.h"
 #endif
 
+void
 prCTIME()
 {
 	s_mess(": %f %s", get_time((time_t *) 0, (char *) 0, 0, -1));
 }
 
+void
 ChrToOct()
 {
 	int	c,
@@ -28,6 +30,7 @@ ChrToOct()
 	ins_str(sprint("\\%03o", c), NO);
 }
 
+void
 StrLength()
 {
 	static char	inquotes[] = "Where are the quotes?";
@@ -59,6 +62,7 @@ StrLength()
 
 /* Transpos cur_char with cur_char - 1 */
 
+void
 TransChar()
 {
 	char	before;
@@ -75,6 +79,7 @@ TransChar()
 
 /* Switch current line with previous one */
 
+void
 TransLines()
 {
 	disk_line	old_prev;
@@ -91,6 +96,7 @@ TransLines()
 	modify();
 }
 
+void
 Leave()
 {
 	longjmp(mainjmp, QUIT);
@@ -101,6 +107,7 @@ Leave()
    right of the cursor is white space, we delete the line separator
    as if we were at the end of the line. */
 
+void
 KillEOL()
 {
 	Line	*line2;
@@ -133,6 +140,7 @@ KillEOL()
 
 /* kill to beginning of sentence */
 
+void
 KillBos()
 {
 	negate_arg_value();
@@ -141,6 +149,7 @@ KillBos()
 
 /* Kill to end of sentence */
 
+void
 KillEos()
 {
 	Line	*line1;
@@ -152,6 +161,7 @@ KillEos()
 	reg_kill(line1, char1, 1);
 }
 
+void
 KillExpr()
 {
 	Line	*line1;
@@ -163,21 +173,25 @@ KillExpr()
 	reg_kill(line1, char1, 1);
 }
 
+void
 EscPrefix()
 {
 	HandlePref(pref1map);
 }
 
+void
 CtlxPrefix()
 {
 	HandlePref(pref2map);
 }
 
+void
 MiscPrefix()
 {
 	HandlePref(miscmap);
 }
 
+void
 HandlePref(map)
 data_obj	**map;
 {
@@ -203,6 +217,7 @@ data_obj	**map;
 		ExecCmd(cp);
 }
 
+void
 Yank()
 {
 	Line	*line,
@@ -220,6 +235,7 @@ Yank()
 	SetDot(dot);
 }
 
+void
 WtModBuf()
 {
 	if (!ModBufs(NO))
@@ -228,6 +244,7 @@ WtModBuf()
 		put_bufs(is_an_arg());
 }
 
+void
 put_bufs(askp)
 {
 	register Buffer	*oldb = curbuf,	
@@ -248,15 +265,18 @@ put_bufs(askp)
 		if (askp && (yes_or_no_p("Write %s? ", curbuf->b_fname) == NO))
 			continue;
 		filemunge(curbuf->b_fname);
+#ifndef MAC
 #ifndef MSDOS
 		chk_mtime(curbuf, curbuf->b_fname, "save");
 #endif /* MSDOS */
+#endif /* MAC */
 		file_write(curbuf->b_fname, 0);
 		unmodify();
 	}
 	SetBuf(oldb);
 }
 
+void
 ToIndent()
 {
 	register char	*cp,
@@ -270,6 +290,7 @@ ToIndent()
 
 /* GoLine -- go to a line, usually wired to goto-line, ESC g or ESC G.
    If no argument is specified it asks for a line number. */
+void
 GoLine()
 {
   	Line	*newline;
@@ -292,11 +313,12 @@ GoLine()
 }
 
 #ifdef ANSICODES
+void
 MoveToCursor(line, col)
 {
 	register struct scrimage *sp = &PhysScreen[line];
 
-	while (sp->s_id == NULL)
+	while (sp->s_id == 0)
 		sp = &PhysScreen[--line];
 	if (sp->s_flags & MODELINE)
 		complain((char *) 0);
@@ -306,6 +328,7 @@ MoveToCursor(line, col)
 	curchar = how_far(sp->s_lp, col);
 }
 
+void
 AnsiCodes()
 {
 	int	c;
@@ -442,16 +465,19 @@ AnsiCodes()
 }
 #endif /* ANSICODES */
 
+void
 NotModified()
 {
 	unmodify();
 }
 
+void
 SetLMargin()
 {
 	LMargin = calc_pos(linebuf, curchar);
 }
 
+void
 SetRMargin()
 {
 	RMargin = calc_pos(linebuf, curchar);

@@ -1,9 +1,9 @@
-########################################################################
-# This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       #
-# provided to you without charge, and with no warranty.  You may give  #
-# away copies of JOVE, including sources, provided that this notice is #
-# included in all the files.                                           #
-########################################################################
+###########################################################################
+# This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE #
+# is provided to you without charge, and with no warranty.  You may give  #
+# away copies of JOVE, including sources, provided that this notice is    #
+# included in all the files.                                              #
+###########################################################################
 
 # TMPDIR is where the tmp files get stored, usually /tmp or /tmp/jove.  If
 # your system does not remove subdirectories of /tmp on reboot (lots do
@@ -21,7 +21,7 @@ DESTDIR =
 TMPDIR = /tmp
 LIBDIR = /u/jpayne/lib/jove
 BINDIR = /u/jpayne/bin
-MANDIR = /u/jpayne/lib/manl
+MANDIR = /u/jpayne/manl
 MANEXT = l
 SHELL = /bin/csh
 
@@ -43,6 +43,7 @@ TEACHJOVEM = $(DESTDIR)$(MANDIR)/teachjove.$(MANEXT)
 #	4.2BSD:	LIBS = -ltermcap
 #	4.3BSD:	LIBS = -ltermcap
 #	SysV Rel. 2: LIBS = -lcurses
+#	SCO Xenix: LIBS = -ltermcap -lx
 
 LIBS = -ltermcap
 
@@ -54,17 +55,23 @@ LIBS = -ltermcap
 #	4.2BSD:	LDFLAGS =
 #	4.3BSD:	LDFLAGS =
 #	SysV Rel. 2: LDFLAGS = -Ml
+#	SCO Xenix: LDFLAGS = -Ml -F 3000
 #
 # SEPFLAG should be:
 #	not on a PDP-11:		SEPFLAG =
 #	PDP-11 with separate I&D:	SEPFLAG = -i
 #	PDP-11 without separate I&D:	SEPFLAG = -n
+#
 
-LDFLAGS = -m68010 -L/pub.MC68010/lib -L/usr.MC68010/lib
+LDFLAGS = 
 
 SEPFLAG =
 
-CFLAGS = -O -m68010 -L/pub.MC68010/lib -L/usr.MC68010/lib
+# for SCO Xenix, set
+#	MEMFLAGS = -Mle
+#	CFLAGS = -LARGE -O -F 3000 -K -Mle  (say -Mle2 for an 80286)
+
+CFLAGS = -O 
 
 BASESEG = funcdefs.o keymaps.o argcount.o ask.o buf.o ctype.o delete.o \
 	  disp.o insert.o io.o jove.o malloc.o marks.o misc.o re.o \
@@ -81,24 +88,24 @@ C_SRC = funcdefs.c abbrev.c argcount.c ask.c buf.c c.c case.c ctype.c \
 	delete.c disp.c extend.c fp.c fmt.c insert.c io.c iproc.c \
 	jove.c macros.c malloc.c marks.c misc.c move.c paragraph.c \
 	proc.c re.c re1.c rec.c scandir.c screen.c table.c term.c util.c \
-	vars.c version.c wind.c
-
-ASM_SRC = break.asm getch.asm
+	vars.c version.c wind.c getch.c mac.c
 
 SOURCES = $(C_SRC) portsrv.c recover.c setmaps.c teachjove.c
 
-HEADERS = ctype.h io.h jove.h re.h rec.h table.h temp.h termcap.h tune.h
+HEADERS = ctype.h io.h jove.h re.h rec.h table.h temp.h termcap.h \
+	tune.h externs.h mac.h
 
 DOCS =	doc/cmds.doc.nr doc/example.rc doc/jove.1 doc/jove.2 doc/jove.3 \
 	doc/jove.4 doc/jove.5 doc/jove.nr doc/system.rc \
-	doc/teach-jove doc/teachjove.nr doc/README
+	doc/teach-jove doc/teachjove.nr doc/README doc/jove.qref
 
-MISC = Makefile Ovmakefile Makefile.dos pcjove.lnk tune.dos tune.template \
-	README Readme.dos iproc-pipes.c iproc-ptys.c
+MISC = Makefile Ovmakefile Makefile.dos tune.dos tune.template \
+	README Readme.dos Readme.mac iproc-pipes.c iproc-ptys.c
 
-SUPPORT = teachjove.c recover.c setmaps.c portsrv.c keymaps.txt macvert.c
+SUPPORT = teachjove.c recover.c setmaps.c portsrv.c keymaps.txt \
+	macvert.c menumaps.txt mjovers.Hqx
 
-BACKUPS = $(HEADERS) $(C_SRC) $(ASM_SRC) $(DOCS) $(SUPPORT) $(MISC)
+BACKUPS = $(HEADERS) $(C_SRC) $(DOCS) $(SUPPORT) $(MISC)
 
 all:	sdate xjove recover teachjove portsrv macvert edate
 
@@ -128,24 +135,24 @@ ovjove:	$(OBJECTS)
 	@-size xjove
 
 portsrv:	portsrv.o
-	cc -o portsrv -n portsrv.o $(LIBS)
+	$(CC) $(LDFLAGS) -o portsrv $(SEPFLAG) portsrv.o $(LIBS)
 
 recover:	recover.o tune.o rec.h temp.h
-	cc -o recover -n recover.o tune.o $(LIBS)
+	$(CC) $(LDFLAGS) -o recover $(SEPFLAG) recover.o tune.o $(LIBS)
 
 teachjove:	teachjove.o
-	cc -o teachjove -n teachjove.o $(LIBS)
+	$(CC) $(LDFLAGS) -o teachjove $(SEPFLAG) teachjove.o $(LIBS)
 
 setmaps:	setmaps.o funcdefs.c
-	cc -o setmaps setmaps.o
+	$(CC) $(LDFLAGS) -o setmaps setmaps.o
 
 teachjove.o:	teachjove.c /usr/include/sys/types.h /usr/include/sys/file.h
 	cc -c $(CFLAGS) -DTEACHJOVE=\"$(TEACH-JOVE)\" teachjove.c
 
-# don't optimize setmaps.c because it produces bad code on the sun2
-#
+# don't optimize setmaps.c because it produces bad code in some places
+# for some reason
 setmaps.o:	funcdefs.c keymaps.txt
-	cc -c setmaps.c
+	$(CC) $(MEMFLAGS) -c setmaps.c
 
 # ignore error messages from setmaps
 # it doesn't understand ifdefs
@@ -164,10 +171,12 @@ tune.c: Makefile tune.template
 	     -e 's;SHELL;$(SHELL);' tune.template >> tune.c
 
 iproc.o: iproc-ptys.c iproc-pipes.c iproc.c
-	cc -c $(CFLAGS) iproc.c
+	$(CC) -c $(CFLAGS) iproc.c
 
 macvert:	macvert.c
-	cc -o macvert macvert.c
+	$(CC) $(CFLAGS) -o macvert macvert.c
+
+# install doesn't work for Xenix (no install program)
 
 install: $(DESTDIR)$(LIBDIR) $(TEACH-JOVE) $(CMDS.DOC) $(JOVERC) \
 	 $(PORTSRV) $(RECOVER) $(JOVE) $(TEACHJOVE) $(JOVEM) \
@@ -232,10 +241,16 @@ jove.shar:
 	shar $(BACKUPS) > jove.shar
 
 backup: $(BACKUPS)
-	tar cf backup $(BACKUPS)
+	tar chf backup $(BACKUPS)
 
 tape-backup:
 	tar c $(BACKUPS)
+
+srcdownload:
+	kermit -s $(SUPPORT) $(MISC) $(HEADERS) $(C_SRC)
+
+docdownload:
+	kermit -s $(DOCS)
 
 touch:
 	touch $(OBJECTS)
