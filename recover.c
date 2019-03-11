@@ -783,7 +783,10 @@ savetmps()
 		return;		/* Files are moved to the same place. */
 	get_files(tmp_dir);
 	for (fp = First; fp != NULL; fp = fp->file_next) {
-		stat(fp->file_data, &stbuf);
+		if (stat(fp->file_data, &stbuf) < 0) {
+			perror("recover: stat failed.");
+			continue;
+		}
 		switch (pid = fork()) {
 		case -1:
 			fprintf(stderr, "recover: can't fork\n!");

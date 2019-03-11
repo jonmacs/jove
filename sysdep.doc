@@ -170,6 +170,10 @@ side of the pty when the slave side shuts down.  On these systems, Jove
 should be told not to wait for EOF:
 NO_EOF_FROM_PTY	Define this if your system fails to signal EOF to pty master
 
+Some versions of BSDI/386 (for example, v1.0 and v1.1) have a bug in
+pty support that causes a check in iproc.c to fail.
+BSDI_PTY_BUG	Define this to avoid a test that (old?) BSDI/386 always fails
+
 To deal with SUBSHELL and IPROCS (both in tune.h), define one of the
 following:
 POSIX_PROCS	Supports POSIX processes, waitpid()
