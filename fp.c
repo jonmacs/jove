@@ -100,8 +100,13 @@ int	flags,
 		/* FALLTHROUGH */
 	case F_WRITE:
 #ifdef O_CREAT
-		fd = open(name, O_CREAT | O_TRUNC | O_BINARY | O_RDWR
-			, S_IWRITE | S_IREAD);
+		fd = open(name, O_CREAT | O_TRUNC | O_BINARY | O_RDWR,
+# ifdef UNIX
+			CreatMode
+# else
+			S_IWRITE | S_IREAD
+# endif
+			);
 #else
 		fd = creat(name, CreatMode);
 #endif
@@ -122,19 +127,33 @@ void
 f_close(fp)
 File	*fp;
 {
+	const char *what = "close";
+	int	err = 0;
+
 	if ((fp->f_flags & (F_WRITE|F_APPEND))
 	&& (fp->f_flags & F_ERR) == 0)
 	{
 		flushout(fp);
 #ifdef USE_FSYNC
-		(void) fsync(fp->f_fd);
+		if (fsync(fp->f_fd) != 0) {
+			what = "fsync";
+			err = errno;
+		}
 #endif
 	}
-	(void) close(fp->f_fd);
+	if (close(fp->f_fd) != 0 && err == 0)
+		err = errno;
 	if (fp->f_flags & F_MYBUF)
 		free((UnivPtr) fp->f_base);
 	free((UnivPtr) fp->f_name);
 	fp->f_flags = 0;	/* indicates that we're available */
+	if (err != 0) {
+		/* It would be nice to print fp->f_name, but it's gone.
+		 * Perhaps we should allow the memory to leak so that we
+		 * could easily print it.
+		 */
+		error("[%s error: %s]", what, strerror(err));
+	}
 }
 
 ZXchar

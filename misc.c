@@ -126,6 +126,8 @@ TransLines()
 	DOLsave = NO;	/* CHEAT: contents of linebuf need not override l_dline. */
 }
 
+/* exit-jove command */
+
 void
 Leave()
 {

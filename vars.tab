@@ -89,6 +89,7 @@ const struct variable	variables[] = {
 	{ VARIABLE, "process-prompt", VAR(proc_prompt), V_STRING },
 #endif
 	{ VARIABLE, "right-margin", VAR(&RMargin), V_NAT },
+	{ VARIABLE, "save-on-exit", VAR(&SaveOnExit), V_BOOL },
 	{ VARIABLE, "scroll-all-lines", VAR(&ScrollAll), V_BOOL },
 #ifdef HIGHLIGHTING
 	{ VARIABLE, "scroll-bar", VAR(&ScrollBar), V_BOOL|V_MODELINE },

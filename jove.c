@@ -1407,6 +1407,8 @@ Recur()
 	DelMark(m);
 }
 
+bool	SaveOnExit = NO;	/* VAR: offer to save buffers on exit */
+
 private int	iniargc;	/* main sets these for DoKeys() */
 private char	**iniargv;
 
@@ -1431,9 +1433,12 @@ bool	firsttime;
 				if (!yes_or_no_p("Some MACROS haven't been saved; leave anyway? "))
 					break;
 			}
+			/* Maybe should offer to save macros too ? */
 			if (ModBufs(NO)) {
 				rbell();
-				if (!yes_or_no_p("Some buffers haven't been saved; leave anyway? "))
+				if (SaveOnExit)
+					put_bufs(YES);
+				else if (!yes_or_no_p("Some buffers haven't been saved; leave anyway? "))
 					break;
 			}
 #ifdef IPROCS
