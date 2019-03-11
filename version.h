@@ -7,11 +7,14 @@
 
 /* Note: jove.spec must be updated when version number changes */
 
-#define	jversion     "4.16.0.68" /* 2005 Sept 28 */
-#define	jversion_lnum 4,16,0,68  /* list-of-numbers form for Win32 jjove.rc */
+#define	jversion     "4.16.0.69" /* 2005 Sept 30 */
+#define	jversion_lnum 4,16,0,69  /* list-of-numbers form for Win32 jjove.rc */
 
 /*
  * $Log: version.h,v $
+ * Revision 1.419  2005/10/01 00:34:41  hugh
+ * 4.16.0.69: fix minor errors introduced in 4.16.0.67
+ *
  * Revision 1.418  2005/09/28 18:41:49  hugh
  * Work around an xterm / termcap / terminfo bug involving SR.
  *

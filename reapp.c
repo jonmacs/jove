@@ -14,6 +14,7 @@
 #include "chars.h"
 #include "disp.h"
 #include "ask.h"
+#include "extend.h" /* for chr_to_int */
 #include "fmt.h"
 #include "marks.h"
 #include "reapp.h"
@@ -487,7 +488,7 @@ bool	localp;
 			int lnum = 0;   /* keep gcc -W quiet */
 
 			if (chr_to_int(sstr, 10, YES, &lnum) != YES || lnum < 1) {
-				format(mesgbuf, sizeof mesgbuf, "Invalid line number: %s", sstr);
+				swritef(mesgbuf, sizeof mesgbuf, "Invalid line number: %s", sstr);
 				message(mesgbuf);
 			} else {
 				LinePtr tagline = next_line(curbuf->b_first, lnum - 1);
