@@ -7,7 +7,7 @@
 
 #define MAXCOLS		256	/* maximum number of columns */
 
-#ifndef MAC
+#if !(defined(MAC) || defined(IBMPC))
 
 /* termcap definitions */
 

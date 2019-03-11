@@ -5,14 +5,15 @@
  * included in all the files.                                              *
  ***************************************************************************/
 
-extern void	putchar proto((int c));	/* hidden by macro */
+extern void	jputchar proto((int c));	/* hidden by macro */
 
-#define putchar(c)	putc(c, stdout)
-#define putc(c, fp)	(--(fp)->f_cnt >= 0 ? (*(fp)->f_ptr++ = (c)) : _flush((c), fp))
-#define getc(fp)	(((--(fp)->f_cnt < 0) ? filbuf(fp) : *(fp)->f_ptr++))
-#define f_eof(fp)	(fp->f_flags & F_EOF)
+#define jputchar(c)	jputc((c), stdout)
+#define jputc(c, fp)	(--(fp)->f_cnt >= 0 ? (*(fp)->f_ptr++ = (c)) : _flush((c), fp))
+#define jgetc(fp)	\
+	(((--(fp)->f_cnt < 0) ? filbuf(fp) : (unsigned char) *(fp)->f_ptr++))
+#define f_eof(fp)	((fp)->f_flags & F_EOF)
 
-typedef struct file {
+typedef struct _file {
 	int	f_cnt,		/* number of characters left in buffer */
 		f_bufsize,	/* size of what f_base points to */
 		f_fd,		/* fildes */
@@ -25,7 +26,7 @@ typedef struct file {
 #define F_READ		01
 #define F_WRITE		02
 #define F_APPEND	04
-#define F_MODE(x)	(x&07)
+#define F_MODE(x)	((x)&07)
 #define F_EOF		010
 #define F_STRING	020
 #define F_ERR		040
@@ -62,7 +63,7 @@ extern int
 
 extern void
 	f_close proto((File *fp)),
-	f_seek(),	/* proto((File *fp, off_t offset)) */
+	f_seek proto((File *fp, off_t offset)),
 	f_toNL proto((File *fp)),
 	flush proto((File *fp)),
 	flusho proto((void)),

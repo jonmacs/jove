@@ -9,6 +9,8 @@
  * This file is "included" into iproc.c -- it is not compiled separately!
  */
 
+#include <sys/time.h>
+#include <fcntl.h>
 #include <signal.h>
 #include <sgtty.h>
 #include <errno.h>
@@ -23,12 +25,12 @@
 #define EXITED	1
 #define KILLED	2
 
-#define isdead(p)	(p == 0 || proc_state(p) == DEAD || p->p_fd == -1)
-#define makedead(p)	(proc_state(p) = DEAD)
+#define isdead(p)	((p) == NULL || proc_state((p)) == DEAD || (p)->p_fd == -1)
+#define makedead(p)	{ proc_state((p)) = DEAD; }
 
-#define proc_buf(p)	(p->p_buffer->b_name)
-#define proc_cmd(p)	(p->p_name)
-#define proc_state(p)	(p->p_state)
+#define proc_buf(p)	((p)->p_buffer->b_name)
+#define proc_cmd(p)	((p)->p_name)
+#define proc_state(p)	((p)->p_state)
 
 private Process	*procs = 0;
 
@@ -68,7 +70,7 @@ register int	fd;
 	}
 
 	n = read(fd, ibuf, sizeof(ibuf) - 1);
-	if (n == -1 && errno == EIO) {
+	if (n == -1 && (errno == EIO || errno == EWOULDBLOCK)) {
 		if (proc_state(p) == NEW)
 			return;
 		proc_close(p);
@@ -132,37 +134,37 @@ char	c;
 	buf[0] = c;
 	buf[1] = '\0';
 	proc_rec(p, buf);
-	(void) write(p->p_fd, &c, 1);
+	(void) write(p->p_fd, &c, (size_t) 1);
 }
 
 void
 ProcEof()
 {
-	send_p(tc1.t_eofc);
+	send_p(tc[OFF].t_eofc);
 }
 
 void
 ProcInt()
 {
-	send_p(tc1.t_intrc);
+	send_p(tc[OFF].t_intrc);
 }
 
 void
 ProcQuit()
 {
-	send_p(tc1.t_quitc);
+	send_p(tc[OFF].t_quitc);
 }
 
 void
 ProcStop()
 {
-	send_p(ls1.t_suspc);
+	send_p(ls[OFF].t_suspc);
 }
 
 void
 ProcDStop()
 {
-	send_p(ls1.t_dsuspc);
+	send_p(ls[OFF].t_dsuspc);
 }
 
 private void
@@ -185,9 +187,12 @@ private void
 proc_write(p, buf, nbytes)
 Process *p;
 char	*buf;
-int	nbytes;
+size_t	nbytes;
 {
-	(void) write(p->p_fd, buf, nbytes);
+	long	mask = (1 << p->p_fd);
+
+	while (write(p->p_fd, buf, nbytes) <  0)
+		select(p->p_fd + 1, (long *) 0, &mask, (long *) 0, (struct timeval *) 0);
 }
 
 #ifdef	STDARGS
@@ -217,11 +222,11 @@ proc_strt(bufname, clobber, va_alist)
 			*t;
 	char	ttybuf[11],
 		ptybuf[11];
-	char	cmdbuf[128];
+	char	cmdbuf[LBSIZE];
 #ifdef BRLUNIX
-	struct sg_brl sg;
+	struct sg_brl sgt;
 #else
-	struct sgttyb sg;
+	struct sgttyb sgt;
 #endif
 
 #ifdef TIOCGWINSZ
@@ -254,16 +259,16 @@ out:	if (s == 0 && t == 0)
 		complain("[Out of ptys!]");
 
 #ifdef TIOCGETD
-	(void) ioctl(0, TIOCGETD, (struct sgttyb *) &ldisc);
+	(void) ioctl(0, TIOCGETD, (UnivPtr) &ldisc);
 #endif
 #ifdef TIOCLGET
-	(void) ioctl(0, TIOCLGET, (struct sgttyb *) &lmode);
+	(void) ioctl(0, TIOCLGET, (UnivPtr) &lmode);
 #endif
 #ifdef TIOCGWINSZ
-	(void) ioctl(0, TIOCGWINSZ, (struct sgttyb *) &win);
+	(void) ioctl(0, TIOCGWINSZ, (UnivPtr) &win);
 #else
 #  ifdef BTL_BLIT
-	(void) ioctl(0, JWINSIZE, (struct sgttyb *) &jwin);
+	(void) ioctl(0, JWINSIZE, (UnivPtr) &jwin);
 #  endif /* BTL_BLIT */
 #endif
 
@@ -287,7 +292,7 @@ out:	if (s == 0 && t == 0)
 
 #ifdef TIOCNOTTY
 		if ((i = open("/dev/tty", 2)) >= 0) {
-			(void) ioctl(i, TIOCNOTTY, (struct sgttyb *) 0);
+			(void) ioctl(i, TIOCNOTTY, (UnivPtr) 0);
 			(void) close(i);
 		}
 #endif
@@ -297,16 +302,16 @@ out:	if (s == 0 && t == 0)
 		(void) dup2(ttyfd, 2);
 
 #ifdef TIOCSETD
-		(void) ioctl(0, TIOCSETD, (struct sgttyb *) &ldisc);
+		(void) ioctl(0, TIOCSETD, (UnivPtr) &ldisc);
 #endif
 #ifdef TIOCLSET
-		(void) ioctl(0, TIOCLSET, (struct sgttyb *) &lmode);
+		(void) ioctl(0, TIOCLSET, (UnivPtr) &lmode);
 #endif
 #ifdef TIOCSETC
-		(void) ioctl(0, TIOCSETC, (struct sgttyb *) &tc1);
+		(void) ioctl(0, TIOCSETC, (UnivPtr) &tc[OFF]);
 #endif
 #ifdef TIOCSLTC
-		(void) ioctl(0, TIOCSLTC, (struct sgttyb *) &ls1);
+		(void) ioctl(0, TIOCSLTC, (UnivPtr) &ls[OFF]);
 #endif
 
 #ifdef TIOCGWINSZ
@@ -314,37 +319,40 @@ out:	if (s == 0 && t == 0)
 		(void) signal(SIGWINCH, SIG_IGN);
 #    endif
 		win.ws_row = curwind->w_height;
-		(void) ioctl(0, TIOCSWINSZ, (struct sgttyb *) &win);
+		(void) ioctl(0, TIOCSWINSZ, (UnivPtr) &win);
 #else
 #  ifdef BTL_BLIT
 		jwin.bytesy = curwind->w_height;
-		(void) ioctl(0, JSWINSIZE, (struct sgttyb *) &jwin);
+		(void) ioctl(0, JSWINSIZE, (UnivPtr) &jwin);
 #  endif
 #endif
 
-		sg = sg1;
-		sg.sg_flags &= ~(ECHO | CRMOD);
-		(void) stty(0, &sg);
+		sgt = sg[OFF];
+		sgt.sg_flags &= ~(ECHO | CRMOD | ANYP | ALLDELAY | RAW | LCASE | CBREAK | TANDEM);
+		(void) stty(0, &sgt);
 
 		{
 			int	on = 1;
 
-			(void) ioctl(0, TIOCREMOTE, &on);
+			(void) ioctl(0, TIOCREMOTE, (UnivPtr) &on);
 		}
 
 		i = getpid();
-		(void) ioctl(0, TIOCSPGRP, (struct sgttyb *) &i);
+		(void) ioctl(0, TIOCSPGRP, (UnivPtr) &i);
 		(void) setpgrp(0, i);
 		va_init(ap, clobber);
 		make_argv(argv, ap);
 		va_end(ap);
-		execv(argv[0], &argv[1]);
-		(void) write(1, "execve failed!\n", 15);
+		execv(argv[0], (const char **) &argv[1]);
+		(void) write(1, "execve failed!\n", (size_t) 15);
 		_exit(errno + 1);
 	}
 
 	newp = (Process *) emalloc(sizeof *newp);
 
+#ifdef O_NDELAY
+	fcntl (ptyfd, F_SETFL, O_NDELAY);
+#endif
 	newp->p_fd = ptyfd;
 	newp->p_pid = pid;
 

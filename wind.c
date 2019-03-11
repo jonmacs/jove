@@ -175,7 +175,7 @@ register Window	*new;
 		new->w_char = curchar;
 	}
 	DotTo(new->w_line, new->w_char);
-	if (curchar > strlen(linebuf))
+	if (curchar > (int)strlen(linebuf))
 		new->w_char = curchar = strlen(linebuf);
 	curwind = new;
 }

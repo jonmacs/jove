@@ -23,12 +23,6 @@ private void
 	parse_cmt_fmt proto((char *)),
 	strip_c proto((char *, char *));
 
-extern void
-	FSexpr(),
-	FList(),
-	BSexpr(),
-	BList();
-
 private int
 backslashed(lp, cpos)
 register char	*lp;
@@ -105,7 +99,7 @@ int	can_stop;
 
 	swritef(re_str, "[(){}[\\]%s]", (MajorMode(CMODE)) ? "/\"'" : "\"");
 	REcompile(re_str, 1, &re_blk);
-	if ((cp = index(p_types, p_type)) != NIL)
+	if ((cp = strchr(p_types, p_type)) != NIL)
 		p_match = cp[dir];
 	else
 		complain("[Cannot match %c's]", p_type);
@@ -133,7 +127,7 @@ int	can_stop;
 		c = lp[c_char];
 		/* check if this is a comment (if we're not inside quotes) */
 		if (quote_c == 0 && c == '/') {
-			int	new_ic;
+			int	new_ic = in_comment;
 
 			/* close comment */
 			if ((c_char != 0) && lp[c_char - 1] == '*') {
@@ -319,7 +313,7 @@ int	dir;
 	register Bufpos	*bp;
 	register char	c = linebuf[curchar];
 
-	if ((index(p_types, c) == 0) ||
+	if ((strchr(p_types, c) == 0) ||
 	    (backslashed(linebuf, curchar)))
 		complain((char *) 0);
 	if (dir == FORWARD)
@@ -333,7 +327,7 @@ int	dir;
 			   know about it */
 }
 
-#define ALIGN_ARGS	-1
+#define ALIGN_ARGS	(-1)
 
 /* If CArgIndent == ALIGN_ARGS then the indentation routine will
    indent a continued line by lining it up with the first argument.
@@ -404,7 +398,7 @@ int	brace;
 			if (brace == NO)
 				new_indent += (increment - (new_indent % increment));
 			break;
-			
+
 		case '(':
 			if (CArgIndent == ALIGN_ARGS) {
 				f_char(1);
@@ -455,7 +449,8 @@ int	incr;
 		SetLine(lp);
 		ToIndent();
 		indent = calc_pos(linebuf, curchar);
-		n_indent(indent + incr);
+		if (indent != 0 || linebuf[0] != '\0')
+			n_indent(indent + incr);
 	}
 	SetDot(&savedot);
 }
@@ -597,9 +592,8 @@ char	*format;
 {
 	int	saveRMargin,
 		indent_pos,
-		close_at_dot = NO,
-		slen,
-		header_len,
+		close_at_dot = NO;
+	size_t	header_len,
 		trailer_len;
 	register char	*cp;
 	static char	inside_err[] = "[Must be between %s and %s to re-format]";
@@ -659,10 +653,8 @@ char	*format;
 	indent_pos = calc_pos(linebuf, curchar);
 	/* search for a close comment; delete it if it exits */
 	SetDot(&close_c_pt);
-	if (close_at_dot == 0) {
-		slen = strlen(close_pat);
-		del_char(BACKWARD, slen, NO);
-	}
+	if (close_at_dot == 0)
+		del_char(BACKWARD, (int)strlen(close_pat), NO);
 	entry_mark = MakeMark(curline, curchar, M_FLOATER);
 	ToMark(open_c_mark);
 	/* always separate the comment body from anything preceeding it */
@@ -700,14 +692,14 @@ char	*format;
 	do {
 		Bol();
 		DelWtSpace();
-		if (header_len && !strncmp(linebuf, cp, header_len))
-			del_char(FORWARD, header_len, NO);
+		if (header_len && strncmp(linebuf, cp, header_len)==0)
+			del_char(FORWARD, (int)header_len, NO);
 		if (trailer_len) {
 			Eol();
-			if ((curchar > trailer_len) &&
-			    (!strncmp(&linebuf[curchar - trailer_len],
-				      l_trailer, trailer_len)))
-				del_char(BACKWARD, trailer_len, NO);
+			if (((size_t)curchar > trailer_len) &&
+			    (strncmp(&linebuf[curchar - trailer_len],
+				      l_trailer, trailer_len)==0))
+				del_char(BACKWARD, (int)trailer_len, NO);
 		}
 		if (curline->l_next != 0)
 			line_move(FORWARD, 1, NO);
@@ -730,13 +722,13 @@ char	*format;
 		} else {
 			Bol();
 			n_indent(indent_pos);
-			ins_str(l_header, NO);
+			ins_str(l_header, NO, -1);
 		}
 		Eol();
 		if (!NL_IN_CLOSE_C && (curline == entry_mark->m_line))
 			;
 		else
-			ins_str(l_trailer, NO);
+			ins_str(l_trailer, NO, -1);
 		if (curline->l_next != 0)
 			line_move(FORWARD, 1, NO);
 		else
@@ -751,7 +743,7 @@ char	*format;
 	/* if the addition of the close symbol would cause the line to be
 	   too long, put the close symbol on the next line. */
 	if (!(NL_IN_CLOSE_C) &&
-	  strlen(close_c) + calc_pos(linebuf, curchar) > RMargin) {
+	  (int)strlen(close_c) + calc_pos(linebuf, curchar) > RMargin) {
 		LineInsert(1);
 		n_indent(indent_pos);
 	}
@@ -768,4 +760,3 @@ char	*format;
 }
 
 #endif /* CMT_FMT */
-

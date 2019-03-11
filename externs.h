@@ -5,32 +5,14 @@
  * included in all the files.                                              *
  ***************************************************************************/
 
-#ifdef TXT_TO_C
-# define STDIO
-#endif
-
-extern int
-	abs proto((int));
-
-extern void
-	exit proto((int)),
-	_exit proto((int)),
-	free proto((void *));
-
 extern char
-	*getenv proto((char *)),
-	*tgoto proto((char *, int, int)),
-	*calloc proto((unsigned int, unsigned int)),
-	*malloc proto((size_t)),
-	*realloc proto((void *, size_t)),
-
 /* proc.c */
 	*MakeName proto((char *command)),
 
 /* ask.c */
 	*ask_file proto((char *prmt, char *def, char *buf)),
 	*ask proto((char *, char *, ...)),
-	*do_ask proto((char *, int (*)(), char *, char *, ...));
+	*do_ask proto((char *, int (*) proto((int)), char *, char *, ...));
 
 extern int
 	yes_or_no_p proto((char *, ...));
@@ -54,6 +36,10 @@ extern void
 	get_FL_info proto((char *, char *)),
 	ErrFree proto((void));
 
+extern SIGRESULT
+	/* jove.c */
+	finish proto((int code));	/* doesn't return at all! */
+ 	
 extern int
 /* ctype.h */
 	ismword proto((int c)),
@@ -71,23 +57,24 @@ extern int
 
 /* jove.c */
 #ifdef	MAC
-	win_reshape proto((void)),
+	win_reshape proto((int /*junk*/)),
 #endif
 	charp proto((void)),
 	getch proto((void)),
-	getchar proto((void)),
+	jgetchar proto((void)),
 	getrawinchar proto((void));
 
 extern void
 	error proto((char *, ...)),
 	complain proto((char *, ...)),
 	confirm proto((char *, ...)),
-	finish proto((int code)),
 	ttyset proto((int n)),
 	tty_reset proto ((void)),
 	ToError proto((int forward)),
 	Ungetc proto((int c));
 
+extern SIGRESULT
+    finish proto((int code));	/* doesn't return at all! */
 
 #ifdef IBMPC
 extern int
@@ -139,7 +126,7 @@ extern void
 	format proto((char *buf, size_t len, char *fmt, char *ap)),
 	add_mess proto((char *, ...)),
 	f_mess proto((char *, ...)),
-	fwritef proto((struct file *, char *, ...)),
+	fwritef proto((struct _file *, char *, ...)),
 	writef proto((char *, ...)),
 	s_mess proto((char *, ...)),
 	swritef proto((char *, char *, ...)),
@@ -149,10 +136,6 @@ extern void
 
 	/* paragraph.c */
 	do_rfill proto((int ulm)),
-
-#ifndef MAC
-	main proto((int argc,char * *argv)),
-#endif
 
 	/* macros.c */
 	mac_init proto((void)),
@@ -191,16 +174,15 @@ extern int
 	getArgs proto((char ***));
 
 extern long
-	lseek proto((int,long,unsigned)),
- 	time(long *);	
+	lseek proto((int,long,unsigned));
+
+extern time_t
+	time proto((time_t *));
 
 #endif /* MAC */
 
 extern char
 	*pwd proto((void)),
-	*index proto((char *,int)),
-	*mktemp proto((char *)),
-	*rindex proto((char *,char)),
 #ifdef MAC
 	*getwd(),
 #else
@@ -325,7 +307,9 @@ extern void
 	ForWord proto((void)),
 	TimesFour proto((void)),
 	GoLine proto((void)),
+#ifndef _mac	/* conflicts with MacTraps version */
 	GrowWindow proto((void)),
+#endif
 	IncFSearch proto((void)),
 	IncRSearch proto((void)),
 	InsFile proto((void)),
@@ -418,7 +402,6 @@ extern void
 	TransLines proto((void)),
 	SaveFile proto((void)),
 	WtModBuf proto((void)),
-	WriteFile proto((void)),
 	WriteMacs proto((void)),
 	WrtReg proto((void)),
 	Yank proto((void)),
@@ -473,3 +456,119 @@ extern void
 	ProcKmBind proto((void)),
 
 	MacInter proto((void));		/* This is the last one. */
+
+/*==== Declarations of Library/System Routines ====*/
+
+/* General Utilities: <stdlib.h> */
+
+extern int	abs proto((int));
+
+extern void	abort proto((void));
+extern void	exit proto((int));
+
+extern int	atoi proto((const char */*nptr*/));
+
+extern void	qsort proto((UnivPtr /*base*/, size_t /*nmemb*/,
+	size_t /*size*/, int (*/*compar*/)(UnivConstPtr, UnivConstPtr)));
+
+extern char	*getenv proto((const char *));
+extern int	system proto((const char *));
+
+extern void
+	free proto((UnivPtr));
+
+extern char
+	*calloc proto((unsigned int, unsigned int)),
+	*malloc proto((size_t)),
+	*realloc proto((UnivPtr, size_t));
+
+/* Date and Time <time.h> */
+
+extern time_t	time proto((time_t */*tloc*/));
+extern char	*ctime proto((const time_t *));
+
+/* UNIX */
+
+#ifdef IBMPC
+#define const	/* the const's in the following defs conflict with MSC 5.1 */
+#endif
+
+extern int	chdir proto((const char */*path*/));
+extern int	access proto((const char */*path*/, int /*mode*/));
+extern int	creat proto((const char */*path*/, int /*mode*/));
+	/* Open may have an optional third argument, int mode */
+extern int	open proto((const char */*path*/, int /*flags*/, ...));
+
+#ifdef IBMPC
+extern int	read proto((int /*fd*/, char * /*buf*/, size_t /*nbytes*/));
+extern int	write proto((int /*fd*/, char * /*buf*/, size_t /*nbytes*/));
+#else
+extern int	read proto((int /*fd*/, UnivPtr /*buf*/, size_t /*nbytes*/));
+extern int	write proto((int /*fd*/, UnivPtr /*buf*/, size_t /*nbytes*/));
+#endif
+
+extern int	execl proto((const char */*name*/, const char */*arg0*/, ...));
+extern int	execlp proto((const char */*name*/, const char */*arg0*/, ...));
+extern int	execv proto((const char */*name*/, const char */*argv*/[]));
+extern int	execvp proto((const char */*name*/, const char */*argv*/[]));
+
+#ifdef IBMPC
+#undef const
+#endif
+
+extern void	_exit proto((int));	/* exit(), without flush, etc */
+
+extern unsigned	alarm proto((unsigned /*seconds*/));
+
+extern int	pipe proto((int *));
+extern int	close proto((int));
+extern int	dup proto((int));
+extern int	dup2 proto((int /*old_fd*/, int /*new_fd*/));
+extern long	lseek proto((int /*fd*/, long /*offset*/, int /*whence*/));
+extern int	fchmod proto((int /*fd*/, int /*mode*/));
+extern int	unlink proto((const char */*path*/));
+extern int	fsync proto((int));
+
+extern int	fork proto((void));
+
+extern int	getpid proto((void));
+extern int	getuid proto((void));
+
+extern int	kill proto((int /*pid*/, int /*sig*/));
+
+extern char	*mktemp proto((char *));
+
+/* BSD UNIX
+ *
+ * Note: in most systems, declarations of non-existant functions is
+ * OK if they are never actually called.  The parentheses around the
+ * name prevents any macro expansion.
+ */
+
+extern int	UNMACRO(vfork) proto((void));
+
+#ifdef BSD_SIGS
+extern int	UNMACRO(killpg) proto((int /*pgrp*/, int /*sig*/));
+#endif
+extern int	UNMACRO(setpgrp) proto((int /*pid*/, int /*pgrp*/));	/* Sys V takes no arg */
+
+#ifdef	__STDC__
+struct timeval;	/* forward declaration */
+#endif	/* __STDC__ */
+extern int	UNMACRO(select) proto((int /*width*/, long */*readfds*/, long */*writefds*/,
+	long */*exceptfds*/, struct timeval */*timeout*/));
+
+extern void	UNMACRO(bcopy) proto((UnivConstPtr, UnivPtr, size_t));
+extern void	UNMACRO(bzero) proto((UnivPtr, size_t));
+extern int	UNMACRO(ffs) proto((long));
+
+/* termcap */
+
+extern int	UNMACRO(tgetent) proto((char */*buf*/, const char */*name*/));
+extern int	UNMACRO(tgetflag) proto((const char */*id*/));
+extern int	UNMACRO(tgetnum) proto((const char */*id*/));
+extern char	*UNMACRO(tgetstr) proto((const char */*id*/, char **/*area*/));
+extern void	UNMACRO(tputs) proto((const char *, int, void (*) proto((int))));
+extern char	*UNMACRO(tgoto) proto((const char *, int /*destcol*/, int /*destline*/));
+
+

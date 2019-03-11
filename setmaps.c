@@ -7,30 +7,24 @@
 
 #define TXT_TO_C	1	/* must be a number for MAC compiler */
 
+#include <stdio.h>
+
 #include "funcdefs.c"
 
 #ifdef MAC
 #include "vars.c"
 #endif
 
-#undef putchar	/* From jove.h via funcdefs.c, conflicts with STDIO */
-#undef putc
-#undef getc
-#undef EOF
-#undef FILE
-#undef BUFSIZ
-#undef NULL
-#include <stdio.h>
-
 private int
 matchcmd(choices, what)
 register const struct cmd	choices[];
 register char	*what;
 {
-	register int	len;
-	int	i;
+	register int	i;
+#ifndef MAC
+	size_t	len = strlen(what);
+#endif
 
-	len = strlen(what);
 	for (i = 0; choices[i].Name != 0; i++) {
 		if (*what != *choices[i].Name)
 			continue;
@@ -134,27 +128,27 @@ char	*argv[];
 		exit(1);
 	}
 	while (fgets(line, sizeof line, ifile) != NULL) {
-		if (strncmp(line, "#if", 3) == 0) {
+		if (strncmp(line, "#if", (size_t) 3) == 0) {
 			savech = ch;
 			fprintf(of, line);
 			continue;
-		} else if (strncmp(line, "#else", 5) == 0) {
+		} else if (strncmp(line, "#else", (size_t) 5) == 0) {
 			if (savech == -1)
 				fprintf(stderr, "WARNING: ifdef/endif mismatch!\n");
 			else
 				ch = savech;
 			fprintf(of, line);
 			continue;
-		} else if (strncmp(line, "#endif", 6) == 0) {
+		} else if (strncmp(line, "#endif", (size_t) 6) == 0) {
 			savech = -1;
 			fprintf(of, line);
 			continue;
 #ifdef MAC
-		} else if (strncmp(line, "#MENU", 5) == 0) {
+		} else if (strncmp(line, "#MENU", (size_t) 5) == 0) {
 			inmenu = 1;
 			continue;
 #endif
-		} else if (strncmp(line, "\t\"", 2) != 0) {
+		} else if (strncmp(line, "\t\"", (size_t) 2) != 0) {
 			fprintf(of, line);
 			ch = 0;
 			continue;

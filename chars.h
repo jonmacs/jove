@@ -5,8 +5,8 @@
  * included in all the files.                                              *
  ***************************************************************************/
 
-#define CTL(c)		(c & 037)
-#define META(c)		(c | 0200)
+#define CTL(c)		((c) & 037)
+#define META(c)		((c) | 0200)
 #define RUBOUT		'\177'
 #define LF		CTL('J')
 #define CR		CTL('M')

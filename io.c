@@ -128,7 +128,7 @@ int	char1,
 			io_chars += (char2 - char1);
 		} else {
 			while ((c = *lp++) != '\0') {
-				putc(c, fp);
+				jputc(c, fp);
 				io_chars += 1;
 			}
 		}
@@ -136,9 +136,9 @@ int	char1,
 			io_lines += 1;
 			io_chars += 1;
 #ifdef MSDOS
-			putc('\r', fp);
+			jputc('\r', fp);
 #endif /* MSDOS */
-			putc('\n', fp);
+			jputc('\n', fp);
 		}
 		line1 = line1->l_next;
 		char1 = 0;
@@ -188,10 +188,11 @@ int	is_insert;
 	}
 	if (is_insert == NO) {
 		set_ino(curbuf);
-		if (fp->f_flags & F_READONLY)
+		if (fp->f_flags & F_READONLY) {
 			set_arg_value(1);
-		else
+		} else {
 			set_arg_value(0);
+		}
 		TogMinor(ReadOnly);
 	}
 
@@ -224,10 +225,10 @@ SaveFile()
 }
 
 char	*HomeDir;	/* home directory */
-int	HomeLen = -1;	/* length of home directory string */
+size_t	HomeLen;	/* length of home directory string */
 
 private List		*DirStack = 0;
-#define dir_name(dp)	((char *) (list_data(dp)))
+#define dir_name(dp)	((char *) list_data((dp)))
 #define PWD_PTR		(list_data(DirStack))
 #define PWD		((char *) PWD_PTR)
 
@@ -252,7 +253,9 @@ int	okay_home;
 	    (fname[n] == '/'))
 		return fname + n + 1;
 
-	if (okay_home == YES && strcmp(HomeDir, "/") != 0 && strncmp(fname, HomeDir, HomeLen) == 0) {
+	if (okay_home && strcmp(HomeDir, "/") != 0 &&
+	    strncmp(fname, HomeDir, HomeLen) == 0 &&
+	    fname[HomeLen] == '/') {
 		static char	name_buf[100];
 
 		swritef(name_buf, "~%s", fname + HomeLen);
@@ -261,10 +264,6 @@ int	okay_home;
 
 	return fname;	/* return entire path name */
 }
-
-#ifdef	MSDOS
-extern unsigned int fmask;
-#endif	/* MSDOS */
 
 void
 Chdir()
@@ -488,7 +487,7 @@ char	*file,
 	do {
 		if (*file == 0)
 			break;
-		if ((sp = index(file, '/')) != '\0')
+		if ((sp = strchr(file, '/')) != '\0')
 			*sp = 0;
 		if (strcmp(file, ".") == 0)
 			;	/* So it will get to the end of the loop */
@@ -578,7 +577,7 @@ char	*name,
 		}
 #if !(defined(MSDOS) || defined(MAC))	/* may add for mac in future */
 		else {
-			char	*uendp = index(name, '/'),
+			char	*uendp = strchr(name, '/'),
 				unamebuf[30];
 
 			if (uendp == 0)
@@ -698,7 +697,7 @@ WriteFile()
 		register int	c;
 
 		while ((c = *cp++ & CHARMASK) != '\0')	/* avoid sign extension... */
-			if (c < ' ' || c == '\177' || index(badchars, c))
+			if (c < ' ' || c == '\177' || strchr(badchars, c))
 				complain("'%p': bad character in filename.", c);
 	}
 
@@ -706,7 +705,7 @@ WriteFile()
 	chk_mtime(curbuf, fname, "write");
 #endif
 	filemunge(fname);
-	curbuf->b_type = B_FILE;  	/* in case it wasn't before */
+	curbuf->b_type = B_FILE;	/* in case it wasn't before */
 	setfname(curbuf, fname);
 	file_write(fname, 0);
 }
@@ -1030,25 +1029,30 @@ register File	*fp;
 	nl = nleft;
 	free_ptr = blk_round(free_ptr);
 	while (--room > 0) {
+		/* We can't store NUL in our buffer, so ignore it.
+		 * Of course, with a little ingenuity we could:
+		 * NUL could be represented by \n!
+		 */
+		do {
 #ifdef MSDOS
-		if (crleft) {
-		   c = crleft;
-		   crleft = 0;
-		} else
+		    if (crleft) {
+			c = crleft;
+			crleft = 0;
+			} else
 #endif /* MSDOS */
-		c = getc(fp);
+		    c = jgetc(fp);
+		} while (c == '\0');
 		if (c == EOF || c == '\n')
 			break;
 #ifdef MSDOS
-		if (c == '\r')
-		    if ((crleft = getc(fp)) == '\n') {
-			    crleft = 0;
-			    break;
-			}
+		if (c == '\r' && (crleft = jgetc(fp)) == '\n') {
+			crleft = 0;
+			break;
+		}
 #endif /* MSDOS */
 		if (--nl == 0) {
 			char	*newbp;
-			int	nbytes;
+			size_t	nbytes;
 
 			lockblock(free_ptr);
 			DFree = free_ptr = forward_block(free_ptr);
@@ -1083,7 +1087,7 @@ register File	*fp;
 typedef struct block {
 	short	b_dirty,
 		b_bno;
-	char	b_buf[BUFSIZ];
+	char	b_buf[JBUFSIZ];
 	struct block
 		*b_LRUnext,
 		*b_LRUprev,
@@ -1091,7 +1095,7 @@ typedef struct block {
 } Block;
 
 #define HASHSIZE	7	/* Primes work best (so I'm told) */
-#define B_HASH(bno)	(bno % HASHSIZE)
+#define B_HASH(bno)	((bno) % HASHSIZE)
 
 #ifdef MAC
 private Block	*b_cache,
@@ -1122,15 +1126,16 @@ extern int read(), write();
 private void
 real_blkio(b, iofcn)
 register Block	*b;
-#ifdef MAC
-register int 	(*iofcn)();
+#if defined(MAC) || defined(IBMPC)
+register int	(*iofcn)();
 #else
-register int	(*iofcn) proto((int, char *, unsigned int));
+register int	(*iofcn) proto((int, UnivPtr, size_t));
 #endif /* MAC */
 {
-	(void) lseek(tmpfd, (long) ((unsigned) b->b_bno) * BUFSIZ, 0);
-	if ((*iofcn)(tmpfd, b->b_buf, (unsigned int)BUFSIZ) != BUFSIZ)
-		error("[Tmp file %s error; to continue editing would be dangerous]", (iofcn == read) ? "READ" : "WRITE");
+	(void) lseek(tmpfd, (long) ((unsigned) b->b_bno) * JBUFSIZ, 0);
+	if ((*iofcn)(tmpfd, b->b_buf, (size_t)JBUFSIZ) != JBUFSIZ)
+		error("[Tmp file %s error; to continue editing would be dangerous]",
+			(iofcn == read) ? "READ" : "WRITE");
 }
 
 private void
@@ -1269,7 +1274,7 @@ int	iof;
 	off = da_to_off(atl);
 	if (da_too_huge(atl))
 		error("Tmp file too large.  Get help!");
-	nleft = BUFSIZ - off;
+	nleft = JBUFSIZ - off;
 	if (lastb != 0 && lastb->b_bno == bno) {
 		lastb->b_dirty |= iof;
 		return lastb->b_buf + off;
@@ -1360,17 +1365,17 @@ char *fname;
 	register int	i;
 	int	fd1,
 		fd2;
-	char	tmp1[BUFSIZ],
-		tmp2[BUFSIZ];
+	char	tmp1[JBUFSIZ],
+		tmp2[JBUFSIZ];
 	struct stat buf;
 	int	mode;
 
 	strcpy(tmp1, fname);
-	if ((s = rindex(tmp1, '/')) == NULL)
-		swritef(tmp2, "#%s", fname);
+	if ((s = strrchr(tmp1, '/')) == NULL)
+		swritef(tmp2, "#%s~", fname);
 	else {
 		*s++ = '\0';
-		swritef(tmp2, "%s/#%s", tmp1, s);
+		swritef(tmp2, "%s/#%s~", tmp1, s);
 	}
 
 	if ((fd1 = open(fname, 0)) < 0)
@@ -1389,7 +1394,7 @@ char *fname;
 		return;
 	}
 	while ((i = read(fd1, tmp1, sizeof(tmp1))) > 0)
-		write(fd2, tmp1, i);
+		write(fd2, tmp1, (size_t) i);
 #ifdef BSD4_2
 	(void) fsync(fd2);
 #endif
@@ -1402,7 +1407,7 @@ char *fname;
 
 	strcpy(tmp, fname);
 	slash = basename(tmp);
-	if (dot = rindex(slash, '.')) {
+	if (dot = strrchr(slash, '.')) {
 	   if (!stricmp(dot,".bak"))
 		return;
 	   else *dot = 0;

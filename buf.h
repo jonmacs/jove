@@ -7,7 +7,7 @@
 
 /* maximum length of a line (including '\0').  Currently cannot
    be larger than a logical disk block. */
-#define	LBSIZE		BUFSIZ
+#define	LBSIZE		JBUFSIZ
 
 /* buffer types */
 #define B_SCRATCH	1	/* for internal things, e.g. minibuffer ... */
@@ -25,8 +25,8 @@
 # define NMAJORS	3
 #endif
 
-#define MajorMode(x)	(curbuf->b_major == x)
-#define SetMajor(x)	((curbuf->b_major = x), UpdModLine = YES)
+#define MajorMode(x)	(curbuf->b_major == (x))
+#define SetMajor(x)	{ curbuf->b_major = (x); UpdModLine = YES; }
 
 /* minor modes */
 #define Indent		(1 << 0)	/* indent same as previous line after return */
@@ -36,8 +36,8 @@
 #define Abbrev		(1 << 4)	/* abbrev mode */
 #define ReadOnly	(1 << 5)	/* buffer is read only */
 
-#define BufMinorMode(b, x)	(b->b_minor & x)
-#define MinorMode(x)		BufMinorMode(curbuf, x)
+#define BufMinorMode(b, x)	((b)->b_minor & (x))
+#define MinorMode(x)		BufMinorMode(curbuf, (x))
 
 /* global line scratch buffers */
 #if defined(VMUNIX) || defined(MSDOS)
@@ -87,7 +87,7 @@ struct buffer {
 #define NMARKS	8			/* number of marks in the ring */
 
 	Mark	*b_markring[NMARKS],	/* new marks are pushed here */
-#define b_curmark(b)	(b->b_markring[b->b_themark])
+#define b_curmark(b)	((b)->b_markring[(b)->b_themark])
 #define curmark		b_curmark(curbuf)
 		*b_marks;		/* all the marks for this buffer */
 	char	b_themark,		/* current mark (in b_markring) */
@@ -109,8 +109,8 @@ extern Buffer	*world,		/* first buffer */
 				   buffer during a select buffer. */
 		*perr_buf;	/* Buffer with error messages */
 
-#define curline	curbuf->b_dot
-#define curchar curbuf->b_char
+#define curline	(curbuf->b_dot)
+#define curchar (curbuf->b_char)
 
 /* kill buffer */
 #define NUMKILLS	10	/* number of kills saved in the kill ring */
@@ -131,7 +131,7 @@ extern Buffer
 
 extern char
 	*ask_buf proto((struct buffer *def)),
-	*ralloc proto((char *obj,int size));
+	*ralloc proto((char *obj, size_t size));
 
 #ifdef	__STDC__
 struct macro;
@@ -161,7 +161,7 @@ extern void
 	f_char proto((int n)),
 	f_word proto((int num)),
 	freeline proto((struct line *line)),
-	ins_str proto((char *str,int ok_nl)),
+	ins_str proto((char *str,int ok_nl, int max_off)),
 	insert_c proto((int c,int n)),
 	lfreelist proto((struct line *first)),
 	lfreereg proto((struct line *line1,struct line *line2)),

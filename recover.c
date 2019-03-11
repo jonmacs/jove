@@ -7,8 +7,10 @@
 
 /* Recovers JOVE files after a system/editor crash.
    Usage: recover [-d directory] [-syscrash]
-   The -syscrash option is specified in /etc/rc and what it does is
-   move all the jove tmp files from TMP_DIR to REC_DIR.
+   The -syscrash option is specified in /etc/rc.  It directs recover to
+   move all the jove tmp files from TMP_DIR (/tmp) to REC_DIR (/usr/preserve).
+   recover -syscrash must be invoked in /ect/rc BEFORE /tmp gets cleared out.
+   (about the same place as expreserve gets invoked to save ed/vi/ex files.
 
    The -d option lets you specify the directory to search for tmp files when
    the default isn't the right one.
@@ -17,29 +19,34 @@
 
 #include <stdio.h>	/* Do stdio first so it doesn't override OUR
 			   definitions. */
-#undef EOF
-#undef BUFSIZ
-#undef putchar
-#undef getchar
-
-#define STDIO
-
 #include "jove.h"
 #include "temp.h"
 #include "rec.h"
+#include "rectune.h"
 #include <signal.h>
 #include <sys/file.h>
 #include <sys/stat.h>
 #include <sys/dir.h>
+#include <sys/wait.h>
+#include <pwd.h>
+#include <time.h>
+#ifdef SYSV
+# include <sys/utsname.h>
+#endif
+
+extern int	UNMACRO(getuid) proto((void));
+extern int	UNMACRO(setuid) proto((int));
+extern int	UNMACRO(chown) proto((const char *, int, int));
+extern void	UNMACRO(perror) proto((const char *));
 
 #ifndef L_SET
 #	define L_SET	0
 #	define L_INCR	1
 #endif
 
-extern char	*ctime proto((time_t *));
+extern char	*ctime proto((const time_t *));
 
-private char	blk_buf[BUFSIZ];
+private char	blk_buf[JBUFSIZ];
 private int	nleft;
 private FILE	*ptrs_fp;
 private int	data_fd;
@@ -61,7 +68,7 @@ private struct file_pair {
 
 private struct rec_entry	*buflist[100];	/* system initializes to 0 */
 
-#ifndef BSD4_2
+#ifndef BSD_DIR
 
 typedef struct {
 	int	d_fd;		/* File descriptor for this directory */
@@ -147,13 +154,13 @@ daddr	atl;
 
 	bno = da_to_bno(atl);
 	off = da_to_off(atl);
-	nleft = BUFSIZ - off;
+	nleft = JBUFSIZ - off;
 
 	if (bno != curblock) {
 		extern long	lseek proto((int, long, int));
 
-		lseek(data_fd, (long) bno * BUFSIZ, L_SET);
-		read(data_fd, blk_buf, BUFSIZ);
+		lseek(data_fd, (long) bno * JBUFSIZ, L_SET);
+		read(data_fd, blk_buf, (size_t)JBUFSIZ);
 		curblock = bno;
 	}
 	return blk_buf + off;
@@ -179,7 +186,7 @@ scandir(dir, nmptr, qualify, sorter)
 char	*dir;
 struct direct	***nmptr;
 int	(*qualify) proto((struct direct *));
-int	(*sorter) proto((struct direct **, struct direct **));
+int	(*sorter) proto((UnivConstPtr, UnivConstPtr));
 {
 	DIR	*dirp;
 	struct direct	*entry,
@@ -208,7 +215,7 @@ int	(*sorter) proto((struct direct **, struct direct **));
 		ourarray = (struct direct **) realloc((char *)ourarray,
 					(nentries * sizeof (struct direct)));
 	if (sorter != NULL)
-		qsort(ourarray, nentries, sizeof (struct direct **), sorter);
+		qsort((UnivPtr)ourarray, (size_t) nentries, sizeof (struct direct **), sorter);
 	*nmptr = ourarray;
 
 	return nentries;
@@ -228,8 +235,9 @@ char	*dirname;
 	struct direct	**nmptr;
 
 	CurDir = dirname;
+	First = NULL;
 	scandir(dirname, &nmptr, add_name,
-		(int (*) proto((struct direct **, struct direct **)))NULL);
+		(int (*) proto((UnivConstPtr, UnivConstPtr)))NULL);
 }
 
 private int
@@ -242,7 +250,7 @@ struct direct	*dp;
 	struct rec_head		header;
 	int	fd;
 
-	if (strncmp(dp->d_name, "jrec", 4) != 0)
+	if (strncmp(dp->d_name, "jrec", (size_t)4) != 0)
 		return 0;
 	/* If we get here, we found a "recover" tmp file, so now
 	   we look for the corresponding "data" tmp file.  First,
@@ -345,11 +353,11 @@ char	*buf;
 	int	c;
 	char	*bp = buf;
 
-	while (index(" \t\n", c = getchar()))
+	while (strchr(" \t\n", c = getchar()))
 		;
 
 	do {
-		if (index(" \t\n", c))
+		if (strchr(" \t\n", c))
 			break;
 		*bp++ = c;
 	} while ((c = getchar()) != EOF);
@@ -370,14 +378,16 @@ char	*quest,
 	readword(answer);
 }
 
-/* Print the specified file to strandard output. */
+/* Print the specified file to standard output. */
 
 private jmp_buf	int_env;
 
-private void
-catch()
+private SIGRESULT
+catch(junk)
+int	junk;
 {
 	longjmp(int_env, 1);
+	/*NOTREACHED*/
 }
 
 private void	get proto((struct rec_entry **src, char *dest));
@@ -426,19 +436,24 @@ char	*dest;
 		return;
 	(void) signal(SIGINT, catch);
 	if (setjmp(int_env) == 0) {
-		if ((outfile = fopen(dest, "w")) == NULL) {
-			printf("recover: cannot create %s.\n", dest);
-			return;
-		}
-		if (dest != tty)
+		if (dest == tty)
+			outfile = stdout;
+		else {
+			if ((outfile = fopen(dest, "w")) == NULL) {
+				printf("recover: cannot create %s.\n", dest);
+				(void) signal(SIGINT, SIG_DFL);
+				return;
+			}
 			printf("\"%s\"", dest);
+		}
 		dump_file(src - buflist, outfile);
 	} else
 		printf("\nAborted!\n");
-	fclose(outfile);
-	if (dest != tty)
-		printf(" %ld lines, %ld characters.\n", Nlines, Nchars);
 	(void) signal(SIGINT, SIG_DFL);
+	if (dest != tty) {
+		fclose(outfile);
+		printf(" %ld lines, %ld characters.\n", Nlines, Nchars);
+	}
 }
 
 private char **
@@ -458,7 +473,7 @@ private void
 read_rec(recptr)
 struct rec_entry	*recptr;
 {
-	if (fread((char *) recptr, sizeof *recptr, 1, ptrs_fp) != 1)
+	if (fread((char *) recptr, sizeof *recptr, (size_t)1, ptrs_fp) != 1)
 		fprintf(stderr, "recover: cannot read record.\n");
 }
 
@@ -514,7 +529,7 @@ FILE	*out;
 {
 	register int	nlines;
 	register daddr	addr;
-	char	buf[BUFSIZ];
+	char	buf[JBUFSIZ];
 
 	seekto(which);
 	nlines = buflist[which]->r_nlines;
@@ -528,8 +543,6 @@ FILE	*out;
 		if (nlines > 0)
 			fputc('\n', out);
 	}
-	if (out != stdout)
-		fclose(out);
 }
 
 /* List all the buffers. */
@@ -562,7 +575,7 @@ struct file_pair	*fp;
 			fprintf(stderr, "recover: cannot read rec file (%s).\n", pntrfile);
 		return 0;
 	}
-	fread((char *) &Header, sizeof Header, 1, ptrs_fp);
+	fread((char *) &Header, sizeof Header, (size_t)1, ptrs_fp);
 	if (Header.Uid != UserID)
 		return 0;
 
@@ -663,37 +676,126 @@ struct file_pair	*fp;
 	(void) unlink(fp->file_rec);
 }
 
-#ifdef notdef
+
+
+private void
+MailUser(rec)
+struct rec_head *rec;
+{
+#ifdef SYSV
+	struct utsname mach;
+#else
+	char mach[BUFSIZ];
+#endif
+	char mail_cmd[BUFSIZ];
+	char *last_update;
+	char *buf_string;
+	FILE *mail_pipe;
+	struct passwd *pw;
+	extern struct passwd *getpwuid proto((int));
+
+	if ((pw = getpwuid(rec->Uid))== NULL)
+		return;
+#ifdef SYSV
+	if (uname(&mach) < 0)
+		strcpy(mach.sysname, "unknown");
+#else
+	{
+		extern int	gethostname proto((const char *, size_t));
+
+		gethostname(mach, sizeof(mach));
+	}
+#endif
+	last_update = ctime(&(rec->UpdTime));
+	/* Start up mail */
+	sprintf(mail_cmd, "/bin/mail %s", pw->pw_name);
+	setuid(getuid());
+	if ((mail_pipe = popen(mail_cmd, "w")) == NULL)
+		return;
+	setbuf(mail_pipe, mail_cmd);
+	/* Let's be grammatically correct! */
+	if (rec->Nbuffers == 1)
+		buf_string = "buffer";
+	else
+		buf_string = "buffers";
+	fprintf(mail_pipe, "Subject: System crash\n");
+	fprintf(mail_pipe, " \n");
+	fprintf(mail_pipe, "Jove saved %d %s when the system \"%s\"\n",
+	 rec->Nbuffers, buf_string,
+#ifdef SYSV
+	 mach.sysname
+#else
+	 mach
+#endif
+	 );
+	fprintf(mail_pipe, "crashed on %s\n\n", last_update);
+	fprintf(mail_pipe, "You can retrieve the %s using Jove's -r\n",
+	 buf_string);
+	fprintf(mail_pipe, "(recover option) i.e. give the command.\n");
+	fprintf(mail_pipe, "\tjove -r\n");
+	fprintf(mail_pipe, "See the Jove manual for more details\n");
+	pclose(mail_pipe);
+}
+
+
+private void
 savetmps()
 {
 	struct file_pair	*fp;
-	int	status,
-		pid;
+	union wait	status;
+	int	pid,
+		fd;
+	struct rec_head		header;
+	char	buf[BUFSIZ];
+	char	*fname;
+	struct stat		stbuf;
 
 	if (strcmp(TMP_DIR, REC_DIR) == 0)
 		return;		/* Files are moved to the same place. */
 	get_files(TMP_DIR);
 	for (fp = First; fp != 0; fp = fp->file_next) {
+		stat(fp->file_data, &stbuf);
 		switch (pid = fork()) {
 		case -1:
 			fprintf(stderr, "recover: can't fork\n!");
 			exit(-1);
+			/*NOTREACHED*/
 
 		case 0:
-			execl("/bin/cp", "cp", fp->file_data, fp->file_rec,
+			fprintf(stderr, "Recovering: %s, %s\n", fp->file_data,
+			 fp->file_rec);
+			if ((fd = open(fp->file_rec, 0)) != -1) {
+				if ((read(fd, (char *) &header, sizeof header) != sizeof header)) {
+					close(fd);
+					return;
+				} else
+					close(fd);
+			}
+			MailUser(&header);
+			execl("/bin/mv", "mv", fp->file_data, fp->file_rec,
 				  REC_DIR, (char *)0);
-			fprintf(stderr, "recover: cannot execl /bin/cp.\n");
+			fprintf(stderr, "recover: cannot execl /bin/mv.\n");
 			exit(-1);
+			/*NOTREACHED*/
 
 		default:
 			while (wait(&status) != pid)
 				;
-			if (status != 0)
-				fprintf(stderr, "recover: non-zero status (%d) returned from copy.\n", status);
+			if (status.w_status != 0)
+				fprintf(stderr, "recover: non-zero status (%d) returned from copy.\n", status.w_status);
+			fname = fp->file_data + strlen(TMP_DIR);
+			strcpy(buf, REC_DIR);
+			strcat(buf, fname);
+			if(chown(buf, (int) stbuf.st_uid, (int) stbuf.st_gid) != 0)
+				perror("recover: chown failed.");
+			fname = fp->file_rec + strlen(TMP_DIR);
+			strcpy(buf, REC_DIR);
+			strcat(buf, fname);
+			if(chown(buf, (int) stbuf.st_uid, (int) stbuf.st_gid) != 0)
+				perror("recover: chown failed.");
 		}
 	}
 }
-#endif
 
 private int
 lookup(dir)
@@ -722,35 +824,41 @@ char	*argv[];
 {
 	int	nfound;
 	char	**argvp;
+	char	*tmp_dir;
 
 	UserID = getuid();
 
 	if (scanvec(argv, "-help")) {
-		printf("recover: usage: recover [-d directory]\n");
-		printf("Use \"recover\" after JOVE has died for some\n");
+		printf("recover: usage: recover [-d directory] [-syscrash]\n");
+		printf("Use \"jove -r\" after JOVE has died for some\n");
 		printf("unknown reason.\n\n");
-/*		printf("Use \"recover -syscrash\" when the system is in the process\n");
-		printf("of rebooting.  This is done automatically at reboot time\n");
+		printf("Use \"%s -syscrash\"\n", Recover);
+		printf("when the system is in the process of rebooting.");
+		printf("This is done automatically at reboot time\n");
 		printf("and so most of you don't have to worry about that.\n\n");
- */
 		printf("Use \"recover -d directory\" when the tmp files are store\n");
 		printf("in DIRECTORY instead of the default one (/tmp).\n");
 		exit(0);
 	}
 	if (scanvec(argv, "-v"))
 		Verbose = YES;
-/*	if (scanvec(argv, "-syscrash")) {
+	if (scanvec(argv, "-syscrash")) {
 		printf("Recovering jove files ... ");
 		savetmps();
 		printf("Done.\n");
 		exit(0);
-	} */
+	}
 	if ((argvp = scanvec(argv, "-uid")) != NULL)
 		UserID = atoi(argvp[1]);
 	if ((argvp = scanvec(argv, "-d")) != NULL)
-		nfound = lookup(argvp[1]);
+		tmp_dir = argvp[1];
 	else
-		nfound = lookup(TmpFilePath);
+		tmp_dir = TmpFilePath;
+	/* Check default directory */
+	nfound = lookup(tmp_dir);
+	/* Check whether anything was saved when system died? */
+	if (strcmp(tmp_dir, REC_DIR) != 0)
+		nfound += lookup(REC_DIR);
 	if (nfound == 0)
 		printf("There's nothing to recover.\n");
 }

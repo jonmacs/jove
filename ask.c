@@ -19,7 +19,7 @@
 # include "mac.h"
 #else	/* !MAC */
 # ifdef	STDARGS
-#  include <stdargs.h>
+#  include <stdarg.h>
 # else
 #  include <varargs.h>
 # endif
@@ -29,7 +29,7 @@
 #endif	/* !MAC */
 
 private Buffer * get_minibuf proto((void));
-private char * real_ask proto((char *, int (*)(), char *, char *));
+private char * real_ask proto((char *, int (*) proto((int)), char *, char *));
 
 private int
 	f_complete proto((int)),
@@ -80,7 +80,7 @@ int	movedown;
 
 	SetBuf(get_minibuf());
 	LineInsert(1);
-	ins_str(str, NO);
+	ins_str(str, NO, -1);
 	if (movedown)
 		CurAskPtr = curline;
 	SetBuf(saveb);
@@ -118,8 +118,8 @@ EVexpand()
 		   then we continue in case there are others ... */
 		if ((ep = getenv(varname)) != NIL) {
 			curchar = lp_start - linebuf;
-			ins_str(ep, NO);
-			del_char(FORWARD, strlen(varname) + 1, NO);
+			ins_str(ep, NO, -1);
+			del_char(FORWARD, (int)strlen(varname) + 1, NO);
 			lp = linebuf + curchar;
 		}
 	}
@@ -134,14 +134,14 @@ real_ask(delim, d_proc, def, prompt)
 char	*delim,
 	*def,
 	*prompt;
-int	(*d_proc)();
+int	(*d_proc) proto((int));
 {
 	jmp_buf	savejmp;
 	int	c,
 		prompt_len;
 	Buffer	*saveb = curbuf;
-	int	abort = 0,
-		no_typed = 0;
+	int	aborted = NO,
+		no_typed = NO;
 	data_obj	*push_cmd = LastCmd;
 	int	o_a_v = arg_value(),
 		o_i_an_a = is_an_arg();
@@ -164,7 +164,7 @@ int	(*d_proc)();
 
 	if (setjmp(mainjmp))
 		if (InJoverc) {		/* this is a kludge */
-			abort = YES;
+			aborted = YES;
 			goto cleanup;
 		}
 
@@ -175,14 +175,14 @@ int	(*d_proc)();
 cont:		s_mess("%s%s", prompt, linebuf);
 		Asking = curchar + prompt_len;
 		c = getch();
-		if ((c == EOF) || index(delim, c)) {
+		if ((c == EOF) || jstrchr(delim, c)) {
 			if (DoEVexpand)
 				EVexpand();
-			if (d_proc == (int(*)())0 || (*d_proc)(c) == 0)
+			if (d_proc == (int(*) proto((int)))0 || (*d_proc)(c) == 0)
 				goto cleanup;
 		} else if (c == AbortChar) {
 			message("[Aborted]");
-			abort = YES;
+			aborted = YES;
 			goto cleanup;
 		} else switch (c) {
 		case CTL('N'):
@@ -202,7 +202,7 @@ cont:		s_mess("%s%s", prompt, linebuf);
 
 		case CTL('R'):
 			if (def)
-				ins_str(def, NO);
+				ins_str(def, NO, -1);
 			else
 				rbell();
 			break;
@@ -230,7 +230,7 @@ cleanup:
 	strcpy(Minibuf, linebuf);
 	SetBuf(saveb);
 	InRealAsk = Asking = Interactive = NO;
-	if (!abort) {
+	if (!aborted) {
 		if (!charp()) {
 			Placur(ILI, 0);
 			flusho();
@@ -260,7 +260,7 @@ ask(def, fmt, va_alist)
 	va_init(ap, fmt);
 	format(prompt, sizeof prompt, fmt, ap);
 	va_end(ap);
-	ans = real_ask("\r\n", (int (*)()) 0, def, prompt);
+	ans = real_ask("\r\n", (int (*) proto((int))) 0, def, prompt);
 	if (ans == 0) {		/* Typed nothing. */
 		if (def == 0)
 			complain("[No default]");
@@ -271,14 +271,14 @@ ask(def, fmt, va_alist)
 
 #ifdef	STDARGS
 	char *
-do_ask(char *delim, int (*d_proc)(), char *def, char *fmt,...)
+do_ask(char *delim, int (*d_proc) proto((int)), char *def, char *fmt,...)
 #else
 	/*VARARGS4*/ char *
 do_ask(delim, d_proc, def, fmt, va_alist)
 	char	*delim,
 		*def,
 		*fmt;
-	int	(*d_proc)();
+	int	(*d_proc) proto((int));
 	va_dcl
 #endif
 {
@@ -345,12 +345,12 @@ char	*name;
 {
 	char	*ip,
 		*bads = BadExtensions;
-	int	namelen = strlen(name),
-		ext_len,
-		stop = 0;
+	size_t	namelen = strlen(name),
+		ext_len;
+	int	stop = NO;
 
 	do {
-		if ((ip = index(bads, ' ')) == 0) {
+		if ((ip = strchr(bads, ' ')) == 0) {
 			ip = bads + strlen(bads);
 			stop = YES;
 		}
@@ -429,7 +429,7 @@ int	n;
 		return;
 	}
 	Eol();
-	if (minmatch > strlen(fc_filebase)) {
+	if (minmatch > (int)strlen(fc_filebase)) {
 		the_same = FALSE;
 		null_ncpy(fc_filebase, dir_vec[lastmatch], (size_t) minmatch);
 		Eol();
@@ -461,14 +461,14 @@ int	c;
 
 	if (c == CR || c == LF)
 		return 0;	/* tells ask to return now */
-#if !defined(MSDOS		/* kg */)
-	if ((fc_filebase = rindex(linebuf, '/')) != 0) {
+#if !defined(MSDOS)		/* kg */
+	if ((fc_filebase = strrchr(linebuf, '/')) != 0) {
 #else /* MSDOS */
-	fc_filebase = rindex(linebuf, '/');
+	fc_filebase = strrchr(linebuf, '/');
 	if (fc_filebase == (char *)0)
-		fc_filebase = rindex(linebuf, '\\');
+		fc_filebase = strrchr(linebuf, '\\');
 	if (fc_filebase == (char *)0)
-		fc_filebase = rindex(linebuf, ':');
+		fc_filebase = strrchr(linebuf, ':');
 	if (fc_filebase != (char *)0) {
 #endif /* MSDOS */
 		char	tmp[FILESIZE];
@@ -507,7 +507,7 @@ int	c;
 		Typeout((char *) 0);
 
 		for (i = 0; i < nentries; i++)
-			maxlen = max(strlen(dir_vec[i]), maxlen);
+			maxlen = max((int)strlen(dir_vec[i]), maxlen);
 		maxlen += 4;	/* pad each column with at least 4 spaces */
 		ncols = (CO - 2) / maxlen;
 		linespercol = 1 + (nentries / ncols);
@@ -552,7 +552,7 @@ char	*prmt,
 	else {
 		if (def != 0 && *def != '\0') {
 			swritef(prompt, ": %f (default %s) ", pretty_name);
-			if (strlen(prompt) * 2 >= CO)
+			if ((int)strlen(prompt) * 2 >= CO)
 				swritef(prompt, ProcFmt);
 		} else
 			swritef(prompt, ProcFmt);

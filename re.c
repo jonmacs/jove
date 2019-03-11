@@ -64,13 +64,13 @@ REgetc()
 
 #define NOSTR	14	/* Codes <= NOSTR can't be *'d. */
 
-#define ANYC	NOSTR+2		/* . */
-#define NORMC	ANYC+2		/* normal character */
-#define CINDC	NORMC+2		/* case independent character */
-#define ONE_OF	CINDC+2		/* [xxx] */
-#define NONE_OF	ONE_OF+2	/* [^xxx] */
-#define BACKREF	NONE_OF+2	/* \# */
-#define EOP	BACKREF+2	/* end of pattern */
+#define ANYC	(NOSTR+2)		/* . */
+#define NORMC	(ANYC+2)		/* normal character */
+#define CINDC	(NORMC+2)		/* case independent character */
+#define ONE_OF	(CINDC+2)		/* [xxx] */
+#define NONE_OF	(ONE_OF+2)	/* [^xxx] */
+#define BACKREF	(NONE_OF+2)	/* \# */
+#define EOP	(BACKREF+2)	/* end of pattern */
 
 /* ONE_OF/NONE_OF is represented as a bit vector.
  * These symbols parameterize the representation.
@@ -175,7 +175,7 @@ toolong:		complain("Search string too long/complex.");
 		prev_verb = this_verb;
 		this_verb = comp_ptr;
 
-		if (kind == NORM && index(".[*", c) != 0)
+		if (kind == NORM && strchr(".[*", c) != 0)
 			goto defchar;
 		switch (c) {
 		case '\\':
@@ -298,7 +298,7 @@ toolong:		complain("Search string too long/complex.");
 			*comp_ptr++ = ONE_OF;
 			if (comp_ptr + SETSIZE >= comp_endp)
 				goto toolong;
-			bzero(comp_ptr, SETSIZE);
+			byte_zero(comp_ptr, (size_t) SETSIZE);
 			if ((REpeekc = REgetc()) == '^') {
 				*this_verb = NONE_OF;
 				/* Get it for real this time. */

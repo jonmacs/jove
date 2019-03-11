@@ -120,9 +120,9 @@ private int	head_indent,
 static int	use_lmargin;
 
 /* some defines for paragraph boundery checking */
-#define I_EMPTY		-1	/* line "looks" empty (spaces and tabs) */
-#define I_PERIOD	-2	/* line begins with "." or "\" */
-#define I_BUFEDGE	-3	/* line is nonexistent (edge of buffer) */
+#define I_EMPTY		(-1)	/* line "looks" empty (spaces and tabs) */
+#define I_PERIOD	(-2)	/* line begins with "." or "\" */
+#define I_BUFEDGE	(-3)	/* line is nonexistent (edge of buffer) */
 
 static int	bslash;		/* Nonzero if get_indent finds line starting
 				   with backslash */
@@ -406,12 +406,12 @@ do_space()
 
 		nspace = 1;
 		if (diff >= 2) {
-			while (index("\")]", linebuf[topunct])) {
+			while (strchr("\")]", linebuf[topunct])) {
 				if (topunct == 0)
 					break;
 				topunct -= 1;
 			}
-			if (index("?!.:", linebuf[topunct]))
+			if (strchr("?!.:", linebuf[topunct]))
 				nspace = 2;
 		}
 	} else
@@ -464,7 +464,7 @@ int	c1,
 			if (eolp()) {
 				/* delete line separator */
 				del_char(FORWARD, 1, NO);
-				ins_str("  ", NO);
+				ins_str("  ", NO, -1);
 			} else {
 				cp = StrIndex(1, linebuf, curchar + 1, ' ');
 				if (cp == 0)

@@ -42,11 +42,11 @@ extern int
 	re_lindex proto((struct line *line,int offset,struct RE_block *re_blk, int lbuf_okay, int crater));
 
 extern Bufpos
-	*docompiled proto((int dir, struct RE_block *)),
+	*docompiled proto((int dir, struct RE_block *re_blk)),
 	*dosearch proto((char *pattern,int dir,int re));
 
 extern void
-	REcompile proto((char *pattern,int re,struct RE_block *)),
+	REcompile proto((char *pattern,int re,struct RE_block *re_blk)),
 	find_tag proto((char *tag,int localp)),
 	putmatch proto((int which,char *buf,size_t size)),
 	re_dosub proto((struct RE_block *re_blk, char *tobuf, int delp)),

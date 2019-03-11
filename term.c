@@ -14,7 +14,7 @@
 #ifndef MAC	/* most of the file... */
 
 # ifdef	STDARGS
-#  include <stdargs.h>
+#  include <stdarg.h>
 # else
 #  include <varargs.h>
 # endif
@@ -112,13 +112,6 @@ private char	**const meas[] = {
 };
 
 private void
-gets(buf)
-char	*buf;
-{
-	buf[read(0, buf, 12) - 1] = 0;
-}
-
-private void
 TermError()
 {
 	flusho();
@@ -128,7 +121,6 @@ TermError()
 void
 getTERM()
 {
-	extern char	*getenv(), *tgetstr() ;
 	char	termbuf[13],
 		*termname = NULL,
 		*termp = tspace,
@@ -143,7 +135,7 @@ getTERM()
 	    (strcmp(termname, "network") == 0)) {
 		putstr("Enter terminal type (e.g, vt100): ");
 		flusho();
-		gets(termbuf);
+		termbuf[read(0, termbuf, sizeof(termbuf)) - 1] = '\0';
 		if (termbuf[0] == 0)
 			TermError();
 
@@ -288,7 +280,7 @@ private void
 tputc(c)
 int	c;
 {
-	putchar(c);
+	jputchar(c);
 }
 #endif /* IBMPC */
 

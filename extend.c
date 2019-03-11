@@ -13,7 +13,7 @@
 #include "disp.h"
 #include "re.h"
 
-#ifdef JOB_CONTROL
+#if defined(JOB_CONTROL) || defined(IPROCS)
 # include <signal.h>
 #endif
 
@@ -21,7 +21,7 @@
 # include "mac.h"
 #else
 # ifdef	STDARGS
-#  include <stdargs.h>
+#  include <stdarg.h>
 # else
 #  include <varargs.h>
 # endif
@@ -68,7 +68,7 @@ MAutoExec()
 
 private void
 DefAutoExec(proc)
-#if defined(MAC)
+#if defined(MAC) || defined(IBMPC)
 data_obj	*(*proc)();
 #else
 data_obj	*(*proc) proto((char *));
@@ -82,12 +82,17 @@ data_obj	*(*proc) proto((char *));
 		complain("Too many auto-executes, max %d.", NEXECS);
 	if ((d = (*proc)(ProcFmt)) == 0)
 		return;
-	pattern = do_ask("\r\n", (int (*)()) 0, (char *) 0, ": %f %s ", d->Name);
-	if (pattern != 0)
-	    for (i = 0; i < ExecIndex; i++)
-		if ((AutoExecs[i].a_cmd == d) &&
-		    (strcmp(pattern, AutoExecs[i].a_pattern) == 0))
+	pattern = do_ask("\r\n", (int (*) proto((int))) 0, (char *) 0, ": %f %s ",
+		d->Name);
+	for (i = 0; i < ExecIndex; i++) {
+	    if (AutoExecs[i].a_cmd == d) {
+		char    *ipat = AutoExecs[i].a_pattern;
+
+		if ((pattern == NULL || ipat == NULL)?
+		    (pattern == ipat) : (strcmp(pattern, ipat) == 0))
 			return;		/* eliminate duplicates */
+	    }
+	}
 	AutoExecs[ExecIndex].a_pattern = copystr(pattern);
 	AutoExecs[ExecIndex].a_cmd = d;
 	ExecIndex += 1;
@@ -133,7 +138,7 @@ addgetc()
 		} else if (c == '^') {
 			if ((c = getch()) == '?')
 				c = RUBOUT;
-			else if (isalpha(c) || index("@[\\]^_", c))
+			else if (isalpha(c) || strchr("@[\\]^_", c))
 				c = CTL(c);
 			else
 				complain("[Unknown control character]");
@@ -299,7 +304,8 @@ SetVar()
 		char	*str;
 
 		/* Do_ask() so you can set string to "" if you so desire. */
-		str = do_ask("\r\n", (int (*)()) 0, (char *) vp->v_value, prompt);
+		str = do_ask("\r\n", (int (*) proto((int))) 0, (char *) vp->v_value,
+			prompt);
 		if (str == 0)
 			str = NullStr;
 		strcpy(vp->v_value, str);
@@ -476,7 +482,7 @@ match(choices, what)
 register char	**choices,
 		*what;
 {
-	register int	len;
+	register size_t	len;
 	int	i,
 		found = 0,
 		save,
@@ -509,12 +515,11 @@ register char	**choices,
 void
 Source()
 {
-	extern char	*getenv();
 	char	*com,
 		buf[FILESIZE];
 
 #ifndef MSDOS
-	swritef(buf, "%s/.joverc", getenv("HOME"));
+	swritef(buf, "%s/.joverc", HomeDir);
 #else /* MSDOS */
 	if (com = getenv("JOVERC"))
 		strcpy(buf, com);
@@ -547,12 +552,12 @@ BufPos()
 	       filename(curbuf), dotline, i, dotchar, nchars,
 	       (nchars == 0) ? 100 : (int) (((long) dotchar * 100) / nchars),
 	       calc_pos(linebuf, curchar),
-	       calc_pos(linebuf, strlen(linebuf)));
+	       calc_pos(linebuf, (int)strlen(linebuf)));
 }
 
-#define IF_UNBOUND	-1
+#define IF_UNBOUND	(-1)
 #define IF_TRUE		1
-#define IF_FALSE	!IF_TRUE
+#define IF_FALSE	(!IF_TRUE)
 
 #ifndef MAC
 private int
@@ -581,7 +586,7 @@ char	*cmd;
 
 		*ap++ = cmd;
 		for (;;) {
-			if ((cp = index(cp, ' ')) == 0)
+			if ((cp = strchr(cp, ' ')) == 0)
 				break;
 			*cp++ = '\0';
 			*ap++ = cp;
@@ -598,7 +603,7 @@ char	*cmd;
 #endif /* MSDOS */
 
 #ifndef MSDOS
-		(void) execvp(args[0], args);
+		(void) execvp(args[0], (const char **)args);
 		_exit(-10);	/* signals exec error (see below) */
 	    }
 	}
@@ -644,7 +649,7 @@ char	*file;
 		Buffer	*savebuf = curbuf;
 
 		SetBuf(do_select((Window *) 0, "RC errors"));
-		ins_str(sprint("%s:%d:%s\t%s\n", pr_name(file, YES), lnum, lbuf, mesgbuf), NO);
+		ins_str(sprint("%s:%d:%s\t%s\n", pr_name(file, YES), lnum, lbuf, mesgbuf), NO, -1);
 		unmodify();
 		SetBuf(savebuf);
 		Asking = 0;
@@ -655,7 +660,7 @@ char	*file;
 		if (lbuf[0] == '#')		/* a comment */
 			continue;
 #ifndef MAC
-		if (casencmp(lbuf, "if", 2) == 0) {
+		if (casencmp(lbuf, "if", (size_t)2) == 0) {
 			char	cmd[128];
 
 			if (IfStatus != IF_UNBOUND)
@@ -665,12 +670,12 @@ char	*file;
 			putmatch(1, cmd, sizeof cmd);
 			IfStatus = do_if(cmd) ? IF_TRUE : IF_FALSE;
 			continue;
-		} else if (casencmp(lbuf, "else", 4) == 0) {
+		} else if (casencmp(lbuf, "else", (size_t)4) == 0) {
 			if (IfStatus == IF_UNBOUND)
 				complain("[Unexpected `else']");
 			IfStatus = !IfStatus;
 			continue;
-		} else if (casencmp(lbuf, "endif", 5) == 0) {
+		} else if (casencmp(lbuf, "endif", (size_t)5) == 0) {
 			if (IfStatus == IF_UNBOUND)
 				complain("[Unexpected `endif']");
 			IfStatus = IF_UNBOUND;

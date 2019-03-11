@@ -11,6 +11,10 @@
 #include "jove.h"
 #include "ctype.h"
 #include "disp.h"
+#if defined(IPROCS)
+# include "fp.h"
+# include "iproc.h"
+#endif
 
 #ifdef MAC
 # include "mac.h"
@@ -248,6 +252,7 @@ register Buffer *b;
 				(void) do_select(w, alt);
 			else {
 				Window	*save = w->w_next;
+
 				del_wind(w);
 				w = save->w_prev;
 			}
@@ -291,6 +296,16 @@ register Buffer	*delbuf;
 #if defined(IPROCS)
 	pbuftiedp(delbuf);	/* check for lingering processes */
 #endif
+	/* clean up windows associated with this buffer */
+	if (delbuf == curbuf)
+		curbuf = NULL;
+	if (delbuf == lastbuf)
+		lastbuf = curbuf;	/* even if NULL */
+	defb_wind(delbuf);
+	if (curbuf == NULL)
+		SetBuf(curwind->w_bufp);
+
+	/* unlink the buffer */
 	for (b = world; b != 0; lastb = b, b = b->b_next)
 		if (b == delbuf)
 			break;
@@ -299,25 +314,18 @@ register Buffer	*delbuf;
 	else
 		world = delbuf->b_next;
 
-	if (curbuf == delbuf)
-		curbuf = NULL;
-	if (delbuf == lastbuf)
-		lastbuf = curbuf;	/* even if NULL */
 #if !defined(MAC)
 	if (perr_buf == delbuf) {
 		ErrFree();
 		perr_buf = 0;
 	}
 #endif
-	defb_wind(delbuf);
-	if (curbuf == NULL)
-		SetBuf(curwind->w_bufp);
-
-#define okay_free(ptr)	if (ptr) free(ptr)
 
 	lfreelist(delbuf->b_first);
-	okay_free(delbuf->b_name);
-	okay_free(delbuf->b_fname);
+	if (delbuf->b_name)
+		free(delbuf->b_name);
+	if (delbuf->b_fname)
+		free(delbuf->b_fname);
 	flush_marks(delbuf);
 	free((char *) delbuf);
 
@@ -394,7 +402,7 @@ BufList()
 	char	nbuf[10];
 
 	for (b = world; b != 0; b = b->b_next)
-		buf_width = max(buf_width, strlen(b->b_name));
+		buf_width = max(buf_width, (int)strlen(b->b_name));
 
 	TOstart("Buffer list", TRUE);	/* true means auto-newline */
 

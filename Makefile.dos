@@ -11,7 +11,7 @@ DEB = -Gs -Ot		# use -Zi and MEM = M for debugging
 # define LINT_ARGS to use function prototypes
 #
 CFLAGS = -A$(MEM) -J -Zp $(DEB) -DIBMPC
-LIB = C:\C\LIB
+LIB = M:\LIB
 #
 # linker flags: for debugging use /NOE/NOI/F/B/PAC/CO/STACK:0x2000
 #
@@ -27,13 +27,13 @@ OBJECTS = keys.obj funcdefs.obj abbrev.obj ask.obj buf.obj c.obj \
 	insert.obj io.obj jove.obj macros.obj marks.obj misc.obj move.obj \
 	paragrap.obj proc.obj re.obj re1.obj scandir.obj \
 	list.obj keymaps.obj tune.obj util.obj vars.obj wind.obj \
-	fmt.obj disp.obj term.obj version.obj fp.obj screen.obj getch.obj
-	
+	fmt.obj disp.obj term.obj version.obj fp.obj screen.obj getch.obj \
+	pcscr.obj	
 
 HEADERS = ctype.h io.h jove.h re.h list.h temp.h termcap.h tune.h externs.h
 
 jove.exe:	$(OBJECTS) $(HEADERS)
-	link $(OBJECTS) $(LIB)\setargv,jove $(LDFLAGS);
+	link $(OBJECTS) $(LIB)\setargv,xjove $(LDFLAGS);
 
 $(OBJECTS): $(HEADERS)
 

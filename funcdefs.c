@@ -15,9 +15,9 @@
 #if !defined(TXT_TO_C)
 
 #if defined(MAC)
-#	define WIRED_CMD(c) c,'\0','\0'	/* for About Jove... */
+#	define WIRED_CMD(c) (c),'\0','\0'	/* for About Jove... */
 #else
-#	define WIRED_CMD(c)	c
+#	define WIRED_CMD(c)	(c)
 #endif /* MAC */
 
 #else /* TXT_TO_C */
@@ -136,7 +136,7 @@ const struct cmd	commands[] = {
 	MODFUNC, "fill-paragraph", WIRED_CMD(Justify),
 	MODFUNC, "fill-region", WIRED_CMD(RegJustify),
 #if !defined(MAC)
-	FUNCTION, "filter-region", WIRED_CMD(FilterRegion),
+	MODFUNC, "filter-region", WIRED_CMD(FilterRegion),
 #endif
 	FUNCTION, "find-file", WIRED_CMD(FindFile),
 	FUNCTION, "find-tag", WIRED_CMD(FindTag),
@@ -344,13 +344,13 @@ char	*prompt;
 		int c;
 #endif
 		const struct cmd	*which;
-		int	cmdlen,
-			found = 0;
+		size_t	cmdlen;
+		int	found = 0;
 		static const struct cmd	*cmdhash[26];
 		static int	beenhere = NO;
 
 /* special case for prefix commands--only upper case ones */
-#define hash(c)	(c - 'a')
+#define hash(c)	((c) - 'a')
 
 		/* initialize the hash table */
 		if (beenhere == NO) {
@@ -367,9 +367,9 @@ char	*prompt;
 		menus_off();	/* Block menu choices during input */
 #endif
 		/* gather the cmd name */
-		while (((c = getch()) != EOF) && !index(" \t\r\n", c)) {
+		while (((c = getch()) != EOF) && !strchr(" \t\r\n", c)) {
 #if (defined(IBMPC) || defined(MAC))
-			lower(&c);
+			lower((char *) &c);
 #else
 			if (isupper(c))
 				c = tolower(c);
@@ -399,7 +399,7 @@ char	*prompt;
 		} else if (found == 0) {
 			complain("[\"%s\" unknown]", cmdbuf);
 			/* NOTREACHED */
-		}else
+		} else
 			return (data_obj *) which;
 	} else {
 		static char	*strings[(sizeof commands) / sizeof (commands[0])];
@@ -420,5 +420,6 @@ char	*prompt;
 			return 0;
 		return (data_obj *) &commands[com];
 	}
+#undef	hash
 }
 #endif

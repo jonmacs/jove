@@ -6,12 +6,17 @@
  ***************************************************************************/
 
 #include "jove.h"
+#include "termcap.h"
 #include "re.h"
 #include "ctype.h"
 #include "disp.h"
+#if defined(IPROCS)
+# include "fp.h"
+# include "iproc.h"
+#endif
 
 #ifdef	STDARGS
-# include <stdargs.h>
+# include <stdarg.h>
 #else
 # include <varargs.h>
 #endif
@@ -24,8 +29,8 @@ private void
 	proc_kill proto((Process *, int)),
 	SendData proto ((int));
 
-private int
-	proc_child proto((void));
+private SIGRESULT
+	proc_child proto((int));
 
 #ifdef PIPEPROCS
 #   include "iproc-pipes.c"
@@ -151,7 +156,7 @@ char	*buf;
 	ToMark(p->p_mark);		/* where output last stopped */
 	if (savepoint->m_line == curline && savepoint->m_char == curchar)
 		sameplace = YES;
-	ins_str(buf, YES);
+	ins_str(buf, YES, WrapProcessLines ? CO : -1);
 	if (do_disp == YES && p->p_dbx_mode == YES)
 		watch_input(p->p_mark);
 	MarkSet(p->p_mark, curline, curchar);
@@ -256,7 +261,7 @@ register Mark	*mp;
 	int	char1 = curchar,
 		char2 = mp->m_char;
 	char	*gp;
-	int	nbytes;
+	size_t	nbytes;
 
 	if (isdead(p) || p->p_buffer != curbuf)
 		return;
@@ -354,7 +359,7 @@ int	newlinep;
 			       (REeom > curchar));
 			strcpy(genbuf, linebuf + curchar);
 			Eof();
-			ins_str(genbuf, NO);
+			ins_str(genbuf, NO, -1);
 		} else {
 			strcpy(genbuf, linebuf + curchar);
 			Eof();
@@ -364,7 +369,7 @@ int	newlinep;
 				lp += 1;
 				gp += 1;
 			}
-			ins_str(gp, NO);
+			ins_str(gp, NO, -1);
 		}
 	}
 }
@@ -399,14 +404,15 @@ Iprocess()
 	proc_strt(scratch, YES, Shell, ShFlags, command, (char *) 0);
 }
 
-private int
-proc_child()
+private SIGRESULT
+proc_child(junk)
+int	junk;	/* needed for signal handler; not used */
 {
 	union wait	w;
 	register int	pid;
 
 	for (;;) {
-#ifndef BSD4_2
+#ifndef WAIT3
 		pid = wait2(&w.w_status, (WNOHANG | WUNTRACED));
 #else
 		pid = wait3(&w, (WNOHANG | WUNTRACED), (struct rusage *) 0);
@@ -415,7 +421,7 @@ proc_child()
 			break;
 		kill_off(pid, w);
 	}
-	return 0;	/* signal handlers return something! */
+	SIGRETURN;
 }
 
 void
@@ -448,7 +454,7 @@ union wait	w;
 				proc_cmd(child),
 				pstate(child));
 			SetBuf(child->p_buffer);
-			ins_str(mesg, NO);
+			ins_str(mesg, NO, -1);
 			SetBuf(save);
 			redisplay();
 		}
@@ -456,4 +462,3 @@ union wait	w;
 }
 
 #endif /* IPROCS */
-

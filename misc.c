@@ -24,7 +24,7 @@ ChrToOct()
 		slow = NO;
 
 	c = waitchar(&slow);
-	ins_str(sprint("\\%03o", c), NO);
+	ins_str(sprint("\\%03o", c), NO, -1);
 }
 
 void

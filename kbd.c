@@ -1,8 +1,11 @@
-#include "tune.h"
+#include "jove.h"
 #include <signal.h>
+#include <errno.h>
 
-#ifdef BSD4_2
-# define pause()	sigpause(0)
+#ifdef PIPEPROCS
+
+#ifdef BSD_SIGS
+# define pause()	sigpause(0L)
 #endif
 
 struct header {
@@ -19,21 +22,23 @@ struct header {
    The reason we go through all this trouble is that JOVE slows down
    a lot when it's getting its keyboard input via a pipe. */
 
-static int strt_read();
+static SIGRESULT strt_read proto((int));
 
-static int
-hold_read()
+static SIGRESULT
+hold_read(junk)
+int	junk;	/* passed in when invoked by a signal; of no interest */
 {
-	signal(SIGQUIT, strt_read);
+	signal(KBDSIG, strt_read);
 	pause();
-	return 0;	/* gotta return some int */
+	SIGRETURN;
 }
 
-static int
-strt_read()
+static SIGRESULT
+strt_read(junk)
+int	junk;
 {
-	signal(SIGQUIT, hold_read);
-	return 0;	/* gotta return some int */
+	signal(KBDSIG, hold_read);
+	SIGRETURN;
 }
 
 int
@@ -49,10 +54,24 @@ char	**argv;
 	pid = getpid();
 	header.pid = pid;
 
-	hold_read();
-	while ((n = read(0, header.buf, sizeof (header.buf))) > 0) {
+	hold_read(0);
+	for (;;) {
+		n = read(0, header.buf, sizeof (header.buf));
+		if (n == -1) {
+			if (errno != EINTR)
+				break;
+			continue;
+		}
 		header.nbytes = n;
-		write(1, &header, HEADER_SIZE + n);
+		write(1, (UnivPtr) &header, HEADER_SIZE + n);
 	}
 	return 0;
 }
+
+#else /* PIPEPROCS */
+
+main()
+{
+}
+
+#endif

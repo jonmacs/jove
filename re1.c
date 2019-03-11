@@ -64,7 +64,7 @@ int	query,
 				message("Replace (Type '?' for help)? ");
 reswitch:
 				redisplay();
-				c = getchar();
+				c = jgetchar();
 				if (c == AbortChar)
 					return numdone;
 
@@ -195,7 +195,8 @@ int	query,
 	/* Now the replacement string.  Do_ask() so the user can play with
 	   the default (previous) replacement string by typing C-R in ask(),
 	   OR, he can just hit Return to replace with nothing. */
-	rep_ptr = do_ask("\r\n", (int (*)()) 0, rep_str, ": %f %s with ", rep_search);
+	rep_ptr = do_ask("\r\n", (int (*) proto((int))) 0, rep_str,
+		": %f %s with ", rep_search);
 	if (rep_ptr == 0)
 		rep_ptr = NullStr;
 	strcpy(rep_str, rep_ptr);
@@ -241,8 +242,8 @@ char	*searchbuf,
 	*tag,
 	*file;
 {
-	register int	taglen = strlen(tag);
-	char	line[BUFSIZ],
+	register size_t	taglen = strlen(tag);
+	char	line[JBUFSIZ],
 		pattern[128];
 	register File	*fp;
 	struct stat	stbuf;
@@ -273,7 +274,7 @@ char	*searchbuf,
 			off_t	mid;
 			int	chars_eq;
 
-			if (upper - lower < BUFSIZ)
+			if (upper - lower < JBUFSIZ)
 				break;	/* small range: search sequentially */
 			mid = (lower + upper) / 2;
 			f_seek(fp, mid);	/* mid will not be 0 */
@@ -326,7 +327,7 @@ char	*searchbuf,
 	return success;
 }
 
-#ifndef MSDOS
+#if !(defined(MSDOS) || defined(MAC))
 char	TagFile[FILESIZE] = "./tags";
 #else /* MSDOS */
 char	TagFile[FILESIZE] = "tags";
@@ -568,10 +569,12 @@ Bufpos	*bp;
 				c &= CHARMASK;
 			else {
 #ifdef IBMPC
-				if (c == RUBOUT || c == 0xff || (c < ' ' && c != '\t')) {
+				if (c == RUBOUT || c == 0xff ||
+				    (c < ' ' && c != '\t')
 #else
-				if (c > RUBOUT || (c < ' ' && c != '\t')) {
+				if (c > RUBOUT || (c < ' ' && c != '\t')
 #endif
+				    || PrefChar(c)) {
 					Ungetc(c);
 					return STOP;
 				}

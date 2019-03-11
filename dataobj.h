@@ -15,13 +15,13 @@
 #endif
 
 #define TYPEMASK	07
-#define obj_type(o)	(o->Type & TYPEMASK)
+#define obj_type(o)	((o)->Type & TYPEMASK)
 #define MAJOR_MODE	010
 #define MINOR_MODE	020
 #define MODIFIER	040
 #define MODFUNC		(FUNCTION|MODIFIER)
-#define DefMajor(x)	(FUNCTION|MAJOR_MODE|(x << 8))
-#define DefMinor(x)	(FUNCTION|MINOR_MODE|(x << 8))
+#define DefMajor(x)	(FUNCTION|MAJOR_MODE|((x) << 8))
+#define DefMinor(x)	(FUNCTION|MINOR_MODE|((x) << 8))
 
 struct macro {
 	int	Type;		/* in this case a macro */
@@ -37,7 +37,7 @@ struct macro {
 struct cmd {
 	int	Type;
 	char	*Name;
-	void (*c_proc)();
+	void (*c_proc) proto((void));
 #ifdef MAC
 	char c_map;			/* prefix map for About Jove... */
 	char c_key;			/* key binding for About Jove... */
@@ -59,7 +59,7 @@ extern struct macro
 	KeyMacro;
 
 extern const struct cmd
-	*FindCmd proto((void (*proc)()));
+	*FindCmd proto((void (*proc) proto((void))));
 
 extern data_obj
 	*findcom proto((char *prompt)),

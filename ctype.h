@@ -23,7 +23,7 @@ extern int	SyntaxTable;
 #define	isupper(c)	((CharTable[SyntaxTable])[c]&_U)
 #define	islower(c)	((CharTable[SyntaxTable])[c]&_L)
 #define	isdigit(c)	((CharTable[SyntaxTable])[c]&_N)
-#define	isspace(c)	(c == ' ' || c == '\t')
+#define	isspace(c)	((c) == ' ' || (c) == '\t')
 #define ispunct(c)	((CharTable[SyntaxTable])[c]&_P)
 
 
@@ -31,7 +31,7 @@ extern int	SyntaxTable;
 #define isctrl(c)	((CharTable[0][c&CHARMASK])&_C)
 #define isopenp(c)	((CharTable[0][c&CHARMASK])&_Op)
 #define isclosep(c)	((CharTable[0][c&CHARMASK])&_Cl)
-#define has_syntax(c,s)	((CharTable[SyntaxTable][c&CHARMASK])&s)
+#define has_syntax(c,s)	((CharTable[SyntaxTable][(c)&CHARMASK])&(s))
 
 #ifdef ASCII
 #define toupper(c)	((c)&~040)
@@ -44,7 +44,7 @@ extern int	SyntaxTable;
 #define WITH_TABLE(x) \
 { \
 	int	push = SyntaxTable; \
-	SyntaxTable = x;
+	SyntaxTable = (x);
 
 #define END_TABLE() \
 	SyntaxTable = push; \

@@ -101,6 +101,9 @@ const struct variable	variables[] = {
 	VARIABLE, "use-i/d-char", (char *) &UseIC, V_BOOL,
 #endif
 	VARIABLE, "visible-bell", (char *) &VisBell, V_BOOL,
+#ifdef IPROCS
+	VARIABLE, "wrap-process-lines", (char *) &WrapProcessLines, V_BOOL,
+#endif
 	VARIABLE, "wrap-search", (char *) &WrapScan, V_BOOL,
 #ifndef MAC
 	VARIABLE, "write-files-on-make", (char *) &WtOnMk, V_BOOL,

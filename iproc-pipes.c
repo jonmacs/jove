@@ -11,7 +11,6 @@
 
 #include <signal.h>
 #include <sgtty.h>
-#include "fp.h"
 #include "wait.h"
 
 #define DEAD	1	/* Dead but haven't informed user yet */
@@ -23,12 +22,12 @@
 #define EXITED	1
 #define KILLED	2
 
-#define isdead(p)	(p == 0 || proc_state(p) == DEAD || p->p_toproc == -1)
-#define makedead(p)	(proc_state(p) = DEAD)
+#define isdead(p)	((p) == NULL || proc_state((p)) == DEAD || (p)->p_toproc == -1)
+#define makedead(p)	{ proc_state((p)) = DEAD; }
 
-#define proc_buf(p)	(p->p_buffer->b_name)
-#define proc_cmd(p)	(p->p_name)
-#define proc_state(p)	(p->p_state)
+#define proc_buf(p)	((p)->p_buffer->b_name)
+#define proc_cmd(p)	((p)->p_name)
+#define proc_state(p)	((p)->p_state)
 
 private Process	*procs = 0;
 
@@ -75,12 +74,15 @@ register int	nbytes;
 	}
 
 	if (nbytes == EOF) {		/* okay to clean up this process */
-		int	status;
+		int	status, pid;
 
 		f_readn(ProcInput, &status, sizeof (int));
-		while (wait((int *) 0) != p->p_portpid)
-			;
-		kill_off(p->p_portpid, status);
+		do {
+			pid = wait((int *) 0);
+			if (pid < 0)
+				break;
+			kill_off(pid, status);
+		} while (pid != p->p_portpid);
 		proc_close(p);
 		makedead(p);
 		return;
@@ -124,11 +126,11 @@ Process	*p;
 	}
 }
 
-void void
+void
 proc_write(p, buf, nbytes)
 Process	*p;
 char	*buf;
-int	nbytes;
+size_t	nbytes;
 {
 	(void) write(p->p_toproc, buf, nbytes);
 }
@@ -153,7 +155,7 @@ proc_strt(bufname, clobber, va_alist)
 	char	*argv[32],
 		*cp,
 		foo[10],
-		cmdbuf[128];
+		cmdbuf[LBSIZE];
 	int	i;
 	va_list	ap;
 
@@ -163,7 +165,7 @@ proc_strt(bufname, clobber, va_alist)
 
 	switch (pid = fork()) {
 	case -1:
-		pclose(toproc);
+		pipeclose(toproc);
 		complain("[Fork failed.]");
 
 	case 0:
@@ -174,7 +176,7 @@ proc_strt(bufname, clobber, va_alist)
 		(void) dup2(toproc[0], 0);
 		(void) dup2(ProcOutput, 1);
 		(void) dup2(ProcOutput, 2);
-		pclose(toproc);
+		pipeclose(toproc);
 		execv(Portsrv, argv);
 		writef("execl failed\n");
 		_exit(1);
@@ -183,7 +185,6 @@ proc_strt(bufname, clobber, va_alist)
 	newp = (Process *) malloc(sizeof *newp);
 	newp->p_next = procs;
 	newp->p_state = NEW;
-	newp->p_cmd = 0;
 
 	cmdbuf[0] = '\0';
 	va_init(ap, clobber);
@@ -238,6 +239,7 @@ pinit()
 		close(1);
 		dup(ProcOutput);
 		execl(Kbd_Proc, "kbd", 0);
+		write(2, "kdb exec failed\n", 16);
 		exit(-1);
 	}
 }
@@ -253,7 +255,7 @@ kbd_strt()
 {
 	if (kbd_state == OFF) {
 		kbd_state = ON;
-		kill(kbd_pid, SIGQUIT);
+		kill(kbd_pid, KBDSIG);
 		return TRUE;
 	}
 	return FALSE;
@@ -263,7 +265,7 @@ kbd_stop()
 {
 	if (kbd_state == ON) {
 		kbd_state = OFF;
-		kill(kbd_pid, SIGQUIT);
+		kill(kbd_pid, KBDSIG);
 		return TRUE;
 	}
 	return FALSE;

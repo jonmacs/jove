@@ -14,10 +14,6 @@
 # define IPROCS		/* interactive processes */
 #endif /* UNIX */
 
-#ifndef VFORK
-# define vfork	fork
-#endif
-
 #define BACKUPFILES	/* enable the backup files code */
 #define F_COMPLETION	/* filename completion */
 #define ABBREV		/* word abbreviation mode */
@@ -42,12 +38,11 @@
 #ifdef MAC
 # undef F_COMPLETION
 # define F_COMPLETION 1
-# define rindex strrchr
-# define bzero(s,n) setmem(s,n,0)
+# define byte_zero(s,n) setmem((s),(n),0)
 # define swritef sprintf
 # define USE_PROTOTYPES	1
 # define NBUF 64
-# define BUFSIZ 1024
+# define JBUFSIZ 1024
 # undef LISP
 # define LISP 1
 # undef ABBREV
@@ -65,7 +60,7 @@ extern char
 	*Recover,
 	*Joverc,
 
-#ifdef PIPEPROCS
+#if defined(IPROCS) && defined(PIPEPROCS)
 	*Portsrv,
 	*Kbd_Proc,
 #endif
