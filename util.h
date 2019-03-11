@@ -10,6 +10,8 @@
 extern char	key_strokes[100],
 		*keys_p;
 
+extern int	ModCount;
+
 #define init_strokes()		(keys_p = key_strokes, *keys_p = '\0')
 #define add_stroke(c)		\
 	if (keys_p < &key_strokes[sizeof (key_strokes) - 1]) \
@@ -31,9 +33,9 @@ extern char
 	*StrIndex proto((int dir,char *buf,int charpos, int what)),
 	*basename proto((char *f)),
 	*copystr proto((char *str)),
-	*emalloc proto((int size)),
+	*emalloc proto((size_t size)),
 	*filename proto((struct buffer *b)),
-	*get_time proto((long *timep,char *buf,int from,int to)),
+	*get_time(),	/* proto((time_t *timep,char *buf,int from,int to)) */
 	*itoa proto((int num)),
 	*lcontents proto((struct line *line)),
 	*ltobuf proto((struct line *line,char *buf));
@@ -71,8 +73,16 @@ extern void
 	make_argv proto((char * *argv,char *ap)),
 	modify proto((void)),
 	SitFor proto((int delay)),
-	null_ncpy proto((char *to,char *from,int n)),
+	null_ncpy proto((char *to, char *from, size_t n)),
+#ifdef	UNIX
+	dopipe proto((int *p)),
+	pclose proto((int *p)),
+#endif
 	pop_env proto((jmp_buf)),
 	push_env proto((jmp_buf)),
+#ifdef LOAD_AV
+	get_la proto((double *dp)),
+#endif /* LOAD_AV */
 	to_word proto((int dir)),
-	unmodify proto((void));
+	unmodify proto((void)),
+	pp_key_strokes proto((char *buffer, size_t size));

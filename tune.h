@@ -45,7 +45,7 @@
 # define rindex strrchr
 # define bzero(s,n) setmem(s,n,0)
 # define swritef sprintf
-# define LINT_ARGS 1
+# define USE_PROTOTYPES	1
 # define NBUF 64
 # define BUFSIZ 1024
 # undef LISP
@@ -59,7 +59,6 @@
 /* These are here since they define things in tune.c.  If you add things to
    tune.c, add them here too, if necessary. */
 
-#ifndef NOEXTERNS
 extern char
 	*d_tempfile,
 	*p_tempfile,
@@ -80,4 +79,3 @@ extern char
 	TmpFilePath[],
 	Shell[],
 	ShFlags[];
-#endif /* NOEXTERNS */

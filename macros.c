@@ -73,13 +73,13 @@ struct m_thread {
 
 private struct m_thread	*mac_stack = 0;
 
-struct m_thread *
+private struct m_thread *
 alloc_mthread()
 {
 	return (struct m_thread *) emalloc(sizeof (struct m_thread));
 }
 
-void
+private void
 free_mthread(t)
 struct m_thread	*t;
 {
@@ -107,6 +107,7 @@ pop_macro_stack()
 private void
 push_macro_stack(m, count)
 register struct macro	*m;
+int	count;
 {
 	register struct m_thread	*t;
 
@@ -149,7 +150,7 @@ mac_init()
 	KeyMacro.Name = "keyboard-macro";
 	KeyMacro.m_len = 0;
 	KeyMacro.m_buflen = 16;
-	KeyMacro.m_body = emalloc(KeyMacro.m_buflen);
+	KeyMacro.m_body = emalloc((size_t) KeyMacro.m_buflen);
 }
 
 void
@@ -158,7 +159,7 @@ int	c;
 {
 	if (KeyMacro.m_len >= KeyMacro.m_buflen) {
 		KeyMacro.m_buflen += 16;
-		KeyMacro.m_body = realloc(KeyMacro.m_body, (unsigned) KeyMacro.m_buflen);
+		KeyMacro.m_body = realloc(KeyMacro.m_body, (size_t) KeyMacro.m_buflen);
 		if (KeyMacro.m_body == 0) {
 			KeyMacro.m_buflen = KeyMacro.m_len = 0;
 			complain("[Can't allocate storage for keyboard macro]");
@@ -213,7 +214,7 @@ NameMac()
 	m->Type = KeyMacro.Type;
 	m->m_len = KeyMacro.m_len;
 	m->m_buflen = KeyMacro.m_buflen;
-	m->m_body = emalloc(m->m_buflen);
+	m->m_body = emalloc((size_t) m->m_buflen);
 	byte_copy(KeyMacro.m_body, m->m_body, m->m_len);
 	m->m_flags = SAVE;
 	m->Name = name;
@@ -225,12 +226,13 @@ RunMacro()
 {
 	struct macro	*m;
 
-	if (m = (struct macro *) findmac(ProcFmt))
+	if ((m = (struct macro *) findmac(ProcFmt)) != NULL)
 		do_macro(m);
 }
 
 private void
 pr_putc(c, fp)
+int	c;
 File	*fp;
 {
 	if (c == '\\' || c == '^')
@@ -252,7 +254,7 @@ WriteMacs()
 	int	i;
 
 	file = ask_file((char *) 0, (char *) 0, filebuf);
-	fp = open_file(file, iobuff, F_WRITE, COMPLAIN, QUIET);
+	fp = open_file(file, iobuff, F_WRITE, YES, YES);
 
 	/* Don't write the keyboard macro which is always the first */
 	for (m = macros->m_nextm; m != 0; m = m->m_nextm) {
@@ -280,7 +282,7 @@ DefKBDMac()
 	if (macro_name == 0)
 		complain("[No default]");
 	macro_name = copystr(macro_name);
-	if (m = mac_exists(macro_name))
+	if ((m = mac_exists(macro_name)) != NULL)
 		del_mac(m);
 	macro_body = ask((char *) 0, ": %f %s enter body: ", macro_name);
 	i = 0;
@@ -302,7 +304,7 @@ DefKBDMac()
 	m = (struct macro *) emalloc(sizeof (*m));
 	m->Name = macro_name;
 	m->m_len = m->m_buflen = i;
-	m->m_body = emalloc(i);
+	m->m_body = emalloc((size_t) i);
 	m->m_flags = InJoverc ? 0 : SAVE;
 	byte_copy(macro_buffer, m->m_body, i);
 	add_mac(m);
@@ -355,8 +357,6 @@ ExecMacro()
 void
 MacInter()
 {
-	extern int	Interactive;
-
 	if (!Asking)
 		return;
 	Interactive = 1;

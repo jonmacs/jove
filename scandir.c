@@ -6,6 +6,7 @@
  ***************************************************************************/
 
 #include "jove.h"
+#include "scandir.h"
 
 #ifdef F_COMPLETION
 
@@ -110,7 +111,7 @@ memfail:	complain("[Malloc failed: cannot scandir]");
 				goto memfail;
 		}
 		ourarray[nentries] = (char *) malloc(DIRSIZE(entry) + 1);
-		null_ncpy(ourarray[nentries], entry->d_name, (int) DIRSIZE(entry));
+		null_ncpy(ourarray[nentries], entry->d_name, (size_t) DIRSIZE(entry));
 		nentries += 1;
 	}
 	closedir(dirp);
@@ -131,7 +132,7 @@ memfail:	complain("[Malloc failed: cannot scandir]");
 # define DIRSIZ	13
 # define DIRSIZE(entry)	strlen(entry.name)
 
-/* Scandir returns the number of entries or -1 if the directory cannoot
+/* Scandir returns the number of entries or -1 if the directory cannot
    be opened or malloc fails. */
 
 unsigned int fmask = _A_NORMAL|_A_RDONLY|_A_HIDDEN|_A_SUBDIR;
@@ -195,6 +196,7 @@ skip:	;
 void
 freedir(nmptr, nentries)
 char	***nmptr;
+int	nentries;
 {
 	char	**ourarray = *nmptr;
 

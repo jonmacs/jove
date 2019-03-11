@@ -14,11 +14,17 @@
 #include "ctype.h"
 #include "chars.h"
 #include "disp.h"
+#include "re.h"	/* for find_tag() */
+#include "rec.h"
 
 #ifdef MAC
 # include "mac.h"
 #else
-# include <varargs.h>
+# ifdef	STDARGS
+#  include <stdargs.h>
+# else
+#  include <varargs.h>
+# endif
 # include <sys/stat.h>
 #endif
 
@@ -51,6 +57,8 @@ private void
 	DoKeys proto((int firsttime)),
 	UNIX_cmdline proto((int argc,char * *argv)),
 	UnsetTerm proto((char *));
+
+#include "ttystate.h"
 
 #ifdef UNIX
 # ifdef TIOCSLTC
@@ -86,7 +94,6 @@ private int	dw_biff = NO;		/* whether or not to fotz at all */
 #endif /* UNIX */
 
 int	errormsg;
-extern char	*tfname;
 char	NullStr[] = "";
 jmp_buf	mainjmp;
 
@@ -95,12 +102,9 @@ jmp_buf	mainjmp;
 # define SIGHUP	99
 #endif /* MSDOS */
 
-#ifdef IPROCS
-	extern int	NumProcs;
-#endif
-
 void
 finish(code)
+int	code;
 {
 	int	CoreDump = (code != 0 && code != SIGHUP),
 		DelTmps = 1;		/* Usually we delete them. */
@@ -224,6 +228,7 @@ Peekc()
 
 void
 Ungetc(c)
+int	c;
 {
 	if (peekp == &peekbuf[(sizeof peekbuf) - 1])
 		return;		/* Sorry, can't oblige you ... */
@@ -235,12 +240,10 @@ int	InputPending = 0;
 char	*Inputp = 0;
 
 #if (defined(IPROCS) && !defined(PIPEPROCS))	/* that is, if ptys */
+int
 getchar()
 {
-	extern long	global_fd;
 	long		reads;
-	extern int	NumProcs,
-			errno;
 	register int	tmp,
 			nfds;
 	int		c;
@@ -288,12 +291,8 @@ getchar()
 
 #else
 
-extern File	*ProcInput;
-
 getchar()
 {
-	extern int	errno;
-	extern int	kbd_pid;
 	register int	c;
 	struct header {
 		int	pid;
@@ -343,7 +342,7 @@ normal:	if (nchars <= 0) {
 			}
 		}
 # endif /* IPROCS */
-#endif MSDOS
+#endif /* MSDOS */
 		InputPending = nchars > 0;
 	}
 	if (((c = *bp) & 0200) && MetaKey != 0) {
@@ -405,8 +404,14 @@ charp()
 	return some;
 }
 
+private void	do_sgtty();
+#ifdef BIFF
+private void	biff_init proto((void));
+#endif
+
 #ifdef TERMCAP
-void
+
+private void
 ResetTerm()
 {
 	do_sgtty();		/* this is so if you change baudrate or stuff
@@ -445,6 +450,7 @@ char	*mesg;
 #endif /* TERMCAP */
 
 #ifdef JOB_CONTROL
+void
 PauseJove()
 {
 	UnsetTerm(ModBufs(0) ? "[There are modified buffers]" : NullStr);
@@ -476,6 +482,7 @@ Push()
 	switch (pid = fork()) {
 	case -1:
 		complain("[Fork failed]");
+		/*NOTREACHED*/
 
 	case 0:
 		UnsetTerm(NullStr);
@@ -564,6 +571,7 @@ ttsize()
 }
 
 #ifdef BIFF
+private void
 biff_init()
 {
 	dw_biff = ((BiffChk) &&
@@ -577,7 +585,9 @@ biff_init()
 
 }
 
+private void
 biff(on)
+int	on;
 {
 	if (dw_biff == NO)
 		return;
@@ -595,8 +605,6 @@ biff(on)
 private void
 ttinit()
 {
-	void	do_sgtty();
-
 #ifdef BIFF
 	biff_init();
 #endif
@@ -700,6 +708,7 @@ tty_reset()
 
 void
 ttyset(n)
+int	n;
 {
 	if (!done_ttinit && n == 0)	/* Try to reset before we've set! */
 		return;
@@ -746,8 +755,6 @@ getch()
 {
 	register int	c,
 			peekc;
-	extern int	ModCount,
-			Interactive;
 
 	if (Inputp) {
 		if ((c = *Inputp++) != 0)
@@ -812,25 +819,26 @@ getch()
 }
 
 #ifdef UNIX
+private void
 dorecover()
 {
 	execl(Recover, "recover", "-d", TmpFilePath, (char *) 0);
 	writef("%s: execl failed!\n", Recover);
 	flusho();
 	_exit(-1);
+	/* NOTREACHED */
 }
 #endif /* UNIX */
 
 void
 ShowVersion()
 {
-	extern char	*version;
-
 	s_mess("Jonathan's Own Version of Emacs (%s)", version);
 }
 
 private void
 UNIX_cmdline(argc, argv)
+int	argc;
 char	*argv[];
 {
 	int	lineno = 0,
@@ -926,17 +934,20 @@ char	*argv[];
 	}
 }
 
-/* VARARGS1 */
-
-void
+#ifdef	STDARGS
+	void
+error(char *fmt, ...)
+#else
+	/*VARARGS1*/ void
 error(fmt, va_alist)
-char	*fmt;
-va_dcl
+	char	*fmt;
+	va_dcl
+#endif
 {
 	va_list	ap;
 
 	if (fmt) {
-		va_start(ap);
+		va_init(ap, fmt);
 		format(mesgbuf, sizeof mesgbuf, fmt, ap);
 		va_end(ap);
 		UpdMesg = YES;
@@ -945,17 +956,20 @@ va_dcl
 	longjmp(mainjmp, ERROR);
 }
 
-/* VARARGS1 */
-
-void
+#ifdef	STDARGS
+	void
+complain(char *fmt, ...)
+#else
+	/*VARARGS1*/ void
 complain(fmt, va_alist)
-char	*fmt;
-va_dcl
+	char	*fmt;
+	va_dcl
+#endif
 {
 	va_list	ap;
 
 	if (fmt) {
-		va_start(ap);
+		va_init(ap, fmt);
 		format(mesgbuf, sizeof mesgbuf, fmt, ap);
 		va_end(ap);
 		UpdMesg = YES;
@@ -964,17 +978,20 @@ va_dcl
 	longjmp(mainjmp, COMPLAIN);
 }
 
-/* VARARGS1 */
-
-void
+#ifdef	STDARGS
+	void
+confirm(char *fmt, ...)
+#else
+	/*VARARGS1*/ void
 confirm(fmt, va_alist)
-char	*fmt;
-va_dcl
+	char	*fmt;
+	va_dcl
+#endif
 {
 	char	*yorn;
 	va_list	ap;
 
-	va_start(ap);
+	va_init(ap, fmt);
 	format(mesgbuf, sizeof mesgbuf, fmt, ap);
 	va_end(ap);
 	yorn = ask((char *) 0, mesgbuf);
@@ -1008,11 +1025,12 @@ Recur()
 jmp_buf auxjmp;
 #endif
 
-int	iniargc;	/* main sets these for DoKeys() */
-char	**iniargv;
+private int	iniargc;	/* main sets these for DoKeys() */
+private char	**iniargv;
 
 private void
 DoKeys(firsttime)
+int	firsttime;
 {
 	int	c;
 	jmp_buf	savejmp;
@@ -1048,11 +1066,9 @@ DoKeys(firsttime)
 
 	case ERROR:
 		getDOT();	/* God knows what state linebuf was in */
-
+		/*FALLTHROUGH*/
 	case COMPLAIN:
 	    {
-		extern int	DisabledRedisplay;
-
 		gc_openfiles();		/* close any files we left open */
 		errormsg = YES;
 		unwind_macro_stack();
@@ -1106,6 +1122,7 @@ register char	**args,
 int	UpdFreq = 30,
 	inIOread = 0;
 
+private void
 updmode()
 {
 	UpdModLine = YES;
@@ -1125,6 +1142,10 @@ char	ttbuf[BUFSIZ];
 #endif /* MSDOS */
 
 #if defined(MAC) || (defined(TIOCGWINSZ) && defined(SIGWINCH))
+#ifndef	MAC
+private
+#endif
+int
 win_reshape()
 {
 	register int	oldLI;
@@ -1184,6 +1205,7 @@ win_reshape()
 #ifdef UNIX
 	(void) signal(SIGWINCH, win_reshape);
 #endif
+	return 0;	/* gotta return some int */
 }
 #endif
 
@@ -1196,12 +1218,11 @@ main()
 	char **argv;
 #else
 main(argc, argv)
+int	argc;
 char	*argv[];
 {
 #endif /* MAC */
 	char	*cp;
-	extern char	*HomeDir;
-	extern int	HomeLen;
 #ifndef MSDOS
 	char	ttbuf[MAXTTYBUF];
 # ifndef VMUNIX
@@ -1270,7 +1291,7 @@ char	*argv[];
 	   strcpy(CmdDb, cp);
 #else /* !MSDOS */
 #ifndef MAC
-	if ((cp = getenv("SHELL")) && (*cp != '\0')) {
+	if ((cp = getenv("SHELL"))!=NULL && (*cp != '\0')) {
 		strcpy(Shell, cp);
 	}
 #endif
@@ -1287,7 +1308,7 @@ char	*argv[];
 	{
 		char	**argp;
 
-		if ((argp = scanvec(argv, "-d")) && chkCWD(argp[1]))
+		if ((argp = scanvec(argv, "-d"))!=NULL && chkCWD(argp[1]))
 			setCWD(argp[1]);
 		else
 			getCWD();	/* After we setup curbuf in case we have to getwd() */

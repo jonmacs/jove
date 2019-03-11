@@ -15,7 +15,11 @@
 #ifdef MAC
 # include "mac.h"
 #else
-# include <varargs.h>
+# ifdef	STDARGS
+#  include <stdargs.h>
+# else
+#  include <varargs.h>
+# endif
 # include <sys/stat.h>
 #endif
 
@@ -23,23 +27,17 @@
 
 private void
 #ifdef ID_CHAR
-	DeTab proto((int, char *, char *, int, int)),
+	DeTab proto((int, char *, char *, size_t, int)),
 	DelChar proto((int, int, int)),
 	InsChar proto((int, int, int, char *)),
 #endif
 	DoIDline proto((int)),
 	do_cl_eol proto((int)),
 	ModeLine proto((Window *)),
-	mode_app proto((char *)),
 	dobell proto((int x)),
 	GotoDot proto((void)),
 	UpdLine proto((int)),
 	UpdWindow proto((Window *, int));
-
-extern void
-	PrevPage proto((void)),
-	UpScroll proto((void)),
-	DownScroll proto((void));
 
 private int
 #ifdef ID_CHAR
@@ -80,12 +78,12 @@ register Line	*line2;
 	} while (w != fwind);
 }
 
-extern int	RingBell;
+private int	RingBell;	/* So if we have a lot of errors ...
+				  ring the bell only ONCE */
 
 void
 redisplay()
 {
-	extern int	AbortCnt;
 	register Window	*w = fwind;
 	int	lineno,
 		done_ID = NO,
@@ -100,7 +98,7 @@ redisplay()
 #ifdef MAC
 	InputPending = 0;
 #else
-	if (InputPending = charp())	/* calls CheckEvent, which could */
+	if ((InputPending = charp()) != '\0')	/* calls CheckEvent, which could */
 		return;	/* result in a call to rediplay(). We don't want that. */
 #endif
 #ifdef JOB_CONTROL
@@ -165,6 +163,7 @@ ret:
 #ifndef IBMPC
 private void
 dobell(n)
+int	n;
 {
 	while (--n >= 0) {
 #ifndef MAC
@@ -186,6 +185,7 @@ dobell(n)
 int
 find_pos(line, c_char)
 Line	*line;
+int	c_char;
 {
 	return calc_pos(lcontents(line), c_char);
 }
@@ -215,6 +215,7 @@ int	UpdModLine = 0,
 
 private void
 DoIDline(start)
+int	start;
 {
 	register struct scrimage	*des_p = &DesiredScreen[start];
 	struct scrimage	*phys_p = &PhysScreen[start];
@@ -273,6 +274,7 @@ int	ScrollAll = NO;
 private void
 UpdWindow(w, start)
 register Window	*w;
+int	start;
 {
 	Line	*lp;
 	int	i,
@@ -366,7 +368,7 @@ retry:
 
 	/* Is structure assignment faster than copy each field separately? */
 	if (i < lower) {
-		static struct scrimage	dirty_plate = { 0, DIRTY, 0, 0, 0, 0 },
+		static const struct scrimage	dirty_plate = { 0, DIRTY, 0, 0, 0, 0 },
 					clean_plate = { 0, 0, 0, 0, 0, 0 };
 
 		for (; i < lower; i++, des_p++, phys_p++)
@@ -393,6 +395,7 @@ retry:
 
 void
 DrawMesg(abortable)
+int	abortable;
 {
 #ifndef MAC		/* same reason as in redisplay() */
 	if (charp())
@@ -546,7 +549,6 @@ register int	linenum;
    and not so well written code, AND there is a lot of it.  You may want
    to use the space for something else. */
 
-extern struct screenline	*Screen;
 int	IN_INSmode = 0;
 
 int	UseIC;
@@ -573,6 +575,7 @@ disp_opt_init()
 
 void
 INSmode(on)
+int	on;
 {
 	if (on && !IN_INSmode) {
 		putpad(IM, 1);
@@ -585,8 +588,11 @@ INSmode(on)
 
 private void
 DeTab(s_offset, buf, outbuf, limit, visspace)
+int	s_offset;
 register char	*buf;
 char	*outbuf;
+size_t	limit;
+int	visspace;
 {
 	register char	*phys_p = outbuf,
 			c;
@@ -597,7 +603,7 @@ char	*outbuf;
 				*phys_p++ = ch;\
 			else
 
-	while (c = *buf++) {
+	while ((c = *buf++) != '\0') {
 		if (c == '\t') {
 			int	nchars = (tabstop - (pos % tabstop));
 
@@ -633,6 +639,8 @@ char	*outbuf;
 private int
 IDchar(new, lineno, col)
 register char	*new;
+int	lineno,
+	col;
 {
 	register int	i;
 	int	j,
@@ -677,6 +685,7 @@ private int
 NumSimilar(s, t, n)
 register char	*s,
 		*t;
+int	n;
 {
 	register int	num = 0;
 
@@ -690,6 +699,7 @@ private int
 IDcomp(s, t, len)
 register char	*s,
 		*t;
+int	len;
 {
 	register int	i;
 	int	num = 0,
@@ -710,6 +720,9 @@ register char	*s,
 
 private int
 OkayDelete(Saved, num, samelength)
+int	Saved,
+	num,
+	samelength;
 {
 	/* If the old and the new are the same length, then we don't
 	 * have to clear to end of line.  We take that into consideration.
@@ -720,6 +733,8 @@ OkayDelete(Saved, num, samelength)
 
 private int
 OkayInsert(Saved, num)
+int	Saved,
+	num;
 {
 	register int	n = 0;
 
@@ -736,12 +751,11 @@ OkayInsert(Saved, num)
 	return Saved > n;
 }
 
-extern int	CapCol;
-extern char	*cursend;
-extern struct screenline	*Curline;
-
 private void
 DelChar(lineno, col, num)
+int	lineno,
+	col,
+	num;
 {
 	register char	*from,
 			*to;
@@ -766,6 +780,9 @@ DelChar(lineno, col, num)
 
 private void
 InsChar(lineno, col, num, new)
+int	lineno,
+	col,
+	num;
 char	*new;
 {
 	register char	*sp1,
@@ -826,6 +843,7 @@ int	BiffChk = NO;		/* whether to turn off biff while in JOVE */
 
 int
 chkmail(force)
+int	force;
 {
 	time_t	now;
 	static int	state = NO;	/* assume unknown */
@@ -866,9 +884,9 @@ int	BriteMode = 1;		/* modeline should standout */
 
 private void
 mode_app(str)
-register char	*str;
+register const char	*str;
 {
-	while ((mode_p < mend_p) && (*mode_p++ = *str++))
+	while ((mode_p < mend_p) && (*mode_p++ = *str++)!='\0')
 		;
 	mode_p -= 1;	/* back over the null */
 }
@@ -879,8 +897,6 @@ private void
 ModeLine(w)
 register Window	*w;
 {
-	extern int	i_line;
-	extern char	*pwd();
 	int	n,
 		ign_some = NO,
 		glue = 0;
@@ -956,7 +972,7 @@ register Window	*w;
 
 		case 'M':
 		    {
-			static char	*mmodes[] = {
+			static const char	*const mmodes[] = {
 				"Fundamental ",
 				"Text ",
 				"C ",
@@ -1055,14 +1071,13 @@ register Window	*w;
 		case 'p':
 			if (thisbuf->b_type == B_PROCESS) {
 				char	tmp[40];
-				extern char	*pstate();
 				Process	*p = thisbuf->b_process;
 
 				swritef(tmp, "(%s%s)",
 					((p == 0 || p->p_dbx_mode == NO)
 					 ? "" : "DBX "),
 					((p == 0) ? "No process" :
-					 pstate(thisbuf->b_process)));
+					 pstate(p)));
 				mode_app(tmp);
 			}
 			break;
@@ -1135,9 +1150,10 @@ register Window	*w;
 		SO_off();
 }
 
-void
+private void
 v_clear(line1, line2)
 register int	line1;
+int	line2;
 {
 	register struct scrimage	*phys_p, *des_p;
 
@@ -1273,9 +1289,8 @@ DownScroll()
 		SetLine(curwind->w_top);
 }
 
-int	VisBell = NO,
-	RingBell = NO;	/* So if we have a lot of errors ...
-			   ring the bell only ONCE */
+int	VisBell = NO;
+
 void
 rbell()
 {
@@ -1338,6 +1353,7 @@ int	TOabort = 0;
 void
 TOstart(name, auto_newline)
 char	*name;
+int	auto_newline;
 {
 	if (UseBuffers) {
 		old_wind = curwind;
@@ -1348,12 +1364,15 @@ char	*name;
 	DoAutoNL = auto_newline;
 }
 
-/* VARARGS1 */
-
-void
+#ifdef	STDARGS
+	void
+Typeout(char *fmt, ...)
+#else
+	/*VARARGS1*/ void
 Typeout(fmt, va_alist)
-char	*fmt;
-va_dcl
+	char	*fmt;
+	va_dcl
+#endif
 {
 	if (TOabort)
 		return;
@@ -1375,11 +1394,10 @@ va_dcl
 	}
 
 	if (fmt) {
-		extern int	i_col;
 		char	string[132];
 		va_list	ap;
 
-		va_start(ap);
+		va_init(ap, fmt);
 		format(string, sizeof string, fmt, ap);
 		va_end(ap);
 		if (UseBuffers)

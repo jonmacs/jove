@@ -10,10 +10,17 @@
 # define defined(x) (x)	/* take this out and you're in trouble... */
 #endif
 
+#ifdef	MAC
+    extern int	errno;
+#endif	/* MAC */
+
 #if !(defined(MSDOS) || defined(MAC) || defined(__STDC__))
 # define void int
 #endif
 
+#ifndef	__STDC__
+#define	const
+#endif
 
 /* The operating system (MSDOS or MAC) must be defined by this point.
    IBMPC is defined in the Makefile. All MAC defines should be
@@ -34,7 +41,7 @@
 #  define MENLO_JCL
 # endif
 # define KILL0		/* kill(pid, 0) returns 0 if proc exists */
-#endif UNIX
+#endif /* UNIX */
 
 #ifdef UNIX
 # ifdef pdp11
@@ -66,8 +73,8 @@
 			/* pick your version of Unix */
 # define BSD4_2		/* Berkeley 4.2 BSD */
 # define BSD4_3		/* Berkeley 4.3 BSD and 2.10 BSD */
-/*# define SYSV		/* for (System III/System V) UNIX systems */
-/*# define SYSVR2	/* system 5, rel. 2 */
+/*# define SYSV		-- for (System III/System V) UNIX systems */
+/*# define SYSVR2	-- system 5, rel. 2 */
 			/* M_XENIX is defined by the Compiler */
 #endif /* UNIX */
 

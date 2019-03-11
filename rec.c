@@ -8,6 +8,7 @@
 #include "jove.h"
 #include "fp.h"
 #include "rec.h"
+#include "io.h"
 
 #ifndef MAC
 #	include <sys/file.h>
@@ -23,12 +24,12 @@ private File	*rec_out;
 
 private struct rec_head	Header;
 
+private void
 recinit()
 {
 	char	buf[128];
 
 #ifdef MAC
-	extern char *HomeDir;
 	swritef(buf, "%s/%s", HomeDir, p_tempfile);
 #else
 	swritef(buf, "%s/%s", TmpFilePath, p_tempfile);
@@ -51,6 +52,7 @@ recinit()
 	(void) write(rec_fd, (char *) &Header, sizeof Header);
 }
 
+void
 recclose()
 {
 	if (rec_fd == -1)
@@ -60,7 +62,7 @@ recclose()
 	(void) unlink(recfname);
 }
 
-private
+private void
 putaddr(addr, p)
 daddr	addr;
 register File	*p;
@@ -72,18 +74,18 @@ register File	*p;
 		putc(*cp++ & 0377, p);
 }
 
-private
+private void
 putn(cp, nbytes)
 register char	*cp;
-register int	nbytes;
+register size_t	nbytes;
 {
-	while (--nbytes >= 0)
+	while (nbytes-- > 0)
 		putc(*cp++ & 0377, rec_out);
 }
 
 /* Write out the line pointers for buffer B. */
 
-private
+private void
 dmppntrs(b)
 register Buffer	*b;
 {
@@ -95,7 +97,7 @@ register Buffer	*b;
 
 /* dump the buffer info and then the actual line pointers. */
 
-private
+private void
 dmp_buf_header(b)
 register Buffer	*b;
 {
@@ -117,9 +119,10 @@ register Buffer	*b;
 
 int	SyncFreq = 50;
 
+void
 SyncRec()
 {
-	extern daddr	DFree;
+	extern long	lseek proto((int, long, int));
 	register Buffer	*b;
 	static int	beenhere = NO;
 
@@ -165,6 +168,7 @@ SyncRec()
    saved when the file name is set.  If a process was running in a
    buffer, it will be lost. */
 
+void
 FullRecover()
 {
 }

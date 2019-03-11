@@ -7,10 +7,17 @@
 
 #include "jove.h"
 #include "fp.h"
+#include "disp.h"
 #include <ctype.h>
 #include <errno.h>
 
 #ifndef MAC	/* most of the file... */
+
+# ifdef	STDARGS
+#  include <stdargs.h>
+# else
+#  include <varargs.h>
+# endif
 
 #ifndef MSDOS
 # ifdef SYSV
@@ -24,7 +31,6 @@
 # include <signal.h>
 #endif
 
-#define _TERM
 #include "termcap.h"
 
 /* Termcap definitions */
@@ -80,10 +86,6 @@ int	LI,
 	HOlen,
 	LLlen;
 
-extern char	PC,
-		*BC,
-		*UP;
-
 #ifdef notdef
 	/*
 	 * Are you sure about this one Jon?  On the SYSV system I tried this
@@ -92,17 +94,16 @@ extern char	PC,
 	 */
 # ifdef SYSVR2 /* release 2, at least */
 char	PC;
-# else
-extern char	PC;
 # endif /* SYSVR2 */
 #endif
 
 #ifndef IBMPC
-static char	tspace[256];
+private char	tspace[256];
 
 /* The ordering of ts and meas must agree !! */
-static char	*ts="vsvealdlspcssosecmclcehoupbcicimdceillsfsrvbksketiteALDLICDCpcipblnldo";
-static char	**meas[] = {
+private const char	ts[] =
+	"vsvealdlspcssosecmclcehoupbcicimdceillsfsrvbksketiteALDLICDCpcipblnldo";
+private char	**const meas[] = {
 	&VS, &VE, &AL, &DL, &SP, &CS, &SO, &SE,
 	&CM, &CL, &CE, &HO, &UP, &BC, &IC, &IM,
 	&DC, &EI, &LL, &SF, &SR, &VB, &KS, &KE,
@@ -110,20 +111,16 @@ static char	**meas[] = {
 	&lPC, &IP, &BL, &NL, &DO, 0
 };
 
-static void
+private void
 gets(buf)
 char	*buf;
 {
 	buf[read(0, buf, 12) - 1] = 0;
 }
 
-/* VARARGS1 */
-
-static void
-TermError(fmt, a)
-char	*fmt;
+private void
+TermError()
 {
-	writef(fmt, a);
 	flusho();
 	_exit(1);
 }
@@ -131,11 +128,12 @@ char	*fmt;
 void
 getTERM()
 {
-	char	*getenv(), *tgetstr() ;
+	extern char	*getenv(), *tgetstr() ;
 	char	termbuf[13],
 		*termname = NULL,
 		*termp = tspace,
 		tbuff[2048];	/* Good grief! */
+	const char	*tsp = ts;
 	int	i;
 
 	termname = getenv("TERM");
@@ -147,16 +145,21 @@ getTERM()
 		flusho();
 		gets(termbuf);
 		if (termbuf[0] == 0)
-			TermError(NullStr);
+			TermError();
 
 		termname = termbuf;
 	}
 
-	if (tgetent(tbuff, termname) < 1)
-		TermError("[\"%s\" unknown terminal type?]", termname);
-
-	if ((CO = tgetnum("co")) == -1)
-wimperr:	TermError("You can't run JOVE on a %s terminal.\n", termname);
+	if (tgetent(tbuff, termname) < 1) {
+		writef("[\"%s\" unknown terminal type?]", termname);
+		TermError();
+	}
+	if ((CO = tgetnum("co")) == -1) {
+wimperr:
+		writef("You can't run JOVE on a %s terminal.\n", termname);
+		TermError();
+		/*NOTREACHED*/
+	}
 
 	else if (CO > MAXCOLS)
 		CO = MAXCOLS;
@@ -174,8 +177,13 @@ wimperr:	TermError("You can't run JOVE on a %s terminal.\n", termname);
 		HZ = 0;			/* Hazeltine tilde kludge */
 
 	for (i = 0; meas[i]; i++) {
-		*(meas[i]) = (char *) tgetstr(ts, &termp);
-		ts += 2;
+		static char	nm[3] = "xx";
+
+		nm[0] = *tsp++;
+		nm[1] = *tsp++;
+		*(meas[i]) = (char *) tgetstr(nm, &termp);
+		if (termp > tspace + sizeof(tspace))
+			goto wimperr;
 	}
 	if (lPC)
 		PC = *lPC;
@@ -215,7 +223,7 @@ wimperr:	TermError("You can't run JOVE on a %s terminal.\n", termname);
 #ifdef ID_CHAR
 	disp_opt_init();
 #endif
-	if (CanScroll = ((AL && DL) || CS))
+	if ((CanScroll = ((AL && DL) || CS)) != 0)
 		IDline_setup(termname);
 }
 
@@ -276,8 +284,9 @@ void getTERM()
 /* put a string with padding */
 
 #ifndef IBMPC
-void
+private void
 tputc(c)
+int	c;
 {
 	putchar(c);
 }
@@ -287,6 +296,7 @@ tputc(c)
 void
 putpad(str, lines)
 char	*str;
+int	lines;
 {
 #ifndef IBMPC
 	if (str)
@@ -296,18 +306,20 @@ char	*str;
 #endif /* IBMPC */
 }
 
+void
 putargpad(str, arg, lines)
 char	*str;
-int	lines, arg;
+int	arg,
+	lines;
 {
 #ifndef	IBMPC
 	if (str) {
 		tputs(
 #ifdef	TERMINFO
 			tparm(str, arg),
-#else	TERMINFO
+#else	/* TERMINFO */
 			tgoto(str, 0, arg),	/* fudge */
-#endif	TERMINFO
+#endif	/* TERMINFO */
 			lines, tputc);
 	}
 #else	/* IBMPC */
@@ -325,7 +337,7 @@ int	lines, arg;
 #endif	/* IBMPC */
 }
 
-#endif MAC
+#endif /* MAC */
 
 /* Determine the number of characters to buffer at each baud rate.  The
    lower the number, the quicker the response when new input arrives.  Of
@@ -337,11 +349,8 @@ void
 settout(ttbuf)
 char	*ttbuf;
 {
-#if !(defined(MSDOS) || defined(MAC))
-	extern short	ospeed;
-#endif
 	int	speed_chars;
-	static int speeds[] = {
+	static const int speeds[] = {
 		1,	/* 0	*/
 		1,	/* 50	*/
 		1,	/* 75	*/

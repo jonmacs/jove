@@ -8,7 +8,6 @@
 #define MAXCOLS		256	/* maximum number of columns */
 
 #ifndef MAC
-#ifndef _TERM
 
 /* termcap definitions */
 
@@ -55,7 +54,7 @@ extern int
 	UL,		/* underscores don't replace chars already on screen */
 	MI,		/* okay to move while in insert mode */
 	SG,		/* number of magic cookies left by SO and SE */
-
+	XS,	/* whether standout is braindamaged */
 	HZ,		/* Hazeltine tilde kludge */
 	TABS,		/* whether we are in tabs mode */
 	UPlen,		/* length of the UP string */
@@ -68,8 +67,6 @@ extern char
 	*UP;	/* Scroll reverse, or up */
 
 extern short	ospeed;
-
-#endif /* _TERM */
 
 #else /* MAC */
 extern int	/* probably should clean this up */

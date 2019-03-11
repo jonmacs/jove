@@ -11,6 +11,7 @@
 #include "termcap.h"
 #include "ctype.h"
 #include "disp.h"
+#include "scandir.h"
 
 
 #ifdef IPROCS
@@ -19,7 +20,6 @@
 
 #ifdef MAC
 # include "mac.h"
-  extern int errno;
 #else
 # include <sys/stat.h>
 #endif
@@ -34,11 +34,12 @@
 # include <direct.h>
 # include <dos.h>
 #endif /* MSDOS */
+
 #include <errno.h>
 
 private struct block
 	*b_unlink proto((struct block *)),
-	*lookup proto((short));
+	*lookup proto((int/*short*/));
 
 private char
 	*dbackup proto((char *, char *, int)),
@@ -55,13 +56,13 @@ private void
 	DoWriteReg proto((int app)),
 	LRUunlink proto((struct block *)),
 	file_backup proto((char *fname)),
-	real_blkio proto((struct block *, int (*)()));
-
-private int
-#if defined(MSDOS)
-	Dchdir proto((char *)),
-#endif
+	real_blkio proto((struct block *, int (*)())),
 	dfollow proto((char *, char *));
+
+#if defined(MSDOS)
+private int
+	Dchdir proto((char *));
+#endif
 
 #ifndef W_OK
 # define W_OK	2
@@ -73,7 +74,6 @@ private int
 
 long	io_chars;		/* number of chars in this open_file */
 int	io_lines;		/* number of lines in this open_file */
-private int	read_only;	/* whether current file is read only */
 
 #if defined(VMUNIX) || defined(MSDOS)
 char	iobuff[LBSIZE],
@@ -112,6 +112,9 @@ putreg(fp, line1, char1, line2, char2, makesure)
 register File	*fp;
 Line	*line1,
 	*line2;
+int	char1,
+	char2,
+	makesure;
 {
 	register int	c;
 	register char	*lp;
@@ -123,9 +126,11 @@ Line	*line1,
 		if (line1 == line2) {
 			fputnchar(lp, (char2 - char1), fp);
 			io_chars += (char2 - char1);
-		} else while (c = *lp++) {
-			putc(c, fp);
-			io_chars += 1;
+		} else {
+			while ((c = *lp++) != '\0') {
+				putc(c, fp);
+				io_chars += 1;
+			}
 		}
 		if (line1 != line2) {
 			io_lines += 1;
@@ -151,7 +156,7 @@ register File	*fp;
 	int	savec = curchar;
 
 	strcpy(end, linebuf + curchar);
-	xeof = f_gets(fp, linebuf + curchar, LBSIZE - curchar);
+	xeof = f_gets(fp, linebuf + curchar, (size_t) (LBSIZE - curchar));
 	SavLine(curline, linebuf);
 	if (!xeof) do {
 		curline = listput(curbuf, curline);
@@ -166,13 +171,14 @@ register File	*fp;
 void
 read_file(file, is_insert)
 char	*file;
+int	is_insert;
 {
 	Bufpos	save;
 	File	*fp;
 
 	if (is_insert == NO)
 		curbuf->b_ntbf = NO;
-	fp = open_file(file, iobuff, F_READ, !COMPLAIN, !QUIET);
+	fp = open_file(file, iobuff, F_READ, NO, NO);
 	if (fp == NIL) {
 		if (!is_insert && errno == ENOENT)
 			s_mess("(new file)");
@@ -234,6 +240,7 @@ pwd()
 char *
 pr_name(fname, okay_home)
 char	*fname;
+int	okay_home;
 {
 	int	n;
 
@@ -255,8 +262,11 @@ char	*fname;
 	return fname;	/* return entire path name */
 }
 
+#ifdef	MSDOS
 extern unsigned int fmask;
+#endif	/* MSDOS */
 
+void
 Chdir()
 {
 	char	dirbuf[FILESIZE];
@@ -325,21 +335,20 @@ char	*dn;
 
 #endif /* UNIX */
 
+void
 setCWD(d)
 char	*d;
 {
 	if (DirStack == NIL)
 		list_push(&DirStack, (Element *) 0);
 	if (PWD == 0)
-		PWD_PTR = (Element *) emalloc(strlen(d) + 1);
-	else {
-		extern char	*ralloc();
-
+		PWD_PTR = (Element *) emalloc((size_t) (strlen(d) + 1));
+	else
 		PWD_PTR = (Element *) ralloc(PWD, strlen(d) + 1);
-	}
 	strcpy(PWD, d);
 }
 
+void
 getCWD()
 {
 	char	*cwd;
@@ -353,16 +362,18 @@ getCWD()
 
 #ifndef MSDOS
 	cwd = getenv("CWD");
-	if (cwd == 0 || !chkCWD(cwd))
+	if (cwd == 0 || !chkCWD(cwd)) {
 		cwd = getenv("PWD");
-	if (cwd == 0 || !chkCWD(cwd))
-		cwd = getwd(pathname);
+		if (cwd == 0 || !chkCWD(cwd))
+			cwd = getwd(pathname);
+	}
 #else /* MSDOS */
 		cwd = fixpath(getcwd(pathname, FILESIZE));
 #endif /* MSDOS */
 	setCWD(cwd);
 }
 
+void
 prDIRS()
 {
 	register List	*lp;
@@ -372,11 +383,13 @@ prDIRS()
 		add_mess("%s ", pr_name(dir_name(lp), YES));
 }
 
+void
 prCWD()
 {
 	s_mess(": %f => \"%s\"", PWD);
 }
 
+void
 Pushd()
 {
 	char	*newdir,
@@ -419,6 +432,7 @@ Pushd()
 	prDIRS();
 }
 
+void
 Popd()
 {
 	if (list_next(DirStack) == NIL)
@@ -444,7 +458,7 @@ register int	c;
 	return offset;
 }
 
-private
+private void
 dfollow(file, into)
 char	*file,
 	*into;
@@ -474,7 +488,7 @@ char	*file,
 	do {
 		if (*file == 0)
 			break;
-		if (sp = index(file, '/'))
+		if ((sp = index(file, '/')) != '\0')
 			*sp = 0;
 		if (strcmp(file, ".") == 0)
 			;	/* So it will get to the end of the loop */
@@ -498,7 +512,7 @@ char	*file,
 
 #include <pwd.h>
 
-private
+private void
 get_hdir(user, buf)
 register char	*user,
 		*buf;
@@ -529,7 +543,7 @@ register char	*user,
 	File	*fp;
 
 	u_len = strlen(user);
-	fp = open_file("/etc/passwd", fbuf, F_READ, COMPLAIN, QUIET);
+	fp = open_file("/etc/passwd", fbuf, F_READ, YES, YES);
 	swritef(pattern, "%s:[^:]*:[^:]*:[^:]*:[^:]*:\\([^:]*\\):", user);
 	while (f_gets(fp, genbuf, LBSIZE) != EOF)
 		if ((strncmp(genbuf, user, u_len) == 0) &&
@@ -570,7 +584,7 @@ char	*name,
 			if (uendp == 0)
 				uendp = name + strlen(name);
 			name += 1;
-			null_ncpy(unamebuf, name, uendp - name);
+			null_ncpy(unamebuf, name, (size_t) (uendp - name));
 			get_hdir(unamebuf, localbuf);
 			name = uendp;
 		}
@@ -603,7 +617,7 @@ char	*newname;
 #ifndef MAC
 	    ((stbuf.st_mode & S_IFMT) != S_IFCHR) &&
 #endif
-	    (my_strcmp(newname, curbuf->b_fname) != 0)) {
+	    (curbuf->b_fname==NIL || strcmp(newname, curbuf->b_fname) != 0)) {
 		rbell();
 		confirm("\"%s\" already exists; overwrite it? ", newname);
 	}
@@ -625,6 +639,7 @@ int	CreatMode = DFLT_MODE;
 
 private void
 DoWriteReg(app)
+int	app;
 {
 	char	fnamebuf[FILESIZE],
 		*fname;
@@ -646,7 +661,7 @@ DoWriteReg(app)
 		filemunge(fname);
 #endif
 
-	fp = open_file(fname, iobuff, app ? F_APPEND : F_WRITE, COMPLAIN, !QUIET);
+	fp = open_file(fname, iobuff, app ? F_APPEND : F_WRITE, YES, NO);
 	putreg(fp, mp->m_line, mp->m_char, curline, curchar, YES);
 	close_file(fp);
 }
@@ -667,7 +682,9 @@ WriteFile()
 
 	fname = ask_file((char *) 0, curbuf->b_fname, fnamebuf);
 	/* Don't allow bad characters when creating new files. */
-	if (!OkayBadChars && my_strcmp(curbuf->b_fname, fnamebuf) != 0) {
+	if (!OkayBadChars
+	&& (curbuf->b_fname==NIL || strcmp(curbuf->b_fname, fnamebuf) != 0))
+	{
 #ifdef UNIX
 		static char	*badchars = "!$^&*()~`{}\"'\\|<>? ";
 #endif /* UNIX */
@@ -680,7 +697,7 @@ WriteFile()
 		register char	*cp = fnamebuf;
 		register int	c;
 
-		while (c = *cp++ & CHARMASK)	/* avoid sign extension... */
+		while ((c = *cp++ & CHARMASK) != '\0')	/* avoid sign extension... */
 			if (c < ' ' || c == '\177' || index(badchars, c))
 				complain("'%p': bad character in filename.", c);
 	}
@@ -711,34 +728,35 @@ WriteFile()
    */
 
 File *
-open_file(fname, buf, how, ifbad, loudness)
+open_file(fname, buf, how, complainifbad, quiet)
 register char	*fname;
 char	*buf;
 register int	how;
+int	complainifbad,
+	quiet;
 {
 	register File	*fp;
 
 	io_chars = 0;
 	io_lines = 0;
-	read_only = FALSE;
 
 	fp = f_open(pr_name(fname, NO), how, buf, LBSIZE);
 	if (fp == NIL) {
 		message(IOerr((how == F_READ) ? "open" : "create", fname));
-		if (ifbad == COMPLAIN)
+		if (complainifbad)
 			complain((char *) 0);
 	} else {
-		int	read_only = FALSE;
+		int	rd_only = FALSE;
 #ifndef MAC
 		if (access(pr_name(fname, NO), W_OK) == -1 && errno != ENOENT) {
-			read_only = TRUE;
+			rd_only = TRUE;
 			fp->f_flags |= F_READONLY;
 		}
 #endif
-		if (loudness != QUIET) {
+		if (!quiet) {
 			fp->f_flags |= F_TELLALL;
 			f_mess("\"%s\"%s", pr_name(fname, YES),
-				   read_only ? " [Read only]" : NullStr);
+				   rd_only ? " [Read only]" : NullStr);
 		}
 	}
 	return fp;
@@ -756,6 +774,7 @@ register int	how;
 	 name.  I can't see why this would cause a problem ...
    */
 
+void
 chk_mtime(thisbuf, fname, how)
 Buffer	*thisbuf;
 char	*fname,
@@ -766,7 +785,7 @@ char	*fname,
 	char	*mesg = "Shall I go ahead and %s anyway? ";
 
 	if ((thisbuf->b_mtime != 0) &&		/* if we care ... */
-	    (b = file_exists(fname)) &&		/* we already have this file */
+	    ((b = file_exists(fname)) != NIL) &&		/* we already have this file */
 	    (b == thisbuf) &&			/* and it's the current buffer */
 	    (stat(pr_name(fname, NO), &stbuf) != -1) &&	/* and we can stat it */
 	    (stbuf.st_mtime != b->b_mtime)) {	/* and there's trouble. */
@@ -792,6 +811,7 @@ char	*fname,
 void
 file_write(fname, app)
 char	*fname;
+int	app;
 {
 	File	*fp;
 
@@ -800,7 +820,7 @@ char	*fname;
 		file_backup(fname);
 #endif
 
-	fp = open_file(fname, iobuff, app ? F_APPEND : F_WRITE, COMPLAIN, !QUIET);
+	fp = open_file(fname, iobuff, app ? F_APPEND : F_WRITE, YES, NO);
 
 	if (EndWNewline) {	/* Make sure file ends with a newLine */
 		Bufpos	save;
@@ -851,7 +871,7 @@ ReadFile()
 			SaveFile();
 	}
 
-	if ((bp = file_exists(fnamebuf)) &&
+	if ((bp = file_exists(fnamebuf)) != NIL &&
 	    (bp == curbuf))
 		lineno = pnt_line() - 1;
 	else
@@ -881,15 +901,14 @@ InsFile()
 
 #include "temp.h"
 
-int	DOLsave = 0;	/* Do Lsave flag.  If lines aren't being save
+int	DOLsave = 0;	/* Do Lsave flag.  If lines aren't being saved
 			   when you think they should have been, this
 			   flag is probably not being set, or is being
 			   cleared before lsave() was called. */
 
 private int	nleft,	/* number of good characters left in current block */
 		tmpfd = -1;
-daddr	DFree = 1;
-			/* pointer to end of tmp file */
+daddr	DFree = 1;  /* pointer to end of tmp file */
 private char	*tfname;
 
 void
@@ -944,8 +963,7 @@ register char	*buf;
 
 	lp = buf;
 	bp = getblock(addr >> 1, READ);
-	while (*lp++ = *bp++)
-		;
+	do ; while ((*lp++ = *bp++) != '\0');
 	Jr_Len = (lp - buf) - 1;
 }
 
@@ -965,7 +983,7 @@ char	*buf;
 	bp = getblock(free_ptr, WRITE);
 	nl = nleft;
 	free_ptr = blk_round(free_ptr);
-	while (*bp = *lp++) {
+	while ((*bp = *lp++) != '\0') {
 		if (*bp++ == '\n') {
 			*--bp = 0;
 			break;
@@ -1000,7 +1018,7 @@ register File	*fp;
 	register char	*bp;
 	register int	c,
 			nl,
-			max = LBSIZE;
+			room = LBSIZE;
 	daddr	free_ptr;
 	char		*base;
 #ifdef MSDOS
@@ -1011,7 +1029,7 @@ register File	*fp;
 	base = bp = getblock(free_ptr, WRITE);
 	nl = nleft;
 	free_ptr = blk_round(free_ptr);
-	while (--max > 0) {
+	while (--room > 0) {
 #ifdef MSDOS
 		if (crleft) {
 		   c = crleft;
@@ -1048,7 +1066,7 @@ register File	*fp;
 	free_ptr = DFree;
 	DFree += (((bp - base) + CH_SIZE - 1) / CH_SIZE);
 	line->l_dline = (free_ptr << 1);
-	if (max == 0) {
+	if (room == 0) {
 		add_mess(" [Line too long]");
 		rbell();
 		return EOF;
@@ -1080,7 +1098,7 @@ private Block	*b_cache,
 #else
 private Block	b_cache[NBUF],
 #endif
-		*bht[HASHSIZE] = {0},		/* Block hash table */
+		*bht[HASHSIZE],		/* Block hash table. Must be zero initially */
 		*f_block = 0,
 		*l_block = 0;
 private int	max_bno = -1,
@@ -1111,7 +1129,7 @@ register int	(*iofcn) proto((int, char *, unsigned int));
 #endif /* MAC */
 {
 	(void) lseek(tmpfd, (long) ((unsigned) b->b_bno) * BUFSIZ, 0);
-	if ((*iofcn)(tmpfd, b->b_buf, BUFSIZ) != BUFSIZ)
+	if ((*iofcn)(tmpfd, b->b_buf, (unsigned int)BUFSIZ) != BUFSIZ)
 		error("[Tmp file %s error; to continue editing would be dangerous]", (iofcn == read) ? "READ" : "WRITE");
 }
 
@@ -1156,9 +1174,10 @@ SyncTmp()
 	register Block	*b;
 #ifdef IBMPC
 	register int	bno = 0;
-	Block	*lookup();
 
-	/* sync the blocks in order, for floppy disks */
+	/* sync the blocks in order, for file systems that don't allow
+	   holes (MSDOS).  Perhaps this benefits floppy-based file systems. */
+
 	for (bno = 0; bno <= max_bno; ) {
 		if ((b = lookup(bno++)) && b->b_dirty) {
 			(*blkio)(b, write);
@@ -1239,6 +1258,7 @@ register Block	*bp;
 private char *
 getblock(atl, iof)
 daddr	atl;
+int	iof;
 {
 	register int	bno,
 			off;
@@ -1258,7 +1278,7 @@ daddr	atl;
 	/* The requested block already lives in memory, so we move
 	   it to the end of the LRU list (making it Most Recently Used)
 	   and then return a pointer to it. */
-	if (bp = lookup(bno)) {
+	if ((bp = lookup(bno)) != NIL) {
 		if (bp != l_block) {
 			LRUunlink(bp);
 			if (l_block == 0)

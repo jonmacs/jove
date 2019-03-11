@@ -42,6 +42,8 @@ Line *
 reg_delete(line1, char1, line2, char2)
 Line	*line1,
 	*line2;
+int	char1,
+	char2;
 {
 	register Line	*retline;
 
@@ -132,6 +134,9 @@ DelPChar()
 
 void
 del_char(dir, num, OK_kill)
+int	dir,
+	num,
+	OK_kill;
 {
 	Bufpos	before,
 		after;
@@ -164,6 +169,8 @@ Line	*killbuf[NUMKILLS];
 void
 reg_kill(line2, char2, dot_moved)
 Line	*line2;
+int	char2,
+	dot_moved;
 {
 	Line	*nl,
 		*line1 = curline;
@@ -289,6 +296,7 @@ DelBlnkLines()
 
 private void
 dword(forward)
+int	forward;
 {
 	Bufpos	savedot;
 

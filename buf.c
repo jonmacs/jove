@@ -25,16 +25,15 @@ private Buffer
 private char *line_cnt proto((Buffer *, char *));
 
 private void
-	BufNSelect proto((int)),
 	defb_wind proto((Buffer *)),
 	kill_buf proto((Buffer *)),
 	mkbuflist proto((char **));
 
-char	*Mainbuf = "Main",
+private char	*Mainbuf = "Main",
 	*NoName = "Sans un nom!";
 
 Buffer	*world = 0,		/* First in the list */
-	*curbuf = 0,
+	*curbuf = 0,	/* pointer into world for current buffer */
 	*lastbuf = 0;	/* Last buffer we were in so we have a default
 			   buffer during a select buffer. */
 
@@ -44,6 +43,7 @@ Buffer	*world = 0,		/* First in the list */
 
 void
 TogMinor(bit)
+int	bit;
 {
 	if (is_an_arg()) {
 		if (arg_value() == 0)
@@ -275,7 +275,7 @@ BufErase()
 {
 	register Buffer	*delbuf;
 
-	if (delbuf = getNMbuf()) {
+	if ((delbuf = getNMbuf()) != NIL) {
 		initlist(delbuf);
 		delbuf->b_modified = 0;
 	}
@@ -287,9 +287,6 @@ register Buffer	*delbuf;
 {
 	register Buffer	*b,
 			*lastb = 0;
-#if !defined(MAC)
-	extern Buffer	*perr_buf;
-#endif
 
 #if defined(IPROCS)
 	pbuftiedp(delbuf);	/* check for lingering processes */
@@ -380,7 +377,7 @@ char	*buf;
 	return buf;
 }
 
-private char	*TypeNames[] = {
+private const char	*const TypeNames[] = {
 	0,
 	"Scratch",
 	"File",
@@ -390,7 +387,7 @@ private char	*TypeNames[] = {
 void
 BufList()
 {
-	register char	*format = "%-2s %-5s %-11s %-1s %-*s  %-s";
+	register char	*fmt = "%-2s %-5s %-11s %-1s %-*s  %-s";
 	register Buffer	*b;
 	int	bcount = 1,		/* To give each buffer a number */
 		buf_width = 11;
@@ -404,10 +401,10 @@ BufList()
 	Typeout("(* means buffer needs saving)");
 	Typeout("(+ means file hasn't been read yet)");
 	Typeout(NullStr);
-	Typeout(format, "NO", "Lines", "Type", NullStr, buf_width, "Name", "File");
-	Typeout(format, "--", "-----", "----", NullStr, buf_width, "----", "----");
+	Typeout(fmt, "NO", "Lines", "Type", NullStr, buf_width, "Name", "File");
+	Typeout(fmt, "--", "-----", "----", NullStr, buf_width, "----", "----");
 	for (b = world; b != 0; b = b->b_next) {
-		Typeout(format, itoa(bcount++),
+		Typeout(fmt, itoa(bcount++),
 				line_cnt(b, nbuf),
 				TypeNames[b->b_type],
 				IsModified(b) ? "*" :
@@ -597,6 +594,7 @@ Buffer *
 do_find(w, fname, force)
 register Window	*w;
 register char	*fname;
+int	force;
 {
 	register Buffer	*b;
 
@@ -682,6 +680,7 @@ register char	*name;
 	return new;
 }
 
+void
 buf_init()
 {
 	SetBuf(do_select(curwind, Mainbuf));

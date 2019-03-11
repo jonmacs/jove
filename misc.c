@@ -7,11 +7,9 @@
 
 #include "jove.h"
 #include "ctype.h"
+#include "disp.h"
 
 #include <signal.h>
-
-extern void	KillEos proto((void));
-void skip_wht_space proto((void));
 
 void
 prCTIME()
@@ -201,6 +199,7 @@ WtModBuf()
 
 void
 put_bufs(askp)
+int	askp;
 {
 	register Buffer	*oldb = curbuf,
 			*b;
@@ -241,7 +240,7 @@ skip_wht_space()
 	register char	*cp,
 			c;
 
-	for (cp = linebuf + curchar; c = *cp; cp++)
+	for (cp = linebuf + curchar; (c = *cp)!='\0'; cp++)
 		if (c != ' ' && c != '\t')
 			break;
 	curchar = cp - linebuf;

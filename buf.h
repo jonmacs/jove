@@ -104,7 +104,10 @@ struct buffer {
 };
 
 extern Buffer	*world,		/* first buffer */
-		*curbuf;	/* pointer into world for current buffer */
+		*curbuf,	/* pointer into world for current buffer */
+		*lastbuf,	/* Last buffer we were in so we have a default
+				   buffer during a select buffer. */
+		*perr_buf;	/* Buffer with error messages */
 
 #define curline	curbuf->b_dot
 #define curchar curbuf->b_char
@@ -149,6 +152,7 @@ extern void
 	IFixMarks proto((struct line *line1, int char1, struct line *line2, int char2)),
 	MarkSet proto((struct mark *m, struct line *line, int column)),
 	ToMark proto((struct mark *m)),
+	flush_marks proto((Buffer *)),
 	b_char proto((int n)),
 	b_word proto((int num)),
 	del_char proto((int dir,int num,int OK_kill)),
@@ -168,7 +172,8 @@ extern void
 	open_lines proto((int n)),
 	reg_kill proto((struct line *line2,int char2,int dot_moved)),
 	set_mark proto((void)),
-	unwind_macro_stack proto((void));
+	unwind_macro_stack proto((void)),
+	buf_init proto((void));
 
 extern int
 	ModMacs proto((void)),

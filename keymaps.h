@@ -33,3 +33,6 @@ extern void
 	DescMap proto((struct keymap *map, char *pref)),
 	DescWMap proto((struct keymap *map, int key)),
 	dispatch proto((int c));
+
+extern int
+	PrefChar proto((int c));	/* Is `c' a prefix character */

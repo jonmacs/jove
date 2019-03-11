@@ -131,6 +131,7 @@ char	*argv[];
 }
 
 #else /* PIPEPROCS */
+void
 main()
 {
 }

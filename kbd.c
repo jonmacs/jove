@@ -19,20 +19,27 @@ struct header {
    The reason we go through all this trouble is that JOVE slows down
    a lot when it's getting its keyboard input via a pipe. */
 
-int strt_read();
+static int strt_read();
 
+static int
 hold_read()
 {
 	signal(SIGQUIT, strt_read);
 	pause();
+	return 0;	/* gotta return some int */
 }
 
+static int
 strt_read()
 {
 	signal(SIGQUIT, hold_read);
+	return 0;	/* gotta return some int */
 }
 
-main()
+int
+main(argc, argv)
+int	argc;
+char	**argv;
 {
 	struct header	header;
 	int	pid,
@@ -47,4 +54,5 @@ main()
 		header.nbytes = n;
 		write(1, &header, HEADER_SIZE + n);
 	}
+	return 0;
 }

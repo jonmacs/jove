@@ -9,10 +9,10 @@
 #include "fp.h"
 #include "ctype.h"
 #include "termcap.h"
+#include "disp.h"
 
 #ifdef MAC
 #	include "mac.h"
-	extern int errno;
 #else
 #	include <sys/stat.h>
 #	ifndef MSDOS
@@ -36,12 +36,15 @@ private int rbwrite proto((int, char *, int));
 
 #define MAXFILES	20	/* good enough for my purposes */
 
-private File	_openfiles[MAXFILES] = {0};
+private File	_openfiles[MAXFILES];	/* must be zeroed initially */
 
 private File *
 f_alloc(name, flags, fd, buffer, buf_size)
 char	*name,
 	*buffer;
+int	flags,
+	fd,
+	buf_size;
 {
 	register File	*fp;
 	register int	i;
@@ -56,7 +59,7 @@ char	*name,
 	fp->f_fd = fd;
 	fp->f_flags = flags;
 	if (buffer == 0) {
-		buffer = emalloc(buf_size);
+		buffer = emalloc((size_t)buf_size);
 		fp->f_flags |= F_MYBUF;
 	}
 	fp->f_base = fp->f_ptr = buffer;
@@ -79,6 +82,9 @@ File *
 fd_open(name, flags, fd, buffer, bsize)
 char	*name,
 	*buffer;
+int	flags,
+	fd,
+	bsize;
 {
 	return f_alloc(name, flags, fd, buffer, bsize);
 }
@@ -87,6 +93,8 @@ File *
 f_open(name, flags, buffer, buf_size)
 char	*name,
 	*buffer;
+int	flags,
+	buf_size;
 {
 	register int	fd;
 	int	mode = F_MODE(flags);
@@ -160,7 +168,7 @@ register char	*s;
 #ifndef IBMPC
 	register int	c;
 
-	while (c = *s++)
+	while ((c = *s++) != '\0')
 		putchar(c);
 #else /* IBMPC */
 	write_emif(s);
@@ -206,6 +214,7 @@ off_t	offset;
 
 int		/* is void - but for lints sake */
 _flush(c, fp)
+int	c;
 register File	*fp;
 {
 	register int	n;
@@ -235,6 +244,7 @@ int
 f_gets(fp, buf, max)
 register File	*fp;
 char	*buf;
+size_t	max;
 {
 	register char	*cp = buf;
 	register int	c;
@@ -326,13 +336,14 @@ private char	one_buf;
 
 int	BufSize = 1;
 
-private File	_stdout = {1, 1, 1, F_WRITE, &one_buf, &one_buf};
+private File	_stdout = {1, 1, 1, F_WRITE, &one_buf, &one_buf, (char *) NIL};
 File	*stdout = &_stdout;
 
 #undef putchar		/* for files which forget to include fp.h,
 			   here's a real putchar procedure. */
 void
 putchar(c)
+int	c;
 {
 	putc(c, stdout);
 }

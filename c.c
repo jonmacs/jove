@@ -10,6 +10,7 @@
 #include "jove.h"
 #include "re.h"
 #include "ctype.h"
+#include "disp.h"
 
 private int
 	backslashed proto((char *, int));
@@ -84,6 +85,8 @@ Bufpos *
 m_paren(p_type, dir, can_mismatch, can_stop)
 int	p_type;
 register int	dir;
+int	can_mismatch;
+int	can_stop;
 {
 	static Bufpos	ret;
 	Bufpos	savedot,
@@ -102,7 +105,7 @@ register int	dir;
 
 	swritef(re_str, "[(){}[\\]%s]", (MajorMode(CMODE)) ? "/\"'" : "\"");
 	REcompile(re_str, 1, &re_blk);
-	if (cp = index(p_types, p_type))
+	if ((cp = index(p_types, p_type)) != NIL)
 		p_match = cp[dir];
 	else
 		complain("[Cannot match %c's]", p_type);
@@ -198,6 +201,7 @@ register int	dir;
 private void
 do_expr(dir, skip_words)
 register int	dir;
+int	skip_words;
 {
 	register char	c,
 			syntax = (dir == FORWARD) ? _Op : _Cl;
@@ -310,6 +314,7 @@ FDownList()
 
 private void
 FindMatch(dir)
+int	dir;
 {
 	register Bufpos	*bp;
 	register char	c = linebuf[curchar];
@@ -340,6 +345,7 @@ int	CArgIndent = ALIGN_ARGS;
 /* indent for C code */
 Bufpos *
 c_indent(brace)
+int	brace;
 {
 	Bufpos	*bp;
 	int	new_indent = 0,
@@ -354,7 +360,7 @@ c_indent(brace)
 	   is not a matching curly brace then it is a paren (most likely).
 	   In that case we try to line up the arguments to a procedure
 	   or inside an of statement. */
-	if (bp = m_paren('}', BACKWARD, YES, YES)) {
+	if ((bp = m_paren('}', BACKWARD, YES, YES)) != NIL) {
 		Bufpos	save;
 		int	matching_indent;
 
@@ -430,6 +436,7 @@ c_indent(brace)
 
 static void
 re_indent(incr)
+int	incr;
 {
 	Line	*l1, *l2, *lp;
 	int	c1, c2;
@@ -453,14 +460,28 @@ re_indent(incr)
 	SetDot(&savedot);
 }
 
+void
 LRShift()
 {
-	re_indent(-CIndIncrmt);
+	int	amnt;
+
+	if (is_an_arg())
+		amnt = arg_value();
+	else
+		amnt = CIndIncrmt;
+	re_indent(-amnt);
 }
 
+void
 RRShift()
 {
-	re_indent(CIndIncrmt);
+	int	amnt;
+
+	if (is_an_arg())
+		amnt = arg_value();
+	else
+		amnt = CIndIncrmt;
+	re_indent(amnt);
 }
 
 #if defined(CMT_FMT)
@@ -484,13 +505,13 @@ char	*from,
 			*to_p = to,
 			c;
 
-	while (c = *fr_p) {
+	while ((c = *fr_p) != '\0') {
 		if (c == ' ' || c == '\t' || c == '\r')
 			fr_p += 1;
 		else
 			break;
 	}
-	while (c = *fr_p) {
+	while ((c = *fr_p) != '\0') {
 		if (c != '\r')
 			*to_p++ = c;
 		fr_p += 1;
@@ -508,7 +529,7 @@ private char	open_c[20],	/* the open comment format string */
 		close_c[20],
 		close_pat[20];
 
-private char	*comment_body[] = {
+private char	*const comment_body[] = {
 	open_c,
 	l_header,
 	l_trailer,
@@ -525,13 +546,13 @@ parse_cmt_fmt(str)
 char	*str;
 {
 	register char	*fmtp = str;
-	register char	**c_body = comment_body,
+	register char	*const *c_body = comment_body,
 			*body_p = *c_body;
 	int	c,
 		newlines = 1;
 
 	/* pick apart the comment string */
-	while (c = *fmtp++) {
+	while ((c = *fmtp++) != '\0') {
 		if (c != '%') {
 			*body_p++ = c;
 			continue;
@@ -558,7 +579,6 @@ char	*str;
 			break;
 		default:
 			complain("[Unknown comment escape: %%%c]", c);
-			/* VARARGS */
 			break;
 		}
 	}
@@ -595,7 +615,6 @@ char	*format;
 	parse_cmt_fmt(format);
 	/* figure out if we're "inside" a comment */
 	if ((match_o = dosearch(open_pat, BACKWARD, 0)) == 0)
-		/* VARARGS */
 		complain("No opening %s to match to.", open_pat);
 	open_c_pt = *match_o;
 	if ((match_c = dosearch(close_pat, BACKWARD, NO)) != 0 &&

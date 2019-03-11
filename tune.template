@@ -5,8 +5,6 @@
  * included in all the files.                                              *
  ***************************************************************************/
 
-#define NOEXTERNS
-
 #include "jove.h"
 
 char	*d_tempfile = "joveXXXXXX",	/* buffer lines go here */

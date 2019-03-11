@@ -19,5 +19,5 @@ struct cons {
 #define list_next(lp)	(lp->cdr)
 #define list_data(lp)	(lp->car)
 
-Element	*list_pop(),
+extern Element	*list_pop(),
 	*list_push();

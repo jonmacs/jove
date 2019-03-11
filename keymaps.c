@@ -29,9 +29,6 @@ private	void
 	fb_aux proto((data_obj *, struct keymap *, char *, char *)),
 	find_binds proto((data_obj *, char *));
 
-extern void
-	vpr_aux proto((struct variable *, char *));
-
 private List	*keymaps;		/* list of all keymaps */
 private struct keymap	*mainmap;
 #if defined(IPROCS)
@@ -261,8 +258,6 @@ KeyDesc()
 void
 DescBindings()
 {
-	extern void	Typeout();
-
 	TOstart("Key Bindings", TRUE);
 	DescMap(mainmap, NullStr);
 	TOstop();
@@ -378,13 +373,13 @@ DescCom()
 	}
 	if (dp == 0)
 		return;
-	fp = open_file(file, iobuff, F_READ, COMPLAIN, QUIET);
+	fp = open_file(file, iobuff, F_READ, YES, YES);
 	Placur(ILI, 0);
 	flusho();
 	swritef(pattern, "^:entry \"%s\" \"%s\"$", dp->Name, doc_type);
 	TOstart("Help", TRUE);
 	for (;;) {
-		if (f_gets(fp, genbuf, LBSIZE) == EOF) {
+		if (f_gets(fp, genbuf, (size_t)LBSIZE) == EOF) {
 			Typeout("There is no documentation for \"%s\".", dp->Name);
 			break;
 		}
@@ -404,7 +399,7 @@ DescCom()
 						binding, dp->Name);
 			}
 			Typeout("");
-			while (f_gets(fp, genbuf, LBSIZE) != EOF
+			while (f_gets(fp, genbuf, (size_t)LBSIZE) != EOF
 			&& strncmp(genbuf, ":entry", 6) != 0) {
 				Typeout("%s", genbuf);
 			}
@@ -419,9 +414,9 @@ DescCom()
 void
 Apropos()
 {
-	register struct cmd	*cp;
+	register const struct cmd	*cp;
 	register struct macro	*m;
-	register struct variable	*v;
+	register const struct variable	*v;
 	char	*ans;
 	int	anyfs = NO,
 		anyvs = NO,

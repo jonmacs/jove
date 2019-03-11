@@ -5,6 +5,7 @@
  * included in all the files.                                              *
  ***************************************************************************/
 
+#include <stdio.h>
 #include <sys/types.h>
 #include <sys/file.h>
 
@@ -19,6 +20,7 @@
 
 extern char	*getenv();
 
+int
 main()
 {
 	char	cmd[256],
@@ -36,5 +38,6 @@ main()
 	}
 	(void) execlp("jove", "teachjove", fname, (char *) 0);
 	printf("teachjove: cannot execl jove!\n");
+	return 1;
 }
 

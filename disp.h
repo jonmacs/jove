@@ -30,10 +30,12 @@ extern int
 	UpdMesg;	/* update the message line */
 
 extern int
+	chkmail proto((int force)),
 	calc_pos proto((char *lp,int c_char)),
 	find_pos proto((struct line *line,int c_char));
 
 extern void
+	disp_opt_init proto((void)),
 	ChkWindows proto((struct line *line1,struct line *line2)),
 	DrawMesg proto((int abortable)),
 	TOstart proto((char *name,int auto_newline)),
@@ -45,3 +47,17 @@ extern void
 
 extern int
 	DisabledRedisplay;
+
+#ifdef	ID_CHAR
+extern int
+	IN_INSmode,
+	DClen,
+	MDClen,
+	IClen,
+	MIClen,
+	IMlen,
+	CElen;
+
+extern void
+	INSmode proto((int));
+#endif	/* ID_CHAR */

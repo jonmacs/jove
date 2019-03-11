@@ -20,3 +20,8 @@ struct rec_entry {
 		r_dotline,	/* so we can really save the context */
 		r_dotchar;
 };
+
+extern void
+	SyncRec proto((void)),
+	recclose proto((void)),
+	FullRecover proto((void));

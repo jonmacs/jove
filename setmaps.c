@@ -22,15 +22,13 @@
 #undef NULL
 #include <stdio.h>
 
+private int
 matchcmd(choices, what)
-register struct cmd	choices[];
+register const struct cmd	choices[];
 register char	*what;
 {
 	register int	len;
-	int	i,
-		found = 0,
-		save,
-		exactmatch = -1;
+	int	i;
 
 	len = strlen(what);
 	for (i = 0; choices[i].Name != 0; i++) {
@@ -52,10 +50,7 @@ register struct variable choices[];
 register char	*what;
 {
 	register int	len;
-	int	i,
-		found = 0,
-		save,
-		exactmatch = -1;
+	int	i;
 
 	len = strlen(what);
 	for (i = 0; choices[i].Name != 0; i++) {
@@ -68,7 +63,7 @@ register char	*what;
 }
 #endif
 
-char *
+private char *
 PPchar(c)
 int	c;
 {
@@ -95,7 +90,7 @@ int	c;
 	return str;
 }
 
-void
+private void
 extract(into, from)
 char	*into,
 	*from;
@@ -125,7 +120,7 @@ char	*argv[];
 #endif
 		comname[70];
 	int	comnum,
-		ch,
+		ch = 0,
 #ifdef MAC
 		inmenu = 0,
 #endif

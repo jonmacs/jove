@@ -10,17 +10,23 @@
 #include "ctype.h"
 #include "chars.h"
 #include "disp.h"
+#include "fp.h"
+#include "scandir.h"
 
 #include <signal.h>
 
 #if defined(MAC)
 # include "mac.h"
-#else
-# include <varargs.h>
+#else	/* !MAC */
+# ifdef	STDARGS
+#  include <stdargs.h>
+# else
+#  include <varargs.h>
+# endif
 # if defined(F_COMPLETION)
 #  include <sys/stat.h>
 # endif
-#endif /* MAC */
+#endif	/* !MAC */
 
 private Buffer * get_minibuf proto((void));
 private char * real_ask proto((char *, int (*)(), char *, char *));
@@ -28,7 +34,6 @@ private char * real_ask proto((char *, int (*)(), char *, char *));
 private int
 	f_complete proto((int)),
 	bad_extension proto((char *)),
-	crush_bads proto((char **, int)),
 	isdir proto((char *));
 private void
 	fill_in proto((char **, int)),
@@ -69,6 +74,7 @@ get_minibuf()
 void
 minib_add(str, movedown)
 char	*str;
+int	movedown;
 {
 	register Buffer	*saveb = curbuf;
 
@@ -95,12 +101,12 @@ EVexpand()
 		*lp_start;
 	Mark	*m = MakeMark(curline, curchar, M_FLOATER);
 
-	while (c = *lp++) {
+	while ((c = *lp++) != '\0') {
 		if (c != '$')
 			continue;
 		lp_start = lp - 1;	/* the $ */
 		vp = varname;
-		while (c = *lp++) {
+		while ((c = *lp++) != '\0') {
 			if (!isword(c))
 				break;
 			*vp++ = c;
@@ -110,7 +116,7 @@ EVexpand()
 		   name, we insert it in linebuf, and then delete
 		   the variable name that we're replacing - and
 		   then we continue in case there are others ... */
-		if (ep = getenv(varname)) {
+		if ((ep = getenv(varname)) != NIL) {
 			curchar = lp_start - linebuf;
 			ins_str(ep, NO);
 			del_char(FORWARD, strlen(varname) + 1, NO);
@@ -236,19 +242,22 @@ cleanup:
 	return Minibuf;
 }
 
-/* VARARGS2 */
-
-char *
+#ifdef	STDARGS
+	char *
+ask(char *def, char *fmt,...)
+#else
+	/*VARARGS2*/ char *
 ask(def, fmt, va_alist)
-char	*def,
-	*fmt;
-va_dcl
+	char	*def,
+		*fmt;
+	va_dcl
+#endif
 {
 	char	prompt[128];
 	char	*ans;
 	va_list	ap;
 
-	va_start(ap);
+	va_init(ap, fmt);
 	format(prompt, sizeof prompt, fmt, ap);
 	va_end(ap);
 	ans = real_ask("\r\n", (int (*)()) 0, def, prompt);
@@ -260,37 +269,43 @@ va_dcl
 	return ans;
 }
 
-/* VARARGS1 */
-
-char *
+#ifdef	STDARGS
+	char *
+do_ask(char *delim, int (*d_proc)(), char *def, char *fmt,...)
+#else
+	/*VARARGS4*/ char *
 do_ask(delim, d_proc, def, fmt, va_alist)
-char	*delim,
-	*def,
-	*fmt;
-int	(*d_proc)();
-va_dcl
+	char	*delim,
+		*def,
+		*fmt;
+	int	(*d_proc)();
+	va_dcl
+#endif
 {
 	char	prompt[128];
 	va_list	ap;
 
-	va_start(ap);
+	va_init(ap, fmt);
 	format(prompt, sizeof prompt, fmt, ap);
 	va_end(ap);
 	return real_ask(delim, d_proc, def, prompt);
 }
 
-/* VARARGS1 */
-
-int
+#ifdef	STDARGS
+	int
+yes_or_no_p(char *fmt, ...)
+#else
+	/*VARARGS1*/ int
 yes_or_no_p(fmt, va_alist)
-char	*fmt;
-va_dcl
+	char	*fmt;
+	va_dcl
+#endif
 {
 	char	prompt[128];
 	int	c;
 	va_list	ap;
 
-	va_start(ap);
+	va_init(ap, fmt);
 	format(prompt, sizeof prompt, fmt, ap);
 	va_end(ap);
 	for (;;) {
@@ -324,7 +339,7 @@ char	BadExtensions[128] = ".o";
 char	BadExtensions[128] = ".obj .exe .com .bak .arc .lib .zoo";
 # endif /* MSDOS */
 
-static
+private int
 bad_extension(name)
 char	*name;
 {
@@ -367,7 +382,7 @@ char	*file;
 		);
 }
 
-static
+private int
 isdir(name)
 char	*name;
 {
@@ -382,6 +397,7 @@ char	*name;
 private void
 fill_in(dir_vec, n)
 register char	**dir_vec;
+int	n;
 {
 	int	minmatch = 0,
 		numfound = 0,
@@ -415,7 +431,7 @@ register char	**dir_vec;
 	Eol();
 	if (minmatch > strlen(fc_filebase)) {
 		the_same = FALSE;
-		null_ncpy(fc_filebase, dir_vec[lastmatch], minmatch);
+		null_ncpy(fc_filebase, dir_vec[lastmatch], (size_t) minmatch);
 		Eol();
 		makedirty(curline);
 	}
@@ -431,13 +447,12 @@ register char	**dir_vec;
 		insert_c('/', 1);
 }
 
-extern int	alphacomp();
-
 /* called from do_ask() when one of "\r\n ?" is typed.  Does the right
    thing, depending on which. */
 
-static
+private int
 f_complete(c)
+int	c;
 {
 	char	dir[FILESIZE],
 		**dir_vec;
@@ -459,7 +474,7 @@ f_complete(c)
 		char	tmp[FILESIZE];
 
 		fc_filebase += 1;
-		null_ncpy(tmp, linebuf, (fc_filebase - linebuf));
+		null_ncpy(tmp, linebuf, (size_t) (fc_filebase - linebuf));
 		if (tmp[0] == '\0')
 			strcpy(tmp, "/");
 		PathParse(tmp, dir);

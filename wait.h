@@ -19,3 +19,6 @@ union wait {
 };
 
 #endif
+
+extern void
+	kill_off proto((int, union wait));
