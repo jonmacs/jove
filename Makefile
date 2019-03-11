@@ -104,7 +104,7 @@ JOVETOOLM = $(MANDIR)/jovetool.$(MANEXT)
 #	HP/UX 8 or 9			SYSDEFS="-DHPUX -Ac"
 #	HP/UX 11 (-Ac redundant)	SYSDEFS=-DHPUX
 #	IBM AIX 3.2			SYSDEFS=-DAIX3_2
-#	IBM AIX 4.2			SYSDEFS="-DAIX4_2" TERMCAPLIB="-lcurses -ls"
+#	IBM AIX 4.2, 5.2		SYSDEFS="-DAIX4_2" TERMCAPLIB="-lcurses -ls"
 #	Irix 3.3-4.0.5			SYSDEFS="-DIRIX -DIRIX4"
 #	Irix 5.0 onwards		SYSDEFS="-DIRIX -prototypes"
 #	LINUX (older, eg. RedHat 4, 5)	SYSDEFS=-DBSDPOSIX
@@ -117,8 +117,8 @@ JOVETOOLM = $(MANDIR)/jovetool.$(MANEXT)
 #	SunOS3.x			SYSDEFS=-DSUNOS3
 #	SunOS4.0*			SYSDEFS=-DSUNOS40
 #	SunOS4.1*			SYSDEFS=-DSUNOS41
-#	SunOS5.0/Solaris 2.0		SYSDEFS="-DSYSVR4 -DGRANTPT_BUG"
-#	SunOS5.[123456]/Solaris 2.x	SYSDEFS=-DSYSVR4
+#	SunOS5.0 (Solaris 2.0)		SYSDEFS="-DSYSVR4 -DGRANTPT_BUG"
+#	SunOS5.[12345678] (Solaris)	SYSDEFS=-DSYSVR4
 #	Sys III, Sys V R 2,3		SYSDEFS=-DSYSV
 #	Sys V Release 4.0		SYSDEFS="-DSYSVR4 -DGRANTPT_BUG"
 #	Sys V Release 4.x		SYSDEFS=-DSYSVR4
@@ -130,7 +130,7 @@ JOVETOOLM = $(MANDIR)/jovetool.$(MANEXT)
 # Some of the MIPS based Ultrix (upto 4.2 at least), RiscOS and Irix (up to
 # 3.3 at least) also need -DMIPS_CC_BUG.
 #
-# Some (all?) versions of the HPUX C compiler have a bug in handling forward
+# Some old versions of the HPUX C compiler have a bug in handling forward
 # struct tag declarations.  Using the -Ac flag in place of -Ae will avoid
 # this problem (and reduce the compiler's error checking, unfortunately).
 #
@@ -303,7 +303,8 @@ ovjove:	$(OBJECTS)
 	@-size jjove$(XEXT)
 
 # portsrv is only needed if IPROCS are implemented using PIPEPROCS
-# Making PORTSRVINST null will supress building and installing portsrv.
+# (modern systems use PTYPROCS).
+# Making PORTSRVINST null supresses building and installing portsrv.
 
 # PORTSRVINST=$(PORTSRV)
 PORTSRVINST=
