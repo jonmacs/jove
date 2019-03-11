@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -64,7 +64,7 @@ extern void
 
 /* termcap declarations */
 
-extern char
+extern const char
 	*CS,	/* change scrolling region */
 	*SO,	/* Start standout */
 	*SE,	/* End standout */
@@ -111,7 +111,9 @@ extern bool
 	NP;		/* there is No Pad character */
 
 extern char
-	PC,		/* pad character, as a char (set from lPC; defaults to NUL) */
+	PC;		/* pad character, as a char (set from lPC; defaults to NUL) */
+
+extern const char
 	*BC,	/* back space (defaults to BS) */
 	*UP;	/* Scroll reverse, or up */
 
@@ -121,7 +123,7 @@ extern bool	CanScroll;	/* can this terminal scroll? */
 
 # ifdef ID_CHAR
 
-extern char
+extern const char
 	*IC,	/* Insert char */
 	*DC,	/* Delete char */
 	*IM,	/* Insert mode */

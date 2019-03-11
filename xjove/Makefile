@@ -1,5 +1,5 @@
 ###########################################################################
-# This program is Copyright (C) 1991-1996 by C.H.Lindsey, University of   #
+# This program is Copyright (C) 1991-1999 by C.H.Lindsey, University of   #
 # Manchester.  (X)JOVETOOL is provided to you without charge, and with no #
 # warranty.  You may give away copies of (X)JOVETOOL, including sources,  #
 # provided that this notice is included in all the files, except insofar  #

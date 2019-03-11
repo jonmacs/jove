@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -55,12 +55,7 @@ recinit()
 #endif
 		);
 	recfname = copystr(buf);
-	recfname = mktemp(recfname);
-	rec_fd = creat(recfname, 0644);
-	if (rec_fd == -1) {
-		complain("Cannot create \"%s\"; recovery disabled.", recfname);
-		/*NOTREACHED*/
-	}
+	rec_fd = MakeTemp(recfname, "Cannot create \"%s\"; recovery disabled.");
 	/* initialize the recovery file */
 	rec_out = fd_open(recfname, F_WRITE|F_LOCKED, rec_fd, iobuff, LBSIZE);
 
@@ -172,13 +167,14 @@ SyncRec()
 }
 
 /* To be implemented:
-   Full Recover.  What we have to do is go find the name of the tmp
-   file data/rec pair and use those instead of the ones we would have
-   created eventually.  The rec file has a list of buffers, and then
-   the actual pointers.  Stored for each buffer is the buffer name,
-   the file name, the number of lines, the current line, the current
-   character.  The current modes do not need saving as they will be
-   saved when the file name is set.  If a process was running in a
-   buffer, it will be lost. */
+ * Full Recover.  What we have to do is go find the name of the tmp
+ * file data/rec pair and use those instead of the ones we would have
+ * created eventually.  The rec file has a list of buffers, and then
+ * the actual pointers.  Stored for each buffer is the buffer name,
+ * the file name, the number of lines, the current line, the current
+ * character.  The current modes do not need saving as they will be
+ * saved when the file name is set.  If a process was running in a
+ * buffer, it will be lost.
+ */
 
 #endif /* RECOVER */

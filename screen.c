@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -24,7 +24,7 @@ struct scrimage
 	*DesiredScreen = NULL,
 	*PhysScreen = NULL;
 
-private struct screenline   *Savelines = NULL;	/* scratch entries (LI of them) */
+private struct screenline	*Savelines = NULL;	/* scratch entries (LI of them) */
 
 private void LEclear proto((struct screenline *));	/* free s_effects component */
 
@@ -146,9 +146,10 @@ register char	*cp1,
 #ifdef MAC
 
 /* Character output to bit-mapped screen is very expensive. It makes
-   much more sense to write the entire line at once. So, we print all
-   the characters, whether already there or not, once the line is
-   complete. */
+ * much more sense to write the entire line at once. So, we print all
+ * the characters, whether already there or not, once the line is
+ * complete.
+ */
 
 private unsigned char sput_buf[255];
 private size_t sput_len = 0;
@@ -556,9 +557,10 @@ SO_effect(on)
 bool	on;
 {
 	/* If there are magic cookies, then WHERE the SO string is
-	   printed decides where the SO actually starts on the screen.
-	   So it's important to make sure the cursor is positioned there
-	   anyway.  I think this is right. */
+	 * printed decides where the SO actually starts on the screen.
+	 * So it's important to make sure the cursor is positioned there
+	 * anyway.  I think this is right.
+	 */
 	if (SG != 0) {
 		Placur(i_line, i_col);
 		i_col += SG;
@@ -581,9 +583,9 @@ bool	on;
 #endif /* TERMCAP */
 
 /* Insert `num' lines at top, but leave all the lines BELOW `bottom'
-   alone (at least they won't look any different when we are done).
-   This changes the screen array AND does the physical changes. */
-
+ * alone (at least they won't look any different when we are done).
+ * This changes the screen array AND does the physical changes.
+ */
 void
 v_ins_line(num, top, bottom)
 int num,
@@ -606,8 +608,8 @@ int num,
 	}
 
 	/* Num number of bottom lines will be lost.
-	   Copy everything down num number of times. */
-
+	 * Copy everything down num number of times.
+	 */
 	for (i = bottom-num; i >= top; i--)
 		Screen[i + num] = Screen[i];
 
@@ -619,8 +621,8 @@ int num,
 }
 
 /* Delete `num' lines starting at `top' leaving the lines below `bottom'
-   alone.  This updates the internal image as well as the physical image.  */
-
+ * alone.  This updates the internal image as well as the physical image.
+ */
 void
 v_del_line(num, top, bottom)
 int num,
@@ -657,10 +659,10 @@ int num,
 #ifdef TERMCAP	/* remainder of this file */
 
 /* The cursor optimization happens here.  You may decide that this
-   is going too far with cursor optimization, or perhaps it should
-   limit the amount of checking to when the output speed is slow.
-   What ever turns you on ...   */
-
+ * is going too far with cursor optimization, or perhaps it should
+ * limit the amount of checking to when the output speed is slow.
+ * What ever turns you on ...
+ */
 struct cursaddr {
 	int	cm_numchars;
 	void	(*cm_proc) ();
@@ -754,10 +756,10 @@ register int	line,
 }
 
 /* Tries to move forward using tabs (if possible).  It tabs to the
-   closest tabstop which means it may go past 'destcol' and backspace
-   to it.
-   Note: changes to this routine must be matched by changes in ForNum. */
-
+ * closest tabstop which means it may go past 'destcol' and backspace
+ * to it.
+ * Note: changes to this routine must be matched by changes in ForNum.
+ */
 private void
 ForTab(to)
 int	to;
@@ -861,13 +863,14 @@ int line,
 	if (IN_INSmode && MI)
 		xtracost = IMEIlen;
 	/* If we're already in insert mode, it is likely that we will
-	   want to be in insert mode again, after the insert. */
+	 * want to be in insert mode again, after the insert.
+	 */
 # endif
 
 	/* Number of characters to move horizontally for each case.
-	   1: Try tabbing to the correct place.
-	   2: Try going to the beginning of the line, and then tab. */
-
+	 * 1: Try tabbing to the correct place.
+	 * 2: Try going to the beginning of the line, and then tab.
+	 */
 	if (dcol == 1 || dcol == 0) {		/* Most common case. */
 		HorMin = &WarpHor[FORTAB];
 		HorMin->cm_numchars = dcol + xtracost;
@@ -889,13 +892,14 @@ int line,
 	CursMin(VertMin, WarpVert, NUMVERT);
 
 	/* Homing first and lowering first are considered
-	   direct motions.
-	   Homing first's total is the sum of the cost of homing
-	   and the sum of tabbing (if possible) to the right. */
-
+	 * direct motions.
+	 * Homing first's total is the sum of the cost of homing
+	 * and the sum of tabbing (if possible) to the right.
+	 */
 	if (Screen[line].s_effects != NOEFFECT && CM != NULL) {
 		/* We are going to a line with inversion or underlining;
-		   Don't try any clever stuff */
+		 * Don't try any clever stuff
+		 */
 		DirectMin = &WarpDirect[DIRECT];
 		DirectMin->cm_numchars = 0;
 		Cmstr = targ2(CM, col, line);
@@ -933,11 +937,11 @@ int line,
 
 
 /* Figures out how many characters ForTab() would use to move forward
-   using tabs (if possible).
-   Note: changes to this routine must be matched by changes in ForTab.
-   An exception is that any cost for leaving insert mode has been
-   accounted for by our caller. */
-
+ * using tabs (if possible).
+ * Note: changes to this routine must be matched by changes in ForTab.
+ * An exception is that any cost for leaving insert mode has been
+ * accounted for by our caller.
+ */
 private int
 ForNum(from, to)
 register int	from;

@@ -1,13 +1,13 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
  ************************************************************************/
 
 /* Contains commands that deal with creating, selecting, killing and
-   listing buffers, and buffer modes, and find-file, etc. */
-
+ * listing buffers, and buffer modes, and find-file, etc.
+ */
 #include "jove.h"
 #include "jctype.h"
 #include "disp.h"
@@ -46,10 +46,10 @@ char
 #endif
 
 private void
-	setbname proto((Buffer *, char *));
+	setbname proto((Buffer *, const char *));
 
-private char	*Mainbuf = "Main",
-	*NoName = "Sans un nom!";
+private const char	Mainbuf[] = "Main",
+	NoName[] = "Sans un nom!";
 
 Buffer
 	*world = NULL,		/* First in the list */
@@ -59,9 +59,9 @@ Buffer
 	*perr_buf = NULL;	/* Buffer with error messages */
 
 /* Toggle BIT in the current buffer's minor mode flags.  If argument is
-   supplied, a positive one always turns on the mode and zero argument
-   always turns it off. */
-
+ * supplied, a positive one always turns on the mode and zero argument
+ * always turns it off.
+ */
 void
 TogMinor(bit)
 int	bit;
@@ -77,8 +77,8 @@ int	bit;
 }
 
 /* Creates a new buffer, links it at the end of the buffer chain, and
-   returns it. */
-
+ * returns it.
+ */
 private Buffer	*free_bufs = NULL;
 
 private Buffer *
@@ -162,8 +162,8 @@ FindFile()
 
 private void
 mkbuflist(bnamp, ebnamp)
-register char	**bnamp;
-char		**ebnamp;
+register const char	**bnamp;
+const char		**ebnamp;
 {
 	register Buffer	*b;
 
@@ -177,14 +177,14 @@ char		**ebnamp;
 	*bnamp = NULL;
 }
 
-char *
+const char *
 ask_buf(def, flags)
 Buffer	*def;
 int	flags;
 {
-	char	*defname = def != NULL? def->b_name : (char *)NULL;
-	char	*bnames[200];
-	register char	*bname;
+	const char	*defname = def != NULL? def->b_name : (char *)NULL;
+	const char	*bnames[200];
+	register const char	*bname;
 	register int	offset;
 	char	prompt[100];
 
@@ -210,7 +210,7 @@ int	flags;
 void
 BufSelect()
 {
-	register char	*bname;
+	register const char	*bname;
 
 	bname = ask_buf(lastbuf, ALLOW_OLD | ALLOW_INDEX | ALLOW_NEW);
 	SetABuf(curbuf);
@@ -252,7 +252,7 @@ delb_wind(b)
 register Buffer *b;
 {
 	register Window	*w = fwind;
-	char	*alt = lastbuf != NULL && lastbuf != b? lastbuf->b_name
+	const char	*alt = lastbuf != NULL && lastbuf != b? lastbuf->b_name
 		: b->b_next != NULL? b->b_next->b_name
 		: Mainbuf;
 
@@ -369,6 +369,7 @@ KillSome()
 		next = b->b_next;
 		if (!yes_or_no_p(IsModified(b)? "Kill %s [modified]? " : "Kill %s? ", b->b_name))
 			continue;
+
 		if (IsModified(b)
 		&& yes_or_no_p("%s modified; should I save it? ", b->b_name))
 		{
@@ -398,7 +399,7 @@ private const char	*const TypeNames[] = {
 void
 BufList()
 {
-	register char	*fmt = "%2s %5s %-8s %-1s%-1s %-*s  %-s";
+	register const char	*fmt = "%2s %5s %-8s %-1s%-1s %-*s  %-s";
 	register Buffer	*b;
 	int	bcount = 1,		/* To give each buffer a number */
 		buf_width = 11;
@@ -455,8 +456,8 @@ private void
 bufname(b)
 register Buffer	*b;
 {
-	char	tmp[100],
-		*cp;
+	char	tmp[100];
+	const char	*cp;
 	int	try = 1;
 
 	if (b->b_fname == NULL)
@@ -497,12 +498,12 @@ register Buffer	*b;
 }
 
 /* Returns pointer to buffer with name NAME, or if NAME is a string of digits
-   returns the buffer whose number equals those digits.  Otherwise, returns
-   NULL. */
-
+ * returns the buffer whose number equals those digits.  Otherwise, returns
+ * NULL.
+ */
 Buffer *
 buf_exists(name)
-register char	*name;
+register const char	*name;
 {
 	register Buffer	*bp;
 
@@ -537,7 +538,7 @@ bool
 
 Buffer *
 do_stat(name, target, flags)
-register char	*name;
+register const char	*name;
 Buffer	*target;
 int	flags;
 {
@@ -636,14 +637,14 @@ int	flags;
 private void
 setbname(b, name)
 register Buffer	*b;
-register char	*name;
+register const char	*name;
 {
 	UpdModLine = YES;	/* Kludge ... but speeds things up considerably */
 	if (name != NULL) {
 		if (b->b_name == NoName)
 			b->b_name = NULL;
-		b->b_name = freealloc((UnivPtr) b->b_name, strlen(name) + 1);
-		strcpy(b->b_name, name);
+		b->b_name = strcpy((char *)freealloc(
+		    (UnivPtr) b->b_name, strlen(name) + 1), name);
 	} else {
 		b->b_name = NULL;
 	}
@@ -655,7 +656,7 @@ register char	*name;
 void
 setfname(b, name)
 register Buffer	*b;
-register char	*name;
+register const char	*name;
 {
 	char	wholename[FILESIZE],
 		oldname[FILESIZE],
@@ -822,7 +823,7 @@ register Buffer	*newbuf;
 Buffer *
 do_select(w, name)
 register Window	*w;
-register char	*name;
+register const char	*name;
 {
 	register Buffer	*new;
 
@@ -860,6 +861,7 @@ register int	num;
 {
 	if (num < 0)
 		return prev_line(line, -num);
+
 	if (line != NULL)
 		while (--num >= 0 && line->l_next != NULL)
 			line = line->l_next;
@@ -873,6 +875,7 @@ register int	num;
 {
 	if (num < 0)
 		return next_line(line, -num);
+
 	if (line != NULL)
 		while (--num >= 0 && line->l_prev != NULL)
 			line = line->l_prev;

@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -136,6 +136,12 @@
 # define ISO_8859_1	1	/* fudge: <ctype.h> doesn't work for 8-bit chars, but X does */
 #endif
 
+#ifdef CYGWIN32 /* System: Cygnus Support Cygwin32 POSIX-like environment
+	on Win95/NT (see README.c32) */
+#define FILENAME_CASEINSENSITIVE	1
+#define BSDPOSIX	1
+#endif
+
 #ifdef __QNX__	/* System: QNX OS for x86 family */
 /* Note: this must be placed before BSDPOSIX ifdef (we define BSDPOSIX). */
 # define BSDPOSIX	1
@@ -234,7 +240,7 @@
 # define USE_CTYPE	1
 #endif
 
-#ifdef HPUX	/* System: Hewlett-Packard HP-UX 9.01 */
+#ifdef HPUX	/* System: Hewlett-Packard HP-UX 9.01 & 11, probably others */
 # define TERMIOS	1
 # define USE_BSDTTYINCLUDE	1	/* No other way to turn off ^Y */
 # define USE_GETCWD	1
@@ -301,6 +307,7 @@
 #endif
 
 #ifdef _MSC_VER	/* System: Microsoft C for the IBM-PC under MSDOS or WIN32 */
+/* 4.16.0.38 tested under VC++ 5.0 / VS 97 */
 # if defined(_WIN32) && !defined(WIN32)
 #  define WIN32 _WIN32
 # endif
@@ -317,6 +324,8 @@
 #  endif
 # endif
 # define REALSTDC	1	/* MS C only defines __STDC__ if you use /Za */
+# define NO_MKSTEMP	1
+# define _POSIX_	1	/* suppresses MS's min and max in VC++ 5.0 */
 #endif
 
 #ifdef ZTCDOS	/* System: Zortech C V3.0 for the IBM-PC under MSDOS */
@@ -336,6 +345,8 @@
 # define STACK_DECL	unsigned int _stack = 0x2000; WILDCARDS
 # define dostime_t	dos_time_t	/* is Zortech out of step? */
 # define _dos_gettime	dos_gettime
+# define NO_MKSTEMP	1
+# define NO_MKTEMP	1
 #endif
 
 #if defined(__WATCOMC__) && defined(MSDOS)	/* System: Watcom C V10.0 for the IBM-PC under MSDOS */
@@ -348,6 +359,8 @@
 #  define NBUF		3
 #  define FAR_LINES	1	/* to squeeze larger files, distance Lines */
 # endif
+# define NO_MKSTEMP	1
+# define NO_MKTEMP	1
 #endif
 
 #ifdef __BORLANDC__	/* System: Borland C/C++ (v3.1) for the IBM-PC under MSDOS */
@@ -364,6 +377,8 @@
 #  endif
 # endif
 # define STACK_DECL	unsigned int _stklen = 0x2000;		/* Borland's way of specifying stack size */
+/* probably: # define NO_MKSTEMP	1 */
+/* probably: # define NO_MKTEMP	1 */
 #endif
 
 /* All the systems marked with XXX_ are ones that this version of Jove (4.16)
@@ -422,6 +437,8 @@
 # else
 #  define SMALL		1
 # endif
+/* probably: # define NO_MKSTEMP	1 */
+/* probably: # define NO_MKTEMP	1 */
 #endif
 
 #ifdef THINK_C	/* System: Think C version 5.0 on the Macintosh */
@@ -434,6 +451,9 @@
   typedef int	dev_t;
   typedef int	ino_t;
 # define DIRECTORY_ADD_SLASH 1
+# define NO_MKSTEMP	1	/* no mkstemp library routine */
+# define NO_MKTEMP	1	/* no mktemp library routine */
+# define NO_FCNTL	1	/* no <fcntl.h> header */
 # define EOL	'\r'	/* end-of-line character for files */
 # define WINRESIZE	1
 # define AUTO_BUFS	1	/* slim down data segment */

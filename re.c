@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -27,7 +27,7 @@ bool
 	WrapScan = NO;		/* VAR: make searches wrap */
 
 private ZXchar	REpeekc;
-private char	*REptr;
+private const char	*REptr;
 
 private ZXchar
 REgetc()
@@ -83,7 +83,7 @@ private char	*comp_ptr,
 
 void
 REcompile(pattern, re, re_blk)
-char	*pattern;
+const char	*pattern;
 bool	re;
 struct RE_block	*re_blk;
 {
@@ -330,6 +330,7 @@ toolong:
 			do {
 				if (c == EOF)
 					break;
+
 				if (c == '\\') {
 					c = REgetc();
 					if (c == EOF)
@@ -343,6 +344,7 @@ toolong:
 					c = REgetc();
 					if (c == EOF)
 						break;
+
 					if (c == ']') {
 						/* not a range after all */
 						REpeekc = c;	/* push back ']' */
@@ -518,28 +520,33 @@ register char	*linep,
 	case AT_BOL:
 		if (linep == REbolp && linep != locrater)
 			continue;
+
 		return NO;
 
 	case AT_EOL:
 		if (*linep == '\0')
 			continue;
+
 		return NO;
 
 	case ANYC:
 		if (*linep++ != '\0')
 			continue;
+
 		return NO;
 
 	case AT_BOW:
 		if (linep != locrater && jisident(*linep)
 		&& (linep == REbolp || !jisident(linep[-1])))
 			continue;
+
 		return NO;
 
 	case AT_EOW:
 		if (linep != locrater && (*linep == '\0' || !jisident(*linep))
 		&& (linep != REbolp && jisident(linep[-1])))
 			continue;
+
 		return NO;
 
 	case ONE_OF:
@@ -579,6 +586,7 @@ register char	*linep,
 		}
 		if (!any)
 			return NO;
+
 		linep = loc2;
 		continue;
 	    }
@@ -625,6 +633,7 @@ star:
 		while (linep > first_p) {
 			if (REmatch(linep, comp_ptr))
 				return YES;
+
 			linep -= pendlst[n] - pstrtlst[n];
 		}
 		continue;
@@ -645,15 +654,16 @@ REreset()
 }
 
 /* Index LINE at OFFSET.  If lbuf_okay is YES it's okay to use linebuf
-   if LINE is the current line.  This should save lots of time in things
-   like paren matching in LISP mode.  Saves all that copying from linebuf
-   to a local buffer.  substitute() is the guy who calls re_lindex with
-   lbuf_okay as NO, since the substitution gets placed in linebuf ...
-   doesn't work too well when the source and destination strings are the
-   same.  I hate all these arguments!
-
-   This code is cumbersome, repetetive for reasons of efficiency.  Fast
-   search is a must as far as I am concerned. */
+ * if LINE is the current line.  This should save lots of time in things
+ * like paren matching in LISP mode.  Saves all that copying from linebuf
+ * to a local buffer.  substitute() is the guy who calls re_lindex with
+ * lbuf_okay as NO, since the substitution gets placed in linebuf ...
+ * doesn't work too well when the source and destination strings are the
+ * same.  I hate all these arguments!
+ *
+ * This code is cumbersome, repetetive for reasons of efficiency.  Fast
+ * search is a must as far as I am concerned.
+ */
 
 bool
 re_lindex(line, offset, dir, re_blk, lbuf_okay, crater)
@@ -729,7 +739,7 @@ bool	okay_wrap = NO;	/* Do a wrap search ... not when we're
 
 Bufpos *
 dosearch(pattern, dir, re)
-char	*pattern;
+const char	*pattern;
 int	dir;
 bool	re;
 {
@@ -757,17 +767,18 @@ register struct RE_block	*re_blk;
 
 	lsave();
 	/* Search now lsave()'s so it doesn't make any assumptions on
-	   whether the the contents of curline/curchar are in linebuf.
-	   Nowhere does search write all over linebuf.  However, we have to
-	   be careful about what calls we make here, because many of them
-	   assume (and rightly so) that curline is in linebuf. */
-
+	 * whether the the contents of curline/curchar are in linebuf.
+	 * Nowhere does search write all over linebuf.  However, we have to
+	 * be careful about what calls we make here, because many of them
+	 * assume (and rightly so) that curline is in linebuf.
+	 */
 	lp = curline;
 	offset = curchar;
 	if (dir == BACKWARD) {
 		if (bobp()) {
 			if (okay_wrap && WrapScan)
 				goto doit;
+
 			return NULL;
 		}
 		/* here we simulate BackChar() */
@@ -789,8 +800,8 @@ doit:
 		lp = (dir == FORWARD) ? lp->l_next : lp->l_prev;
 		if (lp == NULL) {
 			if (okay_wrap && WrapScan) {
-				lp = (dir == FORWARD) ?
-				     curbuf->b_first : curbuf->b_last;
+				lp = (dir == FORWARD)
+					? curbuf->b_first : curbuf->b_last;
 				we_wrapped = YES;
 			} else
 				 break;
@@ -805,6 +816,7 @@ doit:
 		lp = NULL;
 	if (lp == NULL)
 		return NULL;
+
 	ret.p_line = lp;
 	ret.p_char = (dir == FORWARD) ? REeom : REbom;
 	return &ret;
@@ -830,8 +842,8 @@ int which;
 }
 
 /* Perform the substitution.  If DELP is YES the matched string is
-   deleted, i.e., the substitution string is not inserted. */
-
+ * deleted, i.e., the substitution string is not inserted.
+ */
 void
 re_dosub(re_blk, tobuf, delp)
 struct RE_block	*re_blk;
@@ -918,8 +930,8 @@ RErecur()
 
 bool
 LookingAt(pattern, buf, offset)
-char	*pattern,
-	*buf;
+const char	*pattern;
+char	*buf;
 int offset;
 {
 	struct RE_block	re_blk;
@@ -946,7 +958,5 @@ char	*expr;
 	REreset();
 	locrater = NULL;
 	REbolp = linebuf;
-	if (REmatch(linebuf + curchar, re_blk.r_alternates[0]))
-		return YES;
-	return NO;
+	return REmatch(linebuf + curchar, re_blk.r_alternates[0]);
 }

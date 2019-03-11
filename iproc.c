@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -65,7 +65,7 @@ struct process {
 };
 
 private void
-	jputenv proto((char *)),
+	jputenv proto((const char *)),
 	proc_rec proto((Process, char *, size_t)),
 	proc_close proto ((Process)),
 	SendData proto((bool)),
@@ -100,7 +100,7 @@ pid_t	pid;
 			return p;
 }
 
-private char *
+private const char *
 proc_bufname(p)
 Process	p;
 {
@@ -125,7 +125,7 @@ va_list	ap;
 	register int	i = 0;
 
 	argv[i++] = va_arg(ap, char *);
-	argv[i++] = jbasename(argv[0]);
+	argv[i++] = (char *)jbasename(argv[0]);	/* lose const (but it's safe) */
 	do ; while ((argv[i++] = va_arg(ap, char *)) != NULL);
 }
 
@@ -325,8 +325,9 @@ proc_strt(bufname, clobber, procname, va_alist)
 	if (!bolp())
 		LineInsert(1);
 	/* Pop_wind() after everything is set up; important!
-	   Bindings won't work right unless newbuf->b_process is already
-	   set up BEFORE NEWBUF is first SetBuf()'d. */
+	 * Bindings won't work right unless newbuf->b_process is already
+	 * set up BEFORE NEWBUF is first SetBuf()'d.
+	 */
 	newp->p_mark = MakeMark(curline, curchar);
 
 	newp->p_toproc = toproc[1];
@@ -377,9 +378,9 @@ kbd_init()
 }
 
 /* kbd_stop() returns true if it changes the state of (i.e. stops)
-   the keyboard process.  This is so kbd stopping and starting in
-   pairs works - see finish() in jove.c. */
-
+ * the keyboard process.  This is so kbd stopping and starting in
+ * pairs works - see finish() in jove.c.
+ */
 private bool	kbd_state = NO;
 
 void
@@ -417,7 +418,6 @@ kbd_kill()
 #else /* !PIPEPROCS */
 
 #include <sys/time.h>
-#include <fcntl.h>
 #include "select.h"
 
 #include "ttystate.h"
@@ -648,6 +648,7 @@ char	c;
 				case -1: /* error: consider ERRNO */
 					if (errno == EINTR)
 						continue;	/* interrupted: try again */
+
 					complain("pty write of control failed: %d %s", errno, strerror(errno));
 					/* NOTREACHED */
 				case 0: /* nothing happened: try again */
@@ -754,13 +755,13 @@ size_t	nbytes;
 
 # ifdef STDARGS
 private void
-proc_strt(char *bufname, bool clobber, char *procname, ...)
+proc_strt(char *bufname, bool clobber, const char *procname, ...)
 # else
 private /*VARARGS2*/ void
 proc_strt(bufname, clobber, procname, va_alist)
 	char	*bufname;
 	bool	clobber;
-	char	*procname;
+	const char	*procname;
 	va_dcl
 # endif
 {
@@ -819,7 +820,7 @@ proc_strt(bufname, clobber, procname, va_alist)
 	 * prepared to catch a SIGCHLD for an unknown child and ignore it ...
 	 */
 	{
-		register char	*s = _getpty(&ptyfd, O_RDWR|O_NDELAY, 0600, 0);
+		register char	*s = _getpty(&ptyfd, O_RDWR | O_NDELAY, 0600, 0);
 
 		if (s == NULL) {
 			message("[No ptys!]");
@@ -829,7 +830,7 @@ proc_strt(bufname, clobber, procname, va_alist)
 	}
 # endif /* IRIX_PTYS */
 # ifdef SVR4_PTYS
-	if ((ptyfd = open("/dev/ptmx", O_RDWR)) < 0) {
+	if ((ptyfd = open("/dev/ptmx", O_RDWR | O_BINARY)) < 0) {
 		message("[No ptys!]");
 		goto fail;
 	}
@@ -863,10 +864,10 @@ proc_strt(bufname, clobber, procname, va_alist)
 # endif /* SVR4_PTYS */
 # ifdef BSD_PTYS
 	{
-		register char	*s;
+		register const char	*s;
 
 		for (s = "pqrs"; ptyfd<0; s++) {
-			register char	*t;
+			register const char	*t;
 
 			if (*s == '\0') {
 				message("[Out of ptys!]");
@@ -874,7 +875,7 @@ proc_strt(bufname, clobber, procname, va_alist)
 			}
 			for (t = "0123456789abcdef"; *t; t++) {
 				swritef(ttybuf, sizeof(ttybuf), "/dev/pty%c%c", *s, *t);
-				if ((ptyfd = open(ttybuf, 2)) >= 0) {
+				if ((ptyfd = open(ttybuf, O_RDWR | O_BINARY)) >= 0) {
 					ttybuf[5] = 't';	/* pty => tty */
 					/* Make sure other end is available too */
 #  ifdef BSDI_PTY_BUG
@@ -886,7 +887,7 @@ proc_strt(bufname, clobber, procname, va_alist)
 					break;
 #  else
 					{
-						int	i = open(ttybuf, 2);
+						int	i = open(ttybuf, O_RDWR | O_BINARY);
 
 						if (i < 0) {
 							/* can't open, so give up on this pty */
@@ -992,7 +993,7 @@ proc_strt(bufname, clobber, procname, va_alist)
 #  ifdef TIOCNOTTY
 		/* get rid of controlling tty */
 		{
-			int	i = open("/dev/tty", 2);
+			int	i = open("/dev/tty", O_RDWR | O_BINARY);
 
 			if (i >= 0) {
 				(void) ioctl(i, TIOCNOTTY, (UnivPtr)NULL);
@@ -1001,7 +1002,7 @@ proc_strt(bufname, clobber, procname, va_alist)
 		}
 #  endif /* TIOCNOTTY */
 # endif /* !TERMIOS */
-		if (open(ttybuf, 2) != 0)
+		if (open(ttybuf, O_RDWR | O_BINARY) != 0)
 			_exit(errno+1);
 		(void) dup2(0, 1);
 		(void) dup2(0, 2);
@@ -1124,8 +1125,9 @@ proc_strt(bufname, clobber, procname, va_alist)
 	newbuf->b_process = newp;	/* sorta circular, eh? */
 	pop_wind(bufname, clobber, B_PROCESS);
 	/* Pop_wind() after everything is set up; important!
-	   Bindings won't work right unless newbuf->b_process is already
-	   set up BEFORE NEWBUF is first SetBuf()'d. */
+	 * Bindings won't work right unless newbuf->b_process is already
+	 * set up BEFORE NEWBUF is first SetBuf()'d.
+	 */
 	ToLast();
 	if (!bolp())
 		LineInsert(1);
@@ -1203,33 +1205,38 @@ closeiprocs()
 
 #endif /* !PIPEPROCS */
 
-extern char **environ;
+extern char **environ;	/* <unistd.h> */
 
 private void
 jputenv(def)
-char *def;	/* Note: caller must ensure string persists */
+const char *def;	/* Note: caller must ensure string persists */
 {
-	char	**p, *eq;
+	const char
+		**const e = (const char **)environ,	/* to avoid type complaints from gcc */
+		**p,
+		*eq;
 	static int	headroom = -1;	/* trick: -1 is flag for first time */
 
 	if ((eq = strchr(def, '=')) == NULL)
 		return;
 
-	for (p = environ; ; p++) {
+	for (p = e; ; p++) {
 		if (*p == NULL) {
 			if (headroom <= 0) {
 #				define JENV_INCR	5
-				size_t	sz = ((p-environ) + 1) * sizeof(char *);
-				char	**ne = (char **)malloc(sz + JENV_INCR*sizeof(char *));
+				size_t	sz = ((p-e) + 1) * sizeof(char *);
+				const char	**ne = (const char **)
+					malloc(sz + JENV_INCR*sizeof(char *));
 
 				if (ne == NULL)
 					break;
+
 				byte_copy(environ, ne, sz);
-				p = ne + (p-environ);
+				p = ne + (p-e);
 				if (headroom == 0)
 					free((UnivPtr)environ);
 				headroom = JENV_INCR;
-				environ = ne;
+				environ = (char **)ne;
 #				undef JENV_INCR
 			}
 			headroom -= 1;
@@ -1322,8 +1329,8 @@ Mark	*m;
 }
 
 /* Process receive: receives the characters in buf, and appends them to
-   the buffer associated with p. */
-
+ * the buffer associated with p.
+ */
 private void
 proc_rec(p, buf, len)
 register Process	p;
@@ -1369,8 +1376,9 @@ size_t	len;
 		ToMark(savepoint);	/* back to where we were */
 	DelMark(savepoint);
 	/* redisplay now, instead of right after the ins_str, so that
-	   we don't get a bouncing effect if point is not the same as
-	   the process output position */
+	 * we don't get a bouncing effect if point is not the same as
+	 * the process output position
+	 */
 	if (do_disp) {
 		w->w_line = curline;
 		w->w_char = curchar;
@@ -1389,14 +1397,15 @@ int	sig;
 	if (!child_dead(p)) {
 		if (killpg(p->p_pid, sig) != -1)
 			return YES;
+
 		s_mess("Cannot kill %s!", proc_bufname(p));
 	}
 	return NO;
 }
 
 /* Free process CHILD.  Do all the necessary cleaning up (closing fd's,
-   etc.). */
-
+ * etc.).
+ */
 private void
 free_proc(child)
 Process	child;
@@ -1407,6 +1416,7 @@ Process	child;
 
 	if (!dead(child))
 		return;
+
 	untieDeadProcess(child->p_buffer);
 
 	for (p = procs; p != child; prev = p, p = p->p_next)
@@ -1450,7 +1460,8 @@ ProcList()
 	register Process
 		p,
 		next;
-	char	*fmt = "%-15s  %-15s  %-8s %s",
+	const char	*fmt = "%-15s  %-15s  %-8s %s";
+	char
 		pidstr[16];
 
 	if (procs == NULL) {
@@ -1532,13 +1543,15 @@ bool	newlinep;
 
 	if (dead(p))
 		return;
+
 	/* If the process mark was involved in a big deletion, because
-	   the user hit ^W or something, then let's do some magic with
-	   the process mark.  Problem is that if the user yanks back the
-	   text he deleted, the mark stays at the beginning of the region,
-	   and so the next time SendData() is called the entire region
-	   will be sent.  That's not good.  So, to deal with that we reset
-	   the mark to the last line, after skipping over the prompt, etc. */
+	 * the user hit ^W or something, then let's do some magic with
+	 * the process mark.  Problem is that if the user yanks back the
+	 * text he deleted, the mark stays at the beginning of the region,
+	 * and so the next time SendData() is called the entire region
+	 * will be sent.  That's not good.  So, to deal with that we reset
+	 * the mark to the last line, after skipping over the prompt, etc.
+	 */
 	if (p->p_mark->m_big_delete) {
 		Bufpos	bp;
 
@@ -1548,9 +1561,10 @@ bool	newlinep;
 		ToLast();
 		Bol();
 		/* While we're looking at a prompt, and while we're
-		   moving forward.  This is for people who accidently
-		   set their process-prompt to ">*" which will always
-		   match! */
+		 * moving forward.  This is for people who accidently
+		 * set their process-prompt to ">*" which will always
+		 * match!
+		 */
 		while (LookingAt(proc_prompt, linebuf, curchar)
 		&& (REeom > curchar))
 			curchar = REeom;
@@ -1566,15 +1580,16 @@ bool	newlinep;
 		MarkSet(p->p_mark, curline, curchar);
 	} else {
 		/* Either we're looking at a prompt, or we're not, in
-		   which case we want to strip off the beginning of the
-		   line anything that looks like what the prompt at the
-		   end of the file is.  In other words, if "(dbx) stop in
-		   ProcessNewline" is the line we're on, and the last
-		   line in the buffer is "(dbx) ", then we strip off the
-		   leading "(dbx) " from this line, because we know it's
-		   part of the prompt.  But this only happens if "(dbx) "
-		   isn't one of the process prompts ... follow what I'm
-		   saying? */
+		 * which case we want to strip off the beginning of the
+		 * line anything that looks like what the prompt at the
+		 * end of the file is.  In other words, if "(dbx) stop in
+		 * ProcessNewline" is the line we're on, and the last
+		 * line in the buffer is "(dbx) ", then we strip off the
+		 * leading "(dbx) " from this line, because we know it's
+		 * part of the prompt.  But this only happens if "(dbx) "
+		 * isn't one of the process prompts ... follow what I'm
+		 * saying?
+		 */
 		Bol();
 		if (LookingAt(proc_prompt, linebuf, curchar)) {
 			do {

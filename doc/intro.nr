@@ -12,10 +12,10 @@
 .\" appear better left alone.
 .
 .de IQ	\" italics (here, in manual) or quote (in describe-command)
-\\fI\\$1\\fP\\$2
+\&\\fI\\$1\\fP\\$2
 ..
 .de BQ	\" bold (here, in manual) or quote (in describe-command)
-\\fB\\$1\\fP\\$2
+\&\\fB\\$1\\fP\\$2
 ..
 .de dc
 .NH 2
@@ -134,7 +134,7 @@ using the front end program \fIxjove\fP
 .TS
 center;
 =
-|| L1	|| L1.
+|| L1	|| L .
 
 #include <stdio.h>
 
@@ -1959,7 +1959,7 @@ or different parts of the same buffer.
 .TS
 center;
 =
-|| L1	|| L1.
+|| L1	|| L .
 
 #define\ getchar()\ \ \ \ getc(stdin)
 #define\ putchar(x)\ \ \ putc((x), stdout)	<\ first Window
@@ -2685,7 +2685,7 @@ L2w(10)fR L2w(20)fI Lw(\n(Ww)fR .
 	over-write-mode
 	read-only-mode
 	show-match-mode
-	word-abbrev-mode	
+	word-abbrev-mode
 .TE
 .LP
 With no argument, these commands toggle the mode.  With a zero argument they

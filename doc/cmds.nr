@@ -14,7 +14,7 @@ This variable defines \s-2JOVE'S\s0'S abort character.  When JOVE
 reads this character from the keyboard, it stops what it is doing
 (unless the character is quoted in some way).  Unfortunately, JOVE
 won't notice the character until it reads from the keyboard.  The
-default value is ^G.  See also 
+default value is ^G.  See also
 .IQ interrupt-character .
 .dc "add-lisp-special" "Not Bound"
 This command is to tell \s-2JOVE\s0 what identifiers require special
@@ -301,14 +301,13 @@ Otherwise, the line will be indented by
 characters
 past the indent of the first line of the expression.  For example, the
 default value produces:
+.DS
 .nr TY \w'Typeout('
-.nf
-
-		Typeout(fmt, itoa(bcount++), line_cnt(b, nbuf),
-		\h'\n(TYu'TypeNames[b->b_type],
-		\h'\n(TYu'IsModified(b) ? "\(**" : b->b_ntbf ? "+" : NullStr,
-		\h'\n(TYu'buf_width, b->b_name, filename(b));
-.fi
+Typeout(fmt, itoa(bcount++), line_cnt(b, nbuf),
+\h'\n(TYu'TypeNames[b->b_type],
+\h'\n(TYu'IsModified(b) ? "\(**" : b->b_ntbf ? "+" : NullStr,
+\h'\n(TYu'buf_width, b->b_name, filename(b));
+.DE
 .dc "c-indentation-increment" "(variable)"
 This defines a set of tabstops independent of the value of
 .IQ tab-width .
@@ -709,7 +708,7 @@ This moves point to the last character in the active window.  If there is a
 numeric argument, the point moves that many lines above the bottom
 line.  With the default bindings, the sequence \*QESC\ .\*U is the same as
 \*QESC\ >\*U (\c
-.IQ beginning-of-file )
+.IQ end-of-file )
 but without the shift key on the \*Q>\*U,
 and can thus easily be remembered.
 .dc "enhanced-keyboard" "(variable)"
@@ -947,6 +946,8 @@ by the
 .UX
 command
 .IQ ctags(1) .
+If you are using the Exuberant Ctags program, you will need to give
+it flags -N --format=1.
 You can change
 the default tag name by setting the
 .IQ tag-file

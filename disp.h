@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -40,10 +40,10 @@ extern void
 	ChkWindows proto((LinePtr line1,LinePtr line2)),
 	ChkWinLines proto((void)),
 	DrawMesg proto((bool abortable)),
-	message proto((char *)),
-	TOstart proto((char *name)),
+	message proto((const char *)),
+	TOstart proto((const char *name)),
 	TOstop proto((void)),
-	Typeout proto((char *, ...)),
+	Typeout proto((const char *, ...)),
 	rbell proto((void)),
 	redisplay proto((void));
 

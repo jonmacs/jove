@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -43,6 +43,7 @@ List	**list;
 
 	if (cell == NULL)
 		return NULL;
+
 	element = cell->car;
 	*list = cell->cdr;
 	free((UnivPtr) cell);

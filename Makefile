@@ -1,41 +1,46 @@
 ########################################################################
-# This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  #
+# This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  #
 # provided to you without charge, and with no warranty.  You may give  #
 # away copies of JOVE, including sources, provided that this notice is #
 # included in all the files.                                           #
 ########################################################################
 
-# TMPDIR is where the tmp files get stored, usually /tmp or /usr/tmp.  If
-# your system, or reboot, removes files in /tmp, but not those in /usr/tmp,
-# then it makes sense to make TMPDIR be /usr/tmp.
-# But if you want to recover buffers on system crashes, you should create a
-# directory that doesn't get cleaned upon reboot, and use that instead.
-# You would probably want to clean out that directory periodically with
-# /etc/cron.
-# RECDIR is the directory in which RECOVER looks for JOVE's tempfiles.
-#
+# SHELL for this Makefile (csh won't work!)
+SHELL = /bin/sh
+
 # JOVEHOME is the directory in which pieces of JOVE are kept.  It is only used
 #	in the default definitions of SHAREDIR, LIBDIR, BINDIR, and MANDIR.
 # SHAREDIR is for online documentation, and the system-wide jove.rc file.
 # LIBDIR is for the PORTSRV and RECOVER programs.
 # BINDIR is where to put the executables JOVE and TEACHJOVE.
+# XEXT is the extension for executables (empty for UNIX; .exe for CYGWIN32)
 # MANDIR is where the manual pages go for JOVE, RECOVER and TEACHJOVE.
 # MANEXT is the extension for the man pages, e.g., jove.1 or jove.l or jove.m.
-# DFLTSHELL is the default shell invoked by JOVE and TEACHJOVE.
 #
 # If they don't exist, this makefile will try to create the directories
 # LIBDIR and SHAREDIR.  All others must already exist.
-
-SHELL = /bin/sh
-TMPDIR = /usr/tmp
-RECDIR = /usr/preserve
 
 JOVEHOME = /usr/local
 SHAREDIR = $(JOVEHOME)/lib/jove
 LIBDIR = $(JOVEHOME)/lib/jove
 BINDIR = $(JOVEHOME)/bin
+XEXT=
 MANDIR = $(JOVEHOME)/man/man$(MANEXT)
 MANEXT = 1
+
+# TMPDIR is where the tmp files get stored, usually /tmp, /var/tmp, or
+# /usr/tmp.  If you wish to be able to recover buffers after a system
+# crash, this needs to be a directory that isn't cleaned out on reboot.
+# You would probably want to clean out that directory periodically with
+# /etc/cron.
+# RECDIR is the directory in which RECOVER looks for JOVE's tempfiles
+# (in case the system startup salvages tempfiles by moving them,
+# which is probably a good idea).
+
+TMPDIR = /tmp
+RECDIR = /var/preserve
+
+# DFLTSHELL is the default shell invoked by JOVE and TEACHJOVE.
 DFLTSHELL = /bin/csh
 
 # The install commands of BSD and System V differ in unpleasant ways:
@@ -52,18 +57,20 @@ INSTALLFLAGS = # -g bin -o root
 # to install executable files
 XINSTALL=cp
 #XINSTALL=/usr/ucb/install $(INSTALLFLAGS) -c -m 755 # -s
+#CYGWIN32: XINSTALL=install $(INSTALLFLAGS) -c -m 755
 
 # to install text files
 TINSTALL=cp
 #TINSTALL=/usr/ucb/install $(INSTALLFLAGS) -c -m 644
+#CYGWIN32: TINSTALL=install $(INSTALLFLAGS) -c -m 644
 
 # These should all just be right if the above ones are.
 # You will confuse JOVE if you move anything from LIBDIR or SHAREDIR.
 
-JOVE = $(BINDIR)/jove
-TEACHJOVE = $(BINDIR)/teachjove
-RECOVER = $(LIBDIR)/recover
-PORTSRV = $(LIBDIR)/portsrv
+JOVE = $(BINDIR)/jove$(XEXT)
+TEACHJOVE = $(BINDIR)/teachjove$(XEXT)
+RECOVER = $(LIBDIR)/recover$(XEXT)
+PORTSRV = $(LIBDIR)/portsrv$(XEXT)
 JOVERC = $(SHAREDIR)/jove.rc
 TERMSDIR = $(SHAREDIR)
 CMDS.DOC = $(SHAREDIR)/cmds.doc
@@ -72,6 +79,57 @@ JOVEM = $(MANDIR)/jove.$(MANEXT)
 TEACHJOVEM = $(MANDIR)/teachjove.$(MANEXT)
 XJOVEM = $(MANDIR)/xjove.$(MANEXT)
 JOVETOOLM = $(MANDIR)/jovetool.$(MANEXT)
+
+# SYSDEFS: specify system characteristics.
+# The default is -DBSDPOSIX, which discribes a number of modern
+# systems (but not Solaris!).  If this isn't suitable for your system,
+# you will need to change it.  You may need to define a new symbol for
+# your OS if we haven't created a suitable one.  See sysdep.h.
+#
+#	Apple A/UX on macIIs		SYSDEFS=-DA_UX
+#	BSD4.2,4.3			SYSDEFS=-DBSD4
+#	BSDI, 386BSD, BSD4.4		SYSDEFS=-DBSDPOSIX
+#	Consensys V4			SYSDEFS=-DSYSVR4 -DGRANTPT_BUG
+#	CYGWIN32			SYSDEFS=-DCYGWIN32
+#	DEC OSF R1.3MK			SYSDEFS=-DSYSVR4
+#	DEC OSF/1 V1.3			SYSDEFS=-BSDPOSIX -DNO_TIOCREMOTE -DNO_TIOCSIGNAL
+#	DEC OSF/1 V2.0 and later	SYSDEFS=-DSYSVR4
+#	DEC Ultrix 4.2			SYSDEFS=-DBSDPOSIX
+#	DEC Ultrix 4.3			SYSDEFS=-DBSDPOSIX -DJVDISABLE=255
+#	Digital UNIX V4.0 and later	SYSDEFS=-DSYSVR4 -DGRANTPT_BUG
+#	DG AViiON 5.3R4			SYSDEFS=-DSYSVR4 -DBSD_SIGS
+#	HP/UX 8 or 9			SYSDEFS=-DHPUX -Ac
+#	HP/UX 11 (-Ac redundant)	SYSDEFS=-DHPUX
+#	IBM RS6000s			SYSDEFS=-DAIX3_2
+#	Irix 3.3-4.0.5			SYSDEFS=-DIRIX -DIRIX4
+#	Irix 5.0 onwards		SYSDEFS=-DIRIX -prototypes
+#	LINUX (eg. RedHat 4, 5, 6)	SYSDEFS=-DBSDPOSIX
+#	MIPS RiscOS4.x			SYSDEFS=-systype bsd43 -DBSD4
+#	SCO Unix			SYSDEFS=-DSCO
+#	SunOS3.x			SYSDEFS=-DSUNOS3
+#	SunOS4.0*			SYSDEFS=-DSUNOS40
+#	SunOS4.1*			SYSDEFS=-DSUNOS41
+#	SunOS5.0/Solaris 2.0		SYSDEFS=-DSYSVR4 -DGRANTPT_BUG
+#	SunOS5.[123456]/Solaris 2.x	SYSDEFS=-DSYSVR4
+#	Sys III, Sys V R 2,3		SYSDEFS=-DSYSV
+#	Sys V Release 4.0		SYSDEFS=-DSYSVR4 -DGRANTPT_BUG
+#	Sys V Release 4.x		SYSDEFS=-DSYSVR4
+#
+# Some systems based on System V release 4 have a bug affecting interactive
+# processes.  This bug can be worked around by defining GRANTPT_BUG.
+# Read the explanation of GRANTPT_BUG in sysdep.doc.
+#
+# Some of the MIPS based Ultrix (upto 4.2 at least), RiscOS and Irix (up to
+# 3.3 at least) also need -DMIPS_CC_BUG.
+#
+# Some (all?) versions of the HPUX C compiler have a bug in handling forward
+# struct tag declarations.  Using the -Ac flag in place of -Ae will avoid
+# this problem (and reduce the compiler's error checking, unfortunately).
+#
+# Add -DUSE_EXIT if you're profiling or using purify (this causes Jove
+# to exit using exit(), instead of _exit()).
+
+SYSDEFS = -DBSDPOSIX
 
 # Select optimization level (flags passed to compiling and linking steps).
 # On most systems, -g for debugging, -O for optimization.
@@ -88,84 +146,29 @@ DEPENDFLAG = -M
 # DEPENDFLAG = -xM
 
 # Select the right libraries for your system.
-#	2.10BSD:LIBS = -ltermcap
-#	v7:	LIBS = -ltermcap
+# Most systems need -ltermcap and nothing else.
+# Known exceptions:
 #	4.1BSD:	LIBS = -ltermcap -ljobs
-#	4.2BSD:	LIBS = -ltermcap
-#	4.3BSD:	LIBS = -ltermcap
+#	CYGWIN32: LIBS = -L/usr/local/lib -lcurses
 #	SysV Rel. 2: LIBS = -lcurses
 #	SCO Xenix: LIBS = -ltermcap -lx
-#	SCO: LIBS = -lcurses
+#	SCO UNIX: LIBS = -lcurses
 #	AIX on the R6000s: LIBS = -lcurses -ltermcap -ls
-#	MIPS: LIBS = -ltermcap
 
 LIBS = -ltermcap
 
-#	2.10BSD:LDFLAGS =
-#	v7:	LDFLAGS =
-#	4.1BSD:	LDFLAGS =
-#	4.2BSD:	LDFLAGS =
-#	4.3BSD:	LDFLAGS =
+# Flags of linker (LDFLAGS)
+# Most systems do not need any flags.
+# Known exceptions:
 #	SysV Rel. 2: LDFLAGS = -Ml
 #	SCO Xenix: LDFLAGS = -Ml -F 3000
-#	SCO Unix: LDFLAGS =
 #	AIX Unix: LDFLAGS = -bloadmap:$@.map # only if loadmap
 #
 # To optimize the use of the address spaces, add to the LDFLAGS:
 #	PDP-11 with separate I&D: -i
 #	PDP-11 without separate I&D: -n
 
-
 LDFLAGS =
-
-# define a symbol for your OS if it hasn't got one.  See sysdep.h.
-# Jove has very few defaults, you will almost certainly need to define
-# *something*.
-#
-#	Apple A/UX on macIIs		SYSDEFS=-DA_UX
-#	BSD4.2,4.3			SYSDEFS=-DBSD4
-#	BSDI, 386BSD, BSD4.4		SYSDEFS=-DBSDPOSIX
-#	Consensys V4			SYSDEFS=-DSYSVR4 -DGRANTPT_BUG
-#	DEC OSF R1.3MK			SYSDEFS=-DSYSVR4
-#	DEC OSF/1 V1.3			SYSDEFS=-BSDPOSIX -DNO_TIOCREMOTE -DNO_TIOCSIGNAL
-#	DEC OSF/1 V2.0 and later	SYSDEFS=-DSYSVR4
-#	DEC Ultrix 4.2			SYSDEFS=-DBSDPOSIX
-#	DEC Ultrix 4.3			SYSDEFS=-DBSDPOSIX -DJVDISABLE=255
-#	Digital UNIX V4.0 and later	SYSDEFS=-DSYSVR4 -DGRANTPT_BUG
-#	DG AViiON 5.3R4			SYSDEFS=-DSYSVR4 -DBSD_SIGS
-#	HP/UX 8 or 9			SYSDEFS=-DHPUX -Ac
-#	IBM RS6000s			SYSDEFS=-DAIX3_2
-#	Irix 3.3-4.0.5			SYSDEFS=-DIRIX -DIRIX4
-#	Irix 5.0 onwards		SYSDEFS=-DIRIX -prototypes
-#	LINUX				SYSDEFS=-DBSDPOSIX
-#	MIPS RiscOS4.x			SYSDEFS=-systype bsd43 -DBSD4
-#	SCO Unix			SYSDEFS=-DSCO
-#	SunOS3.x			SYSDEFS=-DSUNOS3
-#	SunOS4.0*			SYSDEFS=-DSUNOS40
-#	SunOS4.1*			SYSDEFS=-DSUNOS41
-#	SunOS5.0/Solaris 2.0		SYSDEFS=-DSYSVR4 -DGRANTPT_BUG
-#	SunOS5.[1234]/Solaris 2.[1234]	SYSDEFS=-DSYSVR4
-#	Sys III, Sys V R 2,3		SYSDEFS=-DSYSV
-#	Sys V Release 4.0		SYSDEFS=-DSYSVR4 -DGRANTPT_BUG
-#	Sys V Release 4.?		SYSDEFS=-DSYSVR4
-#
-# Some systems based on System V release 4 have a bug affecting interactive
-# processes.  This bug can be worked around by defining GRANTPT_BUG.
-# Read the explanation of GRANTPT_BUG in sysdep.doc.
-#
-# Some of the MIPS based Ultrix (upto 4.2 at least), RiscOS and Irix (up to
-# 3.3 at least) also need -DMIPS_CC_BUG.
-#
-# Some (all?) versions of the HPUX C compiler have a bug in handling forward
-# struct tag declarations.  Using the -Ac flag in place of -Ae will avoid
-# this problem (and reduce the compiler's error checking, unfortunately).
-#
-# Add -DUSE_EXIT if you're profiling or using purify (this causes Jove
-# to exit using exit(), instead of _exit()).
-#
-# You can just say 'make SYSDEFS=-Dwhatever' on these systems.
-
-SYSDEFS =
 
 # for SCO Xenix, set
 #	MEMFLAGS = -Mle
@@ -183,7 +186,7 @@ CFLAGS = $(OPTFLAGS) $(SYSDEFS)
 # CC=gcc
 
 # Load invocation of cc.
-# LDCC = purify $(CC)
+# to use Purify(TM): LDCC = purify $(CC)
 
 LDCC = $(CC)
 
@@ -251,18 +254,18 @@ DOCS =	doc/README doc/teach-jove doc/jove.qref \
 	doc/jove.rc doc/example.rc $(DOCTERMS)
 
 MISC =	Makefile Makefile.bcc Makefile.msc Makefile.wat Makefile.zor \
-	README README.dos README.mac README.w32 sysdep.doc tune.doc
+	README README.dos README.mac README.w32 README.c32 sysdep.doc tune.doc
 
 SUPPORT = teachjove.c recover.c setmaps.c portsrv.c keys.txt \
 	menumaps.txt mjovers.Hqx jjoveico.uue jjove.rc
 
 BACKUPS = $(HEADERS) $(C_SRC) $(SUPPORT) $(MISC)
 
-all:	jjove recover teachjove portsrv doc/cmds.doc
+all:	jjove$(XEXT) recover$(XEXT) teachjove$(XEXT) portsrv$(XEXT) doc/cmds.doc
 
-jjove:	$(OBJECTS)
-	$(LDCC) $(LDFLAGS) $(OPTFLAGS) -o jjove $(OBJECTS) $(LIBS)
-	@-size jjove
+jjove$(XEXT):	$(OBJECTS)
+	$(LDCC) $(LDFLAGS) $(OPTFLAGS) -o jjove$(XEXT) $(OBJECTS) $(LIBS)
+	@-size jjove$(XEXT)
 
 # For 2.xBSD: link jove as a set of overlays.  Not tested recently.
 
@@ -274,22 +277,22 @@ ovjove:	$(OBJECTS)
 		-Z $(OVLAY4) \
 		-Z $(OVLAY5) \
 		-Y $(BASESEG) \
-		-o jjove $(LIBS) -lc
-	@-size jjove
+		-o jjove$(XEXT) $(LIBS) -lc
+	@-size jjove$(XEXT)
 
 # portsrv is only needed if IPROCS are implemented using PIPEPROCS
 # Making PORTSRVINST null will supress building and installing portsrv.
 
 PORTSRVINST=$(PORTSRV)
 
-portsrv:	portsrv.o
-	$(LDCC) $(LDFLAGS) $(OPTFLAGS) -o portsrv portsrv.o $(LIBS)
+portsrv$(XEXT):	portsrv.o
+	$(LDCC) $(LDFLAGS) $(OPTFLAGS) -o portsrv$(XEXT) portsrv.o $(LIBS)
 
-recover:	recover.o
-	$(LDCC) $(LDFLAGS) $(OPTFLAGS) -o recover recover.o $(LIBS)
+recover$(XEXT):	recover.o
+	$(LDCC) $(LDFLAGS) $(OPTFLAGS) -o recover$(XEXT) recover.o $(LIBS)
 
-teachjove:	teachjove.o
-	$(LDCC) $(LDFLAGS) $(OPTFLAGS) -o teachjove teachjove.o $(LIBS)
+teachjove$(XEXT):	teachjove.o
+	$(LDCC) $(LDFLAGS) $(OPTFLAGS) -o teachjove$(XEXT) teachjove.o $(LIBS)
 
 # don't optimize setmaps.c because it produces bad code in some places
 # for some reason
@@ -361,25 +364,25 @@ $(JOVERC): doc/jove.rc
 $(TERMSDIR)docs: $(DOCTERMS)
 	$(TINSTALL) $(DOCTERMS) $(TERMSDIR)
 
-$(PORTSRV): portsrv
-	$(XINSTALL) portsrv $(PORTSRV)
+$(PORTSRV): portsrv$(XEXT)
+	$(XINSTALL) portsrv$(XEXT) $(PORTSRV)
 
-$(RECOVER): recover
-	$(XINSTALL) recover $(RECOVER)
+$(RECOVER): recover$(XEXT)
+	$(XINSTALL) recover$(XEXT) $(RECOVER)
 
-$(JOVE): jjove
-	$(XINSTALL) jjove $(JOVE)
+$(JOVE): jjove$(XEXT)
+	$(XINSTALL) jjove$(XEXT) $(JOVE)
 
-$(TEACHJOVE): teachjove
-	$(XINSTALL) teachjove $(TEACHJOVE)
+$(TEACHJOVE): teachjove$(XEXT)
+	$(XINSTALL) teachjove$(XEXT) $(TEACHJOVE)
 
 $(JOVEM): doc/jove.nr
 	@sed -e 's;<TMPDIR>;$(TMPDIR);' \
 	     -e 's;<LIBDIR>;$(LIBDIR);' \
 	     -e 's;<SHAREDIR>;$(SHAREDIR);' \
-	     -e 's;<SHELL>;$(DFLTSHELL);' doc/jove.nr > /tmp/jove.nr
-	$(TINSTALL) /tmp/jove.nr $(JOVEM)
-	rm /tmp/jove.nr
+	     -e 's;<SHELL>;$(DFLTSHELL);' doc/jove.nr > 0jove.nr
+	$(TINSTALL) 0jove.nr $(JOVEM)
+	rm 0jove.nr
 
 # doc/jove.doc is the formatted manpage (only needed by DOS)
 # Building it should be like building $(JOVEM) except that we
@@ -393,18 +396,18 @@ $(TEACHJOVEM): doc/teachjove.nr
 	@sed -e 's;<TMPDIR>;$(TMPDIR);' \
 	     -e 's;<LIBDIR>;$(LIBDIR);' \
 	     -e 's;<SHAREDIR>;$(SHAREDIR);' \
-	     -e 's;<SHELL>;$(DFLTSHELL);' doc/teachjove.nr > /tmp/teachjove.nr
-	$(TINSTALL) /tmp/teachjove.nr $(TEACHJOVEM)
-	rm /tmp/teachjove.nr
+	     -e 's;<SHELL>;$(DFLTSHELL);' doc/teachjove.nr > 0teachjove.nr
+	$(TINSTALL) 0teachjove.nr $(TEACHJOVEM)
+	rm 0teachjove.nr
 
 $(XJOVEM): doc/xjove.nr
 	$(TINSTALL) doc/xjove.nr $(XJOVEM)
 
 $(JOVETOOLM): doc/jovetool.nr
 	@sed -e 's;<MANDIR>;$(MANDIR);' \
-	     -e 's;<MANEXT>;$(MANEXT);' doc/jovetool.nr > /tmp/jovetool.nr
-	$(TINSTALL) /tmp/jovetool.nr $(JOVETOOLM)
-	rm /tmp/jovetool.nr
+	     -e 's;<MANEXT>;$(MANEXT);' doc/jovetool.nr > 0jovetool.nr
+	$(TINSTALL) 0jovetool.nr $(JOVETOOLM)
+	rm 0jovetool.nr
 
 echo:
 	@echo $(C-FILES) $(HEADERS)
@@ -420,8 +423,11 @@ lint: keys.c
 	lint $(SYSDEFS) teachjove.c
 	@echo Done
 
+# CTAGSFLAGS = -N --format=1 # fishy options required for Exuberant Ctags
+CTAGSFLAGS = -w
+
 tags:	$(C_SRC) $(HEADERS)
-	ctags -w $(C_SRC) $(HEADERS)
+	ctags $(CTAGSFLAGS) $(C_SRC) $(HEADERS)
 
 # .filelist is a trick to get around a make limit:
 # the list of files is too long to fit in a command generated by make
@@ -450,11 +456,6 @@ coall:	.filelist
 
 jove.shar:	.filelist
 	shar .filelist > jove.shar
-
-tar:
-	@tar cvf - `find . -type f -print | \
-		egrep -v '(,v|\.o|jjove|portsrv|setmaps|~)$$' | \
-		sort`
 
 backup.Z: .filelist
 	rm -f backup backup.Z
@@ -487,7 +488,7 @@ checksum:	.filelist
 
 DOSSRC = $(HEADERS) $(C_SRC) setmaps.c keys.txt \
 	Makefile.bcc Makefile.msc Makefile.wat Makefile.zor \
-	README README.dos README.w32 sysdep.doc tune.doc \
+	README README.dos README.w32 README.c32 sysdep.doc tune.doc \
 	jjoveico.uue jjove.rc \
 	doc/cmds.doc doc/jove.man doc/jove.doc tags
 
@@ -506,10 +507,11 @@ touch:
 	touch $(OBJECTS)
 
 clean:
-	rm -f a.out core *.o keys.c jjove portsrv recover setmaps \
-		teachjove paths.h \#* *~ make.log *.map jjove.ico \
+	rm -f a.out core *.o keys.c jjove$(XEXT) portsrv$(XEXT) recover$(XEXT) setmaps \
+		teachjove$(XEXT) paths.h \#* *~ make.log *.map jjove.ico \
 		doc/cmds.doc doc/jove.man doc/jove.doc doc/troff.out.ps \
-		jjove.pure_* tags ID .filelist
+		jjove.pure_* tags ID .filelist \
+		0jove.nr 0teachjove.nr 0jovetool.nr
 
 cleanall: clean
 	( cd xjove ; make clean )
@@ -599,7 +601,7 @@ msgetch.o: $(JOVE_H) chars.h disp.h
 mac.o: $(TUNE_H) $(JOVE_H) mac.h ask.h chars.h disp.h extend.h fp.h commands.h fmt.h marks.h misc.h move.h screen.h scandir.h term.h vars.h version.h wind.h
 keymaps.o: $(JOVE_H) list.h fp.h jctype.h chars.h disp.h re.h ask.h commands.h macros.h extend.h fmt.h screen.h vars.h sysprocs.h iproc.h
 ibmpcdos.o: $(JOVE_H) fp.h chars.h screen.h term.h
-mouse.o: $(JOVE_H) disp.h misc.h ask.h delete.h fmt.h insert.h marks.h move.h wind.h term.h jctype.h mouse.h xjove/mousemsg.h
+mouse.o: $(JOVE_H) disp.h misc.h ask.h chars.h delete.h fmt.h insert.h marks.h move.h wind.h term.h jctype.h mouse.h xjove/mousemsg.h
 win32.o: $(JOVE_H) fp.h chars.h screen.h disp.h
 portsrv.o: $(JOVE_H) sysprocs.h iproc.h
 recover.o: $(JOVE_H) temp.h sysprocs.h rec.h paths.h recover.h scandir.c jctype.h

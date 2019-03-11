@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -37,15 +37,15 @@
 #define VAR(v)	(UnivPtr)(v), sizeof(v)
 #include "vars.tab"
 
-data_obj *
+const data_obj *
 findvar(prompt)
 const char	*prompt;
 {
-	static char	*strings[elemsof(variables)];
+	static const char	*strings[elemsof(variables)];
 	static int	last = -1;
 
 	if (strings[0] == NULL) {
-		register char	**strs = strings;
+		register const char	**strs = strings;
 		register const struct variable	*v = variables;
 
 		for (; v->Name; v++)

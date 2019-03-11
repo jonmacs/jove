@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -39,18 +39,19 @@
 #define	PROC(p)	(p)
 #include "commands.tab"
 
-data_obj	*LastCmd;
-char	*ProcFmt = ": %f ";
+const data_obj	*LastCmd;
+const char	*ProcFmt = ": %f ";
 
-data_obj *
+const data_obj *
 findcom(prompt)
 const char	*prompt;
 {
 	if (InJoverc) {
 		/* This is for faster startup.  This just reads until a space or a
-		   tab or a newline character is reached, and then does a
-		   semi-hashed lookup on that string.  This should be much faster
-		   than initializing the minibuffer for each line. */
+		 * tab or a newline character is reached, and then does a
+		 * semi-hashed lookup on that string.  This should be much faster
+		 * than initializing the minibuffer for each line.
+		 */
 		char	cmdbuf[128];
 		register const struct cmd	*cmd;
 		register char	*cp = cmdbuf;
@@ -96,6 +97,7 @@ const char	*prompt;
 			if (strncmp(cmd->Name, cmdbuf, cmdlen) == 0) {
 				if (cmd->Name[cmdlen] == '\0')
 					return (data_obj *) cmd;
+
 				if (which != NULL)
 					complain("[\"%s\" ambiguous]", cmdbuf);
 				which = cmd;
@@ -107,11 +109,11 @@ const char	*prompt;
 		return (data_obj *) which;
 #undef	hash
 	} else {
-		static char	*strings[elemsof(commands)];
+		static const char	*strings[elemsof(commands)];
 		static int	last = -1;
 
 		if (strings[0] == NULL) {
-			register char	**strs = strings;
+			register const char	**strs = strings;
 			register const struct cmd	*c = commands;
 
 			do ; while ((*strs++ = (*c++).Name) != NULL);
@@ -136,7 +138,7 @@ register void	(*proc) ptrproto((void));
 
 void
 ExecCmd(cp)
-register data_obj	*cp;
+register const data_obj	*cp;
 {
 	LastCmd = cp;
 	if (cp->Type & MAJOR_MODE) {

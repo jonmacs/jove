@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -59,8 +59,8 @@ extern void
 	SetWind proto((Window *new)),
 	WindSize proto((Window *w,int inc)),
 	del_wind proto((Window *wp)),
-	pop_wind proto((char *name,bool clobber,int btype)),
-	tiewind proto((Window *w,Buffer *bp)),	/* util.c!! */
+	pop_wind proto((const char *name, bool clobber, int btype)),
+	tiewind proto((Window *w, Buffer *bp)),	/* util.c!! */
 	winit proto((void));
 
 /* Commands: */

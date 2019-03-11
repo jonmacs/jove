@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -44,6 +44,7 @@ within_indent()
 	for (;;) {
 		if (--i < 0)
 			return YES;
+
 		if (!jiswhite(linebuf[i]))
 			return NO;
 	}
@@ -62,8 +63,8 @@ int	col;
 }
 
 /* If bp->p_line is != current line, then save current line.  Then set dot
-   to bp->p_line, and if they weren't equal get that line into linebuf.  */
-
+ * to bp->p_line, and if they weren't equal get that line into linebuf.
+ */
 void
 SetDot(bp)
 register Bufpos	*bp;
@@ -115,6 +116,7 @@ int	char1,
 		line_diff += 1;
 		if (nextp == endp)
 			return YES;
+
 		if (prevp == endp)
 			return NO;
 	}
@@ -155,8 +157,10 @@ register LinePtr
 	for (;;) {
 		if (from == to)
 			return n;
+
 		if (from == NULL)
 			return -1;
+
 		n += 1;
 		from = from->l_next;
 	}
@@ -194,6 +198,7 @@ register int	dir;
 			if (c == '\0') {
 				if (curline->l_next == NULL)
 					break;	/* failure: out of buffer */
+
 				SetLine(curline->l_next);
 			} else if (jisword(c)) {
 				break;	/* success */
@@ -206,6 +211,7 @@ register int	dir;
 			if (bolp()) {
 				if (curline->l_prev == NULL)
 					break;	/* failure: out of buffer */
+
 				SetLine(curline->l_prev);
 				Eol();
 			} else if (jisword(linebuf[curchar - 1])) {
@@ -218,8 +224,8 @@ register int	dir;
 }
 
 /* Are there any modified buffers?  Allp means include B_PROCESS
-   buffers in the check. */
-
+ * buffers in the check.
+ */
 bool
 ModBufs(allp)
 bool	allp;
@@ -234,9 +240,9 @@ bool	allp;
 	return NO;
 }
 
-char *
+const char *
 filename(b)
-register Buffer	*b;
+register const Buffer	*b;
 {
 	return b->b_fname ? pr_name(b->b_fname, YES) : "[No file]";
 }
@@ -261,10 +267,7 @@ char *
 lcontents(line)
 register LinePtr	line;
 {
-	if (line == curline)
-		return linebuf;
-	else
-		return lbptr(line);
+	return line == curline? linebuf : lbptr(line);
 }
 
 char *
@@ -323,8 +326,8 @@ LinePtr	first,
 }
 
 /* Make curbuf (un)modified and tell the redisplay code to update the modeline
-   if it will need to be changed. */
-
+ * if it will need to be changed.
+ */
 void
 modify()
 {
@@ -349,12 +352,12 @@ unmodify()
 }
 
 /* Set or clear the divergence flag for `buf'.
-   A buffer that contains a file is considered to have diverged
-   if the file in the filesystem appears to have changed since the
-   last time the buffer was loaded from or saved to that file.
-   If the flag has changed, tell the redisplay code to update the
-   modeline. */
-
+ * A buffer that contains a file is considered to have diverged
+ * if the file in the filesystem appears to have changed since the
+ * last time the buffer was loaded from or saved to that file.
+ * If the flag has changed, tell the redisplay code to update the
+ * modeline.
+ */
 void
 diverge(buf, d)
 Buffer	*buf;
@@ -368,7 +371,7 @@ bool	d;
 
 int
 numcomp(s1, s2)
-register char	*s1,
+register const char	*s1,
 		*s2;
 {
 	register int	count = 0;
@@ -381,7 +384,7 @@ register char	*s1,
 #ifdef FILENAME_CASEINSENSITIVE
 int
 numcompcase(s1, s2)
-register char	*s1,
+register const char	*s1,
 		*s2;
 {
 	register int	count = 0;
@@ -400,6 +403,7 @@ const char	*str;
 
 	if (str == NULL)
 		return NULL;
+
 	val = emalloc((size_t) (strlen(str) + 1));
 
 	strcpy(val, str);
@@ -417,7 +421,7 @@ register size_t	count;
 	register char		*q = to;
 
 	if (count != 0) {
-	    do *q++ = *p++; while (--count != 0);
+		do *q++ = *p++; while (--count != 0);
 	}
 }
 #endif
@@ -450,6 +454,7 @@ int	atchar,
 
 	if (num <= 0)
 		return;
+
 	from = &buf[atchar];
 	taillen = *from == '\0'?  1 : strlen(from) + 1;	/* include NUL */
 	if (atchar + taillen + num > max)
@@ -492,7 +497,7 @@ int	atchar;
 
 char *
 IOerr(err, file)
-char	*err, *file;
+const char	*err, *file;
 {
 	return sprint("Couldn't %s \"%s\".", err, file);
 }
@@ -572,9 +577,9 @@ size_t	size;
  * To avoid conflict, we have renamed ours to "jbasename".
  */
 
-char *
+const char *
 jbasename(f)
-register char	*f;
+register const char	*f;
 {
 	register char	*cp;
 
@@ -641,12 +646,14 @@ register size_t	n;
 {
 	if (s1==NULL || s2==NULL)
 		return NO;
+
 	for (;;) {
 		if (n == 0)
 			return YES;
 		n--;
 		if (!cind_eq(*s1, *s2++))
 			return NO;
+
 		if (*s1++ == '\0')
 			return YES;
 	}
@@ -664,16 +671,18 @@ size_t	n;
 
 bool
 sindex(pattern, string)
-register char	*pattern,
+register const char	*pattern,
 		*string;
 {
 	register size_t	len = strlen(pattern);
 
 	if (len == 0)
 		return YES;
+
 	while (*string != '\0') {
 		if (*pattern == *string && strncmp(pattern, string, len) == 0)
 			return YES;
+
 		string += 1;
 	}
 	return NO;
@@ -716,9 +725,8 @@ char *
 strerror(errnum)
 int errnum;
 {
-	if (errnum > 0 && errnum < sys_nerr)
-		return(sys_errlist[errnum]);
-	return sprint("Error number %d", errnum);
+	return 0 < errnum && errnum < sys_nerr
+		? sys_errlist[errnum] : sprint("Error number %d", errnum);
 }
 #endif /* NO_STRERROR */
 

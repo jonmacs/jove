@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -62,8 +62,8 @@ struct FileStruct {
 extern int	ScrBufSize;
 
 extern File
-	*f_open proto((char *name,int flags,char *buffer,int buf_size)),
-	*fd_open proto((char *name,int flags,int fd,char *buffer,int bsize));
+	*f_open proto((const char *name, int flags, char *buffer, int buf_size)),
+	*fd_open proto((const char *name, int flags, int fd, char *buffer, int bsize));
 
 extern int
 	f_filbuf proto((File *fp));

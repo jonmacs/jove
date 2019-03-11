@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -29,10 +29,10 @@ extern ZXchar
 	addgetc proto((void));
 
 extern int
-	ask_int proto((char *def, char *prompt, int base)),
-	complete proto((char **possible, const char *def, const char *prompt, int flags));
+	ask_int proto((const char *def, const char *prompt, int base)),
+	complete proto((const char *const *possible, const char *def, const char *prompt, int flags));
 
-extern bool	chr_to_int proto((char *cp, int base, bool allints, int *result));
+extern bool	chr_to_int proto((const char *cp, int base, bool allints, int *result));
 
 /* Commands: */
 extern void

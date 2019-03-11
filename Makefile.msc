@@ -1,5 +1,5 @@
 ########################################################################
-# This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  #
+# This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  #
 # provided to you without charge, and with no warranty.  You may give  #
 # away copies of JOVE, including sources, provided that this notice is #
 # included in all the files.                                           #
@@ -7,6 +7,7 @@
 
 # Makefile for Microsoft C version 8.0 (Visual C)
 # should also work with earlier versions
+# Works for MS VisualC++ 5.0 and MS VisualStudio 97
 #
 # - supported targets:
 #   + jjove.exe (build JOVE, but don't install it)

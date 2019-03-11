@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -35,7 +35,7 @@ register int	cpos;
 	return (cnt % 2) != 0;
 }
 
-private char	*p_types = "(){}[]";
+private const char	p_types[] = "(){}[]";
 private int	mp_kind;
 #define MP_OKAY		0
 #define MP_MISMATCH	1
@@ -66,15 +66,15 @@ mp_error()
 }
 
 /* Search from the current position for the paren that matches p_type.
-   Search in the direction dir.  If can_mismatch is YES then it is okay
-   to have mismatched parens.  If stop_early is YES then when an open
-   paren is found at the beginning of a line, it is assumed that there
-   is no point in backing up further.  This is so when you hit tab or
-   LineFeed outside, in-between procedure/function definitions, it won't
-   sit there searching all the way to the beginning of the file for a
-   match that doesn't exist.  {forward,backward}-s-expression are the
-   only ones that insist on getting the "true" story. */
-
+ * Search in the direction dir.  If can_mismatch is YES then it is okay
+ * to have mismatched parens.  If stop_early is YES then when an open
+ * paren is found at the beginning of a line, it is assumed that there
+ * is no point in backing up further.  This is so when you hit tab or
+ * LineFeed outside, in-between procedure/function definitions, it won't
+ * sit there searching all the way to the beginning of the file for a
+ * match that doesn't exist.  {forward,backward}-s-expression are the
+ * only ones that insist on getting the "true" story.
+ */
 Bufpos *
 m_paren(p_type, dir, can_mismatch, can_stop)
 char	p_type;
@@ -106,16 +106,18 @@ bool	can_stop;
 	DOTsave(&savedot);
 
 	/* To make things a little faster I avoid copying lines into
-	   linebuf by setting curline and curchar by hand.  Warning:
-	   this is slightly to very risky.  When I did this there were
-	   lots of problems with procedures that expect the contents of
-	   curline to be in linebuf. */
+	 * linebuf by setting curline and curchar by hand.  Warning:
+	 * this is slightly to very risky.  When I did this there were
+	 * lots of problems with procedures that expect the contents of
+	 * curline to be in linebuf.
+	 */
 	do {
 		Bufpos	*sp = docompiled(dir, &re_blk);
 		register char	*lp;
 
 		if (sp == NULL)
 			break;
+
 		lp = lbptr(sp->p_line);
 
 		curline = sp->p_line;
@@ -126,6 +128,7 @@ bool	can_stop;
 			c_char -= 1;
 		if (backslashed(lp, c_char))
 			continue;
+
 		c = lp[c_char];
 		/* check if this is a comment (if we're not inside quotes) */
 		if (quote_c == '\0' && c == '/') {
@@ -149,6 +152,7 @@ bool	can_stop;
 		}
 		if (in_comment == YES)
 			continue;
+
 		if (c == '"' || c == '\'') {
 			if (quote_c == c)
 				quote_c = '\0';
@@ -157,6 +161,7 @@ bool	can_stop;
 		}
 		if (quote_c != '\0')
 			continue;
+
 		if (jisopenp(c)) {
 			count += dir;
 			if (c_char == 0 && can_stop && count >= 0) {
@@ -182,16 +187,18 @@ bool	can_stop;
 		mp_kind = MP_OKAY;
 
 	/* If we stopped (which means we were allowed to stop) and there
-	   was an error, we clear the error so no error message is printed.
-	   An error should be printed ONLY when we are sure about the fact,
-	   namely we didn't stop prematurely HOPING that it was the right
-	   answer. */
+	 * was an error, we clear the error so no error message is printed.
+	 * An error should be printed ONLY when we are sure about the fact,
+	 * namely we didn't stop prematurely HOPING that it was the right
+	 * answer.
+	 */
 	if (stopped && mp_kind != MP_OKAY) {
 		mp_kind = MP_OKAY;
 		return NULL;
 	}
 	if (mp_kind == MP_OKAY || (mp_kind == MP_MISMATCH && can_mismatch))
 		return &ret;
+
 	return NULL;
 }
 
@@ -211,6 +218,7 @@ bool	skip_words;
 			for (;;) {
 				if (dir == FORWARD? c == '\0' : bolp())
 						break;
+
 				curchar += dir;
 				if (!jisident(linebuf[curchar])) {
 					if (dir == BACKWARD)
@@ -218,7 +226,7 @@ bool	skip_words;
 					break;
 				}
 			}
-		    break;
+			break;
 		}
 /*
  * BUG ALERT! The following test ought not to recognise brackets inside
@@ -310,7 +318,7 @@ FDownList()
 {
 	register int	num = arg_value();
 	Bufpos	*sp;
-	char	*sstr = "[{([\\])}]";
+	static const char	sstr[] = "[{([\\])}]";
 
 	if (num < 0) {
 		negate_arg();
@@ -329,8 +337,8 @@ FDownList()
 }
 
 /* Move to the matching brace or paren depending on the current position
-   in the buffer. */
-
+ * in the buffer.
+ */
 private void
 FindMatch(dir)
 int	dir;
@@ -354,10 +362,10 @@ int	dir;
 #define ALIGN_ARGS	(-1)
 
 /* If CArgIndent == ALIGN_ARGS then the indentation routine will
-   indent a continued line by lining it up with the first argument.
-   Otherwise, it will indent CArgIndent characters past the indent
-   of the first line of the procedure call. */
-
+ * indent a continued line by lining it up with the first argument.
+ * Otherwise, it will indent CArgIndent characters past the indent
+ * of the first line of the procedure call.
+ */
 int	CArgIndent = ALIGN_ARGS;	/* VAR: how to indent arguments to C functions */
 
 /* indent for C code */
@@ -371,9 +379,10 @@ bool	brace;
 		increment = brace? 0 : CIndIncrmt;
 
 	/* Find matching paren, which may be a mismatch now.  If it
-	   is not a matching curly brace then it is a paren (most likely).
-	   In that case we try to line up the arguments to a procedure
-	   or inside an of statement. */
+	 * is not a matching curly brace then it is a paren (most likely).
+	 * In that case we try to line up the arguments to a procedure
+	 * or inside an of statement.
+	 */
 	if ((bp = m_paren('}', BACKWARD, YES, YES)) != NULL) {
 		Bufpos	save;
 		int	matching_indent;
@@ -389,14 +398,15 @@ bool	brace;
 			if (!bolp()) {
 				b_char(1);
 				/* If we're not within the indent then we
-				   can assume that there is either a C keyword
-				   line DO on the line before the brace, or
-				   there is a parenthesized expression.  If
-				   that's the case we want to go backward
-				   over that to the beginning of the expression
-				   so that we can get the correct indent for
-				   this matching brace.  This handles wrapped
-				   if statements, etc. */
+				 * can assume that there is either a C keyword
+				 * line DO on the line before the brace, or
+				 * there is a parenthesized expression.  If
+				 * that's the case we want to go backward
+				 * over that to the beginning of the expression
+				 * so that we can get the correct indent for
+				 * this matching brace.  This handles wrapped
+				 * if statements, etc.
+				 */
 				if (!within_indent()) {
 					Bufpos	savematch;
 
@@ -407,11 +417,12 @@ bool	brace;
 					new_indent = calc_pos(linebuf, curchar);
 
 					/* do_expr() calls b_paren, which
-					   returns a pointer to a structure,
-					   and that pointer is in BP so we
-					   have to save away the matching
-					   paren and restore it in the
-					   following line ... sigh */
+					 * returns a pointer to a structure,
+					 * and that pointer is in BP so we
+					 * have to save away the matching
+					 * paren and restore it in the
+					 * following line ... sigh
+					 */
 					*bp = savematch;
 				}
 			}
@@ -431,12 +442,12 @@ bool	brace;
 	}
 
 	/* new_indent is the "correct" place to indent.  Now we check to
-	   see if what we consider as the correct place to indent is to
-	   the LEFT of where we already are.  If it is, and we are NOT
-	   handling a brace, then we assume that the person wants to tab
-	   in further than what we think is right (for some reason) and
-	   so we allow that. */
-
+	 * see if what we consider as the correct place to indent is to
+	 * the LEFT of where we already are.  If it is, and we are NOT
+	 * handling a brace, then we assume that the person wants to tab
+	 * in further than what we think is right (for some reason) and
+	 * so we allow that.
+	 */
 	ToIndent();
 	current_indent = calc_pos(linebuf, curchar);
 	if (!brace && new_indent <= current_indent)
@@ -527,8 +538,8 @@ private char	open_c[CMT_STR_BOUND],	/* the open comment format string */
 private bool	nl_in_close_c;
 
 /* Fill in the data structures above from the format string.  Don't return
-   if there's trouble. */
-
+ * if there's trouble.
+ */
 private void
 parse_cmt_fmt()
 {
@@ -702,8 +713,8 @@ Comment()
 	trailer_len = strlen(l_trailer);
 
 	/* Strip each comment line of the open and close comment strings
-	   before reformatting it. */
-
+	 * before reformatting it.
+	 */
 	do {
 		Bol();
 		DelWtSpace();

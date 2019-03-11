@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -36,16 +36,16 @@ bool enhanced_keybrd;	/* VAR: exploit "enhanced" keyboard? */
 	(_bios_keybrd(enhanced_keybrd? _NKEYBRD_READY : _KEYBRD_READY) != 0)
 # else /* !_NKEYBRD_READY */
 #  ifdef ZTCDOS
-    /* Workaround for Zortech 3.0: use Zortech's asm() capability.
-     *
-     * Interrupt 16h, service 1h (get keyboard status) and
-     * interrupt 16h, service 11h (get enhanced keyboard status)
-     * return with ZF cleared iff there is a character.
-     * The zkbready macro returns YES iff there is a character.
-     *
-     * Note that the nature of the Zortech asm facility demands
-     * that the "service" argument be a constant expression.
-     */
+	/* Workaround for Zortech 3.0: use Zortech's asm() capability.
+	 *
+	 * Interrupt 16h, service 1h (get keyboard status) and
+	 * interrupt 16h, service 11h (get enhanced keyboard status)
+	 * return with ZF cleared iff there is a character.
+	 * The zkbready macro returns YES iff there is a character.
+	 *
+	 * Note that the nature of the Zortech asm facility demands
+	 * that the "service" argument be a constant expression.
+	 */
 #   define zkbready(service)	(0 == (int) asm( \
 	0xB4, service,	/* mov ah,service */ \
 	0xCD, 0x16,	/* int 16h */ \
@@ -185,6 +185,7 @@ rawkey_ready()
 
 	if (waiting)
 		return NO;
+
 # ifdef RAINBOW
 	regs.x.di = 4;
 	int86(0x18, &regs, &regs);
