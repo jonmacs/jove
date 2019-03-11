@@ -536,7 +536,14 @@ kbd_kill()
 
 # ifdef SVR4_PTYS
 #  include <stdlib.h>	/* for grantpt and unlockpt, at least in Solaris 2.3 */
-#  include <sys/stropts.h>
+#  if _XOPEN_SOURCE >= 500
+    /* Linux/glibc no longer pretends to support STREAMS (XSR) (2008) */
+#   if _XOPEN_STREAMS != -1
+#    include <stropts.h>
+#   endif
+#  else
+#   include <sys/stropts.h>
+#  endif
   extern char	*ptsname proto((int /*filedes*/));	/* get name of slave */
 # endif
 
@@ -1122,9 +1129,11 @@ proc_strt(bufname, clobber, procname, va_alist)
 # endif /* BSD_PTYS */
 
 # ifdef SVR4_PTYS
+#  ifdef I_PUSH		/* LINUX/glibc no longer even pretends to support this (2008) */
 		(void) ioctl(0, I_PUSH, (UnivPtr) "ptem");
 		(void) ioctl(0, I_PUSH, (UnivPtr) "ldterm");
 		(void) ioctl(0, I_PUSH, (UnivPtr) "ttcompat");
+#  endif
 # endif
 
 # ifdef TIOCSCTTY

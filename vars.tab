@@ -13,7 +13,6 @@ const struct variable	variables[] = {
 	{ VARIABLE, "allow-^S-and-^Q", VAR(&OKXonXoff), V_BOOL|V_TTY_RESET },
 #endif
 	{ VARIABLE, "allow-bad-characters-in-filenames", VAR(&OkayBadChars), V_BOOL },
-	{ VARIABLE, "allow-bad-filenames", VAR(&OkayBadChars), V_BOOL },	/* obsolete */
 #ifdef ABBREV
 	{ VARIABLE, "auto-case-abbrev", VAR(&AutoCaseAbbrev), V_BOOL },
 #endif
@@ -32,8 +31,8 @@ const struct variable	variables[] = {
 #ifdef BIFF
 	{ VARIABLE, "disable-biff", VAR(&DisBiff), V_BOOL|V_TTY_RESET },
 #endif
+	{ VARIABLE, "display-default-filenames", VAR(&DispDefFs), V_BOOL },
 #ifdef F_COMPLETION
-	{ VARIABLE, "display-bad-filenames", VAR(&DispBadFs), V_BOOL },	/* obsolete */
 	{ VARIABLE, "display-filenames-with-bad-extensions", VAR(&DispBadFs), V_BOOL },
 #endif
 #ifdef IBMPCDOS
@@ -56,7 +55,6 @@ const struct variable	variables[] = {
 # endif
 	{ VARIABLE, "highlight-mark", VAR(&MarkHighlighting), V_BOOL|V_CLRSCREEN },
 #endif	/* HIGHLIGHTING */
-	{ VARIABLE, "internal-tabstop", VAR(&tabstop), V_WHOLE|V_CLRSCREEN },	/* obsolete */
 #ifdef UNIX
 	{ VARIABLE, "interrupt-character", VAR(&IntChar), V_CHAR|V_TTY_RESET },
 #endif

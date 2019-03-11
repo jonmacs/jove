@@ -49,9 +49,6 @@ such as those from the set \(**&%!"`[]{}.  These files are harder to deal
 with, because the characters mean something to the shell.  The default
 value is
 .IQ off .
-.dc "allow-bad-filenames" "(variable)"
-This is the obsolete name for
-.IQ allow-bad-characters-in-filenames .
 .dc "append-region" "Not Bound"
 This appends the region to a specified file.  If the file does not
 already exist it is created.
@@ -455,7 +452,7 @@ This is the default regular-expression search string used by \s-2JOVE\s0 to
 parse output from
 .IQ dbx
 running in a shell process (see the
-.IQ process-dbx-output
+.IQ dbx-mode
 command).  You shouldn't have to change
 this unless you are using something other than
 .IQ DBX .
@@ -649,9 +646,9 @@ the variable
 .IQ mode-line
 can be set up to announce the arrival of new
 mail during a \s-2JOVE\s0 session.
-.dc "display-bad-filenames" "(variable)"
-This is the obsolete name for
-.IQ display-filenames-with-bad-extensions .
+.dc "display-default-filenames" "(variable)"
+If this is set when \s-2JOVE\s0 asks for a filename, it will display the default
+(unless that would take too much of the prompt line).
 .dc "display-filenames-with-bad-extensions" "(variable)"
 This variable affects only filename completion, in particular, what
 happens when \*Q?\*U is typed while prompting for a file.  When this variable
@@ -1070,9 +1067,6 @@ See also the variable
 .dc "insert-file" "^X\ ^I"
 This inserts a specified file into the selected buffer at point.  Point
 is positioned at the beginning of the inserted file.
-.dc "internal-tabstop" "(variable)"
-This is the obsolete name for
-.IQ tab-width .
 .dc "interrupt-character" "(variable)"
 This specifies what character should be used as the operating
 system's tty driver interrupt character.  When this character is
@@ -1576,9 +1570,6 @@ prefix in this manual and by the
 and
 .IQ describe-bindings
 commands.
-.dc "process-dbx-output" "Not Bound"
-This is the obsolete name for
-.IQ dbx-mode .
 .dc "process-newline" "Proc: Return"
 This command is normally bound to Return as if by a
 .IQ process-bind-to-key

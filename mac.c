@@ -569,7 +569,7 @@ size_t	n;
 long
 lseek(fd, offset, whence)
 int	fd;
-long	offset;
+off_t	offset;
 int	whence;
 {
 	int err;

@@ -101,14 +101,14 @@ struct buffer {
 #define b_curmark(b)	((b)->b_markring[(b)->b_themark])
 #define curmark		b_curmark(curbuf)
 		*b_marks;		/* all the marks for this buffer */
-	char	b_themark,		/* current mark (in b_markring) */
-		b_type,			/* file, scratch, process, iprocess */
-		b_ntbf,			/* (bool) needs to be found when we
+	int	b_themark,		/* current mark (in b_markring) */
+		b_type;			/* file, scratch, process, iprocess */
+	char	b_ntbf,			/* (bool) needs to be found when we
 					   first select? */
 		b_modified,		/* (bool) is the buffer modified? */
 		b_diverged;		/* (bool) has the underlying file been changed behind our back? */
-	int	b_major,		/* major mode */
-		b_minor;		/* and minor mode */
+	int	b_major;		/* major mode */
+	unsigned	b_minor;		/* and minor mode */
 	struct keymap	*b_map;		/* local bindings (if any) */
 #ifdef IPROCS
 	struct process	*b_process;		/* process we're attached to */

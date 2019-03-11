@@ -69,8 +69,14 @@ char	*argv[];
 	/* ??? "teach-jove" is too long for MSDOS */
 	(void) sprintf(fname, "%s/teach-jove", home);
 	if (access(fname, F_OK) != 0) {
+		int r;
+
 		(void) sprintf(cmd, "cp %s %s; chmod 644 %s", teachjove, fname, fname);
-		system(cmd);
+		r = system(cmd);
+		if (r != 0) {
+			printf("teachjove: cannot execute \"%s\"\n", cmd);
+			exit(-1);
+		}
 	}
 	(void) execlp("jove", "teachjove", fname, (char *) NULL);
 	printf("teachjove: cannot execl jove!\n");

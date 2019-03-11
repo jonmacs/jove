@@ -21,7 +21,7 @@ extern SSIZE_T
 	read proto((int /*fd*/, UnivPtr /*buf*/, size_t /*nbytes*/)),
 	write proto((int /*fd*/, UnivConstPtr /*buf*/, size_t /*nbytes*/));
 
-extern long	lseek proto((int /*fd*/, long /*offset*/, int /*whence*/));
+extern off_t	lseek proto((int /*fd*/, off_t /*offset*/, int /*whence*/));
 extern time_t	time proto((time_t *));
 
 extern void
@@ -166,7 +166,7 @@ extern int	pipe proto((int *));
 extern int	close proto((int));
 extern int	dup proto((int));
 extern int	dup2 proto((int /*old_fd*/, int /*new_fd*/));
-extern long	lseek proto((int /*fd*/, long /*offset*/, int /*whence*/));
+extern off_t	lseek proto((int /*fd*/, off_t /*offset*/, int /*whence*/));
 extern int	fchmod proto((int /*fd*/, jmode_t /*mode*/));
 extern int	chown proto((const char *, int, int));
 

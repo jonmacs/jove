@@ -7,11 +7,20 @@
 
 /* Note: jove.spec must be updated when version number changes */
 
-#define	jversion     "4.16.0.70" /* 2006 April 30 */
-#define	jversion_lnum 4,16,0,70  /* list-of-numbers form for Win32 jjove.rc */
+#define	jversion     "4.16.0.71" /* 2010 May 16 */
+#define	jversion_lnum 4,16,0,71  /* list-of-numbers form for Win32 jjove.rc */
 
 /*
  * $Log: version.h,v $
+ * Revision 1.421  2010/05/17 02:38:38  hugh
+ * - add new variable display-default-filenames (Casey Leedom)
+ * - eliminate most GCC warnings; improve handling of some errors
+ * - allow for Linux/glibc elimination of I_PUSH (pseudo TTY STREAMS)
+ * - improve jove.spec for Red Hat packaging
+ * - delete obsolete command process-dbx-output
+ * - delete obsolete variables allow-bad-filenames, display-bad-filenames, internal-tabstop
+ * - add bindings for more xterm function key variants
+ *
  * Revision 1.420  2006/04/30 21:51:40  hugh
  * don't crash when filename completion list is wider than screen
  *

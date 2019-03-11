@@ -42,6 +42,7 @@ extern void	minib_add proto((char *str, bool movedown));
 extern ZXchar	AbortChar;	/* VAR: cancels command input */
 #ifdef F_COMPLETION
 extern bool	DispBadFs;		/* VAR: display filenames with bad extensions? */
+extern bool	DispDefFs;		/* VAR: display default filenames in prompt? */
 extern char	BadExtensions[128];	/* VAR: extensions (e.g. ".o") to ignore */
 # ifndef MAC	/* no environment in MacOS */
 extern bool	DoEVexpand;		/* VAR: should we expand evironment variables? */

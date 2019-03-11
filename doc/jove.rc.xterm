@@ -5,6 +5,9 @@
 # following binding will work with either of them.  Note: in the preceding,
 # "binding" means the characters sent by xterm to the program in response
 # to keystrokes.
+#
+# We try to accomodate the mutations of xterm in XFree86 and its successors.
+# F1-F3, Delete, Home, End, and the 5-key in the keyapad generate novel sequences.
 
 # Xterm Mouse Bindings
 #
@@ -163,12 +166,16 @@ bind-macro-to-key keychart ^[[202z
 # F keys
 bind-to-key execute-named-command ^[[224z
 bind-to-key execute-named-command ^[[11~
+bind-to-key execute-named-command ^[OP
 bind-to-key split-current-window ^[[225z
 bind-to-key split-current-window ^[[12~
+bind-to-key split-current-window ^[OQ
 bind-to-key next-window ^[[226z
 bind-to-key next-window ^[[13~
+bind-to-key next-window ^[OR
 bind-to-key delete-other-window ^[[227z
 bind-to-key delete-other-window ^[[14~
+bind-to-key delete-other-window ^[OS
 bind-to-key delete-current-window ^[[228z
 bind-to-key delete-current-window ^[[15~
 bind-to-key grow-window ^[[229z
@@ -193,10 +200,12 @@ bind-to-key find-file ^[[24~
 # recommend that the adventurous (or IBM PC acculturated) enable these.
 # bind-to-key delete-next-character ^?
 # bind-to-key kill-next-word ^[^?
+bind-to-key delete-previous-character ^[[3~
 
 # R keys (these are all associated with cursor movement or scrolling)
 bind-to-key unbound ^[[208z
 bind-to-key beginning-of-line ^[[209z
+bind-to-key beginning-of-file ^[OH
 bind-to-key end-of-line ^[[210z
 bind-to-key unbound ^[[211z
 bind-to-key backward-word ^[[212z
@@ -208,7 +217,9 @@ bind-to-key previous-page ^[[5~
 # This moves the cursor to the start of the next line.
 define-macro newline-and-beginning ^A^N
 bind-macro-to-key newline-and-beginning ^[[218z
+bind-macro-to-key newline-and-beginning ^[OE
 bind-to-key end-of-file ^[[220z
+bind-to-key end-of-file ^[OF
 bind-to-key next-page ^[[222z
 bind-to-key next-page ^[[6~
 

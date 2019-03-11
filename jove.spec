@@ -5,7 +5,7 @@
 # For example, macros are expanded even in comments!
 
 # This version number must be kept in sync with version.h.
-%define jversion 4.16.0.70
+%define jversion 4.16.0.71
 
 # configflags: flags passed to each make to configure for LINUX.
 # The choices are explained in Makefile and sysdep.doc.
@@ -31,13 +31,16 @@
 Summary: Jonathan's Own Version of Emacs
 Name: jove
 Version: %{jversion}
-Release: 1
+Release: 1%{?dist}
 # Older RPM uses Copyright tag instead of License tag
-License: Copyright (C) 1986-2002 by Jonathan Payne, freely redistributable
-Packager: jovehacks@cs.toronto.edu
-Group: Applications/Editors/Emacs
+License: BSD
+#Packager: jovehacks@cs.toronto.edu
+Group: Applications/Editors
+URL: ftp://ftp.cs.toronto.edu/pub/hugh/jove-dev/
 Source: ftp://ftp.cs.toronto.edu/pub/hugh/jove-dev/jove%{jversion}.tgz
-BuildRoot: /var/tmp/%{name}-rpmroot
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
+BuildRequires: ncurses-devel groff
+
 %description
 
 Jove is a compact, powerful Emacs-style text-editor. It provides the common
@@ -47,36 +50,39 @@ language specific modes) while weighing in with CPU, memory, and disk
 requirements comparable to vi(1).
 
 %prep
-%setup -c
+%setup -c -q
 
 %build
 # Keep all three make commands consistent, except for JOVEHOME and targets.
 # JOVEHOME must be the ultimate path since it will be compiled into JOVE.
-make JOVEHOME=/usr %{configflags} all doc/jove.man doc/jove.man.ps
+make JOVEHOME=/usr LIBDIR=%{_libdir}/jove SHAREDIR=%{_datadir}/jove MANDIR=%{_mandir}/man1 OPTFLAGS="%{optflags}" %{configflags} all doc/jove.man doc/jove.man.ps
 
 %install
 # Keep all three make commands consistent, except for JOVEHOME and targets.
 # JOVEHOME is a temporary home under $RPM_BUILD_ROOT/.
 # This can be different from JOVEHOME for the build phase's make.
-mkdir -p $RPM_BUILD_ROOT/usr/bin
-mkdir -p $RPM_BUILD_ROOT/usr/lib
-mkdir -p $RPM_BUILD_ROOT/usr/man/man1
-make JOVEHOME=$RPM_BUILD_ROOT/usr %{configflags} install
+mkdir -p $RPM_BUILD_ROOT%{_bindir}
+mkdir -p $RPM_BUILD_ROOT%{_libdir}
+mkdir -p $RPM_BUILD_ROOT%{_datadir}
+mkdir -p $RPM_BUILD_ROOT%{_mandir}/man1
+make JOVEHOME=$RPM_BUILD_ROOT/usr LIBDIR=$RPM_BUILD_ROOT%{_libdir}/jove SHAREDIR=$RPM_BUILD_ROOT%{_datadir}/jove MANDIR=$RPM_BUILD_ROOT%{_mandir}/man1 OPTFLAGS="%{optflags}" %{configflags} install
 
 # although we build jovetool.1 and xjove.1, we don't install them
-rm $RPM_BUILD_ROOT/usr/man/man1/jovetool.1
-rm $RPM_BUILD_ROOT/usr/man/man1/xjove.1
+rm $RPM_BUILD_ROOT%{_mandir}/man1/jovetool.1
+rm $RPM_BUILD_ROOT%{_mandir}/man1/xjove.1
 
 %files
-/usr/lib/jove/
-/usr/bin/jove
-/usr/bin/teachjove
+%defattr(-, root, root, -)
+%{_libdir}/jove/
+%{_datadir}/jove/
+%{_bindir}/jove
+%{_bindir}/teachjove
 # Note: later versions of Red Hat RPM run a script that gzips man pages behind
 # our back; Mandrake bzip2s them.  The wildcard lets us roll with the punch.
-%doc /usr/man/man1/jove.1*
-%doc /usr/man/man1/teachjove.1*
-#doc /usr/man/man1/jovetool.1*
-#doc /usr/man/man1/xjove.1*
+%doc %{_mandir}/man1/jove.1*
+%doc %{_mandir}/man1/teachjove.1*
+#doc %{_mandir}/man1/jovetool.1*
+#doc %{_mandir}/man1/xjove.1*
 %doc jove%{jversion}/README
 %doc jove%{jversion}/doc/jove.man
 %doc jove%{jversion}/doc/jove.man.ps
@@ -88,6 +94,14 @@ rm $RPM_BUILD_ROOT/usr/man/man1/xjove.1
 rm -rf $RPM_BUILD_ROOT
 # Keep all three make commands consistent, except for JOVEHOME and targets.
 # JOVEHOME is a temporary home under $RPM_BUILD_ROOT/.
-make JOVEHOME=$RPM_BUILD_ROOT/usr %{configflags} clean
+#make JOVEHOME=$RPM_BUILD_ROOT/usr LIBDIR=$RPM_BUILD_ROOT%{_libdir}/jove SHAREDIR=$RPM_BUILD_ROOT%{_datadir}/jove MANDIR=$RPM_BUILD_ROOT%{_mandir}/man1 OPTFLAGS="%{optflags}" %{configflags} clean
 
 %changelog
+* Sun May 16 2010 D. Hugh Redelmeier 4.16.0.71
+- add new variable display-default-filenames (Casey Leedom)
+- eliminate most GCC warnings; improve handling of some errors
+- allow for Linux/glibc elimination of I_PUSH (pseudo TTY STREAMS)
+- improve jove.spec for Red Hat packaging
+- delete obsolete command process-dbx-output
+- delete obsolete variables allow-bad-filenames, display-bad-filenames, internal-tabstop
+- add bindings for more xterm function key variants
