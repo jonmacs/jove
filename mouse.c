@@ -19,6 +19,7 @@
 #include "disp.h"
 #include "misc.h"
 #include "ask.h"
+#include "chars.h"
 #include "delete.h"
 #include "fmt.h"
 #include "insert.h"	/* for lfreelist, in MouseLine */
@@ -209,6 +210,25 @@ Window	*winforce;	/* if non-null, must be within this window */
 	return (total_lines - y_coord - 1);	/* Cursor pos within window */
 }
 
+/* get an origin-0 coordinate in funny representation used by xterm */
+
+private int
+xtGetCoord(upb)
+int upb;
+{
+	ZXchar	c = waitchar();	/* coordinate */
+
+	/* undo MetaKey if we think it was done */
+	if (c == ESC && MetaKey)
+		c = waitchar() | METABIT;
+
+	/* It appears that mouse events near the extreme right hand edge of
+	 * a window can give coordinates as large as LI.  Perhaps this is
+	 * true for CO too.  So the range is inclusive.
+	 */
+	return '!' <= c && c - '!' <= upb? c - '!' : -1;
+}
+
 /* get some X Y pair from xterm; return indication of success */
 
 private bool
@@ -217,23 +237,19 @@ int
 	*xp,
 	*yp;
 {
-	ZXchar	cx = waitchar();	/* X coordinate */
+	int x = xtGetCoord(CO);
 
-	/* It appears that mouse events near the extreme right hand edge of
-	 * a window can give coordinates greater that LI; hence the "LI+1"
-	 * (and "CO+1" for good measure) in what follows.
-	 */
-	if (' ' < cx && cx <= ' '+CO+1) {
-		ZXchar	cy = waitchar();	/* Y coordinate */
+	if (x != -1) {
+		int y = xtGetCoord(LI);
 
-		if (' ' < cy && cy <= ' '+LI+1) {
-			*xp = cx - '!';
-			*yp = cy - '!';
+		if (y != -1) {
+			*xp = x;
+			*yp = y;
 			font_width = 1;
-			return YES;	/* success */
+			return YES;
 		}
 	}
-	return NO;	/* failure */
+	return NO;
 }
 
 #define MPROTO_XTERM	0

@@ -67,8 +67,8 @@ int	c;
 	static char	str[16];
 	char	*cp = str;
 
-	if (c & 0200) {
-		c &= ~0200;
+	if (c & METABIT) {
+		c &= ~METABIT;
 		strcpy(cp, "M-");
 		cp += 2;
 	}

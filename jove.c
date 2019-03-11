@@ -546,8 +546,8 @@ kbd_getch()
 		}
 		c = ZXRC(*bp++);
 #if !defined(PCNONASCII) && !defined(MAC)	/* if not done elsewhere */
-		if ((c & 0200) && MetaKey) {
-			*--bp = c & ~0200;
+		if ((c & METABIT) && MetaKey) {
+			*--bp = c & ~METABIT;
 			nchars += 1;
 			c = ESC;
 		}

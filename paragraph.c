@@ -465,38 +465,33 @@ bool
 	okay_char = start_char = curchar;
 	for (;;) {
 		/* for each word ... */
+		int word_start = curchar;
 
 		/* skip to end of (possibly empty) input word */
 		while (!eolp() && !jiswhite(linebuf[curchar]))
 			curchar += 1;
 
-		if (okay_char != start_char && calc_pos(linebuf, curchar) > RMargin) {
-			/* This word won't fit in output line
+		if (word_start != curchar && okay_char != start_char
+		&& calc_pos(linebuf, curchar) > RMargin) {
+			/* This non-empty word won't fit in output line
 			 * (the first word on a line is always considered to fit).
 			 */
 			curchar = okay_char;	/* go back to last success */
-			if (eolp()) {
-				/* no need to introduce a line break: we're already at one */
-				if (lastp(curline))
-					break;	/* ran out of buffer: stop */
-				line_move(FORWARD, 1, NO);
-			} else {
-				/* break line here.  Note that we split the line before
-				 * deleting the (possibly split) whitespace.  This way
-				 * marks before and after the current whitespace character
-				 * end up on the appropriate side of the newline that
-				 * replaces it.
-				 */
-				LineInsert(1);
-				b_char(1);
-				DelWtSpace();
-				f_char(1);
-				DelWtSpace();
-				if (scrunch && TwoBlank()) {
-					Eol();
-					del_char(FORWARD, 1, NO);
-					Bol();
-				}
+			/* break line here.  Note that we split the line before
+			 * deleting the (possibly split) whitespace.  This way
+			 * marks before and after the current whitespace character
+			 * end up on the appropriate side of the newline that
+			 * replaces it.
+			 */
+			LineInsert(1);
+			b_char(1);
+			DelWtSpace();
+			f_char(1);
+			DelWtSpace();
+			if (scrunch && TwoBlank()) {
+				Eol();
+				del_char(FORWARD, 1, NO);
+				Bol();
 			}
 			n_indent(indent);
 			okay_char = start_char = curchar;
