@@ -82,7 +82,7 @@ XJOVEM = $(MANDIR)/xjove.$(MANEXT)
 JOVETOOLM = $(MANDIR)/jovetool.$(MANEXT)
 
 # SYSDEFS: specify system characteristics.
-# The default is -DBSDPOSIX, which discribes a number of modern
+# The default is -DBSDPOSIX, which describes a number of modern
 # systems (but not Solaris!).  If this isn't suitable for your system,
 # you will need to change it.  You may need to define a new symbol for
 # your OS if we haven't created a suitable one.  See sysdep.h.
@@ -90,32 +90,36 @@ JOVETOOLM = $(MANDIR)/jovetool.$(MANEXT)
 #	Apple A/UX on macIIs		SYSDEFS=-DA_UX
 #	BSD4.2,4.3			SYSDEFS=-DBSD4
 #	BSDI, 386BSD, BSD4.4		SYSDEFS=-DBSDPOSIX
-#	Consensys V4			SYSDEFS=-DSYSVR4 -DGRANTPT_BUG
+#	Consensys V4			SYSDEFS="-DSYSVR4 -DGRANTPT_BUG"
 #	CYGWIN32			SYSDEFS=-DCYGWIN32
+#	Compaq Tru64 UNIX V4.0g, 5.1	SYSDEFS=-DSYSVR4
 #	DEC OSF R1.3MK			SYSDEFS=-DSYSVR4
-#	DEC OSF/1 V1.3			SYSDEFS=-BSDPOSIX -DNO_TIOCREMOTE -DNO_TIOCSIGNAL
+#	DEC OSF/1 V1.3			SYSDEFS="-DBSDPOSIX -DNO_TIOCREMOTE -DNO_TIOCSIGNAL"
 #	DEC OSF/1 V2.0 and later	SYSDEFS=-DSYSVR4
 #	DEC Ultrix 4.2			SYSDEFS=-DBSDPOSIX
-#	DEC Ultrix 4.3			SYSDEFS=-DBSDPOSIX -DJVDISABLE=255
-#	Digital UNIX V4.0 and later	SYSDEFS=-DSYSVR4 -DGRANTPT_BUG
-#	DG AViiON 5.3R4			SYSDEFS=-DSYSVR4 -DBSD_SIGS
-#	HP/UX 8 or 9			SYSDEFS=-DHPUX -Ac
+#	DEC Ultrix 4.3			SYSDEFS="-DBSDPOSIX -DJVDISABLE=255"
+#	Digital UNIX V4.0 and later	SYSDEFS="-DSYSVR4 -DGRANTPT_BUG"
+#	DG AViiON 5.3R4			SYSDEFS="-DSYSVR4 -DBSD_SIGS"
+#	FreeBSD 4.2			SYSDEFS="-DBSDPOSIX -DUSEOPENPTY" LIBS="-ltermcap -lutil"
+#	HP/UX 8 or 9			SYSDEFS="-DHPUX -Ac"
 #	HP/UX 11 (-Ac redundant)	SYSDEFS=-DHPUX
 #	IBM AIX 3.2			SYSDEFS=-DAIX3_2
-#	IBM AIX 4.2			SYSDEFS=-DAIX4_2 LIBS="-lcurses -ls"
-#	Irix 3.3-4.0.5			SYSDEFS=-DIRIX -DIRIX4
-#	Irix 5.0 onwards		SYSDEFS=-DIRIX -prototypes
+#	IBM AIX 4.2			SYSDEFS="-DAIX4_2" LIBS="-lcurses -ls"
+#	Irix 3.3-4.0.5			SYSDEFS="-DIRIX -DIRIX4"
+#	Irix 5.0 onwards		SYSDEFS="-DIRIX -prototypes"
 #	LINUX (eg. RedHat 4, 5)		SYSDEFS=-DBSDPOSIX
-#	LINUX (newer, with UNIX98 PTYS)	SYSDEFS=-DSYSVR4 -D_XOPEN_SOURCE=500
-#	MIPS RiscOS4.x			SYSDEFS=-systype bsd43 -DBSD4
+#	LINUX (newer, with UNIX98 PTYS)	SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500"
+#       				some need LIBS=-lncurses
+#	MIPS RiscOS4.x			SYSDEFS="-systype bsd43 -DBSD4"
+#	NetBSD 1.5			SYSDEFS="-DBSDPOSIX -DUSEOPENPTY" LIBS="-ltermcap -lutil"
 #	SCO Unix			SYSDEFS=-DSCO
 #	SunOS3.x			SYSDEFS=-DSUNOS3
 #	SunOS4.0*			SYSDEFS=-DSUNOS40
 #	SunOS4.1*			SYSDEFS=-DSUNOS41
-#	SunOS5.0/Solaris 2.0		SYSDEFS=-DSYSVR4 -DGRANTPT_BUG
+#	SunOS5.0/Solaris 2.0		SYSDEFS="-DSYSVR4 -DGRANTPT_BUG"
 #	SunOS5.[123456]/Solaris 2.x	SYSDEFS=-DSYSVR4
 #	Sys III, Sys V R 2,3		SYSDEFS=-DSYSV
-#	Sys V Release 4.0		SYSDEFS=-DSYSVR4 -DGRANTPT_BUG
+#	Sys V Release 4.0		SYSDEFS="-DSYSVR4 -DGRANTPT_BUG"
 #	Sys V Release 4.x		SYSDEFS=-DSYSVR4
 #
 # Some systems based on System V release 4 have a bug affecting interactive
@@ -295,7 +299,8 @@ ovjove:	$(OBJECTS)
 # portsrv is only needed if IPROCS are implemented using PIPEPROCS
 # Making PORTSRVINST null will supress building and installing portsrv.
 
-PORTSRVINST=$(PORTSRV)
+# PORTSRVINST=$(PORTSRV)
+PORTSRVINST=
 
 portsrv$(XEXT):	portsrv.o
 	$(LDCC) $(LDFLAGS) $(OPTFLAGS) -o portsrv$(XEXT) portsrv.o $(LIBS)

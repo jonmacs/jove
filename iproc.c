@@ -422,6 +422,10 @@ kbd_kill()
 
 #include "ttystate.h"
 
+# ifdef USE_OPENPTY	/* modern BSDs have openpty(3) */
+#  include <util.h>
+# endif
+
 # ifdef SVR4_PTYS
 #  include <stdlib.h>	/* for grantpt and unlockpt, at least in Solaris 2.3 */
 #  include <sys/stropts.h>
@@ -772,6 +776,9 @@ proc_strt(bufname, clobber, procname, va_alist)
 	Process	newp;
 	Buffer	*newbuf;
 	int	ptyfd = -1;
+# ifdef BSD_PTYS
+	int	slvptyfd = -1;
+# endif
 
 # if !defined(TERMIO) && !defined(TERMIOS)
 #  ifdef TIOCSETD
@@ -865,6 +872,13 @@ proc_strt(bufname, clobber, procname, va_alist)
 #  endif
 # endif /* SVR4_PTYS */
 # ifdef BSD_PTYS
+#  ifdef USE_OPENPTY
+	if (openpty(&ptyfd, &slvptyfd, ttybuf, NULL, NULL) < 0)
+	{
+		message("[Out of ptys!]");
+		goto fail;
+	}
+#  else /* !USE_OPENPTY */
 	{
 		register const char	*s;
 
@@ -880,32 +894,18 @@ proc_strt(bufname, clobber, procname, va_alist)
 				if ((ptyfd = open(ttybuf, O_RDWR | O_BINARY)) >= 0) {
 					ttybuf[5] = 't';	/* pty => tty */
 					/* Make sure other end is available too */
-#  ifdef BSDI_PTY_BUG
-					/* ??? This code seems to confuse BSDI's BSD/386 v1.[01]
-					 * so we have eliminated it.  Part of this checking will
-					 * still be done by the "access" below, but with no
-					 * recovery.
-					 */
-					break;
-#  else
-					{
-						int	i = open(ttybuf, O_RDWR | O_BINARY);
+					slvptyfd = open(ttybuf, O_RDWR | O_BINARY);
+					if (slvptyfd > 0)
+						break;	/* it worked: use this one */
 
-						if (i < 0) {
-							/* can't open, so give up on this pty */
-							(void) close(ptyfd);
-							ptyfd = -1;
-						} else {
-							/* it worked: use this one */
-							(void) close(i);
-							break;
-						}
-					}
-#  endif
+					/* can't open, so give up on this pty */
+					(void) close(ptyfd);
+					ptyfd = slvptyfd = -1;
 				}
 			}
 		}
 	}
+#  endif /* !USE_OPENPTY */
 # endif /* BSD_PTYS */
 	/* Check that we can write to the pty, else things will fail in the
 	 * child, where they're harder to detect.  This will not work with
@@ -1009,6 +1009,10 @@ proc_strt(bufname, clobber, procname, va_alist)
 		(void) dup2(0, 1);
 		(void) dup2(0, 2);
 
+# ifdef BSD_PTYS
+		close(slvptyfd);	/* safe to close now that std* are open */
+# endif /* BSD_PTYS */
+
 # ifdef SVR4_PTYS
 		(void) ioctl(0, I_PUSH, (UnivPtr) "ptem");
 		(void) ioctl(0, I_PUSH, (UnivPtr) "ldterm");
@@ -1110,6 +1114,10 @@ proc_strt(bufname, clobber, procname, va_alist)
 		_exit(errno + 1);
 	}
 
+# ifdef BSD_PTYS
+	close(slvptyfd);
+# endif /* BSD_PTYS */
+
 	newp = (Process) emalloc(sizeof *newp);
 
 # ifdef O_NDELAY
@@ -1150,6 +1158,10 @@ proc_strt(bufname, clobber, procname, va_alist)
 fail:
 	if (ptyfd >= 0)
 		close(ptyfd);
+# ifdef BSD_PTYS
+	if (slvptyfd >= 0)
+		close(slvptyfd);
+# endif /* BSD_PTYS */
 }
 
 /* NOTE 1: SIGCHLD is an asynchronous signal.  To safely handle it,

@@ -152,18 +152,34 @@ If your system supports neither PTYS nor PIPES, don't define IPROCS unless
 you feel in the mood for very serious hacking.
 PTYPROCS	Use pseudo-ttys.  BSD and most modern UNIXes.
 PIPEPROCS	Use pipes for interactive processes.  Older UNIXes.
-
+		Don't forget to set PORTSRVINST in Makefile.
 
 If PTYPROCS is defined, then one of the following must be defined.  Or
 add your own code in iproc-ptys.c.  SVR4_PTYS are more secure than
-BSD_PTYS (Jove isn't run setuid root, so it cannot chown the PTY to
-prevent strangers from fiddling).  SVR4_PTYS are also known (at least
-in the LINUX world) as UNIX98 PTYS.  They are part of "The Single UNIX
-Specification", Version 2.
+BSD_PTYS (the BSD weakness is described below).  SVR4_PTYS are also
+known (at least in the LINUX world) as UNIX98 PTYS.  They are part of
+"The Single UNIX Specification", Version 2.
 SVR4_PTYS	SYSVR4 pty allocation.  Use /dev/ptmx, ptsname, grantpt, etc
-BSD_PTYS	canonical BSD ptys, search through pty[pqrst]
+BSD_PTYS	traditional BSD ptys.
 IRIX_PTYS	Irix 3.x onwards -- open a master device, then fstat to get
 		major and minor numbers.
+
+WARNING: On BSD systems, there is a dangerous security hole in the PTY
+system.  Although JOVE (or any other non-privileged program) can
+allocate a PTY, it cannot change the ownership or permissions to
+prevent other processes run by other users from mucking with the same
+PTY.  An example of such mischief is that someone else could arrange
+trick your JOVE to run a shell command for him but as you!  The
+traditional way to allocate a PTY is to search through search through
+/dev/pty[p-s][0-9a-f] for a free one, and use that.  Modern BSD
+systems have added a new library routine "openpty(3)" which could be
+made to close this hole, but this hasn't happened at this time (2001
+March 21).  In anticipation of such a fix, JOVE can be made to use
+this routine.  Currently, the only advantage is that when JOVE is run
+by the superuser, some versions of BSD do manage to close the hole.  A
+disadvantage is that -lutil must be added to the link command because
+openpty is in libutil.
+USE_OPENPTY	use the new BSD openpty(3) routine
 
 Certain early SVR4 systems have a buggy grantpt library routine that
 is used if PTYPROCS is defined.  A symptom is that the "shell"
@@ -189,10 +205,6 @@ Certain systems, for example HP/UX 9, don't seem to send EOF to the master
 side of the pty when the slave side shuts down.  On these systems, Jove
 should be told not to wait for EOF:
 NO_EOF_FROM_PTY	Define this if your system fails to signal EOF to pty master
-
-Some versions of BSDI/386 (for example, v1.0 and v1.1) have a bug in
-pty support that causes a check in iproc.c to fail.
-BSDI_PTY_BUG	Define this to avoid a test that (old?) BSDI/386 always fails
 
 To deal with SUBSHELL and IPROCS (both in tune.h), define one of the
 following:
