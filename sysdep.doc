@@ -316,6 +316,13 @@ TERMINFO	Support for System V variant of TERMCAP.  TERMCAP
 		must also be defined.  This differentiates between
 		tparm and tgoto.
 
+NCURSES_BUG	Work around the non-standard meaning of insert character
+		capabilities in the termcap and terminfo databases
+		distributed with ncurses.  Probably needed for FreeBSD,
+		NetBSD, and LINUX.  Probably safe for all others (except
+		if you use a Datamedia 2500 terminal).  We automatically
+		define this for UNIX.
+
 Jove has been built and tested on PC-compatible computers under
 several compilers and at least two environments.  The following
 manifests are primarily used to tailor the characteristics of

@@ -95,13 +95,17 @@ char
 bool	UseIC = NO;	/* VAR: whether or not to use i/d char processesing */
 
 int
-	IMlen = 0,	/* length of insert mode */
-	EIlen = 0,	/* length of end insert mode string */
-	IClen = 0,	/* length of insert char */
-	DClen = 0,	/* length of delete char */
+#   ifdef NCURSES_BUG
+	IMEIlen = INFINITY,	/* length of insert mode + end insert mode strings */
+#   else
+	IMEIlen = 0,	/* length of insert mode + end insert mode strings */
+#   endif
+
+	IClen = INFINITY,	/* length of insert char */
 	MIClen = INFINITY,	/* length of insert char with arg */
+	DClen = INFINITY,	/* length of delete char */
 	MDClen = INFINITY,	/* length of delete char with arg */
-	CElen = 0;	/* length of clear to end of line */
+	CElen = INFINITY;	/* length of clear to end of line */
 
 bool
 	MI;		/* okay to move while in insert mode */
@@ -140,8 +144,6 @@ private const struct CapLen	CapLenTab[] = {
 	{ &LL,	&LLlen },
 	{ &UP,	&UPlen },
 #  ifdef ID_CHAR
-	{ &IM,	&IMlen },
-	{ &EI,	&EIlen },
 	{ &IC,	&IClen },
 	{ &DC,	&DClen },
 	{ &M_IC,	&MIClen },
@@ -254,10 +256,21 @@ getTERM()
 	 * IC and IM to insert, but normally only one will be defined.
 	 * See terminfo(5), under the heading "Insert/Delete Character".
 	 * Because of this, IM might be defined as a null string.
+	 *
+	 * The freely redistributable termcap/terminfo database associated
+	 * with ncurses breaks this rule.  This is unfortunate, but we
+	 * cannot seem to get them to fix this bug.  Apparently no currently
+	 * supported terminal needed this feature anyway, so we might
+	 * as well go with the flow.
 	 */
 #  ifdef ID_CHAR
-	if (IM != NULL && *IM == '\0')
-		IM = NULL;	/* If IM is empty, supress. */
+	if (IM == NULL || *IM == '\0' || EI == NULL || *EI == '\0')
+		IM = EI = NULL;	/* If IM or EI is empty, supress both. */
+
+#   ifndef NCURSES_BUG
+	if (IC == NULL || *IC == '\0')
+		M_IC = NULL;	/* don't know how to use this */
+#   endif
 
 	UseIC = (IC != NULL || IM != NULL || M_IC != NULL);
 	MI = tgetflag("mi")==YES;	/* okay to move while in insert mode */
@@ -281,6 +294,10 @@ getTERM()
 		for (p = CapLenTab; p->cap_var != NULL; p++)
 			if (*p->cap_var != NULL)
 				*p->len_var = strlen(*p->cap_var);
+#ifdef ID_CHAR
+		if (IM != NULL)
+			IMEIlen = strlen(IM) + strlen(EI);
+#endif
 	}
 	if (!(CM != NULL || HO != NULL))
 		tcbad(termname, "JOVE needs either cm or ho termcap/terminfo capability");

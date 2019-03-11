@@ -133,11 +133,10 @@ extern char
 extern bool	UseIC;	/* VAR: whether or not to use i/d char processesing */
 
 extern int
-	IMlen,	/* length of insert mode */
-	EIlen,	/* length of end insert mode string */
+	IMEIlen,	/* length of insert mode + end insert mode strings */
 	IClen,	/* length of insert char */
-	DClen,	/* length of delete char */
 	MIClen,	/* length of insert char with arg */
+	DClen,	/* length of delete char */
 	MDClen,	/* length of delete char with arg */
 	CElen;	/* length of clear to end of line */
 
