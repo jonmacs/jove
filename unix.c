@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -388,11 +388,11 @@ bool	n;	/* also used as subscript! */
 }
 
 /* Determine the number of characters to buffer at each baud rate.  The
-   lower the number, the quicker the response when new input arrives.  Of
-   course the lower the number, the more prone the program is to stop in
-   output.  Decide what matters most to you. This sets ScrBufSize to the right
-   number or chars, and initializes `jstdout'.  */
-
+ * lower the number, the quicker the response when new input arrives.  Of
+ * course the lower the number, the more prone the program is to stop in
+ * output.  Decide what matters most to you. This sets ScrBufSize to the right
+ * number or chars, and initializes `jstdout'.
+ */
 void
 settout()
 {

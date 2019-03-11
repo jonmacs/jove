@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -202,10 +202,12 @@ Window	*winforce;	/* if non-null, must be within this window */
 		wp = wp->w_next;
 		if (wp == fwind)
 			return -1;
+
 		total_lines += wp->w_height;
 	}
 	if (winforce != NULL && wp != winforce)
 		return -1;
+
 	SetWind(wp);		/* Set current window */
 	return (total_lines - y_coord - 1);	/* Cursor pos within window */
 }
@@ -549,6 +551,7 @@ int	mproto;
 			oldwind = curwind;
 			if ((wind_pos = SelectWind((Window *) NULL)) < 0)
 				return NO;
+
 			if (curwind == oldwind->w_next) {
 				wind_pos -= curwind->w_height;
 				SetWind(oldwind);

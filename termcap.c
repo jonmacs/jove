@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -25,7 +25,7 @@ extern void	UNMACRO(tputs) proto((const char *, int, void (*) proto((int))));
 
 /* Termcap definitions */
 
-char
+const char
 	*CS,	/* change scrolling region */
 	*SO,	/* Start standout */
 	*SE,	/* End standout */
@@ -72,7 +72,9 @@ bool
 #  ifdef DEFINE_PC_BC_UP_OSPEED
 	/* This is needed for HP-UX, possibly for other SYSVR2 systems */
 char
-	PC,		/* pad character, as a char (set from lPC; defaults to NUL) */
+	PC;		/* pad character, as a char (set from lPC; defaults to NUL) */
+
+const char
 	*BC,	/* back space (defaults to BS) */
 	*UP;	/* Scroll reverse, or up */
 
@@ -83,7 +85,7 @@ bool	CanScroll;	/* can this terminal scroll? */
 
 #  ifdef ID_CHAR
 
-char
+const char
 	*IC,	/* Insert char */
 	*DC,	/* Delete char */
 	*IM,	/* Insert mode */
@@ -123,7 +125,7 @@ private const char	ts[] =
 "vsvealdlcssoseusuecmclcehoupbcllsfsrvbksketitepcblnldoALDLSFSR";
 #  endif
 
-private char	**const meas[] = {
+private const char	**const meas[] = {
 	&VS, &VE, &AL, &DL, &CS, &SO, &SE, &US, &UE, &CM,
 	&CL, &CE, &HO, &UP, &BC, &LL, &SF, &SR, &VB, &KS,
 	&KE, &TI, &TE, &lPC, &BL, &NL, &DO, &M_AL, &M_DL, &M_SF,
@@ -135,7 +137,7 @@ private char	**const meas[] = {
 };
 
 struct CapLen {
-	char	**cap_var;
+	const char	**cap_var;
 	int	*len_var;
 };
 
@@ -211,7 +213,7 @@ getTERM()
 	/* get string capabilities */
 	{
 		const char	*tsp = ts;
-		char	**const *measp;
+		const char	**const *measp;
 
 		for (measp = meas; *measp != NULL; measp++) {
 			static char	nm[3] = "xx";

@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -49,10 +49,10 @@ register Window	*w;
 }
 
 /* Delete `wp' from the screen.  If it is the only window left
-   on the screen, then complain.  It gives its body
-   to the next window if there is one, otherwise the previous
-   window gets the body.  */
-
+ * on the screen, then complain.  It gives its body
+ * to the next window if there is one, otherwise the previous
+ * window gets the body.
+ */
 void
 del_wind(wp)
 register Window	*wp;
@@ -83,8 +83,8 @@ register Window	*wp;
 }
 
 /* Divide the window WP N times, or at least once.  Complains if WP is too
-   small to be split into that many pieces.  It returns the new window. */
-
+ * small to be split into that many pieces.  It returns the new window.
+ */
 Window *
 div_wind(wp, n)
 register Window	*wp;
@@ -109,7 +109,8 @@ int	n;
 		wp->w_height -= amt;
 
 		/* set the lines such that w_line is the center in
-		   each Window */
+		 * each Window
+		 */
 		new->w_line = wp->w_line;
 		new->w_char = wp->w_char;
 		new->w_bufp = wp->w_bufp;
@@ -131,9 +132,9 @@ int	n;
 }
 
 /* Initialze the first window setting the bounds to the size of the
-   screen.  There is no buffer with this window.  See parse for the
-   setting of this window. */
-
+ * screen.  There is no buffer with this window.  See parse for the
+ * setting of this window.
+ */
 void
 winit()
 {
@@ -196,6 +197,7 @@ register Window	*new;
 	}
 	if (new == curwind)
 		return;
+
 	SetBuf(new->w_bufp);
 	if (!inlist(new->w_bufp->b_first, new->w_line)) {
 		new->w_line = curline;
@@ -228,8 +230,8 @@ register Window	*w;
 int	ScrollStep = 0;	/* VAR: how should we scroll (full scrolling) */
 
 /* Calculate the new topline of the window.  If ScrollStep == 0
-   it means we should center the current line in the window. */
-
+ * it means we should center the current line in the window.
+ */
 void
 CalcWind(w)
 register Window	*w;
@@ -246,8 +248,7 @@ register Window	*w;
 			CentWind(w);
 			return;
 		}
-		scr_step = (ScrollStep < 0) ? WSIZE(w) + ScrollStep :
-			   ScrollStep - 1;
+		scr_step = (ScrollStep < 0) ? WSIZE(w) + ScrollStep : ScrollStep - 1;
 		/* up: point is above the screen */
 		newtop = prev_line(w->w_line, up?
 			scr_step : (WSIZE(w) - 1 - scr_step));
@@ -259,11 +260,11 @@ register Window	*w;
 }
 
 /* This is bound to ^X 4 [BTF].  To make the screen stay the
-   same we have to remember various things, like the current
-   top line in the current window.  It's sorta gross, but it's
-   necessary because of the way this is implemented (i.e., in
-   terms of do_find(), do_select() which manipulate the windows. */
-
+ * same we have to remember various things, like the current
+ * top line in the current window.  It's sorta gross, but it's
+ * necessary because of the way this is implemented (i.e., in
+ * terms of do_find(), do_select() which manipulate the windows.
+ */
 void
 WindFind()
 {
@@ -340,6 +341,7 @@ register Buffer	*bp;
 	do {
 		if (wp->w_bufp == bp)
 			return wp;
+
 		wp = wp->w_next;
 	} while (wp != fwind);
 	return NULL;
@@ -373,7 +375,7 @@ PageNWind()
 
 private Window *
 w_nam_typ(name, type)
-register char	*name;
+register const char	*name;
 int	type;
 {
 	register Window *w;
@@ -398,11 +400,11 @@ int	type;
 }
 
 /* Put a window with the buffer `name' in it.  Erase the buffer if
-   `clobber' is YES. */
-
+ * `clobber' is YES.
+ */
 void
 pop_wind(name, clobber, btype)
-register char	*name;
+register const char	*name;
 bool	clobber;
 int	btype;
 {
@@ -442,8 +444,8 @@ ShrWindow()
 }
 
 /* Change the size of the window by inc.  First arg is the window,
-   second is the increment. */
-
+ * second is the increment.
+ */
 void
 WindSize(w, inc)
 register Window	*w;
@@ -461,9 +463,10 @@ register int	inc;
 		w->w_prev->w_height -= inc;
 	} else {		/* Growing the window. */
 		/* Change made from original code so that growing a window
-		   exactly offsets effect of shrinking a window, i.e.
-		   doing either followed by the other restores original
-		   sizes of all affected windows. */
+		 * exactly offsets effect of shrinking a window, i.e.
+		 * doing either followed by the other restores original
+		 * sizes of all affected windows.
+		 */
 		if (w->w_prev->w_height - inc < 2)
 			complain(toosmall);
 		w->w_height += inc;
@@ -475,7 +478,8 @@ register int	inc;
 }
 
 /* Set the topline of the window, calculating its number in the buffer.
-   This is for numbering the lines only. */
+ * This is for numbering the lines only.
+ */
 
 void
 SetTop(w, line)
@@ -506,8 +510,8 @@ WVisSpace()
 }
 
 /* If `line' is in `windes', return its screen line number;
-   otherwise return -1. */
-
+ * otherwise return -1.
+ */
 int
 in_window(windes, line)
 register Window	*windes;
@@ -529,11 +533,12 @@ SplitWind()
 }
 
 /* Goto the window with the named buffer.  If no such window
-   exists, pop one and attach the buffer to it. */
+ * exists, pop one and attach the buffer to it.
+ */
 void
 GotoWind()
 {
-	char	*bname = ask_buf(lastbuf, ALLOW_OLD | ALLOW_INDEX | ALLOW_NEW);
+	const char	*bname = ask_buf(lastbuf, ALLOW_OLD | ALLOW_INDEX | ALLOW_NEW);
 	Window	*w;
 
 	w = curwind->w_next;
@@ -587,6 +592,7 @@ Window *w;
 
 		if (above == -1 || below == -1)
 			return &range;	/* something fishy */
+
 		below -= in;	/* correction */
 		if (in != total) {
 			/* Window shows only part of the buffer: highlight "thumb".

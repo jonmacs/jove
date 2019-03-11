@@ -1,5 +1,5 @@
 ########################################################################
-# This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  #
+# This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  #
 # provided to you without charge, and with no warranty.  You may give  #
 # away copies of JOVE, including sources, provided that this notice is #
 # included in all the files.                                           #
@@ -51,6 +51,17 @@ component must take account of symbolic links.  All modern UNIXes have
 symlinks.  We don't yet know how to support MAC or WIN32 aliases.
 HAS_SYMLINKS	use readlink(2) to handle symlinks
 
+Jove needs to make a number of temporary files.  The traditional ways
+of creating temp files are subject to race conditions allowing
+security to be compromised on multi-user systems.  The mkstemp library
+routine avoids this problem, but isn't available on all systems.  In
+its place, Jove will make do by using mktemp.  If this isn't
+available, Jove will use an even poorer technique.  The mktemp form
+is safe if the open system call supports O_EXCL just right (it must
+balk at symlinks).
+NO_MKSTEMP	work around lack of mkstemp
+NO_MKTEMP	work around lack of mktemp
+
 If the compiler is ANSI C, then prototyping will be supported
 automatically (this is determined by checking that __STDC__ is
 defined (by the system), and it is greater than 0).  For other
@@ -71,6 +82,10 @@ system.  If neither of the following is defined, then the declarations in
 externs.h are used.
 POSIX_UNISTD	Have POSIX P1003.1 compliant unistd.h with declarations.
 FULL_UNISTD	Have fully-prototyped header files, superset of POSIX P1003.1
+
+Some really old systems may not have a header <fcntl.h>.  To stop JOVE
+trying to #include it, define
+NO_FCNTL	no <fcntl.h> header provided by system
 
 Usually, the result type returned by read() and write() is int.
 POSIX carefully defines a type name for this type: ssize_t (it logically

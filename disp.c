@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -70,9 +70,9 @@ private bool
 bool	DisabledRedisplay = NO;
 
 /* Kludge windows gets called by the routines that delete lines from the
-   buffer.  If the w->w_line or w->w_top are deleted and this procedure
-   is not called, the redisplay routine will barf. */
-
+ * buffer.  If the w->w_line or w->w_top are deleted and this procedure
+ * is not called, the redisplay routine will barf.
+ */
 void
 ChkWindows(line1, line2)
 LinePtr	line1,
@@ -185,6 +185,7 @@ redisplay()
 {
 	if (DisabledRedisplay)
 		return;
+
 #ifdef WINRESIZE
 	do
 #endif
@@ -230,14 +231,14 @@ redisplay()
 		}
 
 		/* Now that we've called update window, we can
-		   assume that the modeline will be updated.  But
-		   if while redrawing the modeline the user types
-		   a character, ModeLine() is free to set this on
-		   again so that the modeline will be fully drawn
-		   at the next redisplay.  Furthermore, if output
-		   is preempted, we'll restore the old value because
-		   we can't be sure that the updating has happened. */
-
+		 * assume that the modeline will be updated.  But
+		 * if while redrawing the modeline the user types
+		 * a character, ModeLine() is free to set this on
+		 * again so that the modeline will be fully drawn
+		 * at the next redisplay.  Furthermore, if output
+		 * is preempted, we'll restore the old value because
+		 * we can't be sure that the updating has happened.
+		 */
 		old_UpdModLine = UpdModLine;
 		UpdModLine = NO;
 
@@ -279,8 +280,8 @@ suppress: ;
 }
 
 /* find_pos() returns the position on the line, that C_CHAR represents
-   in LINE */
-
+ * in LINE
+ */
 private int
 find_pos(line, c_char)
 LinePtr	line;
@@ -331,13 +332,13 @@ int	start;
 			j;
 
 	/* Some changes have been made.  Try for insert or delete lines.
-	   If either case has happened, Addlines and/or DelLines will do
-	   necessary scrolling, also CONVERTING PhysScreen to account for the
-	   physical changes.  The comparison continues from where the
-	   insertion/deletion takes place; this doesn't happen very often,
-	   usually it happens with more than one window with the same
-	   buffer. */
-
+	 * If either case has happened, Addlines and/or DelLines will do
+	 * necessary scrolling, also CONVERTING PhysScreen to account for the
+	 * physical changes.  The comparison continues from where the
+	 * insertion/deletion takes place; this doesn't happen very often,
+	 * usually it happens with more than one window with the same
+	 * buffer.
+	 */
 #ifdef TERMCAP
 	if (!CanScroll)
 		return;		/* We should never have been called! */
@@ -353,9 +354,11 @@ int	start;
 			phys_p = &PhysScreen[j];
 			if (des_p->s_id != NULL_DADDR && des_p->s_id == phys_p->s_id)
 				break;
+
 			if (des_p->s_id == PhysScreen[i].s_id) {
 				if (des_p->s_id == NULL_DADDR)
 					continue;
+
 				if (AddLines(i, j - i)) {
 					DoIDline(j);
 					return;
@@ -365,6 +368,7 @@ int	start;
 			if ((des_p = &DesiredScreen[i])->s_id == phys_p->s_id) {
 				if (des_p->s_id == NULL_DADDR)
 					continue;
+
 				if (DelLines(i, j - i)) {
 					DoIDline(i);
 					return;
@@ -376,9 +380,9 @@ int	start;
 }
 
 /* Make DesiredScreen reflect what the screen should look like when we are done
-   with the redisplay.  This deals with horizontal scrolling.  Also makes
-   sure the current line of the Window is in the window. */
-
+ * with the redisplay.  This deals with horizontal scrolling.  Also makes
+ * sure the current line of the Window is in the window.
+ */
 bool	ScrollAll = NO;	/* VAR: when current line scrolls, scroll whole window? */
 int	ScrollWidth = 10;	/* VAR: unit of horizontal scrolling */
 
@@ -551,8 +555,8 @@ int	start;
 }
 
 /* Write whatever is in mesgbuf (maybe we are Asking, or just printed
-   a message).  Turns off the UpdateMesg line flag. */
-
+ * a message).  Turns off the UpdateMesg line flag.
+ */
 void
 DrawMesg(abortable)
 bool	abortable;
@@ -573,9 +577,9 @@ bool	abortable;
 }
 
 /* Goto the current position in the current window.  Presumably redisplay()
-   has already been called, and curwind->{w_dotline,w_dotcol} have been set
-   correctly. */
-
+ * has already been called, and curwind->{w_dotline,w_dotcol} have been set
+ * correctly.
+ */
 private void
 GotoDot()
 {
@@ -603,8 +607,8 @@ register int	start;
 }
 
 /* Calls the routine to do the physical changes, and changes PhysScreen to
-   reflect those changes. */
-
+ * reflect those changes.
+ */
 private bool
 AddLines(at, num)
 register int	at,
@@ -615,6 +619,7 @@ register int	at,
 
 	if (num == 0 || num >= ((bottom - 1) - at))
 		return NO;				/* we did nothing */
+
 	v_ins_line(num, at, bottom - 1);
 
 	/* Now change PhysScreen to account for the physical change. */
@@ -636,6 +641,7 @@ register int	at,
 
 	if (num == 0 || num >= ((bottom - 1) - at))
 		return NO;
+
 	v_del_line(num, at, bottom - 1);
 
 	for (i = at; num + i < bottom; i++)
@@ -648,9 +654,9 @@ register int	at,
 bool	MarkHighlighting = YES;	/* VAR: highlight mark when visible */
 
 /* Update line linenum in window w.  Only set PhysScreen to DesiredScreen
-   if the swrite or cl_eol works, that is nothing is interrupted by
-   characters typed. */
-
+ * if the swrite or cl_eol works, that is nothing is interrupted by
+ * characters typed.
+ */
 private void
 UpdLine(linenum)
 register int	linenum;
@@ -690,9 +696,9 @@ register int	linenum;
 		      outbuf + CO, (w->w_flags & W_VISSPACE) != 0);
 #ifdef HIGHLIGHTING
 		if (marked_line) {
-		    lr.start = calc_pos(lptr, mark->m_char)
-				    - des_p->s_offset + fromcol;
-		    lr.width = 1;
+			lr.start = calc_pos(lptr, mark->m_char)
+				- des_p->s_offset + fromcol;
+			lr.width = 1;
 			if (lr.start < sizeof(outbuf) - 1 && outbuf[lr.start] == '\0') {
 				outbuf[lr.start] = ' ';
 				outbuf[lr.start + 1] = '\0';
@@ -701,11 +707,11 @@ register int	linenum;
 #endif /* HIGHLIGHTING */
 #ifdef ID_CHAR
 		/* REMIND: This code, along with the rest of the
-		   ID_CHAR, belongs in the screen driver for
-		   termcap based systems.  mac and pc's and other
-		   window-based drivers don't give a hoot about
-		   ID_CHAR. */
-
+		 * ID_CHAR, belongs in the screen driver for
+		 * termcap based systems.  mac and pc's and other
+		 * window-based drivers don't give a hoot about
+		 * ID_CHAR.
+		 */
 		/* attempt to exploit insert or delete character capability
 		 * but only if not highlighting some part of the line
 		 */
@@ -774,10 +780,10 @@ bool	visspace;
 	int	offset = start_offset;
 
 	/* At any time, the number of characters we've output is
-	   start_offset - offset.  This is needed to correctly
-	   calculate TABDIST() without having to add another
-	   variable (pos) to be incremented for each call to addc. */
-
+	 * start_offset - offset.  This is needed to correctly
+	 * calculate TABDIST() without having to add another
+	 * variable (pos) to be incremented for each call to addc.
+	 */
 #define addc(ch) { if (--offset < 0) *dst++ = (ch); }
 
 	while ((c = ZXC(*src++)) != '\0') {
@@ -819,10 +825,10 @@ bool	visspace;
 #ifdef ID_CHAR
 
 /* From here to the end of the file is code that tries to utilize the
-   insert/delete character feature on some terminals.  It is very confusing
-   and not so well written code, AND there is a lot of it.  You may want
-   to use the space for something else. */
-
+ * insert/delete character feature on some terminals.  It is very confusing
+ * and not so well written code, AND there is a lot of it.  You may want
+ * to use the space for something else.
+ */
 bool	IN_INSmode = NO;
 
 void
@@ -836,10 +842,10 @@ bool	on;
 }
 
 /* ID character routines full of special cases and other fun stuff like that.
-   It actually works though ...
-
-	Returns Non-Zero if you are finished (no differences left). */
-
+ * It actually works though ...
+ *
+ * Returns Non-Zero if you are finished (no differences left).
+ */
 private bool
 IDchar(new, lineno)
 register char	*new;
@@ -900,6 +906,7 @@ int	lineno;
 		}
 		if (i != oldlen)
 			continue;
+
 		return NO;
 	}
 }
@@ -933,6 +940,7 @@ int	len;
 
 		if (c == '\0' || c != *t++)
 			break;
+
 		if (c != ' ')
 			nonspace = 1;
 		num += nonspace;
@@ -1040,8 +1048,8 @@ char	*new;
 	byte_copy(new, sp3, (size_t) num);
 
 	/* The internal screen is correct, and now we have to do
-	   the physical stuff. */
-
+	 * the physical stuff.
+	 */
 	Placur(lineno, col);
 
 # ifdef NCURSES_BUG
@@ -1077,8 +1085,8 @@ char	*new;
 #ifdef UNIX		/* obviously ... no mail today if not Unix*/
 
 /* chkmail() returns YES if there is new mail since the
-   last time we checked. */
-
+ * last time we checked.
+ */
 char	Mailbox[FILESIZE];	/* VAR: mailbox name */
 int	MailInt = 60;		/* VAR: mail check interval (seconds) */
 
@@ -1094,9 +1102,11 @@ bool	force;
 
 	if (MailInt == 0 || Mailbox[0] == '\0')
 		return NO;
+
 	time(&now);
 	if ((force == NO) && (now < last_chk + MailInt))
 		return state;
+
 	last_chk = now;
 	if (stat(Mailbox, &stbuf) < 0) {
 		state = NO;		/* no mail */
@@ -1180,6 +1190,7 @@ int	linenum;
 			if (c == '\\')
 				if ((c = *fmt++) == '\0')
 					break;
+
 			if (!ign_some) {
 				static char	x[] = "x";
 
@@ -1190,8 +1201,10 @@ int	linenum;
 		}
 		if ((c = *fmt++) == '\0')	/* char after the '%' */
 			break;
+
 		if (ign_some && c != ')')
 			continue;
+
 		n = 1;
 		if (c >= '0' && c <= '9') {
 			n = 0;
@@ -1231,7 +1244,7 @@ int	linenum;
 #endif /* UNIX */
 
 		case 'M':
-		    {
+			{
 			static const char	*const majname[NMAJORS] = {
 				"Fundamental",
 				"Text",
@@ -1241,33 +1254,33 @@ int	linenum;
 #endif
 			};
 
-			static const char   *const minname[] = {
-			    " Fill",
-			    " Abbrev",
-			    " OvrWt",
-			    " Indent",
-			    " RO",
-			    "",	    /* not worth reporting ShowMatch */
+			static const char	*const minname[] = {
+				" Fill",
+				" Abbrev",
+				" OvrWt",
+				" Indent",
+				" RO",
+				"",		/* not worth reporting ShowMatch */
 #ifdef IPROCS
-			    " DBX",
+				" DBX",
 #endif
 			};
-			
+
 			int minors = thisbuf->b_minor;
 			const char  *const *p;
 
 			mode_app(majname[thisbuf->b_major]);
 
 			for (p = minname; minors != 0; p++) {
-			    if (minors & 01)
-				mode_app(*p);
-			    minors >>= 1;
+				if (minors & 01)
+					mode_app(*p);
+				minors >>= 1;
 			}
 
 			if (InMacDefine)
 				mode_app(" Def");
 			break;
-		    }
+			}
 
 		case 'c':
 			while (--n>=0 && mode_p<mend_p)
@@ -1300,25 +1313,25 @@ int	linenum;
 			break;
 
 		case 'i':
-		    {
+			{
 			char	yea = (*fmt == '\0') ? '#' : *fmt++;
 			char	nay = (*fmt == '\0') ? ' ' : *fmt++;
 
 			*mode_p++ = w->w_bufp->b_diverged ? yea : nay;
 			break;
-		    }
+			}
 
 		case 'm':
-		    {
+			{
 			char	yea = (*fmt == '\0') ? '*' : *fmt++;
 			char	nay = (*fmt == '\0') ? ' ' : *fmt++;
 
 			*mode_p++ = IsModified(w->w_bufp) ? yea : nay;
 			break;
-		    }
+			}
 
 		case 'n':
-		    {
+			{
 			char	tmp[16];
 
 			for (bp = world, n = 1; bp != NULL; bp = bp->b_next, n++)
@@ -1328,7 +1341,7 @@ int	linenum;
 			swritef(tmp, sizeof(tmp), "%d", n);
 			mode_app(tmp);
 			break;
-		    }
+			}
 
 #ifdef IPROCS
 		case 'p':
@@ -1347,13 +1360,13 @@ int	linenum;
 			break;
 
 		case 't':
-		    {
+			{
 			char	timestr[12];
 
 			td = YES;
 			mode_app(get_time((time_t *)NULL, timestr, 11, 16));
 			break;
-		    }
+			}
 
 		case 'w':
 			if (w->w_LRscroll > 0)
@@ -1375,7 +1388,7 @@ int	linenum;
 	 * meaningfully be used 0 or more times.
 	 */
 
-	if  (glue) {
+	if (glue) {
 		/* 1 space unused, plus padding for magic cookies */
 		register char	*to = &line[CO - 1 - (4 * SG)],
 				*from = mode_p;
@@ -1432,10 +1445,11 @@ int	linenum;
 }
 
 /* This tries to place the current line of the current window in the
-   center of the window, OR to place it at the arg'th line of the window.
-   This also causes the horizontal position of the line to be centered,
-   if the line needs scrolling, or moved all the way back to the left,
-   if that's possible. */
+ * center of the window, OR to place it at the arg'th line of the window.
+ * This also causes the horizontal position of the line to be centered,
+ * if the line needs scrolling, or moved all the way back to the left,
+ * if that's possible.
+ */
 void
 RedrawDisplay()
 {
@@ -1528,14 +1542,15 @@ rbell()
 }
 
 /* Message prints the null terminated string onto the bottom line of the
-   terminal. */
-
+ * terminal.
+ */
 void
 message(str)
-char	*str;
+const char	*str;
 {
 	if (InJoverc)
 		return;
+
 	UpdMesg = YES;
 	stickymsg = NO;
 	if (str != mesgbuf)
@@ -1549,6 +1564,7 @@ Eow()
 {
 	if (Asking)
 		return;
+
 	SetLine(next_line(curwind->w_top, WSIZE(curwind) - 1 -
 			min(WSIZE(curwind) - 1, arg_value() - 1)));
 	if (!is_an_arg())
@@ -1562,6 +1578,7 @@ Bow()
 {
 	if (Asking)
 		return;
+
 	SetLine(next_line(curwind->w_top, min(WSIZE(curwind) - 1, arg_value() - 1)));
 }
 
@@ -1575,13 +1592,13 @@ private int	LineNo;	/* screen line for Typeout (if not UseBuffers) */
 private Window	*old_wind;	/* curwind before preempted by typeout to buffer */
 
 /* This initializes the typeout.  If send-typeout-to-buffers is set
-   the buffer NAME is created (emptied if it already exists) and output
-   goes to the buffer.  Otherwise output is drawn on the screen and
-   erased by TOstop() */
-
+ * the buffer NAME is created (emptied if it already exists) and output
+ * goes to the buffer.  Otherwise output is drawn on the screen and
+ * erased by TOstop()
+ */
 void
 TOstart(name)
-char	*name;
+const char	*name;
 {
 	if (UseBuffers) {
 		old_wind = curwind;
@@ -1623,11 +1640,11 @@ char	*s;
 
 #ifdef STDARGS
 void
-Typeout(char *fmt, ...)
+Typeout(const char *fmt, ...)
 #else
 /*VARARGS1*/ void
 Typeout(fmt, va_alist)
-	char	*fmt;
+	const char	*fmt;
 	va_dcl
 #endif
 {

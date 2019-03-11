@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -10,8 +10,8 @@
 #ifdef MAC
 
 extern int
-	creat proto((const char *, int)),
-	/* open may have an optional third argument, int mode */
+	creat proto((const char *, int/*mode_t*/)),
+	/* open may have an optional third argument, int(mode_t) mode */
 	open proto((const char */*path*/, int /*flags*/, ...)),
 	close proto((int)),
 	unlink proto((const char *)),
@@ -37,6 +37,10 @@ extern int	errno;	/* Redundant if declared in <errno.h> -- DHR */
 extern char *strerror proto((int));	/* errno.h or string.h? */
 
 /* General Utilities: <stdlib.h> */
+
+#ifdef REALSTDC
+#include <stdlib.h>
+#endif
 
 extern int	abs proto((int));
 
@@ -70,6 +74,20 @@ extern char	*ctime proto((const time_t *));
 #define const	/* the const's in the following defs conflict with MSC 5.1 */
 #endif
 
+#ifndef NO_FCNTL
+# include <fcntl.h>
+#endif
+
+#ifndef O_RDONLY	/* in POSIX <fcntl.h> */
+# define O_RDONLY	0
+# define O_WRONLY	1
+# define O_RDWR		2
+#endif
+
+#ifndef O_BINARY	/* needed for MSDOS and perhaps others */
+# define O_BINARY	0	/* fake if missing with value harmless when ORed */
+#endif
+
 #ifdef POSIX_UNISTD
 # include <unistd.h>
 # if _POSIX_VERSION < 199009L	/* defined in <unistd.h>: can't test earlier */
@@ -79,7 +97,6 @@ extern char	*ctime proto((const time_t *));
     */
 #  define ssize_t	int
 # endif
-# include <fcntl.h>
 #else /* !POSIX_UNISTD */
 
 extern int	chdir proto((const char */*path*/));
@@ -93,20 +110,29 @@ extern char	*getcwd proto((char *, size_t));
 
 # ifdef HAS_SYMLINKS
 /* bufsiz might be of type int in old systems */
-extern int readlink proto((const char */*path*/, void */*buf*/, size_t /*bufsiz*/));
+extern int readlink proto((const char */*path*/, char */*buf*/, size_t /*bufsiz*/));
 # endif
 
 extern int	access proto((const char */*path*/, int /*mode*/));
-# ifndef W_OK
-#  define W_OK	2
-#  define X_OK	1
-#  define F_OK	0
+# ifndef F_OK	/* in POSIX <unistd.h> */
+#  define F_OK	0	/* does file exist? */
+#  define X_OK	1	/* is it executable by caller? */
+#  define W_OK	2	/* writable by caller? */
+#  define R_OK	4	/* readable by caller? */
 # endif
 
-extern int	creat proto((const char */*path*/, int /*mode*/));
-	/* open may have an optional third argument, int mode */
+extern int	creat proto((const char */*path*/, int/*mode_t*/ /*mode*/));
+	/* open may have an optional third argument, int(mode_t) mode */
 extern int	open proto((const char */*path*/, int /*flags*/, ...));
 
+extern int/*mode_t*/ umask proto((int/*mode_t*/));
+# ifdef NO_MKSTEMP
+#  ifndef NO_MKTEMP
+extern char *mktemp proto((char */*template*/));
+#  endif
+# else
+extern int mkstemp proto((char */*template*/));
+# endif
 
 # ifdef MSC51
 extern SSIZE_T	read proto((int /*fd*/, char * /*buf*/, size_t /*nbytes*/));
@@ -141,7 +167,7 @@ extern int	close proto((int));
 extern int	dup proto((int));
 extern int	dup2 proto((int /*old_fd*/, int /*new_fd*/));
 extern long	lseek proto((int /*fd*/, long /*offset*/, int /*whence*/));
-extern int	fchmod proto((int /*fd*/, int /*mode*/));
+extern int	fchmod proto((int /*fd*/, int/*mode_t*/ /*mode*/));
 extern int	chown proto((const char *, int, int));
 
 extern int	unlink proto((const char */*path*/));
@@ -167,8 +193,6 @@ extern void	UNMACRO(bzero) proto((UnivPtr, size_t));
 # endif
 
 #endif /* !FULL_UNISTD */
-
-extern char	*mktemp proto((char *));
 
 /* termcap */
 #ifdef TERMCAP

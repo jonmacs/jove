@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -78,9 +78,10 @@ register Mark	*m;
 }
 
 /* AllMarkReset is used when a buffer is completely replaced.
-   We delete the marks in the mark ring, but we cannot find
-   the references to other marks, so those we make point
-   to the start of the buffer. */
+ * We delete the marks in the mark ring, but we cannot find
+ * the references to other marks, so those we make point
+ * to the start of the buffer.
+ */
 
 void
 AllMarkReset(b, line)
@@ -127,6 +128,7 @@ PopMark()
 
 	if (curmark == NULL)
 		return;
+
 	ExchPtMark();
 	pmark = curbuf->b_themark;
 	do {
@@ -191,6 +193,7 @@ Mark	*m;
 
 	if (m == NULL)
 		return;
+
 	DotTo(m->m_line, m->m_char);
 	if (curchar > (len = length(curline)))
 		curchar = len;
@@ -234,6 +237,7 @@ int	char1,
 
 	if (curbuf->b_marks == NULL)
 		return;
+
 	for (lp = line1; lp != line2->l_next; lp = lp->l_next) {
 		for (m = curbuf->b_marks; m != NULL; m = m->m_next) {
 			if (m->m_line == lp

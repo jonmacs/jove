@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -26,13 +26,15 @@ extern UnivPtr
 	erealloc proto((UnivPtr ptr, size_t size));
 
 extern char
-	*IOerr proto((char *err, char *file)),
-	*jbasename proto((char *f)),
+	*IOerr proto((const char *err, const char *file)),
 	*copystr proto((const char *str)),
-	*filename proto((Buffer *b)),
 	*get_time proto((time_t *timep,char *buf,int from,int to)),
 	*lcontents proto((LinePtr line)),
 	*ltobuf proto((LinePtr line,char *buf));
+
+extern const char
+	*jbasename proto((const char *f)),
+	*filename proto((const Buffer *b));
 
 extern int
 	inorder proto((LinePtr nextp,int char1,LinePtr endp,int char2)),
@@ -41,8 +43,8 @@ extern int
 	length proto((LinePtr line)),
 	max proto((int a,int b)),
 	min proto((int a,int b)),
-	numcomp proto((char *s1,char *s2)),
-	numcompcase proto((char *s1,char *s2));
+	numcomp proto((const char *s1, const char *s2)),
+	numcompcase proto((const char *s1, const char *s2));
 
 extern ZXchar
 	DecodePair proto((ZXchar first, ZXchar second));
@@ -54,7 +56,7 @@ extern bool
 	within_indent proto((void)),
 	fixorder proto((LinePtr  *line1,int *char1,LinePtr  *line2,int *char2)),
 	inlist proto((LinePtr first,LinePtr what)),
-	sindex proto((char *pattern,char *string)),
+	sindex proto((const char *pattern, const char *string)),
 	ModBufs proto((bool allp));
 
 extern void

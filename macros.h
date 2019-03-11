@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -8,7 +8,7 @@
 struct macro {
 	/* Type and Name must match data_obj */
 	int	Type;		/* in this case a macro */
-	char	*Name;		/* name is always second ... */
+	const char	*Name;		/* name is always second ... */
 	int	m_len;		/* length of macro so we can use ^@ */
 	char	*m_body;	/* actual body of the macro */
 	struct macro	*m_nextm;

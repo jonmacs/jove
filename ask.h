@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -29,11 +29,11 @@ extern char
 # define ask_dir(prmt, def, buf)	ask_ford(prmt, def, buf)
 #endif
 
-extern char
-	*ask proto((char *, char *, ...)),
+extern const char
+	*ask proto((const char *, const char *, ...)),
 	*do_ask proto((const char *, bool (*) ptrproto((ZXchar)), const char *, const char *, ...));
 
-extern bool	yes_or_no_p proto((char *, ...));
+extern bool	yes_or_no_p proto((const char *, ...));
 
 extern void	minib_add proto((char *str, bool movedown));
 

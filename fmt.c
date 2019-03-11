@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -139,10 +139,10 @@ int	base;
 
 private void
 fmt_puts(str)
-char	*str;
+const char	*str;
 {
 	int	len;
-	register char	*cp;
+	register const char	*cp;
 
 	if (str == NULL)
 		str = "(null)";
@@ -397,6 +397,7 @@ s_mess(fmt, va_alist)
 
 	if (InJoverc)
 		return;
+
 	va_init(ap, fmt);
 	format(mesgbuf, sizeof mesgbuf, fmt, ap);
 	va_end(ap);
@@ -442,6 +443,7 @@ add_mess(fmt, va_alist)
 
 	if (InJoverc)
 		return;
+
 	va_init(ap, fmt);
 	format(&mesgbuf[mesg_len], (sizeof mesgbuf) - mesg_len, fmt, ap);
 	va_end(ap);

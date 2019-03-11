@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -12,12 +12,13 @@ extern char	ShcomBuf[LBSIZE];
 extern char	*MakeName proto((char *command));
 
 extern void
-	isprocbuf proto((char *bufname)),
+	isprocbuf proto((const char *bufname)),
 	get_FL_info proto((char *, char *)),
 	ChkErrorLines proto((void)),
 	ErrFree proto((void));
 
-extern wait_status_t	UnixToBuf proto((int, char *, char *, char *));
+extern wait_status_t
+	UnixToBuf proto((int, const char *, const char *, const char *));
 
 /* flags for UnixToBuf: */
 #define UTB_DISP	1	/* Display output? */

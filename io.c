@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -30,7 +30,6 @@
 #endif
 
 #ifdef MSFILESYSTEM
-# include <fcntl.h>
 # include <io.h>
 # include <direct.h>
 # include <dos.h>
@@ -51,7 +50,7 @@ extern int UNMACRO(rename)(const char *old, const char *new);	/* <stdin.h> */
 
 private void
 	filemunge proto((char *newname)),
-	chk_divergence proto((Buffer *thisbuf, char *fname, char *how));
+	chk_divergence proto((Buffer *thisbuf, const char *fname, const char *how));
 
 private struct block	*lookup_block proto((daddr));
 
@@ -154,54 +153,6 @@ _makepath(char *path, const char *drv, const char *dir, const char *fn, const ch
 }
 # endif /* ZTCDOS */
 
-# if defined(ZTCDOS) || defined(__WATCOMC__)
-/* The Zortech C and Watcom libraries do not provide mktemp
- * (nor should they -- ANSI defines tmpnam).
- * Unfortunately tmpnam doesn't do what we want either, so we roll
- * one by hand.  Since mktemp has no way of reporting errors,
- * we're not too careful about checking for them.
- */
-char *
-mktemp(buf)
-char	*buf;
-{
-	char	*seq;
-	char	*p;
-
-	for (seq = buf + strlen(buf); seq>buf && seq[-1]=='X'; seq--)
-		;
-	for (p = seq; *p != '\0'; p++)
-		*p = '0';
-	for (;;) {
-		struct stat	sb;
-
-		if (stat(buf, &sb) < 0
-#  ifdef ZTCDOS
-		/* Zortech yields ENOTDIR when path isn't found,
-		 * even if the prefix does exist.  Pretty silly!
-		 */
-		&& errno == ENOTDIR
-#  else
-		&& errno == ENOENT
-#  endif
-		)
-			break;
-		for (p = seq; ; ) {
-			if (*p == '\0') {
-				abort();	/* we ran out of possible names! */
-			} else if (*p == '9') {
-				*p++ = '0';
-			} else {
-				*p += 1;
-				break;
-			}
-		}
-	}
-	return buf;
-}
-
-# endif /* defined(ZTCDOS) || defined(__WATCOMC__) */
-
 /* Change drive and directory
  * This is not quite like a UNIX chdir because each drive has a
  * separate current directory.  If the path is not absolute, it
@@ -285,6 +236,111 @@ char *so, *dest;
 #endif /* MSFILESYSTEM */
 
 
+int
+MakeTemp(buf, complaint)
+char	*buf;
+const char	*complaint;
+{
+#ifdef NO_MKSTEMP
+# ifdef NO_MKTEMP
+	/* Some systems don't provide mkstemp or mktemp (nor should
+	 * they -- ANSI defines tmpnam).  Unfortunately tmpnam doesn't
+	 * do what we want either, so we roll one by hand.
+	 */
+	char	*seq;
+	char	*p;
+
+	for (seq = buf + strlen(buf); seq>buf && seq[-1]=='X'; seq--)
+		;
+	for (p = seq; *p != '\0'; p++)
+		*p = '0';
+	for (;;) {
+		struct stat	sb;
+
+		if (stat(buf, &sb) < 0
+# ifdef ZTCDOS
+		/* Zortech yields ENOTDIR when path isn't found,
+		 * even if the prefix does exist.  Pretty silly!
+		 */
+		&& errno == ENOTDIR
+# else
+		&& errno == ENOENT
+# endif
+		) {
+# ifdef O_EXCL
+			int fd = open(buf, O_CREAT | O_EXCL | O_RDWR | O_BINARY
+				, S_IWRITE | S_IREAD);
+# else /* !O_EXCL */
+			int fd = creat(buf, 0600);
+# endif /* !O_EXCL */
+
+			if (fd != -1)
+				return fd;
+		}
+		for (p = seq; ; ) {
+			if (*p == '\0') {
+				/* we ran out of possible names! */
+				complain(complaint, buf);
+				/*NOTREACHED*/
+			} else if (*p == '9') {
+				*p++ = '0';
+			} else {
+				*p += 1;
+				break;
+			}
+		}
+	}
+# else /* !NO_MKTEMP */
+	int fd;
+
+	if (mktemp(buf) == NULL
+	|| -1 == (fd =
+#  ifdef O_EXCL
+		open(buf, O_CREAT | O_EXCL | O_RDWR | O_BINARY, S_IWRITE | S_IREAD)
+#  else /* !O_EXCL */
+		creat(buf, 0600)
+#  endif /* !O_EXCL */
+	))
+	{
+		complain(complaint, buf);
+	}
+	return fd;
+# endif /* !NO_MKTEMP */
+#else /* !NO_MKSTEMP */
+	/* Ordinary mkstemp, except that we juggle umask to ensure
+	 * that the file is only readable by the owner.
+	 * Modern mkstemp implementations don't need this,
+	 * because they create the tempfile with 0600,
+	 * but old ones use 0666.  Making the umask 0077 should
+	 * solve this.
+	 * Assumption: no other part of JOVE changes umask, so
+	 * we can remember if it was OK from a previous call.
+	 */
+#ifdef S_IRWXG
+#	define SAFE_UMASK (S_IRWXG | S_IRWXO)
+#else
+#	define SAFE_UMASK 077
+#endif
+	static int/*mode_t*/ running_umask = 0;
+	int fd;
+
+	if (running_umask != SAFE_UMASK)
+		running_umask = umask(SAFE_UMASK);
+	fd = mkstemp(buf);
+	if (running_umask != SAFE_UMASK) {
+		int saved_errno = errno;
+
+		(void) umask(running_umask);
+		errno = saved_errno;
+	}
+	if (fd == -1) {
+		complain(complaint, buf);
+		/*NOTREACHED*/
+	}
+	return fd;
+#endif /* !NO_MKSTEMP */
+}
+
 void
 close_file(fp)
 File	*fp;
@@ -298,8 +354,8 @@ File	*fp;
 }
 
 /* Write the region from line1/char1 to line2/char2 to FP.  This
-   never CLOSES the file since we don't know if we want to. */
-
+ * never CLOSES the file since we don't know if we want to.
+ */
 bool	EndWNewline = 1;	/* VAR: end files with a blank line */
 
 void
@@ -414,8 +470,8 @@ SaveFile()
 		 * the filename will be ": visit-file".  With this
 		 * fudge, it will be ": write-file".
 		 */
-		data_obj	*saved_lc = LastCmd;
-		static data_obj	dummy = { 0, "write-file" };
+		const data_obj	*saved_lc = LastCmd;
+		static const data_obj	dummy = { 0, "write-file" };
 
 		LastCmd = &dummy;
 		JWriteFile();
@@ -427,7 +483,7 @@ SaveFile()
 	}
 }
 
-char	*HomeDir;	/* home directory */
+const char	*HomeDir;	/* home directory */
 size_t	HomeLen;	/* length of home directory string */
 
 private List		*DirStack = NULL;
@@ -448,7 +504,7 @@ pwd()
  */
 char *
 pr_name(fname, okay_home)
-char	*fname;
+const char	*fname;
 bool	okay_home;
 {
 	if (fname == NULL) {
@@ -544,7 +600,8 @@ size_t	bufsize;
 #endif /* USE_PWD */
 
 /* Check if dn is the name of the current working directory
-   and that it is in cannonical form */
+ * and that it is in cannonical form
+ */
 
 bool
 chkCWD(dn)
@@ -557,6 +614,7 @@ char	*dn;
 
 	if (dn[0] != '/')
 		return NO;		/* need absolute pathname */
+
 	PathParse(dn, filebuf);
 	return stat(filebuf, &dnstat) == 0
 		&& stat(".", &dotstat) == 0
@@ -767,8 +825,8 @@ const char	*pre, *post;
  */
 void
 PathParse(name, intobuf)
-char	*name,
-	*intobuf;
+const char	*name;
+char	*intobuf;
 {
 	char	localbuf[FILESIZE];
 
@@ -785,8 +843,8 @@ char	*name,
 		}
 #ifdef UNIX	/* may add for mac in future */
 		else {
-			char	*uendp = strchr(name, '/'),
-				unamebuf[30];
+			const char	*uendp = strchr(name, '/');
+			char	unamebuf[30];
 
 			if (uendp == NULL)
 				uendp = name + strlen(name);
@@ -895,6 +953,7 @@ char	*name,
 			}
 			if (sp == NULL)
 				break;
+
 			fp = sp + 1;
 		}
 	}
@@ -1008,35 +1067,36 @@ bool	askp;
 			continue;
 		SetBuf(b);	/* Make this current Buffer */
 		if (curbuf->b_fname == NULL) {
-			char	*newname;
+			const char	*newname;
 
 			newname = ask(NullStr, "Buffer \"%s\" needs a file name; type Return to skip: ", b->b_name);
 			if (*newname == '\0')
 				continue;
+
 			setfname(b, newname);
 		}
 		if (askp && !yes_or_no_p("Write %s? ", curbuf->b_fname))
 			continue;
+
 		SaveFile();
 	}
 	SetBuf(oldb);
 }
 
 /* Open file FNAME supplying the buffer IO routine with buffer BUF.
-   HOW is F_READ, F_WRITE or F_APPEND.  HOW can have the F_TELLALL
-   flag to request the displaying of I/O status.  Only if COMPLAINIFBAD
-   will a complain diagnostic be produced for a failed open.
-
-   NOTE:  This opens the pr_name(fname, NO) of fname.  That is, FNAME
-	  is usually an entire pathname, which can be slow when the
-	  pathname is long and there are lots of symbolic links along
-	  the way (which has become very common in my experience).  So,
-	  this speeds up opens file names in the local directory.  It
-	  will not speed up things like "../scm/foo.scm" simply because
-	  by the time we get here that's already been expanded to an
-	  absolute pathname.  But this is a start.
-   */
-
+ * HOW is F_READ, F_WRITE or F_APPEND.  HOW can have the F_TELLALL
+ * flag to request the displaying of I/O status.  Only if COMPLAINIFBAD
+ * will a complain diagnostic be produced for a failed open.
+ *
+ * NOTE:  This opens the pr_name(fname, NO) of fname.  That is, FNAME
+ *	  is usually an entire pathname, which can be slow when the
+ *	  pathname is long and there are lots of symbolic links along
+ *	  the way (which has become very common in my experience).  So,
+ *	  this speeds up opens file names in the local directory.  It
+ *	  will not speed up things like "../scm/foo.scm" simply because
+ *	  by the time we get here that's already been expanded to an
+ *	  absolute pathname.  But this is a start.
+ */
 File *
 open_file(fname, buf, how, complainifbad)
 register char	*fname;
@@ -1089,19 +1149,19 @@ char	*newname;
 }
 
 /* Check to see if the file has been modified since it was
-   last visited or saved.  If so, make sure they know what
-   they're doing.  Buffer "thisbuf" is tested for divergence;
-   if thisbuf is NULL, the first buffer with the file is tested.
-
-   To avoid excessive stats, we presume that the stat cache is
-   already primed.  We refresh it if we get a confirmation because
-   it left  the user a window of opportunity for fiddling.
-   */
+ * last visited or saved.  If so, make sure they know what
+ * they're doing.  Buffer "thisbuf" is tested for divergence;
+ * if thisbuf is NULL, the first buffer with the file is tested.
+ *
+ * To avoid excessive stats, we presume that the stat cache is
+ * already primed.  We refresh it if we get a confirmation because
+ * it left  the user a window of opportunity for fiddling.
+ */
 
 private void
 chk_divergence(thisbuf, fname, how)
 Buffer	*thisbuf;
-char	*fname,
+const char	*fname,
 	*how;
 {
 	static const char	mesg[] = "Shall I go ahead and %s anyway? ";
@@ -1229,9 +1289,10 @@ InsFile()
 #include "temp.h"
 
 bool	DOLsave = NO;	/* Do Lsave flag.  If lines aren't being saved
-			   when you think they should have been, this
-			   flag is probably not being set, or is being
-			   cleared before lsave() was called. */
+			 * when you think they should have been, this
+			 * flag is probably not being set, or is being
+			 * cleared before lsave() was called.
+			 */
 
 private int	nleft,	/* number of good characters left in current block */
 		tmpfd = -1;
@@ -1251,15 +1312,7 @@ tmpinit()
 #endif
 		);
 	tfname = copystr(buf);
-	tfname = mktemp(tfname);
-#ifndef MSFILESYSTEM
-	(void) close(creat(tfname, 0600));
-	tmpfd = open(tfname, 2);
-#else /* MSFILESYSTEM */
-	tmpfd = open(tfname, O_CREAT|O_EXCL|O_BINARY|O_RDWR, S_IWRITE|S_IREAD);
-#endif /* MSFILESYSTEM */
-	if (tmpfd == -1)
-		complain("Warning: cannot create tmp file! %s", strerror(errno));
+	tmpfd = MakeTemp(tfname, "cannot create tmp file \"%s\"");
 #ifdef RECOVER
 	rectmpname(strrchr(tfname, '/') + 1);
 #endif
@@ -1288,7 +1341,8 @@ tmpremove()
 }
 
 /* get a line at `tl' in the tmp file into `buf' which should be LBSIZE
-   long */
+ * long
+ */
 
 /* A prototyped definition is needed because daddr might be affected
  * by default argument promotions.
@@ -1346,10 +1400,10 @@ char	*buf;
 }
 
 /* The theory is that the critical section of code inside this procedure
-   will never cause a problem to occur.  Basically, we need to ensure
-   that two blocks are in memory at the same time, but I think that
-   this can never screw up. */
-
+ * will never cause a problem to occur.  Basically, we need to ensure
+ * that two blocks are in memory at the same time, but I think that
+ * this can never screw up.
+ */
 #define lockblock(addr)
 #define unlockblock(addr)
 
@@ -1528,8 +1582,8 @@ SyncTmp()
 	register daddr	bno = 0;
 
 	/* sync the blocks in order, for file systems that don't allow
-	   holes (MSDOS).  Perhaps this benefits floppy-based file systems. */
-
+	 * holes (MSDOS).  Perhaps this benefits floppy-based file systems.
+	 */
 	for (bno = 0; bno < next_bno; bno++) {
 		if ((b = lookup_block(bno)) != NULL && b->b_dirty) {
 			(*blkio)(b, (SSIZE_T (*) ptrproto((int, UnivPtr, size_t)))write);
@@ -1588,9 +1642,9 @@ register Block	*bp;
 
 	LRUunlink(bp);
 	/* Now that we have the block, we remove it from its position
-	   in the hash table, so we can THEN put it somewhere else with
-	   it's new block assignment. */
-
+	 * in the hash table, so we can THEN put it somewhere else with
+	 * it's new block assignment.
+	 */
 	for (hp = bht[B_HASH(bp->b_bno)]; hp != NULL; prev = hp, hp = hp->b_HASHnext)
 		if (hp == bp)
 			break;
@@ -1612,8 +1666,9 @@ register Block	*bp;
 }
 
 /* Get a block which contains at least part of the line with the address
-   atl.  Returns a pointer to the block and sets the global variable
-   nleft (number of good characters left in the buffer). */
+ * atl.  Returns a pointer to the block and sets the global variable
+ * nleft (number of good characters left in the buffer).
+ */
 
 /* A prototyped definition is needed because daddr might be affected
  * by default argument promotions.
@@ -1647,8 +1702,9 @@ bool	IsWrite;
 		bp = lastb;	/* same as last time */
 	} else if ((bp = lookup_block(bno)) != NULL) {
 		/* The requested block already lives in memory, so we move
-		   it to the end of the LRU list (making it Most Recently Used)
-		   and then return a pointer to it. */
+		 * it to the end of the LRU list (making it Most Recently Used)
+		 * and then return a pointer to it.
+		 */
 		if (bp != l_block) {
 			LRUunlink(bp);
 			if (l_block == NULL)
@@ -1663,8 +1719,9 @@ bool	IsWrite;
 			next_bno = bno + 1;
 	} else {
 		/* The block we want doesn't reside in memory so we take the
-		   least recently used clean block (if there is one) and use
-		   it.  */
+		 * least recently used clean block (if there is one) and use
+		 * it.
+		 */
 		bp = f_block;
 		if (bp->b_dirty)	/* The best block is dirty ... */
 			SyncTmp();
@@ -1684,8 +1741,9 @@ bool	IsWrite;
 		bht[B_HASH(bno)] = bp;
 
 		/* Get the current contents of the block UNLESS this is a new
-		   block that's never been looked at before, i.e., it's past
-		   the end of the tmp file. */
+		 * block that's never been looked at before, i.e., it's past
+		 * the end of the tmp file.
+		 */
 
 		if (bno < next_bno)
 			(*blkio)(bp, read);
@@ -1741,16 +1799,16 @@ char *fname;
 			fname+dirlen);
 	}
 
-	if ((ffd = open(fname, 0)) < 0)
+	if ((ffd = open(fname, O_RDONLY | O_BINARY)) < 0)
 		return;	/* cannot open original file: nothing to backup, we assume */
 
 	/* create backup file with same mode as input file */
 	{
 #  ifdef MAC
-		int	mode = CreatMode;	/* dummy */
+		int/*mode_t*/	mode = CreatMode;	/* dummy */
 #  else
 		struct stat statbuf;
-		int	mode = fstat(ffd, &statbuf) != 0? CreatMode : statbuf.st_mode;
+		int/*mode_t*/	mode = fstat(ffd, &statbuf) != 0? CreatMode : statbuf.st_mode;
 #  endif
 
 		if ((bffd = creat(bfname, mode)) < 0) {
@@ -1806,8 +1864,9 @@ char *fname;
 
 	if (access(fname, 0) < 0)
 		return;	/* cannot open original file: nothing to backup, we assume */
+
 	strcpy(tmp, fname);
-	slash = jbasename(tmp);
+	slash = (char *)jbasename(tmp);
 	if ((dot = strrchr(slash, '.')) != NULL) {
 		if (stricmp(dot,".bak") == 0)
 			return;	/* don't rename .bak to .bak */

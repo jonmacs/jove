@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -35,8 +35,8 @@ private Bufpos
 #endif
 
 /* Make a new line after "after" in buffer "buf", unless "after" is NULL,
-   in which case we insert the new line before first line. */
-
+ * in which case we insert the new line before first line.
+ */
 LinePtr
 listput(buf, after)
 register Buffer	*buf;
@@ -100,9 +100,9 @@ register int	num;
 }
 
 /* Inserts tabs and spaces to move the cursor to column GOAL.  It
-   Uses the most optimal number of tabs and spaces no matter what
-   was there before hand. */
-
+ * Uses the most optimal number of tabs and spaces no matter what
+ * was there before hand.
+ */
 void
 n_indent(goal)
 register int	goal;
@@ -118,6 +118,7 @@ register int	goal;
 
 			if (dotcol + incrmt > goal)
 				break;
+
 			insert_c('\t', 1);
 			dotcol += incrmt;
 		}
@@ -284,9 +285,9 @@ QuotChar()
 }
 
 /* Insert the paren.  If in C mode and c is a '}' then insert the
-   '}' in the "right" place for C indentation; that is indented
-   the same amount as the matching '{' is indented. */
-
+ * '}' in the "right" place for C indentation; that is indented
+ * the same amount as the matching '{' is indented.
+ */
 int	PDelay = 5,		/* VAR: paren flash delay in tenths of a second */
 	CIndIncrmt = 8;	/* VAR: how much each indentation level pushes over in C mode */
 
@@ -379,7 +380,8 @@ bool	indentp;
 	}
 
 	/* If there is more than 2 blank lines in a row then don't make
-	   a newline, just move down one. */
+	 * a newline, just move down one.
+	 */
 	if (arg_value() == 1 && eolp() && TwoBlank())
 		SetLine(curline->l_next);
 	else
@@ -387,14 +389,14 @@ bool	indentp;
 
 	if (indentp) {
 #ifdef LISP
-	    if (MajorMode(LISPMODE))
-		(void) lisp_indent();
-	    else
+		if (MajorMode(LISPMODE))
+			(void) lisp_indent();
+		else
 #endif
-	    {
-		Bol();
-		n_indent((LMargin == 0) ? indent : LMargin);
-	    }
+		{
+			Bol();
+			n_indent((LMargin == 0) ? indent : LMargin);
+		}
 	}
 }
 
@@ -417,6 +419,7 @@ int wrap_off;
 
 	if (*str == '\0')
 		return;		/* ain't nothing to insert! */
+
 	if (wrap_off > LBSIZE-1)
 		wrap_off = LBSIZE-1;
 	DOTsave(&save);
@@ -458,8 +461,8 @@ OpenLine()
 }
 
 /* Take the region FLINE/FCHAR to TLINE/TCHAR and insert it at
-   ATLINE/ATCHAR in WHATBUF. */
-
+ * ATLINE/ATCHAR in WHATBUF.
+ */
 Bufpos *
 DoYank(fline, fchar, tline, tchar, atline, atchar, whatbuf)
 LinePtr	fline,
@@ -552,11 +555,12 @@ YankPop()
 }
 
 /* This is an attempt to reduce the amount of memory taken up by each line.
-   Without this each malloc of a line uses sizeof (line) + sizeof(HEADER)
-   where line is 3 words and HEADER is 1 word.
-   This is going to allocate memory in chucks of CHUNKSIZE * sizeof (line)
-   and divide each chuck into Lines.  A line is free in a chunk when its
-   line->l_dline == NULL_DADDR, so freeline sets l_dline to NULL_DADDR. */
+ * Without this each malloc of a line uses sizeof (line) + sizeof(HEADER)
+ * where line is 3 words and HEADER is 1 word.
+ * This is going to allocate memory in chucks of CHUNKSIZE * sizeof (line)
+ * and divide each chuck into Lines.  A line is free in a chunk when its
+ * line->l_dline == NULL_DADDR, so freeline sets l_dline to NULL_DADDR.
+ */
 
 #define CHUNKSIZE	300
 
@@ -667,6 +671,7 @@ newchunk()
 		f = CHUNKMALLOC(sizeof(struct chunk) + sizeof(struct line) * (nlines-1));
 		if (f != NULL)
 			break;
+
 		if (!done_gc) {
 			GCchunks();
 			done_gc = YES;
@@ -713,8 +718,8 @@ nbufline()
 }
 
 /* Remove the free lines, in chunk c, from the free list because they are
-   no longer free. */
-
+ * no longer free.
+ */
 private void
 remfreelines(c)
 register ChunkPtr	c;
@@ -733,10 +738,10 @@ register ChunkPtr	c;
 }
 
 /* This is used to garbage collect the chunks of lines when malloc fails
-   and we are NOT looking for a new buffer line.  This goes through each
-   chunk, and if every line in a given chunk is not allocated, the entire
-   chunk is `free'd by "free()". */
-
+ * and we are NOT looking for a new buffer line.  This goes through each
+ * chunk, and if every line in a given chunk is not allocated, the entire
+ * chunk is `free'd by "free()".
+ */
 /* ??? I think that this WILL be called when we are looking for a new
  * buffer line: nbufline() => newchunk() => GCchunks() -- DHR
  */
@@ -794,6 +799,7 @@ GSexpr()
 	for (;;) {
 		if (curline == end.p_line)
 			break;
+
 		line_move(FORWARD, 1, NO);
 		if (!blnkp(linebuf))
 			(void) lisp_indent();
@@ -802,14 +808,14 @@ GSexpr()
 }
 
 /* lisp_indent() indents a new line in Lisp Mode, according to where
-   the matching close-paren would go if we typed that (sort of). */
-
+ * the matching close-paren would go if we typed that (sort of).
+ */
 private List	*specials = NULL;
 
 private void
 init_specials()
 {
-	static char *const words[] = {
+	static const char *const words[] = {
 		"case",
 		"def",
 		"dolist",
@@ -824,7 +830,7 @@ init_specials()
 		"selectq",
 		NULL
 	};
-	char	*const *wordp = words;
+	const char	*const *wordp = words;
 
 	while (*wordp != NULL)
 		list_push(&specials, (UnivPtr) *wordp++);
@@ -833,7 +839,7 @@ init_specials()
 void
 AddSpecial()
 {
-	char	*word;
+	const char	*word;
 	register List	*lp;
 
 	if (specials == NULL)
@@ -858,11 +864,10 @@ lisp_indent()
 		return NULL;
 
 	/* We want to end up
-
-		(atom atom atom ...
-		      ^ here.
+     *
+	 *	(atom atom atom ...
+	 *	      ^ here.
 	 */
-
 	DOTsave(&savedot);
 	SetDot(bp);
 	f_char(1);

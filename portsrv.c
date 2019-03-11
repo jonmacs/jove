@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -25,10 +25,11 @@
 private struct lump	lump;
 
 /* JOVE sends KBDSIG whenever it wants the kbd process (this program)
-   to stop competing for input from the keyboard.  JOVE does this when
-   JOVE realizes that there are no more interactive processes running.
-   The reason we go through all this trouble is that JOVE slows down
-   a lot when it's getting its keyboard input via a pipe. */
+ * to stop competing for input from the keyboard.  JOVE does this when
+ * JOVE realizes that there are no more interactive processes running.
+ * The reason we go through all this trouble is that JOVE slows down
+ * a lot when it's getting its keyboard input via a pipe.
+ */
 
 private SIGRESTYPE strt_read proto((int));
 
@@ -65,6 +66,7 @@ kbd_process()
 		if (n == -1) {
 			if (errno != EINTR)
 				break;
+
 			continue;
 		}
 		lump.header.nbytes = n;
@@ -75,7 +77,8 @@ kbd_process()
 }
 
 /* This is a server for jove sub processes.  By the time we get here, our
-   standard output goes to jove's process input. */
+ * standard output goes to jove's process input.
+ */
 
 private int	tty_fd;
 
@@ -143,7 +146,7 @@ char	**argv;
 
 	default:
 		(void) close(0);
-		tty_fd = open("/dev/tty", 1);
+		tty_fd = open("/dev/tty", O_WRONLY | O_BINARY);
 
 		(void) signal(SIGINT, SIG_IGN);
 		(void) signal(SIGQUIT, SIG_IGN);
@@ -161,11 +164,12 @@ char	**argv;
 		read_pipe(p[0]);
 
 		/* received EOF - wait for child to die and then write the
-		   child's status to JOVE.
-
-		   Notice that we use a byte count of -1 (an otherwise
-		   impossible value) as a marker.  JOVE "knows" the real
-		   length is sizeof(wait_status_t). */
+		 * child's status to JOVE.
+		 *
+		 * Notice that we use a byte count of -1 (an otherwise
+		 * impossible value) as a marker.  JOVE "knows" the real
+		 * length is sizeof(wait_status_t).
+		 */
 
 		(void) close(p[0]);
 		lump.header.pid = getpid();

@@ -1,11 +1,11 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
  ************************************************************************/
 
-extern char	*HomeDir;
+extern const char	*HomeDir;
 
 extern size_t	HomeLen;
 
@@ -21,9 +21,11 @@ extern int	Jr_Len;		/* length of Just Read Line */
 extern long	io_chars;
 extern int	io_lines;
 
+extern int	MakeTemp proto((char *, const char *));
+
 extern char
 	*lbptr proto((LinePtr line)),
-	*pr_name proto((char *fname,bool okay_home)),
+	*pr_name proto((const char *fname,bool okay_home)),
 	*pwd proto((void));
 
 extern File
@@ -33,12 +35,12 @@ extern void
 	setCWD proto((char *d)),
 	getCWD proto((void)),
 	PathCat proto((char *buf, size_t, const char *pre, const char *post)),
-	PathParse proto((char *name,char *intobuf)),
+	PathParse proto((const char *name, char *intobuf)),
 	SyncTmp proto((void)),
 	close_file proto((File *fp)),
 	d_cache_init proto((void)),
 	file_write proto((char *fname, bool app)),
-	getline proto((daddr addr,char *buf)),
+	getline proto((daddr addr, char *buf)),
 	lsave proto((void)),
 	putreg proto((File *fp,LinePtr line1,int char1,LinePtr line2,int char2,bool makesure)),
 	read_file proto((char *file, bool is_insert)),
@@ -75,7 +77,7 @@ extern void
 extern bool	BkupOnWrite;		/* VAR: make backup files when writing */
 #endif
 #ifdef UNIX
-extern int	CreatMode;		/* VAR: default mode for creat'ing files */
+extern int/*mode_t*/	CreatMode;		/* VAR: default mode for creat'ing files */
 #endif
 #ifdef MAC
 # define CreatMode	0	/* dummy */

@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -15,12 +15,11 @@
 #	include "mac.h"
 #else /* !MAC */
 #	include <sys/stat.h>
-#	ifndef MSFILESYSTEM
-#		include <sys/file.h>
-#	else /* MSFILESYSTEM */
-#		include <fcntl.h>
+#	ifdef MSFILESYSTEM
 #		include <io.h>
-#	endif /* MSFILESYSTEM */
+#	else /* !MSFILESYSTEM */
+#		include <sys/file.h>
+#	endif /* !MSFILESYSTEM */
 #endif /* !MAC */
 
 #include <errno.h>
@@ -39,8 +38,8 @@ private File	openfiles[MAXFILES];	/* must be zeroed initially */
 
 File *
 fd_open(name, flags, fd, buffer, buf_size)
-char	*name,
-	*buffer;
+const char	*name;
+char	*buffer;
 int	flags,
 	fd,
 	buf_size;
@@ -51,6 +50,7 @@ int	flags,
 	for (fp = openfiles, i = 0; i < MAXFILES; i++, fp++)
 		if (fp->f_flags == 0)
 			break;
+
 	if (i == MAXFILES)
 		complain("[Too many open files!]");
 	fp->f_bufsize = buf_size;
@@ -79,8 +79,8 @@ gc_openfiles()
 
 File *
 f_open(name, flags, buffer, buf_size)
-char	*name,
-	*buffer;
+const char	*name;
+char	*buffer;
 int	flags,
 	buf_size;
 {
@@ -88,27 +88,20 @@ int	flags,
 
 	switch (F_MODE(flags)) {
 	case F_READ:
-#ifdef MSFILESYSTEM
-		fd = open(name, O_RDONLY|O_BINARY);
-#else
-		fd = open(name, 0);
-#endif
+		fd = open(name, O_RDONLY | O_BINARY);
 		break;
 
 	case F_APPEND:
-#ifdef MSFILESYSTEM
-		fd = open(name, O_WRONLY|O_BINARY);
-#else
-		fd = open(name, 1);
-#endif
+		fd = open(name, O_WRONLY | O_BINARY);
 		if (fd != -1) {
 			(void) lseek(fd, 0L, 2);
 			break;
 		}
 		/* FALLTHROUGH */
 	case F_WRITE:
-#ifdef MSFILESYSTEM
-		fd = open(name, O_CREAT|O_TRUNC|O_BINARY|O_RDWR, S_IWRITE|S_IREAD);
+#ifdef O_CREAT
+		fd = open(name, O_CREAT | O_TRUNC | O_BINARY | O_RDWR
+			, S_IWRITE | S_IREAD);
 #else
 		fd = creat(name, CreatMode);
 #endif
@@ -121,6 +114,7 @@ int	flags,
 	}
 	if (fd == -1)
 		return NULL;
+
 	return fd_open(name, flags, fd, buffer, buf_size);
 }
 
@@ -149,6 +143,7 @@ File	*fp;
 {
 	if (fp->f_flags & (F_EOF|F_ERR))
 		return EOF;
+
 	fp->f_ptr = fp->f_base;
 #ifndef MSDOS
 	do {
@@ -235,6 +230,7 @@ register File	*fp;
 
 			if (n <= 0)
 				break;
+
 #ifdef RAINBOW
 			wr = rbwrite(fp->f_fd, (UnivPtr) p, (size_t)n);
 #else
@@ -276,6 +272,7 @@ size_t	max;
 
 	if (fp->f_flags & F_EOF)
 		return YES;
+
 	while ((c = f_getc(fp)) != EOF && c != EOL) {
 		/* We can't store NUL in our buffer, so ignore it.
 		 * Similarly, we can only store characters less than NCHARS.
@@ -314,14 +311,15 @@ size_t	max;
 }
 
 /* skip to beginning of next line, i.e., next read returns first
-   character of new line */
-
+ * character of new line
+ */
 void
 f_toNL(fp)
 register File	*fp;
 {
 	if (fp->f_flags & F_EOF)
 		return;
+
 	for (;;) {
 		switch (f_getc(fp)) {
 		case EOF:
@@ -347,6 +345,7 @@ size_t	n;
 
 		if (f_eof(fp))
 			break;
+
 		*addr++ = c;
 	}
 	return n - nleft;

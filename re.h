@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -41,16 +41,16 @@ extern bool	okay_wrap;	/* Do a wrap search ... not when we're
 extern bool
 	re_lindex proto((LinePtr line, int offset, int dir,
 		struct RE_block *re_blk, bool lbuf_okay, int crater)),
-	LookingAt proto((char *pattern,char *buf,int offset)),
+	LookingAt proto((const char *pattern,char *buf,int offset)),
 	look_at proto((char *expr));
 
 extern Bufpos
 	*docompiled proto((int dir, struct RE_block *re_blk)),
-	*dosearch proto((char *pattern, int dir, bool re));
+	*dosearch proto((const char *pattern, int dir, bool re));
 
 extern void
-	REcompile proto((char *pattern, bool re, struct RE_block *re_blk)),
-	putmatch proto((int which,char *buf,size_t size)),
+	REcompile proto((const char *pattern, bool re, struct RE_block *re_blk)),
+	putmatch proto((int which, char *buf,size_t size)),
 	re_dosub proto((struct RE_block *re_blk, char *tobuf, bool delp)),
 	RErecur proto((void));
 

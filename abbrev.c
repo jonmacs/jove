@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -31,7 +31,7 @@ struct abbrev {
 	char	*a_abbrev,
 		*a_phrase;
 	struct abbrev	*a_next;
-	data_obj	*a_cmdhook;
+	const data_obj	*a_cmdhook;
 };
 
 private	void
@@ -44,7 +44,7 @@ bool AutoCaseAbbrev = YES;	/* VAR: automatically do case on abbreviations */
 
 private unsigned int
 hash(a)
-register char	*a;
+register const char	*a;
 {
 	register unsigned int	hashval = 0;
 	register char	c;
@@ -71,7 +71,7 @@ struct abbrev	*table[HASHSIZE];
 private struct abbrev *
 lookup_abbrev(table, abbrev)
 register struct abbrev	*table[HASHSIZE];
-register char	*abbrev;
+register const char	*abbrev;
 {
 	register struct abbrev	*ap;
 	unsigned int	h;
@@ -154,7 +154,7 @@ AbbrevExpand()
 	}
 }
 
-private char	*mode_names[NMAJORS + 1] = {
+private const char	*const mode_names[NMAJORS + 1] = {
 	"Fundamental Mode",
 	"Text Mode",
 	"C Mode",
@@ -253,8 +253,8 @@ RestAbbrevs()
 void
 EditAbbrevs()
 {
-	char	tname[128],
-		*EditName = "Abbreviation Edit";
+	char	tname[128];
+	static const char	EditName[] = "Abbreviation Edit";
 	Buffer	*obuf = curbuf,
 		*ebuf;
 
@@ -266,7 +266,8 @@ EditAbbrevs()
 	ebuf->b_type = B_SCRATCH;
 	buf_clear(ebuf);
 	/* Empty buffer.  Save the definitions to a tmp file
-	   and read them into this buffer so we can edit them. */
+	 * and read them into this buffer so we can edit them.
+	 */
 	PathCat(tname, sizeof(tname), TmpDir,
 #ifdef MAC
 		".jabbXXX"	/* must match string in mac.c:Ffilter() */
@@ -274,7 +275,10 @@ EditAbbrevs()
 		"jabbXXXXXX"
 #endif
 		);
-	(void) mktemp(tname);
+
+	/* do a safe form of mktemp */
+	close(MakeTemp(tname, "cannot create tempfile \"%s\""));
+
 	save_abbrevs(tname);
 	setfname(ebuf, tname);
 	read_file(tname, NO);
@@ -293,7 +297,7 @@ void
 BindMtoW()
 {
 	struct abbrev	*ap;
-	char	*word = ask((char *)NULL, "Word: ");
+	const char	*word = ask((char *)NULL, "Word: ");
 
 	if ((ap = lookup_abbrev(A_tables[curbuf->b_major], word)) == NULL
 	&& (ap = lookup_abbrev(A_tables[GLOBAL], word)) == NULL)

@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -28,7 +28,7 @@ struct stat {
 	long st_ino;		/* file number on volume */
 	dev_t st_rdev;
 	off_t st_size;		/* logical end of file */
-	int st_mode;
+	int/*mode_t*/ st_mode;
 	time_t st_mtime;	/* last modified */
 };
 

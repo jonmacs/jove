@@ -1,12 +1,13 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
  ************************************************************************/
 
 /* maximum length of a line (including '\0').  Currently cannot
-   be larger than a logical disk block. */
+ * be larger than a logical disk block.
+ */
 #define	LBSIZE		JBUFSIZ
 
 /* buffer types */
@@ -79,8 +80,8 @@ struct buffer {
 	char *Name;		/* Name will not be used */
 #endif
 	Buffer	*b_next;		/* next buffer in chain */
-	char	*b_name,		/* buffer name */
-		*b_fname;		/* file name associated with buffer */
+	const char	*b_name;	/* buffer name */
+	char	*b_fname;		/* file name associated with buffer */
 #ifdef USE_INO
 	/* unique identification of file */
 	dev_t	b_dev;			/* device of file name. */
@@ -135,10 +136,10 @@ extern bool
 	valid_bp proto((Buffer	*bp));
 
 extern Buffer
-	*buf_exists proto((char *name)),
+	*buf_exists proto((const char *name)),
 	*do_find proto((Window *w, char *fname, bool force, bool do_macros)),
-	*do_select proto((Window *w,char *name)),
-	*do_stat proto((char *name, Buffer *target, int flags));
+	*do_select proto((Window *w, const char *name)),
+	*do_stat proto((const char *name, Buffer *target, int flags));
 
 /* flags to do_stat */
 #define DS_NONE	0
@@ -150,7 +151,7 @@ extern bool
 	was_dir,	/* do_stat found a directory */
 	was_file;	/* do_stat found a (plain) file */
 
-extern char
+extern const char
 	*ask_buf proto((Buffer *def, int flags));
 
 #ifdef USE_PROTOTYPES
@@ -160,7 +161,7 @@ struct macro;	/* forward declaration preventing prototype scoping */
 extern void
 	TogMinor proto((int bit)),
 	buf_clear proto((Buffer *b)),
-	setfname proto((Buffer *b,char *name)),
+	setfname proto((Buffer *b, const char *name)),
 	SetABuf proto((Buffer *b)),
 	SetBuf proto((Buffer *newbuf)),
 	buf_init proto((void));

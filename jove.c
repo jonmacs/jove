@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -350,8 +350,6 @@ private int	nchars = 0;
 
 #ifdef NONBLOCKINGREAD
 
-# include <fcntl.h>
-
 private void
 setblock(on)	/* turn blocking on or off */
 bool	on;
@@ -566,6 +564,7 @@ charp()
 {
 	if (InJoverc != 0 || kbdpeek != EOF || nchars > 0 || Inputp != NULL)
 		return InputPending = YES;
+
 #ifdef FIONREAD
 	{
 		/*
@@ -731,6 +730,7 @@ int	delay;
 	for (;;)  {
 		if (charp())
 			break;
+
 		_dos_gettime(&tc);
 		now = tc.second * 100 + tc.hsecond;
 		if (now < start)
@@ -976,7 +976,8 @@ Push()
 # ifdef MSDOS_PROCS
 #  ifdef MSDOS
 	UnsetTerm(YES);
-	if (spawnl(0, Shell, jbasename(Shell), (char *)NULL) == -1)
+	/* Zortech's prototype for the third parameter to spawnl is missing "const" */
+	if (spawnl(0, Shell, (char *)jbasename(Shell), (char *)NULL) == -1)
 		s_mess("[Spawn failed %d]", errno);
 	SetTerm();
 #   ifdef WINRESIZE
@@ -1084,12 +1085,14 @@ getch()
 	if (Inputp != NULL) {
 		if ((c = ZXC(*Inputp++)) != '\0')
 			return LastKeyStruck = c;
+
 		Inputp = NULL;
 	}
 
 	if (InJoverc) {
 		/* somethings wrong if Inputp runs out while
-		   we're reading a .joverc file. */
+		 * we're reading a .joverc file.
+		 */
 		complain("[command line too short]");
 	}
 
@@ -1482,6 +1485,7 @@ register char	**args,
 	while (*args) {
 		if (strcmp(*args, str) == 0)
 			return args;
+
 		args += 1;
 	}
 	return NULL;
@@ -1520,7 +1524,7 @@ char	*mess;
 bool	raw;
 {
 	if (from != NULL) {
-		char	*ugh;
+		const char	*ugh;
 
 		if (strlen(from) >= maxsize)
 			ugh = "too long";
@@ -1667,9 +1671,11 @@ char	*argv[];
 		char *homepath = getenv("HOMEPATH");
 
 		if (homedrive != NULL && homepath != NULL) {
-			HomeDir = emalloc(strlen(homedrive) + strlen(homepath) + 1);
-			strcpy(HomeDir, homedrive);
-			strcat(HomeDir, homepath);
+			char *p = emalloc(strlen(homedrive) + strlen(homepath) + 1);
+
+			strcpy(p, homedrive);
+			strcat(p, homepath);
+			HomeDir = p;
 		} else {
 			HomeDir = copystr(pwd());
 		}
@@ -1726,8 +1732,9 @@ char	*argv[];
 	ShowVersion();	/* but the 'carefulcpy's which follow might overwrite it */
 
 	/* import the temporary file path from the environment
-	   and fix the string, so that we can append a slash
-	   safely	*/
+	 * and fix the string, so that we can append a slash
+	 * safely
+	 */
 #ifdef MSFILESYSTEM
 	carefulcpy(TmpDir, getenv("TEMP"), sizeof(TmpDir), "TEMP", NO);
 #endif
@@ -1784,5 +1791,5 @@ char	*argv[];
 	RedrawDisplay();	/* start the redisplay process. */
 	DoKeys(YES);
 	finish(0);
-	/* NOTREACHED*/
+	/* NOTREACHED */
 }

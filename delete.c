@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -16,8 +16,8 @@
 #include "move.h"
 
 /* Assumes that either line1 or line2 is actually the current line, so it can
-   put its result into linebuf. */
-
+ * put its result into linebuf.
+ */
 private void
 patchup(line1, char1, line2, char2)
 LinePtr	line1,
@@ -40,9 +40,9 @@ register int	char1,
 }
 
 /* Deletes the region by unlinking the lines in the middle,
-   and patching things up.  The unlinked lines are still in
-   order.  */
-
+ * and patching things up.  The unlinked lines are still in
+ * order.
+ */
 LinePtr
 reg_delete(line1, char1, line2, char2)
 LinePtr	line1,
@@ -97,6 +97,7 @@ register LinePtr	line1,
 
 	if (line1 == line2)
 		return;
+
 	line1->l_next = line2->l_next;
 	if (line1->l_next)
 		line1->l_next->l_prev = line1;
@@ -136,9 +137,9 @@ DelPChar()
 }
 
 /* Delete some characters.  If deleting forward then call for_char
-   to the final position otherwise call back_char.  Then delete the
-   region between the two with patchup(). */
-
+ * to the final position otherwise call back_char.  Then delete the
+ * region between the two with patchup().
+ */
 void
 del_char(dir, num, OK_kill)
 int	dir,
@@ -213,9 +214,9 @@ LinePtr	text;
 }
 
 /* This kills a region between point, and line1/char1 and puts it on
-   the kill-ring.  If the last command was one of the kill commands,
-   the region is appended (prepended if backwards) to the last entry.  */
-
+ * the kill-ring.  If the last command was one of the kill commands,
+ * the region is appended (prepended if backwards) to the last entry.
+ */
 void
 reg_kill(line2, char2, dot_moved)
 LinePtr	line2;
@@ -229,11 +230,11 @@ bool	dot_moved;
 
 	backwards = !fixorder(&line1, &char1, &line2, &char2);
 	/* This is a kludge!  But it possible for commands that don't
-	   know which direction they are deleting in (e.g., delete
-	   previous word could have been called with a negative argument
-	   in which case, it wouldn't know that it really deleted
-	   forward. */
-
+	 * know which direction they are deleting in (e.g., delete
+	 * previous word could have been called with a negative argument
+	 * in which case, it wouldn't know that it really deleted
+	 * forward.
+	 */
 	if (!dot_moved)
 		backwards = !backwards;
 
@@ -322,6 +323,7 @@ DelBlnkLines()
 
 	if (!blnkp(&linebuf[curchar]))
 		return;
+
 	dot = MakeMark(curline, curchar);
 	all = !blnkp(linebuf);
 	while (blnkp(linebuf) && curline->l_prev)

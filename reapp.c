@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -39,7 +39,7 @@ bool
 
 private void
 setsearch(str)
-char	*str;
+const char	*str;
 {
 	strcpy(searchstr, str);
 }
@@ -57,9 +57,8 @@ bool	re,
 	setdefault;
 {
 	Bufpos	*newdot;
-	char	*s;
+	const char	*s = ask(searchstr, ProcFmt);
 
-	s = ask(searchstr, ProcFmt);
 	if (setdefault)
 		setsearch(s);
 	okay_wrap = YES;
@@ -243,7 +242,7 @@ bool	query,
 	inreg;
 {
 	Mark	*m;
-	char	*rep_ptr;
+	const char	*rep_ptr;
 	LinePtr	l1 = curline,
 		l2 = curbuf->b_last;
 	int	char1 = curchar,
@@ -262,8 +261,9 @@ bool	query,
 	strcpy(rep_search, ask(rep_search[0] ? rep_search : (char *)NULL, ProcFmt));
 	REcompile(rep_search, UseRE, &re_blk);
 	/* Now the replacement string.  Do_ask() so the user can play with
-	   the default (previous) replacement string by typing ^R in ask(),
-	   OR, he can just hit Return to replace with nothing. */
+	 * the default (previous) replacement string by typing ^R in ask(),
+	 * OR, he can just hit Return to replace with nothing.
+	 */
 	rep_ptr = do_ask("\r\n", NULL_ASK_EXT, rep_str, ": %f %s with ",
 		rep_search);
 	if (rep_ptr == NULL)
@@ -300,12 +300,12 @@ RepSearch()
 }
 
 /* Lookup a tag in tag file FILE.  FILE is assumed to be sorted
-   alphabetically.  The FASTTAGS code, which is implemented with
-   a binary search, depends on this assumption.  If it's not true
-   it is possible to comment out the fast tag code (which is clearly
-   labeled), delete the marked test in the sequential loop, and
-   everything else will just work. */
-
+ * alphabetically.  The FASTTAGS code, which is implemented with
+ * a binary search, depends on this assumption.  If it's not true
+ * it is possible to comment out the fast tag code (which is clearly
+ * labeled), delete the marked test in the sequential loop, and
+ * everything else will just work.
+ */
 private bool
 lookup_tag(searchbuf, sbsize, filebuf, tag, file)
 char	*searchbuf;
@@ -356,13 +356,15 @@ char	*filebuf,
 
 			if (upper - lower < JBUFSIZ)
 				break;	/* small range: search sequentially */
+
 			mid = (lower + upper) / 2;
 			f_seek(fp, mid);	/* mid will not be 0 */
 			f_toNL(fp);
 			if (f_gets(fp, line, sizeof line))
 				break;		/* unexpected: bail out */
+
 			chars_eq = numcomp(line, tag);
-			if (chars_eq == taglen && jiswhite(line[chars_eq])) {
+			if ((size_t)chars_eq == taglen && jiswhite(line[chars_eq])) {
 				/* we hit the exact line: get out */
 				lower = mid;
 				break;
@@ -468,16 +470,16 @@ FDotTag()
 }
 
 /* I-search returns a code saying what to do:
-   I_STOP:	We found the match, so unwind the stack and leave
-		where it is.
-   I_DELETE:	Rubout the last command.
-   I_BACKUP:	Back up to where the isearch was last NOT failing.
-   I_TOSTART:	Abort the search, going back where isearch started
-
-   When a character is typed it is appended to the search string, and
-   then, isearch is called recursively.  When ^S or ^R is typed, isearch
-   is again called recursively. */
-
+ * I_STOP:	We found the match, so unwind the stack and leave
+ *		where it is.
+ * I_DELETE:	Rubout the last command.
+ * I_BACKUP:	Back up to where the isearch was last NOT failing.
+ * I_TOSTART:	Abort the search, going back where isearch started
+ *
+ * When a character is typed it is appended to the search string, and
+ * then, isearch is called recursively.  When ^S or ^R is typed, isearch
+ * is again called recursively.
+ */
 #define I_STOP	1
 #define I_DELETE	2
 #define I_BACKUP	3
@@ -501,6 +503,7 @@ bool		failing;
 	if (c != CTL('S') && c != CTL('R')) {
 		if (failing)
 			return NULL;
+
 		DOTsave(&buf);
 		if (dir == FORWARD) {
 			if (ZXC(linebuf[curchar]) == c
@@ -588,13 +591,13 @@ Bufpos	*bp;
 		c = getch();
 		if (c == SExitChar)
 			return I_STOP;
+
 		if (c == AbortChar) {
 			/* If we're failing, we backup until we're no longer
-			   failing or we've reached the beginning; else, we
-			   just abort the search and go back to the start. */
-			if (failing)
-				return I_BACKUP;
-			return I_TOSTART;
+			 * failing or we've reached the beginning; else, we
+			 * just abort the search and go back to the start.
+			 */
+			return failing? I_BACKUP : I_TOSTART;
 		}
 		switch (c) {
 		case DEL:
@@ -607,16 +610,18 @@ Bufpos	*bp;
 		case CTL('S'):
 		case CTL('R'):
 			/* If this is the first time through and we have a
-			   search string left over from last time, and Inputp
-			   is not in use [kludge!], use that one now. */
+			 * search string left over from last time, and Inputp
+			 * is not in use [kludge!], use that one now.
+			 */
 			if (Inputp == NULL && incp == ISbuf) {
 				Inputp = getsearch();
 				continue;
 			}
 			ndir = (c == CTL('S')) ? FORWARD : BACKWARD;
 			/* If we're failing and we're not changing our
-			   direction, don't recur since there's no way
-			   the search can work. */
+			 * direction, don't recur since there's no way
+			 * the search can work.
+			 */
 			if (failing && ndir == dir) {
 				rbell();
 				continue;
@@ -666,11 +671,13 @@ Bufpos	*bp;
 
 		case I_BACKUP:
 			/* If we're not failing, we just continue to to the
-			   for loop; otherwise we keep returning to the
-			   previous levels until we find one that isn't
-			   failing OR we reach the beginning. */
+			 * for loop; otherwise we keep returning to the
+			 * previous levels until we find one that isn't
+			 * failing OR we reach the beginning.
+			 */
 			if (failing)
 				return I_BACKUP;
+
 			/*FALLTHROUGH*/
 		case I_DELETE:
 			incp = orig_incp;

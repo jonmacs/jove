@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -52,6 +52,7 @@ CapChar()
 		if (eolp()) {
 			if (curline->l_next == NULL)
 				break;
+
 			SetLine(curline->l_next);
 		} else
 			curchar += 1;
@@ -78,6 +79,7 @@ CapWord()
 		to_word(FORWARD);	/* Go to the beginning of the next word. */
 		if (eobp())
 			break;
+
 		if (upper(&linebuf[curchar])) {
 			modify();
 			makedirty(curline);
@@ -148,6 +150,7 @@ bool	up;
 	for (;;) {
 		if (curline == line2 && curchar == char2)
 			break;
+
 		if (!eolp())
 			if ((up) ? upper(&linebuf[curchar]) : lower(&linebuf[curchar])) {
 				makedirty(curline);
