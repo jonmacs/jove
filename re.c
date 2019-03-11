@@ -828,11 +828,13 @@ char	*off,
 	*endp;
 int which;
 {
-	register char	*pp;
+	register char	*pp = pstrtlst[which];
 	register int	n;
 
-	n = pendlst[which] - pstrtlst[which];
-	pp = pstrtlst[which];
+	if (pp == NULL)
+		complain("\\%d not defined", which);
+
+	n  = pendlst[which] - pp;
 	while (--n >= 0) {
 		*off++ = *pp++;
 		if (off >= endp)

@@ -195,7 +195,7 @@ int	flags;
 	if (defname != NULL && strchr(defname, '%') == NULL)
 		swritef(prompt, sizeof(prompt), ": %%f (default %s) ", defname);
 	else
-		strcpy(prompt, ProcFmt);
+		jamstr(prompt, ProcFmt);
 	mkbuflist(bnames, &bnames[elemsof(bnames)]);
 	/* Secret bonus: if there is no default, ^R will insert curbuf's name. */
 	offset = complete(bnames, defname==NULL? curbuf->b_name : defname, prompt,
@@ -463,7 +463,7 @@ register Buffer	*b;
 	if (b->b_fname == NULL)
 		complain("[No file name]");
 	cp = jbasename(b->b_fname);
-	strcpy(tmp, cp);
+	jamstr(tmp, cp);
 	while (buf_exists(tmp)) {
 		swritef(tmp, sizeof(tmp), "%s.%d", cp, try);
 		try += 1;
@@ -672,8 +672,7 @@ register const char	*name;
 	}
 	if (name != NULL) {
 		PathParse(name, wholename);
-		curbuf->b_fname = strcpy(
-			(char *)emalloc(strlen(wholename) + 1), wholename);
+		curbuf->b_fname = copystr(wholename);
 	}
 	DoAutoExec(curbuf->b_fname, oldptr);
 

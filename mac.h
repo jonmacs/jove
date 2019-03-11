@@ -28,7 +28,7 @@ struct stat {
 	long st_ino;		/* file number on volume */
 	dev_t st_rdev;
 	off_t st_size;		/* logical end of file */
-	int/*mode_t*/ st_mode;
+	jmode_t st_mode;
 	time_t st_mtime;	/* last modified */
 };
 

@@ -47,7 +47,7 @@ private Buffer	*AskBuffer = NULL;	/* Askbuffer points to actual structure */
 private Buffer *
 get_minibuf()
 {
-	if (AskBuffer) {		/* make sure ut still exists */
+	if (AskBuffer) {		/* make sure it still exists */
 		register Buffer	*b;
 
 		for (b = world; b != NULL; b = b->b_next)
@@ -536,6 +536,8 @@ ZXchar	c;
 		char	tmp[FILESIZE];
 
 		fc_filebase += 1;
+		if ((size_t) (fc_filebase - linebuf) >= sizeof(tmp))
+			len_error(JMP_COMPLAIN);
 		null_ncpy(tmp, linebuf, (size_t) (fc_filebase - linebuf));
 		if (tmp[0] == '\0')
 			strcpy(tmp, "/");
@@ -632,7 +634,7 @@ char
 	if (prmt == NULL)
 		swritef(prompt, sizeof(prompt), ProcFmt);
 	else
-		strcpy(prompt, prmt);
+		jamstr(prompt, prmt);
 	if (def != NULL && *def != '\0') {
 		size_t	pl = strlen(prompt);
 

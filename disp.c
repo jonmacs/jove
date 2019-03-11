@@ -1554,7 +1554,7 @@ const char	*str;
 	UpdMesg = YES;
 	stickymsg = NO;
 	if (str != mesgbuf)
-		null_ncpy(mesgbuf, str, (sizeof mesgbuf) - 1);
+		truncstr(mesgbuf, str);
 }
 
 /* End of Window */

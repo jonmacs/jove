@@ -485,10 +485,9 @@ backup.Z: .filelist
 	tar cf backup `cat .filelist`
 	compress backup
 
-backup.gz: .filelist
-	rm -f backup backup.gz
-	tar cf backup `cat .filelist`
-	gzip backup
+backup.tgz: .filelist
+	# GNU tar only: z
+	tar czf backup.tgz `cat .filelist`
 
 tape-backup:	.filelist
 	tar cf /dev/rst8 `cat .filelist`

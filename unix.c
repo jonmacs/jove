@@ -319,9 +319,9 @@ bool	n;	/* also used as subscript! */
 #ifdef BIFF
 
 # ifdef S_IXUSR
-#  define BIFF_BIT S_IXUSR	/* POSIX name */
+#  define BIFF_BIT ((jmode_t)S_IXUSR)	/* POSIX name */
 # else
-#  define BIFF_BIT S_IEXEC	/* BSD name */
+#  define BIFF_BIT ((jmode_t)S_IEXEC)	/* BSD name */
 # endif
 
 	/* biff state is an honorary part of the tty state.

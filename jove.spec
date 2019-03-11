@@ -1,16 +1,17 @@
 # Redhat Package Manager .spec file for JOVE
 # To create SRPM and RPM: rpm -ta distribution.tgz
-# This .spec file has the JOVE version number embedded in it several
 # places so it needs to be adjusted every time the version changes!
+
+%define version 4.16.0.53
 
 Summary: Jonathan's Own Version of Emacs
 Name: jove
-Version: 4.16.0.52
+Version: %{version}
 Release: 1
 Copyright: Copyright (C) 1986-1999 by Jonathan Payne, freely redistributable
 Packager: jovehacks@cs.toronto.edu
 Group: Applications/Editors/Emacs
-Source: ftp://ftp.cs.toronto.edu/pub/hugh/jove-dev/4.16.0.52.tgz
+Source: ftp://ftp.cs.toronto.edu/pub/hugh/jove-dev/%{version}.tgz
 BuildRoot: /var/tmp/%{name}-rpmroot
 %description
 

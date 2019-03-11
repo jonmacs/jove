@@ -77,7 +77,7 @@ extern void
 extern bool	BkupOnWrite;		/* VAR: make backup files when writing */
 #endif
 #ifdef UNIX
-extern int/*mode_t*/	CreatMode;		/* VAR: default mode for creat'ing files */
+extern int	CreatMode;		/* VAR: default mode for creat'ing files */
 #endif
 #ifdef MAC
 # define CreatMode	0	/* dummy */

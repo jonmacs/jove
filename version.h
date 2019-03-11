@@ -5,10 +5,10 @@
  * included in all the files.                                           *
  ************************************************************************/
 
-/* Note: jove.spec must be updated when version number changes */
+/* Note: jove.spec must be updated in two places when version number changes */
 
-#define	jversion     "4.16.0.52" /* 2001 April 25 */
-#define	jversion_lnum 4,16,0,52  /* list-of-numbers form for Win32 jjove.rc */
+#define	jversion     "4.16.0.53" /* 2001 December 16 */
+#define	jversion_lnum 4,16,0,53  /* list-of-numbers form for Win32 jjove.rc */
 
 /*
  * $Log: version.h,v $

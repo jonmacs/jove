@@ -301,15 +301,12 @@ char	*prompt;
 
 	case V_STRING:
 	    {
-		const char	*str;
+		/* do_ask() so you can set string to "" if you so desire */
+		const char	*str = do_ask("\r\n", NULL_ASK_EXT,
+			(char *) vp->v_value, prompt);
 
-		/* Do_ask() so you can set string to "" if you so desire. */
-		str = do_ask("\r\n", NULL_ASK_EXT, (char *) vp->v_value, prompt);
-		if (str == NULL)
-			str = NullStr;
-		if (strlen(str) >= vp->v_size)
-			complain("string too long");
-		strcpy((char *) vp->v_value, str);
+		jamstrsub((char *) vp->v_value, str == NULL? NullStr : str,
+			vp->v_size);
 		break;
 	    }
 
@@ -461,7 +458,7 @@ ZXchar	c;
 					}
 				}
 				minmatch = numfound == 0
-					? strlen(Possible[i])
+					? (int)strlen(Possible[i])
 					: min(minmatch, numcomp(Possible[lastmatch], Possible[i]));
 				numfound += 1;
 				lastmatch = i;

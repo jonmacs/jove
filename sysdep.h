@@ -22,7 +22,7 @@
 # define POSIX_UNISTD	1
 # define USE_SELECT	1
 # define PTYPROCS	1
-# define BSD_PTYS	1
+# define BSD_PTYS	1	/* beware security flaw! */
 # define POSIX_PROCS	1
 # define BSD_SIGS	1
 # define JOB_CONTROL	1
@@ -59,7 +59,7 @@
 # define USE_GETCWD	1
 # define USE_SELECT	1
 # define PTYPROCS	1
-# define BSD_PTYS	1
+# define BSD_PTYS	1	/* beware security flaw! */
 # define BSD_WAIT	1
 # define WAIT3		1
 # define BSD_SIGS	1
@@ -83,7 +83,7 @@
 # define USE_GETWD	1
 # define USE_SELECT	1
 # define PTYPROCS	1
-# define BSD_PTYS	1
+# define BSD_PTYS	1	/* beware security flaw! */
 # define BSD_WAIT	1
 # define WAIT3		1
 # define BSD_SIGS	1
@@ -114,7 +114,7 @@
 # define USE_SELECT	1
 # define USE_SELECT_H	1
 # define PTYPROCS	1
-# define BSD_PTYS	1
+# define BSD_PTYS	1	/* beware security flaw! */
 # define NO_EOF_FROM_PTY    1	/* BUG! */
 # define POSIX_PROCS	1
 # define WAIT3		1
@@ -138,7 +138,7 @@
 # define USE_SELECT	1
 # define USE_SELECT_H	1
 # define PTYPROCS	1
-# define BSD_PTYS	1
+# define BSD_PTYS	1	/* beware security flaw! */
 # define NO_EOF_FROM_PTY    1	/* BUG! */
 # define POSIX_PROCS	1
 # define WAIT3		1
@@ -188,7 +188,7 @@
 # define FULL_UNISTD	1
 # define USE_SELECT	1
 # define PTYPROCS	1
-# define BSD_PTYS	1
+# define BSD_PTYS	1	/* beware security flaw! */
 # define POSIX_PROCS	1
 # define POSIX_SIGS	1
 # define JOB_CONTROL	1
@@ -245,7 +245,7 @@
 /* System: DEC OSF/1 V2.0 or later -- use SYSVR4 */
 /* System: DEC OSF R1.3MK -- use SYSVR4 */
 /* System: Digital UNIX V4.0 and later -- use SYSVR4 and GRANTPT_BUG */
-/* System: Red Hat LINUX 6.x -- use SYSVR4 and _XOPEN_SOURCE=500 */
+/* System: Red Hat LINUX 6.x or 7.x -- use SYSVR4 and _XOPEN_SOURCE=500 */
 /* System: Solaris 2.0, SunOS 5.0 -- use SYSVR4 and GRANTPT_BUG */
 /* System: Solaris 2.x, SunOS 5.x -- use SYSVR4 */
 /* Note: some versions of System V Release 4 have a bug in that affects
@@ -280,7 +280,7 @@
 # define FULL_UNISTD	1
 # define USE_SELECT	1
 # define PTYPROCS	1
-# define BSD_PTYS	1
+# define BSD_PTYS	1	/* beware security flaw! */
 # define POSIX_PROCS	1
 # define NO_EOF_FROM_PTY    1	/* BUG! */
 # define POSIX_SIGS	1
@@ -298,7 +298,7 @@
 # define USE_GETWD	1
 # define USE_SELECT	1
 # define PTYPROCS	1
-# define BSD_PTYS	1
+# define BSD_PTYS	1	/* beware security flaw! */
 # define BSD_WAIT	1
 # define WAIT3		1
 # define BSD_SIGS	1
@@ -326,7 +326,7 @@
 # define POSIX_UNISTD	1
 # define USE_SELECT	1
 # define PTYPROCS	1
-# define BSD_PTYS	1
+# define BSD_PTYS	1	/* beware security flaw! */
 # define POSIX_PROCS	1
 # define JOB_CONTROL	1
 # define USE_UNAME	1
@@ -571,6 +571,15 @@
 # endif
 #endif /* UNIX */
 
+/* lint suppression macros; GCC requires use of extensions! */
+#ifdef GCC_LINT
+# define UNUSED(x)	x __attribute__ ((unused))
+# define NEVER_RETURNS	__attribute__ ((noreturn))
+#else /* !GCC_LINT */
+# define UNUSED(x)	x
+# define NEVER_RETURNS
+#endif /* !GCC_LINT */
+
 /*************************************************************************
  *
  * The things below here aren't meant to be tuned, but are included here
@@ -605,6 +614,13 @@
 
 #ifndef SSIZE_T
 # define SSIZE_T    int
+#endif
+
+/* jmode_t: the type for file modes
+ * Really old systems might use "int" or perhaps "unsigned".
+ */
+#ifndef jmode_t
+# define jmode_t mode_t
 #endif
 
 /* Determine if really ANSI C */

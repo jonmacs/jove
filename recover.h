@@ -21,7 +21,7 @@
 struct rec_head {
 	short	RecMagic;	/* (partial) compatibility check */
 # ifdef UNIX
-	int		Uid;		/* uid of owner */
+	uid_t		Uid;		/* uid of owner */
 	pid_t		Pid;		/* pid of jove process */
 # endif
 	char		TmpFileName[FILESIZE];	/* name of corresponding tempfile */

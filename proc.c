@@ -147,13 +147,10 @@ char	*fname,
 	putmatch(1, fname, (size_t)FILESIZE);
 	putmatch(2, lineno, (size_t)FILESIZE);
 
-	/* error had lineno followed fname, so switch the two */
-	if (!jisdigit(lineno[0])) {
-		char	tmp[FILESIZE];
-
-		strcpy(tmp, lineno);
-		strcpy(lineno, fname);
-		strcpy(fname, tmp);
+	/* if error had lineno before fname, switch the two */
+	if (!jisdigit(lineno[0]) && jisdigit(fname[0])) {
+	    putmatch(1, lineno, (size_t)FILESIZE);
+	    putmatch(2, fname, (size_t)FILESIZE);
 	}
 }
 
@@ -330,7 +327,7 @@ char *
 MakeName(command)
 char	*command;
 {
-	static char	bnm[50];
+	static char	bnm[FILESIZE];
 	register char	*cp = bnm,
 			c;
 
@@ -384,8 +381,7 @@ MakeErrors()
 		/* insert the default for the user (Kludge: only if Inputp is free) */
 		if (Inputp == NULL)
 			Inputp = make_cmd;
-		null_ncpy(make_cmd, ask(make_cmd, "Compilation command: "),
-				sizeof (make_cmd) - 1);
+		jamstr(make_cmd, ask(make_cmd, "Compilation command: "));
 	}
 	com_finish(UnixToBuf(UTB_DISP|UTB_CLOBBER|UTB_ERRWIN|UTB_SH,
 		MakeName(make_cmd), (char *)NULL, make_cmd), make_cmd);
@@ -480,22 +476,22 @@ ShToBuf()
 	char	bnm[128],
 		cmd[LBSIZE];
 
-	strcpy(bnm, ask((char *)NULL, "Buffer: "));
-	strcpy(cmd, ask(ShcomBuf, "Command: "));
+	jamstr(bnm, ask((char *)NULL, "Buffer: "));
+	jamstr(cmd, ask(ShcomBuf, "Command: "));
 	DoShell(bnm, cmd);
 }
 
 void
 ShellCom()
 {
-	null_ncpy(ShcomBuf, ask(ShcomBuf, ProcFmt), (sizeof ShcomBuf) - 1);
+	jamstr(ShcomBuf, ask(ShcomBuf, ProcFmt));
 	DoShell(MakeName(ShcomBuf), ShcomBuf);
 }
 
 void
 ShNoBuf()
 {
-	null_ncpy(ShcomBuf, ask(ShcomBuf, ProcFmt), (sizeof ShcomBuf) - 1);
+	jamstr(ShcomBuf, ask(ShcomBuf, ProcFmt));
 	com_finish(UnixToBuf(UTB_SH|UTB_FILEARG, (char *)NULL, (char *)NULL,
 		ShcomBuf), ShcomBuf);
 }
@@ -505,7 +501,7 @@ Shtypeout()
 {
 	wait_status_t	status;
 
-	null_ncpy(ShcomBuf, ask(ShcomBuf, ProcFmt), (sizeof ShcomBuf) - 1);
+	jamstr(ShcomBuf, ask(ShcomBuf, ProcFmt));
 	status = UnixToBuf(UTB_DISP|UTB_SH|UTB_FILEARG, (char *)NULL, (char *)NULL,
 		ShcomBuf);
 #ifdef MSDOS_PROCS
@@ -951,8 +947,7 @@ FilterRegion()
 {
 	static char FltComBuf[LBSIZE];
 
-	null_ncpy(FltComBuf, ask(FltComBuf, ": %f (through command) "),
-		  (sizeof FltComBuf) - 1);
+	jamstr(FltComBuf, ask(FltComBuf, ": %f (through command) "));
 	RegToUnix(curbuf, FltComBuf, NO);
 	this_cmd = UNDOABLECMD;
 }

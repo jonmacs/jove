@@ -36,7 +36,7 @@ extern int	execlp proto((const char */*file*/, const char */*arg*/, ...));
 # endif
 
 
-static char	ShareDir[FILESIZE] = SHAREDIR;
+static const char	*ShareDir = SHAREDIR;
 
 int
 main(argc, argv)
@@ -54,12 +54,13 @@ char	*argv[];
 			printf("teachjove: -s argument too long\n");
 			exit(-1);
 		}
-		strcpy(ShareDir, argv[2]);
+		ShareDir = argv[2];
 	} else if (argc != 1) {
 		printf("Usage: teachjove [-s sharedir]\n");
 		exit(-1);
 	}
 	/* ??? "teach-jove" is too long for MSDOS */
+	/* ??? should use snprintf, but not available in old C */
 	(void) sprintf(teachjove, "%s/teach-jove", ShareDir);
 	if ((home = getenv("HOME")) == NULL) {
 		printf("teachjove: cannot find your home!\n");

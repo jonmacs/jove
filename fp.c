@@ -102,13 +102,13 @@ int	flags,
 #ifdef O_CREAT
 		fd = open(name, O_CREAT | O_TRUNC | O_BINARY | O_RDWR,
 # ifdef UNIX
-			CreatMode
+			(jmode_t)CreatMode
 # else
 			S_IWRITE | S_IREAD
 # endif
 			);
 #else
-		fd = creat(name, CreatMode);
+		fd = creat(name, (jmode_t)CreatMode);
 #endif
 		break;
 

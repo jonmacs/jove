@@ -314,7 +314,7 @@ const char	*complaint;
 	 * but old ones use 0666.  Making the umask 0077 should
 	 * solve this.
 	 */
-	int/*mode_t*/ saved_umask
+	jmode_t saved_umask
 #ifdef S_IRWXG
 		= umask(S_IRWXG | S_IRWXO);
 #else
@@ -493,6 +493,7 @@ pwd()
  * The result will be in a static buffer.
  * Note: by always using the static buffer, we allow ask_ford,
  * as it is currently coded, to accept aliased arguments.
+ * The result will always fit in a FILESIZE buffer.
  */
 char *
 pr_name(fname, okay_home)
@@ -585,7 +586,7 @@ size_t	bufsize;
 	curbuf->b_type = B_PROCESS;
 	(void) UnixToBuf(0, "pwd-output", (char *)NULL, "/bin/pwd");
 	ToFirst();
-	strcpy(buffer, linebuf);
+	jamstrsub(buffer, linebuf, bufsize);
 	SetBuf(old);
 	return buffer;
 }
@@ -745,7 +746,7 @@ register char	*user,
 		complain((char *)NULL);
 		/* NOTREACHED */
 	}
-	strcpy(buf, p->pw_dir);
+	jamstrsub(buf, p->pw_dir, FILESIZE);
 }
 
 # else /* ! USE_GETPWNAM */
@@ -841,6 +842,8 @@ char	*intobuf;
 			if (uendp == NULL)
 				uendp = name + strlen(name);
 			name += 1;
+			if ((size_t) (uendp - name) >= sizeof(unamebuf))
+				len_error(JMP_COMPLAIN);
 			null_ncpy(unamebuf, name, (size_t) (uendp - name));
 			get_hdir(unamebuf, localbuf);
 			name = uendp;
@@ -1797,10 +1800,11 @@ char *fname;
 	/* create backup file with same mode as input file */
 	{
 #  ifdef MAC
-		int/*mode_t*/	mode = CreatMode;	/* dummy */
+		jmode_t	mode = CreatMode;	/* dummy */
 #  else
 		struct stat statbuf;
-		int/*mode_t*/	mode = fstat(ffd, &statbuf) != 0? CreatMode : statbuf.st_mode;
+		jmode_t	mode = fstat(ffd, &statbuf) != 0?
+			(jmode_t)CreatMode : statbuf.st_mode;
 #  endif
 
 		/* Unlink the pathname before creating.  It may have been
