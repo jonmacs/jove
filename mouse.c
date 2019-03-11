@@ -260,6 +260,49 @@ int
 
 #define XtermProto(p)	((p) <= MPROTO_XTDRAG)
 
+/* Format of command to xterm to start or stop mouse hilite tracking:
+ * ^[ [ func ; startx ; starty ; firstrow ; lastrow T
+ *
+ * [1997 September] All xterm's up until now have a bug whereby
+ * the character sent after this sequence is interpreted as if
+ * it were preceded by an ESC.  We pad with an "x"  character to
+ * be ignored.
+ *
+ * [1998 Sept 21]  XFree86 3.2's xterm fixes the original bug
+ * so we have to refine our work-around: make sure that the
+ * character to be ignored has no semantics (DEL).
+ *
+ * [2004 July 11] XFree86's xtern no longer ignores DEL!
+ * This is an xterm bug.  A fix to xterm has been accepted
+ * by XFree86 and been submitted to x.org.  Even so,
+ * this bug will be in the field for a long time, so we
+ * need to live with it.
+ * The only character that seems to be reliably ignored
+ * in XFree86-4.0.1's xterm is NUL.
+ *
+ * This fudge is intended to be harmless on xterms
+ * with or without these bugs.
+ */
+#define XTERMHLBUG	1	/* always enable: we think that it is safe */
+
+#ifdef XTERMHLBUG
+# include "fp.h"
+#endif
+
+static void
+hl_mode(hl_setting, startx, starty, endx, endy)
+int	hl_setting, startx, starty, endx, endy;
+{
+	static const char	hl_fmt[] = "\033[%d;%d;%d;%d;%dT";
+	char	buf[sizeof(hl_fmt) + 4*(5-2)];
+	
+	swritef(buf, sizeof(buf), hl_fmt, hl_setting, startx, starty, endx, endy);
+	putpad(buf, 1);
+#ifdef XTERMHLBUG
+	scr_putchar('\0');
+#endif
+}
+
 private bool
 MouseParams(mproto)
 int	mproto;
@@ -281,25 +324,6 @@ int	mproto;
 	static int	estartx, estarty;	/* from last enable */
 
 	bool	input_good = NO;
-
-	/* Format of command to xterm to start or stop mouse hilite tracking:
-	 * ^[ [ func ; startx ; starty ; firstrow ; lastrow T
-	 *
-	 * All xterm's up until now (1997 September) have a bug whereby
-	 * the character sent after this sequence is interpreted as if
-	 * it were preceded by an ESC.  XTERMHLBUG selects the workaround:
-	 * send a DEL, which seems to be ignored whether preceded
-	 * by an ESC or not.  This fudge should be harmless even on
-	 * xterms without this bug.
-	 */
-#define XTERMHLBUG	1
-
-#ifdef XTERMHLBUG
-	static const char	hl_fmt[] = "\033[%d;%d;%d;%d;%dT\177";
-#else
-	static const char	hl_fmt[] = "\033[%d;%d;%d;%d;%dT";
-#endif
-	char	buf[sizeof(hl_fmt) + 10];
 
 	/* This switch reads and decodes the control sequence.
 	 * - input_good is set to YES if the sequence looks valid.
@@ -455,8 +479,7 @@ int	mproto;
 	if (!input_good) {
 		if (XtermProto(mproto) && but_state == (JT_LEFT | JT_DOWNEVENT)) {
 			/* abort Hilite mode to prevent hangups */
-			swritef(buf, sizeof(buf), hl_fmt, 0,1,1,1,1);
-			putpad(buf, 1);
+			hl_mode(0,1,1,1,1);
 		}
 		complain("[mouse input of wrong format]");
 	}
@@ -472,8 +495,7 @@ int	mproto;
 	|| (up_expected == YES && last_cmd != MOUSE_CMD)) {
 		if (XtermProto(mproto) && but_state == (JT_LEFT | JT_DOWNEVENT)) {
 			/* abort Hilite mode to prevent hangups */
-			swritef(buf, sizeof(buf), hl_fmt, 0,1,1,1,1);
-			putpad(buf, 1);
+			hl_mode(0,1,1,1,1);
 		}
 		up_expected = NO;	/* resynch in neutral */
 		complain("[Mouse events out of order]");
@@ -520,13 +542,11 @@ int	mproto;
 
 			if (use_hilite)
 				up_expected = -1;	/* half-expect an up */
-			swritef(buf, sizeof(buf), hl_fmt,
-				use_hilite,
+			hl_mode(use_hilite,
 				(estartx = x_coord)+1,
 				(estarty = y_coord)+1,
 				y_coord + wind_pos - curwind->w_height + 2,
 				y_coord + wind_pos + 1);
-			putpad(buf, 1);
 		}
 	} else if (!mode_mode) {
 		/* can only stay within the window, and cannot switch into modeline */

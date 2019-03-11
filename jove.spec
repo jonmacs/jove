@@ -5,7 +5,7 @@
 # For example, macros are expanded even in comments!
 
 # This version number must be kept in sync with version.h.
-%define jversion 4.16.0.64
+%define jversion 4.16.0.65
 
 # configflags: flags passed to each make to configure for LINUX.
 # The choices are explained in Makefile and sysdep.doc.
@@ -22,11 +22,11 @@
 # See <http://bugs.mandrakelinux.com/query.php?bug=233>
 
 # Older Red Hat (eg. 5.2):
-#define configflags -C jove%{jversion} SYSDEFS="-DBSDPOSIX -DJLGBUFSIZ=12 -DIPROC_TERM='\\"TERM=vanilla\\"'" TROFF=groff TROFFPOST=""
+#define configflags -C jove%{jversion} SYSDEFS="-DBSDPOSIX -DIPROC_TERM='\\"TERM=vanilla\\"'" TROFF=groff TROFFPOST=""
 # Recent Red Hat (eg. 6.0 - Fedora Core 1):
-%define configflags -C jove%{jversion} SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500 -DJLGBUFSIZ=12 -DIPROC_TERM='\\"TERM=vanilla\\"'" TROFF=groff TROFFPOST=""
+%define configflags -C jove%{jversion} SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500 -DIPROC_TERM='\\"TERM=vanilla\\"'" TROFF=groff TROFFPOST=""
 # To use libcurses instead of termcap (eg. Mandrake 9.2):
-#define configflags -C jove%{jversion} SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500 -DJLGBUFSIZ=12 -DIPROC_TERM='\\"TERM=vanilla\\"'" TERMCAPLIB="-lncurses" TROFF=groff TROFFPOST=""
+#define configflags -C jove%{jversion} SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500 -DIPROC_TERM='\\"TERM=vanilla\\"'" TERMCAPLIB="-lncurses" TROFF=groff TROFFPOST=""
 
 Summary: Jonathan's Own Version of Emacs
 Name: jove
