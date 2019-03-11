@@ -6,7 +6,7 @@
  ************************************************************************/
 
 #define CTL(c)		((c) & 037)
-#define META(c)		((c) | 0200)
+#define METABIT		0200
 #define DEL		'\177'
 #define LF		CTL('J')
 #define CR		CTL('M')

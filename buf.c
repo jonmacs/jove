@@ -551,10 +551,10 @@ int	flags;
 	if ((flags & DS_REUSE) == 0) {
 		if (stat(fnamebuf, &stbuf) < 0) {
 			stbuf.st_mode = S_IFREG;
-	#ifdef USE_INO
+#ifdef USE_INO
 			stbuf.st_ino = 0;	/* impossible number */
 			stbuf.st_dev = 0;
-	#endif
+#endif
 			stbuf.st_mtime = 0;
 		}
 		was_dir = (stbuf.st_mode & S_IFMT) == S_IFDIR;

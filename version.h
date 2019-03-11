@@ -5,5 +5,5 @@
  * included in all the files.                                           *
  ************************************************************************/
 
-#define	jversion     "4.16.0.31" /* 1998 September 22 */
-#define	jversion_lnum 4,16,0,31  /* list-of-numbers form for Win32 jjove.rc */
+#define	jversion     "4.16.0.34" /* 1999 August 6 */
+#define	jversion_lnum 4,16,0,34  /* list-of-numbers form for Win32 jjove.rc */
