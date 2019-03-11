@@ -32,8 +32,8 @@
 
 private Process	*procs = 0;
 
-int	global_fd = 1,
-	NumProcs = 0;
+long	global_fd = 1;
+int	NumProcs = 0;
 
 #ifdef BRLUNIX
 	extern struct sg_brl sg1;
@@ -100,23 +100,17 @@ register int	fd;
 	}
 
 	n = read(fd, ibuf, sizeof(ibuf) - 1);
-	/* NOTE: This read somethings returns -1 when it's the first time
-	   we're reading the socket.  Errno was set to I/O error or something
-	   bizarre like that.  So, I'm choosing to ignore this.  I ignored
-	   it before, and what happened was random text was being inserted
-	   at the beginning of the buffer because the ibuf[n] = '\0' wasn't
- 	   working right (ibuf[-1] = '\0'). */
-	if (n == -1 && errno == EIO)
-		return;
-	if (n <= 0) {
-		if (n == 0) {
-			makedead(p);
-			return;
-		}
-		sprintf(ibuf, "\n[pty read error: %d]\n", errno);
-		n = strlen(ibuf);
+	if (n == -1 && errno == EIO) {
+		proc_close(p);
+		makedead(p);
 	}
-	ibuf[n] = '\0';
+	if (n <= 0) {
+		if (n == 0)
+			strcpy(ibuf, "[Process EOF]");
+		else
+			sprintf(ibuf, "\n[pty read error: %d]\n", errno);
+	} else
+		ibuf[n] = '\0';
 	proc_rec(p, ibuf);
 }
 
@@ -176,10 +170,14 @@ send_p(c)
 char	c;
 {
 	Process	*p;
+	char	buf[2];
 
 	if ((p = curbuf->b_process) == 0)
 		complain("[No process]");
 	ToLast();
+	buf[0] = c;
+	buf[1] = '\0';
+	proc_rec(p, buf);
 	(void) write(p->p_fd, &c, 1);
 }
 
@@ -187,8 +185,12 @@ private
 proc_close(p)
 Process *p;
 {
-	(void) close(p->p_fd);
-	global_fd &= ~(1 << p->p_fd);
+	if (p->p_fd >= 0) {
+		(void) close(p->p_fd);
+		global_fd &= ~(1L << p->p_fd);
+		NumProcs -= 1;
+		p->p_fd = -1;
+	}
 }
 
 do_rtp(mp)
@@ -200,6 +202,7 @@ register Mark	*mp;
 	int	char1 = curchar,
 		char2 = mp->m_char;
 	char	*gp;
+	int	nbytes;
 
 	if (isdead(p) || p->p_buffer != curbuf)
 		return;
@@ -211,13 +214,14 @@ register Mark	*mp;
 			gp[char2] = '\0';
 		else
 			strcat(gp, "\n");
-		(void) write(p->p_fd, gp, strlen(gp));
+		if (nbytes = strlen(gp))
+			(void) write(p->p_fd, gp, nbytes);
 		line1 = line1->l_next;
 		char1 = 0;
 	}
 }
 
-/* VARARGS3 */
+/* VARARGS2 */
 
 private
 proc_strt(bufname, clobber, va_alist)
@@ -232,9 +236,9 @@ va_dcl
 	Process	*newp;
 	Buffer 	*newbuf;
 	int	i,
-		f,
-		ttyfd;
-	long 	ldisc,
+		ptyfd,
+		ttyfd,
+	 	ldisc,
 		lmode;
 	register char	*s,
 			*t;
@@ -262,7 +266,7 @@ va_dcl
 	for (s = "pqrs"; *s; s++) {
 		for (t = "0123456789abcdef"; *t; t++) {
 			sprintf(ptybuf, "/dev/pty%c%c", *s, *t);
-			if ((ttyfd = open(ptybuf, 2)) >= 0) {
+			if ((ptyfd = open(ptybuf, 2)) >= 0) {
 				strcpy(ttybuf, ptybuf);
 				ttybuf[5] = 't';
 				/* make sure both ends are available */
@@ -288,15 +292,23 @@ out:	if (s == 0 && t == 0)
 #else
 #  ifdef BTL_BLIT
 	(void) ioctl(0, JWINSIZE, (struct sgttyb *) &jwin);
-#  endif BTL_BLIT
+#  endif /* BTL_BLIT */
 #endif
 
+	sighold(SIGCHLD);
+#ifdef SIGWINCH
+	sighold(SIGWINCH);
+#endif
 	switch (pid = fork()) {
 	case -1:
-		(void) close(ttyfd);
+		(void) close(ptyfd);
 		complain("[Fork failed!]");
 
 	case 0:
+		sigrelse(SIGCHLD);
+#ifdef SIGWINCH
+		sigrelse(SIGWINCH);
+#endif
 		for (i = 0; i < 32; i++)
 			(void) close(i);
 
@@ -306,9 +318,10 @@ out:	if (s == 0 && t == 0)
 			(void) close(i);
 		}
 #endif
-		i = open(ttybuf, 2);
-		for (f = 0; f <= 2; f++)
-			(void) dup2(i, f);
+		if ((ttyfd = open(ttybuf, 2)) < 0)
+			exit(-1);
+		(void) dup2(ttyfd, 1);
+		(void) dup2(ttyfd, 2);
 
 #ifdef TIOCSETD
 		(void) ioctl(0, TIOCSETD, (struct sgttyb *) &ldisc);
@@ -351,13 +364,17 @@ out:	if (s == 0 && t == 0)
 		_exit(errno + 1);
 	}
 
-	sighold(SIGCHLD);
-#ifdef SIGWINCH
-	sighold(SIGWINCH);
-#endif
 	newp = (Process *) emalloc(sizeof *newp);
 
-	newp->p_fd = ttyfd;
+	newp->p_fd = ptyfd;
+/*	{
+		extern int	errno;
+		int	on = YES;
+
+		if (ioctl(ptyfd, TIOCREMOTE, &on) < 0)
+			s_mess("[ioctl: TIOCREMOTE -- errno %d]", errno);
+	} */
+
 	newp->p_pid = pid;
 
 	newbuf = do_select((Window *) 0, bufname);
@@ -385,10 +402,14 @@ out:	if (s == 0 && t == 0)
 
 	newp->p_next = procs;
 	procs = newp;
-	NumProcs++;
-	global_fd |= 1 << newp->p_fd;
-	sigrelse(SIGCHLD);
+	NumProcs += 1;
+	global_fd |= 1L << newp->p_fd;
 	SetWind(owind);
+
+	sigrelse(SIGCHLD);
+#ifdef SIGWINCH
+	sigrelse(SIGWINCH);
+#endif
 }
 	
 pinit()

@@ -6,10 +6,16 @@
  ************************************************************************/
 
 #include "jove.h"
+#ifdef MSDOS
+#include <dos.h>
+#else
 #include <sys/stat.h>
 #include <sys/dir.h>
+#endif
 
 #ifdef F_COMPLETION
+
+#ifndef MSDOS
 
 #ifdef BSD4_2
 
@@ -17,7 +23,7 @@
 
 #else
 
-#define DIRSIZE(entry)	(min(strlen(entry->d_name), DIRSIZ))
+#define DIRSIZE(entry)	(entry->d_name[DIRSIZ-1]=='\0' ? strlen(entry->d_name) : DIRSIZ)
 
 typedef struct {
 	int	d_fd;		/* File descriptor for this directory */
@@ -55,12 +61,20 @@ DIR	*dp;
 	do
 		if (read(dp->d_fd, &dir, sizeof dir) != sizeof dir)
 			return 0;
+#if defined(elxsi) && defined(SYSV)
+	/*
+	 * Elxsi has a BSD4.2 implementation which may or may not use
+	 * `twisted inodes' ...  Anyone able to check?
+	 */
+	while (*(unsigned short *)&dir.d_ino == 0);
+#else
 	while (dir.d_ino == 0);
+#endif
 
 	return &dir;
 }
 
-#endif BSD4_2
+#endif /* BSD4_2 */
 
 /* Scandir returns the number of entries or -1 if the directory cannoot
    be opened or malloc fails. */
@@ -91,7 +105,7 @@ memfail:	complain("[Malloc failed: cannot scandir]");
 		}
 		ourarray[nentries] = (char *) malloc(DIRSIZE(entry) + 1);
 		null_ncpy(ourarray[nentries], entry->d_name, (int) DIRSIZE(entry));
-		nentries++;
+		nentries += 1;
 	}
 	closedir(dirp);
 	if ((nentries + 1) != nalloc)
@@ -104,6 +118,88 @@ memfail:	complain("[Malloc failed: cannot scandir]");
 
 	return nentries;
 }
+
+#else /* MSDOS */
+
+#define	DIRSIZ	13
+#define DIRSIZE(entry)	strlen(entry.d_name)
+
+
+/*
+ *	Structure returned by search calls
+ */
+struct	direct
+{
+	char	rsvd[21];		/* reserved for dos */
+	char	d_attr;			/* file attribute */
+	long	d_time;			/* modified time */
+	long	d_size;			/* file size */
+	char	d_name[DIRSIZ];		/* directory entry name */
+};
+
+/* Scandir returns the number of entries or -1 if the directory cannoot
+   be opened or malloc fails. */
+
+scandir(dir, nmptr, qualify, sorter)
+char	*dir;
+char	***nmptr;
+int	(*qualify)();
+int	(*sorter)();
+{
+	char dirname[FILESIZE];
+	union REGS r;
+	struct direct entry;
+	char *ptr;
+	char	**ourarray;
+	unsigned int	nalloc = 10,
+			nentries = 0;
+
+	strcpy(dirname, dir);
+	ptr = &dirname[strlen(dirname)-1];
+	if ((dirname[1] == ':' && !dirname[2]) || (*ptr == '/') || (*ptr == '\\'))
+	   strcat(dirname, "*.*");
+	else
+	   strcat(dirname, "/*.*");
+
+	r.h.ah = 0x1a;
+	r.x.dx = (unsigned int) &entry;
+	intdos(&r, &r);
+	r.h.ah = 0x4e;
+	r.x.cx = 0x1f;
+	r.x.dx = (unsigned int) dirname;
+	intdos(&r, &r);
+	
+	if (r.x.cflag)
+		return -1;
+	if ((ourarray = (char **) malloc(nalloc * sizeof (char *))) == 0)
+memfail:	complain("[Malloc failed: cannot scandir]");
+	while (r.x.cflag == 0) {
+		strlwr(entry.d_name);
+		if (qualify != (int (*)())0 && (*qualify)(entry.d_name) == 0)
+			goto skip;
+		if (nentries == nalloc) {
+			ourarray = (char **) realloc((char *) ourarray, (nalloc += 10) * sizeof (char *));
+			if (ourarray == 0)
+				goto memfail;
+		}
+		ourarray[nentries] = (char *) malloc(DIRSIZE(entry) + 1);
+		null_ncpy(ourarray[nentries], entry.d_name, (int) DIRSIZE(entry));
+		nentries++;
+skip: 	r.h.ah = 0x4f;
+		intdos(&r, &r);
+	}
+	if ((nentries + 1) != nalloc)
+		ourarray = (char **) realloc((char *) ourarray,
+					((nentries + 1) * sizeof (char *)));
+	if (sorter != (int (*)())0)
+		qsort((char *) ourarray, nentries, sizeof (char **), sorter);
+	*nmptr = ourarray;
+	ourarray[nentries] = 0;		/* guaranteed 0 pointer */
+
+	return nentries;
+}
+
+#endif /* MSDOS */
 
 freedir(nmptr, nentries)
 char	***nmptr;
@@ -122,5 +218,4 @@ char	**a,
 {
 	return strcmp(*a, *b);
 }
-
 #endif

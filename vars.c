@@ -8,11 +8,17 @@
 #include "jove.h"
 
 struct variable	variables[] = {
+	VARIABLE, "abort-char", &AbortChar, V_CHAR,
+#ifndef MSDOS
 	VARIABLE, "allow-^S-and-^Q", &OKXonXoff, V_BOOL|V_TTY_RESET,
+#endif /* MSDOS */
 	VARIABLE, "allow-bad-filenames", &OkayBadChars, V_BOOL,
 #ifdef ABBREV
 	VARIABLE, "auto-case-abbrev", &AutoCaseAbbrev, V_BOOL,
 #endif
+#ifdef IBMPC
+	VARIABLE, "background-color", &Bgcolor, V_BASE10|V_CLRSCREEN,
+#endif /* IBMPC */
 #ifdef F_COMPLETION
 	VARIABLE, "bad-filename-extensions", (int *) BadExtensions, V_STRING,
 #endif
@@ -28,10 +34,15 @@ struct variable	variables[] = {
 	VARIABLE, "expand-environment-variables", &DoEVexpand, V_BOOL,
 	VARIABLE, "file-creation-mode", &CreatMode, V_BASE8,
 	VARIABLE, "files-should-end-with-newline", &EndWNewline, V_BOOL,
+#ifdef IBMPC
+	VARIABLE, "foreground-color", &Fgcolor, V_BASE10|V_CLRSCREEN,
+#endif /* IBMPC */
 	VARIABLE, "internal-tabstop", &tabstop, V_BASE10|V_CLRSCREEN,
 	VARIABLE, "left-margin", &LMargin, V_BASE10,
+#ifndef MSDOS
 	VARIABLE, "mailbox", (int *) Mailbox, V_FILENAME,
 	VARIABLE, "mail-check-frequency", (int *) &MailInt, V_BASE10,
+#endif /* MSDOS */
 #ifdef BACKUPFILES
 	VARIABLE, "make-backup-files", &BkupOnWrite, V_BOOL,
 #endif
@@ -53,10 +64,14 @@ struct variable	variables[] = {
 	VARIABLE, "send-typeout-to-buffer", &UseBuffers, V_BOOL,
 	VARIABLE, "shell", (int *) Shell, V_STRING,
 	VARIABLE, "shell-flags", (int *) ShFlags, V_STRING,
+#ifndef MSDOS
 	VARIABLE, "sync-frequency", &SyncFreq, V_BASE10,
+#endif /* MSDOS */
 	VARIABLE, "tag-file", (int *) TagFile, V_FILENAME,
 	VARIABLE, "tmp-file-pathname", (int *) TmpFilePath, V_FILENAME,
+#ifndef MSDOS
 	VARIABLE, "update-time-frequency", &UpdFreq, V_BASE10,
+#endif /* MSDOS */
 #ifdef ID_CHAR
 	VARIABLE, "use-i/d-char", &UseIC, V_BOOL,
 #endif

@@ -13,7 +13,6 @@ static int	line_pos;
 f_char(n)
 register int	n;
 {
-
 	if (n < 0) {
 		b_char(-n);
 		return;
@@ -24,14 +23,13 @@ register int	n;
 				break;
 			SetLine(curline->l_next);
 		} else
-			curchar++;
+			curchar += 1;
 	}
 }
 
 b_char(n)
 register int	n;
 {
-
 	if (n < 0) {
 		f_char(-n);
 		return;
@@ -43,7 +41,7 @@ register int	n;
 			SetLine(curline->l_prev);
 			Eol();
 		} else
-			--curchar;
+			curchar -= 1;
 	}
 }
 
@@ -115,8 +113,8 @@ Line	*line;
 		else if (isctrl(c))
 			pos += 2;
 		else
-			pos++;
-		lp++;
+			pos += 1;
+		lp += 1;
 	}
 
 	return lp - base;
@@ -185,7 +183,7 @@ to_sent(dir)
 
 		curchar = REbom + 1;	/* Just after the [?.!] */
 		if (LookingAt("[\")]  *\\|[\")]$", linebuf, curchar))
-			curchar++;
+			curchar += 1;
 		else if (!eolp() && !LookingAt("  *", linebuf, curchar))
 			to_sent(dir);
 	}
@@ -229,7 +227,6 @@ f_word(num)
 register int	num;
 {
 	register char	c;
-
 	if (num < 0) {
 		b_word(-num);
 		return;
@@ -237,7 +234,7 @@ register int	num;
 	while (--num >= 0) {
 		to_word(FORWARD);
 		while ((c = linebuf[curchar]) != 0 && isword(c))
-			curchar++;
+			curchar += 1;
 		if (eobp())
 			break;
 	}
@@ -256,7 +253,7 @@ register int	num;
 	while (--num >= 0) {
 		to_word(BACKWARD);
 		while (!bolp() && (c = linebuf[curchar - 1], isword(c)))
-			--curchar;
+			curchar -= 1;
 		if (bobp())
 			break;
 	}
@@ -272,4 +269,3 @@ BackWord()
 {
 	b_word(arg_value());
 }
-

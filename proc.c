@@ -370,7 +370,7 @@ char	*bname;
 	ShowErr();
 }
 
-#endif SPELL
+#endif /* SPELL */
 
 ShToBuf()
 {
@@ -419,6 +419,7 @@ char	*cmd;
 	add_mess("]");
 }
 
+#ifndef MSDOS
 dowait(pid, status)
 int	pid,
 	*status;
@@ -441,7 +442,7 @@ int	pid,
 	int	rpid;
 
 	for (;;) {
-#ifndef VMUNIX
+#ifndef BSD4_2
 		rpid = wait2(&w.w_status, 0);
 #else
 		rpid = wait3(&w, 0, (struct rusage *) 0);
@@ -453,23 +454,31 @@ int	pid,
 		} else
 			kill_off(rpid, w);
 	}
-#endif IPROCS
+#endif /* IPROCS */
 }
 
+#endif /* MSDOS */
 /* Run the command to bufname, erase the buffer if clobber is non-zero,
    and redisplay if disp is non-zero.  Leaves current buffer in `bufname'
    and leaves any windows it creates lying around.  It's up to the caller
    to fix everything up after we're done.  (Usually there's nothing to
    fix up.) */
 
-/* VARARGS4 */
+/* VARARGS5 */
 
 UnixToBuf(bufname, disp, wsize, clobber, va_alist)
 char	*bufname;
 va_dcl
 {
+#ifndef MSDOS
 	int	p[2],
 		pid,
+#else /* MSDOS */
+	int	p0,
+		oldo,
+		olde,
+		retcode,
+#endif /* MSDOS */
 		eof,
 		status;
 	va_list	ap;
@@ -506,6 +515,7 @@ va_dcl
 	   little while longer before trying again.  Now that is fixed,
 	   in that you just have to type it twice. */
 
+#ifndef MSDOS
 #ifdef IPROCS
 	sighold(SIGCHLD);
 #endif
@@ -523,7 +533,7 @@ va_dcl
 	if (pid == 0) {
 #ifdef IPROCS
 		sigrelse(SIGCHLD);   /* don't know if this matters */
-#endif IPROCS
+#endif /* IPROCS */
 		(void) signal(SIGINT, SIG_DFL);
 #ifdef JOB_CONTROL
 		sigrelse(SIGINT);
@@ -544,6 +554,31 @@ va_dcl
 #endif	
 	(void) close(p[1]);
 	fp = fd_open(argv[1], F_READ, p[0], iobuff, LBSIZE);
+#else /* MSDOS */
+	if ((p0 = openforpipe()) < 0)
+	   complain("cannot make pipe for filter");
+
+	oldo = dup(1);
+	olde = dup(2);
+	close(1);
+	close(2);
+	dup(p0);
+	dup(1);
+	close(p0);
+	retcode = spawnv(0, argv[0], &argv[1]);
+	p0 = reopenforpipe();
+	close(1);
+	close(2);
+	dup(oldo);
+	dup(olde);
+	close(oldo);
+	close(olde);
+
+	if (retcode < 0)
+		complain("[Spawn failed]");
+
+	fp = fd_open(argv[1], F_READ, p0, iobuff, LBSIZE);
+#endif /* MSDOS */
 	do {
 		inIOread = 1;
  		eof = f_gets(fp, genbuf, LBSIZE);
@@ -566,7 +601,7 @@ va_dcl
 		    }
 #else
 			mess = "Chugging along...";
-#endif LOAD_AV
+#endif /* LOAD_AV */
 			message(mess);
 			redisplay();
 		}
@@ -574,33 +609,47 @@ va_dcl
 	if (disp)
 		DrawMesg(NO);
 	close_file(fp);
+#ifndef MSDOS
 	dowait(pid, &status);
 #ifdef JOB_CONTROL
 	(void) sigrelse(SIGINT);
 #endif
+#else /* MSDOS */
+	closepipe();
+#endif /* MSDOS */
 	(void) signal(SIGINT, old_int);
+#ifndef MSDOS
 #ifdef IPROCS
 	sigrelse(SIGCHLD);
 #endif
 	return status;
+#else /* MSDOS */
+	return retcode;
+#endif /* MSDOS */
 }
 
+#ifndef MSDOS
 #ifdef BSD4_2
 
-private int	SigMask = 0;
+private long	SigMask = 0;
+
+#ifndef sigmask
+#	define	sigmask(s)	(1L << ((s)-1))
+#endif
 
 sighold(sig)
 {
-	(void) sigblock(SigMask |= (1 << (sig - 1)));
+	(void) sigblock(SigMask |= sigmask(sig));
 }
 
 sigrelse(sig)
 {
-	(void) sigsetmask(SigMask &= ~(1 << (sig - 1)));
+	(void) sigsetmask(SigMask &= ~sigmask(sig));
 }
 
 #endif
 
+#endif /* MSDOS */
 FilterRegion()
 {
 	char	*cmd = ask((char *) 0, ": %f (through command) ", ProcFmt);
@@ -616,28 +665,64 @@ Buffer	*outbuf;
 char	*cmd;
 {
 	Mark	*m = CurMark();
+#ifndef MSDOS
 	char	*tname = mktemp("/tmp/jfilterXXXXXX"),
 		combuf[128];
+#endif /* MSDOS */
 	Window	*save_wind = curwind;
 	int	status,
 		error = NO;
+#ifdef MSDOS
+	int p0, oldi;
+#endif /* MSDOS */
 	File	*fp;
 
+#ifndef MSDOS
 	fp = open_file(tname, iobuff, F_WRITE, COMPLAIN, QUIET);
+#else /* MSDOS */
+	p0 = openforpipe();
+#endif /* MSDOS */
     CATCH
+#ifdef MSDOS
+	fp = fd_open(cmd, F_WRITE, p0, iobuff, LBSIZE);
+#endif /* MSDOS */
 	putreg(fp, m->m_line, m->m_char, curline, curchar, YES);
 	DelReg();
+#ifndef MSDOS
 	sprintf(combuf, "%s < %s", cmd, tname);
+#else /* MSDOS */
+	f_close(fp);
+	p0 = reopenforpipe();
+    oldi = dup(0);
+	close(0);
+	dup(p0);
+	close(p0);
+#endif /* MSDOS */
 	status = UnixToBuf(outbuf->b_name, NO, 0, outbuf->b_type == B_SCRATCH,
+#ifndef MSDOS
 			   Shell, ShFlags, combuf, (char *) 0);
+#else /* MSDOS */
+			   Shell, ShFlags, cmd, (char *) 0);
+#endif /* MSDOS */
     ONERROR
 	error = YES;
     ENDCATCH
+#ifndef MSDOS
 	f_close(fp);
 	(void) unlink(tname);
+#else /* MSDOS */
+	close(0);
+	open("con", 0);	/* dup(oldi);	*/
+	close(oldi);
+	closepipe();
+#endif /* MSDOS */
 	SetWind(save_wind);
 	if (error == NO)
+#ifndef MSDOS
 		com_finish(status, combuf);
+#else
+		com_finish(status, cmd);
+#endif
 }
 
 isprocbuf(bufname)
@@ -648,3 +733,56 @@ char	*bufname;
 	if ((bp = buf_exists(bufname)) != 0 && bp->b_type != B_PROCESS)
 		confirm("Over-write buffer %s?", bufname);
 }
+
+#ifdef MSDOS
+/*	msdos specific hacks to allow for pipes */
+
+#include <dos.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+
+static char pipeiname[64];
+static char pipeoname[64];
+static int  pipehandle;
+
+extern char TmpFilePath[];
+
+openforpipe()
+{
+   char *x;
+   char *strend();
+   
+   sprintf(pipeiname, "%s/%s", TmpFilePath, "Jove-I");
+   sprintf(pipeoname, "%s/%s", TmpFilePath, "Jove-O");
+
+   return(pipehandle = creat(pipeoname, S_IWRITE|S_IREAD));
+}
+
+reopenforpipe()
+{		       
+   close(pipehandle);
+   unlink(pipeiname);
+   rename(pipeoname, pipeiname);
+   if ((pipehandle = open(pipeiname, 0)) >= 0)
+      return(pipehandle);
+   closepipe();
+   return(-1);
+}
+
+closepipe()
+{	 
+   unlink(pipeoname);
+   unlink(pipeiname);
+}
+         
+char switchar()
+{
+  union REGS regs;
+  
+  regs.h.ah = 0x37;
+  regs.h.al = 0;   
+  intdos(&regs, &regs);
+  return(regs.h.dl);
+}
+#endif /* MSDOS */

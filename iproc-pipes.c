@@ -82,12 +82,12 @@ procs_read()
 	} header;
 	int	n;
 	long	nbytes;
-	static int	here = 0;
+	static int	here = NO;
 
 	if (here)	
 		return;
 	sighold(SIGCHLD);	/* Block any other children. */
-	here++;
+	here = YES;
 	for (;;) {
 		(void) ioctl(ProcInput, FIONREAD, (struct sgttyb *) &nbytes);
 		if (nbytes < sizeof header)
@@ -97,7 +97,7 @@ procs_read()
 			finish(1);
 		read_proc(header.pid, header.nbytes);
 	}
-	here = 0;
+	here = NO;
 	sigrelse(SIGCHLD);
 }
 
@@ -123,9 +123,10 @@ register int	nbytes;
 		p->p_state = RUNNING;
 	}
 
-	if (nbytes == EOF) {		/* Okay to clean up this process */
+	if (nbytes == EOF) {		/* okay to clean up this process */
 		proc_close(p);
-		NumProcs--;	/* As far as getch() in main is concerned */
+		makedead(p);
+		proc_rec(p, "[Process Eof]");
 		return;
 	}
 
@@ -157,8 +158,11 @@ private
 proc_close(p)
 Process	*p;
 {
-	(void) close(p->p_toproc);
-	p->p_toproc = -1;	/* writes will fail */
+	if (p->p_toproc >= 0) {
+		(void) close(p->p_toproc);
+		p->p_toproc = -1;	/* writes will fail */
+		NumProcs -= 1;
+	}
 }
 
 do_rtp(mp)
@@ -262,7 +266,7 @@ va_dcl
 
 	newp->p_toproc = toproc[1];
 	newp->p_reason = 0;
-	NumProcs++;
+	NumProcs += 1;
 	(void) close(toproc[0]);
 	sigrelse(SIGCHLD);
 	SetWind(owind);

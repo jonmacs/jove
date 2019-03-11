@@ -25,6 +25,7 @@ extern int	SyntaxTable;
 #define	isdigit(c)	((CharTable[SyntaxTable])[c]&_N)
 #define	isspace(c)	(c == ' ' || c == '\t')
 #define ispunct(c)	((CharTable[SyntaxTable])[c]&_P)
+#ifndef IBMPC
 #define toupper(c)	((c)&~040)
 #define tolower(c)	((c)|040)
 #define toascii(c)	((c)&0177)
@@ -32,6 +33,15 @@ extern int	SyntaxTable;
 #define isopenp(c)	((CharTable[0][c&0177])&_Op)
 #define isclosep(c)	((CharTable[0][c&0177])&_Cl)
 #define has_syntax(c,s)	((CharTable[SyntaxTable][c&0177])&s)
+#else /* IBMPC */
+#define toupper(c)	(CaseEquiv[c])
+/* #define tolower(c)	((c)|040)	*/
+#define toascii(c)	((c))
+#define isctrl(c)	((CharTable[0][c])&_C)
+#define isopenp(c)	((CharTable[0][c])&_Op)
+#define isclosep(c)	((CharTable[0][c])&_Cl)
+#define has_syntax(c,s)	((CharTable[SyntaxTable][c])&s)
+#endif /* IBMPC */
 #define WITH_TABLE(x) \
 { \
 	int	push = SyntaxTable; \

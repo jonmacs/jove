@@ -131,7 +131,7 @@ toolong:		complain("Search string too long/complex.");
 			    		comp_len = comp_p++;
 			    		comp_val = do_comp(IN_CB);
 			    		*comp_len = comp_p - comp_len;
-			    		(*wcntp)++;
+			    		(*wcntp) += 1;
 			    		if (comp_val == 0)
 			    			break;
 			    	}
@@ -239,11 +239,11 @@ toolong:		complain("Search string too long/complex.");
 					c2 = REgetc();
 					while (c < c2) {
 						comp_p[c/8] |= (1 << (c%8));
-						c++;
+						c += 1;
 					}
 				}
 				comp_p[c/8] |= (1 << (c%8));
-		    		chrcnt++;
+		    		chrcnt += 1;
 		    	}
 		    	if (c == 0)
 		    		complain("Missing ].");
@@ -260,7 +260,7 @@ toolong:		complain("Search string too long/complex.");
 				char	lastc = chr_cnt[*chr_cnt];
 
 				comp_p = chr_cnt + *chr_cnt;
-				(*chr_cnt)--;
+				(*chr_cnt) -= 1;
 				*comp_p++ = chr_cnt[-1] | STAR;
 				*comp_p++ = lastc;
 			} else
@@ -269,7 +269,7 @@ toolong:		complain("Search string too long/complex.");
 
 		default:
 defchar:		if (chr_cnt)
-				(*chr_cnt)++;	/* increment the count */
+				(*chr_cnt) += 1;
 			else {
 				*comp_p++ = (CaseIgnore) ? CINDC : NORMC;
 				chr_cnt = comp_p++;
@@ -440,14 +440,14 @@ register char	*linep,
 		first_p = linep;
 		while (*comp_p == *linep++)
 			;
-		comp_p++;
+		comp_p += 1;
 		goto star;
 
 	case CINDC | STAR:
 		first_p = linep;
 		while (cind_cmp(*comp_p, *linep++))
 			;
-		comp_p++;
+		comp_p += 1;
 		goto star;
 
 	case ONE_OF | STAR:
@@ -471,7 +471,7 @@ register char	*linep,
 		continue;
 
 star:		do {
-			linep--;
+			linep -= 1;
 			if (linep < locs)
 				break;
 			if (REmatch(linep, comp_p))
@@ -560,7 +560,7 @@ char	*expr,
 				REbom = loc1 - REbolp;
 				return 1;
 			}
-			REalt_num++;
+			REalt_num += 1;
 		}
 	    } while (*locs++);
 	} else {
@@ -587,7 +587,7 @@ char	*expr,
 				REbom = loc1 - REbolp;
 				return 1;
 			}
-			REalt_num++;
+			REalt_num += 1;
 		}
 	    } while (--locs >= resp);
 	}
@@ -621,7 +621,7 @@ char	*expr,
 	static Bufpos	ret;
 	register Line	*lp;
 	register int	offset;
-	int	we_wrapped = 0;
+	int	we_wrapped = NO;
 
 	lsave();
 	/* Search now lsave()'s so it doesn't make any assumptions on
@@ -644,7 +644,7 @@ char	*expr,
 			lp = lp->l_prev;
 			offset = strlen(lbptr(lp));
 		} else
-			--offset;
+			offset -= 1;
 	} else if ((dir == FORWARD) &&
 		   (lbptr(lp)[offset] == '\0') &&
 		   !lastp(lp)) {
@@ -660,7 +660,7 @@ doit:		lp = (dir == FORWARD) ? lp->l_next : lp->l_prev;
 			if (okay_wrap && WrapScan) {
 				lp = (dir == FORWARD) ?
 				     curbuf->b_first : curbuf->b_last;
-				we_wrapped++;
+				we_wrapped = YES;
 			} else
 				 break;
 		}

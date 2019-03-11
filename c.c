@@ -19,7 +19,7 @@ register int	cpos;
 	register int	cnt = 0;
 
 	while (cpos > 0 && lp[--cpos] == '\\')
-		cnt++;
+		cnt += 1;
 	return (cnt % 2);
 }
 
@@ -75,7 +75,7 @@ register int	dir;
 		*cp,
 		quote_c = 0;
 	register int	c_char;
-	int	in_comment = NO,
+	int	in_comment = -1,
 		stopped = NO;
 
 	sprintf(re_str, "[(){}[\\]%s]", (MajorMode(CMODE)) ? "/\"'" : "\"");
@@ -97,23 +97,39 @@ register int	dir;
 			break;
 		lp = lbptr(sp->p_line);
 
+		if (sp->p_line != curline)
+			/* let's assume that strings do NOT go over line
+			   bounderies (for now don't check for wrapping
+ 			   strings) */
+			quote_c = 0;
 		curline = sp->p_line;
 		curchar = sp->p_char;	/* here's where I cheat */
 		c_char = curchar;
 		if (dir == FORWARD)
-			c_char--;
-
+			c_char -= 1;
 		if (backslashed(lp, c_char))
 			continue;
 		c = lp[c_char];
 		/* check if this is a comment (if we're not inside quotes) */
 		if (quote_c == 0 && c == '/') {
-			if ((c_char != 0) && lp[c_char - 1] == '*')
-				in_comment = (dir == FORWARD) ? NO : YES;
-			else if (lp[c_char + 1] == '*')
-				in_comment = (dir == FORWARD) ? YES : NO;
+			int	new_ic;
+
+			if ((c_char != 0) && lp[c_char - 1] == '*') {
+				new_ic = (dir == FORWARD) ? NO : YES;
+				if (new_ic == NO && in_comment == -1) {
+					count = 0;
+					quote_c = 0;
+				}
+			} else if (lp[c_char + 1] == '*') {
+				new_ic = (dir == FORWARD) ? YES : NO;
+				if (new_ic == NO && in_comment == -1) {
+					count = 0;
+					quote_c = 0;
+				}
+			}
+			in_comment = new_ic;
 		}
-		if (in_comment)
+		if (in_comment == YES)
 			continue;
 		if (c == '"' || c == '\'') {
 			if (quote_c == c)
@@ -331,14 +347,14 @@ char	*from,
 
 	while (c = *fr_p) {
 		if (c == ' ' || c == '\t' || c == '\r')
-			fr_p++;
+			fr_p += 1;
 		else
 			break;
 	}
 	while (c = *fr_p) {
 		if (c != '\r')
 			*to_p++ = c;
-		fr_p++;
+		fr_p += 1;
 	}
 	while (--to_p >= to)
 		if (*to_p != ' ' && *to_p != '\t')
@@ -397,7 +413,7 @@ char	*str;
 			break;
 		case '!':
 		case 'c':
-			newlines++;
+			newlines += 1;
 			*body_p++ = '\0';
 			body_p = *++c_body;
 			break;
@@ -421,7 +437,7 @@ char	*format;
 {
 	int	saveRMargin,
 		indent_pos,
-		close_at_dot = 0,
+		close_at_dot = NO,
 		slen,
 		header_len,
 		trailer_len;
@@ -467,13 +483,12 @@ char	*format;
 
 	if (match_o == (Bufpos *) 0) {
 		if (match_c == (Bufpos *) 0)
-			close_at_dot++;
+			close_at_dot = YES;
 	} else if (match_c == (Bufpos *) 0)
-		close_at_dot++;
+		close_at_dot = YES;
 	else if (inorder(match_o->p_line, match_o->p_char,
 		 match_c->p_line, match_c->p_char))
-		close_at_dot++;
-
+		close_at_dot = YES;
 	if (close_at_dot) {
 		close_c_pt.p_line = curline;
 		close_c_pt.p_char = curchar;
@@ -509,7 +524,7 @@ char	*format;
 			/* Since we matched the open comment string on this
 			   line, we don't need to worry about crossing line
 			   boundaries. */
-			curchar++;
+			curchar += 1;
 	}
 	savedot = MakeMark(curline, curchar, M_FLOATER);
 
@@ -576,7 +591,8 @@ char	*format;
 	DelWtSpace();
 	/* if the addition of the close symbol would cause the line to be
 	   too long, put the close symbol on the next line. */
-	if (strlen(close_c) + calc_pos(linebuf, curchar) > RMargin) {
+	if (!(NL_IN_CLOSE_C) &&
+	  strlen(close_c) + calc_pos(linebuf, curchar) > RMargin) {
 		LineInsert(1);
 		n_indent(indent_pos);
 	}
@@ -592,5 +608,5 @@ char	*format;
 	del_char(FORWARD, 1);
 }
 
-#endif CMT_FMT
+#endif /* CMT_FMT */
 

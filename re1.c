@@ -8,10 +8,10 @@
 #include "jove.h"
 #include "io.h"
 #include "re.h"
-#include <sys/types.h>
+#include "ctype.h"
 #include <sys/stat.h>
 
-private
+private int
 substitute(query, l1, char1, l2, char2)
 Line	*l1,
 	*l2;
@@ -19,7 +19,7 @@ Line	*l1,
 	Line	*lp;
 	int	numdone = 0,
 		offset = curchar,
-		stop = 0;
+		stop = NO;
 	disk_line	UNDO_da = 0;
 	Line		*UNDO_lp = 0;
 
@@ -39,7 +39,7 @@ Line	*l1,
 reswitch:			redisplay();
 				switch (CharUpcase(getchar())) {
 				case '.':
-					stop++;
+					stop = YES;
 					/* Fall into ... */
 
 				case ' ':
@@ -55,7 +55,7 @@ reswitch:			redisplay();
 
 				case CTL('W'):
 					re_dosub(linebuf, YES);
-					numdone++;
+					numdone += 1;
 					offset = curchar = REbom;
 					makedirty(curline);
 					/* Fall into ... */
@@ -74,7 +74,7 @@ reswitch:			redisplay();
 					lp = UNDO_lp;
 					lp->l_dline = UNDO_da | DIRTY;
 					offset = 0;
-					numdone--;
+					numdone -= 1;
 					continue;
 
 				case 'P':
@@ -98,7 +98,7 @@ message("Space or Y, Period, Rubout or N, C-R or R, C-W, C-U or U, P or !, Retur
 				}
 			}
 			re_dosub(linebuf, NO);
-			numdone++;
+			numdone += 1;
 			modify();
 			offset = curchar = REeom;
 			makedirty(curline);
@@ -114,16 +114,15 @@ nxtline:			break;
 	}
 	set_mark();
 done:	s_mess("%d substitution%n.", numdone, numdone);
+
+	return numdone;
 }
 
-/* Prompt for search and replacement strings and do the substitution.  The
-   point is restored when we're done. */
-
+/* prompt for search and replacement strings and do the substitution */
 private
 replace(query, inreg)
 {
-	Mark	*save = MakeMark(curline, curchar, M_FLOATER),
-		*m;
+	Mark	*m;
 	char	*rep_ptr;
 	Line	*l1 = curline,
 		*l2 = curbuf->b_last;
@@ -148,9 +147,9 @@ replace(query, inreg)
 		rep_ptr = NullStr;
 	strcpy(rep_str, rep_ptr);
 
-	substitute(query, l1, char1, l2, char2);
-	ToMark(save);
-	DelMark(save);
+	if ((substitute(query, l1, char1, l2, char2) != 0) &&
+	    (inreg == NO))
+		do_set_mark(l1, char1);
 }
 
 RegReplace()
@@ -207,7 +206,8 @@ char	*searchbuf,
 	}
 	if (fast == YES) for (;;) {
 		off_t	mid;
-		int	whichway;
+		int	whichway,
+			chars_eq;
 
 		if (upper - lower < BUFSIZ) {
 			f_seek(fp, lower);
@@ -218,17 +218,16 @@ char	*searchbuf,
 		f_toNL(fp);
 		if (f_gets(fp, line, sizeof line) == EOF)
 			break;
-		whichway = strncmp(line, tag, taglen);
-		if (whichway < 0) {
+		chars_eq = numcomp(line, tag);
+		if (chars_eq == taglen && iswhite(line[chars_eq]))
+			goto found;
+		whichway = line[chars_eq] - tag[chars_eq];
+		if (whichway < 0) {		/* line is BEFORE tag */
 			lower = mid;
 			continue;
-		} else if (whichway > 0) {
+		} else if (whichway > 0) {	/* line is AFTER tag */
 			upper = mid;
 			continue;
-		} else {
-			if (strcmp(tag, line) == 0)	/* exact match */
-				goto found;
-			goto look_harder;
 		}
 	}
 	f_toNL(fp);
@@ -251,7 +250,7 @@ found:		if (!LookingAt(pattern, line, 0)) {
 			putmatch(1, filebuf, FILESIZE);
 			putmatch(2, searchbuf, 100);
 			success = YES;
-			if (strcmp(tag, line) == 0)	/* exact match */
+/*			if (strcmp(tag, line) == 0)	/* exact match */
 				break;
 			continue;
 		}
@@ -260,11 +259,14 @@ found:		if (!LookingAt(pattern, line, 0)) {
 		
 	if (success == NO)
 		s_mess("Can't find tag \"%s\".", tag);
-
 	return success;
 }
 
+#ifndef MSDOS
 char	TagFile[128] = "./tags";
+#else /* MSDOS */
+char	TagFile[64] = "tags";
+#endif /* MSDOS */
 
 find_tag(tag, localp)
 char	*tag;
@@ -317,9 +319,9 @@ FDotTag()
 	if (!ismword(linebuf[curchar]))
 		complain("Not a tag!");
 	while (c1 > 0 && ismword(linebuf[c1 - 1]))
-		c1--;
+		c1 -= 1;
 	while (ismword(linebuf[c2]))
-		c2++;
+		c2 += 1;
 
 	null_ncpy(tagname, linebuf + c1, c2 - c1);
 	find_tag(tagname, !is_an_arg());
@@ -442,21 +444,22 @@ Bufpos	*bp;
 		c = getch();
 		if (c == SExitChar)
 			return STOP;
-		switch (c) {
-		case RUBOUT:
-		case BS:
-			return DELETE;
-
-		case CTL('G'):
+		if (c == AbortChar) {
 			/* If we're failing, we backup until we're no longer
 			   failing or we've reached the beginning; else, we
 			   just about the search and go back to the start. */
 			if (failing)
 				return BACKUP;
 			return TOSTART;
+		}
+		switch (c) {
+		case RUBOUT:
+		case BS:
+			return DELETE;
 
 		case CTL('\\'):
 			c = CTL('S');
+
 		case CTL('S'):
 		case CTL('R'):
 			/* If this is the first time through and we have a
@@ -493,9 +496,17 @@ Bufpos	*bp;
 
 		default:
 			if (c & 0400)
+#ifndef IBMPC
 				c &= 0177;
+#else /* IBMPC */
+				c &= 0377;
+#endif /* IBMPC */
 			else {
+#ifdef IBMPC
+				if (c == RUBOUT || (c < ' ' && c != '\t')) {
+#else
 				if (c > RUBOUT || (c < ' ' && c != '\t')) {
+#endif
 					Ungetc(c);
 					return STOP;
 				}

@@ -1,13 +1,13 @@
 /************************************************************************
- * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       *
- * provided to you without charge, and with no warranty.  You may give  *
+ * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is	*
+ * provided to you without charge, and with no warranty.  You may give	*
  * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
+ * included in all the files.						*
  ************************************************************************/
 
 /* Warning:  You probably shouldn't put ifdefs anywhere *inside* the keymaps
-   definitions.  It'll screw up the stuff in comments (at least), and maybe
-   a few other things.  Yes, it *WILL* screw up the comments ... but it's
+   definitions.	 It'll screw up the stuff in comments (at least), and maybe
+   a few other things.	Yes, it *WILL* screw up the comments ... but it's
    not clear that you care ... */
 
 #include "jove.h"
@@ -42,7 +42,11 @@ keymap	mainmap = {
 	"scroll-up",			/* ^Z */
 	"prefix-1",			/* ^[ */
 	"search-forward",		/* ^\ */
+#ifndef MSDOS
 	"unbound",			/* ^] */
+#else /* MSDOS */
+	"find-tag-at-point",		/* ^] */
+#endif /* MSDOS */
 	"quoted-insert",		/* ^^ */
 	"unbound",			/* ^_ */
 	"self-insert",			/*    */
@@ -120,7 +124,7 @@ keymap	mainmap = {
 	"self-insert",			/* h  */
 	"self-insert",			/* i  */
 	"self-insert",			/* j  */
-	"self-insert",			/* k  */ 
+	"self-insert",			/* k  */
 	"self-insert",			/* l  */
 	"self-insert",			/* m  */
 	"self-insert",			/* n  */
@@ -140,10 +144,146 @@ keymap	mainmap = {
 	"self-insert",			/* |  */
 	"paren-flash",			/* }  */
 	"self-insert",			/* ~  */
+#ifndef IBMPC
 	"delete-previous-character"	/* ^? */
+#else
+	"delete-previous-character",	/* ^? */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"self-insert",			/* ALT-	 */
+	"prefix-3"			/* ALT-255 */
+#endif /* IBMPC */
 };
 
-struct data_obj	*pref1map[0200] = {
+#ifndef IBMPC
+struct data_obj *pref1map[0200] = {
+#else /* IBMPC */
+struct data_obj *pref1map[256] = {
+#endif /* IBMPC */
 	"unbound",			/* ^@ */
 	"unbound",			/* ^A */
 	"backward-s-expression",	/* ^B */
@@ -219,7 +359,7 @@ struct data_obj	*pref1map[0200] = {
 	"unbound",			/* H  */
 	"make-macro-interactive",	/* I  */
 	"fill-paragraph",		/* J  */
-	"kill-to-end-of-sentence",	/* K  */ 
+	"kill-to-end-of-sentence",	/* K  */
 	"case-word-lower",		/* L  */
 	"first-non-blank",		/* M  */
 	"unbound",			/* N  */
@@ -251,7 +391,7 @@ struct data_obj	*pref1map[0200] = {
 	"unbound",			/* h  */
 	"make-macro-interactive",	/* i  */
 	"fill-paragraph",		/* j  */
-	"kill-to-end-of-sentence",	/* k  */ 
+	"kill-to-end-of-sentence",	/* k  */
 	"case-word-lower",		/* l  */
 	"first-non-blank",		/* m  */
 	"unbound",			/* n  */
@@ -271,7 +411,139 @@ struct data_obj	*pref1map[0200] = {
 	"unbound",			/* |  */
 	"unbound",			/* }  */
 	"make-buffer-unmodified",	/* ~  */
+#ifndef IBMPC
 	"kill-previous-word"		/* ^? */
+#else /* IBMPC */
+	"kill-previous-word",		/* ^? */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound"			/* ALT-	 */
+#endif /* IBMPC */
 };
 
 keymap	pref2map = {
@@ -315,8 +587,8 @@ keymap	pref2map = {
 	"unbound",			/* %  */
 	"unbound",			/* &  */
 	"unbound",			/* '  */
-	"start-remember",		/* (  */
-	"stop-remembering",		/* )  */
+	"begin-kbd-macro",		/* (  */
+	"end-kbd-macro",		/* )  */
 	"unbound",			/* *  */
 	"unbound",			/* +  */
 	"unbound",			/* ,  */
@@ -344,7 +616,7 @@ keymap	pref2map = {
 	"select-buffer",		/* B  */
 	"unbound",			/* C  */
 	"delete-current-window",	/* D  */
-	"execute-keyboard-macro",	/* E  */
+	"execute-kbd-macro",		/* E  */
 	"unbound",			/* F  */
 	"unbound",			/* G  */
 	"unbound",			/* H  */
@@ -376,7 +648,7 @@ keymap	pref2map = {
 	"select-buffer",		/* b  */
 	"unbound",			/* c  */
 	"delete-current-window",	/* d  */
-	"execute-keyboard-macro",	/* e  */
+	"execute-kbd-macro",		/* e  */
 	"unbound",			/* f  */
 	"unbound",			/* g  */
 	"unbound",			/* h  */
@@ -402,7 +674,400 @@ keymap	pref2map = {
 	"unbound",			/* |  */
 	"unbound",			/* }  */
 	"unbound",			/* ~  */
-	"kill-to-beginning-of-sentence"	/* ^? */
+#ifndef IBMPC
+	"kill-to-beginning-of-sentence" /* ^? */
+#else /* IBMPC */
+	"kill-to-beginning-of-sentence",	/* ^? */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound",			/* ALT-	 */
+	"unbound"			/* ALT-	 */
+#endif /* IBMPC */
 };
 
+#ifndef IBMPC
 keymap	miscmap = {0};
+#else /* IBMPC */
+keymap	miscmap = {
+	"unbound",			/* 0 */
+	"unbound",
+	"unbound",
+	"set-mark",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",			/*		10 */
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"query-replace-string",		/* alt q */
+	"copy-region",			/* alt w */
+	"forward-sentence",		/* alt e */
+	"replace-string",		/* alt r */
+	"unbound",			/* alt t	20 */
+	"yank-pop",			/* alt y */
+	"case-word-upper",		/* alt u */
+	"make-macro-interactive",	/* alt i */
+	"unbound",			/* alt o */
+	"unbound",			/* alt p */
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"backward-sentence",		/* alt a	30 */
+	"unbound",			/* alt s */
+	"kill-next-word",		/* alt d */
+	"forward-word",			/* alt f */
+	"goto-line",			/* alt g */
+	"unbound",			/* alt h */
+	"fill-paragraph",		/* alt j */
+	"kill-to-end-of-sentence",	/* alt k */
+	"case-word-lower",		/* alt l */
+	"unbound",
+	"unbound",			/* F11		40 */
+	"unbound",
+	"unbound",
+	"unbound",
+	"scroll-down",			/* alt z */
+	"execute-named-command",	/* alt x */
+	"case-word-capitalize",		/* alt c */
+	"previous-page",		/* alt v */
+	"backward-word",		/* alt b */
+	"unbound",			/* alt n */
+	"first-non-blank",		/* alt m	50 */
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",			/* F1 */
+	"unbound",			/* F2		60 */
+	"unbound",			/* F3 */
+	"unbound",			/* F4 */
+	"unbound",			/* F5 */
+	"unbound",			/* F6 */
+	"unbound",			/* F7 */
+	"unbound",			/* F8 */
+	"unbound",			/* F9 */
+	"unbound",			/* F10 */
+	"unbound",
+	"unbound",			/*		70 */
+	"beginning-of-line",		/* Home */
+	"previous-line",		/* Up	*/
+	"previous-page",		/* PgUp */
+	"unbound",
+	"backward-character",		/* Left */
+	"unbound",
+	"forward-character",		/* Right*/
+	"unbound",
+	"end-of-line",			/* End	*/
+	"next-line",			/* Down		80 */
+	"next-page",			/* PgDn */
+	"over-write-mode",		/* Ins	*/
+	"delete-next-character",	/* Del	*/
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",			/*		90 */
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",			/* ctrl F1 */
+	"unbound",			/* ctlr F2 */
+	"unbound",			/* ctrl F3 */
+	"unbound",			/* ctrl F4 */
+	"unbound",			/* ctrl F5 */
+	"unbound",			/* ctrl F6 */
+	"unbound",			/* ctrl F7	100 */
+	"unbound",			/* ctrl F8 */
+	"unbound",			/* ctrl F9 */
+	"unbound",			/* ctrl F10*/
+	"unbound",			/* alt	F1 */
+	"unbound",			/* alt	F2 */
+	"unbound",			/* alt	F3 */
+	"unbound",			/* alt	F4 */
+	"unbound",			/* alt	F5 */
+	"unbound",			/* alt	F6 */
+	"unbound",			/* alt	F7	110 */
+	"unbound",			/* alt	F8 */
+	"unbound",			/* alt	F9 */
+	"unbound",			/* alt	F10*/
+	"unbound",
+	"backward-word",		/* ctrl Left */
+	"forward-word",			/* ctrl Right */
+	"end-of-file",			/* ctrl End */
+	"next-window",			/* ctrl PgDn */
+	"beginning-of-file",		/* ctrl Home */
+	"select-buffer-1",		/* alt 1	120 */
+	"select-buffer-2",		/* alt 2 */
+	"select-buffer-3",		/* alt 3 */
+	"select-buffer-4",		/* alt 4 */
+	"select-buffer-5",		/* alt 5 */
+	"select-buffer-6",		/* alt 6 */
+	"select-buffer-7",		/* alt 7 */
+	"select-buffer-8",		/* alt 8 */
+	"select-buffer-9",		/* alt 9 */
+	"select-buffer-10",		/* alt 0 */
+	"unbound",			/* alt -	130 */
+	"unbound",			/* alt = */
+	"previous-window",		/* ctrl PgUp */
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound"
+};
+#endif /* IBMPC */

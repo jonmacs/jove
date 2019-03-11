@@ -1,0 +1,87 @@
+Differences between the PC version and Unix versions of Jove
+============================================================
+
+First of all, you can start right away using JOVE. The only 
+thing that won't work right away is the online documentation. 
+For this feature, and for some other things JOVE 
+uses the following environment variables. 
+
+TMP: tells JOVE where to put the temporary file, that is created during
+editing. The default is the current directory on the current disk. Setting
+TMP to a ramdisk increases speed quite a lot.
+
+DESCRIBE: the file, where jove can find the online documentation. The
+default for this is C:/unix/cmds.doc. 
+
+JOVERC: the file, which contains commands, JOVE executes every
+time it is started. The file JOVE.RC in the current directory is also
+sourced. 
+
+JOVE comes in two different versions.
+PCJOVE should run on every IBM-PC compatibel computer. MSJOVE should run on
+every computer that runs under the MSDOS operating system. It only uses
+MSDOS system calls to do it's job. The only machine, on which this was
+tested, was a DEC-rainbow computer and, of course, an IBM PC. 
+There is also an older version, specific for the Rainbow, available on
+request. 
+MSJOVE uses a TERMCAP file to get a description of the terminal
+control sequences. For that purpose another environment variable is used:
+
+TERMCAP contains the name of the file with the terminal descriptions.
+Default is again the file TERMCAP in the current directory.
+
+Video Modes:  (PCJOVE only)
+When starting, PCJOVE uses the video mode, that is currently active.
+This means, that you can use PCJOVE in 40x25 mode. The size of the screen is
+determined by a Bios call. On an EGA an additional mode with 43 lines 
+is possible. To get that mode, set the environment variable EGA to any
+string, or set the environment variable TERM to the value EGA.
+On a color display, you can change the screen colors from within PCJOVE or
+in the startup file.
+
+In every specific implementation of JOVE some features are added, some are
+missing. This version in particular supports:
+ filename completion
+ comment filling in C mode
+ creation of backup files
+ abbreviations
+ Lisp mode
+
+Features, the Unix version 4.8 supports, but this version does not
+support, are:
+ change directory from within JOVE (will be included in the next version)
+ spell-buffer command (obsolete under DOS)
+
+There are also some things added:
+
+Variables:
+ Background-color specifies the background color of the screen. The default
+    value is 0, which stands for black.
+ Foreground-color specifies the foreground color of the screen. The default
+    is 1, which stands for white. The attribute used for writing to the
+    screen is formed by (bg&7)<<4 & (fg&7).
+Commands:
+ Scroll-previous-page continuously scrolls down screen-full lines.
+ Scroll-next-page continuously scrolls up screen-full lines.
+ Select-buffer-n, where n is in the range 0 to 9, selects buffer n as the
+    working buffer. These commands are bound to the <alt>[0-9] keys by
+    default. For example, pressing the alt key and 3 at the same time
+    switches immediately to buffer 3.
+Others:
+ Full support for an 8 bit character set. Umlaute are case-converted
+ correctly. All characters can be bound to commands.
+ 
+These are only differences between PCJOVE and Unix Jove. If you have no
+experience with Jove, you should look first at the rest of the documenation.
+
+Suggestions or problems are always wellcome. Mail those or bug reports to
+
+          Karl Gegenfurtner
+
+arpa:     karl@hipl.psych.nyu.edu
+uucp      {ihnp4|seismo|allegra}!cmcl2!xp!hipl!karl
+usps:     New York University
+          Dept. of Psychology
+          6 Washington Place 8th floor
+          New York, NY 10003
+ 

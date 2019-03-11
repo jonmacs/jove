@@ -154,7 +154,7 @@ register Line	*lp;
 	else if (linebuf[0] == '\\') {
 		/* BH 12/24/85.  Backslash is BLANK only if next line
 		   also starts with Backslash. */
-		bslash++;
+		bslash += 1;
 		SetLine(lp->l_next);
 		if (linebuf[0] == '\\')
 			indent = I_PERIOD;
@@ -377,9 +377,9 @@ do_space()
 	char	ch;
 
 	while (c1 > 0 && ((ch = linebuf[c1 - 1]) == ' ' || ch == '\t'))
-		c1--;
+		c1 -= 1;
 	while ((ch = linebuf[c2]) == ' ' || ch == '\t')
-		c2++;
+		c2 += 1;
 	diff = (c2 - c1);
 	curchar = c2;
 
@@ -393,7 +393,7 @@ do_space()
 			while (index("\")]", linebuf[topunct])) {
 				if (topunct == 0)
 					break;
-				topunct--;
+				topunct -= 1;
 			}
 			if (index("?!.:", linebuf[topunct]))
 				nspace = 2;

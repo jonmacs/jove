@@ -197,7 +197,11 @@ QuotChar()
    '}' in the "right" place for C indentation; that is indented 
    the same amount as the matching '{' is indented. */
 
+#ifndef MSDOS
 int	PDelay = 5,	/* 1/2 a second */
+#else /* MSDOS */
+int	PDelay = 20,	/* 1/2 a second */
+#endif /* MSDOS */
 	CIndIncrmt = 8;
 
 DoParen()
@@ -311,7 +315,7 @@ register char	*str;
 		}
 		if (c != '\n') {
 			ins_c(c, linebuf, curchar++, 1, LBSIZE);
-			llen++;
+			llen += 1;
 		}
 	}
 	IFixMarks(save.p_line, save.p_char, curline, curchar);
@@ -441,8 +445,8 @@ struct chunk {
 	struct chunk	*c_nextfree;	/* Next chunk of lines */
 };
 
-static struct chunk	*fchunk = 0;
-static Line	*ffline = 0;	/* First free line */
+private struct chunk	*fchunk = 0;
+private Line	*ffline = 0;	/* First free line */
 
 freeline(line)
 register Line	*line;
@@ -683,9 +687,9 @@ lisp_indent()
 			if (LookingAt("[ \t]*;\\|[ \t]*$", linebuf, curchar))
 				curchar = c_char;
 			else while (linebuf[curchar] == ' ')
-				curchar++;
+				curchar += 1;
 		} else
-			curchar++;
+			curchar += 1;
 	}
 	goal = calc_pos(linebuf, curchar);
 	SetDot(&savedot);
@@ -693,4 +697,4 @@ lisp_indent()
 
 	return bp;
 }
-#endif LISP
+#endif /* LISP */

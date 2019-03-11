@@ -58,19 +58,21 @@ data_obj	*(*proc)();
 		complain("Too many auto-executes, max %d.", NEXECS);
 	if ((d = (*proc)(ProcFmt)) == 0)
 		return;
-	pattern = ask((char *) 0, ": %f %s ", d->Name);
-	for (i = 0; i < ExecIndex; i++)
+	pattern = do_ask("\r\n", (int (*)()) 0, (char *) 0, ": %f %s ", d->Name);
+	if (pattern != 0)
+	    for (i = 0; i < ExecIndex; i++)
 		if ((AutoExecs[i].a_cmd == d) &&
 		    (strcmp(pattern, AutoExecs[i].a_pattern) == 0))
-		    	return;		/* Eliminate duplicates. */
+		    	return;		/* eliminate duplicates */
 	AutoExecs[ExecIndex].a_pattern = copystr(pattern);
 	AutoExecs[ExecIndex].a_cmd = d;
-	ExecIndex++;
+	ExecIndex += 1;
 }
 
 /* DoAutoExec: NEW and OLD are file names, and if NEW and OLD aren't the
    same kind of file (i.e., match the same pattern) or OLD is 0 and it
-   matches, we execute the command associated with that kind of file. */
+   matches, OR if the pattern is 0 (none was specified) then, we execute
+   the command associated with that kind of file. */
  
 DoAutoExec(new, old)
 register char	*new,
@@ -79,11 +81,10 @@ register char	*new,
 	register int	i;
 
 	set_arg_value(1);
-	if (new == 0)
-		return;
 	for (i = 0; i < ExecIndex; i++)
-		if ((LookingAt(AutoExecs[i].a_pattern, new, 0)) &&
-		    (old == 0 || !LookingAt(AutoExecs[i].a_pattern, old, 0)))
+		if ((AutoExecs[i].a_pattern == 0) ||
+		    ((new != 0 && LookingAt(AutoExecs[i].a_pattern, new, 0)) &&
+		     (old == 0 || !LookingAt(AutoExecs[i].a_pattern, old, 0))))
 			ExecCmd(AutoExecs[i].a_cmd);
 }
 
@@ -140,7 +141,7 @@ UnbindC()
 			break;
 		if ((map = IsPrefix(map[*keys])) == 0)
 			break;
-		keys++;
+		keys += 1;
 	}
 	if (keys[1] != 0)
 		complain("That's not a legitimate key sequence.");
@@ -151,10 +152,13 @@ addgetc()
 {
 	int	c;
 
-	if (!InJoverc)
+	if (!InJoverc) {
 		Asking = strlen(mesgbuf);
-	c = getch();
-	if (InJoverc) {
+		c = getch();
+		Asking = 0;
+		add_mess("%p ", c);
+	} else {
+		c = getch();
 		if (c == '\n')
 			return EOF;	/* this isn't part of the sequence */
 		else if (c == '\\') {
@@ -164,15 +168,11 @@ addgetc()
 			if ((c = getch()) == '?')
 				c = RUBOUT;
 			else if (isalpha(c) || index("@[\\]^_", c))
-				c = c - '@';
+				c = CTL(c);
 			else
 				complain("[Unknown control character]");
 		}
 	}
-
-	Asking = 0;
-	add_mess("%p ", c);
-
 	return c;
 }
 
@@ -243,7 +243,6 @@ DescCom()
 		dp = (data_obj *) findvar(ProcFmt);
 	else
 		dp = (data_obj *) findcom(ProcFmt);
-
 	if (dp == 0)
 		return;
 	fp = open_file(file, iobuff, F_READ, COMPLAIN, QUIET);
@@ -304,13 +303,21 @@ char	*pref;
 	char	keydescbuf[40];
 	data_obj	**prefp;
 
+#ifndef IBMPC
 	for (c1 = 0; c1 < 0200 && c2 < 0200; c1 = c2 + 1) {
+#else /* IBMPC */
+	for (c1 = 0; c1 < 256 && c2 < 256; c1 = c2 + 1) {
+#endif /* IBMPC */
 		c2 = c1;
 		if (map[c1] == 0)
 			continue;
+#ifndef IBMPC
 		while (++c2 < 0200 && map[c1] == map[c2])
+#else /* IBMPC */
+		while (++c2 < 256 && map[c1] == map[c2])
+#endif /* IBMPC */
 			;
-		c2--;
+		c2 -= 1;
 		numbetween = c2 - c1;
 		if (numbetween == 1)
 			sprintf(keydescbuf, "%s {%p,%p}", pref, c1, c2);
@@ -352,12 +359,20 @@ char	*buf,
 		prefbuf[20];
 	data_obj	**prefp;
 
+#ifndef IBMPC
 	for (c1 = c2 = 0; c1 < 0200 && c2 < 0200; c1 = c2 + 1) {
+#else /* IBMPC */
+	for (c1 = c2 = 0; c1 < 256 && c2 < 256; c1 = c2 + 1) {
+#endif /* IBMPC */
 		c2 = c1;
 		if (map[c1] == cp) {
+#ifndef IBMPC
 			while (++c2 < 0200 && map[c1] == map[c2])
+#else /* IBMPC */
+			while (++c2 < 256 && map[c1] == map[c2])
+#endif /* IBMPC */
 				;
-			c2--;
+			c2 -= 1;
 			if (prefix)
 				sprintf(bufp, "%s ", prefix);
 			bufp += strlen(bufp);
@@ -389,9 +404,9 @@ Apropos()
 	register struct macro	*m;
 	register struct variable	*v;
 	char	*ans;
-	int	anyfs = 0,
-		anyvs = 0,
-		anyms = 0;
+	int	anyfs = NO,
+		anyvs = NO,
+		anyms = NO;
 	char	buf[256];
 
 	ans = ask((char *) 0, ": %f (keyword) ");
@@ -407,7 +422,7 @@ Apropos()
 				Typeout(": %-35s(%s)", cp->Name, buf);
 			else
 				Typeout(": %s", cp->Name);
-			anyfs++;
+			anyfs = YES;
 		}
 	if (anyfs)
 		Typeout(NullStr);
@@ -417,7 +432,7 @@ Apropos()
 				Typeout("Variables");
 				Typeout("---------");
 			}
-			anyvs++;
+			anyvs = YES;
 			vpr_aux(v, buf);
 			Typeout(": set %-26s%s", v->Name, buf);
 		}
@@ -429,7 +444,7 @@ Apropos()
 				Typeout("Macros");
 				Typeout("------");
 			}
-			anyms++;
+			anyms = YES;
 			find_binds((data_obj *) m, buf);
 			if (buf[0])
 				Typeout(": %-35s(%s)", m->Name, buf);
@@ -592,9 +607,13 @@ SetVar()
 
 	}
 	if (vp->v_flags & V_MODELINE)
-		UpdModLine++;
-	if (vp->v_flags & V_CLRSCREEN)
+		UpdModLine = YES;
+	if (vp->v_flags & V_CLRSCREEN) {
+#ifdef IBMPC
+		setcolor(Fgcolor, Bgcolor);
+#endif /* IBMPC */
 		ClAndRedraw();
+	}
 	if (vp->v_flags & V_TTY_RESET)
 		tty_reset();
 }
@@ -619,8 +638,12 @@ aux_complete(c)
 		char	*lp;
 
 		for (lp = linebuf; *lp != '\0'; lp++)
+#ifdef IBMPC
+			lower(lp);
+#else			
 			if (isupper(*lp))
 				*lp = tolower(*lp);
+#endif
 	}
 	switch (c) {
 	case EOF:
@@ -666,7 +689,7 @@ aux_complete(c)
 					minmatch = min(minmatch, numcomp(Possible[lastmatch], Possible[i]));
 				else
 					minmatch = strlen(Possible[i]);
-				numfound++;
+				numfound += 1;
 				lastmatch = i;
 				if (strcmp(linebuf, Possible[i]) == 0)
 					break;
@@ -749,7 +772,7 @@ register char	**choices,
 			if (strcmp(what, choices[i]) == 0)
 				exactmatch = i;
 			save = i;
-			found++;	/* Found one. */
+			found += 1;	/* found one */
 		}
 	}
 
@@ -770,7 +793,14 @@ Source()
 	char	*com,
 		buf[FILESIZE];
 
+#ifndef MSDOS
 	sprintf(buf, "%s/.joverc", getenv("HOME"));
+#else /* MSDOS */
+	if (com = getenv("JOVERC"))
+		strcpy(buf, com);
+	else
+		strcpy(buf, Joverc);
+#endif /* MSDOS */
 	com = ask_file((char *) 0, buf, buf);
 	if (joverc(buf) == NIL)
 		complain(IOerr("read", com));
@@ -808,6 +838,7 @@ char	*cmd;
 {
 	int	pid,
 		status;
+#ifndef MSDOS
 
 	switch (pid = fork()) {
 	case -1:
@@ -815,6 +846,7 @@ char	*cmd;
 
 	case 0:
 	    {
+#endif /* MSDOS */
 		char	*args[12],
 			*cp = cmd,
 			**ap = args;
@@ -828,10 +860,16 @@ char	*cmd;
 		}
 		*ap = 0;
 
+#ifndef MSDOS
 		close(0);	/*	we want reads to fail */
 		/* close(1);	 but not writes or ioctl's
 		close(2);    */
+#else /* MSDOS */
+	if ((status = spawnvp(args[0], args)) < 0)
+		complain("[Spawn failed: if]");
+#endif /* MSDOS */
 
+#ifndef MSDOS
 	    	(void) execvp(args[0], args);
 		_exit(-10);	/* signals exec error (see below) */
 	    }
@@ -847,6 +885,7 @@ char	*cmd;
 		complain("[Exec failed]");
 	if (status < 0)
 		complain("[Exit %d]", status);
+#endif /* MSDOS */
 	return (status == 0);	/* 0 means successful */
 }
 
@@ -869,6 +908,7 @@ char	*file;
 	   and then restore the error handle to whoever did a setjmp
 	   last. */
 
+	InJoverc += 1;
 	push_env(savejmp);
 	if (setjmp(mainjmp)) {
 		Buffer	*savebuf = curbuf;
@@ -879,10 +919,11 @@ char	*file;
 		SetBuf(savebuf);
 		Asking = 0;
 	}
-	InJoverc = 1;
 	if (!eof) do {
 		eof = (f_gets(fp, lbuf, sizeof lbuf) == EOF);
-		lnum++;
+		lnum += 1;
+		if (lbuf[0] == '#')		/* a comment */
+			continue;
 		if (casencmp(lbuf, "if", 2) == 0) {
 			char	cmd[128];
 
@@ -909,7 +950,7 @@ char	*file;
 		(void) strcat(lbuf, "\n");
 		Inputp = lbuf;
 		while (*Inputp == ' ' || *Inputp == '\t')
-			Inputp++;	/* skip white space */
+			Inputp += 1;	/* skip white space */
 		Extend();
 	} while (!eof);
 
@@ -917,7 +958,7 @@ char	*file;
 	pop_env(savejmp);
 	Inputp = 0;
 	Asking = 0;
-	InJoverc = 0;
+	InJoverc -= 1;
 	if (IfStatus != IF_UNBOUND)
 		complain("[Missing endif]");
 	return !NIL;

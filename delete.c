@@ -236,9 +236,9 @@ DelWtSpace()
 			*sp = &linebuf[curchar];
 
 	while (*ep == ' ' || *ep == '\t')
-		ep++;
+		ep += 1;
 	while (sp > linebuf && *(sp - 1) == ' ' || *(sp - 1) == '\t')
-		sp--;
+		sp -= 1;
 	if (sp != ep) {
 		curchar = sp - linebuf;
 		DFixMarks(curline, curchar, curline, curchar + (ep - sp));

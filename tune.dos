@@ -5,4 +5,14 @@
  * included in all the files.                                           *
  ************************************************************************/
 
-char	*version = "4.8";
+#define NOEXTERNS
+
+#include "tune.h"
+
+char	TmpFilePath[64] = ".",
+	CmdDb[64] = "c:/unix/cmds.doc",
+	Shell[64] = "command",
+	ShFlags[16] = "-c";
+
+char	*d_tempfile = "joveXXXXXX",	/* buffer lines go here */
+	*Joverc = "jove.rc";

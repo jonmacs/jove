@@ -33,7 +33,7 @@ TogMinor(bit)
 			curbuf->b_minor |= bit;
 	} else
 		curbuf->b_minor ^= bit;
-	UpdModLine++;
+	UpdModLine = YES;
 }
 
 /* Creates a new buffer, links it at the end of the buffer chain, and
@@ -171,6 +171,37 @@ BufSelect()
 	SetBuf(do_select(curwind, bname));
 }
 
+#ifdef MSDOS
+int BufNSelect();
+
+Buf1Select() { BufNSelect(1); }
+Buf2Select() { BufNSelect(2); }
+Buf3Select() { BufNSelect(3); }
+Buf4Select() { BufNSelect(4); }
+Buf5Select() { BufNSelect(5); }
+Buf6Select() { BufNSelect(6); }
+Buf7Select() { BufNSelect(7); }
+Buf8Select() { BufNSelect(8); }
+Buf9Select() { BufNSelect(9); }
+Buf10Select() { BufNSelect(10); }
+
+private
+BufNSelect(n)
+{
+	char *bnames[100];
+	char *bname;
+	int i;
+
+	mkbuflist(bnames);
+   	for (i=0; i<n; i++)
+	    if (bnames[i] == 0)
+	       complain("[No such buffer]");
+	bname = bnames[n-1];
+	SetABuf(curbuf);
+	SetBuf(do_select(curwind, bname));
+}
+#endif /* MSDOS */
+
 private
 defb_wind(b)
 register Buffer *b;
@@ -190,7 +221,6 @@ register Buffer *b;
 				(void) do_select(w, alt);
 			else {
 				Window	*save = w->w_next;
-
 				del_wind(w);
 				w = save->w_prev;
 			}
@@ -364,7 +394,7 @@ register Buffer	*b;
 	strcpy(tmp, cp);
 	while (buf_exists(tmp)) {
 		sprintf(tmp, "%s.%d", cp, try);
-		try++;
+		try += 1;
 	}
 	setbname(b, tmp);
 }
@@ -407,7 +437,7 @@ register char	*name;
 		for (bp = world; n > 1; bp = bp->b_next) {
 			if (bp == 0)
 				break;
-			--n;
+			n -= 1;
 		}
 		return bp;
 	}
@@ -428,12 +458,20 @@ register char	*name;
 	register Buffer	*b = 0;
 	char	fnamebuf[FILESIZE];
 
+#ifdef MSDOS
+	strlwr(name);
+#endif /* MSDOS */
 	if (name) {
 		PathParse(name, fnamebuf);
 		if (stat(fnamebuf, s) == -1)
 			s->st_ino = 0;
 		for (b = world; b != 0; b = b->b_next) {
-			if ((b->b_ino != 0 && b->b_ino == s->st_ino) ||
+#ifndef MSDOS
+			if ((b->b_ino != 0 && b->b_ino == s->st_ino &&
+			     b->b_dev != 0 && b->b_dev == s->st_dev) ||
+#else /* MSDOS */
+			if ( /* (b->b_ino != 0 && b->b_ino == s->st_ino) || */
+#endif /* MSDOS */
 			    (strcmp(b->b_fname, fnamebuf) == 0))
 				break;
 		}
@@ -458,7 +496,7 @@ setbname(b, name)
 register Buffer	*b;
 register char	*name;
 {
-	UpdModLine++;	/* Kludge ... but speeds things up considerably */
+	UpdModLine = YES;	/* Kludge ... but speeds things up considerably */
 	if (name) {
 		if (b->b_name == NoName)
 			b->b_name = 0;
@@ -478,19 +516,22 @@ register char	*name;
 	Buffer	*save = curbuf;
 
 	SetBuf(b);
-	UpdModLine++;	/* Kludge ... but speeds things up considerably */
+	UpdModLine = YES;	/* Kludge ... but speeds things up considerably */
 	if (b->b_fname == 0)
 		oldptr = 0;
 	else
 		strcpy(oldname, b->b_fname);
 	if (name) {
+#ifdef MSDOS
+		strlwr(name);
+#endif /* MSDOS */
 		PathParse(name, wholename);
 		curbuf->b_fname = ralloc(curbuf->b_fname, strlen(wholename) + 1);
 		strcpy(curbuf->b_fname, wholename);
 	} else
 		b->b_fname = 0;
 	DoAutoExec(curbuf->b_fname, oldptr);
-	curbuf->b_mtime = curbuf->b_ino = 0;	/* until they're known. */
+	curbuf->b_mtime = curbuf->b_dev = curbuf->b_ino = 0;	/* until they're known. */
 	SetBuf(save);
 }
 
@@ -500,9 +541,11 @@ register Buffer	*b;
 	struct stat	stbuf;
 
 	if (b->b_fname == 0 || stat(pr_name(b->b_fname, NO), &stbuf) == -1) {
+ 		b->b_dev = 0;
 		b->b_ino = 0;
 		b->b_mtime = 0;
 	} else {
+ 		b->b_dev = stbuf.st_dev;
 		b->b_ino = stbuf.st_ino;
 		b->b_mtime = stbuf.st_mtime;
 	}
@@ -559,14 +602,13 @@ register Buffer	*newbuf;
 		if (b == newbuf)
 			break;
 	if (b == 0)
-		complain("Internal error: (%x) is not a valid buffer pointer!", newbuf);
-
+		complain("Internal error: (0x%x) is not a valid buffer pointer!", newbuf);
 	lsave();
 	curbuf = newbuf;
-/*	curline = newbuf->b_dot;
-	curchar = newbuf->b_char;	STUPID!! */
+	curline = newbuf->b_dot;
+	curchar = newbuf->b_char;
 	getDOT();
-	/* Do the read now ... */
+	/* do the read now ... */
 	if (curbuf->b_ntbf)
 		read_file(curbuf->b_fname, 0);
 

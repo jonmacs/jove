@@ -162,4 +162,4 @@ unsigned int	nbytes;
 	return (char *) q;
 }
 
-#endif MY_MALLOC
+#endif /* MY_MALLOC */
