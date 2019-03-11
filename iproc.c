@@ -219,6 +219,7 @@ const char *name;
  *	Emacs defines the environment variable `EMACS' in the subshell,
  *	with value `t'.  A shell script can check this variable to
  *	determine whether it has been run from an Emacs subshell.
+ *	bash(1) says that if EMACS==t, line editing is disabled.
  */
 private void
 set_process_env()

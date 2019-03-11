@@ -101,7 +101,7 @@ register int	num;
 
 /* Inserts tabs and spaces to move the cursor to column GOAL.  It
  * Uses the most optimal number of tabs and spaces no matter what
- * was there before hand.
+ * was there beforehand.
  */
 void
 n_indent(goal)
@@ -491,7 +491,7 @@ Buffer	*whatbuf;
 		buf[tchar] = '\0';
 
 	linecopy(genbuf, atchar, &buf[fchar]);
-	atline->l_dline = putline(genbuf);
+	atline->l_dline = jputline(genbuf);
 	makedirty(atline);
 
 	fline = fline->l_next;
@@ -504,10 +504,10 @@ Buffer	*whatbuf;
 		atchar = 0;
 	}
 
-	getline(atline->l_dline, genbuf);
+	jgetline(atline->l_dline, genbuf);
 	atchar += tchar;
 	linecopy(genbuf, atchar, save);
-	atline->l_dline = putline(genbuf);
+	atline->l_dline = jputline(genbuf);
 	makedirty(atline);
 	IFixMarks(startline, startchar, atline, atchar);
 	bp.p_line = atline;

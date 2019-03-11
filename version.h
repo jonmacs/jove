@@ -7,8 +7,8 @@
 
 /* Note: jove.spec must be updated when version number changes */
 
-#define	jversion     "4.16.0.73" /* 2010 July 11 */
-#define	jversion_lnum 4,16,0,73  /* list-of-numbers form for Win32 jjove.rc */
+#define	jversion     "4.16.0.74" /* 2015 October 15 */
+#define	jversion_lnum 4,16,0,74  /* list-of-numbers form for Win32 jjove.rc */
 
 /*
  * $Log: version.h,v $

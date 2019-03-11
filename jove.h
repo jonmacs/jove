@@ -379,7 +379,7 @@ extern void
 	cmd_sync proto((void)),
 	add_stroke proto((ZXchar)),
 	error proto((const char *, ...)),
-	complain proto((const char *, ...)),
+	complain proto((const char *, ...)) NEVER_RETURNS,
 	raw_complain proto((const char *, ...)),
 	confirm proto((const char *, ...)),
 	SitFor proto((int delay)),

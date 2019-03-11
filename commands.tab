@@ -120,10 +120,10 @@ const struct cmd	commands[] = {
 	{ COMMAND, "execute-named-command", WIRED_CMD(Extend) },
 	{ COMMAND, "exit-jove", WIRED_CMD(Leave) },
 #ifdef CMT_FMT
-	{ MODCMD, "fill-comment", WIRED_CMD(Comment) },
+	{ MODCMD, "fill-comment", WIRED_CMD(FillComment) },
 #endif /* CMT_FMT */
-	{ MODCMD, "fill-paragraph", WIRED_CMD(Justify) },
-	{ MODCMD, "fill-region", WIRED_CMD(RegJustify) },
+	{ MODCMD, "fill-paragraph", WIRED_CMD(FillParagraph) },
+	{ MODCMD, "fill-region", WIRED_CMD(FillRegion) },
 #ifdef SUBSHELL
 	{ MODCMD, "filter-region", WIRED_CMD(FilterRegion) },
 #endif

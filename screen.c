@@ -80,7 +80,7 @@ make_scr()
 	ns = Screen = (struct screenline *)
 			malloc((unsigned) LI * sizeof(struct screenline));
 
-	nsp = screenchars = (char *) malloc((unsigned)CO * LI);
+	nsp = screenchars = (char *) malloc((size_t)CO * LI);
 
 	if (DesiredScreen == NULL
 	|| PhysScreen == NULL

@@ -11,9 +11,9 @@
  * because that would be too painful.  As a result, commands like
  * Yank and Kill are really easy; basically all we do is make copies
  * of the disk addresses of the lines (as opposed to the contents).
- * So, putline(char *buf) writes buf to the disk and returns a new
- * disk address.  getline(daddr addr, char *buf) is the opposite of
- * putline().  f_getputl(LinePtr line, File fp) reads from open fp
+ * So, jputline(char *buf) writes buf to the disk and returns a new
+ * disk address.  jgetline(daddr addr, char *buf) is the opposite of
+ * jputline().  f_getputl(LinePtr line, File fp) reads from open fp
  * directly into the tmp file (into the buffer cache (see below))
  * and stores the address in line.  This is used during read_file to
  * minimize copying.

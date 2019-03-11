@@ -755,7 +755,7 @@ register char	*user,
 		complain((char *)NULL);
 		/* NOTREACHED */
 	}
-	jamstrsub(buf, p->pw_dir, FILESIZE);
+	jamstrsub(buf, p->pw_dir, (size_t)FILESIZE);
 }
 
 # else /* ! USE_GETPWNAM */
@@ -1356,9 +1356,9 @@ int	Jr_Len;		/* length of Just Read Line */
 
 void
 #ifdef USE_PROTOTYPES
-getline proto((daddr addr, register char *buf))
+jgetline proto((daddr addr, register char *buf))
 #else
-getline(addr, buf)
+jgetline(addr, buf)
 daddr	addr;
 register char	*buf;
 #endif
@@ -1375,7 +1375,7 @@ register char	*buf;
 /* Put `buf' and return the disk address */
 
 daddr
-putline(buf)
+jputline(buf)
 char	*buf;
 {
 	register char	*bp,

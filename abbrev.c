@@ -138,7 +138,7 @@ AbbrevExpand()
 	if ((ap = lookup_abbrev(A_tables[curbuf->b_major], wordbuf)) != NULL
 	|| (ap = lookup_abbrev(A_tables[GLOBAL], wordbuf)) != NULL)
 	{
-		del_char(BACKWARD, (wp - wordbuf), NO);
+		del_char(BACKWARD, (int)(wp - wordbuf), NO);
 
 		for (cp = ap->a_phrase; (c = *cp) != '\0'; ) {
 			if (UC_count > 0 && jislower(c)

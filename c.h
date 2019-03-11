@@ -24,7 +24,7 @@ extern void
 	BSexpr proto((void)),
 	BUpList proto((void)),
 #ifdef CMT_FMT
-	Comment proto((void)),
+	FillComment proto((void)),
 #endif
 	FDownList proto((void)),
 	FList proto((void)),

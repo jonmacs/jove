@@ -261,6 +261,7 @@ DOCTERMS =	doc/jove.rc.sun doc/keychart.sun \
 	doc/jove.rc.vt100 doc/keychart.vt100 \
 	doc/jove.rc.wyse doc/keychart.wyse \
 	doc/jove.rc.xterm doc/keychart.xterm \
+	doc/jove.rc.xterm-256color doc/keychart.xterm-256color \
 	doc/jove.rc.z29 doc/keychart.z29 \
 	doc/jove.rc.3022 doc/keychart.3022 \
 	doc/keychart. \
@@ -508,9 +509,10 @@ tape-backup:	.filelist
 # Extract version number from version.h
 # At same time, check that all copies agree.
 .version:	version.h jove.spec
-	sed -n -e '/^#define[ 	]*jversion[ 	]*"\([0-9.]*\)".*/s//\1/p' version.h >.version || rm -f .version
-	sed -n -e '/^#define[ 	]*jversion_lnum[ 	]*\([0-9,]*\).*/s//\1/p' version.h | sed -e 's/,/./g' | diff - .version
-	sed -n -e '/^%define[ 	]*jversion[ 	]*\([0-9.]*\).*/s//\1/p' jove.spec | diff - .version
+	sed -n -e '/^#define[ 	]*jversion[ 	]*"\([0-9.]*\)".*/s//\1/p' version.h >.version-tmp
+	sed -n -e '/^#define[ 	]*jversion_lnum[ 	]*\([0-9,]*\).*/s//\1/p' version.h | sed -e 's/,/./g' | diff - .version-tmp
+	sed -n -e '/^Version:[ 	]*\([0-9.]*\)$$/s//\1/p' jove.spec | diff - .version-tmp
+	mv .version-tmp .version
 
 # Build a distribution: a gzipped tar file with a name "jove<version>.tgz"
 # The tar will unpack into a directory with the name jove<version>
@@ -526,8 +528,12 @@ distrib:	.filelist .version
 	ls -l $$BN.tgz
 
 # create a distribution and a separate PGP signature for it
-signeddistrib:	distrib
+signeddistrib-pgp:	distrib .version
 	pgp -sba jove`cat .version`.tgz
+	chmod a+r jove`cat .version`.tgz.asc
+
+signeddistrib-gpg:	distrib .version
+	gpg -sba jove`cat .version`.tgz
 	chmod a+r jove`cat .version`.tgz.asc
 
 # System V sum can be made to match BSD with a -r flag.
