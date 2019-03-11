@@ -82,7 +82,7 @@ XJOVEM = $(MANDIR)/xjove.$(MANEXT)
 JOVETOOLM = $(MANDIR)/jovetool.$(MANEXT)
 
 # SYSDEFS: specify system characteristics.
-# The default is -DBSDPOSIX, which describes a number of modern
+# The default is -DBSDPOSIX_STDC, which describes a number of modern
 # systems (but not Solaris!).  If this isn't suitable for your system,
 # you will need to change it.  You may need to define a new symbol for
 # your OS if we haven't created a suitable one.  See sysdep.h.
@@ -119,7 +119,7 @@ JOVETOOLM = $(MANDIR)/jovetool.$(MANEXT)
 #	SunOS4.1*			SYSDEFS=-DSUNOS41
 #	SunOS5.0 (Solaris 2.0)		SYSDEFS="-DSYSVR4 -DGRANTPT_BUG"
 #	SunOS5.[12345678] (Solaris)	SYSDEFS=-DSYSVR4
-#	Sys III, Sys V R 2,3		SYSDEFS=-DSYSV
+#	Sys III, Sys V R 2,3		SYSDEFS=-DSYSV PORTSRVINST='$(PORTSRV)'
 #	Sys V Release 4.0		SYSDEFS="-DSYSVR4 -DGRANTPT_BUG"
 #	Sys V Release 4.x		SYSDEFS=-DSYSVR4
 #
@@ -137,7 +137,7 @@ JOVETOOLM = $(MANDIR)/jovetool.$(MANEXT)
 # Add -DUSE_EXIT if you're profiling or using purify (this causes Jove
 # to exit using exit(), instead of _exit()).
 
-SYSDEFS = -DBSDPOSIX
+SYSDEFS = -DBSDPOSIX_STDC
 
 # Select optimization level (flags passed to compiling and linking steps).
 # On most systems: -g for debugging, -O for optimization.
@@ -521,11 +521,13 @@ distrib:	.filelist .version
 	mkdir $$BN ; \
 	tar cf - `cat .filelist` | ( cd $$BN ; tar xf - ) ; \
 	tar czf $$BN.tgz $$BN ; \
-	rm -rf $$BN
+	rm -rf $$BN ; \
+	ls -l $$BN.tgz
 
 # create a distribution and a separate PGP signature for it
 signeddistrib:	distrib
 	pgp -sba jove`cat .version`.tgz
+	chmod a+r jove`cat .version`.tgz.asc
 
 # System V sum can be made to match BSD with a -r flag.
 # To get this effect, override with SUM = sum -r

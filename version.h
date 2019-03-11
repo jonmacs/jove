@@ -7,11 +7,15 @@
 
 /* Note: jove.spec must be updated when version number changes */
 
-#define	jversion     "4.16.0.63" /* 2003 April 5 */
-#define	jversion_lnum 4,16,0,63  /* list-of-numbers form for Win32 jjove.rc */
+#define	jversion     "4.16.0.64" /* 2004 January 31 */
+#define	jversion_lnum 4,16,0,64  /* list-of-numbers form for Win32 jjove.rc */
 
 /*
  * $Log: version.h,v $
+ * Revision 1.414  2004/02/01 19:27:03  hugh
+ * - introduce sysdef BSDPOSIX_STDC
+ * - update README
+ *
  * Revision 1.413  2003/05/05 01:37:05  hugh
  * refine modified flag in list-buffers output
  *

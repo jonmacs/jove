@@ -5,7 +5,7 @@
 # For example, macros are expanded even in comments!
 
 # This version number must be kept in sync with version.h.
-%define jversion 4.16.0.63
+%define jversion 4.16.0.64
 
 # configflags: flags passed to each make to configure for LINUX.
 # The choices are explained in Makefile and sysdep.doc.
@@ -17,11 +17,16 @@
 # On some LINUX systems, the termcap library or database are broken or missing:
 # on those, use the fatter libcurses by adding TERMCAPLIB=-lcurses
 # inside the SYSDEFS string.
+# Note: Mandrake 8.2 and 9.2 (at least) have a bug in their termcap database
+# description of xterm.  Use libcurses to avoid the bug.
+# See <http://bugs.mandrakelinux.com/query.php?bug=233>
 
-#define configflags -C jove%{jversion} SYSDEFS="-DBSDPOSIX -DJLGBUFSIZ=12 -DIPROC_TERM='\\"TERM=vanilla\\"'" PORTSRVINST="" TROFF=groff TROFFPOST=""
-%define configflags -C jove%{jversion} SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500 -DJLGBUFSIZ=12 -DIPROC_TERM='\\"TERM=vanilla\\"'" PORTSRVINST="" TROFF=groff TROFFPOST=""
-#define configflags -C jove%{jversion} SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500 -DJLGBUFSIZ=12 -DIPROC_TERM=\"TERM=vanilla\" TERMCAPLIB=-lcurses" PORTSRVINST="" TROFF=groff TROFFPOST=""
-
+# Older Red Hat (eg. 5.2):
+#define configflags -C jove%{jversion} SYSDEFS="-DBSDPOSIX -DJLGBUFSIZ=12 -DIPROC_TERM='\\"TERM=vanilla\\"'" TROFF=groff TROFFPOST=""
+# Recent Red Hat (eg. 6.0 - Fedora Core 1):
+%define configflags -C jove%{jversion} SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500 -DJLGBUFSIZ=12 -DIPROC_TERM='\\"TERM=vanilla\\"'" TROFF=groff TROFFPOST=""
+# To use libcurses instead of termcap (eg. Mandrake 9.2):
+#define configflags -C jove%{jversion} SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500 -DJLGBUFSIZ=12 -DIPROC_TERM='\\"TERM=vanilla\\"'" TERMCAPLIB="-lncurses" TROFF=groff TROFFPOST=""
 
 Summary: Jonathan's Own Version of Emacs
 Name: jove
@@ -57,12 +62,7 @@ mkdir -p $RPM_BUILD_ROOT/usr/lib
 mkdir -p $RPM_BUILD_ROOT/usr/man/man1
 make JOVEHOME=$RPM_BUILD_ROOT/usr %{configflags} install
 
-# Note: later versions of RPM run a script that gzips man pages
-# behind our back, but older versions don't.  This gzipping is defensive.
-rm -f $RPM_BUILD_ROOT/usr/man/man1/jove.1.gz
-gzip $RPM_BUILD_ROOT/usr/man/man1/jove.1
-rm -f $RPM_BUILD_ROOT/usr/man/man1/teachjove.1.gz
-gzip $RPM_BUILD_ROOT/usr/man/man1/teachjove.1
+# although we build jovetool.1 and xjove.1, we don't install them
 rm $RPM_BUILD_ROOT/usr/man/man1/jovetool.1
 rm $RPM_BUILD_ROOT/usr/man/man1/xjove.1
 
@@ -70,10 +70,12 @@ rm $RPM_BUILD_ROOT/usr/man/man1/xjove.1
 /usr/lib/jove/
 /usr/bin/jove
 /usr/bin/teachjove
-%doc /usr/man/man1/jove.1.gz
-%doc /usr/man/man1/teachjove.1.gz
-#doc /usr/man/man1/jovetool.1.gz
-#doc /usr/man/man1/xjove.1.gz
+# Note: later versions of Red Hat RPM run a script that gzips man pages behind
+# our back; Mandrake bzip2s them.  The wildcard lets us roll with the punch.
+%doc /usr/man/man1/jove.1*
+%doc /usr/man/man1/teachjove.1*
+#doc /usr/man/man1/jovetool.1*
+#doc /usr/man/man1/xjove.1*
 %doc jove%{jversion}/README
 %doc jove%{jversion}/doc/jove.man
 %doc jove%{jversion}/doc/jove.man.ps

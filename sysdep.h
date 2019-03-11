@@ -177,6 +177,11 @@
 # define USE_SELECT_H	1
 #endif
 
+#ifdef BSDPOSIX_STDC	/* Same as BSDPOSIX, but with a Standard enough C */
+# define REALSTDC	1
+# define BSDPOSIX	1
+#endif
+
 #ifdef BSDPOSIX	/* System: Posix system with BSD flavouring for ptys */
 /* System: BSDI, 386BSD, BSD4.4, NetBSD -- BSDPOSIX */
 /* System: DEC Ultrix 4.2 -- BSDPOSIX */
