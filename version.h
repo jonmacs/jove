@@ -7,11 +7,14 @@
 
 /* Note: jove.spec must be updated when version number changes */
 
-#define	jversion     "4.16.0.69" /* 2005 Sept 30 */
-#define	jversion_lnum 4,16,0,69  /* list-of-numbers form for Win32 jjove.rc */
+#define	jversion     "4.16.0.70" /* 2006 April 30 */
+#define	jversion_lnum 4,16,0,70  /* list-of-numbers form for Win32 jjove.rc */
 
 /*
  * $Log: version.h,v $
+ * Revision 1.420  2006/04/30 21:51:40  hugh
+ * don't crash when filename completion list is wider than screen
+ *
  * Revision 1.419  2005/10/01 00:34:41  hugh
  * 4.16.0.69: fix minor errors introduced in 4.16.0.67
  *
