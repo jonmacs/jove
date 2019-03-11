@@ -1,18 +1,46 @@
-/************************************************************************
- * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/***************************************************************************
+ * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
+ * is provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is    *
+ * included in all the files.                                              *
+ ***************************************************************************/
 
-/* jove.h header file to be included by EVERYONE */
+/* jove.h header file to be included by EVERYONE */ 
+
 
 #include <setjmp.h>
-#include <sys/types.h>
 
 #ifndef TUNED
 #   include "tune.h"
 #endif
+
+#ifndef MAC
+#	include <sys/types.h>
+#else
+#	include <types.h>
+#endif
+
+
+#ifdef MSDOS
+#include <string.h>
+#endif
+
+
+#if !(defined(MSDOS) || defined(MAC))
+#define void int
+#endif
+
+#if !(defined(IBMPC) || defined(MAC))
+#	define TERMCAP
+#	define ASCII
+#endif
+
+#ifdef ASCII	/* seven bit characters */
+#	define NCHARS 0200
+#else
+#	define NCHARS 0400
+#endif
+#define CHARMASK (NCHARS -1)
 
 #define private	static
 
@@ -25,9 +53,19 @@
 #endif
 
 #define EOF	-1
-#define NULL	0
-#define NIL	0
 
+#ifdef MSDOS
+#	define NULL	((char *)0)
+#	define NIL	((char *)0)
+#else
+#	ifdef MAC
+#		define NULL 0L
+#		define NIL 0L
+#	else
+#		define NULL 0
+#		define NIL 0
+#	endif /* MAC */
+#endif /* MSDOS */
 /* kinds of regular expression compiles */
 #define NORM	0	/* nothing special */
 #define OKAY_RE	1	/* allow regular expressions */
@@ -85,8 +123,7 @@
 
 #define CharUpcase(c)	(CaseEquiv[c])
 
-extern int	OkayAbort,	/* okay to abort redisplay */
-		BufSize;
+extern int	BufSize;
 
 #define ARG_CMD		1
 #define LINECMD		2
@@ -123,13 +160,13 @@ extern int	OkayAbort,	/* okay to abort redisplay */
 #define MajorMode(x)	(curbuf->b_major == x)
 #define SetMajor(x)	((curbuf->b_major = x), UpdModLine = YES)
 
-#ifndef IBMPC
+#ifdef ASCII
 extern char	CharTable[NMAJORS][128];
 extern char	CaseEquiv[128];
-#else /* IBMPC */
+#else /* IBMPC or MAC */
 extern char	CharTable[NMAJORS][256];
 extern char	CaseEquiv[256];
-#endif /* IBMPC */
+#endif /* ASCII */
 
 /* setjmp/longjmp args for DoKeys() mainjmp */
 #define FIRSTCALL	0
@@ -191,11 +228,8 @@ typedef struct data_obj {
 	int	Type;
 	char	*Name;
 } data_obj;	/* points to cmd, macro, or variable */
-#ifndef IBMPC
-typedef data_obj	*keymap[0200];
-#else /* IBMPC */
-typedef data_obj	*keymap[256];
-#endif /* IBMPC */
+
+typedef data_obj	*keymap[NCHARS];
 
 struct line {
 	Line	*l_prev,		/* pointer to prev */
@@ -237,12 +271,17 @@ struct window {
 		w_topnum,	/* line number of the topline */
 		w_dotcol,	/* UpdWindow sets this ... */
 		w_dotline,	/* ... and this */
-		w_flags;
+		w_flags,
 #define	W_TOPGONE	01
 #define	W_CURGONE	02	/* topline (curline) of window has been deleted
 				   since the last time a redisplay was called */
 #define W_VISSPACE	04
 #define W_NUMLINES	010
+		w_LRscroll;	/* amount of LeftRight scrolling in window */
+#ifdef MAC
+	int	w_topline;	/* row number of top line in window */
+	char **w_control;	/* scroll bar for window */
+#endif
 };
 
 extern Window	*fwind,		/* first window in list */
@@ -264,6 +303,10 @@ struct mark {
 };
 
 struct buffer {
+#ifdef MAC
+	int Type;		/* kludge... to look like a data_obj */
+	char *Name;		/* Name will not be used */
+#endif	
 	Buffer	*b_next;		/* next buffer in chain */
 	char	*b_name,		/* buffer name */
 		*b_fname;		/* file name associated with buffer */
@@ -279,7 +322,7 @@ struct buffer {
 
 #define NMARKS	8			/* number of marks in the ring */
 
-	Mark	*b_markring[NMARKS],	/* new marks are pushed saved here */
+	Mark	*b_markring[NMARKS],	/* new marks are pushed here */
 		*b_marks;		/* all the marks for this buffer */
 	char	b_themark,		/* current mark (in b_markring) */
 		b_type,			/* file, scratch, process, iprocess */
@@ -315,13 +358,26 @@ struct variable {
 struct cmd {
 	int	Type;
 	char	*Name;
-	int	(*c_proc)();
+#ifdef MAC
+	void (*c_proc)();
+#else
+	int (*c_proc)();
+#endif
+#ifdef MAC
+	char c_map;			/* prefix map for About Jove... */
+	char c_key;			/* key binding for About Jove... */
+#endif
 };
 
 extern keymap	mainmap,	/* various key maps */
 		pref1map,
 		pref2map,
 		miscmap;
+#ifdef MAC					/* used in About Jove... */		
+	#define F_MAINMAP '\001'
+	#define F_PREF1MAP '\002'
+	#define F_PREF2MAP '\003'
+#endif
 
 extern data_obj	*LastCmd;	/* last command invoked */
 
@@ -338,6 +394,11 @@ extern struct macro
 #define FUNCTION	1
 #define VARIABLE	2
 #define MACRO		3
+#ifdef MAC
+#	define BUFFER		6	/* menus can point to buffers, too */
+#	define STRING		7	/* a menu string or divider */
+#endif
+
 #define TYPEMASK	07
 #define MAJOR_MODE	010
 #define MINOR_MODE	020
@@ -352,7 +413,11 @@ extern Buffer	*world,		/* first buffer */
 
 #define NUMKILLS	10	/* number of kills saved in the kill ring */
 
-#define DIRTY		01	/* just needs updating for some reason */
+#ifdef MAC		/* when doing ~DIRTY, we need high bits set */
+#	define DIRTY	(disk_line) 01	/* just needs updating for some reason */
+#else
+#	define DIRTY	01	/* just needs updating for some reason */
+#endif
 #define MODELINE	02	/* this is a modeline */
 #define L_MOD		04	/* this line has been modified internally */
 
@@ -381,12 +446,23 @@ extern struct scrimage
 #define V_CLRSCREEN	0200	/* clear and redraw screen */
 #define V_TTY_RESET	0400	/* redo the tty modes */
 
+#ifdef MAC
+#ifdef TXT_TO_C
+int		/* kludge, so setmaps will compile with variables */
+#else
 extern int
+#endif /* TXT_TO_C */
+#else
+extern int
+#endif	/* MAC */
+
 	OKXonXoff,		/* disable start/stop characters */
 	MetaKey,		/* this terminal has a meta key */
 	VisBell,		/* use visible bell (if possible) */
 	WrapScan,		/* make searches wrap */
+#ifndef MAC
 	phystab,		/* terminal's tabstop settings */ 
+#endif
 	tabstop,		/* expand tabs to this number of spaces */
 #ifdef BACKUPFILES
 	BkupOnWrite,		/* make backup files when writing */
@@ -394,7 +470,9 @@ extern int
 	RMargin,		/* right margin */
 	LMargin,		/* left margin */
 	ScrollStep,		/* how should we scroll */
+#ifndef MAC
 	WtOnMk,			/* write files on compile-it command */
+#endif
 	EndWNewline,		/* end files with a blank line */
 	MarkThresh,		/* moves greater than MarkThresh will SetMark */
 	PDelay,			/* paren flash delay in tenths of a second */
@@ -425,16 +503,42 @@ extern int
 	AbortChar,		/* cancels command input */
 	IntChar,		/* ttysets this to generate QUIT */
 	DoEVexpand,		/* treat $foo as environment variable */
-#ifdef MSDOS
+#ifdef F_COMPLETION
+ 	DispBadFs,		/* display filenames with bad extensions? */
+#endif	
+#ifdef IBMPC
 	Fgcolor,
 	Bgcolor,
-#endif /* MSDOS */
+	Mdcolor,
+#endif /* IBMPC */
 #ifdef F_COMPLETION
 	DispBadFs,		/* display filenames with bad extensions? */
 #endif
+	ScrollAll,		/* we current line scrolls, scroll whole window? */
+#ifndef MAC
 	EWSize;			/* size to make the error window */
+#else	
+	Macmode,	/* see mac.c */
+	Keyonly,
+	Bufchange,
+	Modechange,
+	Windchange,
+	EventCmd;
+#endif	/* MAC */
 
+#ifdef MAC
+#	ifdef TXT_TO_C	/* kludge, for setmaps with variables */
+char
+#	else
 extern char
+#	endif /* TXT_TO_C */
+#else
+extern char
+#endif /* MAC */
+
+#ifndef MAC
+	ErrFmtStr[256],		/* format string for parse errors */
+#endif
 #ifdef IPROCS
 	proc_prompt[128],	/* process prompt */
 #endif
@@ -445,16 +549,12 @@ extern char
 	CmtFmt[80],
 #endif
 	ModeFmt[120],		/* mode line format string */
-#ifndef MSDOS
-	Mailbox[128],		/* mailbox name */
-	TmpFilePath[128],	/* directory/device to store tmp files */
-	TagFile[128],		/* default tag file */
-	Shell[128];		/* shell to use */
-#else /* MSDOS */
-	TmpFilePath[64],	/* directory/device to store tmp files */
-	TagFile[64],		/* default tag file */
-	Shell[64];		/* shell to use */
-#endif /* MSDOS */
+#ifdef UNIX
+	Mailbox[FILESIZE],		/* mailbox name */
+#endif /* UNIX */
+	TmpFilePath[FILESIZE],	/* directory/device to store tmp files */
+	TagFile[FILESIZE],		/* default tag file */
+	Shell[FILESIZE];		/* shell to use */
 
 extern int
 	TOabort,	/* flag set by Typeout() */
@@ -516,88 +616,4 @@ extern int
 	pop_env(sav_jmp); \
 }
 
-extern int
-	read(),
-	write(),
-	getch();
-
-extern time_t	time();
-extern long	lseek();
-
-extern disk_line
-	putline();
-
-extern data_obj
-	*findcom(),
-	*findvar(),
-	*findmac();
-
-extern Line
-	*next_line(),
-	*prev_line(),
-	*nbufline(),
-	*reg_delete(),
-	*lastline(),
-	*listput();
-
-extern char
-	*getsearch(),
-	*pwd(),
-	*itoa(),
-	*get_time(),
-	*copystr(),
-	*basename(),
-	*filename(),
-	*IOerr(),
-	*index(),
-	*ask(),
-	*do_ask(),
-	*ask_buf(),
-	*ask_file(),
-	*lcontents(),
-	*malloc(),
-	*emalloc(),
-	*mktemp(),
-	*realloc(),
-	*ltobuf(),
-	*lbptr(),
-	*rindex(),
-	*getenv(),
-	*tgoto(),
-	*pr_name(),
-	*sprint(),
-#ifdef IPROCS
-	*pstate(),
-#endif
-	*StrIndex();
-
-extern Bufpos
-	*docompiled(),
-	*dosearch(),
-	*DoYank(),
-	*c_indent(),
-#ifdef LISP
-	*lisp_indent(),
-#endif
-	*m_paren();
-
-extern Mark
-	*CurMark(),
-	*MakeMark();
-
-extern Window
-	*windbp(),
-	*div_wind();
-
-extern data_obj
-	**IsPrefix();
-
-extern Buffer
-	*do_find(),
-	*do_select(),
-	*mak_buf(),
-	*buf_exists(),
-	*file_exists();
-
-struct cmd *
-	FindCmd();
+#include "externs.h"

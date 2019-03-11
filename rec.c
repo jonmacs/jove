@@ -1,14 +1,17 @@
-/************************************************************************
- * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/***************************************************************************
+ * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
+ * is provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is    *
+ * included in all the files.                                              *
+ ***************************************************************************/
 
 #include "jove.h"
 #include "io.h"
 #include "rec.h"
-#include <sys/file.h>
+
+#ifndef MAC
+#	include <sys/file.h>
+#endif
 
 private int	rec_fd = -1;
 private char	*recfname;
@@ -24,7 +27,11 @@ recinit()
 {
 	char	buf[128];
 
+#ifdef MAC
+	sprintf(buf, "%s/%s", HomeDir, p_tempfile);
+#else
 	sprintf(buf, "%s/%s", TmpFilePath, p_tempfile);
+#endif
 	recfname = copystr(buf);
 	recfname = mktemp(recfname);
 	rec_fd = creat(recfname, 0644);

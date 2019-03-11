@@ -1,18 +1,52 @@
-/************************************************************************
- * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/***************************************************************************
+ * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
+ * is provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is    *
+ * included in all the files.                                              *
+ ***************************************************************************/
 
 #include "jove.h"
 #include "ctype.h"
 #include "io.h"
 
+#ifdef MAC
+#	undef private
+#	define private
+#endif
+
+#ifdef	LINT_ARGS
+private void
+	add_mac(struct macro *),
+	del_mac(struct macro *),
+	pop_macro_stack(void),
+	push_macro_stack(struct macro *, int);
+	
+private int
+	PrefChar(int);
+
+private struct macro * mac_exists(char *);
+#else
+private void
+	add_mac(),
+	del_mac(),
+	pop_macro_stack(),
+	push_macro_stack();
+	
+private int
+	PrefChar();
+
+private struct macro * mac_exists();
+#endif	/* LINT_ARGS */
+
+#ifdef MAC
+#	undef private
+#	define private static
+#endif
+
 struct macro	*macros = 0;		/* macros */
 int	InMacDefine = NO;
 
-private
+private void
 add_mac(new)
 struct macro	*new;
 {
@@ -31,7 +65,7 @@ struct macro	*new;
 	new->Type = MACRO;
 }
 
-private
+private void
 del_mac(mac)
 struct macro	*mac;
 {
@@ -61,13 +95,14 @@ struct m_thread {
 
 private struct m_thread	*mac_stack = 0;
 
+void
 unwind_macro_stack()
 {
 	while (mac_stack != 0)
 		pop_macro_stack();
 }
 
-private
+private void
 pop_macro_stack()
 {
 	register struct m_thread	*m;
@@ -84,13 +119,14 @@ alloc_mthread()
 	return (struct m_thread *) emalloc(sizeof (struct m_thread));
 }
 
+void
 free_mthread(t)
 struct m_thread	*t;
 {
 	free((char *) t);
 }
 
-private
+private void
 push_macro_stack(m, count)
 struct macro	*m;
 {
@@ -104,6 +140,7 @@ struct macro	*m;
 	t->mt_count = count;
 }
 
+void
 do_macro(mac)
 struct macro	*mac;
 {
@@ -122,6 +159,7 @@ char	*name;
 	return 0;
 }
 
+void
 mac_init()
 {
 	add_mac(&KeyMacro);
@@ -131,6 +169,7 @@ mac_init()
 	KeyMacro.m_body = emalloc(KeyMacro.m_buflen);
 }
 
+void
 mac_putc(c)
 int	c;
 {
@@ -145,11 +184,13 @@ int	c;
 	KeyMacro.m_body[KeyMacro.m_len++] = c;
 }
 
+int
 in_macro()
 {
 	return (mac_stack != 0);
 }
 
+int
 mac_getc()
 {
 	struct m_thread	*mthread;
@@ -167,6 +208,7 @@ mac_getc()
 	return m->m_body[mthread->mt_offset++];
 }
 
+void
 NameMac()
 {
 	char	*name;
@@ -195,6 +237,7 @@ NameMac()
 	add_mac(m);
 }
 
+void
 RunMacro()
 {
 	struct macro	*m;
@@ -203,6 +246,7 @@ RunMacro()
 		do_macro(m);
 }
 
+void
 pr_putc(c, fp)
 File	*fp;
 {
@@ -215,6 +259,7 @@ File	*fp;
 	putc(c, fp);
 }
 
+void
 WriteMacs()
 {
 	struct macro	*m;
@@ -237,6 +282,7 @@ WriteMacs()
 	close_file(fp);
 }
 
+void
 DefKBDMac()
 {
 	char	*macro_name,
@@ -279,6 +325,7 @@ DefKBDMac()
 	add_mac(m);
 }
 
+void
 Remember()
 {
 	/* We're already executing the macro; ignore any attempts
@@ -297,12 +344,13 @@ Remember()
 
 /* Is `c' a prefix character */
 
-private
+private int
 PrefChar(c)
 {
 	return (int) IsPrefix(mainmap[c]);
 }
 
+void
 Forget()
 {
 	char	*cp;
@@ -323,11 +371,13 @@ Forget()
 		complain("[end-kbd-macro: not currently defining macro!]");
 }
 
+void
 ExecMacro()
 {
 	do_macro(&KeyMacro);
 }
 
+void
 MacInter()
 {
 	extern int	Interactive;
@@ -337,6 +387,7 @@ MacInter()
 	Interactive = 1;
 }
 
+int
 ModMacs()
 {
 	register struct macro	*m;
@@ -368,6 +419,7 @@ char	*prompt;
 	return (data_obj *) m;
 }
 
+void
 DelMacro()
 {
 	struct macro	*m;

@@ -1,9 +1,9 @@
-/************************************************************************
- * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/***************************************************************************
+ * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
+ * is provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is    *
+ * included in all the files.                                              *
+ ***************************************************************************/
 
 #include "jove.h"
 #include "io.h"
@@ -12,11 +12,47 @@
 #include <signal.h>
 #include <varargs.h>
 
+#ifdef MSDOS
+#include <io.h>
+#include <process.h>
+#endif
+
+
+#ifdef	LINT_ARGS
+private void
+	DoShell(char *, char *),
+	com_finish(int, char *),
+	toerror(int, int),
+	closepipe(void);
+	
+private int
+	okay_error(void),
+	openforpipe(void),
+	reopenforpipe(void);
+
+private struct error
+	* AddError(struct error *, Line *, Buffer *, Line *, int);
+#else
+private void
+	DoShell(),
+	com_finish(),
+	toerror(),
+	closepipe();
+
+private int
+	openforpipe(),
+	okay_error(),
+	reopenforpipe();
+
+private struct error
+	* AddError();
+#endif
+
+
 /* This disgusting RE search string parses output from the GREP
    family, from the pdp11 compiler, pcc, and lint.  Jay (HACK)
    Fenlasen changed this to work for the lint errors. */
-private char
-	*errfmt = "^\\{\",\\}\\([^:\"( \t]*\\)\\{\"\\, line ,:,(\\} *\\([0-9][0-9]*\\)[:)]\
+char	ErrFmtStr[256] = "^\\{\",\\}\\([^:\"( \t]*\\)\\{\"\\, line ,:,(\\} *\\([0-9][0-9]*\\)[:)]\
 \\|::  *\\([^(]*\\)(\\([0-9]*\\))$\
 \\|( \\([^(]*\\)(\\([0-9]*\\)) ),";
 
@@ -65,26 +101,13 @@ Buffer	*buf;
 	return new;
 }
 
-ParseAll()
-{
-	ErrParse(errfmt);
-}
+/* Parse errors of the form specified in ErrFmtStr in the current
+   buffer.  Do a show error of the first error.  This is neat because this
+   will work for any kind of output that prints a file name and a line
+   number on the same line. */
 
-XParse()
-{
-	char	*sstr;
-
-	sstr = ask(errfmt, ProcFmt);
-	ErrParse(sstr);
-}
-
-/* Parse for {C,LINT} errors (or anything that matches fmtstr) in the
-   current buffer.  Set up for the next-error command.  This is neat
-   because this will work for any kind of output that prints a file
-   name and a line number on the same line. */
-
-ErrParse(fmtstr)
-char	*fmtstr;
+void
+ErrParse()
 {
 	Bufpos	*bp;
 	char	fname[FILESIZE],
@@ -101,7 +124,7 @@ char	*fmtstr;
 	ErrFree();		/* This is important! */
 	ToFirst();
 	perr_buf = curbuf;
-	REcompile(fmtstr, 1, REbuf, REalts);
+	REcompile(ErrFmtStr, 1, REbuf, REalts);
 	/* Find a line with a number on it. */
 	while (bp = docompiled(FORWARD, REbuf, REalts)) {
 		SetDot(bp);
@@ -128,6 +151,7 @@ char	*fmtstr;
 
 /* Free up all the errors */
 
+void
 ErrFree()
 {
 	register struct error	*ep;
@@ -143,7 +167,7 @@ ErrFree()
 private char	errbounds[] = "You're at the %s error.",
 		noerrs[] = "No errors!";
 
-private
+private void
 toerror(forward, num)
 {
 	register struct error	*e = cur_error;
@@ -161,17 +185,19 @@ toerror(forward, num)
 	}
 }
 
+void
 NextError()
 {
 	ToError(1);
 }
 
+void
 PrevError()
 {
 	ToError(0);
 }
 
-private
+private int
 okay_error()
 {
 	return ((inlist(perr_buf->b_first, cur_error->er_mess)) &&
@@ -182,6 +208,7 @@ okay_error()
    one window and the buffer with the error in another window.
    It checks to make sure that the error actually exists. */
 
+void
 ToError(forward)
 {
 	do {
@@ -193,6 +220,7 @@ ToError(forward)
 int	EWSize = 20;	/* percentage of screen the error window
 			   should be */
 
+void
 set_wsize(wsize)
 int	wsize;
 {
@@ -205,6 +233,7 @@ int	wsize;
    in one window, and the buffer containing the actual error in another
    window. */
 
+void
 ShowErr()
 {
 	Window	*err_wind,
@@ -274,6 +303,7 @@ char	*command;
 
 char	make_cmd[128] = "make";
 
+void
 MakeErrors()
 {
 	Window	*old = curwind;
@@ -301,7 +331,7 @@ MakeErrors()
 	status = UnixToBuf(MakeName(make_cmd), YES, EWSize, YES, Shell, ShFlags, make_cmd, (char *) 0);
 	com_finish(status, make_cmd);
 
-	ErrParse(errfmt);
+	ErrParse();
 
 	if (!cur_error)
 		SetWind(old);
@@ -309,6 +339,7 @@ MakeErrors()
 
 #ifdef SPELL
 
+void
 SpelBuffer()
 {
 	char	*Spell = "Spell",
@@ -319,11 +350,13 @@ SpelBuffer()
 	sprintf(com, "spell %s", curbuf->b_fname);
 	(void) UnixToBuf(Spell, YES, EWSize, YES, Shell, ShFlags, com, (char *) 0);
 	message("[Delete the irrelevant words and then type C-X C-C]");
+	ToFirst();
 	Recur();
 	SetWind(savewp);
 	SpelParse(Spell);
 }
 
+void
 SpelWords()
 {
 	char	*buftospel;
@@ -335,6 +368,7 @@ SpelWords()
 	SpelParse(wordsb->b_name);
 }
 
+void
 SpelParse(bname)
 char	*bname;
 {
@@ -372,6 +406,7 @@ char	*bname;
 
 #endif /* SPELL */
 
+void
 ShToBuf()
 {
 	char	bufname[128],
@@ -382,6 +417,7 @@ ShToBuf()
 	DoShell(bufname, cmd);
 }
 
+void
 ShellCom()
 {
 	null_ncpy(ShcomBuf, ask(ShcomBuf, ProcFmt), (sizeof ShcomBuf) - 1);
@@ -414,7 +450,7 @@ Shtypeout()
    give a numeric argument, in which case it inserts the output at the
    current position in the buffer.  */
 
-private
+private void
 DoShell(bufname, command)
 char	*bufname,
 	*command;
@@ -428,7 +464,7 @@ char	*bufname,
 	SetWind(savewp);
 }
 
-private
+private void
 com_finish(status, cmd)
 int	status;
 char	*cmd;
@@ -442,6 +478,7 @@ char	*cmd;
 }
 
 #ifndef MSDOS
+void
 dowait(pid, status)
 int	pid,
 	*status;
@@ -488,6 +525,7 @@ int	pid,
 
 /* VARARGS5 */
 
+int
 UnixToBuf(bufname, disp, wsize, clobber, va_alist)
 char	*bufname;
 va_dcl
@@ -495,14 +533,14 @@ va_dcl
 #ifndef MSDOS
 	int	p[2],
 		pid,
+		status,
 #else /* MSDOS */
 	int	p0,
 		oldo,
 		olde,
 		retcode,
 #endif /* MSDOS */
-		eof,
-		status;
+		eof;
 	va_list	ap;
 	char	*argv[32],
 		*mess;
@@ -609,9 +647,13 @@ va_dcl
 	fp = fd_open(argv[1], F_READ, p0, iobuff, LBSIZE);
 #endif /* MSDOS */
 	do {
+#ifndef MSDOS
 		inIOread = 1;
+#endif
  		eof = f_gets(fp, genbuf, LBSIZE);
+#ifndef MSDOS
 		inIOread = 0;
+#endif
 		if (bufname != 0) {
 			ins_str(genbuf, YES);
 			if (!eof)
@@ -658,6 +700,9 @@ va_dcl
 #endif
 	return status;
 #else /* MSDOS */
+#ifdef CHDIR
+	getCWD();
+#endif	
 	return retcode;
 #endif /* MSDOS */
 }
@@ -684,6 +729,8 @@ sigrelse(sig)
 #endif
 
 #endif /* MSDOS */
+
+void
 FilterRegion()
 {
 	char	*cmd = ask((char *) 0, ": %f (through command) ", ProcFmt);
@@ -694,6 +741,7 @@ FilterRegion()
 /* Send the current region to CMD and insert the output from the
    command into OUT_BUF. */
 
+void
 RegToUnix(outbuf, cmd)
 Buffer	*outbuf;
 char	*cmd;
@@ -759,6 +807,7 @@ char	*cmd;
 #endif
 }
 
+void
 isprocbuf(bufname)
 char	*bufname;
 {
@@ -782,17 +831,16 @@ static int  pipehandle;
 
 extern char TmpFilePath[];
 
+private int
 openforpipe()
 {
-   char *x;
-   char *strend();
-   
    sprintf(pipeiname, "%s/%s", TmpFilePath, "Jove-I");
    sprintf(pipeoname, "%s/%s", TmpFilePath, "Jove-O");
 
    return(pipehandle = creat(pipeoname, S_IWRITE|S_IREAD));
 }
 
+private int
 reopenforpipe()
 {		       
    close(pipehandle);
@@ -804,13 +852,15 @@ reopenforpipe()
    return(-1);
 }
 
+private void
 closepipe()
 {	 
    unlink(pipeoname);
    unlink(pipeiname);
 }
          
-char switchar()
+char 
+switchar()
 {
   union REGS regs;
   

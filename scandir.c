@@ -1,23 +1,31 @@
-/************************************************************************
- * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/***************************************************************************
+ * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
+ * is provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is    *
+ * included in all the files.                                              *
+ ***************************************************************************/
 
 #include "jove.h"
+
 #ifdef MSDOS
 #include <dos.h>
-#else
+#include <search.h>
+#endif
+
+#ifdef UNIX
 #include <sys/stat.h>
+#ifdef M_XENIX
+#include <sys/ndir.h>
+#else
 #include <sys/dir.h>
+#endif /* M_XENIX */
 #endif
 
 #ifdef F_COMPLETION
 
-#ifndef MSDOS
+#ifdef UNIX
 
-#ifdef BSD4_2
+#if defined(BSD4_2) || defined(M_XENIX)
 
 #define DIRSIZE(entry)	DIRSIZ(entry)
 
@@ -79,6 +87,7 @@ DIR	*dp;
 /* Scandir returns the number of entries or -1 if the directory cannoot
    be opened or malloc fails. */
 
+int
 scandir(dir, nmptr, qualify, sorter)
 char	*dir;
 char	***nmptr;
@@ -119,27 +128,18 @@ memfail:	complain("[Malloc failed: cannot scandir]");
 	return nentries;
 }
 
-#else /* MSDOS */
+#endif /* UNIX */
 
+#ifdef MSDOS
 #define	DIRSIZ	13
-#define DIRSIZE(entry)	strlen(entry.d_name)
-
-
-/*
- *	Structure returned by search calls
- */
-struct	direct
-{
-	char	rsvd[21];		/* reserved for dos */
-	char	d_attr;			/* file attribute */
-	long	d_time;			/* modified time */
-	long	d_size;			/* file size */
-	char	d_name[DIRSIZ];		/* directory entry name */
-};
+#define DIRSIZE(entry)	strlen(entry.name)
 
 /* Scandir returns the number of entries or -1 if the directory cannoot
    be opened or malloc fails. */
 
+unsigned int fmask = _A_NORMAL|_A_RDONLY|_A_HIDDEN|_A_SUBDIR;
+
+int
 scandir(dir, nmptr, qualify, sorter)
 char	*dir;
 char	***nmptr;
@@ -147,8 +147,7 @@ int	(*qualify)();
 int	(*sorter)();
 {
 	char dirname[FILESIZE];
-	union REGS r;
-	struct direct entry;
+	struct find_t entry;
 	char *ptr;
 	char	**ourarray;
 	unsigned int	nalloc = 10,
@@ -161,21 +160,15 @@ int	(*sorter)();
 	else
 	   strcat(dirname, "/*.*");
 
-	r.h.ah = 0x1a;
-	r.x.dx = (unsigned int) &entry;
-	intdos(&r, &r);
-	r.h.ah = 0x4e;
-	r.x.cx = 0x1f;
-	r.x.dx = (unsigned int) dirname;
-	intdos(&r, &r);
-	
-	if (r.x.cflag)
-		return -1;
+	if (_dos_findfirst(dirname, fmask, &entry))
+	   return -1;
 	if ((ourarray = (char **) malloc(nalloc * sizeof (char *))) == 0)
 memfail:	complain("[Malloc failed: cannot scandir]");
-	while (r.x.cflag == 0) {
-		strlwr(entry.d_name);
-		if (qualify != (int (*)())0 && (*qualify)(entry.d_name) == 0)
+	do  {
+		if ((fmask == 0x10) && !(entry.attrib&fmask))
+			goto skip;
+		strlwr(entry.name);
+		if (qualify != (int (*)())0 && (*qualify)(entry.name) == 0)
 			goto skip;
 		if (nentries == nalloc) {
 			ourarray = (char **) realloc((char *) ourarray, (nalloc += 10) * sizeof (char *));
@@ -183,11 +176,12 @@ memfail:	complain("[Malloc failed: cannot scandir]");
 				goto memfail;
 		}
 		ourarray[nentries] = (char *) malloc(DIRSIZE(entry) + 1);
-		null_ncpy(ourarray[nentries], entry.d_name, (int) DIRSIZE(entry));
+		null_ncpy(ourarray[nentries], entry.name, (int) DIRSIZE(entry));
 		nentries++;
-skip: 	r.h.ah = 0x4f;
-		intdos(&r, &r);
-	}
+skip:	;
+    }
+    while (_dos_findnext(&entry) == 0);
+
 	if ((nentries + 1) != nalloc)
 		ourarray = (char **) realloc((char *) ourarray,
 					((nentries + 1) * sizeof (char *)));
@@ -201,6 +195,7 @@ skip: 	r.h.ah = 0x4f;
 
 #endif /* MSDOS */
 
+void
 freedir(nmptr, nentries)
 char	***nmptr;
 {
@@ -212,6 +207,7 @@ char	***nmptr;
 	*nmptr = 0;
 }
 
+int
 alphacomp(a, b)
 char	**a,
 	**b;

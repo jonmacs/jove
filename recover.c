@@ -1,9 +1,9 @@
-/************************************************************************
- * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/***************************************************************************
+ * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
+ * is provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is    *
+ * included in all the files.                                              *
+ ***************************************************************************/
 
 /* Recovers JOVE files after a system/editor crash.
    Usage: recover [-d directory] [-syscrash]
@@ -20,6 +20,9 @@
 #undef EOF
 #undef BUFSIZ
 #undef putchar
+#undef getchar
+
+#define STDIO
 
 #include "jove.h"
 #include "temp.h"
@@ -141,8 +144,8 @@ disk_line	atl;
 		off;
 	static int	curblock = -1;
 
-	bno = daddr_to_bno(atl);
-	off = daddr_to_off(atl);
+	bno = da_to_bno(atl);
+	off = da_to_off(atl);
 	nleft = BUFSIZ - off;
 
 	if (bno != curblock) {

@@ -1,16 +1,16 @@
-/************************************************************************
- * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/***************************************************************************
+ * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
+ * is provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is    *
+ * included in all the files.                                              *
+ ***************************************************************************/
 
 /* This creates/deletes/divides/grows/shrinks windows.  */
 
 #include "jove.h"
 #include "termcap.h"
 
-static char	onlyone[] = "You only have one window!",
+private char	onlyone[] = "You only have one window!",
 		toosmall[] = "Resulting window would be too small.";
 
 Window	*curwind,
@@ -18,6 +18,7 @@ Window	*curwind,
 
 /* First line in a Window */
 
+int
 FLine(w)
 register Window	*w;
 {
@@ -39,6 +40,7 @@ register Window	*w;
    to the next window if there is one, otherwise the previous
    window gets the body.  */
 
+void
 del_wind(wp)
 register Window	*wp;
 {
@@ -62,6 +64,10 @@ register Window	*wp;
 		if (curwind == wp)
 			SetWind(prev);
 	}
+#ifdef MAC
+	RemoveScrollBar(wp);
+	Windchange++;
+#endif
 	free((char *) wp);
 }
 
@@ -84,6 +90,7 @@ register Window	*wp;
 	while (--n >= 0) {
 		new = (Window *) emalloc(sizeof (Window));
 		new->w_flags = 0;
+		new->w_LRscroll = 0;
 
 		new->w_height = amt;
 		wp->w_height -= amt;
@@ -100,7 +107,13 @@ register Window	*wp;
 		new->w_next = wp->w_next;
 		new->w_next->w_prev = new;
 		wp->w_next = new;
+#ifdef MAC
+		new->w_control = 0;
+#endif
 	}
+#ifdef MAC
+	Windchange++;
+#endif
 	return new;
 }
 
@@ -108,20 +121,27 @@ register Window	*wp;
    screen.  There is no buffer with this window.  See parse for the
    setting of this window. */
 
+void
 winit()
 {
 	register Window	*w;
 
 	w = curwind = fwind = (Window *) emalloc(sizeof (Window));
 	w->w_line = w->w_top = 0;
+	w->w_LRscroll = 0;
 	w->w_flags = 0;
 	w->w_char = 0;
 	w->w_next = w->w_prev = fwind;
 	w->w_height = ILI;
+#ifdef MAC
+	w->w_control = 0;
+	Windchange++;
+#endif
 }
 
 /* Change to previous window. */
 
+void
 PrevWindow()
 {
 	register Window	*new = curwind->w_prev;
@@ -135,6 +155,7 @@ PrevWindow()
 
 /* Make NEW the current Window */
 
+void
 SetWind(new)
 register Window	*new;
 {
@@ -158,6 +179,7 @@ register Window	*new;
 
 /* delete the current window if it isn't the only one left */
 
+void
 DelCurWindow()
 {
 	SetABuf(curwind->w_bufp);
@@ -166,6 +188,7 @@ DelCurWindow()
 
 /* put the current line of `w' in the middle of the window */
 
+void
 CentWind(w)
 register Window	*w;
 {
@@ -177,6 +200,7 @@ int	ScrollStep = 0;		/* full scrolling */
 /* Calculate the new topline of the window.  If ScrollStep == 0
    it means we should center the current line in the window. */
 
+void
 CalcWind(w)
 register Window	*w;
 {
@@ -210,13 +234,15 @@ register Window	*w;
    top line in the current window.  It's sorta gross, but it's
    necessary because of the way this is implemented (i.e., in
    terms of do_find(), do_select() which manipulate the windows. */
+
+void
 WindFind()
 {
 	register Buffer	*obuf = curbuf,
 			*nbuf;
 	Line	*ltop = curwind->w_top;
 	Bufpos	savedot;
-	extern int
+	extern void
 		FindTag(),
 		BufSelect(),
 		FindFile();
@@ -257,6 +283,7 @@ WindFind()
 
 /* Go into one window mode by deleting all the other windows */
 
+void
 OneWindow()
 {
 	while (curwind->w_next != curwind)
@@ -282,6 +309,7 @@ register Buffer	*bp;
 
 /* Change window into the next window.  Curwind becomes the new window. */
 
+void
 NextWindow()
 {
 	register Window	*new = curwind->w_next;
@@ -295,6 +323,7 @@ NextWindow()
 
 /* Scroll the next Window */
 
+void
 PageNWind()
 {
 	if (one_windp())
@@ -330,6 +359,7 @@ register char	*name;
 /* Put a window with the buffer `name' in it.  Erase the buffer if
    `clobber' is non-zero. */
 
+void
 pop_wind(name, clobber, btype)
 register char	*name;
 {
@@ -358,11 +388,13 @@ register char	*name;
 	SetBuf(newb);
 }
 
+void
 GrowWindow()
 {
 	WindSize(curwind, abs(arg_value()));
 }
 
+void
 ShrWindow()
 {
 	WindSize(curwind, -abs(arg_value()));
@@ -371,6 +403,7 @@ ShrWindow()
 /* Change the size of the window by inc.  First arg is the window,
    second is the increment. */
 
+void
 WindSize(w, inc)
 register Window	*w;
 register int	inc;
@@ -387,11 +420,15 @@ register int	inc;
 		w->w_prev->w_height -= inc;
 	} else			/* Growing the window. */
 		WindSize(w->w_next, -inc);
+#ifdef MAC
+	Windchange++;
+#endif
 }
 
 /* Set the topline of the window, calculating its number in the buffer.
    This is for numbering the lines only. */
 
+void
 SetTop(w, line)
 Window	*w;
 register Line	*line;
@@ -411,12 +448,14 @@ register Line	*line;
 	}
 }
 
+void
 WNumLines()
 {
 	curwind->w_flags ^= W_NUMLINES; 
 	SetTop(curwind, curwind->w_top);
 }
 
+void
 WVisSpace()
 {
 	curwind->w_flags ^= W_VISSPACE;
@@ -425,6 +464,7 @@ WVisSpace()
 
 /* Return the line number that `line' occupies in `windes' */
 
+int
 in_window(windes, line)
 register Window	*windes;
 register Line	*line;
@@ -438,6 +478,7 @@ register Line	*line;
 	return -1;
 }
 
+void
 SplitWind()
 {
 	SetWind(div_wind(curwind, is_an_arg() ? (arg_value() - 1) : 1));
@@ -445,6 +486,7 @@ SplitWind()
 
 /* Goto the window with the named buffer.  If no such window
    exists, pop one and attach the buffer to it. */
+void
 GotoWind()
 {
 	extern Buffer	*lastbuf;
@@ -463,4 +505,25 @@ GotoWind()
 	} while (w != curwind);
 	SetABuf(curbuf);
 	pop_wind(bname, NO, -1);
+}
+
+void
+ScrollRight()
+{
+	int	amt = (is_an_arg() ? arg_value() : 10);
+
+	if (curwind->w_LRscroll - amt < 0)
+		curwind->w_LRscroll = 0;
+	else
+		curwind->w_LRscroll -= amt;
+	UpdModLine = YES;
+}
+
+void
+ScrollLeft()
+{
+	int	amt = (is_an_arg() ? arg_value() : 10);
+
+	curwind->w_LRscroll += amt;
+	UpdModLine = YES;
 }

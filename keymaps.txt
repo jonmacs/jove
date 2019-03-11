@@ -1,9 +1,9 @@
-/************************************************************************
- * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is	*
- * provided to you without charge, and with no warranty.  You may give	*
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.						*
- ************************************************************************/
+/***************************************************************************
+ * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
+ * is provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is    *
+ * included in all the files.                                              *
+ ***************************************************************************/
 
 /* Warning:  You probably shouldn't put ifdefs anywhere *inside* the keymaps
    definitions.	 It'll screw up the stuff in comments (at least), and maybe
@@ -144,146 +144,146 @@ keymap	mainmap = {
 	"self-insert",			/* |  */
 	"paren-flash",			/* }  */
 	"self-insert",			/* ~  */
-#ifndef IBMPC
+#ifdef ASCII
 	"delete-previous-character"	/* ^? */
 #else
 	"delete-previous-character",	/* ^? */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"self-insert",			/* ALT-	 */
-	"prefix-3"			/* ALT-255 */
-#endif /* IBMPC */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+	"self-insert",			/* ALT- or Option-	 */
+#ifdef IBMPC
+	"prefix-3"				/* ALT- 255 */
+#else
+	"self-insert"
+#endif	/* IBMPC */
+#endif /* ASCII */
 };
 
-#ifndef IBMPC
-struct data_obj *pref1map[0200] = {
-#else /* IBMPC */
-struct data_obj *pref1map[256] = {
-#endif /* IBMPC */
+struct data_obj *pref1map[NCHARS] = {
 	"set-mark",			/* ^@ */
 	"unbound",			/* ^A */
 	"backward-s-expression",	/* ^B */
@@ -411,139 +411,139 @@ struct data_obj *pref1map[256] = {
 	"unbound",			/* |  */
 	"unbound",			/* }  */
 	"make-buffer-unmodified",	/* ~  */
-#ifndef IBMPC
+#ifdef ASCII
 	"kill-previous-word"		/* ^? */
-#else /* IBMPC */
+#else /* IBMPC or MAC */
 	"kill-previous-word",		/* ^? */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound"			/* ALT-	 */
-#endif /* IBMPC */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound"			/* ALT- or Option-	 */
+#endif /* ASCII */
 };
 
 keymap	pref2map = {
@@ -674,139 +674,139 @@ keymap	pref2map = {
 	"unbound",			/* |  */
 	"unbound",			/* }  */
 	"unbound",			/* ~  */
-#ifndef IBMPC
+#ifdef ASCII
 	"kill-to-beginning-of-sentence" /* ^? */
-#else /* IBMPC */
+#else /* IBMPC or MAC */
 	"kill-to-beginning-of-sentence",	/* ^? */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound",			/* ALT-	 */
-	"unbound"			/* ALT-	 */
-#endif /* IBMPC */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound",			/* ALT- or Option-	 */
+	"unbound"			/* ALT- or Option-	 */
+#endif /* ASCII */
 };
 
 #ifndef IBMPC

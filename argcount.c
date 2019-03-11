@@ -1,37 +1,62 @@
-/************************************************************************
- * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/***************************************************************************
+ * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
+ * is provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is    *
+ * included in all the files.                                              *
+ ***************************************************************************/
 
 #include "jove.h"
 #include <ctype.h>
 
+#ifdef MAC
+#	undef private
+#	define private
+#endif
+
+#ifdef	LINT_ARGS
+private	void
+	gather_numeric_argument(int),
+	quad_numeric_arg(void);
+#else
+private	void
+	gather_numeric_argument(),
+	quad_numeric_arg();
+#endif
+
+#ifdef MAC
+#	undef private
+#	define private static
+#endif
+
 private int	arg_supplied_p,
 		arg_count;
 
+int
 arg_type()
 {
 	return arg_supplied_p;
 }
 
+void
 set_is_an_arg(there_is)
 {
 	arg_supplied_p = there_is;
 }
 
+void
 set_arg_value(n)
 {
 	arg_supplied_p = YES;
 	arg_count = n;
 }
 
+void
 negate_arg_value()
 {
 	arg_count = -arg_count;
 }
 
+void
 clr_arg_value()
 {
 	arg_supplied_p = NO;
@@ -39,12 +64,16 @@ clr_arg_value()
 }
 
 /* return whether there is currently a numeric argument */
+
+int
 is_an_arg()
 {
 	return (arg_supplied_p != NO);
 }
 
 /* return the numeric argument */
+
+int
 arg_value()
 {
 	return arg_count;
@@ -52,6 +81,8 @@ arg_value()
 
 /* called by C-U to gather a numeric argument, either C-U's or digits,
    but not both */
+
+void
 TimesFour()
 {
 	quad_numeric_arg();
@@ -62,7 +93,7 @@ TimesFour()
    invoke quad_numeric_arg() interactively (via TimesFour()), because
    it uses the LastKeyStruck variable to know what character signals
    to multiply again (in the loop). */
-private
+private void
 quad_numeric_arg()
 {
 	int	oldc = LastKeyStruck,
@@ -92,7 +123,7 @@ quad_numeric_arg()
 	Ungetc(newc);
 }
 
-private
+private void
 gather_numeric_argument(c)
 {
 	int	sign = 0;
@@ -145,56 +176,67 @@ goread:		if (!slow)
 	}
 }
 
+void
 Digit()
 {
 	gather_numeric_argument(LastKeyStruck);
 }
 
+void
 Digit0()
 {
 	gather_numeric_argument('0');
 }
 
+void
 Digit1()
 {
 	gather_numeric_argument('1');
 }
 
+void
 Digit2()
 {
 	gather_numeric_argument('2');
 }
 
+void
 Digit3()
 {
 	gather_numeric_argument('3');
 }
 
+void
 Digit4()
 {
 	gather_numeric_argument('4');
 }
 
+void
 Digit5()
 {
 	gather_numeric_argument('5');
 }
 
+void
 Digit6()
 {
 	gather_numeric_argument('6');
 }
 
+void
 Digit7()
 {
 	gather_numeric_argument('7');
 }
 
+void
 Digit8()
 {
 	gather_numeric_argument('8');
 }
 
+void
 Digit9()
 {
 	gather_numeric_argument('9');

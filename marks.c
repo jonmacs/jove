@@ -1,9 +1,9 @@
-/************************************************************************
- * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/***************************************************************************
+ * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
+ * is provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is    *
+ * included in all the files.                                              *
+ ***************************************************************************/
 
 int	MarksShouldFloat = 1;
 
@@ -22,6 +22,22 @@ register Line	*line;
 	return newmark;
 }
 
+void
+flush_marks(b)
+Buffer	*b;
+{
+	register Mark	*m,
+			*next;
+
+	m = b->b_marks;
+	while (m != 0) {
+		next = m->m_next;
+		free((char *) m);
+		m = next;
+	}
+}
+
+void
 DelMark(m)
 register Mark	*m;
 {
@@ -39,6 +55,7 @@ register Mark	*m;
 	free((char *) m);
 }
 
+void
 AllMarkSet(b, line, col)
 Buffer	*b;
 register Line	*line;
@@ -49,6 +66,7 @@ register Line	*line;
 		MarkSet(mp, line, col);
 }
 
+void
 MarkSet(m, line, column)
 Mark	*m;
 Line	*line;
@@ -57,6 +75,7 @@ Line	*line;
 	m->m_char = column;
 }
 
+void
 PopMark()
 {
 	int	pmark;
@@ -83,6 +102,7 @@ PopMark()
 	curbuf->b_themark = pmark;
 }
 
+void
 SetMark()
 {
 	if (is_an_arg())
@@ -91,11 +111,13 @@ SetMark()
 		set_mark();
 }
 
+void
 set_mark()
 {
 	do_set_mark(curline, curchar);
 }
 
+void
 do_set_mark(l, c)
 Line	*l;
 {
@@ -109,6 +131,7 @@ Line	*l;
 
 /* Move point to Mark */
 
+void
 ToMark(m)
 Mark	*m;
 {
@@ -129,6 +152,7 @@ CurMark()
 	return curmark;
 }
 
+void
 PtToMark()
 {
 	Line	*mline;
@@ -146,6 +170,7 @@ PtToMark()
    float will actually float, because we can't allow marks to point
    to non-existant lines. */
 
+void
 DFixMarks(line1, char1, line2, char2)
 register Line	*line1,
 		*line2;
@@ -191,6 +216,7 @@ register Line	*line1,
 /* Fix marks after an insertion.  Marks that don't float are ignored
    on insertion, which means PtToMark has to be careful ... */
 
+void
 IFixMarks(line1, char1, line2, char2)
 register Line	*line1,
 		*line2;

@@ -1,9 +1,9 @@
-/************************************************************************
- * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/***************************************************************************
+ * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
+ * is provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is    *
+ * included in all the files.                                              *
+ ***************************************************************************/
 
 /* Routines to perform all kinds of deletion.  */
 
@@ -12,6 +12,7 @@
 /* Assumes that either line1 or line2 is actual the current line, so it can
    put its result into linebuf. */
 
+void
 patchup(line1, char1, line2, char2)
 Line	*line1,
 	*line2;
@@ -79,6 +80,7 @@ Line	*line1,
 	return retline;
 }
 
+void
 lremove(line1, line2)
 register Line	*line1,
 		*line2;
@@ -97,6 +99,7 @@ register Line	*line1,
 
 /* Delete character forward */
 
+void
 DelNChar()
 {
 	del_char(FORWARD, arg_value());
@@ -104,6 +107,7 @@ DelNChar()
 
 /* Delete character backward */
 
+void
 DelPChar()
 {
 	if (MinorMode(OverWrite)) {
@@ -125,6 +129,7 @@ DelPChar()
    to the final position otherwise call back_char.  Then delete the
    region between the two with patchup(). */
 
+void
 del_char(dir, num)
 {
 	Bufpos	before,
@@ -132,7 +137,8 @@ del_char(dir, num)
 	int	killp = (abs(num) > 1);
 
 	DOTsave(&before);
-	(dir == FORWARD) ? f_char(num) : b_char(num);
+	if (dir == FORWARD) f_char(num);
+		else b_char(num);
 	if (before.p_line == curline && before.p_char == curchar)
 		complain((char *) 0);
 	if (killp)
@@ -152,6 +158,7 @@ del_char(dir, num)
 int	killptr = 0;
 Line	*killbuf[NUMKILLS];
 
+void
 reg_kill(line2, char2, dot_moved)
 Line	*line2;
 {
@@ -192,6 +199,7 @@ Line	*line2;
 	this_cmd = KILLCMD;
 }
 
+void
 DelReg()
 {
 	register Mark	*mp = CurMark();
@@ -201,6 +209,7 @@ DelReg()
 
 /* Save a region.  A pretend kill. */
 
+void
 CopyRegion()
 {
 	register Line	*nl;
@@ -230,6 +239,7 @@ CopyRegion()
 				nl, 0, (Buffer *) 0);
 }
 
+void
 DelWtSpace()
 {
 	register char	*ep = &linebuf[curchar],
@@ -248,6 +258,7 @@ DelWtSpace()
 	}
 }
 
+void
 DelBlnkLines()
 {
 	register Mark	*dot;
@@ -273,21 +284,25 @@ DelBlnkLines()
 	DelMark(dot);
 }
 
+void
 DelNWord()
 {
 	dword(1);
 }
 
+void
 DelPWord()
 {
 	dword(0);
 }
 
+void
 dword(forward)
 {
 	Bufpos	savedot;
 
 	DOTsave(&savedot);
-	forward ? ForWord() : BackWord();
+	if(forward)  ForWord();
+		else BackWord();
 	reg_kill(savedot.p_line, savedot.p_char, 1);
 }

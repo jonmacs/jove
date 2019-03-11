@@ -1,31 +1,38 @@
-########################################################################
-# This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       #
-# provided to you without charge, and with no warranty.  You may give  #
-# away copies of JOVE, including sources, provided that this notice is #
-# included in all the files.                                           #
-########################################################################
+###########################################################################
+# This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE #
+# is provided to you without charge, and with no warranty.  You may give  #
+# away copies of JOVE, including sources, provided that this notice is    #
+# included in all the files.                                              #
+###########################################################################
 
-# Use MSDOS for a generic msdos version. In that case you also
-# have to change tune.h.
-
-ASFLAGS = /Ml /DIBMPC
-CFLAGS = -W0 -AM -J -Zp -Gs -Os 
+MEM = L  			# M for medium or L for large
+DEB = -Gs -Ot		# use -Zi and MEM = M for debugging
+#
+# define LINT_ARGS to use function prototypes
+#
+CFLAGS = -A$(MEM) -J -Zp $(DEB) -DIBMPC
+LIB = C:\C\LIB
+#
+# linker flags: for debugging use /NOE/NOI/F/B/PAC/CO/STACK:0x2000
+#
+LDFLAGS = /NOE/NOI/MAP/F/B/E/PAC/STACK:0x2000
+#
+# set VPATH as below if you have sources in SRC
+#
+SRC = .
+# VPATH = .;..	# should read .;$(SRC) - but doesn't work
 
 OBJECTS = keymaps.obj funcdefs.obj abbrev.obj ask.obj buf.obj c.obj \
 	case.obj ctype.obj delete.obj extend.obj argcount.obj \
 	insert.obj io.obj jove.obj macros.obj marks.obj misc.obj move.obj \
 	paragrap.obj proc.obj re.obj re1.obj scandir.obj \
 	table.obj tune.obj util.obj vars.obj wind.obj \
-	fmt.obj disp.obj break.obj term.obj \
-	version.obj fp.obj screen.obj getch.obj
+	fmt.obj disp.obj term.obj version.obj fp.obj screen.obj getch.obj
 
-HEADERS = ctype.h io.h jove.h re.h table.h temp.h termcap.h tune.h
-
-# for ndmake you can use 
-# 	link $(OBJECTS) $(CDIR)/msetargv,jove/noi/stack:0x2000;
+HEADERS = ctype.h io.h jove.h re.h table.h temp.h termcap.h tune.h externs.h
 
 jove.exe:	$(OBJECTS) $(HEADERS)
-	link @pcjove.lnk
+	link $(OBJECTS) $(LIB)\setargv,jove $(LDFLAGS);
 
 $(OBJECTS): $(HEADERS)
 
@@ -33,24 +40,21 @@ setmaps.exe:	setmaps.obj funcdefs.c
 	cl setmaps.obj
 
 setmaps.obj:	funcdefs.c keymaps.txt
-	cl -c $(CFLAGS) setmaps.c
+	cl $(CFLAGS) $(SRC)\setmaps.c
 
-# remove the '!' for use with ndmake
 keymaps.c:	setmaps.exe keymaps.txt
-	!setmaps < keymaps.txt > keymaps.c
+	setmaps < keymaps.txt > keymaps.c
 
 keymaps.obj:	keymaps.c jove.h
-	cl -W0 -c -AM -J -Zp keymaps.c
+	$(CC) $(CFLAGS) -I$(SRC) -c keymaps.c
 
 # to avoid accidental loss under unix
 tune.c:	tune.dos
-	!copy tune.dos tune.c
+	copy tune.dos tune.c
 
-break.obj:	break.asm
-	masm $(ASFLAGS) break;
+tune.obj: tune.c
+	$(CC) $(CFLAGS) -I$(SRC) -c tune.c
 
-getch.obj: 	getch.asm
-	masm $(ASFLAGS) getch;
+clean:
+	-rm *.obj setmaps.exe keymaps.c *.bak *.map
 
-.c.obj:
-	cl $(CFLAGS) $*.c

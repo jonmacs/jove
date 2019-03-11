@@ -1,14 +1,49 @@
-/************************************************************************
- * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/***************************************************************************
+ * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
+ * is provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is    *
+ * included in all the files.                                              *
+ ***************************************************************************/
 
 /* search package */
 
 #include "jove.h"
 #include "ctype.h"
+#ifdef MAC
+#	undef private
+#	define private
+#endif
+
+#ifdef	LINT_ARGS
+private char * insert(char *, char *, int);
+
+private void
+	REreset(void),
+	search(int, int, int);
+private int
+	backref(int, char *),
+	do_comp(int),
+	member(char *, int, int),
+	REgetc(void),
+	REmatch(char *, char *);
+#else
+private char * insert();
+
+private void
+	REreset(),
+	search();
+private int
+	backref(),
+	do_comp(),
+	member(),
+	REgetc(),
+	REmatch();
+#endif	/* LINT_ARGS */
+
+#ifdef MAC
+#	undef private
+#	define private static
+#endif
 
 #define NALTS	16	/* number of alternate search strings */
 
@@ -31,7 +66,7 @@ int	CaseIgnore = 0,
 private int	REpeekc;
 private char	*REptr;
 
-private
+private int
 REgetc()
 {
 	int	c;
@@ -72,6 +107,7 @@ private char	*comp_p,
 		**alt_p,
 		**alt_endp;
 
+void
 REcompile(pattern, re, into_buf, alt_bufp)
 char	*pattern,
 	*into_buf,
@@ -90,7 +126,7 @@ char	*pattern,
 
 /* compile the pattern into an internal code */
 
-private
+private int
 do_comp(kind)
 {
 	char	*last_p,
@@ -283,21 +319,30 @@ toolong:		complain("Search string too long/complex.");
 
 			if (chr_cnt) {
 				char	lastc = chr_cnt[*chr_cnt];
-
-				if (*chr_cnt == 1) {
-					comp_p = chr_cnt;
-					comp_p[-1] |= STAR;
-					*comp_p++ = lastc;
-				} else {
-					comp_p = chr_cnt + *chr_cnt;
-					(*chr_cnt) -= 1;
-					*comp_p++ = chr_cnt[-1] | STAR;
-					*comp_p++ = lastc;
-				}
+ 
+ 			/* The * operator applies only to the previous
+ 			   character.  If we were building a chr_cnt at
+ 			   the time we got the *, we have to remove the
+ 			   last character from the chr_cnt (by decrementing
+ 			   *chr_cnt) and replacing it with a new STAR entry.
+ 
+ 			   If we are decrementing the count to 0, we just
+ 			   delete the chr_cnt entry altogether, replacing
+ 			   it with the STAR entry. */
+ 
+ 				if (*chr_cnt == 1) {
+ 					comp_p = chr_cnt;
+ 					comp_p[-1] |= STAR;
+ 					*comp_p++ = lastc;
+ 				} else {
+ 					comp_p = chr_cnt + *chr_cnt;
+ 					(*chr_cnt) -= 1;
+ 					*comp_p++ = chr_cnt[-1] | STAR;
+ 					*comp_p++ = lastc;
+ 				}
 			} else
 				*last_p |= STAR;
 			break;
-
 		default:
 defchar:		if (chr_cnt)
 				(*chr_cnt) += 1;
@@ -337,7 +382,7 @@ int	REbom,
 	REeom,		/* beginning and end of match */
 	REalt_num;	/* if alternatives, which one matched? */
 
-private
+private int
 backref(n, linep)
 register char	*linep;
 {
@@ -352,7 +397,7 @@ register char	*linep;
 	return 0;
 }
 
-private
+private int
 member(comp_p, c, af)
 register char	*comp_p;
 register int	c,
@@ -365,7 +410,7 @@ register int	c,
 	return !af;
 }
 
-private
+private int
 REmatch(linep, comp_p)
 register char	*linep,
 		*comp_p;
@@ -520,7 +565,7 @@ star:		do {
 	/* NOTREACHED. */
 }
 
-private
+private void
 REreset()
 {
 	register int	i;
@@ -540,6 +585,7 @@ REreset()
    This code is cumbersome, repetetive for reasons of efficiency.  Fast
    search is a must as far as I am concerned. */
 
+int
 re_lindex(line, offset, expr, alts, lbuf_okay)
 Line	*line;
 char	*expr,
@@ -735,6 +781,7 @@ char	*off,
 /* Perform the substitution.  If DELP is nonzero the matched string is
    deleted, i.e., the substitution string is not inserted. */
 
+void
 re_dosub(tobuf, delp)
 char	*tobuf;
 {
@@ -781,12 +828,14 @@ endchk:		if (tp >= endp)
 			len_error(ERROR);
 }
 
+void
 putmatch(which, buf, size)
 char	*buf;
 {
 	*(insert(buf, buf + size, which)) = 0;
 }
 
+void
 setsearch(str)
 char	*str;
 {
@@ -799,6 +848,7 @@ getsearch()
 	return searchstr;
 }
 
+void
 RErecur()
 {
 	char	sbuf[sizeof searchstr],
@@ -826,27 +876,31 @@ RErecur()
 	DelMark(m);
 }
 
+void
 ForSearch()
 {
 	search(FORWARD, UseRE, YES);
 }
 
+void
 RevSearch()
 {
 	search(BACKWARD, UseRE, YES);
 }
 
+void
 FSrchND()
 {
 	search(FORWARD, UseRE, NO);
 }
 
+void
 RSrchND()
 {
 	search(BACKWARD, UseRE, NO);
 }
 
-private
+private void
 search(dir, re, setdefault)
 {
 	Bufpos	*newdot;
@@ -871,6 +925,7 @@ search(dir, re, setdefault)
 
 /* Do we match PATTERN at OFFSET in BUF? */
 
+int
 LookingAt(pattern, buf, offset)
 char	*pattern,
 	*buf;
@@ -888,6 +943,7 @@ char	*pattern,
 	return 0;
 }
 
+int
 look_at(expr)
 char	*expr;
 {

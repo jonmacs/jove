@@ -1,18 +1,58 @@
-/************************************************************************
- * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is       *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/***************************************************************************
+ * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
+ * is provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is    *
+ * included in all the files.                                              *
+ ***************************************************************************/
 
 #include "jove.h"
 #include "termcap.h"
 #include "ctype.h"
 #include <signal.h>
-#include <varargs.h>
 
-#ifdef F_COMPLETION
-#   include <sys/stat.h>
+#ifdef MAC
+#	include "mac.h"
+#else
+#	include <varargs.h>
+#	ifdef F_COMPLETION
+#   	include <sys/stat.h>
+#	endif
+#endif /* MAC */
+
+#ifdef MAC
+#	undef private
+#	define private
+#endif
+
+#ifdef	LINT_ARGS
+private Buffer * get_minibuf(void);
+private char * real_ask(char *, int (*)(), char *, char *);
+
+private int
+	f_complete(int),
+	bad_extension(char *, char *),
+	crush_bads(char **, int),
+	isdir(char *);
+private void
+	fill_in(char **, int),
+	EVexpand(void);
+#else
+private Buffer * get_minibuf();
+private char * real_ask();
+
+private int
+	f_complete(),
+	bad_extension(),
+	crush_bads(),
+	isdir();
+private void
+	fill_in(),
+	EVexpand();
+#endif	/* LINT_ARGS */
+
+#ifdef MAC
+#	undef private
+#	define private static
 #endif
 
 int	AbortChar = CTL('G'),
@@ -47,6 +87,7 @@ get_minibuf()
 
 /* Add a string to the mini-buffer. */
 
+void
 minib_add(str, movedown)
 char	*str;
 {
@@ -64,7 +105,7 @@ char	*str;
    them according to their value in the environment (if possible) -
    this munges all over curchar and linebuf without giving it a second
    thought (I must be getting lazy in my old age) */
-private
+private void
 EVexpand()
 {
 	register int	c;
@@ -118,6 +159,10 @@ int	(*d_proc)();
 	data_obj	*push_cmd = LastCmd;
 	int	o_a_v = arg_value(),
 		o_i_an_a = is_an_arg();
+#ifdef MAC
+		menus_off();
+#endif
+
 	if (InAsk)
 		complain((char *) 0);
 	push_env(savejmp);
@@ -256,6 +301,7 @@ va_dcl
 
 /* VARARGS1 */
 
+int
 yes_or_no_p(fmt, va_alist)
 char	*fmt;
 va_dcl
@@ -295,7 +341,7 @@ int	DispBadFs = YES;	/* display bad file names? */
 #ifndef MSDOS
 char	BadExtensions[128] = ".o";
 #else /* MSDOS */
-char	BadExtensions[128] = ".obj .exe .com .bak";
+char	BadExtensions[128] = ".obj .exe .com .bak .arc .lib .zoo";
 #endif /* MSDOS */
 
 static
@@ -324,6 +370,7 @@ char	*name,
 	return NO;
 }
 
+int
 f_match(file)
 char	*file;
 {
@@ -337,13 +384,13 @@ char	*file;
 			return NO;
 	}
 
+	return ((len == 0) ||
 #ifdef MSDOS
-	return ((len == 0) ||
-		(casencmp(file, fc_filebase, strlen(fc_filebase)) == 0));
+		(casencmp(file, fc_filebase, strlen(fc_filebase)) == 0)
 #else
-	return ((len == 0) ||
-		(strncmp(file, fc_filebase, strlen(fc_filebase)) == 0));
+		(strncmp(file, fc_filebase, strlen(fc_filebase)) == 0)
 #endif
+		);
 }
 
 static
@@ -358,7 +405,7 @@ char	*name;
 		(stbuf.st_mode & S_IFDIR) == S_IFDIR);
 }
 
-static
+private void
 fill_in(dir_vec, n)
 register char	**dir_vec;
 {
@@ -432,11 +479,11 @@ f_complete(c)
 	if ((fc_filebase = rindex(linebuf, '/')) != 0) {
 #else /* MSDOS */
 	fc_filebase = rindex(linebuf, '/');
-	if (fc_filebase == (char *) 0)
+	if (fc_filebase == (char *)0)
 		fc_filebase = rindex(linebuf, '\\');
-	if (fc_filebase == (char *) 0)
+	if (fc_filebase == (char *)0)
 		fc_filebase = rindex(linebuf, ':');
-	if (fc_filebase != (char *) 0) {
+	if (fc_filebase != (char *)0) {
 #endif /* MSDOS */
 		char	tmp[FILESIZE];
 
