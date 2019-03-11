@@ -5,13 +5,24 @@
  * included in all the files.                                           *
  ************************************************************************/
 
-/* Note: jove.spec must be updated in two places when version number changes */
+/* Note: jove.spec must be updated when version number changes */
 
-#define	jversion     "4.16.0.53" /* 2001 December 16 */
-#define	jversion_lnum 4,16,0,53  /* list-of-numbers form for Win32 jjove.rc */
+#define	jversion     "4.16.0.54" /* 2001 December 20 */
+#define	jversion_lnum 4,16,0,54  /* list-of-numbers form for Win32 jjove.rc */
 
 /*
  * $Log: version.h,v $
+ * Revision 1.404  2001/12/20 21:07:25  hugh
+ * - fix Makefile problems with openpty configuration
+ * - factor LIBS into TERMCAPLIB and EXTRALIBS
+ *
+ * Revision 1.403  2001/12/17 22:24:14  hugh
+ * - fix a few buffer overruns
+ * - add "Quick summary" to README
+ * - use "jmode_t" where mode_t is appropriate (old systems must define as int)
+ * - use uid_t; hope this is portable
+ * - added GCC_LINT to make it more pleasant to use gcc warning options
+ *
  * Revision 1.402  2001/07/15 19:14:23  hugh
  * improve jove.spec (for Redhat Package Manager)
  *

@@ -91,7 +91,7 @@ JOVETOOLM = $(MANDIR)/jovetool.$(MANEXT)
 #	BSD4.2,4.3			SYSDEFS=-DBSD4
 #	BSDI, 386BSD, BSD4.4		SYSDEFS=-DBSDPOSIX
 #	Consensys V4			SYSDEFS="-DSYSVR4 -DGRANTPT_BUG"
-#	CYGWIN32			SYSDEFS=-DCYGWIN32
+#	Cygwin32			see README.c32
 #	Compaq Tru64 UNIX V4.0g, 5.1	SYSDEFS=-DSYSVR4
 #	DEC OSF R1.3MK			SYSDEFS=-DSYSVR4
 #	DEC OSF/1 V1.3			SYSDEFS="-DBSDPOSIX -DNO_TIOCREMOTE -DNO_TIOCSIGNAL"
@@ -100,18 +100,19 @@ JOVETOOLM = $(MANDIR)/jovetool.$(MANEXT)
 #	DEC Ultrix 4.3			SYSDEFS="-DBSDPOSIX -DJVDISABLE=255"
 #	Digital UNIX V4.0 and later	SYSDEFS="-DSYSVR4 -DGRANTPT_BUG"
 #	DG AViiON 5.3R4			SYSDEFS="-DSYSVR4 -DBSD_SIGS"
-#	FreeBSD 4.2			SYSDEFS="-DBSDPOSIX -DUSEOPENPTY" LIBS="-ltermcap -lutil"
+#	FreeBSD 4.2			SYSDEFS="-DBSDPOSIX -DUSE_OPENPTY -DHAVE_LIBUTIL_H" EXTRALIBS=-lutil
 #	HP/UX 8 or 9			SYSDEFS="-DHPUX -Ac"
 #	HP/UX 11 (-Ac redundant)	SYSDEFS=-DHPUX
 #	IBM AIX 3.2			SYSDEFS=-DAIX3_2
-#	IBM AIX 4.2			SYSDEFS="-DAIX4_2" LIBS="-lcurses -ls"
+#	IBM AIX 4.2			SYSDEFS="-DAIX4_2" TERMCAPLIB="-lcurses -ls"
 #	Irix 3.3-4.0.5			SYSDEFS="-DIRIX -DIRIX4"
 #	Irix 5.0 onwards		SYSDEFS="-DIRIX -prototypes"
-#	LINUX (eg. RedHat 4, 5)		SYSDEFS=-DBSDPOSIX
-#	LINUX (newer, with UNIX98 PTYS)	SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500"
-#       				some need LIBS=-lncurses
+#	LINUX (older, eg. RedHat 4, 5)	SYSDEFS=-DBSDPOSIX
+#	LINUX (with UNIX98 PTYS)	SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500"
+#       				some need TERMCAPLIB=-lcurses
 #	MIPS RiscOS4.x			SYSDEFS="-systype bsd43 -DBSD4"
-#	NetBSD 1.5			SYSDEFS="-DBSDPOSIX -DUSEOPENPTY" LIBS="-ltermcap -lutil"
+#	NetBSD 1.5			SYSDEFS="-DBSDPOSIX -DUSE_OPENPTY" EXTRALIBS=-lutil
+#	OpenBSD 2.x			SYSDEFS="-DBSDPOSIX -DUSE_OPENPTY" EXTRALIBS=-lutil
 #	SCO Unix			SYSDEFS=-DSCO
 #	SunOS3.x			SYSDEFS=-DSUNOS3
 #	SunOS4.0*			SYSDEFS=-DSUNOS40
@@ -139,10 +140,10 @@ JOVETOOLM = $(MANDIR)/jovetool.$(MANEXT)
 SYSDEFS = -DBSDPOSIX
 
 # Select optimization level (flags passed to compiling and linking steps).
-# On most systems, -g for debugging, -O for optimization.
+# On most systems: -g for debugging, -O for optimization.
 # On the official Sun ANSI C compiler and the standard System V Release 4
 # compiler, adding -Xa -v will increase compiler checking.
-# On DEC OSF/1 and Digital UNIX VV4.0 add -std1 to enable ANSI C features
+# On DEC OSF/1 and Digital UNIX VV4.0, add -std1 to enable ANSI C features
 # and perhaps -g3 for more debugging info with optimization.
 
 OPTFLAGS = -O
@@ -150,19 +151,24 @@ OPTFLAGS = -O
 # For making dependencies under BSD systems
 DEPENDFLAG = -M
 # or, using the official Sun ANSI C compiler
-# DEPENDFLAG = -xM
+#	DEPENDFLAG = -xM
 
-# Select the right libraries for your system.
-# Most systems need -ltermcap and nothing else.
-# Known exceptions:
-#	4.1BSD:	LIBS = -ltermcap -ljobs
-#	CYGWIN32: LIBS = -L/usr/local/lib -lcurses
-#	SysV Rel. 2: LIBS = -lcurses
-#	SCO Xenix: LIBS = -ltermcap -lx
-#	SCO UNIX: LIBS = -lcurses
-#	AIX on the R6000s: LIBS = -lcurses -ltermcap -ls
+# Flags for Library to provide termcap functions.
+# Some systems have dropped termcap: use -lcurses (fatter!) or -lncurses
+#	Cygwin32: TERMCAPLIB = -L/usr/local/lib -lcurses
+#	SysV Rel. 2: TERMCAPLIB = -lcurses
+#	SCO UNIX: TERMCAPLIB = -lcurses
+#	AIX on the R6000s: TERMCAPLIB = -lcurses -ltermcap -ls
 
-LIBS = -ltermcap
+TERMCAPLIB = -ltermcap
+
+# Extra libraries flags needed by oddball systems.
+# Modern BSD systems using openpty need its library.
+#	4.1BSD:	EXTRALIBS = -ljobs
+#	FreeBSD 4.2: EXTRALIBS = -lutil
+#	FreeBSD 4.2, NetBSD 1.5, OpenBSD 2.x:  EXTRALIBS = -lutil
+
+EXTRALIBS =
 
 # Flags of linker (LDFLAGS)
 # Most systems do not need any flags.
@@ -184,13 +190,13 @@ LDFLAGS =
 CFLAGS = $(OPTFLAGS) $(SYSDEFS)
 
 # For SYSVR4 (/usr/ucb/cc will NOT work because of setjmp.h):
-# CC = /usr/bin/cc
+#	CC = /usr/bin/cc
 # To use the SunPro compiler under SunOS 4.n:
-# CC = acc
+#	CC = acc
 # To use the official Sun compiler under Solaris 2.n:
-# CC = /opt/SUNWspro/bin/cc
+#	CC = /opt/SUNWspro/bin/cc
 # For DG AViiON, expect compile errors unless you use the GNU C compiler:
-# CC=gcc
+#	CC=gcc
 
 # Load invocation of cc.
 # to use Purify(TM): LDCC = purify $(CC)
@@ -280,7 +286,7 @@ all:	jjove$(XEXT) recover$(XEXT) teachjove$(XEXT) portsrv$(XEXT) \
 	doc/jovetool.$(MANEXT)
 
 jjove$(XEXT):	$(OBJECTS)
-	$(LDCC) $(LDFLAGS) $(OPTFLAGS) -o jjove$(XEXT) $(OBJECTS) $(LIBS)
+	$(LDCC) $(LDFLAGS) $(OPTFLAGS) -o jjove$(XEXT) $(OBJECTS) $(TERMCAPLIB) $(EXTRALIBS)
 	@-size jjove$(XEXT)
 
 # For 2.xBSD: link jove as a set of overlays.  Not tested recently.
@@ -293,7 +299,7 @@ ovjove:	$(OBJECTS)
 		-Z $(OVLAY4) \
 		-Z $(OVLAY5) \
 		-Y $(BASESEG) \
-		-o jjove$(XEXT) $(LIBS) -lc
+		-o jjove$(XEXT)  $(TERMCAPLIB) $(EXTRALIBS) -lc
 	@-size jjove$(XEXT)
 
 # portsrv is only needed if IPROCS are implemented using PIPEPROCS
@@ -303,13 +309,13 @@ ovjove:	$(OBJECTS)
 PORTSRVINST=
 
 portsrv$(XEXT):	portsrv.o
-	$(LDCC) $(LDFLAGS) $(OPTFLAGS) -o portsrv$(XEXT) portsrv.o $(LIBS)
+	$(LDCC) $(LDFLAGS) $(OPTFLAGS) -o portsrv$(XEXT) portsrv.o $(EXTRALIBS)
 
 recover$(XEXT):	recover.o
-	$(LDCC) $(LDFLAGS) $(OPTFLAGS) -o recover$(XEXT) recover.o $(LIBS)
+	$(LDCC) $(LDFLAGS) $(OPTFLAGS) -o recover$(XEXT) recover.o $(EXTRALIBS)
 
 teachjove$(XEXT):	teachjove.o
-	$(LDCC) $(LDFLAGS) $(OPTFLAGS) -o teachjove$(XEXT) teachjove.o $(LIBS)
+	$(LDCC) $(LDFLAGS) $(OPTFLAGS) -o teachjove$(XEXT) teachjove.o $(EXTRALIBS)
 
 # don't optimize setmaps.c because it produces bad code in some places
 # for some reason

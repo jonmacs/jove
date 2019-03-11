@@ -423,7 +423,11 @@ kbd_kill()
 #include "ttystate.h"
 
 # ifdef USE_OPENPTY	/* modern BSDs have openpty(3) */
-#  include <util.h>
+#  ifdef HAVE_LIBUTIL_H	/* but disagree about header! */
+#   include <libutil.h>
+#  else
+#   include <util.h>
+#  endif
 # endif
 
 # ifdef SVR4_PTYS
