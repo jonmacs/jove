@@ -6,12 +6,14 @@
  ***************************************************************************/
 
 struct screenline {
-	char	*s_line,
-		*s_length;
+	char
+		*s_line,
+		*s_roof;	/* character after last */
 };
 
-extern struct screenline	*Screen,
-				*Curline;
+extern struct screenline
+	*Screen,
+	*Curline;
 
 extern char *cursend;
 
@@ -19,21 +21,18 @@ extern int
 	i_line,
 	i_col,
 	AbortCnt,
-	CanScroll,	/* can this terminal scroll? */
 
 	CapLine,	/* cursor line and cursor column */
 	CapCol;
 
-extern int
+extern bool
 	BufSwrite proto((int linenum)),
-	dosputc proto((int c)),
-	swrite proto((char *line,int inversep,int abortable));
+	swrite proto((char *line,bool inversep,bool abortable));
 
 extern void
-	IDline_setup proto((char *tname)),
 	Placur proto((int line,int col)),
 	cl_eol proto((void)),
-	cl_scr proto((int doit)),
+	cl_scr proto((bool doit)),
 	clrline proto((char *cp1,char *cp2)),
 	i_set proto((int nline,int ncol)),
 	make_scr proto((void)),
@@ -42,3 +41,13 @@ extern void
 	InitCM proto((void)),
 	SO_off proto((void)),
 	SO_on proto((void));
+
+#define	TABDIST(col)	(tabstop - (col)%tabstop)	/* cols to next tabstop */
+
+/* Variables: */
+
+#ifndef	MAC
+extern int	phystab;		/* terminal's tabstop settings */
+#endif
+
+extern int	tabstop;		/* expand tabs to this number of spaces */

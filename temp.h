@@ -14,14 +14,14 @@
    new disk address.  Getline(addr, buf) is the opposite of putline().
    f_getputl(line, fp) reads from open FP directly into the tmp file (into
    the buffer cache (see below)) and stores the address in LINE.  This is
-   used during read_file to minimize compying.
+   used during read_file to minimize copying.
 
    Lines do NOT cross block bounderies in the tmp file so that accessing
    the contents of lines can be much faster.  Pointers to offsets into
    disk buffers are returned instead of copying the contents into local
    arrays and then using them.  This cuts down on the amount of copying a
    great deal, at the expense of less efficiency.  The lower bit of disk
-   addresses is used for marking lines as needing redisplay done.
+   addresses is used for marking lines as needing redisplay done (DIRTY).
 
    There is a buffer cache of NBUF buffers (64 on !SMALL machines and the
    3 on small ones).  The blocks are stored in LRU order and each block
@@ -32,23 +32,20 @@
    does all the pending writes.  This works much better on floppy disk
    systems, like the IBM PC, if the blocks are sorted before sync'ing. */
 
-#ifdef SMALL
-# define CH_BITS		4
-# if JBUFSIZ == 512
-#  define MAX_BLOCKS		1024
-# else
-#  define MAX_BLOCKS		512
-# endif
+#ifdef	SMALL
+# define CH_BITS		4	/* save bits in daddr at cost of space in tempfile */
 #else
 # define CH_BITS		0
-# define MAX_BLOCKS		4096	/* basically unlimited */
-#endif /* SMALL */
-
-#if JBUFSIZ == 512
-# define BNO_SHIFT		(9 - CH_BITS)
-#else
-# define BNO_SHIFT		(10 - CH_BITS)
 #endif
+
+#ifndef	BITSPERCHAR
+# define BITSPERCHAR	8	/* factor to convert sizeof => bits */
+#endif
+
+#define BNO_SHIFT		(JLGBUFSIZ - CH_BITS)
+
+#define MAX_BLOCKS		(1L << (sizeof(daddr)*BITSPERCHAR - BNO_SHIFT))
+
 
 /* CH_SIZE is how big each chunk is.  For each 1 the DFree pointer
    is incremented we extend the tmp file by CH_SIZE characters.
@@ -57,8 +54,8 @@
    of a block.  OFF_MASK masks off the higher order bits so we can get
    at the offset into the disk buffer.
 
-   NOTE:  It's pretty important that these numbers be multiples of
-	  2.  Be careful if you change things. */
+   NOTE:  It's pretty important that these numbers be powers of 2.
+	  Be careful if you change things. */
 
 #define CH_SIZE			((daddr) 1 << CH_BITS)
 #define CH_PBLOCK		((daddr) JBUFSIZ / CH_SIZE)

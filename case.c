@@ -7,18 +7,27 @@
 
 #include "jove.h"
 #include "disp.h"
+#include "case.h"
 #include "ctype.h"
+#include "marks.h"
+#include "move.h"
 
-private	int
-# if !(defined(IBMPC) || defined(MAC))
+/* Commands:
+ *	CapChar
+ *	CapWord
+ *	CasRegLower
+ *	CasRegUpper
+ *	LowWord
+ *	UppWord
+ */
+
+private	bool
 	lower proto((char *)),
-# endif
 	upper proto((char *));
 
 private void
-	CaseReg proto((int up)),
-	case_reg proto((struct line *line1,int char1,struct line *line2,int char2,int up)),
-	case_word proto((int up));
+	CaseReg proto((bool up)),
+	case_reg proto((struct line *line1,int char1,struct line *line2,int char2,bool up));
 
 void
 CapChar()
@@ -41,7 +50,7 @@ CapChar()
 			makedirty(curline);
 		}
 		if (eolp()) {
-			if (curline->l_next == 0)
+			if (curline->l_next == NULL)
 				break;
 			SetLine(curline->l_next);
 		} else
@@ -62,8 +71,8 @@ CapWord()
 	num = arg_value();
 	if (num < 0) {
 		restore = YES;
+		f_word(num);		/* Cap previous EXP words */
 		num = -num;
-		b_word(num);		/* Cap previous EXP words */
 	}
 	while (num--) {
 		to_word(1);	/* Go to the beginning of the next word. */
@@ -74,7 +83,7 @@ CapWord()
 			makedirty(curline);
 		}
 		curchar += 1;
-		while (!eolp() && isword(linebuf[curchar])) {
+		while (!eolp() && jisword(linebuf[curchar])) {
 			if (lower(&linebuf[curchar])) {
 				modify();
 				makedirty(curline);
@@ -88,7 +97,7 @@ CapWord()
 
 private void
 case_word(up)
-int	up;
+bool	up;
 {
 	Bufpos	before;
 
@@ -97,76 +106,89 @@ int	up;
 	case_reg(before.p_line, before.p_char, curline, curchar, up);
 }
 
-private int
-upper(c)
-register char	*c;
+/* Convert *p to upper case.  Return YES iff it was changed. */
+
+private bool
+upper(p)
+register char	*p;
 {
-	if (islower(*c)) {
-#if !defined(ASCII)			/* check for IBM extended character set */
-		if (*c <= 127)
-#endif /* ASCII */
-		*c -= ' ';
-#if defined(IBMPC)			/* ... and change Umlaute	*/
-		else
-		   switch (*c) {
-		     case 129: *c = 154; break;		/* ue */
-		     case 132: *c = 142; break;		/* ae */
-		     case 148: *c = 153; break;		/* oe */
-		   }
-#endif /* IBMPC */
-#if defined(MAC)
-		else *c = CaseEquiv[*c];
-#endif
-		return 1;
+	if (jislower(*p & CHARMASK)) {
+		*p = CharUpcase(*p & CHARMASK);
+		return YES;
 	}
-	return 0;
+	return NO;
 }
 
-#if !(defined(IBMPC) || defined(MAC))
-private
-#endif
-int
-lower(c)
-char	*c;
+/* Convert *p to lower case.  Return YES iff it was changed. */
+
+private bool
+lower(p)
+char	*p;
 {
-	if (isupper(*c)) {
-#if !defined(ASCII)
-		if (*c <= 127)
-#endif /* ASCII */
-		*c += ' ';
-#if defined(IBMPC)
-		else
-		   switch (*c) {
-		     case 142: *c = 132; break;		/* Ae */
-		     case 153: *c = 148; break;		/* Oe */
-		     case 154: *c = 129; break;		/* Ue */
-		   }
-#endif /* IBMPC */
-#if defined(MAC)
-		else {
+	int c = *p & CHARMASK;
+
+	if (jisupper(c)) {
+#ifdef	ASCII7
+		*p = jtolower(c);
+#else	/* !ASCII7 */
+#ifdef	IBMPC
+		if (c <= 127) {
+		    c += ' ';
+		} else {
+			switch (c) {
+			case 142: c = 132; break;		/* Ae */
+			case 153: c = 148; break;		/* Oe */
+			case 154: c = 129; break;		/* Ue */
+			}
+		}
+#else	/* !IBMPC */
+# ifdef	MAC
+		if (c <= 127) {
+		    c += ' ';
+		} else {
 			int n;
 
-			for(n = 128; n < 256; n++) {
-				if((CaseEquiv[n] == *c) && islower(n)) {
-					*c = n;
+			for(n = 128; ; n++) {
+				if (n > 255)
+					return NO;
+				if ((CharUpcase(n) == c) && jislower(n)) {
+					c = n;
 					break;
 				}
 			}
-			if(n > 255) return(0);
 		}
-#endif /* MAC */
-		return 1;
+# else	/* !MAC */
+		/* Only deal with 7-bit chars! */
+		if (c <= 127) {
+		    c += ' ';
+		}
+# endif	/* !MAC */
+#endif	/* !IBMPC */
+		*p = c;
+#endif	/* !ASCII7 */
+		return YES;
 	}
-	return 0;
+	return NO;
 }
 
+#ifndef	ASCII7
+int
+jtolower(c)
+char	c;
+{
+    if (jislower(c))
+	(void) lower(&c);
+    return c;
+}
+#endif	/*!ASCII7*/
+
 private void
-case_reg(line1, char1, line2, char2, up)	
+case_reg(line1, char1, line2, char2, up)
 Line	*line1,
 	*line2;
 int	char1,
-	char2,
-	up;
+	char2;
+bool	up;
 {
 	(void) fixorder(&line1, &char1, &line2, &char2);
 	DotTo(line1, char1);
@@ -186,18 +208,18 @@ int	char1,
 void
 CasRegLower()
 {
-	CaseReg(0);
+	CaseReg(NO);
 }
 
 void
 CasRegUpper()
 {
-	CaseReg(1);
+	CaseReg(YES);
 }
 
 private void
 CaseReg(up)
-int	up;
+bool	up;
 {
 	register Mark	*mp = CurMark();
 	Bufpos	savedot;
@@ -210,11 +232,11 @@ int	up;
 void
 UppWord()
 {
-	case_word(1);
+	case_word(YES);
 }
 
 void
 LowWord()
 {
-	case_word(0);
+	case_word(NO);
 }

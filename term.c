@@ -8,113 +8,125 @@
 #include "jove.h"
 #include "fp.h"
 #include "disp.h"
-#include <ctype.h>
+#include "ctype.h"
+#include "fmt.h"
+#include "term.h"
 #include <errno.h>
 
-#ifndef MAC	/* most of the file... */
+#ifndef	MAC	/* most of the file... */
 
-# ifdef	STDARGS
-#  include <stdarg.h>
-# else
-#  include <varargs.h>
-# endif
+#ifdef TERMIO
+# include <termio.h>
+#endif
+#ifdef TERMIOS
+# include <termios.h>
+#endif
+#ifdef SGTTY
+# include <sgtty.h>
+#endif	/* SGTTY */
 
-#ifndef MSDOS
-# ifdef SYSV
-#   include <termio.h>
-# else
-#   include <sgtty.h>
-# endif /* SYSV */
-#endif /* MSDOS */
-
-#ifdef IPROCS
+#ifdef	IPROCS
 # include <signal.h>
 #endif
 
-#include "termcap.h"
-
 /* Termcap definitions */
 
-#ifndef IBMPC
-char	*CS,
-	*SO,
-	*SE,
-	*CM,
-	*CL,
-	*CE,
-	*HO,
-	*AL,
-	*DL,
-	*VS,
-	*VE,
-	*KS,
-	*KE,
-	*TI,
-	*TE,
-	*IC,
-	*DC,
-	*IM,
-	*EI,
-	*LL,
+#include "termcap.h"
+
+extern int	UNMACRO(tgetent) proto((char */*buf*/, const char */*name*/));
+extern int	UNMACRO(tgetflag) proto((const char */*id*/));
+extern int	UNMACRO(tgetnum) proto((const char */*id*/));
+extern char	*UNMACRO(tgetstr) proto((const char */*id*/, char **/*area*/));
+extern void	UNMACRO(tputs) proto((const char *, int, void (*) proto((int))));
+
+#ifndef	IBMPC
+char
+	*CS,	/* change scrolling region */
+	*SO,	/* Start standout */
+	*SE,	/* End standout */
+	*CM,	/* The cursor motion string */
+	*CL,	/* Clear screen */
+	*CE,	/* Clear to end of line */
+	*HO,	/* Home cursor */
+	*AL,	/* Addline (insert line) */
+	*DL,	/* Delete line */
+	*VS,	/* Visual start */
+	*VE,	/* Visual end */
+	*KS,	/* Keypad mode start */
+	*KE,	/* Keypad mode end */
+	*TI,	/* Cursor addressing start */
+	*TE,	/* Cursor addressing end */
+	*IC,	/* Insert char */
+	*DC,	/* Delete char */
+	*IM,	/* Insert mode */
+	*EI,	/* End insert mode */
+	*LL,	/* Last line, first column */
+	*SF,	/* Scroll forward (defaults to \n) */
+	*SR,	/* Scroll reverse */
+	*SP,	/* Send cursor position */
+	*VB,	/* visible bell */
+	*BL,	/* audible bell (defaults to BEL) */
+	*IP,	/* insert pad after character inserted */
+	*lPC,	/* pad character (as a string!) */
+	*NL,	/* newline character (defaults to \n) */
+	*DO,	/* down one line (defaults to NL capability) */
 	*M_IC,	/* Insert char with arg */
 	*M_DC,	/* Delete char with arg */
 	*M_AL,	/* Insert line with arg */
 	*M_DL,	/* Delete line with arg */
-	*SF,	/* Scroll forward */
-	*SR,
-	*SP,	/* Send Cursor Position */
-	*VB,
-	*BL,
-	*IP,	/* insert pad after character inserted */
-	*lPC,
-	*NL,
-	*DO;
+	*M_SF,	/* Scroll forward with arg */
+	*M_SR;	/* Scroll back with arg */
 #endif
 
-int	LI,
-	ILI,	/* Internal lines, i.e., 23 of LI is 24. */
-	CO,
+int
+	LI,		/* number of lines */
+	ILI,		/* number of internal lines */
+	CO,		/* number of columns */
 
-	UL,
-	MI,
-	SG,	/* number of magic cookies left by SO and SE */
-	XS,	/* whether standout is braindamaged */
-	HZ,	/* Hazeltine tilde kludge */
+	SG,		/* number of magic cookies left by SO and SE */
+	UPlen,		/* length of the UP string */
+	HOlen,		/* length of Home string */
+	LLlen;		/* length of lower string */
 
-	TABS,
-	UPlen,
-	HOlen,
-	LLlen;
+bool
+	Hazeltine,		/* Hazeltine tilde kludge */
+	MI,		/* okay to move while in insert mode */
+	UL,		/* underscores don't replace chars already on screen */
+	NP,		/* there is No Pad character */
+	TABS;		/* whether we are in tabs mode */
 
-#ifdef notdef
-	/*
-	 * Are you sure about this one Jon?  On the SYSV system I tried this
-	 * on I got a multiple definition of PC because it was already
-	 * defined in -ltermcap.  Similarly for BC and UP ...
-	 */
-# ifdef SYSVR2 /* release 2, at least */
-char	PC;
-# endif /* SYSVR2 */
-#endif
+#ifdef	DEFINE_PC_BC_UP_OSPEED
+	/* This is needed for HP-UX, possibly for other SYSVR2 systems */
+char
+	PC,		/* pad character, as a char (set from lPC; defaults to NUL) */
+	*BC,	/* back space (defaults to BS) */
+	*UP;	/* Scroll reverse, or up */
 
-#ifndef IBMPC
+short	ospeed;
+#endif /* HPUX */
+
+#ifndef	IBMPC
+
+bool	CanScroll = NO;
+
 private char	tspace[256];
 
 /* The ordering of ts and meas must agree !! */
 private const char	ts[] =
-	"vsvealdlspcssosecmclcehoupbcicimdceillsfsrvbksketiteALDLICDCpcipblnldo";
+	"vsvealdlspcssosecmclcehoupbcicimdceillsfsrvbksketitepcipblnldoALDLICDCSFSR";
 private char	**const meas[] = {
 	&VS, &VE, &AL, &DL, &SP, &CS, &SO, &SE,
 	&CM, &CL, &CE, &HO, &UP, &BC, &IC, &IM,
 	&DC, &EI, &LL, &SF, &SR, &VB, &KS, &KE,
-	&TI, &TE, &M_AL, &M_DL, &M_IC, &M_DC,
-	&lPC, &IP, &BL, &NL, &DO, 0
+	&TI, &TE, &lPC, &IP, &BL, &NL, &DO,
+	&M_AL, &M_DL, &M_IC, &M_DC, &M_SF, &M_SR,
+	NULL
 };
 
 private void
 TermError()
 {
-	flusho();
+	flushscreen();
 	_exit(1);
 }
 
@@ -129,14 +141,15 @@ getTERM()
 	int	i;
 
 	termname = getenv("TERM");
-	if ((termname == NULL) || (*termname == '\0') ||
-	    (strcmp(termname, "dumb") == 0) ||
-	    (strcmp(termname, "unknown") == 0) ||
-	    (strcmp(termname, "network") == 0)) {
+	if (termname == NULL || *termname == '\0'
+	|| strcmp(termname, "dumb") == 0
+	|| strcmp(termname, "unknown") == 0
+	|| strcmp(termname, "network") == 0)
+	{
 		putstr("Enter terminal type (e.g, vt100): ");
-		flusho();
-		termbuf[read(0, termbuf, sizeof(termbuf)) - 1] = '\0';
-		if (termbuf[0] == 0)
+		flushscreen();
+		termbuf[read(0, (UnivPtr) termbuf, sizeof(termbuf)) - 1] = '\0';
+		if (termbuf[0] == '\0')
 			TermError();
 
 		termname = termbuf;
@@ -146,14 +159,16 @@ getTERM()
 		writef("[\"%s\" unknown terminal type?]", termname);
 		TermError();
 	}
+
+	/* get numeric capabilities */
+
 	if ((CO = tgetnum("co")) == -1) {
 wimperr:
 		writef("You can't run JOVE on a %s terminal.\n", termname);
 		TermError();
 		/*NOTREACHED*/
 	}
-
-	else if (CO > MAXCOLS)
+	if (CO > MAXCOLS)
 		CO = MAXCOLS;
 
 	if ((LI = tgetnum("li")) == -1)
@@ -162,11 +177,7 @@ wimperr:
 	if ((SG = tgetnum("sg")) == -1)
 		SG = 0;			/* Used for mode line only */
 
-	if ((XS = tgetflag("xs")) == -1)
-		XS = 0;			/* Used for mode line only */
-
-	if ((HZ = tgetflag("hz")) == -1)
-		HZ = 0;			/* Hazeltine tilde kludge */
+	/* get string capabilities */
 
 	for (i = 0; meas[i]; i++) {
 		static char	nm[3] = "xx";
@@ -178,158 +189,174 @@ wimperr:
 			goto wimperr;
 	}
 	if (lPC)
-		PC = *lPC;
-	if (XS)
-		SO = SE = 0;
+		PC = *lPC;	/* convert lPC string attribute to char PC */
 
-	if (CS && !SR)
-		CS = SR = SF = 0;
+	/* get boolean capabilities */
 
-	if (CS && !SF)
-		SF = "\n";
+	Hazeltine = tgetflag("hz")==YES;	/* Hazeltine tilde kludge */
+	NP = tgetflag("NP")==YES;	/* there is No Pad character */
+	MI = tgetflag("mi")==YES;	/* okay to move while in insert mode */
+	UL = tgetflag("ul")==YES;	/* underscores don't replace chars already on screen */
 
-	if (IM && (*IM == 0))
-		IM = 0;
-	else
-		MI = tgetflag("mi");
+	/* adjust capabilities */
 
-	UL = tgetflag("ul");
-
-	if (NL == 0)
-		NL = "\n";
-	else {			/* strip stupid padding information */
-		while (isdigit(*NL))
-			NL += 1;
-		if (*NL == '*')
-			NL += 1;
-	}
-	if (!DO)
-		DO = NL;
-
-	if (BL == 0)
-		BL = "\007";
-
-	if (tgetflag("km") > 0)		/* has meta-key */
+	if (tgetflag("km") == YES)		/* has meta-key */
 		MetaKey = YES;
 
-#ifdef ID_CHAR
+	if (tgetflag("xs") == YES)
+		SO = SE = NULL;	/* don't use braindamaged standout mode */
+
+	if (CS && !(SR || M_SR))
+		CS = NULL;	/* don't use scrolling region without way of scrolling */
+
+	if (CS && !SF)
+		SF = "\n";	/* default SF */
+
+	if (IM && (*IM == '\0'))
+		IM = NULL;	/* If IM is empty, supress.  ??? why would this happen? */
+
+	if (NL == NULL)
+		NL = "\n";	/* default NL to NL (naturally!) */
+	/* strip stupid padding information */
+	while (jisdigit(*NL))
+		NL += 1;
+	if (*NL == '*')
+		NL += 1;
+
+	if (!DO)
+		DO = NL;	/* default down one line to NL */
+
+	if (BL == NULL)
+		BL = "\007";	/* default bell to BEL */
+
+	if (BC == NULL)
+		BC = "\b";	/* default back space to BS */
+
+#ifdef	ID_CHAR
 	disp_opt_init();
 #endif
-	if ((CanScroll = ((AL && DL) || CS)) != 0)
-		IDline_setup(termname);
+	CanScroll = (AL != NULL && DL != NULL) || CS != NULL;
 }
 
-#else
+#else	/* IBMPC */
+
+#include "pcscr.h"
+
+extern char
+	*getenv(),
+	*tgetstr();
+
+extern void
+	init_43(),
+	init_term();
+
+bool	CanScroll = YES;
 
 void
 InitCM()
 {
 }
 
-int EGA;
+bool EGA;
 
 void
 getTERM()
 {
-	char	*getenv(), *tgetstr() ;
 	char	*termname;
-	void	init_43(), init_term();
-	unsigned char lpp(), chpl();
 
-	if (getenv("EGA") || (!stricmp(getenv("TERM"), "EGA"))) {
+	if (getenv("EGA") != NULL || (!stricmp(getenv("TERM"), "EGA"))) {
 	   termname = "ega";
 	   init_43();
-	   EGA = 1;
-	}
-	else {
+	   EGA = YES;
+	} else {
 	   termname = "ibmpc";
 	   init_term();
-	   EGA = 0;
+	   EGA = NO;
 	}
 
 	CO = chpl();
 	LI = lpp();
-
 	SG = 0;			/* Used for mode line only */
-	XS = 0;			/* Used for mode line only */
-
-	CanScroll = 1;
 }
 
-#endif /* IBMPC */
+#endif	/* IBMPC */
 
-#else /* MAC */
+#else	/* MAC */
 int	LI,
 	ILI,	/* Internal lines, i.e., 23 of LI is 24. */
 	CO,
-	TABS,
 	SG;
+
+bool	CanScroll = YES;
+
+bool	TABS;
 
 void getTERM()
 {
 	SG = 0;
-	CanScroll = 1;
 }
 
-#endif /* MAC */
+#endif	/* MAC */
 
 /* put a string with padding */
 
-#ifndef IBMPC
+#ifndef	IBMPC
 private void
 tputc(c)
 int	c;
 {
 	jputchar(c);
 }
-#endif /* IBMPC */
+#endif	/* IBMPC */
 
-#ifndef MAC
+#ifndef	MAC
 void
 putpad(str, lines)
 char	*str;
 int	lines;
 {
-#ifndef IBMPC
+#ifndef	IBMPC
 	if (str)
 		tputs(str, lines, tputc);
-#else /* IBMPC */
-	write_emif(str);
-#endif /* IBMPC */
-}
-
-void
-putargpad(str, arg, lines)
-char	*str;
-int	arg,
-	lines;
-{
-#ifndef	IBMPC
-	if (str) {
-		tputs(
-#ifdef	TERMINFO
-			tparm(str, arg),
-#else	/* TERMINFO */
-			tgoto(str, 0, arg),	/* fudge */
-#endif	/* TERMINFO */
-			lines, tputc);
-	}
 #else	/* IBMPC */
-	/* This code is only a guess: I don't know if any M_* termcap
-	 * attributes are defined for the PC.  If they are not used,
-	 * this routine is not called.  Perhaps this routine should
-	 * simply abort.
-	 */
-	if (str) {
-		char	buf[16];	/* hope that this is long enough */
-
-		swritef(buf, str, arg);	/* hope only %d appears in str */
-		write_em(buf);
-	}
+	write_emif(str);
 #endif	/* IBMPC */
 }
 
-#endif /* MAC */
+/* Put multi-unit or multiple single-unit strings, as appropriate. */
+
+void
+putmulti(ss, ms, num, lines)
+char
+	*ss,	/* single line */
+	*ms;	/* multiline */
+int
+	num,	/* number of iterations */
+	lines;	/* lines affected (for padding) */
+{
+	if (ms && (num > 1 || !ss)) {
+		/* use the multi string */
+#ifndef	IBMPC
+		tputs(targ1(ms, num), lines, tputc);
+#else	/* IBMPC */
+		/* This code is only a guess: I don't know if any M_* termcap
+		 * attributes are defined for the PC.  If they are not used,
+		 * this routine is not called.  Perhaps this routine should
+		 * simply abort.
+		 */
+		char	buf[16];	/* hope that this is long enough */
+
+		swritef(buf, sizeof(buf), ms, num);	/* hope only %d appears in ms */
+		write_em(buf);
+#endif	/* IBMPC */
+	} else {
+		/* repeatedly use single string */
+		while (num--)
+			putpad(ss, lines);
+	}
+}
+
+#endif	/* !MAC */
 
 /* Determine the number of characters to buffer at each baud rate.  The
    lower the number, the quicker the response when new input arrives.  Of
@@ -341,32 +368,99 @@ void
 settout(ttbuf)
 char	*ttbuf;
 {
+#ifdef	UNIX
 	int	speed_chars;
-	static const int speeds[] = {
-		1,	/* 0	*/
-		1,	/* 50	*/
-		1,	/* 75	*/
-		1,	/* 110	*/
-		1,	/* 134	*/
-		1,	/* 150	*/
-		1,	/* 200	*/
-		2,	/* 300	*/
-		4,	/* 600	*/
-		8,	/* 1200 */
-		16,	/* 1800	*/
-		32,	/* 2400	*/
-		128,	/* 4800	*/
-		256,	/* 9600	*/
-		512,	/* EXTA	*/
-		1024	/* EXT	*/
-	};
 
-#if (defined(MSDOS) || defined(MAC))
-	speed_chars = 256;
+	static const struct {
+		unsigned int bsize;
+		unsigned int brate;
+	} speeds[] = {
+
+# ifdef B0
+		{ 1, B0 },
+# endif
+# ifdef B50
+		{ 1, B50 },
+# endif
+# ifdef B75
+		{ 1, B75 },
+# endif
+# ifdef B110
+		{ 1, B110 },
+# endif
+# ifdef B134
+		{ 1, B134 },
+# endif
+# ifdef B150
+		{ 1, B150 },
+# endif
+# ifdef B200
+		{ 1, B200 },
+# endif
+# ifdef B300
+		{ 2, B300 },
+# endif
+# ifdef B600
+		{ 4, B600 },
+# endif
+# ifdef B900
+		{ 6, B900 },
+# endif
+# ifdef B1200
+		{ 8, B1200 },
+# endif
+# ifdef B1800
+		{ 16, B1800 },
+# endif
+# ifdef B2400
+		{ 32, B2400 },
+# endif
+# ifdef B3600
+		{ 64, B3600 },
+# endif
+# ifdef B4800
+		{ 128, B4800 },
+# endif
+# ifdef B7200
+		{ 256, B7200 },
+# endif
+# ifdef B9600
+		{ 256, B9600 },
+# endif
+# ifdef EXTA
+		{ 512, EXTA },
+# endif
+# ifdef B19200
+		{ 512, B19200 },
+# endif
+# ifdef EXTB
+		{ 1024, EXTB },
+# endif
+# ifdef B38400
+		{ 1024, B38400 },
+# endif
+# ifdef EXT
+		{ 1024, EXT }
+# endif
+};
+	int i;
+	for (i = 0; ; i++) {
+		if (i == sizeof(speeds) / sizeof(speeds[0])) {
+			speed_chars = 512;
+			ospeed = B9600;	/* XXX */
+			break;
+		}
+		if (speeds[i].brate == (unsigned short) ospeed) {
+			speed_chars = speeds[i].bsize;
+			break;
+		}
+	}
+			
 #else
-	speed_chars = speeds[ospeed];
+	int	speed_chars = 256;
 #endif
-	flusho();		/* flush the one character buffer */
+
+	flushscreen();		/* flush the one character buffer */
 	BufSize = min(MAXTTYBUF, speed_chars * max(LI / 24, 1));
 	stdout = fd_open("/dev/tty", F_WRITE|F_LOCKED, 1, ttbuf, BufSize);
 }

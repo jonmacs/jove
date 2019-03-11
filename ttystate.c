@@ -6,5 +6,33 @@
  ***************************************************************************/
 
 #include "jove.h"
+#include "ttystate.h"
 
-char	*version = "4.14";
+#ifdef	UNIX
+
+#ifdef TERMIO
+struct termio	sg[2];
+#endif
+#ifdef TERMIOS
+struct termios	sg[2];
+#endif
+
+#ifdef SGTTY
+
+struct sgttyb	sg[2];
+
+# ifdef	TIOCSLTC
+struct ltchars	ls[2];
+# endif	/* TIOCSLTC */
+
+# ifdef	TIOCGETC
+struct tchars	tc[2];
+# endif
+
+# ifdef	PASS8			/* use pass8 instead of raw for meta-key */
+int	lmword[2];		/* local mode word */
+# endif
+
+#endif	/* SGTTY */
+
+#endif	/* UNIX */

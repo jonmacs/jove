@@ -1,0 +1,103 @@
+/***************************************************************************
+ * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
+ * is provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is    *
+ * included in all the files.                                              *
+ ***************************************************************************/
+
+/* This file is #included by vars.c and setmaps.c */
+
+const struct variable	variables[] = {
+	{ VARIABLE, "abort-char", VAR(&AbortChar), V_CHAR },
+#ifdef	UNIX
+	{ VARIABLE, "allow-^S-and-^Q", VAR(&OKXonXoff), V_BOOL|V_TTY_RESET },
+#endif	/* UNIX */
+	{ VARIABLE, "allow-bad-filenames", VAR(&OkayBadChars), V_BOOL },
+#ifdef	ABBREV
+	{ VARIABLE, "auto-case-abbrev", VAR(&AutoCaseAbbrev), V_BOOL },
+#endif
+#ifdef	IBMPC
+	{ VARIABLE, "background-color", VAR(&Bgcolor), V_BASE10|V_CLRSCREEN },
+#endif	/* IBMPC */
+#ifdef	F_COMPLETION
+	{ VARIABLE, "bad-filename-extensions", VAR(BadExtensions), V_STRING },
+#endif
+	{ VARIABLE, "c-argument-indentation", VAR(&CArgIndent), V_BASE10 },
+	{ VARIABLE, "c-indentation-increment", VAR(&CIndIncrmt), V_BASE10 },
+	{ VARIABLE, "case-ignore-search", VAR(&CaseIgnore), V_BOOL },
+#ifdef	CMT_FMT
+	{ VARIABLE, "comment-format", VAR(CmtFmt), V_STRING },
+#endif
+#ifdef	IPROCS
+	{ VARIABLE, "dbx-format-string", VAR(dbx_parse_fmt), V_STRING },
+#endif
+#ifdef	BIFF
+	{ VARIABLE, "disable-biff", VAR(&BiffChk), V_BOOL|V_TTY_RESET },
+#endif
+#ifdef	F_COMPLETION
+	{ VARIABLE, "display-bad-filenames", VAR(&DispBadFs), V_BOOL },
+#endif
+	{ VARIABLE, "error-format-string", VAR(ErrFmtStr), V_STRING },
+	{ VARIABLE, "error-window-size", VAR(&EWSize), V_BASE10 },
+	{ VARIABLE, "expand-environment-variables", VAR(&DoEVexpand), V_BOOL },
+	{ VARIABLE, "file-creation-mode", VAR(&CreatMode), V_BASE8 },
+	{ VARIABLE, "files-should-end-with-newline", VAR(&EndWNewline), V_BOOL },
+#ifdef	IBMPC
+	{ VARIABLE, "foreground-color", VAR(&Fgcolor), V_BASE10|V_CLRSCREEN },
+#endif	/* IBMPC */
+	{ VARIABLE, "internal-tabstop", VAR(&tabstop), V_BASE10|V_CLRSCREEN },
+	{ VARIABLE, "interrupt-character", VAR(&IntChar), V_CHAR|V_TTY_RESET },
+	{ VARIABLE, "left-margin", VAR(&LMargin), V_BASE10 },
+#ifdef	MAC
+	{ VARIABLE, "macify", VAR(&Macmode), V_BOOL },
+#endif
+#ifdef	UNIX
+	{ VARIABLE, "mail-check-frequency", VAR(&MailInt), V_BASE10 },
+	{ VARIABLE, "mailbox", VAR(Mailbox), V_FILENAME },
+#endif	/* UNIX */
+#ifdef	BACKUPFILES
+	{ VARIABLE, "make-backup-files", VAR(&BkupOnWrite), V_BOOL },
+#endif
+	{ VARIABLE, "mark-threshold", VAR(&MarkThresh), V_BASE10 },
+	{ VARIABLE, "marks-should-float", VAR(&MarksShouldFloat), V_BOOL },
+	{ VARIABLE, "match-regular-expressions", VAR(&UseRE), V_BOOL },
+	{ VARIABLE, "meta-key", VAR(&MetaKey), V_BOOL|V_TTY_RESET },
+	{ VARIABLE, "mode-line", VAR(ModeFmt), V_STRING|V_MODELINE },
+#ifdef	IBMPC
+	{ VARIABLE, "mode-line-color", VAR(&Mdcolor), V_BASE10|V_MODELINE },
+#endif
+	{ VARIABLE, "mode-line-should-standout", VAR(&BriteMode), V_BOOL|V_MODELINE },
+	{ VARIABLE, "paren-flash-delay", VAR(&PDelay), V_BASE10 },
+#ifndef	MAC
+	{ VARIABLE, "physical-tabstop", VAR(&phystab), V_BASE10|V_CLRSCREEN },
+#endif
+#ifdef	IPROCS
+	{ VARIABLE, "process-prompt", VAR(proc_prompt), V_STRING },
+#endif
+	{ VARIABLE, "right-margin", VAR(&RMargin), V_BASE10 },
+	{ VARIABLE, "scroll-all-lines", VAR(&ScrollAll), V_BOOL },
+	{ VARIABLE, "scroll-step", VAR(&ScrollStep), V_BASE10 },
+	{ VARIABLE, "search-exit-char", VAR(&SExitChar), V_CHAR },
+	{ VARIABLE, "send-typeout-to-buffer", VAR(&UseBuffers), V_BOOL },
+#ifdef	SUBSHELL
+	{ VARIABLE, "shell", VAR(Shell), V_FILENAME },
+	{ VARIABLE, "shell-flags", VAR(ShFlags), V_STRING },
+#endif
+#ifndef	MSDOS
+	{ VARIABLE, "sync-frequency", VAR(&SyncFreq), V_BASE10 },
+#endif	/* MSDOS */
+	{ VARIABLE, "tag-file", VAR(TagFile), V_FILENAME },
+	{ VARIABLE, "tmp-file-pathname", VAR(TmpFilePath), V_FILENAME },
+#ifdef	UNIX
+	{ VARIABLE, "update-time-frequency", VAR(&UpdFreq), V_BASE10 },
+#endif	/* UNIX */
+#ifdef	ID_CHAR
+	{ VARIABLE, "use-i/d-char", VAR(&UseIC), V_BOOL },
+#endif
+	{ VARIABLE, "visible-bell", VAR(&VisBell), V_BOOL },
+	{ VARIABLE, "wrap-search", VAR(&WrapScan), V_BOOL },
+#ifdef	SUBSHELL
+	{ VARIABLE, "write-files-on-make", VAR(&WtOnMk), V_BOOL },
+#endif
+	{ VARIABLE, NULL, NULL, (size_t)0, 0 },
+};

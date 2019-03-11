@@ -15,8 +15,8 @@
 struct scrimage {
 	int	s_offset,	/* offset to start printing at */
 		s_flags,	/* various flags */
-		s_id,		/* which buffer line */
 		s_vln;		/* Visible Line Number */
+	daddr	s_id;		/* which buffer line */
 	Line	*s_lp;		/* so we can turn off red bit */
 	Window	*s_window;	/* window that contains this line */
 };
@@ -25,38 +25,71 @@ extern struct scrimage
 	*DesiredScreen,		/* what we want */
 	*PhysScreen;		/* what we got */
 
-extern int
-	UpdModLine,	/* whether we want to update the mode line */
-	UpdMesg;	/* update the message line */
+extern bool	UpdMesg;	/* update the message line */
 
 extern int
 	chkmail proto((int force)),
-	calc_pos proto((char *lp,int c_char)),
-	find_pos proto((struct line *line,int c_char));
+	calc_pos proto((char *lp,int c_char));
 
 extern void
 	disp_opt_init proto((void)),
 	ChkWindows proto((struct line *line1,struct line *line2)),
-	DrawMesg proto((int abortable)),
-	TOstart proto((char *name,int auto_newline)),
+	ChkWinLines proto((void)),
+	DrawMesg proto((bool abortable)),
+	message proto((char *)),
+	TOstart proto((char *name, bool auto_newline)),
 	TOstop proto((void)),
 	Typeout proto((char *, ...)),
 	rbell proto((void)),
 	redisplay proto((void));
 
+
 extern int
 	DisabledRedisplay;
 
 #ifdef	ID_CHAR
+extern bool
+	IN_INSmode;
+
 extern int
-	IN_INSmode,
-	DClen,
-	MDClen,
-	IClen,
-	MIClen,
-	IMlen,
-	CElen;
+	IMlen;
 
 extern void
-	INSmode proto((int));
+	INSmode proto((bool));
 #endif	/* ID_CHAR */
+
+
+/* Variables: */
+
+#ifdef	BIFF
+extern bool	BiffChk;		/* turn off/on biff with entering/exiting jove */
+#endif
+extern bool	BriteMode;		/* make the mode line inverse? */
+extern int	MailInt;		/* mail check interval */
+#ifdef	UNIX
+extern char	Mailbox[FILESIZE];	/* mailbox name */
+#endif	/* UNIX */
+extern char	ModeFmt[120];		/* mode line format string */
+extern bool	ScrollAll;		/* we current line scrolls, scroll whole window? */
+extern bool	UseBuffers;		/* use buffers with Typeout() */
+#ifdef	ID_CHAR
+extern bool	UseIC;			/* whether or not to use i/d char processesing */
+#endif
+extern bool	VisBell;		/* use visible bell (if possible) */
+
+/* Commands: */
+extern void
+	Bow proto((void)),
+	ClAndRedraw proto((void)),
+	DownScroll proto((void)),
+	Eow proto((void)),
+	NextPage proto((void)),
+	PrevPage proto((void)),
+	RedrawDisplay proto((void)),
+	UpScroll proto((void));
+
+#ifdef	MSDOS
+extern void
+	PageScrollUp proto((void)),
+	PageScrollDown proto((void));
+#endif	/* MSDOS */

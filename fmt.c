@@ -10,105 +10,98 @@
 #include "termcap.h"
 #include "ctype.h"
 #include "disp.h"
+#include "extend.h"
+#include "fmt.h"
+#include "getch.h"
 
-#ifdef MAC
+#ifdef	MAC
 # include  "mac.h"
-#else
-# ifdef	STDARGS
-#  include <stdarg.h>
-# else
-#  include <varargs.h>
-# endif
+#endif
+
+#ifdef	IBMPC
+# include "pcscr.h"
 #endif
 
 private void
-	doformat proto((File *, char *, va_list)),
+	doformat proto((File *, const char *, va_list)),
 	outld proto((long, int)),
-	pad proto((int, int)),
-	PPchar proto((int, char *)),
-	putld proto((long, int)),
-	puts proto((char *));
+	pad proto((int, int));
 
 char	mesgbuf[MESG_SIZE];
 
+#ifdef	ZORTECH
+/* ZORTECH only accepts va_list in a prototype */
+void
+format(char *buf, size_t len, const char *fmt, va_list ap)
+#else
 void
 format(buf, len, fmt, ap)
-char	*buf,
-	*fmt;
+char	*buf;
 size_t	len;
+const char	*fmt;
 va_list	ap;
+#endif
 {
-	File	strbuf,
-		*sp = &strbuf;
+	File	strbuf;
 
-	sp->f_ptr = sp->f_base = buf;
-	sp->f_fd = -1;		/* Not legit for files */
-	sp->f_cnt = len - 1;
-	sp->f_flags = F_STRING;
-	sp->f_bufsize = len;
+	strbuf.f_ptr = strbuf.f_base = buf;
+	strbuf.f_fd = -1;		/* Not legit for files */
+	strbuf.f_bufsize = strbuf.f_cnt = len;
+	strbuf.f_flags = F_STRING;
 
-	doformat(sp, fmt, ap);
-	sp->f_cnt += 1;	    /* make room for null, if there isn't room */
-	jputc('\0', sp);
+	doformat(&strbuf, fmt, ap);
+	jputc('\0', &strbuf);	/* jputc will place this, even if overflow */
 }
 
-#ifdef IBMPC
-int	specialmap = 0,
-	specialkey = 0;
-
-#define Empty ""
-
-const char *const altseq[133] = {
-	Empty, Empty, Empty, "Ctrl-@", Empty, Empty, Empty, Empty, Empty,
-	Empty, Empty, Empty, Empty, Empty, Empty, "Left", "Alt-Q",
-	"Alt-W", "Alt-E", "Alt-R", "Alt-T", "Alt-Y", "Alt-U", "Alt-I",
-	"Alt-O", "Alt-P", Empty, Empty, Empty, Empty, "Alt-A", "Alt-S",
-	"Alt-D", "Alt-F", "Alt-G", "Alt-H", "Alt-J", "Alt-K", "Alt-L",
-	Empty, Empty, Empty, Empty, Empty, "Alt-Z", "Alt-X", "Alt-C",
-	"Alt-V", "Alt-B", "Alt-N", "Alt-M", Empty, Empty, Empty, Empty,
-	Empty, Empty, Empty, Empty, "F1", "F2", "F3", "F4", "F5", "F6",
-	"F7", "F8", "F9", "F10", Empty, Empty, "Home", "Up", "PageUp",
-	Empty, "Left", Empty, "Right", Empty, "End", "Down", "PageDown",
-	"Ins", "Del", "Shift F1", "Shift F2", "Shift F3", "Shift F4",
-	"Shift F5", "Shift F6", "Shift F7", "Shift F8", "Shift F9",
-	"Shift F10", "Ctrl F1", "Ctrl F2", "Ctrl F3", "Ctrl F4", "Ctrl
-	F5", "Ctrl F6", "Ctrl F7", "Ctrl F8", "Ctrl F9", "Ctrl F10", "Alt
-	F1", "Alt F2", "Alt F3", "Alt F4", "Alt F5", "Alt F6", "Alt F7",
-	"Alt F8", "Alt F9", "Alt F10", "Ctrl PrtSc", "Ctrl Left", "Ctrl
-	Right", "Ctrl End", "Ctrl PageDown", "Ctrl Home", "Alt 1", "Alt
-	2", "Alt 3", "Alt 4", "Alt 5", "Alt 6", "Alt 7", "Alt 8", "Alt
-	9", "Alt 0", "Alt Minus", "Alt Equals", "Ctrl PageUp"
+#ifdef	IBMPC
+private const char *const altseq[133] = {
+NullStr, NullStr, NullStr, "Ctrl-@", NullStr, NullStr, NullStr, NullStr,
+NullStr, NullStr, NullStr, NullStr, NullStr, NullStr, NullStr, "Left",
+"Alt-Q", "Alt-W", "Alt-E", "Alt-R", "Alt-T", "Alt-Y", "Alt-U", "Alt-I",
+"Alt-O", "Alt-P", NullStr, NullStr, NullStr, NullStr, "Alt-A", "Alt-S",
+"Alt-D", "Alt-F", "Alt-G", "Alt-H", "Alt-J", "Alt-K", "Alt-L", NullStr,
+NullStr, NullStr, NullStr, NullStr, "Alt-Z", "Alt-X", "Alt-C", "Alt-V",
+"Alt-B", "Alt-N", "Alt-M", NullStr, NullStr, NullStr, NullStr, NullStr,
+NullStr, NullStr, NullStr, "F1", "F2", "F3", "F4", "F5",
+"F6", "F7", "F8", "F9", "F10", NullStr, NullStr, "Home",
+"Up", "PageUp", NullStr, "Left", NullStr, "Right", NullStr, "End",
+"Down", "PageDown", "Ins", "Del", "Shift F1", "Shift F2", "Shift F3", "Shift F4",
+"Shift F5", "Shift F6", "Shift F7", "Shift F8", "Shift F9", "Shift F10", "Ctrl F1", "Ctrl F2",
+"Ctrl F3", "Ctrl F4", "Ctrl F5", "Ctrl F6", "Ctrl F7", "Ctrl F8", "Ctrl F9", "Ctrl F10",
+"Alt F1", "Alt F2", "Alt F3", "Alt F4", "Alt F5", "Alt F6", "Alt F7", "Alt F8",
+"Alt F9", "Alt F10", "Ctrl PrtSc", "Ctrl Left", "Ctrl Right", "Ctrl End", "Ctrl PageDown", "Ctrl Home",
+"Alt 1", "Alt 2", "Alt 3", "Alt 4", "Alt 5", "Alt 6", "Alt 7", "Alt 8",
+"Alt 9", "Alt 0", "Alt Minus", "Alt Equals", "Ctrl PageUp"
 };
 #endif
 
 
 private void
-PPchar(c, str)
+PPchar(c, str, size)
 int	c;
 char	*str;
+size_t	size;
 {
 	char	*cp = str;
 
-#ifdef IBMPC
-	if (specialmap || specialkey) {
+#ifdef	IBMPC
+	if (specialkey) {
 		if (c < 0 || c > 132)
 			c = 0;
 		strcpy(cp, altseq[c]);
+	} else if (c == '\377') {
+		*cp = '\0';	/* this character was invisible */
 	} else
 #endif
-	if (c == '\033')
+	if (c == '\033') {
 		strcpy(cp, "ESC");
-#ifdef IBMPC				/* this character is invisible */
-	else if (c == '\377') {
-			*cp = 0;
-	}
-#endif /* IBMPC */
-	else if (c < ' ')
-		swritef(cp, "C-%c", c + '@');
-	else if (c == '\177')
+	} else if (c < ' ') {
+		swritef(cp, size, "C-%c", c + '@');
+	} else if (c == '\177') {
 		strcpy(cp, "^?");
-	else
-		swritef(cp, "%c", c);
+	} else {
+		swritef(cp, size, "%c", c);
+	}
 }
 
 private struct fmt_state {
@@ -162,18 +155,14 @@ int	base;
 }
 
 private void
-puts(str)
+jputs(str)
 char	*str;
 {
 	int	len;
 	register char	*cp;
 
-	if (str == 0)
-#if defined(pyr)
-		str = "";
-#else
+	if (str == NULL)
 		str = "(null)";
-#endif
 	len = strlen(str);
 	if (current_fmt.precision == 0 || len < current_fmt.precision)
 		current_fmt.precision = len;
@@ -197,11 +186,17 @@ register int	c,
 		jputc(c, current_fmt.iop);
 }
 
+#ifdef	ZORTECH
+/* ZORTECH only accepts va_list in a prototype */
+private void
+doformat(register File *sp, register const char *fmt, va_list ap)
+#else
 private void
 doformat(sp, fmt, ap)
 register File	*sp;
-register char	*fmt;
+register const char	*fmt;
 va_list	ap;
+#endif
 {
 	register char	c;
 	struct fmt_state	prev_fmt;
@@ -263,7 +258,7 @@ va_list	ap;
 		    {
 			Buffer	*b = va_arg(ap, Buffer *);
 
-			puts(b->b_name);
+			jputs(b->b_name);
 			break;
 		    }
 
@@ -279,7 +274,7 @@ va_list	ap;
 			break;
 
 		case 'f':	/* current command name gets inserted here! */
-			puts(LastCmd->Name);
+			jputs(LastCmd->Name);
 			break;
 
 		case 'l':
@@ -288,20 +283,20 @@ va_list	ap;
 
 		case 'n':
 			if (va_arg(ap, int) != 1)
-				puts("s");
+				jputs("s");
 			break;
 
 		case 'p':
 		    {
 			char	cbuf[20];
 
-			PPchar(va_arg(ap, int), cbuf);
-			puts(cbuf);
+			PPchar(va_arg(ap, int), cbuf, sizeof(cbuf));
+			jputs(cbuf);
 			break;
 		    }
 
 		case 's':
-			puts(va_arg(ap, char *));
+			jputs(va_arg(ap, char *));
 			break;
 
 		default:
@@ -312,12 +307,12 @@ va_list	ap;
 }
 
 #ifdef	STDARGS
-	char *
-sprint(char *fmt, ...)
+char *
+sprint(const char *fmt, ...)
 #else
-	/*VARARGS1*/ char *
+/*VARARGS1*/ char *
 sprint(fmt, va_alist)
-	char	*fmt;
+	const char	*fmt;
 	va_dcl
 #endif
 {
@@ -331,35 +326,42 @@ sprint(fmt, va_alist)
 }
 
 #ifdef	STDARGS
-	void
-writef(char *fmt, ...)
+void
+writef(const char *fmt, ...)
 #else
-	/*VARARGS1*/ void
+/*VARARGS1*/ void
 writef(fmt, va_alist)
-	char	*fmt;
+	const char	*fmt;
 	va_dcl
 #endif
 {
 	va_list	ap;
 
 	va_init(ap, fmt);
-#ifndef IBMPC
+#ifndef	IBMPC
 	doformat(stdout, fmt, ap);
-#else /* IBMPC */
-	write_em(sprint(fmt, ap));
-	/* doformat(stdout, fmt, ap); */
-#endif /* IBMPC */
+#else	/* IBMPC */
+	/* Can't use sprint because caller might have
+	 * passed the result of sprint as an arg.
+	 */
+	{
+		char	line[100];
+
+		format(line, sizeof(line), fmt, ap);
+		write_em(line);
+	}
+#endif	/* IBMPC */
 	va_end(ap);
 }
 
 #ifdef	STDARGS
-	void
-fwritef(File *fp, char *fmt, ...)
+void
+fwritef(File *fp, const char *fmt, ...)
 #else
-	/*VARARGS2*/ void
+/*VARARGS2*/ void
 fwritef(fp, fmt, va_alist)
 	File	*fp;
-	char	*fmt;
+	const char	*fmt;
 	va_dcl
 #endif
 {
@@ -371,30 +373,31 @@ fwritef(fp, fmt, va_alist)
 }
 
 #ifdef	STDARGS
-	void
-swritef(char *str, char *fmt, ...)
+void
+swritef(char *str, size_t size, const char *fmt, ...)
 #else
-	/*VARARGS2*/ void
-swritef(str, fmt, va_alist)
-	char	*str,
-		*fmt;
+/*VARARGS3*/ void
+swritef(str, size, fmt, va_alist)
+	char	*str;
+	size_t	size;
+	const char	*fmt;
 	va_dcl
 #endif
 {
 	va_list	ap;
 
 	va_init(ap, fmt);
-	format(str, (size_t) 128, fmt, ap);
+	format(str, size, fmt, ap);
 	va_end(ap);
 }
 
 #ifdef	STDARGS
-	void
-s_mess(char *fmt, ...)
+void
+s_mess(const char *fmt, ...)
 #else
-	/*VARARGS1*/ void
+/*VARARGS1*/ void
 s_mess(fmt, va_alist)
-	char	*fmt;
+	const char	*fmt;
 	va_dcl
 #endif
 {
@@ -409,12 +412,12 @@ s_mess(fmt, va_alist)
 }
 
 #ifdef	STDARGS
-	void
-f_mess(char *fmt, ...)
+void
+f_mess(const char *fmt, ...)
 #else
-	/*VARARGS1*/ void
+/*VARARGS1*/ void
 f_mess(fmt, va_alist)
-	char	*fmt;
+	const char	*fmt;
 	va_dcl
 #endif
 {
@@ -429,12 +432,12 @@ f_mess(fmt, va_alist)
 }
 
 #ifdef	STDARGS
-	void
-add_mess(char *fmt, ...)
+void
+add_mess(const char *fmt, ...)
 #else
-	/*VARARGS1*/ void
+/*VARARGS1*/ void
 add_mess(fmt, va_alist)
-	char	*fmt;
+	const char	*fmt;
 	va_dcl
 #endif
 {

@@ -10,30 +10,23 @@
 #include "jove.h"
 #include "re.h"
 #include "ctype.h"
+#include "ask.h"
+#include "disp.h"
+#include "fmt.h"
+#include "marks.h"
 
-private char *insert proto((char *, char *, int));
-
-private void
-	REreset proto((void)),
-	search proto((int, int, int));
 private int
-	backref proto((int, char *)),
-	do_comp proto((struct RE_block *,int)),
-	member proto((char *, int, int)),
-	REgetc proto((void)),
-	REmatch proto((char *, char *));
+	do_comp proto((struct RE_block *,int));
 
-char	searchstr[128],		/* global search string */
+char
 	rep_search[128],	/* replace search string */
 	rep_str[128];		/* contains replacement string */
 
-int	REdirection;		/* current direction we're searching in */
+bool
+	CaseIgnore = NO,	/* ignore case? */
+	WrapScan = NO;		/* wrap at end of buffer? */
 
-int	CaseIgnore = 0,		/* ignore case? */
-	WrapScan = 0,		/* wrap at end of buffer? */
-	UseRE = 0;		/* use regular expressions */
-
-#define cind_cmp(a, b)	(CaseEquiv[a] == CaseEquiv[b])
+#define cind_cmp(a, b)	(CharUpcase(a) == CharUpcase(b))
 
 private int	REpeekc;
 private char	*REptr;
@@ -48,7 +41,7 @@ REgetc()
 	else if (*REptr)
 		c = *REptr++;
 	else
-		c = 0;
+		c = '\0';
 
 	return c;
 }
@@ -89,7 +82,7 @@ private char	*comp_ptr,
 void
 REcompile(pattern, re, re_blk)
 char	*pattern;
-int	re;
+bool	re;
 struct RE_block	*re_blk;
 {
 	REptr = pattern;
@@ -128,7 +121,7 @@ struct RE_block	*re_blk;
 
 			case NORMC:
 			case CINDC:
-				re_blk->r_firstc = CaseEquiv[p[2]];
+				re_blk->r_firstc = CharUpcase(p[2]);
 				break;
 
 			default:
@@ -170,17 +163,24 @@ int	kind;
 	start_p = comp_ptr;
 
 	while ((c = REgetc()) != '\0') {
-		if (comp_ptr > comp_endp)
-toolong:		complain("Search string too long/complex.");
+		if (comp_ptr > comp_endp) {
+toolong:
+			complain("Search string too long/complex.");
+		}
 		prev_verb = this_verb;
 		this_verb = comp_ptr;
 
-		if (kind == NORM && strchr(".[*", c) != 0)
+		/* The following test ought to be
+		 *	kind == NORM && c != '\\'
+		 * but Jon likes to put ^, $, and \ in i-searches.
+		 * Don't tell him, but $ only sort of works. -- DHR
+		 */
+		if (kind == NORM && strchr("^$\\", c) == NULL)
 			goto defchar;
 		switch (c) {
 		case '\\':
 			switch (c = REgetc()) {
-			case 0:
+			case '\0':
 				complain("[Premature end of pattern]");
 				/*NOTREACHED*/
 
@@ -286,7 +286,7 @@ toolong:		complain("Search string too long/complex.");
 			goto defchar;
 
 		case '$':
-			if ((REpeekc = REgetc()) != 0 && REpeekc != '\\')
+			if ((REpeekc = REgetc()) != '\0' && REpeekc != '\\')
 				goto defchar;
 			*comp_ptr++ = AT_EOL;
 			break;
@@ -305,10 +305,10 @@ toolong:		complain("Search string too long/complex.");
 				(void) REgetc();
 			}
 			chrcnt = 0;
-			while ((c = REgetc()) != ']' && c != 0) {
+			while ((c = REgetc()) != ']' && c != '\0') {
 				if (c == '\\') {
 					c = REgetc();
-					if (c == 0)
+					if (c == '\0')
 						break;
 				} else if ((REpeekc = REgetc()) == '-') {
 					int	i;
@@ -316,7 +316,7 @@ toolong:		complain("Search string too long/complex.");
 					i = c;
 					(void) REgetc();     /* reread '-' */
 					c = REgetc();
-					if (c == 0)
+					if (c == '\0')
 						break;
 					while (i < c) {
 						comp_ptr[SETBYTE(i)] |= SETBIT(i);
@@ -326,7 +326,7 @@ toolong:		complain("Search string too long/complex.");
 				comp_ptr[SETBYTE(c)] |= SETBIT(c);
 				chrcnt += 1;
 			}
-			if (c == 0)
+			if (c == '\0')
 				complain("Missing ].");
 			if (chrcnt == 0)
 				complain("Empty [].");
@@ -352,12 +352,12 @@ toolong:		complain("Search string too long/complex.");
 				 * so do not need or have character counts.
 				 */
 
- 				if (prev_verb[1] == 1) {
+				if (prev_verb[1] == 1) {
 					/* Only one char in string:
 					 * delete old command.
 					 */
 					this_verb = prev_verb;
- 				} else {
+				} else {
 					/* Several chars in string:
 					 * strip off the last.
 					 * New verb is derived from old.
@@ -365,7 +365,7 @@ toolong:		complain("Search string too long/complex.");
 					prev_verb[1] -= 1;
 					this_verb -= 1;
 					*this_verb = *prev_verb;
- 				}
+				}
 				comp_ptr = this_verb + 1;
 				*comp_ptr++ = lastc;
 			} else {
@@ -378,8 +378,9 @@ toolong:		complain("Search string too long/complex.");
 			break;
 		default:
 defchar:
-			if ((prev_verb == NULL) ||
-			    !(*prev_verb == NORMC || *prev_verb == CINDC)) {
+			if (prev_verb == NULL
+			|| !(*prev_verb == NORMC || *prev_verb == CINDC))
+			{
 				/* create new string command */
 				*comp_ptr++ = (CaseIgnore) ? CINDC : NORMC;
 				*comp_ptr++ = 0;
@@ -401,7 +402,7 @@ outahere:
 	}
 	if (parenp != parens)
 		complain("Unmatched ()'s.");
-	if (kind == IN_CB && c == 0)	/* end of pattern with missing \}. */
+	if (kind == IN_CB && c == '\0')	/* end of pattern with missing \}. */
 		complain("Missing \\}.");
 	*comp_ptr++ = EOP;
 
@@ -419,7 +420,7 @@ int	REbom,		/* beginning and end columns of match */
 	REeom,
 	REdelta;	/* increase in line length due to last re_dosub */
 
-private int
+private bool
 backref(n, linep)
 int	n;
 register char	*linep;
@@ -431,24 +432,24 @@ register char	*linep;
 	backep = pendlst[n];
 	while (*backsp++ == *linep++)
 		if (backsp >= backep)
-			return 1;
-	return 0;
+			return YES;
+	return NO;
 }
 
-private int
+private bool
 member(comp_ptr, c, af)
 register char	*comp_ptr;
-register int	c,
-		af;
+register int	c;
+bool		af;
 {
-	if (c == 0)
-		return 0;	/* try to match EOL always fails */
+	if (c == '\0')
+		return NO;	/* try to match EOL always fails */
 	if (comp_ptr[SETBYTE(c)] & SETBIT(c))
 		return af;
 	return !af;
 }
 
-private int
+private bool
 REmatch(linep, comp_ptr)
 register char	*linep,
 		*comp_ptr;
@@ -487,19 +488,19 @@ register char	*linep,
 		return NO;
 
 	case ANYC:
-		if (*linep++ != 0)
+		if (*linep++ != '\0')
 			continue;
 		return NO;
 
 	case AT_BOW:
-		if (linep != locrater && ismword(*linep)
-		&& (linep == REbolp || !ismword(linep[-1])))
+		if (linep != locrater && jisident(*linep)
+		&& (linep == REbolp || !jisident(linep[-1])))
 			continue;
 		return NO;
 
 	case AT_EOW:
-		if (linep != locrater && (*linep == 0 || !ismword(*linep)) &&
-		    (linep != REbolp && ismword(linep[-1])))
+		if (linep != locrater && (*linep == '\0' || !jisident(*linep))
+		&& (linep != REbolp && jisident(linep[-1])))
 			continue;
 		return NO;
 
@@ -520,11 +521,9 @@ register char	*linep,
 		continue;
 
 	case BACKREF:
-		if (pstrtlst[n = *comp_ptr++] == 0) {
+		if (pstrtlst[n = *comp_ptr++] == NULL) {
 			s_mess("\\%d was not specified.", n + 1);
-			return NO;
-		}
-		if (backref(n, linep)) {
+		} else if (backref(n, linep)) {
 			linep += pendlst[n] - pstrtlst[n];
 			continue;
 		}
@@ -532,18 +531,18 @@ register char	*linep,
 
 	case CURLYB:
 	    {
-		int	wcnt,
-			any;
+		int	wcnt;
+		bool	any;
 
 		wcnt = *comp_ptr++;
-		any = 0;
+		any = NO;
 
 		while (--wcnt >= 0) {
-			if (any == 0)
+			if (!any)
 				any = REmatch(linep, comp_ptr + 1);
 			comp_ptr += *comp_ptr;
 		}
-		if (any == 0)
+		if (!any)
 			return NO;
 		linep = loc2;
 		continue;
@@ -551,29 +550,25 @@ register char	*linep,
 
 	case ANYC | STAR:
 		first_p = linep;
-		while (*linep++)
-			;
+		do ; while (*linep++ != '\0');
 		goto star;
 
 	case NORMC | STAR:
 		first_p = linep;
-		while (*comp_ptr == *linep++)
-			;
+		do ; while (*comp_ptr == *linep++);
 		comp_ptr += 1;
 		goto star;
 
 	case CINDC | STAR:
 		first_p = linep;
-		while (cind_cmp(*comp_ptr, *linep++))
-			;
+		do ; while (cind_cmp(*comp_ptr, *linep++));
 		comp_ptr += 1;
 		goto star;
 
 	case ONE_OF | STAR:
 	case NONE_OF | STAR:
 		first_p = linep;
-		while (member(comp_ptr, *linep++, comp_ptr[-1] == (ONE_OF | STAR)))
-			;
+		do ; while (member(comp_ptr, *linep++, comp_ptr[-1] == (ONE_OF | STAR)));
 		comp_ptr += SETSIZE;
 		/* fall through */
 star:
@@ -581,8 +576,8 @@ star:
 		 * first_p points at where starred element started matching.
 		 */
 		while (--linep > first_p) {
-			if ((*comp_ptr != NORMC || *linep == comp_ptr[2]) &&
-			    REmatch(linep, comp_ptr))
+			if ((*comp_ptr != NORMC || *linep == comp_ptr[2])
+			&& REmatch(linep, comp_ptr))
 				return YES;
 		}
 		continue;
@@ -611,24 +606,25 @@ REreset()
 	register int	i;
 
 	for (i = 0; i < NPAR; i++)
-		pstrtlst[i] = pendlst[i] = 0;
+		pstrtlst[i] = pendlst[i] = NULL;
 }
 
 /* Index LINE at OFFSET.  If lbuf_okay is nonzero it's okay to use linebuf
    if LINE is the current line.  This should save lots of time in things
    like paren matching in LISP mode.  Saves all that copying from linebuf
    to a local buffer.  substitute() is the guy who calls re_lindex with
-   lbuf_okay as 0, since the substitution gets placed in linebuf ...
+   lbuf_okay as NO, since the substitution gets placed in linebuf ...
    doesn't work too well when the source and destination strings are the
    same.  I hate all these arguments!
 
    This code is cumbersome, repetetive for reasons of efficiency.  Fast
    search is a must as far as I am concerned. */
 
-int
-re_lindex(line, offset, re_blk, lbuf_okay, crater)
+bool
+re_lindex(line, offset, dir, re_blk, lbuf_okay, crater)
 Line	*line;
 int	offset;
+int	dir;
 struct RE_block	*re_blk;
 int	lbuf_okay;
 int	crater;	/* offset of previous substitute (or -1) */
@@ -636,7 +632,6 @@ int	crater;	/* offset of previous substitute (or -1) */
 	register char	*p;
 	register int	firstc = re_blk->r_firstc;
 	register int	anchored = re_blk->r_anchored;
-	int		re_dir = REdirection;
 	char		**alts = re_blk->r_alternates;
 
 	REreset();
@@ -652,11 +647,12 @@ int	crater;	/* offset of previous substitute (or -1) */
 	}
 
 	if (anchored == YES) {
-		if (re_dir == FORWARD) {
+		if (dir == FORWARD) {
 			if (offset != 0 || crater != -1)
 				return NO;
-		} else
+		} else {
 			offset = 0;
+		}
 	}
 
 	p = REbolp + offset;
@@ -665,12 +661,12 @@ int	crater;	/* offset of previous substitute (or -1) */
 	if (firstc != '\0') {
 		char	*first_alt = *alts;
 
-		if (re_dir == FORWARD) {
-			while (CaseEquiv[*p] != firstc || !REmatch(p, first_alt))
+		if (dir == FORWARD) {
+			while (CharUpcase(*p) != firstc || !REmatch(p, first_alt))
 				if (*p++ == '\0')
 					return NO;
 		} else {
-			while (CaseEquiv[*p] != firstc || !REmatch(p, first_alt))
+			while (CharUpcase(*p) != firstc || !REmatch(p, first_alt))
 				if (--p < REbolp)
 					return NO;
 		}
@@ -681,8 +677,8 @@ int	crater;	/* offset of previous substitute (or -1) */
 			while (*altp != NULL)
 				if (REmatch(p, *altp++))
 					goto success;
-			if (anchored ||
-			    (re_dir == FORWARD ? *p++ == '\0' : --p < REbolp))
+			if (anchored
+			|| (dir == FORWARD ? *p++ == '\0' : --p < REbolp))
 				return NO;
 		}
 success:;
@@ -693,20 +689,20 @@ success:;
 	return YES;
 }
 
-int	okay_wrap = 0;	/* Do a wrap search ... not when we're
+bool	okay_wrap = NO;	/* Do a wrap search ... not when we're
 			   parsing errors ... */
 
 Bufpos *
 dosearch(pattern, dir, re)
 char	*pattern;
-int dir,
-    re;
+int	dir;
+bool	re;
 {
 	Bufpos	*pos;
 	struct RE_block	re_blk;		/* global re-compiled buffer */
 
 	if (bobp() && eobp())	/* Can't match!  There's no buffer. */
-		return 0;
+		return NULL;
 
 	REcompile(pattern, re, &re_blk);
 
@@ -731,33 +727,32 @@ register struct RE_block	*re_blk;
 	   be careful about what calls we make here, because many of them
 	   assume (and rightly so) that curline is in linebuf. */
 
-	REdirection = dir;
 	lp = curline;
 	offset = curchar;
 	if (dir == BACKWARD) {
 		if (bobp()) {
 			if (okay_wrap && WrapScan)
 				goto doit;
-			return 0;
+			return NULL;
 		}
 		/* here we simulate BackChar() */
 		if (bolp()) {
 			lp = lp->l_prev;
 			offset = length(lp);
-		} else
+		} else {
 			offset -= 1;
-	} else if ((dir == FORWARD) &&
-		   (lbptr(lp)[offset] == '\0') &&
-		   !lastp(lp)) {
+		}
+	} else if (dir==FORWARD && lbptr(lp)[offset]=='\0' && !lastp(lp)) {
 		lp = lp->l_next;
 		offset = 0;
 	}
 
 	do {
-		if (re_lindex(lp, offset, re_blk, YES, -1))
+		if (re_lindex(lp, offset, dir, re_blk, YES, -1))
 			break;
-doit:		lp = (dir == FORWARD) ? lp->l_next : lp->l_prev;
-		if (lp == 0) {
+doit:
+		lp = (dir == FORWARD) ? lp->l_next : lp->l_prev;
+		if (lp == NULL) {
 			if (okay_wrap && WrapScan) {
 				lp = (dir == FORWARD) ?
 				     curbuf->b_first : curbuf->b_last;
@@ -772,9 +767,9 @@ doit:		lp = (dir == FORWARD) ? lp->l_next : lp->l_prev;
 	} while (lp != curline);
 
 	if (lp == curline && we_wrapped)
-		lp = 0;
-	if (lp == 0)
-		return 0;
+		lp = NULL;
+	if (lp == NULL)
+		return NULL;
 	ret.p_line = lp;
 	ret.p_char = (dir == FORWARD) ? REeom : REbom;
 	return &ret;
@@ -868,19 +863,6 @@ size_t size;
 }
 
 void
-setsearch(str)
-char	*str;
-{
-	strcpy(searchstr, str);
-}
-
-char *
-getsearch()
-{
-	return searchstr;
-}
-
-void
 RErecur()
 {
 	char	repbuf[sizeof rep_str];
@@ -896,59 +878,9 @@ RErecur()
 	DelMark(m);
 }
 
-void
-ForSearch()
-{
-	search(FORWARD, UseRE, YES);
-}
-
-void
-RevSearch()
-{
-	search(BACKWARD, UseRE, YES);
-}
-
-void
-FSrchND()
-{
-	search(FORWARD, UseRE, NO);
-}
-
-void
-RSrchND()
-{
-	search(BACKWARD, UseRE, NO);
-}
-
-private void
-search(dir, re, setdefault)
-int dir,
-    re,
-    setdefault;
-{
-	Bufpos	*newdot;
-	char	*s;
-
-	s = ask(searchstr, ProcFmt);
-	if (setdefault)
-		setsearch(s);
-	okay_wrap = YES;
-	newdot = dosearch(s, dir, re);
-	okay_wrap = NO;
-	if (newdot == 0) {
-		if (WrapScan)
-			complain("No \"%s\" in buffer.", s);
-		else
-			complain("No \"%s\" found to %s.", s,
-				 (dir == FORWARD) ? "bottom" : "top");
-	}
-	PushPntp(newdot->p_line);
-	SetDot(newdot);
-}
-
 /* Do we match PATTERN at OFFSET in BUF? */
 
-int
+bool
 LookingAt(pattern, buf, offset)
 char	*pattern,
 	*buf;
@@ -968,13 +900,13 @@ int offset;
 	return NO;
 }
 
-int
+bool
 look_at(expr)
 char	*expr;
 {
 	struct RE_block	re_blk;
 
-	REcompile(expr, 0, &re_blk);
+	REcompile(expr, NO, &re_blk);
 	REreset();
 	locrater = NULL;
 	REbolp = linebuf;

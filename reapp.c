@@ -5,55 +5,126 @@
  * included in all the files.                                              *
  ***************************************************************************/
 
+/* regular expression applications: search, replace, and tags */
+
 #include "jove.h"
 #include "fp.h"
 #include "re.h"
 #include "ctype.h"
 #include "chars.h"
 #include "disp.h"
+#include "ask.h"
+#include "fmt.h"
+#include "marks.h"
+#include "reapp.h"
+#include "wind.h"
 
-#ifdef MAC
+#ifdef	MAC
 # include "mac.h"
 #else
 # include <sys/stat.h>
 #endif
 
-private Bufpos *doisearch proto((int, int, int));
+private void
+	IncSearch proto((int));
+
+private int
+	isearch proto((int, Bufpos *));
+
+private char
+	searchstr[128];		/* global search string */
+
+bool
+	UseRE = NO;		/* use regular expressions */
 
 private void
-	IncSearch proto((int)),
-	replace proto((int, int));
-private int
-	isearch proto((int, Bufpos *)),
-	lookup proto((char *, char *, char *, char *)),
-	substitute proto((struct RE_block *, int, Line *, int, Line *, int));
+setsearch(str)
+char	*str;
+{
+	strcpy(searchstr, str);
+}
+
+private char *
+getsearch()
+{
+	return searchstr;
+}
+
+private void
+search(dir, re, setdefault)
+int	dir;
+bool	re,
+	setdefault;
+{
+	Bufpos	*newdot;
+	char	*s;
+
+	s = ask(searchstr, ProcFmt);
+	if (setdefault)
+		setsearch(s);
+	okay_wrap = YES;
+	newdot = dosearch(s, dir, re);
+	okay_wrap = NO;
+	if (newdot == NULL) {
+		if (WrapScan)
+			complain("No \"%s\" in buffer.", s);
+		else
+			complain("No \"%s\" found to %s.", s,
+				 (dir == FORWARD) ? "bottom" : "top");
+	}
+	PushPntp(newdot->p_line);
+	SetDot(newdot);
+}
+
+void
+ForSearch()
+{
+	search(FORWARD, UseRE, YES);
+}
+
+void
+RevSearch()
+{
+	search(BACKWARD, UseRE, YES);
+}
+
+void
+FSrchND()
+{
+	search(FORWARD, UseRE, NO);
+}
+
+void
+RSrchND()
+{
+	search(BACKWARD, UseRE, NO);
+}
 
 private int
 substitute(re_blk, query, l1, char1, l2, char2)
 struct RE_block	*re_blk;
 Line	*l1,
 	*l2;
-int	query,
-	char1,
+bool	query;
+int	char1,
 	char2;
 {
 	Line	*lp;
 	int	numdone = 0,
 		UNDO_nd = 0,
-		offset = char1,
-		stop = NO;
-	daddr	UNDO_da = 0;
+		offset = char1;
+	bool	stop = NO;
+	daddr	UNDO_da = NULL_DADDR;
 	Line	*UNDO_lp = NULL;
 
 	lsave();
-	REdirection = FORWARD;
 
 	for (lp = l1; lp != l2->l_next; lp = lp->l_next) {
 		int	crater = -1;	/* end of last substitution on this line */
 		int	LineDone = NO;	/* already replaced last empty string on line? */
 
 		while (!LineDone
-		&& re_lindex(lp, offset, re_blk, NO, crater)
+		&& re_lindex(lp, offset, FORWARD, re_blk, NO, crater)
 		&& (lp != l2 || REeom <= char2))
 		{
 			DotTo(lp, REeom);
@@ -123,7 +194,7 @@ reswitch:
 
 				case 'P':
 				case '!':
-					query = 0;
+					query = NO;
 					break;
 
 				case CR:
@@ -170,7 +241,7 @@ message("Space or Y, Period, Rubout or N, C-R or R, C-W, C-U or U, P or !, Retur
 /* prompt for search and replacement strings and do the substitution */
 private void
 replace(query, inreg)
-int	query,
+bool	query,
 	inreg;
 {
 	Mark	*m;
@@ -190,42 +261,44 @@ int	query,
 	}
 
 	/* get search string */
-	strcpy(rep_search, ask(rep_search[0] ? rep_search : (char *) 0, ProcFmt));
+	strcpy(rep_search, ask(rep_search[0] ? rep_search : (char *)NULL, ProcFmt));
 	REcompile(rep_search, UseRE, &re_blk);
 	/* Now the replacement string.  Do_ask() so the user can play with
 	   the default (previous) replacement string by typing C-R in ask(),
 	   OR, he can just hit Return to replace with nothing. */
-	rep_ptr = do_ask("\r\n", (int (*) proto((int))) 0, rep_str,
+	rep_ptr = do_ask("\r\n", (bool (*) ptrproto((int))) NULL, rep_str,
 		": %f %s with ", rep_search);
-	if (rep_ptr == 0)
+	if (rep_ptr == NULL)
 		rep_ptr = NullStr;
 	strcpy(rep_str, rep_ptr);
 
-	if (((numdone = substitute(&re_blk, query, l1, char1, l2, char2)) != 0) &&
-	    (inreg == NO)) {
+	if ((numdone = substitute(&re_blk, query, l1, char1, l2, char2)) != 0
+	&& !inreg)
+	{
 		do_set_mark(l1, char1);
 		add_mess(" ");		/* just making things pretty */
-	} else
-		message("");
+	} else {
+		message(NullStr);
+	}
 	add_mess("(%d substitution%n)", numdone, numdone);
 }
 
 void
 RegReplace()
 {
-	replace(0, YES);
+	replace(NO, YES);
 }
 
 void
 QRepSearch()
 {
-	replace(1, NO);
+	replace(YES, NO);
 }
 
 void
 RepSearch()
 {
-	replace(0, NO);
+	replace(NO, NO);
 }
 
 /* Lookup a tag in tag file FILE.  FILE is assumed to be sorted
@@ -235,10 +308,11 @@ RepSearch()
    labeled), delete the marked test in the sequential loop, and
    everything else will just work. */
 
-private int
-lookup(searchbuf, filebuf, tag, file)
-char	*searchbuf,
-	*filebuf,
+private bool
+lookup(searchbuf, sbsize, filebuf, tag, file)
+char	*searchbuf;
+size_t	sbsize;
+char	*filebuf,
 	*tag,
 	*file;
 {
@@ -247,12 +321,12 @@ char	*searchbuf,
 		pattern[128];
 	register File	*fp;
 	struct stat	stbuf;
-	int	success = NO;
+	bool	success = NO;
 
 	fp = open_file(file, iobuff, F_READ, NO, YES);
-	if (fp == NIL)
+	if (fp == NULL)
 		return NO;
-	swritef(pattern, "^%s[^\t]*\t*\\([^\t]*\\)\t*\\([?/]\\)\\(.*\\)\\2$", tag);
+	swritef(pattern, sizeof(pattern), "^%s[^\t]*\t*\\([^\t]*\\)\t*\\([?/]\\)\\(.*\\)\\2$", tag);
 
 	/* ********BEGIN FAST TAG CODE******** */
 
@@ -279,10 +353,10 @@ char	*searchbuf,
 			mid = (lower + upper) / 2;
 			f_seek(fp, mid);	/* mid will not be 0 */
 			f_toNL(fp);
-			if (f_gets(fp, line, sizeof line) == EOF)
+			if (f_gets(fp, line, sizeof line))
 				break;		/* unexpected: bail out */
 			chars_eq = numcomp(line, tag);
-			if (chars_eq == taglen && iswhite(line[chars_eq])) {
+			if (chars_eq == taglen && jiswhite(line[chars_eq])) {
 				/* we hit the exact line: get out */
 				lower = mid;
 				break;
@@ -300,7 +374,7 @@ char	*searchbuf,
 
 	/* END FAST TAG CODE */
 
-	while (f_gets(fp, line, sizeof line) != EOF) {
+	while (!f_gets(fp, line, sizeof line)) {
 		int	cmp = line[0] - *tag;
 
 		if (cmp == 0) {
@@ -311,7 +385,7 @@ char	*searchbuf,
 					complain("I thought I saw it!");
 				} else {
 					putmatch(1, filebuf, (size_t)FILESIZE);
-					putmatch(3, searchbuf, (size_t)100);
+					putmatch(3, searchbuf, sbsize-1);
 					success = YES;
 				}
 				break;
@@ -327,11 +401,7 @@ char	*searchbuf,
 	return success;
 }
 
-#if !(defined(MSDOS) || defined(MAC))
-char	TagFile[FILESIZE] = "./tags";
-#else /* MSDOS */
 char	TagFile[FILESIZE] = "tags";
-#endif /* MSDOS */
 
 void
 find_tag(tag, localp)
@@ -348,19 +418,19 @@ int	localp;
 	if (!localp) {
 		char	prompt[128];
 
-		swritef(prompt, "With tag file (%s default): ", TagFile);
+		swritef(prompt, sizeof(prompt), "With tag file (%s default): ", TagFile);
 		tagfname = ask_file(prompt, TagFile, tfbuf);
 	} else
 		tagfname = TagFile;
-	if (lookup(sstr, filebuf, tag, tagfname) == 0)
+	if (!lookup(sstr, sizeof(sstr), filebuf, tag, tagfname))
 		return;
 	set_mark();
-	b = do_find(curwind, filebuf, 0);
+	b = do_find(curwind, filebuf, NO);
 	if (curbuf != b)
 		SetABuf(curbuf);
 	SetBuf(b);
-	if ((bp = dosearch(sstr, BACKWARD, 0)) == 0 &&
-	    ((bp = dosearch(sstr, FORWARD, 0)) == 0))
+	if ((bp = dosearch(sstr, BACKWARD, NO)) == NULL
+	&& (bp = dosearch(sstr, FORWARD, NO)) == NULL)
 		message("Well, I found the file, but the tag is missing.");
 	else
 		SetDot(bp);
@@ -372,7 +442,7 @@ FindTag()
 	int	localp = !is_an_arg();
 	char	tag[128];
 
-	strcpy(tag, ask((char *) 0, ProcFmt));
+	strcpy(tag, ask((char *)NULL, ProcFmt));
 	find_tag(tag, localp);
 }
 
@@ -385,13 +455,14 @@ FDotTag()
 		c2 = c1;
 	char	tagname[50];
 
-	if (!ismword(linebuf[curchar]))
+	if (!jisident(linebuf[curchar]))
 		complain("Not a tag!");
-	while (c1 > 0 && ismword(linebuf[c1 - 1]))
+	while (c1 > 0 && jisident(linebuf[c1 - 1]))
 		c1 -= 1;
-	while (ismword(linebuf[c2]))
+	while (jisident(linebuf[c2]))
 		c2 += 1;
-
+	if ((c2 - c1) >= (int)sizeof(tagname))
+		complain("tag too long");
 	null_ncpy(tagname, linebuf + c1, (size_t) (c2 - c1));
 	find_tag(tagname, !is_an_arg());
 }
@@ -411,38 +482,39 @@ FDotTag()
 #define BACKUP	3
 #define TOSTART	4
 
-static char	ISbuf[128],
-		*incp = 0;
+static char
+	ISbuf[128],
+	*incp = NULL;
+
 int	SExitChar = CR;
 
-#define cmp_char(a, b)	((a) == (b) || (CaseIgnore && (CharUpcase(a) == CharUpcase(b))))
+#define cmp_char(a, b)	(CaseIgnore? CharUpcase(a)==CharUpcase(b) : (a)==(b))
 
-static Bufpos *
+private Bufpos *
 doisearch(dir, c, failing)
 register int	c,
-		dir,
-		failing;
+		dir;
+bool		failing;
 {
 	static Bufpos	buf;
 	Bufpos	*bp;
 
-	if (c == CTL('S') || c == CTL('R'))
-		goto dosrch;
-
-	if (failing)
-		return 0;
-	DOTsave(&buf);
-	if (dir == FORWARD) {
-		if (cmp_char(linebuf[curchar], c)) {
-			buf.p_char = curchar + 1;
-			return &buf;
+	if (c != CTL('S') && c != CTL('R')) {
+		if (failing)
+			return NULL;
+		DOTsave(&buf);
+		if (dir == FORWARD) {
+			if (cmp_char(linebuf[curchar], c)) {
+				buf.p_char = curchar + 1;
+				return &buf;
+			}
+		} else {
+			if (look_at(ISbuf))
+				return &buf;
 		}
-	} else {
-		if (look_at(ISbuf))
-			return &buf;
 	}
-dosrch:	okay_wrap = YES;
-	if ((bp = dosearch(ISbuf, dir, 0)) == 0)
+	okay_wrap = YES;
+	if ((bp = dosearch(ISbuf, dir, NO)) == NULL)
 		rbell();	/* ring the first time there's no match */
 	okay_wrap = NO;
 	return bp;
@@ -467,7 +539,7 @@ int	dir;
 	Bufpos	save_env;
 
 	DOTsave(&save_env);
-	ISbuf[0] = 0;
+	ISbuf[0] = '\0';
 	incp = ISbuf;
 	if (isearch(dir, &save_env) == TOSTART)
 		SetDot(&save_env);
@@ -487,18 +559,18 @@ Bufpos	*bp;
 {
 	Bufpos	pushbp;
 	int	c,
-		ndir,
-		failing;
+		ndir;
+	bool	failing;
 	char	*orig_incp;
 
-	if (bp != 0) {		/* Move to the new position. */
+	if (bp != NULL) {		/* Move to the new position. */
 		pushbp.p_line = bp->p_line;
 		pushbp.p_char = bp->p_char;
 		SetDot(bp);
-		failing = 0;
+		failing = NO;
 	} else {
 		DOTsave(&pushbp);
-		failing = 1;
+		failing = YES;
 	}
 	orig_incp = incp;
 	ndir = dir;		/* Same direction as when we got here, unless
@@ -538,8 +610,8 @@ Bufpos	*bp;
 			   search string left over from last time, use that
 			   one now. */
 			if (incp == ISbuf) {
-				strcpy(ISbuf, getsearch());
-				incp = &ISbuf[strlen(ISbuf)];
+				Inputp = getsearch();
+				continue;
 			}
 			ndir = (c == CTL('S')) ? FORWARD : BACKWARD;
 			/* If we're failing and we're not changing our
@@ -561,30 +633,31 @@ Bufpos	*bp;
 			/*FALLTHROUGH*/
 		case CTL('Q'):
 		case CTL('^'):
-			add_mess("");
-			c = getch() | 0400;
-			/*FALLTHROUGH*/
+			add_mess(NullStr);
+			c = getch();
+			goto literal;
+
 		default:
-			if (c & 0400)
-				c &= CHARMASK;
-			else {
-#ifdef IBMPC
-				if (c == RUBOUT || c == 0xff ||
-				    (c < ' ' && c != '\t')
+			/* check for "funny" characters */
+			if (
+#ifdef	IBMPC
+				c == 0xff
 #else
-				if (c > RUBOUT || (c < ' ' && c != '\t')
+				c > RUBOUT	/* ??? 7-bit chars only */
 #endif
-				    || PrefChar(c)) {
-					Ungetc(c);
-					return STOP;
-				}
+			|| (c < ' ' && c != '\t')
+			|| PrefChar(c))
+			{
+				Ungetc(c);
+				return STOP;
 			}
+		literal:
 			if (incp > &ISbuf[(sizeof ISbuf) - 1]) {
 				rbell();
 				continue;
 			}
 			*incp++ = c;
-			*incp = 0;
+			*incp = '\0';
 			break;
 		}
 		add_mess("%s", orig_incp);
@@ -607,7 +680,7 @@ Bufpos	*bp;
 			/*FALLTHROUGH*/
 		case DELETE:
 			incp = orig_incp;
-			*incp = 0;
+			*incp = '\0';
 			continue;
 		}
 	}

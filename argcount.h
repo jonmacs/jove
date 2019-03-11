@@ -7,13 +7,39 @@
 
 /* macros for getting at and setting the current argument count */
 
-extern int	arg_supplied_p,
-		arg_count;
-
-#define arg_type()		arg_supplied_p
 #define arg_value()		arg_count
-#define set_is_an_arg(there_is)	{ arg_supplied_p = (there_is); }
-#define set_arg_value(n)	{ arg_supplied_p = YES; arg_count = (n); }
-#define negate_arg_value()	{ arg_count = -arg_count; }
-#define clr_arg_value()		{ arg_supplied_p = NO; arg_count = 1; }
-#define is_an_arg()		(arg_supplied_p != NO)
+#define set_arg_value(n)	{ arg_state = AS_NUMERIC; arg_count = (n); }
+#define clr_arg_value()		{ arg_state = AS_NONE; arg_count = 1; }
+#define is_an_arg()		(arg_state != AS_NONE)
+
+#define	save_arg(as,ac)	{ (ac) = arg_count; (as) = arg_state; }
+#define	restore_arg(as,ac)	{ arg_count = (ac); arg_state = (as); }
+
+extern void	negate_arg proto((void));
+
+/* Commands: */
+
+extern void
+	DigitMinus proto((void)),
+	Digit0 proto((void)),
+	Digit1 proto((void)),
+	Digit2 proto((void)),
+	Digit3 proto((void)),
+	Digit4 proto((void)),
+	Digit5 proto((void)),
+	Digit6 proto((void)),
+	Digit7 proto((void)),
+	Digit8 proto((void)),
+	Digit9 proto((void)),
+	TimesFour proto((void));
+
+/* private to macros */
+
+extern int
+	arg_state,	/* NO, YES, or YES_NODIGIT */
+	arg_count;
+
+#define	AS_NONE	0	/* no arg */
+#define	AS_NUMERIC	1	/* numeric arg supplied */
+#define	AS_NEGSIGN	2	/* only minus sign supplied */
+#define	AS_TIMES	3	/* multiplicative request */

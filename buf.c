@@ -11,35 +11,51 @@
 #include "jove.h"
 #include "ctype.h"
 #include "disp.h"
-#if defined(IPROCS)
+#include "ask.h"
+#include "extend.h"
+#include "fmt.h"
+#include "insert.h"
+#include "marks.h"
+#include "move.h"
+#include "sysprocs.h"
+#include "proc.h"
+#include "wind.h"
+
+#ifdef	IPROCS
 # include "fp.h"
 # include "iproc.h"
 #endif
 
-#ifdef MAC
+#ifdef	MAC
 # include "mac.h"
 #else
 # include <sys/stat.h>
 #endif
 
-private Buffer
-	*buf_alloc proto((void)),
-	*mak_buf proto((void));
-
-private char *line_cnt proto((Buffer *, char *));
+#ifdef	pdp11
+char
+	*iobuff,
+	*genbuf,
+	*linebuf;
+#else
+char
+	iobuff[LBSIZE],
+	genbuf[LBSIZE],
+	linebuf[LBSIZE];
+#endif
 
 private void
-	defb_wind proto((Buffer *)),
-	kill_buf proto((Buffer *)),
-	mkbuflist proto((char **));
+	setbname proto((Buffer *, char *));
 
 private char	*Mainbuf = "Main",
 	*NoName = "Sans un nom!";
 
-Buffer	*world = 0,		/* First in the list */
-	*curbuf = 0,	/* pointer into world for current buffer */
-	*lastbuf = 0;	/* Last buffer we were in so we have a default
-			   buffer during a select buffer. */
+Buffer
+	*world = NULL,		/* First in the list */
+	*curbuf = NULL,		/* pointer into world for current buffer */
+	*lastbuf = NULL,	/* Last buffer we were in so we have a default
+				   buffer during a select buffer. */
+	*perr_buf = NULL;	/* Buffer with error messages */
 
 /* Toggle BIT in the current buffer's minor mode flags.  If argument is
    supplied, a positive one always turns on the mode and zero argument
@@ -62,26 +78,33 @@ int	bit;
 /* Creates a new buffer, links it at the end of the buffer chain, and
    returns it. */
 
+private Buffer	*free_bufs = NULL;
+
 private Buffer *
 buf_alloc()
 {
 	register Buffer	*b,
 			*lastbp;
 
-	lastbp = 0;
-	for (b = world; b != 0; lastbp = b, b = b->b_next)
-		;
+	lastbp = NULL;
+	for (b = world; b != NULL; b = b->b_next)
+		lastbp = b;
 
-	b = (Buffer *) emalloc(sizeof (Buffer));
+	if (free_bufs != NULL) {
+		b = free_bufs;
+		free_bufs = b->b_next;
+	} else {
+		b = (Buffer *) emalloc(sizeof (Buffer));
+	}
 	if (lastbp)
 		lastbp->b_next = b;
 	else
 		world = b;
-	b->b_first = 0;
-	b->b_next = 0;
-#if defined(MAC)
+	b->b_first = NULL;
+	b->b_next = NULL;
+#ifdef	MAC
 	b->Type = BUFFER;	/* kludge, but simplifies menu handlers */
-	b->Name = 0;
+	b->Name = NULL;
 #endif
 	return b;
 }
@@ -96,27 +119,27 @@ mak_buf()
 	register int	i;
 
 	newb = buf_alloc();
-	newb->b_fname = 0;
+	newb->b_fname = NULL;
 	newb->b_name = NoName;
 	set_ino(newb);
-	newb->b_marks = 0;
+	newb->b_marks = NULL;
 	newb->b_themark = 0;		/* Index into markring */
 	/* No marks yet */
 	for (i = 0; i < NMARKS; i++)
-		newb->b_markring[i] = 0;
-	newb->b_modified = 0;
+		newb->b_markring[i] = NULL;
+	newb->b_modified = NO;
 	newb->b_type = B_FILE;  /* File until proven SCRATCH */
-	newb->b_ntbf = 0;
+	newb->b_ntbf = NO;
 	newb->b_minor = 0;
 	newb->b_major = TEXT;
-	newb->b_first = 0;
-	newb->b_map = 0;
-#if defined(IPROCS)
-	newb->b_process = 0;
+	newb->b_first = NULL;
+	newb->b_map = NULL;
+#ifdef	IPROCS
+	newb->b_process = NULL;
 #endif
 	initlist(newb);
-#if defined(MAC)
-	Bufchange = 1;
+#ifdef	MAC
+	Bufchange = YES;
 #endif
 	return newb;
 }
@@ -124,12 +147,12 @@ mak_buf()
 void
 ReNamBuf()
 {
-	register char	*new = 0,
+	register char	*new = NULL,
 			*prompt = ProcFmt,
 			*second = "%s already exists; new name? ";
 
 	for (;;) {
-		new = ask((char *) 0, prompt, new);
+		new = ask((char *)NULL, prompt, new);
 		if (!buf_exists(new))
 			break;
 		prompt = second;
@@ -143,21 +166,26 @@ FindFile()
 	register char	*name;
 	char	fnamebuf[FILESIZE];
 
-	name = ask_file((char *) 0, curbuf->b_fname, fnamebuf);
+	name = ask_file((char *)NULL, curbuf->b_fname, fnamebuf);
 	SetABuf(curbuf);
-	SetBuf(do_find(curwind, name, 0));
+	SetBuf(do_find(curwind, name, NO));
 }
 
 private void
-mkbuflist(bnamp)
+mkbuflist(bnamp, ebnamp)
 register char	**bnamp;
+char		**ebnamp;
 {
 	register Buffer	*b;
 
-	for (b = world; b != 0; b = b->b_next)
-		if (b->b_name != 0)
+	for (b = world; b != NULL; b = b->b_next) {
+		if (b->b_name != NULL) {
 			*bnamp++ = b->b_name;
-	*bnamp = 0;
+			if (bnamp >= ebnamp)
+				complain("too many buffers to list");
+		}
+	}
+	*bnamp = NULL;
 }
 
 char *
@@ -169,25 +197,27 @@ Buffer	*def;
 	register int	offset;
 	char	prompt[100];
 
-	if (def != 0 && def->b_name != 0)
-		swritef(prompt, ": %f (default %s) ", def->b_name);
-	else
-		swritef(prompt, ProcFmt);
-	mkbuflist(bnames);
+	if (def != NULL && def->b_name != NULL) {
+		swritef(prompt, sizeof(prompt), ": %f (default %s) ",
+			def->b_name);
+	} else {
+		swritef(prompt, sizeof(prompt), ProcFmt);
+	}
+	mkbuflist(bnames, &bnames[sizeof(bnames) / sizeof(*bnames)]);
 	offset = complete(bnames, prompt, RET_STATE);
 	if (offset == EOF)
-		complain((char *) 0);
-	if (offset == ORIGINAL || offset == AMBIGUOUS)
+		complain((char *)NULL);
+	if (offset == ORIGINAL || offset == AMBIGUOUS) {
 		bname = Minibuf;
-	else if (offset == NULLSTRING) {
-		if (def)
-			bname = def->b_name;
-		else
-			complain((char *) 0);
-	} else if (offset < 0)
-		complain((char *) 0);
-	else
+	} else if (offset == NULLSTRING) {
+		if (def == NULL)
+			complain((char *)NULL);
+		bname = def->b_name;
+	} else {
+		if (offset < 0)
+			complain((char *)NULL);
 		bname = bnames[offset];
+	}
 
 	return bname;
 }
@@ -202,22 +232,25 @@ BufSelect()
 	SetBuf(do_select(curwind, bname));
 }
 
-#if defined(MSDOS)
+#ifdef	MSDOS
 
 private void
 BufNSelect(n)
+int	n;
 {
-	char *bnames[100];
-	char *bname;
-	int i;
+	register Buffer	*b;
 
-	mkbuflist(bnames);
-	for (i=0; i<n; i++)
-	    if (bnames[i] == 0)
-	       complain("[No such buffer]");
-	bname = bnames[n-1];
-	SetABuf(curbuf);
-	SetBuf(do_select(curwind, bname));
+	for (b = world; b != NULL; b = b->b_next) {
+		if (b->b_name != NULL) {
+			n -= 1;
+			if (n == 0) {
+				SetABuf(curbuf);
+				SetBuf(do_select(curwind, b->b_name));
+				return;
+			}
+		}
+	}
+	complain("[No such buffer]");
 }
 
 void Buf1Select() { BufNSelect(1); }
@@ -231,7 +264,7 @@ void Buf8Select() { BufNSelect(8); }
 void Buf9Select() { BufNSelect(9); }
 void Buf10Select() { BufNSelect(10); }
 
-#endif /* MSDOS */
+#endif	/* MSDOS */
 
 private void
 defb_wind(b)
@@ -240,9 +273,9 @@ register Buffer *b;
 	register Window	*w = fwind;
 	char	*alt;
 
-	if (lastbuf == b || lastbuf == 0) {
-		lastbuf = 0;
-		alt = (b->b_next != 0) ? b->b_next->b_name : Mainbuf;
+	if (lastbuf == b || lastbuf == NULL) {
+		lastbuf = NULL;
+		alt = (b->b_next != NULL) ? b->b_next->b_name : Mainbuf;
 	} else
 		alt = lastbuf->b_name;
 
@@ -268,7 +301,7 @@ getNMbuf()
 	register char	*bname;
 
 	bname = ask_buf(curbuf);
-	if ((delbuf = buf_exists(bname)) == 0)
+	if ((delbuf = buf_exists(bname)) == NULL)
 		complain("[No such buffer]");
 	if (delbuf->b_modified)
 		confirm("%s modified, are you sure? ", bname);
@@ -280,20 +313,26 @@ BufErase()
 {
 	register Buffer	*delbuf;
 
-	if ((delbuf = getNMbuf()) != NIL) {
+	if ((delbuf = getNMbuf()) != NULL) {
 		initlist(delbuf);
-		delbuf->b_modified = 0;
+		delbuf->b_modified = NO;
 	}
 }
+
+/* Free a buffer structure.
+ * The actual struct is preserved to reduce the damage
+ * from dangling references to it.  They seem to be pervasive.
+ * We try to reset enough that a dangling reference will be useless.
+ */
 
 private void
 kill_buf(delbuf)
 register Buffer	*delbuf;
 {
 	register Buffer	*b,
-			*lastb = 0;
+			*lastb = NULL;
 
-#if defined(IPROCS)
+#ifdef	IPROCS
 	pbuftiedp(delbuf);	/* check for lingering processes */
 #endif
 	/* clean up windows associated with this buffer */
@@ -306,7 +345,7 @@ register Buffer	*delbuf;
 		SetBuf(curwind->w_bufp);
 
 	/* unlink the buffer */
-	for (b = world; b != 0; lastb = b, b = b->b_next)
+	for (b = world; b != NULL; lastb = b, b = b->b_next)
 		if (b == delbuf)
 			break;
 	if (lastb)
@@ -314,23 +353,29 @@ register Buffer	*delbuf;
 	else
 		world = delbuf->b_next;
 
-#if !defined(MAC)
 	if (perr_buf == delbuf) {
 		ErrFree();
-		perr_buf = 0;
+		perr_buf = NULL;
 	}
-#endif
 
 	lfreelist(delbuf->b_first);
-	if (delbuf->b_name)
-		free(delbuf->b_name);
-	if (delbuf->b_fname)
-		free(delbuf->b_fname);
+	delbuf->b_first = delbuf->b_dot = delbuf->b_last = NULL;
+	if (delbuf->b_name) {
+		free((UnivPtr) delbuf->b_name);
+		delbuf->b_name = NULL;
+	}
+	if (delbuf->b_fname) {
+		free((UnivPtr) delbuf->b_fname);
+		delbuf->b_fname = NULL;
+	}
 	flush_marks(delbuf);
-	free((char *) delbuf);
+	delbuf->b_marks = NULL;
 
-#if defined(MAC)
-	Bufchange = 1;
+	delbuf->b_next = free_bufs;
+	free_bufs = delbuf;
+#ifdef	MAC
+	Bufchange = YES;
+	delbuf->Name = NULL;
 #endif
 }
 
@@ -341,21 +386,19 @@ KillSome()
 {
 	register Buffer	*b,
 			*next;
-	Buffer	*oldb;
-	register char	*y_or_n;
 
-	for (b = world; b != 0; b = next) {
+	for (b = world; b != NULL; b = next) {
 		next = b->b_next;
-		if (yes_or_no_p("Kill %s? ", b->b_name) == NO)
+		if (!yes_or_no_p(IsModified(b)? "Kill %s [modified]? " : "Kill %s? ", b->b_name))
 			continue;
-		if (IsModified(b)) {
-			y_or_n = ask("No", "%s modified; should I save it? ", b->b_name);
-			if (CharUpcase(*y_or_n) == 'Y') {
-				oldb = curbuf;
-				SetBuf(b);
-				SaveFile();
-				SetBuf(oldb);
-			}
+		if (IsModified(b)
+		&& yes_or_no_p("%s modified; should I save it? ", b->b_name))
+		{
+			Buffer	*oldb = curbuf;
+
+			SetBuf(b);
+			SaveFile();
+			SetBuf(oldb);
 		}
 		kill_buf(b);
 	}
@@ -366,27 +409,28 @@ BufKill()
 {
 	Buffer	*b;
 
-	if ((b = getNMbuf()) == 0)
+	if ((b = getNMbuf()) == NULL)
 		return;
 	kill_buf(b);
 }
 
 private char *
-line_cnt(b, buf)
+line_cnt(b, buf, size)
 register Buffer	*b;
 char	*buf;
+size_t	size;
 {
 	register int	nlines = 0;
 	register Line	*lp;
 
-	for (lp = b->b_first; lp != 0; lp = lp->l_next, nlines++)
+	for (lp = b->b_first; lp != NULL; lp = lp->l_next, nlines++)
 		;
-	swritef(buf, "%d", nlines);
+	swritef(buf, size, "%d", nlines);
 	return buf;
 }
 
 private const char	*const TypeNames[] = {
-	0,
+	NULL,
 	"Scratch",
 	"File",
 	"Process",
@@ -401,19 +445,19 @@ BufList()
 		buf_width = 11;
 	char	nbuf[10];
 
-	for (b = world; b != 0; b = b->b_next)
+	for (b = world; b != NULL; b = b->b_next)
 		buf_width = max(buf_width, (int)strlen(b->b_name));
 
-	TOstart("Buffer list", TRUE);	/* true means auto-newline */
+	TOstart("Buffer list", YES);	/* true means auto-newline */
 
 	Typeout("(* means buffer needs saving)");
 	Typeout("(+ means file hasn't been read yet)");
 	Typeout(NullStr);
 	Typeout(fmt, "NO", "Lines", "Type", NullStr, buf_width, "Name", "File");
 	Typeout(fmt, "--", "-----", "----", NullStr, buf_width, "----", "----");
-	for (b = world; b != 0; b = b->b_next) {
+	for (b = world; b != NULL; b = b->b_next) {
 		Typeout(fmt, itoa(bcount++),
-				line_cnt(b, nbuf),
+				line_cnt(b, nbuf, sizeof(nbuf)),
 				TypeNames[b->b_type],
 				IsModified(b) ? "*" :
 					 b->b_ntbf ? "+" : NullStr,
@@ -428,7 +472,7 @@ BufList()
 	TOstop();
 }
 
-void
+private void
 bufname(b)
 register Buffer	*b;
 {
@@ -436,12 +480,12 @@ register Buffer	*b;
 		*cp;
 	int	try = 1;
 
-	if (b->b_fname == 0)
+	if (b->b_fname == NULL)
 		complain("[No file name]");
 	cp = basename(b->b_fname);
 	strcpy(tmp, cp);
 	while (buf_exists(tmp)) {
-		swritef(tmp, "%s.%d", cp, try);
+		swritef(tmp, sizeof(tmp), "%s.%d", cp, try);
 		try += 1;
 	}
 	setbname(b, tmp);
@@ -452,7 +496,7 @@ initlist(b)
 register Buffer	*b;
 {
 	lfreelist(b->b_first);
-	b->b_first = b->b_dot = b->b_last = 0;
+	b->b_first = b->b_dot = b->b_last = NULL;
 	(void) listput(b, b->b_first);
 
 	SavLine(b->b_dot, NullStr);
@@ -464,7 +508,7 @@ register Buffer	*b;
 
 /* Returns pointer to buffer with name NAME, or if NAME is a string of digits
    returns the buffer whose number equals those digits.  Otherwise, returns
-   0. */
+   NULL. */
 
 Buffer *
 buf_exists(name)
@@ -473,10 +517,10 @@ register char	*name;
 	register Buffer	*bp;
 	int	n;
 
-	if (name == 0)
-		return 0;
+	if (name == NULL)
+		return NULL;
 
-	for (bp = world; bp != 0; bp = bp->b_next)
+	for (bp = world; bp != NULL; bp = bp->b_next)
 		if (strcmp(bp->b_name, name) == 0)
 			return bp;
 
@@ -484,14 +528,14 @@ register char	*name;
 
 	if (chr_to_int(name, 10, YES, &n) != INT_BAD) {
 		for (bp = world; n > 1; bp = bp->b_next) {
-			if (bp == 0)
+			if (bp == NULL)
 				break;
 			n -= 1;
 		}
 		return bp;
 	}
 
-	return 0;
+	return NULL;
 }
 
 /* Returns buffer pointer with a file name NAME, if one exists.  Stat's the
@@ -504,45 +548,46 @@ register char	*name;
 {
 	struct stat	stbuf;
 	register struct stat	*s = &stbuf;
-	register Buffer	*b = 0;
+	register Buffer	*b = NULL;
 	char	fnamebuf[FILESIZE];
 
-#if defined(MSDOS)
+#ifdef	MSDOS
 	strlwr(name);
-#endif /* MSDOS */
+#endif	/* MSDOS */
 	if (name) {
 		PathParse(name, fnamebuf);
 		if (stat(fnamebuf, s) == -1)
 			s->st_ino = 0;
-		for (b = world; b != 0; b = b->b_next) {
+		for (b = world; b != NULL; b = b->b_next) {
 			if (
-#if !defined(MSDOS)
-			    (b->b_ino != 0 && b->b_ino == s->st_ino &&
-			     b->b_dev != 0 && b->b_dev == s->st_dev) ||
-#endif /* MSDOS */
-			    (b->b_fname != 0 &&
-			     strcmp(b->b_fname, fnamebuf) == 0))
+#ifndef	MSDOS
+			  (b->b_ino != 0 && b->b_ino == s->st_ino
+			  && b->b_dev != 0 && b->b_dev == s->st_dev)
+			||
+#endif	/* MSDOS */
+			(b->b_fname != NULL && strcmp(b->b_fname, fnamebuf) == 0))
 				break;
 		}
 	}
 	return b;
 }
 
-void
+private void
 setbname(b, name)
 register Buffer	*b;
 register char	*name;
 {
 	UpdModLine = YES;	/* Kludge ... but speeds things up considerably */
-	if (name) {
+	if (name != NULL) {
 		if (b->b_name == NoName)
-			b->b_name = 0;
-		b->b_name = ralloc(b->b_name, strlen(name) + 1);
+			b->b_name = NULL;
+		b->b_name = freealloc((UnivPtr) b->b_name, strlen(name) + 1);
 		strcpy(b->b_name, name);
-	} else
-		b->b_name = 0;
-#if defined(MAC)
-	Bufchange = 1;
+	} else {
+		b->b_name = NULL;
+	}
+#ifdef	MAC
+	Bufchange = YES;
 #endif
 }
 
@@ -558,24 +603,24 @@ register char	*name;
 
 	SetBuf(b);
 	UpdModLine = YES;	/* Kludge ... but speeds things up considerably */
-	if (b->b_fname == 0)
-		oldptr = 0;
+	if (b->b_fname == NULL)
+		oldptr = NULL;
 	else
 		strcpy(oldname, b->b_fname);
 	if (name) {
-#if defined(MSDOS)
+#ifdef	MSDOS
 		strlwr(name);
-#endif /* MSDOS */
+#endif	/* MSDOS */
 		PathParse(name, wholename);
-		curbuf->b_fname = ralloc(curbuf->b_fname, strlen(wholename) + 1);
+		curbuf->b_fname = freealloc((UnivPtr) curbuf->b_fname, strlen(wholename) + 1);
 		strcpy(curbuf->b_fname, wholename);
 	} else
-		b->b_fname = 0;
+		b->b_fname = NULL;
 	DoAutoExec(curbuf->b_fname, oldptr);
 	curbuf->b_mtime = curbuf->b_dev = curbuf->b_ino = 0;	/* until they're known. */
 	SetBuf(save);
-#if defined(MAC)
-	Bufchange = 1;
+#ifdef	MAC
+	Bufchange = YES;
 #endif
 }
 
@@ -585,7 +630,7 @@ register Buffer	*b;
 {
 	struct stat	stbuf;
 
-	if (b->b_fname == 0 || stat(pr_name(b->b_fname, NO), &stbuf) == -1) {
+	if (b->b_fname == NULL || stat(pr_name(b->b_fname, NO), &stbuf) == -1) {
 		b->b_dev = 0;
 		b->b_ino = 0;
 		b->b_mtime = 0;
@@ -602,17 +647,17 @@ Buffer *
 do_find(w, fname, force)
 register Window	*w;
 register char	*fname;
-int	force;
+bool	force;
 {
 	register Buffer	*b;
 
 	b = file_exists(fname);
-	if (b == 0) {
+	if (b == NULL) {
 		b = mak_buf();
 		setfname(b, fname);
 		bufname(b);
 		set_ino(b);
-		b->b_ntbf = 1;
+		b->b_ntbf = YES;
 	}
 	if (force) {
 		Buffer	*oldb = curbuf;
@@ -631,29 +676,29 @@ void
 SetABuf(b)
 Buffer	*b;
 {
-	if (b != 0)
+	if (b != NULL)
 		lastbuf = b;
 }
 
 
 /* check to see if BP is a valid buffer pointer */
-private int
+bool
 valid_bp(bp)
 register Buffer	*bp;
 {
 	register Buffer	*b;
 
-	for (b = world; b != 0; b = b->b_next)
+	for (b = world; b != NULL; b = b->b_next)
 		if (b == bp)
-			break;
-	return b != 0;
+			return YES;
+	return NO;
 }
 
 void
 SetBuf(newbuf)
 register Buffer	*newbuf;
 {
-	if (newbuf == curbuf || newbuf == 0)
+	if (newbuf == curbuf || newbuf == NULL)
 		return;
 
 	if (!valid_bp(newbuf))
@@ -665,9 +710,9 @@ register Buffer	*newbuf;
 	getDOT();
 	/* do the read now ... */
 	if (curbuf->b_ntbf)
-		read_file(curbuf->b_fname, 0);
-#if defined(MAC)
-	Modechange = 1;
+		read_file(curbuf->b_fname, NO);
+#ifdef	MAC
+	Modechange = YES;
 #endif
 }
 
@@ -678,9 +723,9 @@ register char	*name;
 {
 	register Buffer	*new;
 
-	if ((new = buf_exists(name)) == 0) {
+	if ((new = buf_exists(name)) == NULL) {
 		new = mak_buf();
-		setfname(new, (char *) 0);
+		setfname(new, (char *)NULL);
 		setbname(new, name);
 	}
 	if (w)
@@ -692,4 +737,41 @@ void
 buf_init()
 {
 	SetBuf(do_select(curwind, Mainbuf));
+}
+
+Line *
+lastline(lp)
+register Line	*lp;
+{
+	register Line	*next;
+
+	while ((next = lp->l_next) != NULL)
+		lp = next;
+	return lp;
+}
+
+Line *
+next_line(line, num)
+register Line	*line;
+register int	num;
+{
+	if (num < 0)
+		return prev_line(line, -num);
+	if (line)
+		while (--num >= 0 && line->l_next != NULL)
+			line = line->l_next;
+	return line;
+}
+
+Line *
+prev_line(line, num)
+register Line	*line;
+register int	num;
+{
+	if (num < 0)
+		return next_line(line, -num);
+	if (line)
+		while (--num >= 0 && line->l_prev != NULL)
+			line = line->l_prev;
+	return line;
 }

@@ -9,7 +9,7 @@ extern char	*HomeDir;
 
 extern size_t	HomeLen;
 
-extern int	DOLsave;	/* Do Lsave flag.  If lines aren't being saved
+extern bool	DOLsave;	/* Do Lsave flag.  If lines aren't being saved
 				   when you think they should have been, this
 				   flag is probably not being set, or is being
 				   cleared before lsave() was called. */
@@ -18,13 +18,15 @@ extern daddr	DFree;  /* pointer to end of tmp file */
 
 extern int	Jr_Len;		/* length of Just Read Line */
 
+extern long	io_chars;
+extern int	io_lines;
+
 extern char
 	*lbptr proto((struct line *line)),
 	*pr_name proto((char *fname,int okay_home)),
-	*pwd proto((void)),
-	*sprint proto((char *, ...));
+	*pwd proto((void));
 
-extern struct _file
+extern struct FileStruct
 	*open_file proto((char *fname,char *buf,int how,int complainifbad,int loudness));
 
 extern void
@@ -32,27 +34,44 @@ extern void
 	getCWD proto((void)),
 	PathParse proto((char *name,char *intobuf)),
 	SyncTmp proto((void)),
-	close_file proto((struct _file *fp)),
+	close_file proto((struct FileStruct *fp)),
 	d_cache_init proto((void)),
-	file_write proto((char *fname,int app)),
-	filemunge proto((char *newname)),
+	file_write proto((char *fname, bool app)),
 	getline proto((daddr addr,char *buf)),
 	lsave proto((void)),
-	putreg proto((struct _file *fp,struct line *line1,int char1,struct line *line2,int char2,int makesure)),
-	read_file proto((char *file,int is_insert)),
+	putreg proto((struct FileStruct *fp,struct line *line1,int char1,struct line *line2,int char2,bool makesure)),
+	read_file proto((char *file, bool is_insert)),
+	put_bufs proto((bool askp)),
 	tmpclose proto((void)),
-	tmpinit proto((void)),
+	tmpremove proto((void));
 
-	WriteFile proto((void));
-
-extern int
+extern bool
 	chkCWD proto((char *dn));
 
 extern daddr
-	f_getputl proto((struct line *line,struct _file *fp)),
 	putline proto((char *buf));
 
-#if !(defined(MSDOS) || defined(MAC))
+/* Commands: */
+
 extern void
-	chk_mtime proto((Buffer *thisbuf, char *fname, char *how));
+	AppReg proto((void)),
+	Chdir proto((void)),
+	InsFile proto((void)),
+	Popd proto((void)),
+	Pushd proto((void)),
+	ReadFile proto((void)),
+	SaveFile proto((void)),
+	WriteFile proto((void)),
+	WtModBuf proto((void)),
+	WrtReg proto((void)),
+	prCWD proto((void)),
+	prDIRS proto((void));
+
+/* Variables: */
+
+#ifdef	BACKUPFILES
+extern bool	BkupOnWrite;		/* make backup files when writing */
 #endif
+extern int	CreatMode;		/* default mode for creat'ing files */
+extern bool	EndWNewline;		/* end files with a blank line */
+extern bool	OkayBadChars;		/* allow bad characters in files created by JOVE */

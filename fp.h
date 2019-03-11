@@ -8,12 +8,14 @@
 extern void	jputchar proto((int c));	/* hidden by macro */
 
 #define jputchar(c)	jputc((c), stdout)
-#define jputc(c, fp)	(--(fp)->f_cnt >= 0 ? (*(fp)->f_ptr++ = (c)) : _flush((c), fp))
+#define jputc(c, fp)	{ while (--(fp)->f_cnt < 0) flushout(fp); *(fp)->f_ptr++ = (c); }
 #define jgetc(fp)	\
 	(((--(fp)->f_cnt < 0) ? filbuf(fp) : (unsigned char) *(fp)->f_ptr++))
 #define f_eof(fp)	((fp)->f_flags & F_EOF)
 
-typedef struct _file {
+/* typedef struct FileStruct File in jove.h */
+
+struct FileStruct {
 	int	f_cnt,		/* number of characters left in buffer */
 		f_bufsize,	/* size of what f_base points to */
 		f_fd,		/* fildes */
@@ -21,7 +23,7 @@ typedef struct _file {
 	char	*f_ptr,		/* current offset */
 		*f_base;	/* pointer to base */
 	char	*f_name;	/* name of open file */
-} File;
+};
 
 #define F_READ		01
 #define F_WRITE		02
@@ -36,13 +38,10 @@ typedef struct _file {
 #define F_TELLALL	0400	/* whether to display info upon close */
 #define F_READONLY	01000	/* file is read only */
 
-extern long	io_chars;
-extern int	io_lines;
-
 extern File
 	*stdout;
 
-#ifdef VMUNIX
+#ifndef	SMALL
 # define MAXTTYBUF	2048
 #else
 # define MAXTTYBUF	512
@@ -55,18 +54,26 @@ extern File
 	*fd_open proto((char *name,int flags,int fd,char *buffer,int bsize));
 
 extern int
-	f_getint proto((File *fp)),
-	f_gets proto((File *fp,char *buf,size_t max)),
-	filbuf proto((File *fp)),
-	_flush proto((int c,File *fp)),
-	f_readn proto((File *fp,char *addr,int n));
+	filbuf proto((File *fp));
+
+#if	defined(IPROCS) && defined(PIPEPROCS)
+extern size_t
+	f_readn proto((File *fp,char *addr,size_t n));
+#endif
+
+#ifdef	ZORTECH
+typedef long	off_t;
+#endif
 
 extern void
 	f_close proto((File *fp)),
 	f_seek proto((File *fp, off_t offset)),
 	f_toNL proto((File *fp)),
-	flush proto((File *fp)),
-	flusho proto((void)),
+	flushout proto((File *fp)),
+	flushscreen proto((void)),
 	fputnchar proto((char *s,int n,File *fp)),
 	gc_openfiles proto((void)),
 	putstr proto((char *s));
+
+extern bool
+	f_gets proto((File *fp,char *buf,size_t max));

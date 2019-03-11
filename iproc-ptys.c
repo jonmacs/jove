@@ -11,41 +11,28 @@
 
 #include <sys/time.h>
 #include <fcntl.h>
-#include <signal.h>
-#include <sgtty.h>
-#include <errno.h>
-#include "wait.h"
+#include "ttystate.h"
+#include "select.h"
 
-#define DEAD	1	/* dead but haven't informed user yet */
-#define STOPPED	2	/* job stopped */
-#define RUNNING	3	/* just running */
-#define NEW	4	/* brand new, never been ... received no input */
+#ifdef SVR4_PTYS
+# include <sys/stropts.h>
+  extern char	*ptsname proto((int /*filedes*/));	/* get name of slave */
+#endif
 
-/* If process is dead, flags says how. */
-#define EXITED	1
-#define KILLED	2
+#ifdef IRIX_PTYS
+# include <sys/sysmacros.h>
+# include <sys/stat.h>
+#endif
 
 #define isdead(p)	((p) == NULL || proc_state((p)) == DEAD || (p)->p_fd == -1)
-#define makedead(p)	{ proc_state((p)) = DEAD; }
-
-#define proc_buf(p)	((p)->p_buffer->b_name)
-#define proc_cmd(p)	((p)->p_name)
-#define proc_state(p)	((p)->p_state)
-
-private Process	*procs = 0;
-
-long	global_fd = 1;
-int	NumProcs = 0;
-
-#include "ttystate.h"
 
 private Process *
 proc_pid(pid)
-int	pid;
+pid_t	pid;
 {
 	register Process	*p;
 
-	for (p = procs; p != 0; p = p->p_next)
+	for (p = procs; p != NULL; p = p->p_next)
 		if (p->p_pid == pid)
 			break;
 
@@ -60,16 +47,16 @@ register int	fd;
 	int	n;
 	char	ibuf[1024];
 
-	for (p = procs; p != 0; p = p->p_next)
+	for (p = procs; p != NULL; p = p->p_next)
 		if (p->p_fd == fd)
 			break;
 
-	if (p == 0) {
+	if (p == NULL) {
 		writef("\riproc: unknown fd %d", fd);
 		return;
 	}
 
-	n = read(fd, ibuf, sizeof(ibuf) - 1);
+	n = read(fd, (UnivPtr) ibuf, sizeof(ibuf) - 1);
 	if (n == -1 && (errno == EIO || errno == EWOULDBLOCK)) {
 		if (proc_state(p) == NEW)
 			return;
@@ -86,7 +73,9 @@ register int	fd;
 		if (n == 0)
 			strcpy(ibuf, "[Process EOF]");
 		else
-			swritef(ibuf, "\n[pty read error: %d]\n", errno);
+			swritef(ibuf, sizeof(ibuf),
+				"\n[pty read error: %s]\n", strerror(errno));
+		proc_close(p);
 	} else
 		ibuf[n] = '\0';
 	proc_rec(p, ibuf);
@@ -100,9 +89,9 @@ ProcKill()
 
 	bname = ask_buf(curbuf);
 
-	if ((b = buf_exists(bname)) == 0)
+	if ((b = buf_exists(bname)) == NULL)
 		complain("[No such buffer]");
-	if (b->b_process == 0)
+	if (b->b_process == NULL)
 		complain("%s not tied to a process.", bname);
 	proc_kill(b->b_process, SIGKILL);
 }
@@ -112,7 +101,7 @@ ProcCont()
 {
 	Process	*p;
 
-	if ((p = curbuf->b_process) == 0)
+	if ((p = curbuf->b_process) == NULL)
 		complain("[No process]");
 	if (p->p_state != DEAD) {
 		proc_kill(p, SIGCONT);
@@ -128,43 +117,63 @@ char	c;
 	Process	*p;
 	char	buf[2];
 
-	if ((p = curbuf->b_process) == 0)
+	if ((p = curbuf->b_process) == NULL)
 		complain("[No process]");
 	ToLast();
 	buf[0] = c;
 	buf[1] = '\0';
 	proc_rec(p, buf);
-	(void) write(p->p_fd, &c, (size_t) 1);
+	(void) write(p->p_fd, (UnivPtr) &c, sizeof(c));
 }
 
 void
 ProcEof()
 {
-	send_p(tc[OFF].t_eofc);
+#if defined(TERMIO) || defined(TERMIOS)
+	send_p(sg[NO].c_cc[VEOF]);
+#else
+	send_p(tc[NO].t_eofc);
+#endif
 }
 
 void
 ProcInt()
 {
-	send_p(tc[OFF].t_intrc);
+#if defined(TERMIO) || defined(TERMIOS)
+	send_p(sg[NO].c_cc[VINTR]);
+#else
+	send_p(tc[NO].t_intrc);
+#endif
 }
 
 void
 ProcQuit()
 {
-	send_p(tc[OFF].t_quitc);
+#if defined(TERMIO) || defined(TERMIOS)
+	send_p(sg[NO].c_cc[VQUIT]);
+#else
+	send_p(tc[NO].t_quitc);
+#endif
 }
 
 void
 ProcStop()
 {
-	send_p(ls[OFF].t_suspc);
+#if defined(TERMIO) || defined(TERMIOS)
+	send_p(sg[NO].c_cc[VSUSP]);
+#else
+	send_p(ls[NO].t_suspc);
+#endif
 }
 
 void
 ProcDStop()
 {
-	send_p(ls[OFF].t_dsuspc);
+#if defined(TERMIO) || defined(TERMIOS)
+	send_p(sg[NO].c_cc[VDSUSP]);
+#else
+	send_p(ls[NO].t_dsuspc);
+#endif
 }
 
 private void
@@ -175,8 +184,7 @@ Process *p;
 
 	if (p->p_fd >= 0) {
 		(void) close(p->p_fd);
-		global_fd &= ~(1L << p->p_fd);
-		NumProcs -= 1;
+		FD_CLR(p->p_fd, &global_fd);
 		p->p_fd = -1;
 	}
 
@@ -189,17 +197,20 @@ Process *p;
 char	*buf;
 size_t	nbytes;
 {
-	long	mask = (1 << p->p_fd);
+	fd_set	mask;
 
-	while (write(p->p_fd, buf, nbytes) <  0)
-		select(p->p_fd + 1, (long *) 0, &mask, (long *) 0, (struct timeval *) 0);
+	FD_ZERO(&mask);
+	FD_SET(p->p_fd, &mask);
+	while (write(p->p_fd, (UnivPtr) buf, nbytes) <  0)
+		(void) select(p->p_fd + 1, (fd_set *)NULL, &mask, (fd_set *)NULL,
+			(struct timeval *)NULL);
 }
 
 #ifdef	STDARGS
-	private void
+private void
 proc_strt(char *bufname, int clobber, ...)
 #else
-	private /*VARARGS2*/ void
+private /*VARARGS2*/ void
 proc_strt(bufname, clobber, va_alist)
 	char	*bufname;
 	int	clobber;
@@ -210,29 +221,38 @@ proc_strt(bufname, clobber, va_alist)
 	char	*argv[32],
 		*cp;
 	Window *owind = curwind;
-	int	pid;
+	pid_t	pid;
 	Process	*newp;
 	Buffer 	*newbuf;
 	int	i,
-		ptyfd,
-		ttyfd,
-		ldisc,
-		lmode;
+		ptyfd = -1;
+
+#if !defined(TERMIO) && !defined(TERMIOS)
+# ifdef	TIOCSETD
+	int	ldisc;	/* tty line discipline */
+# endif
+# ifdef	TIOCLSET
+	int	lmode;	/* tty local flags */
+# endif
+#endif
 	register char	*s,
 			*t;
-	char	ttybuf[11],
-		ptybuf[11];
+	char	ttybuf[32];
 	char	cmdbuf[LBSIZE];
-#ifdef BRLUNIX
-	struct sg_brl sgt;
-#else
+#ifdef TERMIO
+	struct termio sgt;
+#endif
+#ifdef TERMIOS
+	struct termios sgt;
+#endif
+#ifdef SGTTY
 	struct sgttyb sgt;
 #endif
 
-#ifdef TIOCGWINSZ
+#ifdef	TIOCGWINSZ
 	struct winsize win;
 #else
-#  ifdef BTL_BLIT
+#  ifdef	BTL_BLIT
 #  include <sys/jioctl.h>
 	struct jwinsize jwin;
 #  endif
@@ -240,123 +260,243 @@ proc_strt(bufname, clobber, va_alist)
 
 	isprocbuf(bufname);	/* make sure BUFNAME is either nonexistant
 				   or is of type B_PROCESS */
-	for (s = "pqrs"; *s; s++) {
+	va_init(ap, clobber);
+	make_argv(argv, ap);
+	va_end(ap);
+	if (access(argv[0], X_OK) != 0) {
+		complain("[Couldn't access %s: %s]", argv[0], strerror(errno));
+		/* NOTREACHED */
+	}
+
+#ifdef IRIX_PTYS
+	if ((ptyfd = open("/dev/ptc", O_RDWR)) < 0) {
+		message("[No ptys!]");
+		goto fail;
+	} else {
+		struct stat sb;
+		
+		if (fstat(ptyfd, &sb) < 0) {
+			message("slave pty failed");
+			close(ptyfd);
+			goto fail;
+		}
+		(void) sprintf(ttybuf, "/dev/ttyq%d", minor(sb.st_rdev));
+	}
+#endif /* IRIX_PTYS */
+#ifdef SVR4_PTYS
+	if ((ptyfd = open("/dev/ptmx", O_RDWR)) < 0) {
+		message("[No ptys!]");
+		goto fail;
+	}
+
+	if ((s = ptsname(ptyfd)) == NULL) {
+		close(ptyfd);
+		goto fail;
+	}
+	strcpy(ttybuf, s);
+	(void) ioctl(ptyfd, TIOCFLUSH, (UnivPtr) NULL);	/* ??? why? */
+#endif /* SVR4PTYS */
+#ifdef BSD_PTYS
+	for (s = "pqrs"; ptyfd<0; s++) {
+		if (*s == '\0')
+			complain("[Out of ptys!]");
 		for (t = "0123456789abcdef"; *t; t++) {
-			swritef(ptybuf, "/dev/pty%c%c", *s, *t);
-			if ((ptyfd = open(ptybuf, 2)) >= 0) {
-				strcpy(ttybuf, ptybuf);
-				ttybuf[5] = 't';
+			swritef(ttybuf, sizeof(ttybuf), "/dev/pty%c%c", *s, *t);
+			if ((ptyfd = open(ttybuf, 2)) >= 0) {
+				ttybuf[5] = 't';    /* pty => tty */
 				/* make sure both ends are available */
-				if ((i = open(ttybuf, 2)) < 0)
-					continue;
-				(void) close(i);
-				goto out;
+				if ((i = open(ttybuf, 2)) < 0) {
+					(void) close(ptyfd);
+					ptyfd = -1;
+				} else {
+					(void) close(i);
+					break;
+				}
 			}
 		}
 	}
-
-out:	if (s == 0 && t == 0)
-		complain("[Out of ptys!]");
-
-#ifdef TIOCGETD
+#endif /* BSD_PTYS */
+	/*
+	 * Check that we can write to the pty, else things will fail in the
+	 * child, where they're harder to detect.  This may not work
+	 * with SVR4PTYS before the grantpt and unlockpt.
+	 */
+#ifndef	SVR4PTYS
+	if (access(ttybuf, W_OK) != 0) {
+		complain("[Couldn't access %s: %s]", ttybuf, strerror(errno));
+		/* NOTREACHED */
+	}
+#endif	/* !SVR4PTYS */
+	
+#if !defined(TERMIO) && !defined(TERMIOS)
+# ifdef	TIOCGETD
 	(void) ioctl(0, TIOCGETD, (UnivPtr) &ldisc);
-#endif
-#ifdef TIOCLGET
+# endif
+# ifdef	TIOCLGET
 	(void) ioctl(0, TIOCLGET, (UnivPtr) &lmode);
-#endif
-#ifdef TIOCGWINSZ
+# endif
+#endif /* !defined(TERMIO) && !defined(TERMIOS) */
+
+#ifdef	TIOCGWINSZ
 	(void) ioctl(0, TIOCGWINSZ, (UnivPtr) &win);
 #else
-#  ifdef BTL_BLIT
+#  ifdef	BTL_BLIT
 	(void) ioctl(0, JWINSIZE, (UnivPtr) &jwin);
-#  endif /* BTL_BLIT */
+#  endif	/* BTL_BLIT */
 #endif
 
 	SigHold(SIGCHLD);
-#ifdef SIGWINCH
+#ifdef	SIGWINCH
 	SigHold(SIGWINCH);
 #endif
 	switch (pid = fork()) {
 	case -1:
+		/* fork failed */
+
+		{
+		int	ugh = errno;	/* hold across library calls */
+
 		(void) close(ptyfd);
-		message("[Fork failed!]");
+		message("[Fork failed! ");
+		message(strerror(ugh));
+		message("]");
 		goto fail;
+		}
 
 	case 0:
+		/* child process */
+
 		SigRelse(SIGCHLD);
-#ifdef SIGWINCH
+
+#ifdef SVR4_PTYS
+		/* grantpt() seems to be implemented via system().
+		 * This means that SIGCLD/SIGCHLD must not be caught.
+		 * For this reason, we perform the grantpt and unlockpt
+		 * in the child where we can ignore SIGCHLD.
+		 */
+		(void) signal(SIGCHLD, SIG_DFL);	/* we don't have children now */
+
+		if (grantpt(ptyfd) < 0) {
+			_exit(errno + 1);
+		}
+
+		if (unlockpt(ptyfd) < 0) {
+			_exit(errno + 1);
+		}
+#endif
+#ifdef	SIGWINCH
 		SigRelse(SIGWINCH);
 #endif
-		for (i = 0; i < 32; i++)
-			(void) close(i);
+		jcloseall();
+		(void) close(0);
+		(void) close(1);
+		(void) close(2);
 
-#ifdef TIOCNOTTY
+#ifdef	TIOCNOTTY
 		if ((i = open("/dev/tty", 2)) >= 0) {
-			(void) ioctl(i, TIOCNOTTY, (UnivPtr) 0);
+			(void) ioctl(i, TIOCNOTTY, (UnivPtr)NULL);
 			(void) close(i);
 		}
 #endif
-		if ((ttyfd = open(ttybuf, 2)) < 0)
+#ifdef TERMIOS
+		setsid();
+#endif
+		if (open(ttybuf, 2) != 0)
 			exit(-1);
-		(void) dup2(ttyfd, 1);
-		(void) dup2(ttyfd, 2);
+		(void) dup2(0, 1);
+		(void) dup2(0, 2);
 
-#ifdef TIOCSETD
+#ifdef SVR4_PTYS
+		(void) ioctl(0, I_PUSH, (UnivPtr) "ptem");
+		(void) ioctl(0, I_PUSH, (UnivPtr) "ldterm");
+		(void) ioctl(0, I_PUSH, (UnivPtr) "ttcompat");
+#endif
+
+#if !defined(TERMIO) && !defined(TERMIOS)
+# ifdef	TIOCSETD
 		(void) ioctl(0, TIOCSETD, (UnivPtr) &ldisc);
-#endif
-#ifdef TIOCLSET
+# endif
+# ifdef	TIOCLSET
 		(void) ioctl(0, TIOCLSET, (UnivPtr) &lmode);
-#endif
-#ifdef TIOCSETC
-		(void) ioctl(0, TIOCSETC, (UnivPtr) &tc[OFF]);
-#endif
-#ifdef TIOCSLTC
-		(void) ioctl(0, TIOCSLTC, (UnivPtr) &ls[OFF]);
-#endif
+# endif
+# ifdef	TIOCSETC
+		(void) ioctl(0, TIOCSETC, (UnivPtr) &tc[NO]);
+# endif
+# ifdef	SGTTY
+#  ifdef	TIOCSLTC
+		(void) ioctl(0, TIOCSLTC, (UnivPtr) &ls[NO]);
+#  endif
+# endif
+#endif /* !defined(TERMIO) && !defined(TERMIOS) */
 
-#ifdef TIOCGWINSZ
-#    ifdef SIGWINCH
+#ifdef	TIOCGWINSZ
+#    ifdef	SIGWINCH
 		(void) signal(SIGWINCH, SIG_IGN);
 #    endif
 		win.ws_row = curwind->w_height;
 		(void) ioctl(0, TIOCSWINSZ, (UnivPtr) &win);
-#else
-#  ifdef BTL_BLIT
+#else	/* !TIOCGWINSZ */
+#  ifdef	BTL_BLIT
 		jwin.bytesy = curwind->w_height;
 		(void) ioctl(0, JSWINSIZE, (UnivPtr) &jwin);
 #  endif
-#endif
+#endif	/* !TIOCGWINSZ */
 
-		sgt = sg[OFF];
+#if defined(TERMIO) || defined(TERMIOS)
+		sgt = sg[NO];
+		sgt.c_iflag &= ~(INLCR | ICRNL | IGNCR);
+		sgt.c_iflag &= ~(BRKINT | IGNBRK | IGNPAR | ISTRIP | IXON | IXANY | IXOFF);
+		sgt.c_lflag &= ~(ECHO);
+		sgt.c_oflag &= ~(ONLCR);
+# ifdef TERMIO
+		(void) ioctl(0, TCSETAW, (UnivPtr) &sgt);
+# endif
+# ifdef TERMIOS
+		(void) tcsetattr(0, TCSADRAIN, &sgt);
+# endif
+#else /* !(defined(TERMIO) || defined(TERMIOS)) */
+		sgt = sg[NO];
 		sgt.sg_flags &= ~(ECHO | CRMOD | ANYP | ALLDELAY | RAW | LCASE | CBREAK | TANDEM);
 		(void) stty(0, &sgt);
+#endif /* !(defined(TERMIO) || defined(TERMIOS)) */
 
+#ifdef TIOCREMOTE
 		{
 			int	on = 1;
 
 			(void) ioctl(0, TIOCREMOTE, (UnivPtr) &on);
 		}
+#endif
 
 		i = getpid();
+#ifdef POSIX_PROCS
+		(void) setpgid(0, i);
+		tcsetpgrp(0, i);
+#else /* !POSIX_PROCS */
 		(void) ioctl(0, TIOCSPGRP, (UnivPtr) &i);
-		(void) setpgrp(0, i);
-		va_init(ap, clobber);
-		make_argv(argv, ap);
-		va_end(ap);
-		execv(argv[0], (const char **) &argv[1]);
-		(void) write(1, "execve failed!\n", (size_t) 15);
+		SETPGRP(0, i);
+#endif /* POSIX_PROCS */
+
+		jputenv("EMACS=t");
+		jputenv("TERM=emacs");
+		jputenv("TERMCAP=emacs:co#80:tc=unknown:");
+		execvp(argv[0], &argv[1]);
+		raw_complain("execvp failed! %s\n", strerror(errno));
 		_exit(errno + 1);
 	}
 
 	newp = (Process *) emalloc(sizeof *newp);
 
-#ifdef O_NDELAY
-	fcntl (ptyfd, F_SETFL, O_NDELAY);
+#ifdef	O_NDELAY
+	fcntl(ptyfd, F_SETFL, O_NDELAY);
+#endif
+#ifdef	O_NONBLOCK
+	fcntl(ptyfd, F_SETFL, O_NONBLOCK);
 #endif
 	newp->p_fd = ptyfd;
 	newp->p_pid = pid;
 
-	newbuf = do_select((Window *) 0, bufname);
+	newbuf = do_select((Window *)NULL, bufname);
 	newbuf->b_type = B_PROCESS;
 	newp->p_buffer = newbuf;
 	newbuf->b_process = newp;	/* sorta circular, eh? */
@@ -370,8 +510,11 @@ out:	if (s == 0 && t == 0)
 
 	cmdbuf[0] = '\0';
 	va_init(ap, clobber);
-	while ((cp = va_arg(ap, char *)) != NIL)
-		swritef(&cmdbuf[strlen(cmdbuf)], "%s ", cp++);
+	while ((cp = va_arg(ap, char *)) != NULL) {
+		size_t	pl = strlen(cmdbuf);
+
+		swritef(&cmdbuf[pl], sizeof(cmdbuf)-pl, "%s ", cp);
+	}
 	va_end(ap);
 
 	newp->p_name = copystr(cmdbuf);
@@ -382,18 +525,42 @@ out:	if (s == 0 && t == 0)
 
 	newp->p_next = procs;
 	procs = newp;
-	NumProcs += 1;
-	global_fd |= 1L << newp->p_fd;
+	FD_SET(newp->p_fd, &global_fd);
+	if (global_maxfd <= newp->p_fd)
+		global_maxfd = newp->p_fd + 1;
 	SetWind(owind);
 
-fail:	SigRelse(SIGCHLD);
-#ifdef SIGWINCH
+fail:
+	SigRelse(SIGCHLD);
+#ifdef	SIGWINCH
 	SigRelse(SIGWINCH);
 #endif
 }
 
-void
-pinit()
+/*ARGSUSED*/
+SIGRESTYPE
+proc_child(junk)
+int	junk;	/* needed for signal handler; not used */
 {
-	(void) signal(SIGCHLD, proc_child);
+	int save_errno = errno;	/* Subtle, but necessary! */
+	wait_status_t	w;
+	register pid_t	pid;
+
+	for (;;) {
+		pid = wait_opt(&w, (WNOHANG | WUNTRACED));
+		if (pid <= 0)
+			break;
+		kill_off(pid, w);
+	}
+	errno = save_errno;
+	return SIGRESVALUE;
+}
+
+void
+closeiprocs()
+{
+	Process	*p;
+
+	for (p=procs; p!=NULL; p=p->p_next)
+		close(p->p_fd);
 }

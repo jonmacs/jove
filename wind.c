@@ -11,12 +11,17 @@
 #include "termcap.h"
 #include "chars.h"
 #include "disp.h"
+#include "ask.h"
+#include "commands.h"	/* for FindCmd and ExecCmd */
+#include "mac.h"
+#include "reapp.h"
+#include "wind.h"
 
 private char	onlyone[] = "You only have one window!",
 		toosmall[] = "Resulting window would be too small.";
 
 Window	*curwind,
-	*fwind = 0;
+	*fwind = NULL;
 
 /* First line in a Window */
 
@@ -27,14 +32,13 @@ register Window	*w;
 	register Window	*wp = fwind;
 	register int	lineno = -1;
 
-	do {
-		if (wp == w)
-			return lineno + 1;
+	while (wp != w) {
 		lineno += wp->w_height;
 		wp = wp->w_next;
-	} while (wp != fwind);
-	complain("window?");
-	/* NOTREACHED */
+		if (wp == fwind)
+			complain("window?");
+	}
+	return lineno + 1;
 }
 
 /* Delete `wp' from the screen.  If it is the only window left
@@ -66,11 +70,11 @@ register Window	*wp;
 		if (curwind == wp)
 			SetWind(prev);
 	}
-#ifdef MAC
+#ifdef	MAC
 	RemoveScrollBar(wp);
-	Windchange++;
+	Windchange = YES;
 #endif
-	free((char *) wp);
+	free((UnivPtr) wp);
 }
 
 /* Divide the window WP N times, or at least once.  Complains if WP is too
@@ -90,7 +94,7 @@ int	n;
 	if (amt < 2)
 		complain(toosmall);
 
-	while (--n >= 0) {
+	do {
 		new = (Window *) emalloc(sizeof (Window));
 		new->w_flags = 0;
 		new->w_LRscroll = 0;
@@ -110,12 +114,12 @@ int	n;
 		new->w_next = wp->w_next;
 		new->w_next->w_prev = new;
 		wp->w_next = new;
-#ifdef MAC
-		new->w_control = 0;
+#ifdef	MAC
+		new->w_control = NULL;
 #endif
-	}
-#ifdef MAC
-	Windchange++;
+	} while (--n > 0);
+#ifdef	MAC
+	Windchange = YES;
 #endif
 	return new;
 }
@@ -130,16 +134,33 @@ winit()
 	register Window	*w;
 
 	w = curwind = fwind = (Window *) emalloc(sizeof (Window));
-	w->w_line = w->w_top = 0;
+	w->w_line = w->w_top = NULL;
 	w->w_LRscroll = 0;
 	w->w_flags = 0;
 	w->w_char = 0;
 	w->w_next = w->w_prev = fwind;
 	w->w_height = ILI;
-#ifdef MAC
-	w->w_control = 0;
-	Windchange++;
+	w->w_bufp = NULL;
+#ifdef	MAC
+	w->w_control = NULL;
+	Windchange = YES;
 #endif
+}
+
+void
+tiewind(w, bp)
+register Window	*w;
+register Buffer	*bp;
+{
+	int	not_tied = (w->w_bufp != bp);
+
+	UpdModLine = YES;	/* kludge ... but speeds things up considerably */
+	w->w_line = bp->b_dot;
+	w->w_char = bp->b_char;
+	w->w_bufp = bp;
+	if (not_tied)
+		CalcWind(w);	/* ah, this has been missing since the
+				   beginning of time! */
 }
 
 /* Change to previous window. */
@@ -150,7 +171,7 @@ PrevWindow()
 	register Window	*new = curwind->w_prev;
 
 	if (Asking)
-		complain((char *) 0);
+		complain((char *)NULL);
 	if (one_windp())
 		complain(onlyone);
 	SetWind(new);
@@ -211,9 +232,9 @@ register Window	*w;
 	int	scr_step;
 	Line	*newtop;
 
-	if (ScrollStep == 0)	/* Means just center it */
+	if (ScrollStep == 0) {	/* Means just center it */
 		CentWind(w);
-	else {
+	} else {
 		up = inorder(w->w_line, 0, w->w_top, 0);
 		if (up == -1) {
 			CentWind(w);
@@ -221,10 +242,9 @@ register Window	*w;
 		}
 		scr_step = (ScrollStep < 0) ? SIZE(w) + ScrollStep :
 			   ScrollStep - 1;
-		if (up)		/* point is above the screen */
-			newtop = prev_line(w->w_line, scr_step);
-		else
-			newtop = prev_line(w->w_line, (SIZE(w) - 1 - scr_step));
+		/* up: point is above the screen */
+		newtop = prev_line(w->w_line, up?
+			scr_step : (SIZE(w) - 1 - scr_step));
 		if (LineDist(newtop, w->w_top) >= SIZE(w) - 1)
 			CentWind(w);
 		else
@@ -241,37 +261,43 @@ register Window	*w;
 void
 WindFind()
 {
-	register Buffer	*obuf = curbuf,
-			*nbuf;
+	register Buffer
+		*obuf = curbuf,
+		*nbuf;
 	Line	*ltop = curwind->w_top;
-	Bufpos	odot,
+	Bufpos
+		odot,
 		ndot;
+	void	(*cmd) proto((void));
 
 	DOTsave(&odot);
 
-	switch (waitchar((int *) 0)) {
+	switch (waitchar((int *)NULL)) {
 	case 't':
 	case 'T':
-		ExecCmd((data_obj *) FindCmd(FindTag));
+		cmd = FindTag;
 		break;
 
 	case CTL('T'):
-		ExecCmd((data_obj *) FindCmd(FDotTag));
+		cmd = FDotTag;
 		break;
 
 	case 'b':
 	case 'B':
-		ExecCmd((data_obj *) FindCmd(BufSelect));
+		cmd = BufSelect;
 		break;
 
 	case 'f':
 	case 'F':
-		ExecCmd((data_obj *) FindCmd(FindFile));
+		cmd = FindFile;
 		break;
 
 	default:
+		cmd = NULL;	/* avoid uninitialized complaint from gcc -W */
 		complain("T: find-tag, ^T: find-tag-at-point, F: find-file, B: select-buffer.");
+		/*NOTREACHED*/
 	}
+	ExecCmd((data_obj *) FindCmd(cmd));
 
 	nbuf = curbuf;
 	DOTsave(&ndot);
@@ -303,14 +329,14 @@ register Buffer	*bp;
 
 	register Window	*wp = fwind;
 
-	if (bp == 0)
-		return 0;
+	if (bp == NULL)
+		return NULL;
 	do {
 		if (wp->w_bufp == bp)
 			return wp;
 		wp = wp->w_next;
 	} while (wp != fwind);
-	return 0;
+	return NULL;
 }
 
 /* Change window into the next window.  Curwind becomes the new window. */
@@ -321,7 +347,7 @@ NextWindow()
 	register Window	*new = curwind->w_next;
 
 	if (Asking)
-		complain((char *) 0);
+		complain((char *)NULL);
 	if (one_windp())
 		complain(onlyone);
 	SetWind(new);
@@ -339,7 +365,7 @@ PageNWind()
 	PrevWindow();
 }
 
-Window *
+private Window *
 w_nam_typ(name, type)
 register char	*name;
 int	type;
@@ -360,7 +386,7 @@ int	type;
 			return w;
 	} while ((w = w->w_next) != fwind);
 
-	return 0;
+	return NULL;
 }
 
 /* Put a window with the buffer `name' in it.  Erase the buffer if
@@ -375,10 +401,10 @@ int	btype;
 	register Window	*wp;
 	register Buffer	*newb;
 
-	if ((newb = buf_exists(name)) != NIL)
+	if ((newb = buf_exists(name)) != NULL)
 		btype = -1;	/* if the buffer exists, don't change
 				   it's type */
-	if ((wp = w_nam_typ(name, btype)) == 0) {
+	if ((wp = w_nam_typ(name, btype)) == NULL) {
 		if (one_windp())
 			SetWind(div_wind(curwind, 1));
 		else
@@ -386,7 +412,7 @@ int	btype;
 	} else
 		SetWind(wp);
 
-	newb = do_select((Window *) 0, name);
+	newb = do_select((Window *)NULL, name);
 	if (clobber) {
 		initlist(newb);
 		newb->b_modified = NO;
@@ -398,7 +424,7 @@ int	btype;
 }
 
 void
-GrowWindow()
+GrowWindowCmd()
 {
 	WindSize(curwind, abs(arg_value()));
 }
@@ -437,8 +463,8 @@ register int	inc;
 		w->w_height += inc;
 		w->w_prev->w_height -= inc;
 	}
-#ifdef MAC
-	Windchange++;
+#ifdef	MAC
+	Windchange = YES;
 #endif
 }
 

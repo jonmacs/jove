@@ -5,12 +5,30 @@
  * included in all the files.                                              *
  ***************************************************************************/
 
-/* Warning:  You probably shouldn't put ifdefs anywhere *inside* the keymaps
-   definitions.	 It'll screw up the stuff in comments (at least), and maybe
-   a few other things.	Yes, it *WILL* screw up the comments ... but it's
-   not clear that you care ... */
+/* keys.c is derived from keys.txt by setmaps */
+
+/* Only edit keys.txt, not keys.c.
+ *
+ * keys.txt is processed as text by setmaps.  This means that what follows
+ * is a very restricted subset of C.
+ *
+ * - Lines beginning with "#if", "#else", and "#endif" are understood
+ *   to be the parts of conditional compilation.
+ *   They will not be recognized if they are "spelled" differently
+ *   (say, with whitespace).  Generally, there ought to be the same
+ *   number of table entries in each branch of the if.
+ *
+ * - On a Mac, lines begining with "#MENU" are used to specify that
+ *   the table is for a menu.
+ *
+ * - Lines begining with a tab followed by a " are treated as table entries.
+ *
+ * - Other lines are passed through, and are assumed to delimit tables.
+ *   This means that they must not be within tables.
+ */
 
 #include "jove.h"
+#include "commands.h"
 
 data_obj *MainKeys[NCHARS] = {
 	"set-mark",			/* ^@ */
@@ -42,11 +60,11 @@ data_obj *MainKeys[NCHARS] = {
 	"scroll-up",			/* ^Z */
 	"unbound",			/* ^[ */
 	"search-forward",		/* ^\ */
-#ifndef MSDOS
+#ifndef	MSDOS
 	"unbound",			/* ^] */
-#else /* MSDOS */
+#else
 	"find-tag-at-point",		/* ^] */
-#endif /* MSDOS */
+#endif
 	"quoted-insert",		/* ^^ */
 	"unbound",			/* ^_ */
 	"self-insert",			/*    */
@@ -144,10 +162,8 @@ data_obj *MainKeys[NCHARS] = {
 	"self-insert",			/* |  */
 	"paren-flash",			/* }  */
 	"self-insert",			/* ~  */
-#ifdef ASCII
 	"delete-previous-character"	/* ^? */
-#else
-	"delete-previous-character",	/* ^? */
+#ifndef	ASCII7
 	"self-insert",			/* ALT- or Option-	 */
 	"self-insert",			/* ALT- or Option-	 */
 	"self-insert",			/* ALT- or Option-	 */
@@ -275,12 +291,12 @@ data_obj *MainKeys[NCHARS] = {
 	"self-insert",			/* ALT- or Option-	 */
 	"self-insert",			/* ALT- or Option-	 */
 	"self-insert",			/* ALT- or Option-	 */
-#ifdef IBMPC
+#ifdef	IBMPC
 	"unbound"			/* ALT- 255 */
 #else
 	"self-insert"
-#endif	/* IBMPC */
-#endif /* ASCII */
+#endif
+#endif	/* !ASCII7 */
 };
 
 data_obj *EscKeys[NCHARS] = {
@@ -329,19 +345,19 @@ data_obj *EscKeys[NCHARS] = {
 	"unbound",			/* *  */
 	"unbound",			/* +  */
 	"beginning-of-window",		/* ,  */
-	"digit",			/* -  */
+	"digit-minus",			/* -  */
 	"end-of-window",		/* .  */
 	"unbound",			/* /  */
-	"digit",			/* 0  */
-	"digit",			/* 1  */
-	"digit",			/* 2  */
-	"digit",			/* 3  */
-	"digit",			/* 4  */
-	"digit",			/* 5  */
-	"digit",			/* 6  */
-	"digit",			/* 7  */
-	"digit",			/* 8  */
-	"digit",			/* 9  */
+	"digit-0",			/* 0  */
+	"digit-1",			/* 1  */
+	"digit-2",			/* 2  */
+	"digit-3",			/* 3  */
+	"digit-4",			/* 4  */
+	"digit-5",			/* 5  */
+	"digit-6",			/* 6  */
+	"digit-7",			/* 7  */
+	"digit-8",			/* 8  */
+	"digit-9",			/* 9  */
 	"unbound",			/* :  */
 	"unbound",			/* ;  */
 	"beginning-of-file",		/* <  */
@@ -411,10 +427,8 @@ data_obj *EscKeys[NCHARS] = {
 	"unbound",			/* |  */
 	"unbound",			/* }  */
 	"make-buffer-unmodified",	/* ~  */
-#ifdef ASCII
 	"kill-previous-word"		/* ^? */
-#else /* IBMPC or MAC */
-	"kill-previous-word",		/* ^? */
+#ifndef	ASCII7
 	"unbound",			/* ALT- or Option-	 */
 	"unbound",			/* ALT- or Option-	 */
 	"unbound",			/* ALT- or Option-	 */
@@ -543,7 +557,7 @@ data_obj *EscKeys[NCHARS] = {
 	"unbound",			/* ALT- or Option-	 */
 	"unbound",			/* ALT- or Option-	 */
 	"unbound"			/* ALT- or Option-	 */
-#endif /* ASCII */
+#endif	/* !ASCII7 */
 };
 
 data_obj	*CtlxKeys[NCHARS] = {
@@ -674,10 +688,8 @@ data_obj	*CtlxKeys[NCHARS] = {
 	"unbound",			/* |  */
 	"unbound",			/* }  */
 	"unbound",			/* ~  */
-#ifdef ASCII
 	"kill-to-beginning-of-sentence" /* ^? */
-#else /* IBMPC or MAC */
-	"kill-to-beginning-of-sentence",	/* ^? */
+#ifndef	ASCII7
 	"unbound",			/* ALT- or Option-	 */
 	"unbound",			/* ALT- or Option-	 */
 	"unbound",			/* ALT- or Option-	 */
@@ -806,5 +818,266 @@ data_obj	*CtlxKeys[NCHARS] = {
 	"unbound",			/* ALT- or Option-	 */
 	"unbound",			/* ALT- or Option-	 */
 	"unbound"			/* ALT- or Option-	 */
-#endif /* ASCII */
+#endif	/* !ASCII7 */
 };
+
+#ifdef IBMPC
+data_obj	*NonASCIIKeys[NCHARS] = {
+	"unbound",			/* 0 */
+	"unbound",
+	"unbound",
+	"set-mark",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",			/*		10 */
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"query-replace-string",		/* alt q */
+	"copy-region",			/* alt w */
+	"forward-sentence",		/* alt e */
+	"replace-string",		/* alt r */
+	"unbound",			/* alt t	20 */
+	"yank-pop",			/* alt y */
+	"case-word-upper",		/* alt u */
+	"make-macro-interactive",	/* alt i */
+	"unbound",			/* alt o */
+	"unbound",			/* alt p */
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"backward-sentence",		/* alt a	30 */
+	"unbound",			/* alt s */
+	"kill-next-word",		/* alt d */
+	"forward-word",			/* alt f */
+	"goto-line",			/* alt g */
+	"unbound",			/* alt h */
+	"fill-paragraph",		/* alt j */
+	"kill-to-end-of-sentence",	/* alt k */
+	"case-word-lower",		/* alt l */
+	"unbound",
+	"unbound",			/* F11		40 */
+	"unbound",
+	"unbound",
+	"unbound",
+	"scroll-down",			/* alt z */
+	"execute-named-command",	/* alt x */
+	"case-word-capitalize",		/* alt c */
+	"previous-page",		/* alt v */
+	"backward-word",		/* alt b */
+	"unbound",			/* alt n */
+	"first-non-blank",		/* alt m	50 */
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",			/* F1 */
+	"unbound",			/* F2		60 */
+	"unbound",			/* F3 */
+	"unbound",			/* F4 */
+	"unbound",			/* F5 */
+	"unbound",			/* F6 */
+	"unbound",			/* F7 */
+	"unbound",			/* F8 */
+	"unbound",			/* F9 */
+	"unbound",			/* F10 */
+	"unbound",
+	"unbound",			/*		70 */
+	"beginning-of-line",		/* Home */
+	"previous-line",		/* Up	*/
+	"previous-page",		/* PgUp */
+	"unbound",
+	"backward-character",		/* Left */
+	"unbound",
+	"forward-character",		/* Right*/
+	"unbound",
+	"end-of-line",			/* End	*/
+	"next-line",			/* Down		80 */
+	"next-page",			/* PgDn */
+	"over-write-mode",		/* Ins	*/
+	"delete-next-character",	/* Del	*/
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",			/*		90 */
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",			/* ctrl F1 */
+	"unbound",			/* ctlr F2 */
+	"unbound",			/* ctrl F3 */
+	"unbound",			/* ctrl F4 */
+	"unbound",			/* ctrl F5 */
+	"unbound",			/* ctrl F6 */
+	"unbound",			/* ctrl F7	100 */
+	"unbound",			/* ctrl F8 */
+	"unbound",			/* ctrl F9 */
+	"unbound",			/* ctrl F10*/
+	"unbound",			/* alt	F1 */
+	"unbound",			/* alt	F2 */
+	"unbound",			/* alt	F3 */
+	"unbound",			/* alt	F4 */
+	"unbound",			/* alt	F5 */
+	"unbound",			/* alt	F6 */
+	"unbound",			/* alt	F7	110 */
+	"unbound",			/* alt	F8 */
+	"unbound",			/* alt	F9 */
+	"unbound",			/* alt	F10*/
+	"unbound",
+	"backward-word",		/* ctrl Left */
+	"forward-word",			/* ctrl Right */
+	"end-of-file",			/* ctrl End */
+	"next-window",			/* ctrl PgDn */
+	"beginning-of-file",		/* ctrl Home */
+	"select-buffer-1",		/* alt 1	120 */
+	"select-buffer-2",		/* alt 2 */
+	"select-buffer-3",		/* alt 3 */
+	"select-buffer-4",		/* alt 4 */
+	"select-buffer-5",		/* alt 5 */
+	"select-buffer-6",		/* alt 6 */
+	"select-buffer-7",		/* alt 7 */
+	"select-buffer-8",		/* alt 8 */
+	"select-buffer-9",		/* alt 9 */
+	"select-buffer-10",		/* alt 0 */
+	"unbound",			/* alt -	130 */
+	"unbound",			/* alt = */
+	"previous-window",		/* ctrl PgUp */
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound",
+	"unbound"
+};
+#endif /* IBMPC */

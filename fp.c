@@ -10,36 +10,36 @@
 #include "ctype.h"
 #include "termcap.h"
 #include "disp.h"
+#include "fmt.h"
 
-#ifdef MAC
+#ifdef	MAC
 #	include "mac.h"
-#else
+#else	/* !MAC */
 #	include <sys/stat.h>
-#	ifndef MSDOS
+#	ifndef	MSDOS
 #		include <sys/file.h>
-#	else /* MSDOS */
+#	else	/* MSDOS */
 #		include <fcntl.h>
 #		include <io.h>
-#	endif /* MSDOS */
-#endif /* MAC */
+#	endif	/* MSDOS */
+#endif	/* !MAC */
 
 #include <errno.h>
 
-private File * f_alloc proto((char *, int, int, char *, int));
-#ifdef RAINBOW
+#ifdef	RAINBOW
 private int rbwrite proto((int, char *, int));
 #endif
 
-#ifndef L_SET
+#ifndef	L_SET
 # define L_SET 0
 #endif
 
 #define MAXFILES	20	/* good enough for my purposes */
 
-private File	_openfiles[MAXFILES];	/* must be zeroed initially */
+private File	openfiles[MAXFILES];	/* must be zeroed initially */
 
-private File *
-f_alloc(name, flags, fd, buffer, buf_size)
+File *
+fd_open(name, flags, fd, buffer, buf_size)
 char	*name,
 	*buffer;
 int	flags,
@@ -49,7 +49,7 @@ int	flags,
 	register File	*fp;
 	register int	i;
 
-	for (fp = _openfiles, i = 0; i < MAXFILES; i++, fp++)
+	for (fp = openfiles, i = 0; i < MAXFILES; i++, fp++)
 		if (fp->f_flags == 0)
 			break;
 	if (i == MAXFILES)
@@ -58,7 +58,7 @@ int	flags,
 	fp->f_cnt = 0;
 	fp->f_fd = fd;
 	fp->f_flags = flags;
-	if (buffer == 0) {
+	if (buffer == NULL) {
 		buffer = emalloc((size_t)buf_size);
 		fp->f_flags |= F_MYBUF;
 	}
@@ -73,20 +73,9 @@ gc_openfiles()
 {
 	register File	*fp;
 
-	for (fp = _openfiles; fp < &_openfiles[MAXFILES]; fp++)
+	for (fp = openfiles; fp < &openfiles[MAXFILES]; fp++)
 		if (fp->f_flags != 0 && (fp->f_flags & F_LOCKED) == 0)
 			f_close(fp);
-}
-
-File *
-fd_open(name, flags, fd, buffer, bsize)
-char	*name,
-	*buffer;
-int	flags,
-	fd,
-	bsize;
-{
-	return f_alloc(name, flags, fd, buffer, bsize);
 }
 
 File *
@@ -97,41 +86,50 @@ int	flags,
 	buf_size;
 {
 	register int	fd;
-	int	mode = F_MODE(flags);
 
-	if (mode == F_READ)
+	switch (F_MODE(flags)) {
+	case F_READ:
 		fd = open(name, 0);
-	if (mode == F_APPEND) {
+		break;
+
+	case F_APPEND:
 		fd = open(name, 1);
-		if (fd == -1)
-			mode = F_WRITE;
-		else
+		if (fd != -1) {
 			(void) lseek(fd, 0L, 2);
-	}
-	if (mode == F_WRITE)
+			break;
+		}
+		/* FALLTHROUGH */
+	case F_WRITE:
 		fd = creat(name, CreatMode);
+		break;
+
+	default:
+		fd = -1;	/* avoid uninitialized complaint from gcc -W */
+		error("invalid F_MODE");
+		/* NOTREACHED */
+	}
 	if (fd == -1)
-		return NIL;
-#ifdef MSDOS
-	else
-		setmode(fd, 0x8000);
-#endif /* MSDOS */
-	return f_alloc(name, flags, fd, buffer, buf_size);
+		return NULL;
+#ifdef	MSDOS
+	setmode(fd, 0x8000);
+#endif	/* MSDOS */
+	return fd_open(name, flags, fd, buffer, buf_size);
 }
 
 void
 f_close(fp)
 File	*fp;
 {
-	flush(fp);
-#ifdef BSD4_2
-	if (fp->f_flags & (F_WRITE|F_APPEND))
+	if (fp->f_flags & (F_WRITE|F_APPEND)) {
+		flushout(fp);
+#ifdef USE_FSYNC
 		(void) fsync(fp->f_fd);
 #endif
+	}
 	(void) close(fp->f_fd);
 	if (fp->f_flags & F_MYBUF)
-		free(fp->f_base);
-	free(fp->f_name);
+		free((UnivPtr) fp->f_base);
+	free((UnivPtr) fp->f_name);
 	fp->f_flags = 0;	/* indicates that we're available */
 }
 
@@ -142,16 +140,16 @@ File	*fp;
 	if (fp->f_flags & (F_EOF|F_ERR))
 		return EOF;
 	fp->f_ptr = fp->f_base;
-#ifndef MSDOS
-	do
-#endif /* MSDOS */
-		fp->f_cnt = read(fp->f_fd, fp->f_base, (size_t) fp->f_bufsize);
-#ifndef MSDOS
-	while (fp->f_cnt == -1 && errno == EINTR);
-#endif /* MSDOS */
+#ifndef	MSDOS
+	do {
+#endif	/* MSDOS */
+		fp->f_cnt = read(fp->f_fd, (UnivPtr) fp->f_base, (size_t) fp->f_bufsize);
+#ifndef	MSDOS
+	} while (fp->f_cnt == -1 && errno == EINTR);
+#endif	/* MSDOS */
 	if (fp->f_cnt == -1) {
 		/* I/O error -- treat as EOF */
-		writef("[Read error %d]", errno);
+		writef("[Read error: %s]", strerror(errno));
 		fp->f_flags |= F_ERR | F_EOF;
 		return EOF;
 	}
@@ -167,14 +165,14 @@ void
 putstr(s)
 register char	*s;
 {
-#ifndef IBMPC
+#ifndef	IBMPC
 	register int	c;
 
 	while ((c = *s++) != '\0')
 		jputchar(c);
-#else /* IBMPC */
+#else	/* IBMPC */
 	write_emif(s);
-#endif /* IBMPC */
+#endif	/* IBMPC */
 }
 
 void
@@ -188,18 +186,11 @@ register File	*fp;
 }
 
 void
-flusho()
+flushscreen()
 {
-#ifndef IBMPC
-	_flush(EOF, stdout);
-#endif /* IBMPC */
-}
-
-void
-flush(fp)
-File	*fp;
-{
-	_flush(EOF, fp);
+#ifndef	IBMPC
+	flushout(stdout);
+#endif	/* IBMPC */
 }
 
 void
@@ -207,42 +198,49 @@ f_seek(fp, offset)
 register File	*fp;
 off_t	offset;
 {
-	if (fp->f_flags & F_WRITE)
-		flush(fp);
+	if (fp->f_flags & (F_WRITE|F_APPEND))
+		flushout(fp);
 	fp->f_cnt = 0;		/* next read will filbuf(), next write
 				   will flush() with no bad effects */
 	lseek(fp->f_fd, (long) offset, L_SET);
 }
 
-int		/* is void - but for lints sake */
-_flush(c, fp)
-int	c;
+void
+flushout(fp)
 register File	*fp;
 {
 	register int	n;
 
-	if (fp->f_flags & (F_READ | F_STRING | F_ERR))
-		return EOF;
-	if (((n = (fp->f_ptr - fp->f_base)) > 0) &&
-#ifndef RAINBOW
-	    (write(fp->f_fd, fp->f_base, (size_t)n) != n) &&
+	if (fp->f_flags & (F_READ | F_STRING | F_ERR)) {
+		if (fp->f_flags != F_STRING)
+			abort();    /* IMPOSSIBLE */
+		/* We just banged into the end of a string.
+		 * In the interests of continuing, we will cause
+		 * the rest of the output to be be heaped in the
+		 * last position.  Surely it will end up as a NUL. UGH!
+		 */
+		fp->f_cnt = 1;
+		fp->f_ptr = &fp->f_base[fp->f_bufsize - 1];
+		return;
+	}
+	if ((n = (fp->f_ptr - fp->f_base)) > 0
+#ifndef	RAINBOW
+	&& write(fp->f_fd, (UnivPtr) fp->f_base, (size_t)n) != n
 #else
-	    (rbwrite(fp->f_fd, fp->f_base, n) != n) &&
+	&& rbwrite(fp->f_fd, fp->f_base, n) != n
 #endif
-	    (fp != stdout)) {
+	&& fp != stdout)
+	{
 		fp->f_flags |= F_ERR;
-		error("[I/O error(%d); file = %s, fd = %d]",
-			errno, fp->f_name, fp->f_fd);
+		error("[I/O error(%s); file = %s, fd = %d]",
+			strerror(errno), fp->f_name, fp->f_fd);
 	}
 
 	fp->f_cnt = fp->f_bufsize;
 	fp->f_ptr = fp->f_base;
-	if (c != EOF)
-		return jputc(c, fp);
-	return EOF;
 }
 
-int
+bool
 f_gets(fp, buf, max)
 register File	*fp;
 char	*buf;
@@ -253,7 +251,7 @@ size_t	max;
 	char	*endp = buf + max - 1;
 
 	if (fp->f_flags & F_EOF)
-		return EOF;
+		return YES;
 	while (((c = jgetc(fp)) != EOF) && (c != '\n')) {
 		if (c == '\0') {
 			/* We can't store NUL in our buffer, so ignore it.
@@ -262,18 +260,10 @@ size_t	max;
 			 */
 			continue;
 		}
-#ifdef MSDOS
-		if (c == '\r') {
-			if ((c = jgetc(fp)) == '\n')
-			   break;
-			else
-			   *cp++ = '\r';
-		}
-#endif /* MSDOS */
 		if (cp >= endp) {
 			add_mess(" [Line too long]");
 			rbell();
-			return EOF;
+			return YES;
 		}
 		*cp++ = c;
 	}
@@ -281,10 +271,17 @@ size_t	max;
 	if (c == EOF) {
 		if (cp != buf)
 			add_mess(" [Incomplete last line]");
-		return EOF;
+		return YES;
 	}
+#ifdef	MSDOS
+	/* a CR followed by a LF is treated as a NL.
+	 * Bug: the line-buffer is effectively shortened by one character.
+	 */
+	if (cp != buf && cp[-1] == '\r')
+		*--cp = '\0';
+#endif	/* MSDOS */
 	io_lines += 1;
-	return 0;	/* this means okay */
+	return NO;	/* this means okay */
 }
 
 /* skip to beginning of next line, i.e., next read returns first
@@ -298,41 +295,30 @@ register File	*fp;
 
 	if (fp->f_flags & F_EOF)
 		return;
-	while (((c = jgetc(fp)) != EOF) && (c != '\n'))
-		;
+	do ; while (((c = jgetc(fp)) != EOF) && (c != '\n'));
 	if (c == EOF)
 		fp->f_flags |= F_EOF;
 }
 
-int
+#if	defined(IPROCS) && defined(PIPEPROCS)
+size_t
 f_readn(fp, addr, n)
 register File	*fp;
 register char	*addr;
-register int	n;
+size_t	n;
 {
-	int	c,
-		nbytes = n;
+	register size_t	nleft;
 
-	while (--n >= 0) {
-		c = jgetc(fp);
+	for (nleft = n; nleft > 0; nleft--) {
+		int	c = jgetc(fp);
+
 		if (f_eof(fp))
 			break;
 		*addr++ = c;
 	}
-	return (nbytes - (n + 1));
+	return n - nleft;
 }
-
-int
-f_getint(fp)
-File	*fp;
-{
-	int	n = 0,
-		c;
-
-	while (isdigit(c = jgetc(fp)))
-		n = (n * 10) + c;
-	return n;
-}
+#endif
 
 /* Deals with output to the terminal, setting up the amount of characters
    to be buffered depending on the output baud rate.  Why it's in a
@@ -342,19 +328,10 @@ private char	one_buf;
 
 int	BufSize = 1;
 
-private File	_stdout = {1, 1, 1, F_WRITE, &one_buf, &one_buf, (char *) NIL};
-File	*stdout = &_stdout;
+private File	stdout_File = {1, 1, 1, F_WRITE, &one_buf, &one_buf, (char *)NULL};
+File	*stdout = &stdout_File;
 
-#undef jputchar		/* for files which forget to include fp.h,
-			   here's a real jputchar procedure. */
-void
-jputchar(c)
-int	c;
-{
-	jputc(c, stdout);
-}
-
-#ifdef RAINBOW
+#ifdef	RAINBOW
 
 /*
  * use the Rainbow's video output function
@@ -378,4 +355,4 @@ char *buf;
 		}
 	}
 }
-#endif /* RAINBOW */
+#endif	/* RAINBOW */

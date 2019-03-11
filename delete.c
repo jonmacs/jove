@@ -9,6 +9,10 @@
 
 #include "jove.h"
 #include "disp.h"
+#include "delete.h"
+#include "insert.h"
+#include "marks.h"
+#include "move.h"
 
 /* Assumes that either line1 or line2 is actual the current line, so it can
    put its result into linebuf. */
@@ -47,8 +51,8 @@ int	char1,
 {
 	register Line	*retline;
 
-	if ((line1 == line2 && char1 == char2) || line2 == 0)
-		complain((char *) 0);
+	if ((line1 == line2 && char1 == char2) || line2 == NULL)
+		complain((char *)NULL);
 	(void) fixorder(&line1, &char1, &line2, &char2);
 
 	retline = nbufline();	/* New buffer line */
@@ -57,12 +61,12 @@ int	char1,
 	if (line1 == line2)
 		genbuf[char2] = '\0';
 
-	retline->l_prev = 0;
+	retline->l_prev = NULL;
 	retline->l_dline = putline(&genbuf[char1]);
 	patchup(line1, char1, line2, char2);
 
 	if (line1 == line2)
-		retline->l_next = 0;
+		retline->l_next = NULL;
 	else {
 		retline->l_next = line1->l_next;
 		(void) ltobuf(line2, genbuf);
@@ -77,13 +81,13 @@ int	char1,
 			line1->l_next->l_prev = line1;
 		else
 			curbuf->b_last = line1;
-		line2->l_next = 0;
+		line2->l_next = NULL;
 	}
 
 	return retline;
 }
 
-void
+private void
 lremove(line1, line2)
 register Line	*line1,
 		*line2;
@@ -113,19 +117,21 @@ DelNChar()
 void
 DelPChar()
 {
-	if (MinorMode(OverWrite)) {
-		int	count = min(arg_value(), curchar);
+	if (MinorMode(OverWrite) && !eolp()) {
+		/* Overwrite with spaces.
+		 * Some care is exercised to overwrite tabs reasonably,
+		 * but control characters displayed as two are not handled.
+		 */
+		int	rightcol = calc_pos(linebuf, curchar);
+		int	charcount = min(arg_value(), curchar);
+		int	colcount = rightcol - calc_pos(linebuf, curchar-charcount);
 
-		b_char(count);
-
-		/* overwrite with spaces */
-		set_arg_value(count);
-		LastKeyStruck = ' ';
-		SelfInsert();
-
-		b_char(count);
-	} else
+		b_char(charcount);
+		overwrite(' ', colcount);
+		b_char(colcount);
+	} else {
 		del_char(BACKWARD, arg_value(), YES);
+	}
 }
 
 /* Delete some characters.  If deleting forward then call for_char
@@ -140,7 +146,7 @@ int	dir,
 {
 	Bufpos	before,
 		after;
-	int	killp = (OK_kill && (abs(num) > 1));
+	bool	killp = (OK_kill && (abs(num) > 1));
 
 	DOTsave(&before);
 	if (dir == FORWARD)
@@ -148,9 +154,9 @@ int	dir,
 	else
 		b_char(num);
 	if (before.p_line == curline && before.p_char == curchar)
-		complain((char *) 0);
+		complain((char *)NULL);
 	if (killp)
-		reg_kill(before.p_line, before.p_char, 1);
+		reg_kill(before.p_line, before.p_char, YES);
 	else {
 		DOTsave(&after);
 		(void) fixorder(&before.p_line, &before.p_char, &after.p_line, &after.p_char);
@@ -169,13 +175,13 @@ Line	*killbuf[NUMKILLS];
 void
 reg_kill(line2, char2, dot_moved)
 Line	*line2;
-int	char2,
-	dot_moved;
+int	char2;
+bool	dot_moved;
 {
 	Line	*nl,
 		*line1 = curline;
 	int	char1 = curchar;
-	int	backwards;
+	bool	backwards;
 
 	backwards = !fixorder(&line1, &char1, &line2, &char2);
 	/* This is a kludge!  But it possible for commands that don't
@@ -198,12 +204,12 @@ int	char2,
 	} else {
 		Line	*lastln = lastline(nl);
 
-		if (backwards)
-			(void) DoYank(nl, 0, lastln, length(lastln), killbuf[killptr], 0, (Buffer *) 0);
-		else {
+		if (backwards) {
+			(void) DoYank(nl, 0, lastln, length(lastln), killbuf[killptr], 0, (Buffer *)NULL);
+		} else {
 			Line	*olastln = lastline(killbuf[killptr]);
 
-			(void) DoYank(nl, 0, lastln, length(lastln), olastln, length(olastln), (Buffer *) 0);
+			(void) DoYank(nl, 0, lastln, length(lastln), olastln, length(olastln), (Buffer *)NULL);
 		}
 	}
 	this_cmd = KILLCMD;
@@ -214,7 +220,7 @@ DelReg()
 {
 	register Mark	*mp = CurMark();
 
-	reg_kill(mp->m_line, mp->m_char, 0);
+	reg_kill(mp->m_line, mp->m_char, NO);
 }
 
 /* Save a region.  A pretend kill. */
@@ -228,14 +234,14 @@ CopyRegion()
 
 	mp = CurMark();
 	if (mp->m_line == curline && mp->m_char == curchar)
-		complain((char *) 0);
+		complain((char *)NULL);
 
 	killptr = ((killptr + 1) % NUMKILLS);
 	if (killbuf[killptr])
 		lfreelist(killbuf[killptr]);
 	nl = killbuf[killptr] = nbufline();
 	SavLine(nl, NullStr);
-	nl->l_next = nl->l_prev = 0;
+	nl->l_next = nl->l_prev = NULL;
 
 	status = inorder(mp->m_line, mp->m_char, curline, curchar);
 	if (status == -1)
@@ -243,10 +249,10 @@ CopyRegion()
 
 	if (status)
 		(void) DoYank(mp->m_line, mp->m_char, curline, curchar,
-				nl, 0, (Buffer *) 0);
+				nl, 0, (Buffer *)NULL);
 	else
 		(void) DoYank(curline, curchar, mp->m_line, mp->m_char,
-				nl, 0, (Buffer *) 0);
+				nl, 0, (Buffer *)NULL);
 }
 
 void
@@ -272,7 +278,7 @@ void
 DelBlnkLines()
 {
 	register Mark	*dot;
-	int	all;
+	bool	all;
 
 	if (!blnkp(&linebuf[curchar]))
 		return;
@@ -280,7 +286,7 @@ DelBlnkLines()
 	all = !blnkp(linebuf);
 	while (blnkp(linebuf) && curline->l_prev)
 		SetLine(curline->l_prev);
-	all |= (firstp(curline));
+	all |= firstp(curline);
 	Eol();
 	DelWtSpace();
 	line_move(FORWARD, 1, NO);
@@ -296,7 +302,7 @@ DelBlnkLines()
 
 private void
 dword(forward)
-int	forward;
+bool	forward;
 {
 	Bufpos	savedot;
 
@@ -305,17 +311,17 @@ int	forward;
 		ForWord();
 	else
 		BackWord();
-	reg_kill(savedot.p_line, savedot.p_char, 1);
+	reg_kill(savedot.p_line, savedot.p_char, YES);
 }
 
 void
 DelNWord()
 {
-	dword(1);
+	dword(YES);
 }
 
 void
 DelPWord()
 {
-	dword(0);
+	dword(NO);
 }

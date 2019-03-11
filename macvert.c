@@ -22,7 +22,7 @@ static int	mac_fd;
 
 static void
 mac_io(fcn, ptr, nbytes)
-int	(*fcn)();
+int	(*fcn) (/* int, char *, int */);
 char	*ptr;
 int	nbytes;
 {
@@ -42,16 +42,16 @@ static int	int_how = NEWWAY;
 
 /* Formatting int's the old way or the new "improved" way? */
 
-#if defined(vax) || defined(pdp11)
+#if	defined(vax) || defined(pdp11)
 
 static long
 ntohl(x)
 register long x;
 {
-	return(	(((x >>  0) & 0377) << 24) |
+	return	(((x >>  0) & 0377) << 24) |
 		(((x >>  8) & 0377) << 16) |
 		(((x >> 16) & 0377) <<  8) |
-		(((x >> 24) & 0377) <<  0) );
+		(((x >> 24) & 0377) <<  0);
 }
 
 #else
@@ -60,7 +60,7 @@ static long
 ntohl(x)
 register long x;
 {
-	return(x);
+	return x;
 }
 
 #endif
@@ -90,7 +90,8 @@ char	*filein;
 		fprintf(stderr, "Cannot open %s\n", filein);
 
 	while (read(mac_fd, (char *) &tmp, sizeof tmp) == (sizeof tmp)) {
-retry:		bodylen = int_fmt(tmp);
+retry:
+		bodylen = int_fmt(tmp);
 		if (bodylen <= 0 || bodylen > 10000) {
 			if (int_how == NEWWAY) {
 				int_how = OLDWAY;

@@ -14,16 +14,16 @@ list_new()
 	List	*new;
 
 	new = (List *) emalloc(sizeof (List));
-	new->car = NIL;
+	new->car = NULL;
 	return new;
 }
 
 /* push an object to the beginning of list */
 
-Element *
+UnivPtr
 list_push(list, element)
 register List	**list;
-Element	*element;
+UnivPtr element;
 {
 	List	*new;
 
@@ -34,76 +34,19 @@ Element	*element;
 	return element;
 }
 
-Element *
+UnivPtr
 list_pop(list)
 List	**list;
 {
 	List	*cell;
-	Element	*element;
+	UnivPtr	element;
 
-	if (*list == NIL)
-		return NIL;
+	if (*list == NULL)
+		return NULL;
 	cell = *list;
 	element = cell->car;
-	free((char *) cell);
+	free((UnivPtr) cell);
 	*list = (*list)->cdr;
 
 	return element;
 }
-
-#ifdef	NEVER
-Element *
-list_remove(list_head, element)
-List	**list_head;
-Element	*element;
-{
-	register List	*cp = *list_head,
-			*prev = NIL;
-
-	while (cp != NIL) {
-		if (cp->car == element)
-			break;
-		prev = cp;
-		cp = cp->cdr;
-	}
-	if (cp == NIL)
-		return NIL;
-	if (prev == NIL)
-		*list_head = (*list_head)->cdr;
-	else
-		prev->cdr = cp->cdr;
-
-	return element;
-}
-
-Element *
-list_append(list, element)
-List	**list;
-Element	*element;
-{
-	List	*new, *lp;
-
-	lp = *list;
-	if (lp == NIL)
-		return list_push(list, element);
-
-	while (lp->cdr != NIL)
-		lp = lp->cdr;
-	new = list_new();
-	lp->cdr = new;
-	new->car = element;
-
-	return element;
-}
-
-Element *
-list_find(list, element)
-List	*list;
-Element	*element;
-{
-	while (list != NIL)
-		if (list->car == element)
-			return element;
-	return NIL;
-}
-#endif	/* NEVER */

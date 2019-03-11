@@ -11,40 +11,58 @@
 # But if you want to recover buffers on system crashes, you should create a
 # directory that doesn't get cleaned upon reboot, and use that instead.
 # You would probably want to clean out that directory periodically with
-# /etc/cron.  
+# /etc/cron.
+# RECDIR is the directory in which RECOVER looks for JOVE's tempfiles.
 #
-# SHAREDIR is for online documentation, and the system-wide .joverc file.  
-# LIBDIR is for the PORTSRV and KBD processes and RECOVER. 
-# BINDIR is where to put the executables JOVE and TEACHJOVE.  
-# MANDIR is where the manual pages go for JOVE, RECOVER and TEACHJOVE.  
+# JOVEHOME is the directory in which pieces of JOVE are kept.  It is only used
+#	in the default definitions of SHAREDIR, LIBDIR, BINDIR, and MANDIR.
+# SHAREDIR is for online documentation, and the system-wide .joverc file.
+# LIBDIR is for the PORTSRV and RECOVER programs.
+# BINDIR is where to put the executables JOVE and TEACHJOVE.
+# MANDIR is where the manual pages go for JOVE, RECOVER and TEACHJOVE.
 # MANEXT is the extension for the man pages, e.g., jove.1 or jove.l or jove.m.
+# DFLTSHELL is the default shell invoked by JOVE and TEACHJOVE.
+#
+# If they don't exist, this makefile will try to create the directories
+# LIBDIR and SHAREDIR.  All others must already exist.
 
-DESTDIR =
-HOME = /local
-
+SHELL = /bin/sh
 TMPDIR = /tmp
-RECDIR = /tmp
-SHAREDIR = $(HOME)/share/jove
-LIBDIR = $(HOME)/lib/jove
-BINDIR = $(HOME)/bin
-MANDIR = $(HOME)/man/man$(MANEXT)
+RECDIR = /usr/preserve
+
+JOVEHOME = /local
+SHAREDIR = $(JOVEHOME)/lib/jove
+LIBDIR = $(JOVEHOME)/lib/jove
+BINDIR = $(JOVEHOME)/bin
+MANDIR = $(JOVEHOME)/man/man$(MANEXT)
 MANEXT = 1
-JSHELL = /bin/csh
+DFLTSHELL = /bin/csh
+
+# to install executable files
+XINSTALL=cp
+#XINSTALL=install -c -m 755 # -s
+# to install text files
+TINSTALL=cp
+#TINSTALL=install -c -m 644
 
 PROG = jove
 VERSION = 4.14
 
 # These should all just be right if the above ones are.
-JOVE = $(DESTDIR)$(BINDIR)/jove
-TEACHJOVE = $(DESTDIR)$(BINDIR)/teachjove
-RECOVER = $(DESTDIR)$(LIBDIR)/recover
-PORTSRV = $(DESTDIR)$(LIBDIR)/portsrv
-KBD = $(DESTDIR)$(LIBDIR)/kbd
-JOVERC = $(DESTDIR)$(SHAREDIR)/jove.rc
-CMDS.DOC = $(DESTDIR)$(SHAREDIR)/cmds.doc
-TEACH-JOVE = $(DESTDIR)$(SHAREDIR)/teach-jove
-JOVEM = $(DESTDIR)$(MANDIR)/jove.$(MANEXT)
-TEACHJOVEM = $(DESTDIR)$(MANDIR)/teachjove.$(MANEXT)
+JOVE = $(BINDIR)/jove
+TEACHJOVE = $(BINDIR)/teachjove
+RECOVER = $(LIBDIR)/recover
+PORTSRV = $(LIBDIR)/portsrv
+JOVERC = $(SHAREDIR)/jove.rc
+CMDS.DOC = $(SHAREDIR)/cmds.doc
+TEACH-JOVE = $(SHAREDIR)/teach-jove
+JOVEM = $(MANDIR)/jove.$(MANEXT)
+TEACHJOVEM = $(MANDIR)/teachjove.$(MANEXT)
+
+# Select optimization level (flags passed to compiling and linking steps).
+# On most systems, -g for debugging, -O for optimization.
+
+OPTFLAGS = -g
 
 # Select the right libraries for your system.
 #	2.10BSD:LIBS = -ltermcap
@@ -54,7 +72,9 @@ TEACHJOVEM = $(DESTDIR)$(MANDIR)/teachjove.$(MANEXT)
 #	4.3BSD:	LIBS = -ltermcap
 #	SysV Rel. 2: LIBS = -lcurses
 #	SCO Xenix: LIBS = -ltermcap -lx
-#	MIPS: -lbsd
+#	SCO: LIBS = -lcurses
+#	AIX on the R6000s: LIBS = -lcurses
+#	MIPS: LIBS = -ltermcap
 
 LIBS = -ltermcap
 
@@ -65,36 +85,57 @@ LIBS = -ltermcap
 #	4.3BSD:	LDFLAGS =
 #	SysV Rel. 2: LDFLAGS = -Ml
 #	SCO Xenix: LDFLAGS = -Ml -F 3000
+#	SCO Unix: LDFLAGS = 
 #
-# SEPFLAG should be:
-#	not on a PDP-11:		SEPFLAG =
-#	PDP-11 with separate I&D:	SEPFLAG = -i
-#	PDP-11 without separate I&D:	SEPFLAG = -n
-#
+# To optimize the use of the address spaces, add to the LDFLAGS:
+#	PDP-11 with separate I&D: -i
+#	PDP-11 without separate I&D: -n
+
 
 LDFLAGS =
 
-SEPFLAG =
-
-# define a symbol for your OS if it hasn't got one. sysdep.h tries to
-# use cpp predefined symbols to decide on the appropriate behaviour
-# in most cases. Exceptions are
+# define a symbol for your OS if it hasn't got one.  See sysdep.h.
+# Jove has very few defaults, you will almost certainly need to define
+# *something*.
+#
+#	BSDI, 386BSD, BSD4.4		SYSDEFS=-DBSDPOSIX
+#	BSD4.2,4.3			SYSDEFS=-DBSD4
 # 	Apple A/UX on macIIs 		SYSDEFS=-DA_UX
-#	SunOS4.0			SYSDEFS=-DSUNOS4
-#	A system V system that doesn't
-#	define one of SVR2,SVR3,SYSV	SYSDEFS=-DSYSV
+#	SunOS3.x			SYSDEFS=-DSUNOS3
+#	SunOS4.0*			SYSDEFS=-DSUNOS40
+#	SunOS4.1*			SYSDEFS=-DSUNOS41
+#	SunOS5.0/Solaris 2.0		SYSDEFS=-DSUNOS5
+#	Ultrix 4.2			SYSDEFS=-DBSDPOSIX
+#	MIPS RiscOS4.x			SYSDEFS=-systype bsd43 -DBSD4
+#	Irix 3.3 onwards		SYSDEFS=-DIRIX4
+#	SCO Unix			SYSDEFS=-DSCO
+#	IBM RS6000s			SYSDEFS=-DAIX -D_BSD -D_BSD_INCLUDES -D_NO_PROTO
+#	Sys V Release 4			SYSDEFS=-DSYSVR4
+#	Sys III, Sys V R 2,3		SYSDEFS=-DSYSV
+#
+# Some of the MIPS based Ultrix (upto 4.2 at least), RiscOS and Irix (upto
+# 3.3 at least) also need -DMIPS_CC_BUG.
+#
+# Add -DUSE_EXIT if you're profiling or using purify (this causes Jove
+# to exit using exit(), instead of _exit()).
 #
 # You can just say 'make SYSDEFS=-Dwhatever' on these systems.
-# 
+
 SYSDEFS = 
 
 # for SCO Xenix, set
 #	MEMFLAGS = -Mle
 #	CFLAGS = -LARGE -O -F 3000 -K -Mle  (say -Mle2 for an 80286)
-# for MIPS, set
-#	CFLAGS = -O -I/usr/include/bsd
 
-CFLAGS = -O $(SYSDEFS)
+CFLAGS = $(OPTFLAGS) $(SYSDEFS)
+
+# For SVR4 (/usr/ucb/cc will NOT work because of setjmp.h).
+# CC = /usr/bin/cc
+
+# Load invocation of cc.
+# LDCC = purify $(CC)
+
+LDCC = $(CC)
 
 # For cross compiling Jove, set CC to the cross compiler, and LOCALCC
 # to the local C compiler. LOCALCC will be used for compiling setmaps,
@@ -106,30 +147,33 @@ LOCALCC = $(CC)
 LOCALCFLAGS = $(CFLAGS)	# $(MEMFLAGS)
 LOCALLDFLAGS = $(LDFLAGS)
 
-BASESEG = funcdefs.o keys.o argcount.o ask.o buf.o ctype.o delete.o \
-	  disp.o insert.o io.o jove.o marks.o misc.o re.o screen.o \
-	  tune.o util.o vars.o version.o list.o keymaps.o
+BASESEG = commands.o keys.o argcount.o ask.o buf.o ctype.o delete.o \
+	  disp.o insert.o io.o jove.o loadavg.o marks.o misc.o re.o \
+	  screen.o ttystate.o tune.o util.o vars.o list.o keymaps.o
 OVLAY1 = abbrev.o rec.o paragraph.o fmt.o
 OVLAY2 = c.o wind.o fp.o move.o
 OVLAY3 = extend.o macros.o
-OVLAY4 = iproc.o re1.o
+OVLAY4 = iproc.o reapp.o
 OVLAY5 = proc.o scandir.o term.o case.o
 
 OBJECTS = $(BASESEG) $(OVLAY1) $(OVLAY2) $(OVLAY3) $(OVLAY4) $(OVLAY5)
 
-C_SRC = funcdefs.c abbrev.c argcount.c ask.c buf.c c.c case.c ctype.c \
+C_SRC = commands.c commands.tab abbrev.c argcount.c ask.c buf.c c.c case.c ctype.c \
 	delete.c disp.c extend.c fp.c fmt.c insert.c io.c iproc.c \
-	jove.c list.c macros.c marks.c misc.c move.c paragraph.c \
-	proc.c re.c re1.c rec.c scandir.c screen.c term.c util.c \
-	vars.c version.c wind.c getch.c mac.c keymaps.c pcscr.c
+	jove.c list.c loadavg.c macros.c marks.c misc.c move.c paragraph.c \
+	proc.c re.c reapp.c rec.c scandir.c screen.c term.c ttystate.c util.c \
+	vars.c vars.tab wind.c getch.c mac.c keymaps.c pcscr.c
 
-SOURCES = $(C_SRC) portsrv.c recover.c setmaps.c teachjove.c kbd.c
+SOURCES = $(C_SRC) portsrv.c recover.c setmaps.c teachjove.c
 
-HEADERS = argcount.h buf.h chars.h ctype.h dataobj.h disp.h \
-	externs.h fp.h io.h iproc.h jove.h keymaps.h list.h mac.h \
-	re.h rec.h scandir.h screen.h style.h sysdep.h temp.h termcap.h \
-	ttystate.h tune.h util.h vars.h wait.h wind.h
-
+HEADERS = abbrev.h argcount.h ask.h buf.h c.h case.h chars.h commands.h \
+	ctype.h dataobj.h delete.h disp.h extend.h externs.h \
+	fmt.h fp.h getch.h insert.h io.h iproc.h jove.h \
+	keymaps.h list.h loadavg.h mac.h macros.h marks.h \
+	misc.h move.h paragraph.h pcscr.h proc.h \
+	re.h reapp.h rec.h scandir.h screen.h select.h \
+	sysdep.h sysprocs.h temp.h term.h termcap.h ttystate.h \
+	tune.h util.h vars.h version.h wind.h
 
 DOCS1 =	doc/example.rc doc/jove.1 doc/jove.2 doc/jove.3 \
 	doc/jove.4 doc/jove.5 doc/jove.nr doc/system.rc \
@@ -138,15 +182,17 @@ DOCS2 = doc/cmds.doc.nr
 DOCS3 = doc/joveman doc/cmds.doc doc/manpage
 DOCS = $(DOCS1) $(DOCS2)
 
-MISC = Makefile Makefile.dos tune.dos tune.template README Readme.dos \
-	Readme.mac iproc-pipes.c iproc-ptys.c
+MISC = Makefile Makefile.dos Makefile.zor \
+	tune.dos tune.template \
+	README Readme.dos Readme.mac sysdep.doc tune.doc \
+	iproc-pipes.c iproc-ptys.c
 
-SUPPORT = teachjove.c recover.c setmaps.c portsrv.c kbd.c keys.txt \
+SUPPORT = teachjove.c recover.c setmaps.c portsrv.c keys.txt \
 	macvert.c menumaps.txt mjovers.Hqx
 
 BACKUPS = $(HEADERS) $(C_SRC) $(DOCS) $(SUPPORT) $(MISC)
 
-all:	sdate xjove recover teachjove portsrv kbd macvert edate
+all:	sdate xjove recover teachjove portsrv macvert doc/cmds.doc edate
 
 sdate:
 	@echo "**** make started at `date` ****"
@@ -155,7 +201,7 @@ edate:
 	@echo "**** make completed at `date` ****"
 
 xjove:	$(OBJECTS)
-	$(CC) $(LDFLAGS) -o xjove $(OBJECTS) $(LIBS)
+	$(LDCC) $(LDFLAGS) $(OPTFLAGS) -o xjove $(OBJECTS) $(LIBS)
 	@-size xjove
 
 gjove:	$(OBJECTS)
@@ -163,7 +209,7 @@ gjove:	$(OBJECTS)
 	@-size gjove
 
 ovjove:	$(OBJECTS)
-	ld $(SEPFLAG) $(LDFLAGS) -X /lib/crt0.o \
+	ld $(LDFLAGS) $(OPTFLAGS) -X /lib/crt0.o \
 		-Z $(OVLAY1) \
 		-Z $(OVLAY2) \
 		-Z $(OVLAY3) \
@@ -174,56 +220,55 @@ ovjove:	$(OBJECTS)
 	@-size xjove
 
 portsrv:	portsrv.o
-	$(CC) $(LDFLAGS) -o portsrv $(SEPFLAG) portsrv.o $(LIBS)
+	$(CC) $(LDFLAGS) $(OPTFLAGS) -o portsrv portsrv.o $(LIBS)
 
-kbd:	kbd.o
-	$(CC) $(LDFLAGS) -o kbd $(SEPFLAG) kbd.o $(LIBS)
+recover:	recover.o tune.o
+	$(CC) $(LDFLAGS) $(OPTFLAGS) -o recover recover.o tune.o $(LIBS)
 
-recover:	rectune.h recover.o tune.o rec.h temp.h
-	$(CC) $(LDFLAGS) -o recover $(SEPFLAG) recover.o tune.o $(LIBS)
+recover.o:	recover.c rectune.h rec.h temp.h
 
 teachjove:	teachjove.o
-	$(CC) $(LDFLAGS) -o teachjove $(SEPFLAG) teachjove.o $(LIBS)
-
-setmaps:	setmaps.o funcdefs.c
-	$(LOCALCC) $(LOCALLDFLAGS) -o setmaps setmaps.o
+	$(CC) $(LDFLAGS) $(OPTFLAGS) -o teachjove teachjove.o $(LIBS)
 
 teachjove.o:	teachjove.c /usr/include/sys/types.h /usr/include/sys/file.h
 	$(CC) -c $(CFLAGS) -DTEACHJOVE=\"$(TEACH-JOVE)\" teachjove.c
 
 # don't optimize setmaps.c because it produces bad code in some places
 # for some reason
-setmaps.o:	funcdefs.c keys.txt
+
+setmaps:	setmaps.o
+	$(LOCALCC) $(LOCALLDFLAGS) -o setmaps setmaps.o
+
+setmaps.o:	setmaps.c commands.tab vars.tab
 	$(LOCALCC) $(LOCALCFLAGS) -c setmaps.c
 
-# ignore error messages from setmaps
-# it doesn't understand ifdefs
+# Ignore warning messages from setmaps:
+# it doesn't understand ifdefs.
 
 keys.c:	setmaps keys.txt
-	-./setmaps < keys.txt > keys.c
+	./setmaps < keys.txt > keys.c
 
 keys.o:	keys.c jove.h
 
 tune.c: Makefile tune.template
 	-rm -f tune.c
-	@echo "/* Changes should be made in Makefile, not to this file! */" > tune.c
-	@echo "" >> tune.c
-	@sed -e 's;TMPDIR;$(TMPDIR);' \
-	     -e 's;LIBDIR;$(LIBDIR);' \
-	     -e 's;SHAREDIR;$(SHAREDIR);' \
-	     -e 's;BINDIR;$(BINDIR);' \
-	     -e 's;SHELL;$(DFLTSHELL);' tune.template >> tune.c
+	echo "/* Changes should be made in Makefile, not to this file! */" > tune.c
+	echo "" >> tune.c
+	sed -e 's;<TMPDIR>;$(TMPDIR);' \
+	     -e 's;<LIBDIR>;$(LIBDIR);' \
+	     -e 's;<SHAREDIR>;$(SHAREDIR);' \
+	     -e 's;<BINDIR>;$(BINDIR);' \
+	     -e 's;<SHELL>;$(DFLTSHELL);' tune.template >> tune.c
 
 rectune.h: Makefile
-	-rm -f nrectune.h
-	@echo "/* Changes should be made in Makefile, not to this file! */" > nrectune.h
-	@echo "" >> nrectune.h
-	@echo \#define TMP_DIR \"$(TMPDIR)\" >> nrectune.h
-	@echo \#define REC_DIR \"$(RECDIR)\" >> nrectune.h
-	-cmp -s nrectune.h rectune.h || (rm -f rectune.h; cp nrectune.h rectune.h)
+	-rm -f rectune.h
+	@echo "/* Changes should be made in Makefile, not to this file! */" > rectune.h
+	@echo "" >> rectune.h
+	@echo \#define TMP_DIR \"$(TMPDIR)\" >> rectune.h
+	@echo \#define REC_DIR \"$(RECDIR)\" >> rectune.h
 
 iproc.o: iproc-ptys.c iproc-pipes.c iproc.c
-	$(CC) -c $(CFLAGS) iproc.c
+	$(CC) $(CFLAGS) -c iproc.c
 
 macvert:	macvert.c
 	$(CC) $(CFLAGS) -o macvert macvert.c
@@ -232,55 +277,56 @@ macvert:	macvert.c
 
 install: $(LIBDIR) $(SHAREDIR) \
 	 $(TEACH-JOVE) $(CMDS.DOC) $(JOVERC) \
-	 $(PORTSRV) $(KBD) $(RECOVER) $(JOVE) $(TEACHJOVE) $(JOVEM) \
+	 $(PORTSRV) $(RECOVER) $(JOVE) $(TEACHJOVE) $(JOVEM) \
 	 $(RECOVERM) $(TEACHJOVEM)
 	@echo See the README about changes to /etc/rc or /etc/rc.local
 	@echo so that the system recovers jove files on reboot after a crash
 
-$(DESTDIR)$(LIBDIR)::
-	-mkdir $(DESTDIR)$(LIBDIR)
+$(LIBDIR)::
+	[ -d $(LIBDIR) ] || mkdir $(LIBDIR)
 
-$(DESTDIR)$(SHAREDIR)::
-	-mkdir $(DESTDIR)$(SHAREDIR)
+$(SHAREDIR)::
+	[ -d $(SHAREDIR) ] || mkdir $(SHAREDIR)
 
 $(TEACH-JOVE): doc/teach-jove
-	install -c -m 644 doc/teach-jove $(TEACH-JOVE)
+	$(TINSTALL) doc/teach-jove $(TEACH-JOVE)
 
 doc/cmds.doc:	doc/cmds.doc.nr doc/jove.4 doc/jove.5
 	nroff doc/cmds.doc.nr doc/jove.4 doc/jove.5 > doc/cmds.doc
 
 $(CMDS.DOC): doc/cmds.doc
-	install -c -m 644 doc/cmds.doc $(CMDS.DOC)
+	$(TINSTALL) doc/cmds.doc $(CMDS.DOC)
 
 $(JOVERC): doc/system.rc
-	install -c -m 644 doc/system.rc $(JOVERC)
+	$(TINSTALL) doc/system.rc $(JOVERC)
 
 $(PORTSRV): portsrv
-	install -c -s -m 755 portsrv $(PORTSRV)
-
-$(KBD): kbd
-	install -c -s -m 755 kbd $(KBD)
+	$(XINSTALL) portsrv $(PORTSRV)
 
 $(RECOVER): recover
-	install -c -s -m 755 recover $(RECOVER)
+	$(XINSTALL) recover $(RECOVER)
 
 $(JOVE): xjove
-	install -c -m 755 xjove $(JOVE)
+	$(XINSTALL) xjove $(JOVE)
 
 $(TEACHJOVE): teachjove
-	install -c -s -m 755 teachjove $(TEACHJOVE)
+	$(XINSTALL) teachjove $(TEACHJOVE)
 
 $(JOVEM): doc/jove.nr
-	@sed -e 's;TMPDIR;$(TMPDIR);' \
-	     -e 's;LIBDIR;$(LIBDIR);' \
-	     -e 's;SHELL;$(DFLTSHELL);' doc/jove.nr > /tmp/jove.nr
-	install -m 644 /tmp/jove.nr $(JOVEM)
+	@sed -e 's;<TMPDIR>;$(TMPDIR);' \
+	     -e 's;<LIBDIR>;$(LIBDIR);' \
+	     -e 's;<SHAREDIR>;$(SHAREDIR);' \
+	     -e 's;<SHELL>;$(DFLTSHELL);' doc/jove.nr > /tmp/jove.nr
+	$(TINSTALL) /tmp/jove.nr $(JOVEM)
+	rm /tmp/jove.nr
 
 $(TEACHJOVEM): doc/teachjove.nr
-	@sed -e 's;TMPDIR;$(TMPDIR);' \
-	     -e 's;LIBDIR;$(LIBDIR);' \
-	     -e 's;SHELL;$(DFLTSHELL);' doc/teachjove.nr > /tmp/teachjove.nr
-	install -m 644 /tmp/teachjove.nr $(TEACHJOVEM)
+	@sed -e 's;<TMPDIR>;$(TMPDIR);' \
+	     -e 's;<LIBDIR>;$(LIBDIR);' \
+	     -e 's;<SHAREDIR>;$(SHAREDIR);' \
+	     -e 's;<SHELL>;$(DFLTSHELL);' doc/teachjove.nr > /tmp/teachjove.nr
+	$(TINSTALL) /tmp/teachjove.nr $(TEACHJOVEM)
+	rm /tmp/teachjove.nr
 
 echo:
 	@echo $(C-FILES) $(HEADERS)
@@ -289,7 +335,7 @@ lint:
 	lint -n $(C_SRC) tune.c keys.c
 	@echo Done
 
-tags:
+tags:	$(C_SRC) $(HEADERS) iproc-ptys.c
 	ctags -w $(C_SRC) $(HEADERS) iproc-ptys.c
 
 ciall:
@@ -302,12 +348,9 @@ jove.shar:
 	shar $(BACKUPS) > jove.shar
 
 tar:
-	cd ..; ls -d `cat $(PROG)$(VERSION)/Exclude | \
-		sed 's,^,$(PROG)$(VERSION)/,'` > /tmp/tar$$$$.exclude ; \
-	rm -f /tmp/$(PROG)$(VERSION).tar.Z ; \
-	tar cvfX - /tmp/tar$$$$.exclude $(PROG)$(VERSION) | \
-		compress > /tmp/$(PROG)$(VERSION).tar.Z ; \
-	rm -f /tmp/tar$$$$.exclude
+	@tar cvf - `find . -type f -print | \
+		egrep -v '(,v|\.o|xjove|portsrv|setmaps|~)$$' | \
+		sort`
 
 backup: $(BACKUPS)
 	tar cf backup $(BACKUPS)
@@ -326,14 +369,17 @@ touch:
 	touch $(OBJECTS)
 
 clean:
-	rm -f a.out core *.o keys.c tune.c xjove portsrv kbd recover setmaps \
-	teachjove macvert nrectune.h rectune.h
+	rm -f a.out core *.o keys.c tune.c xjove portsrv recover setmaps \
+	teachjove macvert rectune.h \#* *~ make.log doc/cmds.doc \
+	xjove.pure_* tags ID
+
+clobber: clean
+	rm -f *.orig *.rej
 
 # This version only works under 4.3BSD
 depend:
 	@echo '"make depend" only works under 4.3BSD'
 	sed -e '/^# DO NOT DELETE THIS LINE/q' Makefile >Makefile.new
-	echo '# DO NOT DELETE THIS LINE -- "make depend" uses it' >>Makefile.new
 	for i in ${SOURCES} ; do \
 		cc -M ${CFLAGS} $$i | \
 		awk ' /[/]usr[/]include/ { next } \
@@ -349,128 +395,6 @@ depend:
 	@echo 'New makefile is in "Makefile.new".  Move it to "Makefile".'
 
 # DO NOT DELETE THIS LINE -- "make depend" uses it
-funcdefs.o: funcdefs.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h
-funcdefs.o: ./iproc.h ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h
-funcdefs.o: ./screen.h ./style.h ./externs.h ./ctype.h
-abbrev.o: abbrev.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h
-abbrev.o: ./iproc.h ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h
-abbrev.o: ./screen.h ./style.h ./externs.h ./fp.h ./ctype.h
-argcount.o: argcount.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h
-argcount.o: ./iproc.h ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h
-argcount.o: ./screen.h ./style.h ./externs.h
-ask.o: ask.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
-ask.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
-ask.o: ./style.h ./externs.h ./termcap.h ./ctype.h ./chars.h ./disp.h
-buf.o: buf.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
-buf.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
-buf.o: ./style.h ./externs.h ./ctype.h ./disp.h
-c.o: c.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
-c.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
-c.o: ./style.h ./externs.h ./re.h ./ctype.h
-case.o: case.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
-case.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
-case.o: ./style.h ./externs.h ./disp.h ./ctype.h
-ctype.o: ctype.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
-ctype.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
-ctype.o: ./style.h ./externs.h ./ctype.h
-delete.o: delete.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h
-delete.o: ./iproc.h ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h
-delete.o: ./screen.h ./style.h ./externs.h ./disp.h
-disp.o: disp.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
-disp.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
-disp.o: ./style.h ./externs.h ./ctype.h ./termcap.h ./chars.h ./fp.h ./disp.h
-extend.o: extend.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h
-extend.o: ./iproc.h ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h
-extend.o: ./screen.h ./style.h ./externs.h ./fp.h ./termcap.h ./ctype.h
-extend.o: ./chars.h ./disp.h
-fp.o: fp.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
-fp.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
-fp.o: ./style.h ./externs.h ./fp.h ./ctype.h ./termcap.h
-fmt.o: fmt.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
-fmt.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
-fmt.o: ./style.h ./externs.h ./fp.h ./termcap.h ./ctype.h ./disp.h
-insert.o: insert.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h
-insert.o: ./iproc.h ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h
-insert.o: ./screen.h ./style.h ./externs.h ./ctype.h ./list.h ./chars.h
-insert.o: ./disp.h
-io.o: io.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
-io.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
-io.o: ./style.h ./externs.h ./list.h ./fp.h ./termcap.h ./ctype.h ./disp.h
-io.o: ./io.h ./temp.h
-iproc.o: iproc.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
-iproc.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
-iproc.o: ./style.h ./externs.h ./re.h ./ctype.h ./disp.h ./iproc-ptys.c
-iproc.o: ./wait.h ./ttystate.h
-jove.o: jove.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
-jove.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
-jove.o: ./style.h ./externs.h ./fp.h ./termcap.h ./ctype.h ./chars.h ./disp.h
-jove.o: ./ttystate.h
-list.o: list.c ./list.h ./tune.h ./sysdep.h
-macros.o: macros.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h
-macros.o: ./iproc.h ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h
-macros.o: ./screen.h ./style.h ./externs.h ./ctype.h ./fp.h ./chars.h ./disp.h
-marks.o: marks.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
-marks.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
-marks.o: ./style.h ./externs.h
-misc.o: misc.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
-misc.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
-misc.o: ./style.h ./externs.h ./ctype.h
-move.o: move.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
-move.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
-move.o: ./style.h ./externs.h ./re.h ./ctype.h
-paragraph.o: paragraph.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h
-paragraph.o: ./iproc.h ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h
-paragraph.o: ./screen.h ./style.h ./externs.h
-proc.o: proc.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
-proc.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
-proc.o: ./style.h ./externs.h ./ctype.h ./fp.h ./re.h ./termcap.h ./wait.h
-re.o: re.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
-re.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
-re.o: ./style.h ./externs.h ./re.h ./ctype.h
-re1.o: re1.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
-re1.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
-re1.o: ./style.h ./externs.h ./fp.h ./re.h ./ctype.h ./chars.h ./disp.h
-rec.o: rec.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
-rec.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
-rec.o: ./style.h ./externs.h ./fp.h ./rec.h
-scandir.o: scandir.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h
-scandir.o: ./iproc.h ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h
-scandir.o: ./screen.h ./style.h ./externs.h
-screen.o: screen.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h
-screen.o: ./iproc.h ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h
-screen.o: ./screen.h ./style.h ./externs.h ./fp.h ./ctype.h ./termcap.h
-screen.o: ./disp.h
-term.o: term.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
-term.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
-term.o: ./style.h ./externs.h ./fp.h ./termcap.h
-util.o: util.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
-util.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
-util.o: ./style.h ./externs.h ./ctype.h ./termcap.h ./disp.h
-vars.o: vars.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
-vars.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
-vars.o: ./style.h ./externs.h
-version.o: version.c
-wind.o: wind.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
-wind.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
-wind.o: ./style.h ./externs.h ./termcap.h ./chars.h ./disp.h
-getch.o: getch.c ./tune.h ./sysdep.h
-mac.o: mac.c ./tune.h ./sysdep.h
-keymaps.o: keymaps.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h
-keymaps.o: ./iproc.h ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h
-keymaps.o: ./screen.h ./style.h ./externs.h ./list.h ./fp.h ./termcap.h
-keymaps.o: ./chars.h
-pcscr.o: pcscr.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
-pcscr.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
-pcscr.o: ./style.h ./externs.h
-portsrv.o: portsrv.c ./tune.h ./sysdep.h
-recover.o: recover.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h
-recover.o: ./iproc.h ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h
-recover.o: ./screen.h ./style.h ./externs.h ./temp.h ./rec.h ./ctype.h
-setmaps.o: setmaps.c ./funcdefs.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h
-setmaps.o: ./io.h ./iproc.h ./dataobj.h ./keymaps.h ./argcount.h ./util.h
-setmaps.o: ./vars.h ./screen.h ./style.h ./externs.h ./ctype.h
-teachjove.o: teachjove.c
-kbd.o: kbd.c ./tune.h ./sysdep.h
 # DEPENDENCIES MUST END AT END OF FILE
 # IF YOU PUT STUFF HERE IT WILL GO AWAY
-# see make depend above
+# see "make depend" above

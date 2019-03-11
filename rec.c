@@ -7,9 +7,11 @@
 
 #include "jove.h"
 #include "fp.h"
+#include "sysprocs.h"
 #include "rec.h"
+#include "fmt.h"
 
-#ifndef MAC
+#if	!defined(MAC) && !defined(ZORTECH)
 #	include <sys/file.h>
 #endif
 
@@ -17,7 +19,7 @@ private int	rec_fd = -1;
 private char	*recfname;
 private File	*rec_out;
 
-#ifndef L_SET
+#ifndef	L_SET
 #	define L_SET 0
 #endif
 
@@ -28,11 +30,7 @@ recinit()
 {
 	char	buf[128];
 
-#ifdef MAC
-	swritef(buf, "%s/%s", HomeDir, p_tempfile);
-#else
-	swritef(buf, "%s/%s", TmpFilePath, p_tempfile);
-#endif
+	swritef(buf, sizeof(buf), "%s/%s", TmpFilePath, p_tempfile);
 	recfname = copystr(buf);
 	recfname = mktemp(recfname);
 	rec_fd = creat(recfname, 0644);
@@ -44,20 +42,36 @@ recinit()
 	rec_out = fd_open(recfname, F_WRITE|F_LOCKED, rec_fd, iobuff, LBSIZE);
 
 	/* Initialize the record header. */
+#ifdef UNIX
 	Header.Uid = getuid();
 	Header.Pid = getpid();
+#endif
 	Header.UpdTime = 0L;
 	Header.Nbuffers = 0;
-	(void) write(rec_fd, (char *) &Header, sizeof Header);
+	(void) write(rec_fd, (UnivPtr) &Header, sizeof Header);
 }
 
+/* Close recfile before execing a child process.
+ * Since we might be vforking, we must not change any variables
+ * (in particular rec_fd).
+ */
 void
 recclose()
 {
 	if (rec_fd == -1)
 		return;
 	(void) close(rec_fd);
-	rec_fd = -1;
+}
+
+/* Close and remove recfile before exiting. */
+
+
+void
+recremove()
+{
+	if (rec_fd == -1)
+		return;
+	recclose();
 	(void) unlink(recfname);
 }
 
@@ -90,7 +104,7 @@ register Buffer	*b;
 {
 	register Line	*lp;
 
-	for (lp = b->b_first; lp != 0; lp = lp->l_next)
+	for (lp = b->b_first; lp != NULL; lp = lp->l_next)
 		putaddr(lp->l_dline, rec_out);
 }
 
@@ -104,7 +118,7 @@ register Buffer	*b;
 	register Line	*lp;
 	register int	nlines = 0;
 
-	for (lp = b->b_first; lp != 0; lp = lp->l_next, nlines++)
+	for (lp = b->b_first; lp != NULL; lp = lp->l_next, nlines++)
 		if (lp == b->b_dot)
 			record.r_dotline = nlines;
 	strcpy(record.r_fname, b->b_fname ? b->b_fname : NullStr);
@@ -122,9 +136,9 @@ void
 SyncRec()
 {
 	register Buffer	*b;
-	static int	beenhere = NO;
+	static bool	beenhere = NO;
 
-	if (beenhere == NO) {
+	if (!beenhere) {
 		beenhere = YES;
 		recinit();	/* Init recover file. */
 	}
@@ -133,7 +147,7 @@ SyncRec()
 	lseek(rec_fd, 0L, L_SET);
 	(void) time(&Header.UpdTime);
 	Header.Nbuffers = 0;
-	for (b = world; b != 0; b = b->b_next)
+	for (b = world; b != NULL; b = b->b_next)
 		if (b->b_type == B_SCRATCH || !IsModified(b))
 			continue;
 		else
@@ -143,18 +157,18 @@ SyncRec()
 	if (Header.Nbuffers != 0) {
 		lsave();	/* this makes things really right */
 		SyncTmp();
-		for (b = world; b != 0; b = b->b_next)
+		for (b = world; b != NULL; b = b->b_next)
 			if (b->b_type == B_SCRATCH || !IsModified(b))
 				continue;
 			else
 				dmp_buf_header(b);
-		for (b = world; b != 0; b = b->b_next)
+		for (b = world; b != NULL; b = b->b_next)
 			if (b->b_type == B_SCRATCH || !IsModified(b))
 				continue;
 			else
 				dmppntrs(b);
 	}
-	flush(rec_out);
+	flushout(rec_out);
 }
 
 /* Full Recover.  What we have to do is go find the name of the tmp

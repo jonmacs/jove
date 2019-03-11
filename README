@@ -13,13 +13,30 @@ MAKE automatically, and it will use the directories you specified in the
 Makefile.  (NOTE:  You should never edit tune.c directly because your
 changes will be undone by the next make.  If you want to make a change to
 a part of tune.c that isn't a directory name, you should edit
-tune.template.)  Next you must edit "tune.h" selecting the compile time
-options you care about.  See below for a description of all the compile
-time options.  You can type "make" to compile XJOVE, PORTSRV (this is
-compiled but not used on 4.2+ systems), RECOVER TEACHJOVE, and
-MACVERT.  NOTE:  make won't work if it fires up /bin/csh for the shell
-commands.  Test them out to see if they work.  If they do, type "make
-install" to install everything where it belongs.
+tune.template.)
+
+You need to set "SYSDEFS = " some symbol that defines your system, using
+the notation for a macro-setting flag to the C compiler.  For example, on
+a Sun running SunOS 4.0, use "SYSDEFS=-DSUNOS40".  You can use "grep
+System: sysdep.h" to find all currently supported system configs.  If
+there is no canned configuration for your system, you will have to define
+a new symbol and edit sysdep.h suitably.  See sysdep.doc for the possible
+set of system dependent aspects that you can select/tune.
+
+Next you must edit "tune.h" selecting the compile time features you care
+about.  See tune.doc for a description of all the compile time options.  The
+default options are quite reasonable, in most cases, you should leave them
+alone.  If you are really short on space, or are porting Jove to a new
+system, you may want to define -DBAREBONES in SYSDEFS to avoid some of the
+less-portable features of Jove initially.
+
+You can type "make" to compile XJOVE, PORTSRV (this is compiled on every
+system, but is only used if JOVE is compiled with the PIPEPROCS feature
+selection, typically on UNIX systems without pseudo ttys), RECOVER
+TEACHJOVE, and MACVERT.  NOTE:  make won't work if it fires up /bin/csh
+for the shell commands.  Test xjove to see if it works (remember that it
+won't be able to access its subsidiary files until they are installed).
+If it does, type "make install" to install everything where it belongs.
 
 Here are some things to consider for deciding where to put the tmp files.
 TMPDIR is where the tmp files get stored, usually /tmp or /tmp/jove.  If
@@ -50,95 +67,14 @@ want to avoid making JOVE huge.  For instance, if it's a new package type
 thing (say, like word abbrev. mode, or something) then it would be best
 if that were a compile-time option.  I will send out periodic updates to
 comp.sources.unix.  I will report all significant bug fixes there, and to
-net.emacs as well.
+comp.editors and comp.emacs as well.
 
-Here's a list of the compile time options and what they mean:
-
-ABBREV	   - Enables word-abbrev-mode which again is nice for paper writers.
-
-BACKUPFILES - This enables backing up files on write.  I guess lots of
-	      people like this feature.  It enables the feature but you
-	      can still control whether files are backed up with the
-	      make-backup-files variable.
-
-BIFF	   - This enables turning on and off BIFF so your screen doesn't
-	      get messed up with messages from BIFF.
-
-BSD4_2     - Obviously, if you're a Berkeley 4.2 system.
-
-BSD4_3	   - If you're running a Berkeley 4.3 or 2.10 system.
-	     This will automatically define BSD4_2, also.
-
-CHDIR	   - This enables the directory commands; PUSHD, POPD, DIRS and
-	      CD.  These simulate the csh commands exactly, I think.  As
-	      a side-effect, absolute path names are enabled, which means
-	      JOVE parses file names for "." and ".." and all that to get
-	      at what you REALLY mean.  It's nicer when this is enabled,
-	      but not essential.
-
-CMT_FMT	   - This enables code to format and indent C comments.
-
-ID_CHAR	   - Enables support for Insert/Delete character on terminals
-	     that have those capabilities.  Couple of problems with this code:
-	     it's large, takes up lots of I space which is a problem for the
-	     smaller computers (pdp11).  Also, it isn't particularly smart
-	     and sometimes does really stupid things.  It sometimes uses
-	     insert/delete character when simply redrawing would have been
-	     faster.  And if you look at code you'll understand why I don't
-	     like it all that much.
-
-IPROCS	   - Nice feature which lets you run interactive UNIX commands in
-	     windows.  In particular, there is a shell command built
-	     in which starts up an interactive shell in a window.  This works
-	     only on systems with JOB_CONTROL since it relies on the fancy
-	     signal mechanism.
-
-JOB_CONTROL - Versions of UNIX that have the job control facility.
-	      Berkeley 2.9-10 systems, and the 4.1-3 systems I know have
-	      job stopping, so if you're one of those, define
-	      this.  The reason MENLO_JCL is defined when JOB_CONTROL
-	      is that the 2.9 signal.h file only defines all of the job
-	      stopping signals only when MENLO_JCL is defined.
-
-LISP	   - Enables Lisp Mode.  This includes code to indent "properly"
-	     for Lisp code and new routines to move over s-expressions.
-	     You probably won't want (or need) this on PDP-11's.
-
-MY_MALLOC  - Use the older version of malloc that is more memory efficient
-	     than the newer 4BSD version.  The 4BSD version places more
-	     importance on the speed of the allocation than the amount of
-	     memory it uses.  Make your	choice ... JOVE hardly ever calls
-	     malloc, anyway, relatively speaking, since it allocates
-	     lines in big chunks.  NOTE: This doesn't seem to work on suns
-	     and the iAPX286.
-
-PIPEPROCS  - If NOT defined, JOVE will use Berkeley pseudo-ttys when
-	     doing interactive processes.  This is infinitely better,
-	     since you get job control and all that stuff on i-procs.
-	     If defined, the portsrv program will have to be made, and
-	     all communication between jove and i-procs will be done using
-	     pipes.
-
-RESHAPING  - This is for BRL or Berkeley 4.3 and 2.10 systems.  When the
-	     window size of the terminal jove is running in is changed
-	     a SIGWINCH is sent to all processes in the tty group.  This
-	     define enables code in jove to catch that signal and reshape
-	     its windows.
-
-SPELL	   - Enables the spell-buffer and parse-spelling-errors commands.
-	     They are nice especially if you have lots of paper writers.
-
-WIRED_TERMS - Include compiled-in hard-wired code for certain terminals,
-	     like the Concept 100.  If you don't have these terminals,
-	     you probably don't need this (but no point in taking it
-	     out unless you're low on space).
-
-The macros have been rewritten from scratch.  The most noteable change is
-that they are no longer stored in binary files.  The write-macros-to-file
-command writes a file which is suitable for use with the source command.
-So you can have actual macro definitions in your .joverc if you want.  If
-you have lots of macros defined in the old format, you can use the
-macvert program to convert them to the new style.  You say
+In Jove 4.8, the macros were rewritten from scratch.  The most noteable
+change is that they are no longer stored in binary files.  The
+write-macros-to-file command writes a file which is suitable for use with
+the source command.  So you can have actual macro definitions in your
+.joverc if you want.  If you have lots of macros defined in the old format,
+you can use the macvert program to convert them to the new style.  You say
 	macvert old-style-macros-file > new-style-macro-file
 
 "doc/system.rc" and "doc/example.rc" are jove initialization files.

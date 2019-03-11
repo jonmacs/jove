@@ -5,24 +5,15 @@
  * included in all the files.                                              *
  ***************************************************************************/
 
-typedef struct word	Word;
-typedef struct table	Table;
+/* MSDOS keyboard routines */
 
-struct word {
-	Word	*wd_next;
-	char	*wd_text;
-};
+#ifdef	MSDOS
 
-struct table {
-	Table	*t_next;
-	Word	*t_wordlist;
-};
+#ifdef	IBMPC
+extern int specialkey;
+#endif
 
-extern Table	*make_table();
-extern Word	*word_in_table();
+extern int	getrawinchar proto((void));
+extern bool	rawkey_ready proto((void));
 
-#define	table_top(table)	(table->t_wordlist)
-#define next_word(w)		(w->wd_next)
-#define last_word_p(w)		(w->wd_next == NIL)
-#define word_text(w)		(w->wd_text)
-#define word_length(w)		(strlen(word_text(w)))
+#endif	/* MSDOS */

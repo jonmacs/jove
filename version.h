@@ -5,15 +5,4 @@
  * included in all the files.                                              *
  ***************************************************************************/
 
-#define private		static
-#if !defined(NULL)
-# define NULL	0
-#endif
-#define NIL		0
-
-#define YES		1
-#define NO		0
-#define TRUE		1
-#define FALSE		0
-#define ON		1
-#define OFF		0
+#define	version	"4.14.10"

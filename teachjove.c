@@ -5,20 +5,17 @@
  * included in all the files.                                              *
  ***************************************************************************/
 
+#include "jove.h"
 #include <stdio.h>
-#include <sys/types.h>
-#include <sys/file.h>
 
-#ifndef TEACHJOVE
+#ifndef	TEACHJOVE
 #    define TEACHJOVE	"/usr/lib/jove/teach-jove"
 #endif
 
-#ifndef W_OK
+#ifndef	W_OK
 #   define W_OK	2
 #   define F_OK	0
 #endif
-
-extern char	*getenv();
 
 int
 main()
@@ -27,7 +24,7 @@ main()
 		fname[256],
 		*home;
 
-	if ((home = getenv("HOME")) == 0) {
+	if ((home = getenv("HOME")) == NULL) {
 		printf("teachjove: cannot find your home!\n");
 		exit(-1);
 	}
@@ -36,8 +33,7 @@ main()
 		(void) sprintf(cmd, "cp %s %s; chmod 644 %s", TEACHJOVE, fname, fname);
 		system(cmd);
 	}
-	(void) execlp("jove", "teachjove", fname, (char *) 0);
+	(void) execlp("jove", "teachjove", fname, (char *) NULL);
 	printf("teachjove: cannot execl jove!\n");
 	return 1;
 }
-

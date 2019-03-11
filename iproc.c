@@ -6,37 +6,103 @@
  ***************************************************************************/
 
 #include "jove.h"
-#include "termcap.h"
+#ifdef	IPROCS
+#include <signal.h>
+
 #include "re.h"
 #include "ctype.h"
 #include "disp.h"
-#if defined(IPROCS)
-# include "fp.h"
-# include "iproc.h"
-#endif
+#include "fp.h"
+#include "sysprocs.h"
+#include "iproc.h"
+#include "ask.h"
+#include "fmt.h"
+#include "insert.h"
+#include "marks.h"
+#include "move.h"
+#include "proc.h"
+#include "wind.h"
 
-#ifdef	STDARGS
-# include <stdarg.h>
-#else
-# include <varargs.h>
-#endif
+#ifdef	USE_KILLPG
+# ifndef FULL_UNISTD
+extern int	UNMACRO(killpg) proto((int /*pgrp*/, int /*sig*/));
+# endif
+#else /* !USE_KILLPG */
+#define killpg(pid, sig)	kill(-(pid), (sig))
+#endif /* USE_KILLPG */
 
-#ifdef IPROCS
+#include <errno.h>
 
 private void
+	jputenv proto((char *)),
 	proc_rec proto ((Process *, char *)),
 	proc_close proto ((Process *)),
 	proc_kill proto((Process *, int)),
 	SendData proto ((int));
 
-private SIGRESULT
-	proc_child proto((int));
+#define DEAD	1	/* dead but haven't informed user yet */
+#define STOPPED	2	/* job stopped */
+#define RUNNING	3	/* just running */
+#define NEW	4	/* brand new, never been ... received no input */
 
-#ifdef PIPEPROCS
+/* If process is dead, flags says how. */
+#define EXITED	1
+#define KILLED	2
+
+#define makedead(p)	{ proc_state((p)) = DEAD; }
+
+#define proc_buf(p)	((p)->p_buffer->b_name)
+#define proc_cmd(p)	((p)->p_name)
+#define proc_state(p)	((p)->p_state)
+
+private Process	*procs = NULL;
+
+#ifdef	PIPEPROCS
 #   include "iproc-pipes.c"
 #else
 #   include "iproc-ptys.c"
 #endif
+
+extern char **environ;
+
+private void
+jputenv(def)
+char *def;	/* Note: caller must ensure string persists */
+{
+	char	**p, *eq;
+	static int	headroom = -1;	/* trick: -1 is flag for first time */
+	
+	if ((eq = strchr(def, '=')) == NULL)
+		return;
+
+	for (p = environ; ; p++) {
+		if (*p == NULL) {
+			if (headroom <= 0) {
+#				define JENV_INCR	5
+				size_t	sz = ((p-environ) + 1) * sizeof(char *);
+				char	**ne = (char **)malloc(sz + JENV_INCR*sizeof(char *));
+
+				if (ne == NULL)
+					break;
+				byte_copy(environ, ne, sz);
+				p = ne + (p-environ);
+				if (headroom == 0)
+					free((UnivPtr)environ);
+				headroom = JENV_INCR;
+				environ = ne;
+#				undef JENV_INCR
+			}
+			headroom -= 1;
+			*p++ = def;
+			*p = NULL;
+			break;
+		}
+		if (strncmp(*p, def, (size_t) (eq - def)) == 0) {
+			*p = def;
+			break;
+		}
+	}
+}
 
 char	proc_prompt[128] = "% ";
 
@@ -55,12 +121,9 @@ Process	*p;
 		return "Running";
 
 	case DEAD:
-		if (p->p_howdied == EXITED) {
-			if (p->p_reason == 0)
-				return "Done";
-			return sprint("Exit %d", p->p_reason);
-		}
-		return sprint("Killed %d", p->p_reason);
+		return sprint(p->p_howdied == EXITED?
+			(p->p_reason == 0? "Done" : "Exit %d") : "Killed %d",
+			p->p_reason);
 
 	default:
 		return "Unknown state";
@@ -72,14 +135,11 @@ KillProcs()
 {
 	register Process	*p;
 	register int	killem = -1;		/* -1 means undetermined */
-	register char	*yorn;
 
-	for (p = procs; p != 0; p = p->p_next)
+	for (p = procs; p != NULL; p = p->p_next)
 		if (!isdead(p)) {
-			if (killem == -1) {
-				yorn = ask("y", "Should I kill your i-processes? ");
-				killem = (CharUpcase(*yorn) == 'Y');
-			}
+			if (killem == -1)
+				killem = yes_or_no_p("Should I kill your i-processes? ");
 			if (killem)
 				proc_kill(p, SIGKILL);
 		}
@@ -101,7 +161,7 @@ char	dbx_parse_fmt[128] = "line \\([0-9]*\\) in \\{file,\\} *\"\\([^\"]*\\)\"";
 void
 DBXpoutput()
 {
-	if (curbuf->b_process == 0)
+	if (curbuf->b_process == NULL)
 		complain("[Must be in a process buffer to enable dbx mode]");
 	curbuf->b_process->p_dbx_mode = !curbuf->b_process->p_dbx_mode;
 	UpdModLine = YES;
@@ -122,7 +182,7 @@ Mark	*m;
 	ToMark(m);
 	if (dosearch(dbx_parse_fmt, FORWARD, YES) != NULL) {
 		get_FL_info(fname, lineno);
-		buf = do_find((Window *) 0, fname, YES);
+		buf = do_find((Window *)NULL, fname, YES);
 		pop_wind(buf->b_name, NO, -1);
 		lnum = atoi(lineno);
 		SetLine(next_line(buf->b_first, lnum - 1));
@@ -149,14 +209,14 @@ char	*buf;
 		w = curwind;
 	else
 		w = windbp(p->p_buffer);	/* Is this window visible? */
-	if (w != 0)
+	if (w != NULL)
 		do_disp = (in_window(w, p->p_mark->m_line) != -1);
 	SetBuf(p->p_buffer);
 	savepoint = MakeMark(curline, curchar, M_FLOATER);
 	ToMark(p->p_mark);		/* where output last stopped */
 	if (savepoint->m_line == curline && savepoint->m_char == curchar)
 		sameplace = YES;
-	ins_str(buf, YES, WrapProcessLines ? CO : -1);
+	ins_str(buf, YES);
 	if (do_disp == YES && p->p_dbx_mode == YES)
 		watch_input(p->p_mark);
 	MarkSet(p->p_mark, curline, curchar);
@@ -193,13 +253,13 @@ free_proc(child)
 Process	*child;
 {
 	register Process	*p,
-				*prev = 0;
+				*prev = NULL;
 
 	if (!isdead(child))
 		return;
 	for (p = procs; p != child; prev = p, p = p->p_next)
 		;
-	if (prev == 0)
+	if (prev == NULL)
 		procs = child->p_next;
 	else
 		prev->p_next = child->p_next;
@@ -208,9 +268,9 @@ Process	*child;
 	/* It's possible that the buffer has been given another process
 	   between the time CHILD dies and CHILD's death is noticed (via
 	   list-processes).  So we only set it the buffer's process to
-	   0 if CHILD is still the controlling process. */
+	   NULL if CHILD is still the controlling process. */
 	if (child->p_buffer->b_process == child) {
-		child->p_buffer->b_process = 0;
+		child->p_buffer->b_process = NULL;
 	}
 	{
 		Buffer	*old = curbuf;
@@ -219,8 +279,8 @@ Process	*child;
 		DelMark(child->p_mark);
 		SetBuf(old);
 	}
-	free((char *) child->p_name);
-	free((char *) child);
+	free((UnivPtr) child->p_name);
+	free((UnivPtr) child);
 }
 
 void
@@ -231,17 +291,17 @@ ProcList()
 	char	*fmt = "%-15s  %-15s  %-8s %s",
 		pidstr[16];
 
-	if (procs == 0) {
+	if (procs == NULL) {
 		message("[No subprocesses]");
 		return;
 	}
-	TOstart("Process list", TRUE);
+	TOstart("Process list", YES);
 
 	Typeout(fmt, "Buffer", "Status", "Pid ", "Command");
 	Typeout(fmt, "------", "------", "--- ", "-------");
-	for (p = procs; p != 0; p = next) {
+	for (p = procs; p != NULL; p = next) {
 		next = p->p_next;
-		swritef(pidstr, "%d", p->p_pid);
+		swritef(pidstr, sizeof(pidstr), "%d", (int)p->p_pid);
 		Typeout(fmt, proc_buf(p), pstate(p), pidstr, p->p_name);
 		if (isdead(p)) {
 			free_proc(p);
@@ -283,7 +343,7 @@ register Mark	*mp;
 void
 ProcNewline()
 {
-#ifdef ABBREV
+#ifdef	ABBREV
 	MaybeAbbrevExpand();
 #endif
 	SendData(YES);
@@ -292,7 +352,7 @@ ProcNewline()
 void
 ProcSendData()
 {
-#ifdef ABBREV
+#ifdef	ABBREV
 	MaybeAbbrevExpand();
 #endif
 	SendData(NO);
@@ -327,8 +387,8 @@ int	newlinep;
 		   moving forward.  This is for people who accidently
 		   set their process-prompt to ">*" which will always
 		   match! */
-		while ((LookingAt(proc_prompt, linebuf, curchar)) &&
-		       (REeom > curchar))
+		while (LookingAt(proc_prompt, linebuf, curchar)
+		&& (REeom > curchar))
 			curchar = REeom;
 		MarkSet(p->p_mark, curline, curchar);
 		SetDot(&bp);
@@ -353,13 +413,13 @@ int	newlinep;
 		   saying? */
 		Bol();
 		if (LookingAt(proc_prompt, linebuf, curchar)) {
-			do
+			do {
 				curchar = REeom;
-			while ((LookingAt(proc_prompt, linebuf, curchar)) &&
-			       (REeom > curchar));
+			} while (LookingAt(proc_prompt, linebuf, curchar)
+			&& (REeom > curchar));
 			strcpy(genbuf, linebuf + curchar);
 			Eof();
-			ins_str(genbuf, NO, -1);
+			ins_str(genbuf, NO);
 		} else {
 			strcpy(genbuf, linebuf + curchar);
 			Eof();
@@ -369,7 +429,7 @@ int	newlinep;
 				lp += 1;
 				gp += 1;
 			}
-			ins_str(gp, NO, -1);
+			ins_str(gp, NO);
 		}
 	}
 }
@@ -381,8 +441,8 @@ ShellProc()
 	register Buffer	*b;
 
 	b = buf_exists(shbuf);
-	if (b == 0 || isdead(b->b_process))
-		proc_strt(shbuf, NO, Shell, "-i", (char *) 0);
+	if (b == NULL || isdead(b->b_process))
+		proc_strt(shbuf, NO, Shell, "-i", (char *)NULL);
 	pop_wind(shbuf, NO, -1);
 }
 
@@ -399,35 +459,20 @@ Iprocess()
 	null_ncpy(ShcomBuf, command, (sizeof ShcomBuf) - 1);
 	bnm = MakeName(command);
 	strcpy(scratch, bnm);
-	while ((bp = buf_exists(scratch)) != NIL && !isdead(bp->b_process))
-		swritef(scratch, "%s.%d", bnm, cnt++);
-	proc_strt(scratch, YES, Shell, ShFlags, command, (char *) 0);
+	while ((bp = buf_exists(scratch)) != NULL && !isdead(bp->b_process))
+		swritef(scratch, sizeof(scratch), "%s.%d", bnm, cnt++);
+	proc_strt(scratch, YES, Shell, ShFlags, command, (char *)NULL);
 }
 
-private SIGRESULT
-proc_child(junk)
-int	junk;	/* needed for signal handler; not used */
-{
-	union wait	w;
-	register int	pid;
-
-	for (;;) {
-#ifndef WAIT3
-		pid = wait2(&w.w_status, (WNOHANG | WUNTRACED));
+#ifdef USE_PROTOTYPES
+void
+kill_off(pid_t pid, wait_status_t w)
 #else
-		pid = wait3(&w, (WNOHANG | WUNTRACED), (struct rusage *) 0);
-#endif
-		if (pid <= 0)
-			break;
-		kill_off(pid, w);
-	}
-	SIGRETURN;
-}
-
 void
 kill_off(pid, w)
-register int	pid;
-union wait	w;
+register pid_t	pid;
+wait_status_t	w;
+#endif
 {
 	register Process	*child;
 
@@ -439,10 +484,11 @@ union wait	w;
 		child->p_state = STOPPED;
 	else {
 		child->p_state = DEAD;
-		if (WIFEXITED(w))
+		if (WIFEXITED(w)) {
+			child->p_reason = WEXITSTATUS(w);
 			child->p_howdied = EXITED;
-		else if (WIFSIGNALED(w)) {
-			child->p_reason = w_termsignum(w);
+		} else if (WIFSIGNALED(w)) {
+			child->p_reason = WTERMSIG(w);
 			child->p_howdied = KILLED;
 		}
 		{
@@ -450,15 +496,14 @@ union wait	w;
 			char	mesg[128];
 
 			/* insert status message now */
-			swritef(mesg, "[Process %s: %s]\n",
-				proc_cmd(child),
-				pstate(child));
+			swritef(mesg, sizeof(mesg), "[Process %s: %s]\n",
+				proc_cmd(child), pstate(child));
 			SetBuf(child->p_buffer);
-			ins_str(mesg, NO, -1);
+			ins_str(mesg, NO);
 			SetBuf(save);
 			redisplay();
 		}
 	}
 }
 
-#endif /* IPROCS */
+#endif	/* IPROCS */

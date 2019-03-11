@@ -5,13 +5,18 @@
  * included in all the files.                                              *
  ***************************************************************************/
 
+/* typedef struct window Window in jove.h */
+
 struct window {
-	Window	*w_prev,	/* circular list */
+	Window
+		*w_prev,	/* circular list */
 		*w_next;
 	Buffer	*w_bufp;	/* buffer associated with this window */
-	Line	*w_top,		/* top line */
+	Line
+		*w_top,		/* top line */
 		*w_line;	/* current line */
-	int	w_char,
+	int
+		w_char,
 		w_height,	/* window height */
 		w_topnum,	/* line number of the topline */
 		w_dotcol,	/* UpdWindow sets this ... */
@@ -23,14 +28,15 @@ struct window {
 #define W_VISSPACE	04
 #define W_NUMLINES	010
 		w_LRscroll;	/* amount of LeftRight scrolling in window */
-#ifdef MAC
+#ifdef	MAC
 	int	w_topline;	/* row number of top line in window */
 	char **w_control;	/* scroll bar for window */
 #endif
 };
 
-extern Window	*fwind,		/* first window in list */
-		*curwind;	/* current window */
+extern Window
+	*fwind,		/* first window in list */
+	*curwind;	/* current window */
 
 #define one_windp()	(fwind->w_next == fwind)
 #define HALF(wp)	(((wp)->w_height - 1) / 2)
@@ -42,7 +48,6 @@ extern int
 
 extern Window
 	*div_wind proto((struct window *wp,int n)),
-	*w_nam_typ proto((char *name,int type)),
 	*windbp proto((struct buffer *bp));
 
 extern void
@@ -53,5 +58,27 @@ extern void
 	WindSize proto((struct window *w,int inc)),
 	del_wind proto((struct window *wp)),
 	pop_wind proto((char *name,int clobber,int btype)),
-	tiewind proto((struct window *w,struct buffer *bp)),
+	tiewind proto((struct window *w,struct buffer *bp)),	/* util.c!! */
 	winit proto((void));
+
+/* Commands: */
+
+extern void
+	DelCurWindow proto((void)),
+	GotoWind proto((void)),
+	GrowWindowCmd proto((void)),
+	NextWindow proto((void)),
+	OneWindow proto((void)),
+	PageNWind proto((void)),
+	PrevWindow proto((void)),
+	ScrollLeft proto((void)),
+	ScrollRight proto((void)),
+	ShrWindow proto((void)),
+	SplitWind proto((void)),
+	WNumLines proto((void)),
+	WVisSpace proto((void)),
+	WindFind proto((void));
+
+/* Variables: */
+
+extern int	ScrollStep;		/* how should we scroll */
