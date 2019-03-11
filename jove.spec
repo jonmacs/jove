@@ -5,7 +5,7 @@
 # For example, macros are expanded even in comments!
 
 # This version number must be kept in sync with version.h.
-%define version 4.16.0.57
+%define version 4.16.0.58
 
 # configflags: flags passed to each make to configure for LINUX.
 # The choices are explained in Makefile and sysdep.doc.
@@ -59,9 +59,12 @@ make JOVEHOME=$RPM_BUILD_ROOT/usr %{configflags} install
 
 # Note: later versions of RPM run a script that gzips man pages
 # behind our back, but older versions don't.  This gzipping is defensive.
+rm -f $RPM_BUILD_ROOT/usr/man/man1/jove.1.gz
 gzip $RPM_BUILD_ROOT/usr/man/man1/jove.1
+rm -f $RPM_BUILD_ROOT/usr/man/man1/teachjove.1.gz
 gzip $RPM_BUILD_ROOT/usr/man/man1/teachjove.1
-#gzip $RPM_BUILD_ROOT/usr/man/man1/xjove.1
+rm $RPM_BUILD_ROOT/usr/man/man1/jovetool.1
+rm $RPM_BUILD_ROOT/usr/man/man1/xjove.1
 
 %files
 /usr/lib/jove/
@@ -69,6 +72,7 @@ gzip $RPM_BUILD_ROOT/usr/man/man1/teachjove.1
 /usr/bin/teachjove
 %doc /usr/man/man1/jove.1.gz
 %doc /usr/man/man1/teachjove.1.gz
+#doc /usr/man/man1/jovetool.1.gz
 #doc /usr/man/man1/xjove.1.gz
 %doc README doc/jove.man doc/jove.man.ps doc/jove.rc doc/example.rc doc/jove.qref
 
