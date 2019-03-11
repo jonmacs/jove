@@ -861,7 +861,7 @@ This filling is done according the variable
  \(**/
 .DE
 This can be changed by changing the
-.IQ format-comment
+.IQ comment-format
 variable.  Other languages
 may be supported by changing the format variable appropriately.  The
 formatter looks backwards from point for an open comment symbol.  If
@@ -907,6 +907,10 @@ variable.  See also the
 variable and
 .IQ left-margin-here
 command.
+
+Filling a paragraph can do something that you didn't intend.  For that
+reason the original text is saved on the kill ring and can be yanked
+back.  Deleting the rubble is up to you.
 .dc "fill-region" "Not Bound"
 This is like
 .IQ fill-paragraph ,

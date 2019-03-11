@@ -266,6 +266,18 @@ DelReg()
 	reg_kill(mp->m_line, mp->m_char, NO);
 }
 
+/* get a new line buffer and add it to the kill ring */
+LinePtr
+new_kill()
+{
+	register LinePtr	nl = nbufline();
+
+	AddKillRing(nl);
+	SavLine(nl, NullStr);
+	nl->l_next = nl->l_prev = NULL;
+	return nl;
+}
+    
 /* Save a region.  A pretend kill. */
 
 void
@@ -279,10 +291,7 @@ CopyRegion()
 	if (mp->m_line == curline && mp->m_char == curchar)
 		complain((char *)NULL);
 
-	nl = nbufline();
-	AddKillRing(nl);
-	SavLine(nl, NullStr);
-	nl->l_next = nl->l_prev = NULL;
+	nl = new_kill();
 
 	status = inorder(mp->m_line, mp->m_char, curline, curchar);
 	if (status == -1)

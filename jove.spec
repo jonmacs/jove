@@ -1,5 +1,5 @@
 # Redhat Package Manager .spec file for Fedora and EPEL
-# Keep Version: in sync with version.h
+# Keep "Version:" in sync with version.h
 Summary: Jonathan's Own Version of Emacs
 Name: jove
 Version: 4.16.0.74

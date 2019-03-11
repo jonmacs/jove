@@ -327,9 +327,16 @@ strt:
 void
 FillParagraph()
 {
+	LinePtr nl;
+	int lenparatail;
+	
 	use_lmargin = is_an_arg();
 	find_para(BACKWARD);
-	DoJustify(para_head, 0, para_tail, length(para_tail), NO,
+	nl = new_kill();
+	lenparatail = length(para_tail);
+	(void) DoYank(para_head, 0, para_tail, lenparatail,
+		      nl, 0, (Buffer *)NULL);
+	DoJustify(para_head, 0, para_tail, lenparatail, NO,
 		  use_lmargin ? LMargin : body_indent);
 }
 
@@ -438,7 +445,7 @@ do_space()
 			 * deletion so that marks will remain on the same side.
 			 */
 			b_char(diff);
-			ins_str("  "+(2-nspace));
+			ins_str(&"  "[2-nspace]);
 			del_char(FORWARD, diff, NO);
 		}
 	}
