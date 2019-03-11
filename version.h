@@ -7,11 +7,17 @@
 
 /* Note: jove.spec must be updated when version number changes */
 
-#define	jversion     "4.16.0.72" /* 2010 May 24 */
-#define	jversion_lnum 4,16,0,72  /* list-of-numbers form for Win32 jjove.rc */
+#define	jversion     "4.16.0.73" /* 2010 July 11 */
+#define	jversion_lnum 4,16,0,73  /* list-of-numbers form for Win32 jjove.rc */
 
 /*
  * $Log: version.h,v $
+ * Revision 1.423  2010/07/11 15:29:31  hugh
+ * - added NROFF="nroff -Tascii" to Makefile and jove.spec to force groff to use ASCII
+ * - spelling corrections [Cord Beermann]
+ * - remove -lolgx from xjove link [Cord Beermann]
+ * - improve recover's email Subject [Cord Beermann]
+ *
  * Revision 1.422  2010/05/25 03:39:54  hugh
  * 4.16.0.72:
  * - eliminate strcpy and byte_copy calls with overlapping source and destination

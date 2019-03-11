@@ -17,7 +17,7 @@
 .\" italicising or emboldening in this file.
 .
 .dc "abort-char" "(variable)"
-This variable defines \s-2JOVE'S\s0'S abort character.  When JOVE
+This variable defines \s-2JOVE\s0'S abort character.  When JOVE
 reads this character from the keyboard, it stops what it is doing
 (unless the character is quoted in some way).  Unfortunately, JOVE
 won't notice the character until it reads from the keyboard.  The
