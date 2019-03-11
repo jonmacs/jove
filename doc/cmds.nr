@@ -953,8 +953,6 @@ by the
 .UX
 command
 .IQ ctags(1) .
-If you are using the Exuberant Ctags program, you will need to give
-it flags -N --format=1.
 You can change
 the default tag name by setting the
 .IQ tag-file

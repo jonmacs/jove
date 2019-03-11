@@ -835,11 +835,13 @@ int which;
 		complain("\\%d not defined", which);
 
 	n  = pendlst[which] - pp;
-	while (--n >= 0) {
+
+	/* note: ensure space will be left for a NUL */
+	if (off + n >= endp)
+		len_error(JMP_ERROR);
+		
+	while (--n >= 0)
 		*off++ = *pp++;
-		if (off >= endp)
-			len_error(JMP_ERROR);
-	}
 	return off;
 }
 
