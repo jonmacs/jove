@@ -309,7 +309,8 @@ RepSearch()
  * everything else will just work.
  */
 private bool
-lookup_tag(searchbuf, sbsize, filebuf, tag, file)
+lookup_tag(ispat, searchbuf, sbsize, filebuf, tag, file)
+bool	*ispat;
 char	*searchbuf;
 size_t	sbsize;
 char	*filebuf,
@@ -318,7 +319,7 @@ char	*filebuf,
 {
 	register size_t	taglen = strlen(tag);
 	char	line[JBUFSIZ],
-		pattern[128];
+		pattern[200];
 	register File	*fp;
 	struct stat	stbuf;
 	bool	success = NO;
@@ -328,7 +329,46 @@ char	*filebuf,
 		message(IOerr("open", file));
 		return NO;
 	}
-	swritef(pattern, sizeof(pattern), "^%s[^\t]*\t*\\([^\t]*\\)\t*\\([?/]\\)\\(.*\\)\\2$", tag);
+	/* Build a pattern to parse the tag line.
+	 *
+	 * - the tag name is at the start of the line.
+	 *   Since our name may only be a prefix, ignore
+	 *   the rest of the tab-terminated field.
+	 *     ^%s[^\t]*\t
+	 *
+	 * - a file name, terminated by a tab.
+	 *   Use parens to capture the field as \1:
+	 *     \\([^\t]*\\)\t
+	 *
+	 * - EITHER: a pattern to match for the
+	 *   start of the object within the source file.
+	 *   Capture the delimiter as \2 and the pattern as \3.
+	 *     \\([?/]\\)\\(.*\\)\\2
+	 *   OR: a line number.
+	 *   Capture the lack-of-delimiter in \2 and the number in \3.
+	 *     \\(\\)\\([0-9]*\\)
+	 *
+	 * - possible gunge in the form of an ex(1) comment:
+	 *     \\{;".*\\|\\}
+	 *
+	 * - the end
+	 *     $
+	 *
+	 * Some tag lines collected in the wild:
+	 *   AddError	proc.c	/^AddError(laste, errline, buf, line, charpos)$/
+	 *   AddError	proc.c	/^AddError(laste, errline, buf, line, charpos)$/;"	f
+	 *   AT_BOL	re.c	49;"	d	file:
+	 */
+	swritef(pattern, sizeof(pattern),
+	    /*tag name
+	     *========   file name
+	     *          ============            pattern
+	     *                           =====================      line number
+	     *                                                   =================        gunge
+	     *                                                                        =============
+	     */
+	    "^%s[^\t]*\t\\([^\t]*\\)\t\\{\\([?/]\\)\\(.*\\)\\2\\|\\(\\)\\([0-9]*\\)\\}\\{;\".*\\|\\}$",
+	    tag);
 
 	/* ********BEGIN FAST TAG CODE******** */
 
@@ -392,10 +432,14 @@ char	*filebuf,
 			if (cmp == 0) {
 				/* we've found the match */
 				if (!LookingAt(pattern, line, 0)) {
-					complain("I thought I saw it!");
+					complain("tag line confuses me: %s", line);
 				} else {
+					char patdelim[2];
+
 					putmatch(1, filebuf, (size_t)FILESIZE);
-					putmatch(3, searchbuf, sbsize-1);
+					putmatch(2, patdelim, sizeof(patdelim));
+					putmatch(3, searchbuf, sbsize);
+					*ispat = patdelim[0] != '\0';
 					success = YES;
 				}
 				break;
@@ -423,8 +467,9 @@ bool	localp;
 		tfbuf[FILESIZE];
 	register Bufpos	*bp;
 	register Buffer	*b;
+	bool ispat;
 
-	if (lookup_tag(sstr, sizeof(sstr), filebuf, tag,
+	if (lookup_tag(&ispat, sstr, sizeof(sstr), filebuf, tag,
 	  localp? TagFile : ask_file("With tag file ", TagFile, tfbuf)))
 	{
 		set_mark();
@@ -432,11 +477,25 @@ bool	localp;
 		if (curbuf != b)
 			SetABuf(curbuf);
 		SetBuf(b);
-		if ((bp = dosearch(sstr, BACKWARD, NO)) == NULL
-		&& (bp = dosearch(sstr, FORWARD, NO)) == NULL)
-			message("Well, I found the file, but the tag is missing.");
-		else
-			SetDot(bp);
+		if (ispat) {
+			if ((bp = dosearch(sstr, BACKWARD, NO)) == NULL
+			&& (bp = dosearch(sstr, FORWARD, NO)) == NULL)
+				message("Well, I found the file, but the tag is missing.");
+			else
+				SetDot(bp);
+		} else {
+			int lnum = 0;   /* keep gcc -W quiet */
+
+			if (chr_to_int(sstr, 10, YES, &lnum) != YES || lnum < 1) {
+				format(mesgbuf, sizeof mesgbuf, "Invalid line number: %s", sstr);
+				message(mesgbuf);
+			} else {
+				LinePtr tagline = next_line(curbuf->b_first, lnum - 1);
+
+				PushPntp(tagline);
+				SetLine(tagline);
+			}
+		}
 	}
 }
 
