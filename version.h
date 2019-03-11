@@ -7,11 +7,16 @@
 
 /* Note: jove.spec must be updated when version number changes */
 
-#define	jversion     "4.16.0.71" /* 2010 May 16 */
-#define	jversion_lnum 4,16,0,71  /* list-of-numbers form for Win32 jjove.rc */
+#define	jversion     "4.16.0.72" /* 2010 May 24 */
+#define	jversion_lnum 4,16,0,72  /* list-of-numbers form for Win32 jjove.rc */
 
 /*
  * $Log: version.h,v $
+ * Revision 1.422  2010/05/25 03:39:54  hugh
+ * 4.16.0.72:
+ * - eliminate strcpy and byte_copy calls with overlapping source and destination
+ * - fix setmaps.c misuse of fprintf
+ *
  * Revision 1.421  2010/05/17 02:38:38  hugh
  * - add new variable display-default-filenames (Casey Leedom)
  * - eliminate most GCC warnings; improve handling of some errors
