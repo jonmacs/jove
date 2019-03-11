@@ -159,6 +159,7 @@ DEPENDFLAG = -M
 #	SysV Rel. 2: TERMCAPLIB = -lcurses
 #	SCO UNIX: TERMCAPLIB = -lcurses
 #	AIX on the R6000s: TERMCAPLIB = -lcurses -ltermcap -ls
+#	OpenSuSE: TERMCAPLIB = -lncurses
 
 TERMCAPLIB = -ltermcap
 

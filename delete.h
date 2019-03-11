@@ -10,7 +10,8 @@ extern void
 	reg_kill proto((LinePtr line2, int char2, bool dot_moved));
 
 extern LinePtr
-	reg_delete proto((LinePtr line1,int char1,LinePtr line2,int char2));
+	reg_delete proto((LinePtr line1,int char1,LinePtr line2,int char2)),
+	new_kill proto((void));
 
 /* kill buffer */
 

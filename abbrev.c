@@ -202,7 +202,7 @@ char	*file;
 
 	fp = open_file(file, buf, F_READ, YES);
 	while (mode<=GLOBAL && !f_gets(fp, genbuf, (size_t) LBSIZE)
-		&& !genbuf[0] == '\0')
+		&& genbuf[0] != '\0')
 	{
 		static const char	sep[] = "------";
 
