@@ -32,6 +32,7 @@ private char	*cursor;			/* offset into current Line */
 
 char	*cursend;
 
+/* Position in tercap screen.  INFINITY means "don't know". */
 int	CapCol,
 	CapLine;
 
@@ -840,15 +841,11 @@ Placur(line, col)
 int line,
     col;
 {
-	int	dline,		/* Number of lines to move */
-		dcol;		/* Number of columns to move */
-	register int	best,
-			i;
-	register struct cursaddr	*cp;
-	int	xtracost = 0;	/* Misc addition to cost. */
-
 # define CursMin(which,addrs,max)	{ \
-	for (best = 0, cp = &(addrs)[1], i = 1; i < (max); i++, cp++) \
+	register int	best = 0, \
+			i; \
+	register struct cursaddr	*cp; \
+	for (cp = &(addrs)[1], i = 1; i < (max); i++, cp++) \
 		if (cp->cm_numchars < (addrs)[best].cm_numchars) \
 			best = i; \
 	(which) = &(addrs)[best]; \
@@ -857,36 +854,44 @@ int line,
 	if (line == CapLine && col == CapCol)
 		return;		/* We are already there. */
 
-	dline = line - CapLine;
-	dcol = col - CapCol;
-# ifdef ID_CHAR
-	if (IN_INSmode && MI)
-		xtracost = IMEIlen;
-	/* If we're already in insert mode, it is likely that we will
-	 * want to be in insert mode again, after the insert.
-	 */
-# endif
-
 	/* Number of characters to move horizontally for each case.
 	 * 1: Try tabbing to the correct place.
 	 * 2: Try going to the beginning of the line, and then tab.
 	 */
-	if (dcol == 1 || dcol == 0) {		/* Most common case. */
-		HorMin = &WarpHor[FORTAB];
-		HorMin->cm_numchars = dcol + xtracost;
-	} else {
-		WarpHor[FORTAB].cm_numchars = xtracost + ForNum(CapCol, col);
-		WarpHor[RETFORTAB].cm_numchars = xtracost + 1 + ForNum(0, col);
+	{
+		int	dcol = col - CapCol;		/* Number of columns to move */
+		int	xtracost = 0;	/* Misc addition to cost. */
 
-		/* Which is the shortest of the bunch */
+# ifdef ID_CHAR
+		if (IN_INSmode && MI)
+			xtracost = IMEIlen;
+		/* If we're already in insert mode, it is likely that we will
+		 * want to be in insert mode again, after the insert.
+		 */
+# endif
 
-		CursMin(HorMin, WarpHor, NUMHOR);
+		if (dcol == 1 || dcol == 0) {		/* Most common case. */
+			HorMin = &WarpHor[FORTAB];
+			HorMin->cm_numchars = dcol + xtracost;
+		} else {
+			/* if CapCol is unknown, FORTAB is impossible */
+			WarpHor[FORTAB].cm_numchars = CapCol == INFINITY? INFINITY :
+				xtracost + ForNum(CapCol, col);
+			WarpHor[RETFORTAB].cm_numchars = xtracost + 1 + ForNum(0, col);
+
+			/* Which is the shortest of the bunch */
+
+			CursMin(HorMin, WarpHor, NUMHOR);
+		}
 	}
 
 	/* Moving vertically is more simple. */
+	{
+		int	dline = line - CapLine;		/* Number of lines to move */
 
-	WarpVert[DOWN].cm_numchars = dline >= 0 ? dline : INFINITY;
-	WarpVert[UPMOVE].cm_numchars = dline < 0 ? ((-dline) * UPlen) : INFINITY;
+		WarpVert[DOWN].cm_numchars = dline >= 0 ? dline : INFINITY;
+		WarpVert[UPMOVE].cm_numchars = dline < 0 ? ((-dline) * UPlen) : INFINITY;
+	}
 
 	/* Which of these is simpler */
 	CursMin(VertMin, WarpVert, NUMVERT);
@@ -979,11 +984,11 @@ int top,
 {
 	if (CS) {
 		putpad(targ2(CS, bottom, top), 1);
-		CapCol = CapLine = 0;
+		CapCol = CapLine = INFINITY;	/* actually: unknown */
 		Placur(top, 0);
 		putmulti(SR, M_SR, num, bottom - top);
 		putpad(targ2(CS, ILI, 0), 1);
-		CapCol = CapLine = 0;
+		CapCol = CapLine = INFINITY;	/* actually: unknown */
 	} else {
 		Placur(bottom - num + 1, 0);
 		putmulti(DL, M_DL, num, ILI - CapLine);
@@ -1000,11 +1005,11 @@ int top,
 {
 	if (CS) {
 		putpad(targ2(CS, bottom, top), 1);
-		CapCol = CapLine = 0;
+		CapCol = CapLine = INFINITY;	/* actually: unknown */
 		Placur(bottom, 0);
 		putmulti(SF, M_SF, num, bottom - top);
 		putpad(targ2(CS, ILI, 0), 1);
-		CapCol = CapLine = 0;
+		CapCol = CapLine = INFINITY;	/* actually: unknown */
 	} else {
 		Placur(top, 0);
 		putmulti(DL, M_DL, num, ILI - top);

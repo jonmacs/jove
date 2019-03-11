@@ -5,7 +5,7 @@
  * this notice is included in all the source files and documentation.     *
  **************************************************************************/
 
-#define MESG_SIZE 128
+#define MESG_SIZE MAXCOLS
 extern char	mesgbuf[MESG_SIZE];
 
 #define PPWIDTH	5	/* maximum width of PPchar output: "\\000\0" */
