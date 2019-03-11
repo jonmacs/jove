@@ -2,7 +2,7 @@
 # To create SRPM and RPM: rpm -ta distribution.tgz
 # places so it needs to be adjusted every time the version changes!
 
-%define version 4.16.0.55
+%define version 4.16.0.56
 
 Summary: Jonathan's Own Version of Emacs
 Name: jove
@@ -11,7 +11,7 @@ Release: 1
 Copyright: Copyright (C) 1986-1999 by Jonathan Payne, freely redistributable
 Packager: jovehacks@cs.toronto.edu
 Group: Applications/Editors/Emacs
-Source: ftp://ftp.cs.toronto.edu/pub/hugh/jove-dev/%{version}.tgz
+Source: ftp://ftp.cs.toronto.edu/pub/hugh/jove-dev/jove%{version}.tgz
 BuildRoot: /var/tmp/%{name}-rpmroot
 %description
 

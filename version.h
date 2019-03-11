@@ -1,17 +1,20 @@
-/************************************************************************
- * This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is  *
- * provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.                                           *
- ************************************************************************/
+/**************************************************************************
+ * This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    *
+ * provided by Jonathan and Jovehacks without charge and without          *
+ * warranty.  You may copy, modify, and/or distribute JOVE, provided that *
+ * this notice is included in all the source files and documentation.     *
+ **************************************************************************/
 
 /* Note: jove.spec must be updated when version number changes */
 
-#define	jversion     "4.16.0.55" /* 2001 December 20 */
-#define	jversion_lnum 4,16,0,55  /* list-of-numbers form for Win32 jjove.rc */
+#define	jversion     "4.16.0.56" /* 2002 March 20 */
+#define	jversion_lnum 4,16,0,56  /* list-of-numbers form for Win32 jjove.rc */
 
 /*
  * $Log: version.h,v $
+ * Revision 1.406  2002/03/21 07:06:04  hugh
+ * update Copyright to satisfy Debian
+ *
  * Revision 1.405  2002/02/12 20:14:08  hugh
  * - add style.doc to describe some coding conventions
  * - add a Makefile target to support Exuberant Ctags more conveniently
