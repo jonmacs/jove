@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -318,45 +318,56 @@ toolong:
 			break;
 
 		case '[':
-		    {
-			int	chrcnt;
-
 			*comp_ptr++ = ONE_OF;
 			if (comp_ptr + SETSIZE >= comp_endp)
 				goto toolong;
 			byte_zero(comp_ptr, (size_t) SETSIZE);
-			if ((REpeekc = REgetc()) == '^') {
+			c = REgetc();
+			if (c == '^') {
 				*this_verb = NONE_OF;
-				REpeekc = EOF;	/* discard '^' */
+				c = REgetc();
 			}
-			chrcnt = 0;
-			while ((c = REgetc()) != EOF && c != ']') {
+			do {
+				if (c == EOF)
+					break;
 				if (c == '\\') {
 					c = REgetc();
 					if (c == EOF)
 						break;
-				} else if ((REpeekc = REgetc()) == '-') {
+				}
+				if ((REpeekc = REgetc()) == '-') {
+					/* possibly a range */
 					ZXchar	i = c;
 
 					REpeekc = EOF;	/* discard '-' */
 					c = REgetc();
 					if (c == EOF)
 						break;
-					while (i < c) {
-						comp_ptr[SETBYTE(i)] |= SETBIT(i);
-						i += 1;
+					if (c == ']') {
+						/* not a range after all */
+						REpeekc = c;	/* push back ']' */
+						c = '-';	/* recycle '-' */
+						comp_ptr[SETBYTE(i)] |= SETBIT(i);	/* handle initial char */
+					} else {
+						/* really a range: add members up to c */
+						if (c == '\\') {
+							c = REgetc();
+							if (c == EOF)
+								break;
+						}
+						while (i < c) {
+							comp_ptr[SETBYTE(i)] |= SETBIT(i);
+							i += 1;
+						}
 					}
 				}
 				comp_ptr[SETBYTE(c)] |= SETBIT(c);
-				chrcnt += 1;
-			}
+				c = REgetc();
+			} while (c != ']');
 			if (c == EOF)
 				complain("Missing ].");
-			if (chrcnt == 0)
-				complain("Empty [].");
 			comp_ptr += SETSIZE;
 			break;
-		    }
 
 		case '*':
 			if (prev_verb == NULL || *prev_verb <= NOSTR || (*prev_verb&STAR)!=0)
@@ -813,12 +824,12 @@ int which;
 	while (--n >= 0) {
 		*off++ = *pp++;
 		if (off >= endp)
-			len_error(ERROR);
+			len_error(JMP_ERROR);
 	}
 	return off;
 }
 
-/* Perform the substitution.  If DELP is nonzero the matched string is
+/* Perform the substitution.  If DELP is YES the matched string is
    deleted, i.e., the substitution string is not inserted. */
 
 void
@@ -850,13 +861,14 @@ bool delp;
 					continue;
 				}
 				if (c == '\0') {
-					*tp++ = '\\';
+					/* treat \ at the end as if it were \\ */
+					c = '\\';
 					rp--;	/* be sure to hit again */
 				}
 			}
 			*tp++ = c;
 			if (tp >= endp)
-				len_error(ERROR);
+				len_error(JMP_ERROR);
 		}
 	}
 	rp = loc2;
@@ -874,7 +886,7 @@ bool delp;
 	loc2 = re_blk->r_lbuf + REeom;
 	while ((*tp++ = *rp++) != '\0')
 		if (tp >= endp)
-			len_error(ERROR);
+			len_error(JMP_ERROR);
 }
 
 void

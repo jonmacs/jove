@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -7,18 +7,32 @@
 
 #include "jove.h"
 
-#ifdef IBMPC	/* the body is the rest of this file */
+#ifdef IBMPCDOS	/* the body is the rest of this file */
 
 #include "fp.h"	/* scr_putchar */
-#include "pcscr.h"
 #include "chars.h"
 #include "screen.h"
-#include "termcap.h"	/* CO, LI */
+#include "term.h"
 
 /* here come the actual emulation routines */
 
 #include <dos.h>
 #include <conio.h>
+
+typedef unsigned char	BYTE;
+typedef unsigned int	WORD;
+
+#define VBS_set_cursor_position	0x02
+#define VBS_get_cursor_position_and_size	0x03
+#define VBS_select_active_display_page	0x05
+#define VBS_scroll_window_up	0x06
+#define VBS_scroll_window_down	0x07
+#define VBS_read_character_and_attribute	0x08
+#define VBS_write_character_and_attribute	0x09
+#define VBS_TTY_character_output	0x0e
+#define VBS_get_current_video_state	0x0f
+
+#define VBSF_get_font_information	0x1130
 
 #define VideoBIOS(r)	int86(0x10, (r), (r));
 
@@ -32,6 +46,18 @@ int
 	Mlattr = 0x70,	/* VAR: mode-line-attribute (black on white) */
 	Hlattr = 0x10;	/* VAR: highlight-attribute */
 
+void
+getTERM()
+{
+	/* Check if 101- or 102-key keyboard is installed.
+	 * This test is apparently unreliable, so we allow override.
+	 * Courtesy of Ralph Brown's interrupt list.
+	 */
+	char _far *kbd_stat_byte3 = (char _far *)0x00400096UL;
+	enhanced_keybrd = (0x10 & *kbd_stat_byte3) != 0;
+	pcSetTerm();
+}
+
 private void
 setcolor(attr)
 BYTE attr;
@@ -44,7 +70,7 @@ set_cur()
 {
 	union REGS vr;
 
-	vr.h.ah = 0x02;	/* set cursor position */
+	vr.h.ah = VBS_set_cursor_position;
 	vr.h.bh = 0;	/* video page 0 */
 	vr.h.dl = c_col;
 	vr.h.dh = c_row;
@@ -56,7 +82,7 @@ get_cur()
 {
 	union REGS vr;
 
-	vr.h.ah = 0x03;	/* read cursor position and size */
+	vr.h.ah = VBS_get_cursor_position_and_size;
 	vr.h.bh = 0;	/* video page 0 */
 	VideoBIOS(&vr);
 	c_col = vr.h.dl;
@@ -68,48 +94,51 @@ chpl()
 {
 	union REGS vr;
 
-	vr.h.ah = 0x0f;	/* get current video state */
+	vr.h.ah = VBS_get_current_video_state;
 	VideoBIOS(&vr);
 	return vr.h.ah;
 }
 
 #define cur_mov(r, c)	{ c_row = (r); c_col = (c); set_cur(); }
 
-#ifdef USE_PROTOTYPES
-/* BYTE is subject to default argument promotions */
-void
-scr_win(int no, BYTE ulr, BYTE ulc, BYTE lrr, BYTE lrc)
-#else
-void
-scr_win(no, ulr, ulc, lrr, lrc)
-int no;
-BYTE ulr, ulc, lrr, lrc;
-#endif
+private void
+scr_win(op, no, ur, lr)
+int op, no, ur, lr;
 {
 	union REGS vr;
 
-	if (no >= 0) {
-		vr.h.ah = 0x06;	/* scroll window up */
-	} else {
-		vr.h.ah = 0x07;	/* scroll window down */
-		no = -no;
-	}
-	vr.h.al = no;
+	vr.h.ah = op;	/* scroll window up or down */
+	vr.h.al = no;	/* number of rows to scroll */
 
-	vr.h.ch = ulr;
-	vr.h.cl = ulc;
-	vr.h.dh = lrr;
-	vr.h.dl = lrc;
+	vr.h.ch = ur;	/* upper row */
+	vr.h.cl = 0;	/* left column */
+	vr.h.dh = lr;	/* lower row */
+	vr.h.dl = CO-1;	/* right column */
 
 	vr.h.bh = c_attr;
 	VideoBIOS(&vr);
 }
 
 void
+i_lines(top, bottom, num)
+int top, bottom, num;
+{
+	scr_win(VBS_scroll_window_down, num, top, bottom);
+}
+
+void
+d_lines(top, bottom, num)
+int top, bottom, num;
+{
+	scr_win(VBS_scroll_window_up, num, top, bottom);
+}
+
+void
 clr_page()
 {
 	SO_off();
-	scr_win(0, 0, 0, ILI, CO-1);
+	/* Note: VBS_scroll_window_up with a count of 0 clears the screen! */
+	scr_win(VBS_scroll_window_up, 0, 0, ILI);
 	cur_mov(0, 0);
 }
 
@@ -119,7 +148,7 @@ BYTE c, n;
 {
 	union REGS vr;
 
-	vr.h.ah = 0x09;	/* write character and attribute */
+	vr.h.ah = VBS_write_character_and_attribute;
 	vr.h.al = c;
 	vr.h.bl = c_attr;
 	vr.h.bh = 0;	/* video page 0 */
@@ -143,7 +172,7 @@ lpp()
 	union REGS vr;
 	int	lines;
 
-	vr.x.ax = 0x1130;	/* get font information */
+	vr.x.ax = VBSF_get_font_information;
 	vr.h.bh = 0;	/* we don't care which pointer we get back */
 	vr.h.dl = 0;	/* default, if BIOS doesn't know how to this */
 	VideoBIOS(&vr);
@@ -172,12 +201,12 @@ get_c_attr()
 	vr.h.ah = 0x02;
 	int86(0x21, &vr, &vr);
 
-	vr.h.ah = 0x0e;	/* backspace over it, using BIOS */
+	vr.h.ah = VBS_TTY_character_output;	/* backspace over it, using BIOS */
 	vr.h.al = BS;
 	vr.h.bh = 0;	/* page number 0 */
 	VideoBIOS(&vr);
 
-	vr.h.ah = 0x08;	/* read character and attribute back */
+	vr.h.ah = VBS_read_character_and_attribute;	/* find out attribute */
 	VideoBIOS(&vr);
 	c_attr = vr.h.ah;
 }
@@ -218,21 +247,23 @@ BYTE	scanlines;
 BYTE	font;
 {
 	union REGS vr;
-
-	vr.x.ax = 0x0500;	/* set the active page to 0 */
+	vr.h.ah = VBS_select_active_display_page;
+	vr.h.al = 0;	/* page 0 */
 	VideoBIOS(&vr);
 
-	vr.x.ax = 0x1200;	/* request EGA information */
-	vr.h.bl = 0x10;
+	vr.h.ah = 0x12;	/* request EGA information */
+	vr.h.bl = 0x10;	/* function number */
 	vr.x.cx = 0x0000;
 	VideoBIOS(&vr);
 
 	if (vr.x.cx != 0) {
+		/* the display seems to be EGA or better */
 		vr.h.ah = 0x12;	/* select scan lines for alpha mode */
 		vr.h.al = scanlines;
 		vr.h.bl = 0x30;
 		VideoBIOS(&vr);
 
+		/* Note: bh is left over from VideoBIOS call *before* last! */
 		if (vr.h.bh == 0)
 			vr.x.ax = 0x0003;	/* monochrome */
 		else
@@ -304,6 +335,11 @@ pcSetTerm()
 }
 
 void
+ttsize()
+{
+}
+
+void
 pcUnsetTerm()
 {
 	if (pc_set) {
@@ -317,7 +353,7 @@ line_feed()
 {
 	if (++c_row > ILI) {
 		c_row = ILI;
-		scr_win(1, 0, 0, ILI, CO-1);
+		scr_win(VBS_scroll_window_up, 1, 0, ILI);
 	}
 	set_cur();
 }
@@ -328,19 +364,46 @@ line_feed()
 #define TINI   182			/* 10110110b timer initialization */
 
 void
-dobell(n)
+dobell(n)	/* declared in term.h */
 int	n;
 {
-	unsigned int i = 0x8888;
-	int orgval;
+	unsigned char	spkr_state = inp(BELL_P);
 
+	/* ??? Should accesses to timer be run with interrupts disabled?
+	 * It looks as if the timer would be in a bad state if a sequence
+	 * of accesses is interrupted. -- DHR 1995 Sept.
+	 */
 	outp(TIME_P+3, TINI);
 	outp(TIME_P+2, BELL_D&0xff);
 	outp(TIME_P+2, BELL_D>>8);
-	orgval = inp(BELL_P);
-	outp(BELL_P, orgval|3);		/* turn speaker on  */
-	do ; while (--i > 0);
-	outp(BELL_P, orgval);
+	outp(BELL_P, spkr_state|3);		/* turn speaker on  */
+	while (n-- > 0) {
+#ifdef NEVER
+		/* Control duration by counting half cycles of the audio tone.
+		 * We detect a half-cycle boundary by noting when the high-order
+		 * byte of the counter changes between zero and non-zero.
+		 * This should be unaffected by CPU speed.
+		 * We can't use the BIOS interval timer facility because
+		 * I think it would use the timer channel we're already using.
+		 */
+		int	half_cycs = 200;	/* number of half-cycles to play */
+		bool	hi_is_0 = NO;	/* detect zero transitions; initial lie unimportant */
+
+		for (;;) {
+			(void) inp(TIME_P+2);	/* low-order counter 2 byte */
+			if ((inp(TIME_P+2) == 0) != hi_is_0) {
+				hi_is_0 = !hi_is_0;
+				if (--half_cycs <= 0)
+					break;
+			}
+		}
+#else
+		unsigned int i = 0x8888;	/* a CPU-speed dependent duration */
+
+		do ; while (--i > 0);
+#endif
+	}
+	outp(BELL_P, spkr_state);
 }
 
 /* scr_putchar: put char on screen.  Declared in fp.h */
@@ -368,8 +431,8 @@ char c;
 			c_col--;
 		set_cur();
 		break;
-	case CTL('G'):
-		dobell(0);
+	case CTL('G'):	/* ??? is this ever used? */
+		dobell(1);
 		break;
 	default:
 		ch_out((c), 1);
@@ -382,7 +445,7 @@ char c;
 	}
 }
 
-/* No cursor optimization on an IBMPC, this simplifies things a lot.
+/* No cursor optimization on an IBMPCDOS, this simplifies things a lot.
  * Think about it: it would be silly!
  */
 
@@ -422,4 +485,4 @@ bool	f;
 	doattr();
 }
 
-#endif /* IBMPC */
+#endif /* IBMPCDOS */

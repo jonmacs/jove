@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -8,19 +8,13 @@
 #include "jove.h"
 #include "chars.h"
 #include "fp.h"
-#include "termcap.h"
 #include "jctype.h"
 #include "disp.h"
 #include "extend.h"
 #include "fmt.h"
-#include "msgetch.h"
 
 #ifdef MAC
 # include  "mac.h"
-#endif
-
-#ifdef IBMPC
-# include "pcscr.h"
 #endif
 
 private void
@@ -334,9 +328,7 @@ writef(fmt, va_alist)
 	va_list	ap;
 
 	va_init(ap, fmt);
-#ifndef IBMPC
-	doformat(jstdout, fmt, ap);
-#else /* IBMPC */
+#ifdef NO_JSTDOUT
 	/* Can't use sprint because caller might have
 	 * passed the result of sprint as an arg.
 	 */
@@ -346,7 +338,9 @@ writef(fmt, va_alist)
 		format(line, sizeof(line), fmt, ap);
 		putstr(line);
 	}
-#endif /* IBMPC */
+#else /* !NO_JSTDOUT */
+	doformat(jstdout, fmt, ap);
+#endif /* !NO_JSTDOUT */
 	va_end(ap);
 }
 
@@ -387,6 +381,8 @@ swritef(str, size, fmt, va_alist)
 	va_end(ap);
 }
 
+/* send a message (supressed if input pending) */
+
 #ifdef STDARGS
 void
 s_mess(const char *fmt, ...)
@@ -407,6 +403,10 @@ s_mess(fmt, va_alist)
 	message(mesgbuf);
 }
 
+/* force a message: display it now no matter what.
+ * If you wish it to stick, set stickymsg on after calling f_mess.
+ */
+
 #ifdef STDARGS
 void
 f_mess(const char *fmt, ...)
@@ -423,7 +423,7 @@ f_mess(fmt, va_alist)
 	format(mesgbuf, sizeof mesgbuf, fmt, ap);
 	va_end(ap);
 	DrawMesg(NO);
-	errormsg = NO;
+	stickymsg = NO;
 	UpdMesg = YES;	/* still needs updating (for convenience) */
 }
 

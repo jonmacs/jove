@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -8,7 +8,6 @@
 /* This creates/deletes/divides/grows/shrinks windows.  */
 
 #include "jove.h"
-#include "termcap.h"
 #include "chars.h"
 #include "disp.h"
 #include "ask.h"
@@ -58,7 +57,9 @@ void
 del_wind(wp)
 register Window	*wp;
 {
-	register Window	*prev = wp->w_prev;
+	register Window
+		*prev = wp->w_prev,
+		*heir = prev;	/* default: previous window inherits space */
 
 	if (one_windp())
 		complain(onlyone);
@@ -67,17 +68,13 @@ register Window	*wp;
 	wp->w_next->w_prev = prev;
 
 	if (fwind == wp) {
-		fwind = wp->w_next;
-		fwind->w_height += wp->w_height;
+		heir = fwind = wp->w_next;	/* no window above: next inherits */
 		/* Here try to do something intelligent for redisplay() */
 		SetTop(fwind, prev_line(fwind->w_top, wp->w_height));
-		if (curwind == wp)
-			SetWind(fwind);
-	} else {
-		prev->w_height += wp->w_height;
-		if (curwind == wp)
-			SetWind(prev);
 	}
+	heir->w_height += wp->w_height;
+	if (curwind == wp)
+		SetWind(heir);
 #ifdef MAC
 	RemoveScrollBar(wp);
 	Windchange = YES;
@@ -93,7 +90,7 @@ div_wind(wp, n)
 register Window	*wp;
 int	n;
 {
-	register Window	*new;
+	Window	*latest = wp;
 	int	amt;
 
 	if (n < 1)
@@ -103,7 +100,8 @@ int	n;
 		complain(toosmall);
 
 	do {
-		new = (Window *) emalloc(sizeof (Window));
+		register Window	*new = (Window *) emalloc(sizeof (Window));
+
 		new->w_flags = 0;
 		new->w_LRscroll = 0;
 
@@ -118,10 +116,10 @@ int	n;
 		new->w_top = prev_line(new->w_line, WSIZE(new)/2);
 
 		/* Link the new window into the list */
-		new->w_prev = wp;
-		new->w_next = wp->w_next;
-		new->w_next->w_prev = new;
-		wp->w_next = new;
+		new->w_prev = latest;
+		new->w_next = latest->w_next;
+		new->w_next->w_prev = latest->w_next = new;
+		latest = new;
 #ifdef MAC
 		new->w_control = NULL;
 #endif
@@ -129,7 +127,7 @@ int	n;
 #ifdef MAC
 	Windchange = YES;
 #endif
-	return new;
+	return latest;
 }
 
 /* Initialze the first window setting the bounds to the size of the
@@ -160,7 +158,7 @@ tiewind(w, bp)
 register Window	*w;
 register Buffer	*bp;
 {
-	int	not_tied = (w->w_bufp != bp);
+	bool	not_tied = (w->w_bufp != bp);
 
 	UpdModLine = YES;	/* kludge ... but speeds things up considerably */
 	w->w_line = bp->b_dot;
@@ -280,7 +278,7 @@ WindFind()
 
 	DOTsave(&odot);
 
-	switch (waitchar((bool *)NULL)) {
+	switch (waitchar()) {
 	case 't':
 	case 'T':
 		cmd = FindTag;
@@ -400,7 +398,7 @@ int	type;
 }
 
 /* Put a window with the buffer `name' in it.  Erase the buffer if
-   `clobber' is non-zero. */
+   `clobber' is YES. */
 
 void
 pop_wind(name, clobber, btype)
@@ -423,10 +421,8 @@ int	btype;
 		SetWind(wp);
 
 	newb = do_select((Window *)NULL, name);
-	if (clobber) {
-		initlist(newb);
-		newb->b_modified = NO;
-	}
+	if (clobber)
+		buf_clear(newb);
 	tiewind(curwind, newb);
 	if (btype != -1)
 		newb->b_type = btype;
@@ -556,7 +552,7 @@ GotoWind()
 void
 ScrollRight()
 {
-	int	amt = arg_or_default(10);
+	int	amt = arg_or_default(ScrollWidth);
 
 	if (curwind->w_LRscroll - amt < 0)
 		curwind->w_LRscroll = 0;
@@ -568,7 +564,7 @@ ScrollRight()
 void
 ScrollLeft()
 {
-	int	amt = arg_or_default(10);
+	int	amt = arg_or_default(ScrollWidth);
 
 	curwind->w_LRscroll += amt;
 	UpdModLine = YES;
@@ -611,6 +607,19 @@ Window *w;
 			 * - Ensure "in" not empty by ensuring total space allocated
 			 *   to above and below must leave at least one col.  This
 			 *   is done fiddling the rounding term when "in" is small.
+			 *
+			 * - The first (last) char in the modeline represents the
+			 *   first (last) line in the buffer.
+			 *
+			 * - That leaves the rest of the modeline to represent
+			 *   (linearly) the remaining (total-2) lines of the buffer,
+			 *   of which (above-1) should be represented by highlighting
+			 *   from char position 2 onwards and (below-1) should be
+			 *   represented by highlighting from (totalcols-1) backwards.
+			 *
+			 * - Rounding is applied in this region, and is fiddled to
+			 *   ensure that the white bit in the middle never shrinks to
+			 *   zero.
 			 */
 			int
 				totalcols_2 = CO - 1 - (4 * SG) - 2,

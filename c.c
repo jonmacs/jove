@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -129,7 +129,7 @@ bool	can_stop;
 		c = lp[c_char];
 		/* check if this is a comment (if we're not inside quotes) */
 		if (quote_c == '\0' && c == '/') {
-			int	new_ic = in_comment;
+			int	new_ic = in_comment;	/* -1, YES, or NO */
 
 			/* close comment */
 			if ((c_char != 0) && lp[c_char - 1] == '*') {

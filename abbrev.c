@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -21,7 +21,7 @@
 #include "move.h"
 #include "wind.h"
 
-#ifdef MSDOS
+#ifdef MSFILESYSTEM
 # include <io.h>
 #endif
 #define HASHSIZE	20
@@ -264,18 +264,19 @@ EditAbbrevs()
 	}
 	SetBuf(ebuf = do_select(curwind, EditName));
 	ebuf->b_type = B_SCRATCH;
-	initlist(ebuf);
+	buf_clear(ebuf);
 	/* Empty buffer.  Save the definitions to a tmp file
 	   and read them into this buffer so we can edit them. */
 	swritef(tname, sizeof(tname), "%s/%s", TmpDir,
 #ifdef MAC
-		".jabbXXX"
+		".jabbXXX"	/* must match string in mac.c:Ffilter() */
 #else
 		"jabbXXXXXX"
 #endif
 		);
 	(void) mktemp(tname);
 	save_abbrevs(tname);
+	setfname(ebuf, tname);
 	read_file(tname, NO);
 	message("[Edit definitions and then type ^X ^C]");
 	Recur();		/* We edit them ... now */

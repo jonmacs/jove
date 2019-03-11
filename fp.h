@@ -1,18 +1,28 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
  ************************************************************************/
 
-#ifdef IBMPC
-extern void	scr_putchar proto((char c));	/* defined in pcscr.c */
-#define flushscreen()	{ }
-#else
+#ifdef NO_JSTDOUT
+extern void	scr_putchar proto((char c));	/* defined in win32.c */
+# ifdef IBMPCDOS
+#  define flushscreen()	{ }
+# else /* !IBMPCDOS */
+extern void flushscreen proto((void));
+# endif /* !IBMPCDOS */
+#else /* !NO_JSTDOUT */
 extern File	*jstdout;
-#define scr_putchar(c)	f_putc((c), jstdout)
+# define scr_putchar(c)	f_putc((c), jstdout)
 extern void		flushscreen proto((void));
-#endif
+# ifndef SMALL
+#  define MAXTTYBUF	2048
+# else
+#  define MAXTTYBUF	512
+# endif
+#endif /* !NO_JSTDOUT */
+
 
 #define f_putc(c, fp)	{ while (--(fp)->f_cnt < 0) flushout(fp); *(fp)->f_ptr++ = (c); }
 #define f_getc(fp)	\
@@ -44,12 +54,11 @@ struct FileStruct {
 #define F_TELLALL	0400	/* whether to display info upon close */
 #define F_READONLY	01000	/* file is read only */
 
-#ifndef SMALL
-# define MAXTTYBUF	2048
-#else
-# define MAXTTYBUF	512
-#endif
-
+/* ScrBufSize is the size of the buffer for jstdout.  It is also the
+ * number of characters to be output between checks for input, so
+ * it is meaningful even if jstdout isn't used.  Its value is set by
+ * settout based on the baud rate of output (on systems with baud rates).
+ */
 extern int	ScrBufSize;
 
 extern File

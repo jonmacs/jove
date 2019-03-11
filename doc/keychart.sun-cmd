@@ -92,4 +92,3 @@ Z (scroll-up)                                  (scroll-down)
  ^X ?         describe-key
  ^X ^        (grow-wind)
  ^X DEL       kill-begin-sent
-

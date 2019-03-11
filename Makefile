@@ -1,5 +1,5 @@
 ########################################################################
-# This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  #
+# This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  #
 # provided to you without charge, and with no warranty.  You may give  #
 # away copies of JOVE, including sources, provided that this notice is #
 # included in all the files.                                           #
@@ -38,12 +38,24 @@ MANDIR = $(JOVEHOME)/man/man$(MANEXT)
 MANEXT = 1
 DFLTSHELL = /bin/csh
 
+# The install commands of BSD and System V differ in unpleasant ways:
+# -c: copy (BSD); -c dir: destination directory (SysV)
+# -s: strip (BSD); -s: suppress messages (SysV)
+# Also, the destination specification is very different.
+# The result is that the System V install command must not be used.
+# If you know that /bin/install is the BSD program, you can use it.
+# "cp" will work reasonably well, but be aware that any links continue
+# referencing the old file with new contents.
+
+INSTALLFLAGS = # -g bin -o root
+
 # to install executable files
 XINSTALL=cp
-#XINSTALL=/usr/ucb/install -c -m 755 # -s
+#XINSTALL=/usr/ucb/install $(INSTALLFLAGS) -c -m 755 # -s
+
 # to install text files
 TINSTALL=cp
-#TINSTALL=/usr/ucb/install -c -m 644
+#TINSTALL=/usr/ucb/install $(INSTALLFLAGS) -c -m 644
 
 # These should all just be right if the above ones are.
 # You will confuse JOVE if you move anything from LIBDIR or SHAREDIR.
@@ -63,8 +75,8 @@ JOVETOOLM = $(MANDIR)/jovetool.$(MANEXT)
 
 # Select optimization level (flags passed to compiling and linking steps).
 # On most systems, -g for debugging, -O for optimization.
-# On the official Sun ANSI C compiler, -Xc -g or -Xc -O
-# On the standard System V Release 4 compiler, -Xc -g or -Xc -O
+# On the official Sun ANSI C compiler and the standard System V Release 4
+# compiler, adding -Xa -v will increase compiler checking.
 # On DEC OSF/1, -std1 -O
 
 OPTFLAGS = -O
@@ -117,13 +129,13 @@ LDFLAGS =
 #	DEC OSF/1 V1.3			SYSDEFS=-BSDPOSIX -DNO_TIOCREMOTE -DNO_TIOCSIGNAL
 #	DEC OSF/1 V2.0 and later	SYSDEFS=-DSYSVR4
 #	DEC Ultrix 4.2			SYSDEFS=-DBSDPOSIX
-#	DEC Ultrix 4.3			SYSDEFS=-DBSDPOSIX -DVDISABLE=255
+#	DEC Ultrix 4.3			SYSDEFS=-DBSDPOSIX -DJVDISABLE=255
 #	DG AViiON 5.3R4			SYSDEFS=-DSYSVR4 -DBSD_SIGS
 #	HP/UX 8 or 9			SYSDEFS=-DHPUX -Ac
 #	IBM RS6000s			SYSDEFS=-DAIX3_2
-#	Irix 3.3-4.0.5			SYSDEFS=-DIRIX4
-#	Irix 5.0 onwards		SYSDEFS=-DIRIX5 -prototypes
-#	LINUX (MCC-Interim release)	SYSDEFS=-DBSDPOSIX
+#	Irix 3.3-4.0.5			SYSDEFS=-DIRIX -DIRIX4
+#	Irix 5.0 onwards		SYSDEFS=-DIRIX -prototypes
+#	LINUX				SYSDEFS=-DBSDPOSIX
 #	MIPS RiscOS4.x			SYSDEFS=-systype bsd43 -DBSD4
 #	SCO Unix			SYSDEFS=-DSCO
 #	SunOS3.x			SYSDEFS=-DSUNOS3
@@ -159,7 +171,7 @@ SYSDEFS =
 
 CFLAGS = $(OPTFLAGS) $(SYSDEFS)
 
-# For SVR4 (/usr/ucb/cc will NOT work because of setjmp.h):
+# For SYSVR4 (/usr/ucb/cc will NOT work because of setjmp.h):
 # CC = /usr/bin/cc
 # To use the SunPro compiler under SunOS 4.n:
 # CC = acc
@@ -183,9 +195,11 @@ LOCALCC = $(CC)
 LOCALCFLAGS = $(CFLAGS)	# $(MEMFLAGS)
 LOCALLDFLAGS = $(LDFLAGS)
 
+# Objects are grouped into overlays for the benefit of (at least) 2.xBSD.
+
 BASESEG = commands.o keys.o argcount.o ask.o buf.o jctype.o delete.o \
 	  disp.o insert.o io.o jove.o marks.o misc.o re.o \
-	  screen.o ttystate.o util.o vars.o list.o keymaps.o \
+	  screen.o termcap.o unix.o util.o vars.o list.o keymaps.o \
 	  mouse.o
 OVLAY1 = abbrev.o rec.o paragraph.o fmt.o
 OVLAY2 = c.o wind.o fp.o move.o
@@ -204,18 +218,19 @@ MANUALS = $(JOVEM) $(TEACHJOVEM) $(XJOVEM) $(JOVETOOLM)
 C_SRC = commands.c commands.tab abbrev.c argcount.c ask.c buf.c c.c case.c jctype.c \
 	delete.c disp.c extend.c fp.c fmt.c insert.c io.c iproc.c \
 	jove.c list.c macros.c marks.c misc.c move.c paragraph.c \
-	proc.c re.c reapp.c rec.c scandir.c screen.c term.c ttystate.c util.c \
-	vars.c vars.tab wind.c msgetch.c mac.c keymaps.c pcscr.c mouse.c
+	proc.c re.c reapp.c rec.c scandir.c screen.c term.c termcap.c unix.c \
+	util.c vars.c vars.tab wind.c msgetch.c mac.c keymaps.c ibmpcdos.c \
+	mouse.c win32.c
 
 SOURCES = $(C_SRC) portsrv.c recover.c setmaps.c teachjove.c
 
 HEADERS = abbrev.h argcount.h ask.h buf.h c.h case.h chars.h commands.h \
 	jctype.h dataobj.h delete.h disp.h extend.h externs.h \
-	fmt.h fp.h msgetch.h insert.h io.h iproc.h jove.h \
+	fmt.h fp.h insert.h io.h iproc.h jove.h \
 	keymaps.h list.h mac.h macros.h marks.h \
-	misc.h mouse.h move.h paragraph.h pcscr.h proc.h \
-	re.h reapp.h rec.h recover.h scandir.h screen.h select.h \
-	sysdep.h sysprocs.h temp.h term.h termcap.h ttystate.h \
+	misc.h mouse.h move.h paragraph.h proc.h \
+	re.h reapp.h rec.h recover.h resource.h scandir.h screen.h \
+	select.h sysdep.h sysprocs.h temp.h term.h ttystate.h \
 	tune.h util.h vars.h version.h wind.h
 
 DOCTERMS =	doc/jove.rc.sun doc/keychart.sun \
@@ -225,18 +240,19 @@ DOCTERMS =	doc/jove.rc.sun doc/keychart.sun \
 	doc/jove.rc.xterm doc/keychart.xterm \
 	doc/jove.rc.z29 doc/keychart.z29 \
 	doc/jove.rc.3022 doc/keychart.3022 \
-	doc/keychart.
+	doc/keychart. \
+	doc/XTermresource
 
 DOCS =	doc/README doc/teach-jove doc/jove.qref \
 	doc/intro.nr doc/cmds.macros.nr doc/cmds.nr doc/contents.nr \
 	doc/jove.nr doc/teachjove.nr doc/xjove.nr doc/jovetool.nr \
 	doc/jove.rc doc/example.rc $(DOCTERMS)
 
-MISC = Makefile Makefile.bcc Makefile.msc Makefile.wat Makefile.zor \
-	README README.dos README.mac sysdep.doc tune.doc
+MISC =	Makefile Makefile.bcc Makefile.msc Makefile.wat Makefile.zor \
+	README README.dos README.mac README.w32 sysdep.doc tune.doc
 
 SUPPORT = teachjove.c recover.c setmaps.c portsrv.c keys.txt \
-	menumaps.txt mjovers.Hqx
+	menumaps.txt mjovers.Hqx jjoveico.uue jjove.rc
 
 BACKUPS = $(HEADERS) $(C_SRC) $(SUPPORT) $(MISC)
 
@@ -246,9 +262,7 @@ jjove:	$(OBJECTS)
 	$(LDCC) $(LDFLAGS) $(OPTFLAGS) -o jjove $(OBJECTS) $(LIBS)
 	@-size jjove
 
-gjove:	$(OBJECTS)
-	ld -X /lib/gcrt0.o -o gjove $(OBJECTS) -lc $(LIBS)
-	@-size gjove
+# For 2.xBSD: link jove as a set of overlays.  Not tested recently.
 
 ovjove:	$(OBJECTS)
 	ld $(LDFLAGS) $(OPTFLAGS) -X /lib/crt0.o \
@@ -260,6 +274,11 @@ ovjove:	$(OBJECTS)
 		-Y $(BASESEG) \
 		-o jjove $(LIBS) -lc
 	@-size jjove
+
+# portsrv is only needed if IPROCS are implemented using PIPEPROCS
+# Making PORTSRVINST null will supress building and installing portsrv.
+
+PORTSRVINST=$(PORTSRV)
 
 portsrv:	portsrv.o
 	$(CC) $(LDFLAGS) $(OPTFLAGS) -o portsrv portsrv.o $(LIBS)
@@ -279,9 +298,6 @@ setmaps:	setmaps.o
 setmaps.o:	setmaps.c
 	$(LOCALCC) $(LOCALCFLAGS) -c setmaps.c
 
-# Ignore warning messages from setmaps:
-# it doesn't understand ifdefs.
-
 keys.c:	setmaps keys.txt
 	./setmaps < keys.txt > keys.c
 
@@ -295,14 +311,19 @@ paths.h: Makefile
 	@echo \#define RECDIR \"$(RECDIR)\" >> paths.h
 	@echo \#define LIBDIR \"$(LIBDIR)\" >> paths.h
 	@echo \#define SHAREDIR \"$(SHAREDIR)\" >> paths.h
-	@echo \#define BINDIR \"$(BINDIR)\" >> paths.h
 	@echo \#define DFLTSHELL \"$(DFLTSHELL)\" >> paths.h
 
-# Making this macro null will supress building and installing portsrv.
-# portsrv is only needed if IPROCS are implemented using PIPEPROCS
-PORTSRVINST=$(PORTSRV)
+makexjove:
+	( cd xjove ; make CC="$(CC)" OPTFLAGS="$(OPTFLAGS)" SYSDEFS="$(SYSDEFS)" $(TOOLMAKEEXTRAS) xjove )
 
-# install doesn't work for Xenix (no install program)
+installxjove:
+	( cd xjove ; make CC="$(CC)" OPTFLAGS="$(OPTFLAGS)" SYSDEFS="$(SYSDEFS)" XINSTALL="$(XINSTALL)" BINDIR="$(BINDIR)" INSTALLFLAGS="$(INSTALLFLAGS)" $(TOOLMAKEEXTRAS) installxjove )
+
+makejovetool:
+	( cd xjove ; make CC="$(CC)" OPTFLAGS="$(OPTFLAGS)" SYSDEFS="$(SYSDEFS)" DEFINES=-DSUNVIEW $(TOOLMAKEEXTRAS) jovetool )
+
+installjovetool:
+	( cd xjove ; make CC="$(CC)" OPTFLAGS="$(OPTFLAGS)" SYSDEFS="$(SYSDEFS)" DEFINES=-DSUNVIEW XINSTALL="$(XINSTALL)" BINDIR="$(BINDIR)" INSTALLFLAGS="$(INSTALLFLAGS)" $(TOOLMAKEEXTRAS) installjovetool )
 
 install: $(LIBDIR) $(SHAREDIR) \
 	 $(TEACH-JOVE) $(CMDS.DOC) $(TERMSDIR)docs \
@@ -324,7 +345,7 @@ doc/cmds.doc:	doc/cmds.macros.nr doc/cmds.nr
 	$(NROFF) doc/cmds.macros.nr doc/cmds.nr > doc/cmds.doc
 
 doc/jove.man:	doc/intro.nr doc/cmds.nr
-	( cd doc; $(NROFF) -ms intro.nr cmds.nr >jove.man )
+	( cd doc; tbl intro.nr | $(NROFF) -ms - cmds.nr >jove.man )
 
 troff-man:
 	( cd doc; tbl intro.nr | $(TROFF) -ms - cmds.nr contents.nr $(TROFFPOST) )
@@ -397,14 +418,17 @@ tags:	$(C_SRC) $(HEADERS)
 # the list of files is too long to fit in a command generated by make
 # The actual contents of the file depend only on Makefile, but by
 # adding extra dependencies, dependants of .filelist can have shorter
-# dependency lists.  Note: since we have no list of xjove files, those
-# dependencies are missing.
+# dependency lists.  Note: since we have no list of xjove files,
+# we alway force a make of xjove/.filelist.  This forces .filelist
+# to be rebuilt every time it is needed.
 
-.filelist:	$(BACKUPS) $(DOCS)
+.filelist:	$(BACKUPS) $(DOCS) .xjfilelist
 	@ls $(BACKUPS) >.filelist
 	@ls $(DOCS) >>.filelist
-	@( cd xjove ; make .filelist )
 	@sed -e 's=^=xjove/=' xjove/.filelist >>.filelist
+
+.xjfilelist:
+	@( cd xjove ; make .filelist )
 
 # override CIFLAGS with something like:
 # CIFLAGS="-m'some reason for change' -u4.14.10.n -q"
@@ -428,8 +452,13 @@ backup.Z: .filelist
 	tar cf backup `cat .filelist`
 	compress backup
 
+backup.gz: .filelist
+	rm -f backup backup.gz
+	tar cf backup `cat .filelist`
+	gzip backup
+
 tape-backup:	.filelist
-	tar cf /dev/rst8 `cat .filelist` $(BACKUPSXJ)
+	tar cf /dev/rst8 `cat .filelist`
 
 # System V sum can be made to match BSD with a -r flag.
 # To get this effect, override with SUM = sum -r
@@ -449,25 +478,32 @@ checksum:	.filelist
 
 DOSSRC = $(HEADERS) $(C_SRC) setmaps.c keys.txt \
 	Makefile.bcc Makefile.msc Makefile.wat Makefile.zor \
-	README README.dos sysdep.doc tune.doc \
+	README README.dos README.w32 sysdep.doc tune.doc \
+	jjoveico.uue jjove.rc \
 	doc/cmds.doc doc/jove.man doc/jove.doc tags
 
-jovedoss.zoo:	$(DOSSRC)
+jovedoss.zoo:	$(DOSSRC) jjove.ico
 	-rm -f jovedoss.zoo
-	zoo a jovedoss.zoo $(DOSSRC)
+	zoo a jovedoss.zoo $(DOSSRC) jjove.ico
 
-jovedoss.zip:	$(DOSSRC)
+jovedoss.zip:	$(DOSSRC) jjove.ico
 	-rm -f jovedoss.zip
-	zip -k -l jovedoss.zip $(DOSSRC)
+	zip -k jovedoss.zip jjove.ico -l $(DOSSRC)
+
+jjove.ico:	jjoveico.uue
+	uudecode jjoveico.uue
 
 touch:
 	touch $(OBJECTS)
 
 clean:
 	rm -f a.out core *.o keys.c jjove portsrv recover setmaps \
-		teachjove paths.h \#* *~ make.log *.map \
+		teachjove paths.h \#* *~ make.log *.map jjove.ico \
 		doc/cmds.doc doc/jove.man doc/jove.doc doc/troff.out.ps \
 		jjove.pure_* tags ID .filelist
+
+cleanall: clean
+	( cd xjove ; make clean )
 
 clobber: clean
 	rm -f *.orig *.rej
@@ -518,42 +554,44 @@ JOVE_H = jove.h $(TUNE_H) buf.h io.h dataobj.h keymaps.h argcount.h util.h exter
 commands.o: $(JOVE_H) jctype.h extend.h macros.h mouse.h abbrev.h c.h case.h commands.h delete.h disp.h insert.h sysprocs.h iproc.h marks.h misc.h move.h paragraph.h proc.h reapp.h wind.h commands.tab
 abbrev.o: $(JOVE_H) fp.h jctype.h abbrev.h ask.h commands.h delete.h insert.h disp.h fmt.h move.h wind.h
 argcount.o: $(JOVE_H) jctype.h
-ask.o: $(JOVE_H) termcap.h jctype.h chars.h disp.h fp.h scandir.h screen.h ask.h delete.h insert.h extend.h fmt.h marks.h move.h mac.h
+ask.o: $(JOVE_H) jctype.h chars.h disp.h fp.h scandir.h screen.h ask.h delete.h insert.h extend.h fmt.h marks.h move.h mac.h
 buf.o: $(JOVE_H) jctype.h disp.h ask.h extend.h fmt.h insert.h macros.h marks.h move.h sysprocs.h proc.h wind.h fp.h iproc.h mac.h
 c.o: $(JOVE_H) re.h c.h jctype.h disp.h delete.h insert.h fmt.h marks.h misc.h move.h paragraph.h
 case.o: $(JOVE_H) disp.h case.h jctype.h marks.h move.h
 jctype.o: $(JOVE_H) jctype.h
 delete.o: $(JOVE_H) jctype.h disp.h delete.h insert.h marks.h move.h
-disp.o: $(JOVE_H) jctype.h termcap.h chars.h fp.h disp.h ask.h extend.h fmt.h insert.h sysprocs.h iproc.h move.h macros.h screen.h term.h wind.h mac.h pcscr.h
-extend.o: $(JOVE_H) fp.h termcap.h jctype.h chars.h commands.h disp.h re.h ask.h extend.h fmt.h insert.h move.h sysprocs.h proc.h vars.h mac.h pcscr.h
-fp.o: $(JOVE_H) fp.h jctype.h termcap.h disp.h fmt.h mac.h
-fmt.o: $(JOVE_H) chars.h fp.h termcap.h jctype.h disp.h extend.h fmt.h msgetch.h mac.h pcscr.h
-insert.o: $(JOVE_H) jctype.h list.h chars.h disp.h abbrev.h ask.h c.h delete.h insert.h fmt.h macros.h marks.h misc.h move.h paragraph.h screen.h sysprocs.h proc.h wind.h msgetch.h re.h
-io.o: $(JOVE_H) list.h fp.h termcap.h jctype.h disp.h scandir.h ask.h fmt.h insert.h marks.h sysprocs.h proc.h wind.h rec.h mac.h re.h temp.h
-iproc.o: $(JOVE_H) re.h jctype.h disp.h fp.h sysprocs.h iproc.h ask.h extend.h fmt.h insert.h marks.h move.h proc.h wind.h termcap.h select.h termcap.h ttystate.h
-jove.o: $(JOVE_H) fp.h termcap.h jctype.h chars.h disp.h re.h reapp.h sysprocs.h rec.h ask.h extend.h fmt.h msgetch.h macros.h marks.h mouse.h paths.h proc.h screen.h term.h version.h wind.h iproc.h select.h mac.h ttystate.h pcscr.h
+disp.o: $(JOVE_H) jctype.h chars.h fp.h disp.h ask.h extend.h fmt.h insert.h sysprocs.h iproc.h move.h macros.h screen.h term.h wind.h mac.h
+extend.o: $(JOVE_H) fp.h jctype.h chars.h commands.h disp.h re.h ask.h extend.h fmt.h insert.h move.h sysprocs.h proc.h vars.h mac.h
+fp.o: $(JOVE_H) fp.h jctype.h disp.h fmt.h mac.h
+fmt.o: $(JOVE_H) chars.h fp.h jctype.h disp.h extend.h fmt.h mac.h
+insert.o: $(JOVE_H) jctype.h list.h chars.h disp.h abbrev.h ask.h c.h delete.h insert.h fmt.h macros.h marks.h misc.h move.h paragraph.h screen.h sysprocs.h proc.h wind.h re.h
+io.o: $(JOVE_H) list.h fp.h jctype.h disp.h scandir.h ask.h fmt.h insert.h marks.h sysprocs.h proc.h wind.h rec.h mac.h re.h temp.h
+iproc.o: $(JOVE_H) re.h jctype.h disp.h fp.h sysprocs.h iproc.h ask.h extend.h fmt.h insert.h marks.h move.h proc.h wind.h select.h ttystate.h
+jove.o: $(JOVE_H) fp.h jctype.h chars.h disp.h re.h reapp.h sysprocs.h rec.h ask.h extend.h fmt.h macros.h marks.h mouse.h paths.h proc.h screen.h term.h version.h wind.h iproc.h select.h mac.h
 list.o: $(JOVE_H) list.h
 macros.o: $(JOVE_H) jctype.h fp.h chars.h disp.h ask.h commands.h macros.h extend.h fmt.h
 marks.o: $(JOVE_H) fmt.h marks.h disp.h
-misc.o: $(JOVE_H) jctype.h disp.h ask.h c.h delete.h insert.h extend.h fmt.h marks.h misc.h move.h paragraph.h msgetch.h
+misc.o: $(JOVE_H) jctype.h disp.h ask.h c.h delete.h insert.h extend.h fmt.h marks.h misc.h move.h paragraph.h
 move.o: $(JOVE_H) re.h chars.h jctype.h disp.h move.h screen.h
-paragraph.o: $(JOVE_H) jctype.h disp.h delete.h insert.h fmt.h marks.h misc.h move.h paragraph.h
-proc.o: $(JOVE_H) jctype.h fp.h re.h termcap.h disp.h sysprocs.h ask.h delete.h extend.h fmt.h insert.h iproc.h marks.h misc.h move.h proc.h wind.h
+paragraph.o: $(JOVE_H) jctype.h disp.h delete.h insert.h fmt.h marks.h misc.h move.h paragraph.h re.h
+proc.o: $(JOVE_H) jctype.h fp.h re.h disp.h sysprocs.h ask.h delete.h extend.h fmt.h insert.h iproc.h marks.h misc.h move.h proc.h wind.h
 re.o: $(JOVE_H) re.h jctype.h ask.h disp.h fmt.h marks.h
 reapp.o: $(JOVE_H) fp.h re.h jctype.h chars.h disp.h ask.h fmt.h marks.h reapp.h wind.h mac.h
 rec.o: $(JOVE_H) fp.h sysprocs.h rec.h fmt.h recover.h
 scandir.o: $(JOVE_H) scandir.h
-screen.o: $(JOVE_H) fp.h chars.h jctype.h termcap.h disp.h extend.h fmt.h term.h mac.h pcscr.h screen.h wind.h
-term.o: $(JOVE_H) fp.h disp.h jctype.h fmt.h term.h termcap.h msgetch.h pcscr.h
-ttystate.o: $(JOVE_H) ttystate.h
-util.o: $(JOVE_H) jctype.h termcap.h disp.h fp.h ask.h chars.h fmt.h insert.h macros.h marks.h move.h rec.h mac.h
-vars.o: $(JOVE_H) extend.h vars.h abbrev.h ask.h c.h jctype.h disp.h insert.h sysprocs.h iproc.h mac.h mouse.h paragraph.h pcscr.h proc.h re.h reapp.h rec.h screen.h wind.h msgetch.h vars.tab
-wind.o: $(JOVE_H) termcap.h chars.h disp.h ask.h extend.h commands.h mac.h reapp.h wind.h screen.h
-msgetch.o: $(JOVE_H) msgetch.h chars.h disp.h
-mac.o: $(TUNE_H) $(JOVE_H) mac.h termcap.h ask.h disp.h extend.h commands.h fmt.h move.h version.h
-keymaps.o: $(JOVE_H) list.h fp.h termcap.h jctype.h chars.h disp.h re.h ask.h commands.h macros.h extend.h fmt.h screen.h vars.h sysprocs.h iproc.h msgetch.h
-pcscr.o: $(JOVE_H) fp.h pcscr.h chars.h screen.h termcap.h
-mouse.o: $(JOVE_H) disp.h termcap.h misc.h ask.h delete.h insert.h marks.h move.h wind.h term.h jctype.h mouse.h xjove/mousemsg.h
+screen.o: $(JOVE_H) fp.h chars.h jctype.h disp.h extend.h fmt.h term.h mac.h screen.h wind.h
+term.o: $(JOVE_H) term.h fp.h
+termcap.o: $(JOVE_H) term.h disp.h fmt.h fp.h jctype.h screen.h
+unix.o: $(JOVE_H) fp.h chars.h term.h ttystate.h util.h
+util.o: $(JOVE_H) jctype.h disp.h fp.h ask.h chars.h fmt.h insert.h macros.h marks.h move.h rec.h mac.h
+vars.o: $(JOVE_H) extend.h vars.h abbrev.h ask.h c.h jctype.h disp.h insert.h sysprocs.h iproc.h mac.h mouse.h paragraph.h proc.h re.h reapp.h rec.h screen.h term.h ttystate.h wind.h vars.tab
+wind.o: $(JOVE_H) chars.h disp.h ask.h extend.h commands.h mac.h reapp.h wind.h screen.h
+msgetch.o: $(JOVE_H) chars.h disp.h
+mac.o: $(TUNE_H) $(JOVE_H) mac.h ask.h chars.h disp.h extend.h fp.h commands.h fmt.h marks.h misc.h move.h screen.h scandir.h term.h vars.h version.h wind.h
+keymaps.o: $(JOVE_H) list.h fp.h jctype.h chars.h disp.h re.h ask.h commands.h macros.h extend.h fmt.h screen.h vars.h sysprocs.h iproc.h
+ibmpcdos.o: $(JOVE_H) fp.h chars.h screen.h term.h
+mouse.o: $(JOVE_H) disp.h misc.h ask.h delete.h fmt.h insert.h marks.h move.h wind.h term.h jctype.h mouse.h xjove/mousemsg.h
+win32.o: $(JOVE_H) fp.h chars.h screen.h disp.h
 portsrv.o: $(JOVE_H) sysprocs.h iproc.h
 recover.o: $(JOVE_H) temp.h sysprocs.h rec.h paths.h recover.h scandir.c jctype.h
 setmaps.o: $(JOVE_H) chars.h commands.h vars.h commands.tab vars.tab

@@ -1,17 +1,15 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
  ************************************************************************/
 
 #include "jove.h"
+#include <errno.h>
 #include "jctype.h"
-#include "termcap.h"
 #include "disp.h"
 #include "fp.h"
-#include <signal.h>
-#include <errno.h>
 #include "ask.h"
 #include "chars.h"
 #include "fmt.h"
@@ -34,7 +32,7 @@ register char	*buf;
 	do {
 		c = *buf++;
 	} while (jiswhite(c));
-	return c == '\0';	/* It's zero if we got to the end of the Line */
+	return c == '\0';	/* It's NUL if we got to the end of the Line */
 }
 
 bool
@@ -78,7 +76,7 @@ register Bufpos	*bp;
 	notequal = bp->p_line != curline;
 	if (notequal)
 		lsave();
-	if (bp->p_line)
+	if (bp->p_line != NULL)
 		curline = bp->p_line;
 	if (notequal)
 		getDOT();
@@ -291,7 +289,7 @@ Bufpos *buf;
 	buf->p_char = curchar;
 }
 
-/* Return none-zero if we had to rearrange the order. */
+/* Return YES iff we had to rearrange the order. */
 
 bool
 fixorder(line1, char1, line2, char2)
@@ -324,7 +322,7 @@ LinePtr	first,
 	return LinesTo(first, what) != -1;
 }
 
-/* Make `buf' (un)modified and tell the redisplay code to update the modeline
+/* Make curbuf (un)modified and tell the redisplay code to update the modeline
    if it will need to be changed. */
 
 void
@@ -350,6 +348,24 @@ unmodify()
 	}
 }
 
+/* Set or clear the divergence flag for `buf'.
+   A buffer that contains a file is considered to have diverged
+   if the file in the filesystem appears to have changed since the
+   last time the buffer was loaded from or saved to that file.
+   If the flag has changed, tell the redisplay code to update the
+   modeline. */
+
+void
+diverge(buf, d)
+Buffer	*buf;
+bool	d;
+{
+	if (buf->b_diverged != d) {
+		UpdModLine = YES;
+		buf->b_diverged = d;
+	}
+}
+
 int
 numcomp(s1, s2)
 register char	*s1,
@@ -362,9 +378,23 @@ register char	*s1,
 	return count;
 }
 
+#ifdef FILENAME_CASEINSENSITIVE
+int
+numcompcase(s1, s2)
+register char	*s1,
+		*s2;
+{
+	register int	count = 0;
+
+	while (*s1 != '\0' && CharDowncase(*s1++) == CharDowncase(*s2++))
+		count += 1;
+	return count;
+}
+#endif
+
 char *
 copystr(str)
-char	*str;
+const char	*str;
 {
 	char	*val;
 
@@ -398,7 +428,7 @@ int	flag;
 {
 	static const char	mesg[] = "[line too long]";
 
-	if (flag == COMPLAIN)
+	if (flag == JMP_COMPLAIN)
 		complain(mesg);
 	else
 		error(mesg);
@@ -423,7 +453,7 @@ int	atchar,
 	from = &buf[atchar];
 	taillen = *from == '\0'?  1 : strlen(from) + 1;	/* include NUL */
 	if (atchar + taillen + num > max)
-		len_error(COMPLAIN);
+		len_error(JMP_COMPLAIN);
 	from += taillen;
 	to = from + num;
 	do {
@@ -456,7 +486,7 @@ int	atchar;
 
 	do {
 		if (onto >= endp)
-			len_error(ERROR);
+			len_error(JMP_ERROR);
 	} while ((*onto++ = *from++) != '\0');
 }
 
@@ -528,12 +558,12 @@ register char	*f;
 {
 	register char	*cp;
 
-#ifdef MSDOS
+#ifdef MSFILESYSTEM
 	if (f[0] != '\0'  && f[1] == ':')
 		f += 2;
 	if ((cp = strrchr(f, '\\')) != NULL)
 		f = cp + 1;
-#endif /* MSDOS */
+#endif /* MSFILESYSTEM */
 	if ((cp = strrchr(f, '/')) != NULL)
 		f = cp + 1;
 	return f;
@@ -569,11 +599,7 @@ int	from,
 	else
 		(void) time(&now);
 	cp = ctime(&now) + from;
-#ifndef MSDOS
 	if (to == -1)
-#else /* MSDOS */
-	if ((to == -1) && (cp[strlen(cp)-1] == '\n'))
-#endif /* MSDOS */
 		cp[strlen(cp) - 1] = '\0';		/* Get rid of \n */
 	else
 		cp[to - from] = '\0';
@@ -583,19 +609,6 @@ int	from,
 	} else {
 		return cp;
 	}
-}
-
-bool
-caseeq(s1, s2)
-register const char	*s1,
-		*s2;
-{
-	if (s1!=NULL && s2!=NULL) {
-		while (cind_eq(*s1, *s2++))
-			if (*s1++ == '\0')
-				return YES;
-	}
-	return NO;
 }
 
 /* Are s1 and s2 equal, at least for the first n chars, ignoring case? */
@@ -662,8 +675,9 @@ size_t	size;
 	return obj;
 }
 
+/* order file names (parameter for qsort) */
 int
-alphacomp(a, b)
+fnamecomp(a, b)
 UnivConstPtr	a,
 	b;
 {

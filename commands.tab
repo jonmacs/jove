@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -285,18 +285,18 @@ const struct cmd	commands[] = {
 #ifdef JOB_CONTROL
 	{ COMMAND, "suspend-jove", WIRED_CMD(PauseJove) },
 #endif
-	{ DefMajor(TEXT), "text-mode", WIRED_CMD(NULL) },
+	{ DefMajor(TEXTMODE), "text-mode", WIRED_CMD(NULL) },
 	{ MODCMD, "transpose-characters", WIRED_CMD(TransChar) },
 	{ MODCMD, "transpose-lines", WIRED_CMD(TransLines) },
 	{ COMMAND, "unbound", WIRED_CMD(Unbound) },
 	{ COMMAND, "version", WIRED_CMD(ShowVersion) },
 	{ COMMAND, "visible-spaces-in-window", WIRED_CMD(WVisSpace) },
-	{ COMMAND, "visit-file", WIRED_CMD(ReadFile) },
+	{ COMMAND, "visit-file", WIRED_CMD(JReadFile) },
 	{ COMMAND, "window-find", WIRED_CMD(WindFind) },
 #ifdef ABBREV
 	{ DefMinor(Abbrev), "word-abbrev-mode", WIRED_CMD(NULL) },
 #endif
-	{ COMMAND, "write-file", WIRED_CMD(WriteFile) },
+	{ COMMAND, "write-file", WIRED_CMD(JWriteFile) },
 	{ COMMAND, "write-macros-to-file", WIRED_CMD(WriteMacs) },
 	{ COMMAND, "write-modified-files", WIRED_CMD(WtModBuf) },
 	{ COMMAND, "write-region", WIRED_CMD(WrtReg) },
@@ -310,9 +310,14 @@ const struct cmd	commands[] = {
 	{ COMMAND, "xj-mouse-point", WIRED_CMD(xjMousePoint) },
 	{ COMMAND, "xj-mouse-word", WIRED_CMD(xjMouseWord) },
 	{ COMMAND, "xj-mouse-yank", WIRED_CMD(xjMouseYank) },
+	{ COMMAND, "xt-mouse-cut-point-yank", WIRED_CMD(xtMouseCutPointYank) },
+	{ COMMAND, "xt-mouse-extend", WIRED_CMD(xtMouseExtend) },
 	{ COMMAND, "xt-mouse-mark", WIRED_CMD(xtMouseMark) },
+	{ COMMAND, "xt-mouse-mark-drag-point-copy", WIRED_CMD(xtMouseMarkDragPointCopy) },
+	{ COMMAND, "xt-mouse-null", WIRED_CMD(xtMouseNull) },
 	{ COMMAND, "xt-mouse-point", WIRED_CMD(xtMousePoint) },
-	{ COMMAND, "xt-mouse-up", WIRED_CMD(xtMouseUp) },
+	{ COMMAND, "xt-mouse-point-yank", WIRED_CMD(xtMousePointYank) },
+	{ COMMAND, "xt-mouse-yank", WIRED_CMD(xtMouseYank) },
 #endif
 	{ MODCMD, "yank", WIRED_CMD(Yank) },
 	{ MODCMD, "yank-pop", WIRED_CMD(YankPop) },

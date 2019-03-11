@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -8,7 +8,6 @@
 #include "jove.h"
 #include "list.h"
 #include "fp.h"
-#include "termcap.h"
 #include "jctype.h"
 #include "chars.h"
 #include "disp.h"
@@ -26,35 +25,33 @@
 # include "iproc.h"	/* ... for definition of ProcNewline() */
 #endif
 
-#ifdef  IBMPC
-# include "msgetch.h"	/* for PCNONASCII */
-
+#ifdef PCNONASCII
 private const char *const altseq[] = {
-/*000*/NULL, NULL, NULL, "Ctl-@", NULL, NULL, NULL, "Ctl-^",
-/*010*/NULL, NULL, NULL, NULL, "Ctl-_", "Enter", "Alt-Bksp", "Left", 
+/*000*/NULL, "Alt Esc", NULL, "Ctl-@", NULL, NULL, NULL, "Ctl-^",
+/*010*/NULL, NULL, NULL, NULL, "Ctl-_", "Enter", "Alt-Bksp", "Left",
 /*020*/"Alt-Q", "Alt-W", "Alt-E", "Alt-R", "Alt-T", "Alt-Y", "Alt-U", "Alt-I",
 /*030*/"Alt-O", "Alt-P", "Alt-[", "Alt-]", "Alt-Enter", NULL, "Alt-A", "Alt-S",
 /*040*/"Alt-D", "Alt-F", "Alt-G", "Alt-H", "Alt-J", "Alt-K", "Alt-L", "Alt-;",
 /*050*/"Alt-'", "Alt-~", NULL, "Alt-\\", "Alt-Z", "Alt-X", "Alt-C", "Alt-V",
 /*060*/"Alt-B", "Alt-N", "Alt-M", "Alt-,", "Alt-.", "Alt-/", NULL, "Alt KP-",
-/*070*/NULL, NULL, NULL, "F1", "F2", "F3", "F4", "F5", 
+/*070*/NULL, NULL, NULL, "F1", "F2", "F3", "F4", "F5",
 /*100*/"F6", "F7", "F8", "F9", "F10", NULL, NULL, "Home",
 /*110*/"Up", "PgUp", "Alt KP-", "Left", "Shift KP5", "Right", "Alt KP+", "End",
-/*120*/"Down", "PgDn", "Ins", "Del", "Shift F1", "Shift F2", "Shift F3", "Shift F4", 
+/*120*/"Down", "PgDn", "Ins", "Del", "Shift F1", "Shift F2", "Shift F3", "Shift F4",
 /*130*/"Shift F5", "Shift F6", "Shift F7", "Shift F8", "Shift F9", "Shift F10", "Ctl F1", "Ctl F2",
-/*140*/"Ctl F3", "Ctl F4", "Ctl F5", "Ctl F6", "Ctl F7", "Ctl F8", "Ctl F9", "Ctl F10", 
+/*140*/"Ctl F3", "Ctl F4", "Ctl F5", "Ctl F6", "Ctl F7", "Ctl F8", "Ctl F9", "Ctl F10",
 /*150*/"Alt F1", "Alt F2", "Alt F3", "Alt F4", "Alt F5", "Alt F6", "Alt F7", "Alt F8",
 /*160*/"Alt F9", "Alt F10", "Ctl PrtSc", "Ctl Left", "Ctl Right", "Ctl End", "Ctl PgDn", "Ctl Home",
 /*170*/"Alt 1", "Alt 2", "Alt 3", "Alt 4", "Alt 5", "Alt 6", "Alt 7", "Alt 8",
 /*200*/"Alt 9", "Alt 0", "Alt Minus", "Alt Equals", "Ctl PgUp", "F11", "F12", "Shift F11",
 /*210*/"Shift F12", "Ctl F11", "Ctl F12", "Alt F11", "Alt F12", "Ctl Up", "Ctl KP-", "Ctl KP5",
-/*220*/"Ctl KP+", "Ctl Down", "Ctl Ins", "Ctl Del", NULL, "Ctl KP/", "Ctl KP*", "Alt Home",
+/*220*/"Ctl KP+", "Ctl Down", "Ctl Ins", "Ctl Del", "Ctl Tab", "Ctl KP/", "Ctl KP*", "Alt Home",
 /*230*/"Alt Up", "Alt PgUp", NULL, "Alt Left", NULL, "Alt Right", NULL, "Alt End",
-/*240*/"Alt Down", "Alt PgDn", "Alt Ins", "Alt Del", "Alt KP/", NULL, "Alt KP Enter", NULL,
-/*250*/NULL, NULL, NULL, "Shift Home", "Shift Up", "Shift PgUp", NULL, "Shift Left",
-/*260*/"Shift KP5", "Shift Right", NULL, "Shift End", "Shift Down", "Shift PgDn", "Shift Ins", "Shift Del"
+/*240*/"Alt Down", "Alt PgDn", "Alt Ins", "Alt Del", "Alt KP/", "Alt Tab", "Alt KP Enter", NULL,
+/*250*/NULL, NULL, NULL, "Shift Home", "Shift Up", "Shift PgUp", "Shift Alt KP-", "Shift Left",
+/*260*/"Shift KP5", "Shift Right", "Shift Alt KP+", "Shift End", "Shift Down", "Shift PgDn", "Shift Ins", "Shift Del"
 };
-#endif
+#endif	/* PCNONASCII */
 
 int this_cmd, last_cmd;
 
@@ -414,19 +411,22 @@ data_obj *obj;
 	}
 	km_setkey(m, ZXC(keys[i]), obj);
 #ifdef MAC
+	/* info for About Jove ... */
 	if (obj != NULL && obj_type(obj) == COMMAND) {
 		struct cmd	*cmd = (struct cmd *) obj;
 		char	map = 0;
 
-		if (map->keys == MainKeys)
-			map = F_MAINMAP;
-		else if (map->keys == EscKeys)
-			map = F_PREF1MAP;
-		else if (map == (struct keymap *) CtlxKeys)
-			map = F_PREF2MAP;
+		if (m->Type == FULL_KEYMAP) {
+			if (m->u.full.map == MainKeys)
+				map = F_MAINMAP;
+			else if (m->u.full.map == EscKeys)
+				map = F_PREF1MAP;
+			else if (m->u.full.map == CtlxKeys)
+				map = F_PREF2MAP;
+		}
 		if (map != 0) {
 			cmd->c_map = map;
-			cmd->c_key = key;	/* see about_j() in mac.c */
+			cmd->c_key = ZXC(keys[i]);	/* see about_j() in mac.c */
 		}
 	}
 #endif
@@ -560,7 +560,7 @@ KeyDesc()
 	s_mess(ProcFmt);
 	while (YES) {
 		int i;
-		bool still_hope = NO;
+		bool	still_hope = NO;
 		ZXchar	key = addgetc();
 
 		for (i = 0; i < nmaps; i++) {
@@ -570,6 +570,7 @@ KeyDesc()
 				if (cp != NULL) {
 					if (!IsKeymap(cp)) {
 						add_mess("is bound to %s.", cp->Name);
+						stickymsg = YES;
 						return;
 					}
 					still_hope = YES;
@@ -603,7 +604,7 @@ char *pref;
 				c1 == c2 ? "%s %p" : c1 + 1 == c2 ? "%s {%p,%p}" : "%s [%p-%p]",
 				pref, c1, c2);
 			if (IsKeymap(c1obj)) {
-#ifdef IBMPC
+#ifdef PCNONASCII
 				/* horrible kludge to handle PC non-ASCII keys */
 				if (c1 == PCNONASCII) {
 					ZXchar	pc;
@@ -628,7 +629,7 @@ char *pref;
 					}
 					continue;
 				}
-#endif /* IBMPC */
+#endif /* PCNONASCII */
 				DescMap((struct keymap *)c1obj, keydescbuf);
 			} else {
 				Typeout("%-18s %s", keydescbuf, c1obj->Name);
@@ -680,7 +681,7 @@ size_t	room;
 			if (IsKeymap(c1obj)) {
 				char	prefbuf[20];
 
-#ifdef IBMPC
+#ifdef PCNONASCII
 				/* horrible kludge to handle PC non-ASCII keys */
 				if (c1 == PCNONASCII) {
 					struct keymap	*pcm = (struct keymap *)c1obj;
@@ -713,7 +714,7 @@ size_t	room;
 					}
 					continue;
 				}
-#endif /* IBMPC */
+#endif /* PCNONASCII */
 				swritef(prefbuf, sizeof(prefbuf), "%s%p ", prefix, c1);
 				bufp = fb_aux(cp, (struct keymap *) c1obj, prefbuf, bufp,
 					room-(bufp-buf));
@@ -812,7 +813,10 @@ Apropos()
 	register struct macro *m;
 	register const struct variable *v;
 	char *ans;
-	bool anyfs = NO, anyvs = NO, anyms = NO;
+	bool
+		anyfs = NO,
+		anyvs = NO,
+		anyms = NO;
 	char buf[MAXCOLS];
 
 	ans = ask((char *) NULL, ": %f (keyword) ");
@@ -877,7 +881,7 @@ InitKeymaps()
 	km = km_new(FULL_KEYMAP, CtlxKeys, "CtlX-map");
 	km_setkey(mainmap, CTL('X'), (data_obj *) km);
 
-#ifdef  IBMPC
+#ifdef  PCNONASCII
 	km = km_new(FULL_KEYMAP, NonASCIIKeys, "non-ASCII-map");
 	km_setkey(mainmap, PCNONASCII, (data_obj *) km);
 #endif
@@ -908,9 +912,8 @@ ZXchar c;
 	nmaps = get_keymaps(maps);
 
 	while (YES) {
-		int i;
-		bool still_hope = NO;
-		bool slow = NO;
+		int	i;
+		bool	still_hope = NO;
 
 		for (i = 0; i < nmaps; i++) {
 			if (maps[i] != NULL) {
@@ -933,10 +936,10 @@ ZXchar c;
 			s_mess("[%sunbound]", strokes);
 			rbell();
 			clr_arg_value();
-			errormsg = NO;
+			stickymsg = NO;
 			break;
 		}
-		c = waitchar(&slow);
+		c = waitchar();
 		if (c == AbortChar) {
 			message("[Aborted]");
 			rbell();

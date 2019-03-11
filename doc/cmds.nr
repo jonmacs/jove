@@ -10,9 +10,12 @@
 .\" italicising or emboldening in this file.
 .
 .dc "abort-char" "(variable)"
-This variable defines \s-2JOVE'S\s0 abort character.  When the abort
-character is typed, the current \s-2JOVE\s0 command is aborted.  The
-default value is ^G.
+This variable defines \s-2JOVE'S\s0'S abort character.  When JOVE
+reads this character from the keyboard, it stops what it is doing
+(unless the character is quoted in some way).  Unfortunately, JOVE
+won't notice the character until it reads from the keyboard.  The
+default value is ^G.  See also 
+.IQ interrupt-character .
 .dc "add-lisp-special" "Not Bound"
 This command is to tell \s-2JOVE\s0 what identifiers require special
 indentation in lisp mode.  Lisp functions like
@@ -32,13 +35,16 @@ communications systems require that this variable be set
 .IQ off ;
 in other circumstances it is better set
 .IQ on .
-.dc "allow-bad-filenames" "(variable)"
+.dc "allow-bad-characters-in-filenames" "(variable)"
 If set, this variable permits the creation of filenames which contain
 \*Qbad\*U characters
 such as those from the set \(**&%!"`[]{}.  These files are harder to deal
 with, because the characters mean something to the shell.  The default
 value is
 .IQ off .
+.dc "allow-bad-filenames" "(variable)"
+This is the obsolete name for
+.IQ allow-bad-characters-in-filenames .
 .dc "append-region" "Not Bound"
 This appends the region to a specified file.  If the file does not
 already exist it is created.
@@ -131,14 +137,15 @@ This turns on or off Auto Indent minor mode in the selected buffer.
 Without a numeric argument, the command toggles the mode; with a
 zero argument, the mode is turned off; with a non-zero argument,
 the mode is turned on.  When \s-2JOVE\s0 is in Auto Indent mode,
-Return indents the new line to the same position as the line you
+the
+.IQ newline
+command (which is normally bound to Return) acts identically to
+.IQ newline-and-indent :
+the new line is indented to the same position as the line you
 were just on.  This is useful for lining up C code (or any other
-language (but what else is there besides C?)).  This is out of date
-because of the new command called
-.IQ newline-and-indent
-but it remains because of several
-\*Qrequests\*U on the part of, uh, enthusiastic and excitable users, that
-it be left as it is.
+language (but what else is there besides C?)).
+Furthermore, if a line is broken because of Auto Fill mode, and
+Auto Indent mode is on, the new line will be indented as the old line was.
 .dc "backward-character" "^B"
 This moves point backward over a single character or line-separator.
 Thus if point is at the
@@ -153,10 +160,12 @@ See also
 .IQ backward-s-expression .
 .dc "backward-paragraph" "Usually Not Bound"
 This moves point backward to the beginning of the current or previous
-paragraph.  Paragraphs are bounded by lines that begin with a Period or
-Tab, or by blank lines; a change in indentation may also signal a break
-between paragraphs, except that \s-2JOVE\s0 allows the first line of a paragraph
-to be indented differently from the other lines.
+paragraph.  Paragraphs are bounded by lines that match
+.IQ paragraph-delimiter-pattern
+(by default, those that are empty or look like troff or TeX commands).
+A change in indentation may also signal a break
+between paragraphs, except that \s-2JOVE\s0 allows the first line of a
+paragraph to be indented differently from the other lines.
 Arguments are accepted, and negative arguments search forwards.
 .dc "backward-s-expression" "ESC\ ^B"
 This moves point backward over an s-expression, that is over a Lisp atom or
@@ -302,22 +311,22 @@ default value produces:
 .fi
 .dc "c-indentation-increment" "(variable)"
 This defines a set of tabstops independent of the value of
-.IQ internal-tabstop .
+.IQ tab-width .
 This value will be used in C
 mode, and \s-2JOVE\s0 will insert the correct number of Spaces and Tabs to
 get the right behavior.  For programmers that like to indent with 4 spaces,
 set this value to 4.  Some people prefer to set this to 4 and leave
-internal-tabstop set to 8.  This will create files whose indentation steps in
+tab-width set to 8.  This will create files whose indentation steps in
 4-space increments, and which look the same anywhere that tabs are expanded
 to 8 spaces (i.e. in most settings).  Others prefer to have one tab
 character per indentation level, then fiddle the tab expansion width to get
 the appearance they like.  They should set both
 .IQ c-indentation-increment
 and
-.IQ internal-tabstop
+.IQ tab-width
 to 4.  Whenever using a non-standard tab width
 (\c
-.IQ internal-tabstop )
+.IQ tab-width )
 you should only use tabs for indentation, and use
 spaces for all columnar alignment later in the lines.
 .dc "c-mode" "Not Bound"
@@ -621,6 +630,9 @@ the variable
 can be set up to announce the arrival of new
 mail during a \s-2JOVE\s0 session.
 .dc "display-bad-filenames" "(variable)"
+This is the obsolete name for
+.IQ display-filenames-with-bad-extensions .
+.dc "display-filenames-with-bad-extensions" "(variable)"
 This variable affects only filename completion, in particular, what
 happens when \*Q?\*U is typed while prompting for a file.  When this variable
 is
@@ -629,7 +641,7 @@ any files that end with one of the extensions defined by the
 variable
 .IQ bad-filename-extensions
 will be displayed with an \*Q!\*U in front of their names.  When
-.IQ display-bad-filenames
+.IQ display-filenames-with-bad-extensions
 is
 .IQ off
 the files will not be displayed at all.  The default value
@@ -673,11 +685,10 @@ See also the variable
 .IQ mark-threshold .
 .dc "end-of-line" "^E"
 This moves point to the end of the current line.  If the line is too
-long to fit on the screen \s-2JOVE\s0 will scroll the line to the left to
-make the end of the line visible.  The line will slide back to its
-normal position when you move backward past the leftmost visible character
-or when you move off the line altogether.
-See also the variable
+long to fit on the screen, it will be scrolled horizontally.
+This is described with the variables
+.IQ scroll-width
+and
 .IQ scroll-all-lines .
 .dc "end-of-window" "ESC\ ."
 This moves point to the last character in the active window.  If there is a
@@ -836,10 +847,10 @@ This can be changed by changing the
 .IQ format-comment
 variable.  Other languages
 may be supported by changing the format variable appropriately.  The
-formatter looks backwards from dot for an open comment symbol.  If
+formatter looks backwards from point for an open comment symbol.  If
 found, all indentation is done relative to the position of the first character
 of the open symbol.  If there is a matching close symbol, the entire
-comment is formatted.  If not, the region between the open symbol and dot
+comment is formatted.  If not, the region between the open symbol and point
 is reformatted.  The original text is saved in the kill ring; a
 .IQ yank-pop
 command will undo the formatting.
@@ -949,10 +960,12 @@ See also
 .IQ forward-s-expression .
 .dc "forward-paragraph" "ESC\ ]"
 This moves point forward to the end of the current or next paragraph.
-Paragraphs are bounded by lines that begin with a Period or Tab, or by blank
-lines; a change in indentation may also signal a break between paragraphs,
-except that \s-2JOVE\s0 allows the first line of a paragraph to be indented
-differently from the other lines.
+Paragraphs are bounded by lines that match
+.IQ paragraph-delimiter-pattern
+(by default, those that are empty or look like troff or TeX commands).
+A change in indentation may also signal a break
+between paragraphs, except that \s-2JOVE\s0 allows the first line of a
+paragraph to be indented differently from the other lines.
 Arguments are accepted, and negative arguments search backwards.
 .dc "forward-s-expression" "ESC\ ^F"
 This moves point forward over an s-expression, that is over a Lisp atom or
@@ -1038,14 +1051,18 @@ See also the variable
 This inserts a specified file into the selected buffer at point.  Point
 is positioned at the beginning of the inserted file.
 .dc "internal-tabstop" "(variable)"
-When \s-2JOVE\s0 displays a Tab character, it moves point forward to the
-next multiple of this variable.
-The default value is 8.
+This is the obsolete name for
+.IQ tab-width .
 .dc "interrupt-character" "(variable)"
-This is set to the character that interrupts \s-2JOVE\s0 (with a signal) no matter
-what \s-2JOVE\s0 is doing.  It's main use is for interrupting non-interactive
-processes, but it also has uses for debugging.  Unfortunately there is no
-way to turn off the interrupt character.  The default is ^].
+This specifies what character should be used as the operating
+system's tty driver interrupt character.  When this character is
+typed, the tty driver generates SIGINT signal.  This will
+interrupt a non-interactive process.  If no such process is
+running, \s-2JOVE'S\s0 will offer you the option of continuing, or
+crashing \s-2JOVE'S\s0 (trying to save your work).  This is a crude and
+desperate way to stop \s-2JOVE'S\s0.  Unfortunately there is no way to
+turn off the interrupt character.  The default is ^].  See also
+.IQ abort-char .
 .dc "interrupt-process" "Proc: ^C\ ^C"
 This sends the signal SIGINT to the interactive process
 in the selected buffer.  This only works if you are inside a buffer
@@ -1267,7 +1284,11 @@ if your terminal has a real Meta key
 which forces the 8th bit of each character.
 If your terminal has such a key, then a key sequence like ESC\ Y can be
 entered by holding down Meta and typing Y.
-NOTE: In some older systems, \s-2JOVE\s0 must switch the tty to
+On the IBM PC, this variable affects how ALT is interpreted.
+On the Macintosh, it affects how Option is interpreted.
+NOTE: In some older
+.UX
+systems, \s-2JOVE\s0 must switch the tty to
 raw mode to accept the 8-bit characters generated by a meta key.
 Unfortunately, the
 .IQ interrupt-character
@@ -1296,6 +1317,8 @@ variables)
 		among the places %e is used (used for justifying,
 		separating, or centering parts of the mode line)
 	f	the current file name
+	ixy	x, when the buffer's file has been changed behind JOVE's back,
+		y, when not
 	mxy	x, when the buffer is modified or y, when not
 	n	the selected buffer number
 	p	interactive process status for process windows
@@ -1331,16 +1354,18 @@ commands.
 .dc "newline" "Return"
 This divides the current line at point moving all the text to the
 right of point down onto the newly created line.  Point moves down to
-the beginning of the new line.
+the beginning of the new line.  In Auto Indent mode, the new line will
+be indented to match the old line.
 .dc "newline-and-backup" "^O"
 This divides the current line at point moving all the text to the
 right of point down onto the newly created line.  The difference
-between this and \*Qnewline\*U is that point does not move down to the
-beginning of the new line.
+between this and
+.IQ newline
+is that point does not move down to the beginning of the new line.
 .dc "newline-and-indent" "Linefeed"
-This behaves the same way as Return does when in Auto Indent mode.
-This makes Auto Indent mode obsolete but it remains in the name of
-backward compatibility.
+This behaves in any mode the same way as
+.IQ newline
+does in Auto Indent mode.
 .dc "next-error" "^X\ ^N"
 This moves to the next error in the list of errors that were parsed
 with
@@ -1398,6 +1423,16 @@ This command causes the characters bound to it to be inserted, and then to
 partake in C mode curly brace indentation, Lisp mode parenthesis
 indentation, and the Show Match mode paren/curly-brace/square-bracket
 flashing.
+.dc "paragraph-delimiter-pattern" "(variable)"
+When \s-2JOVE\s0 is searching for a paragraph boundary, if this
+pattern (a regular expression) matches the start of a line, that
+line is treated as a paragraph delimiter.  The default pattern
+recognizes blank lines, troff control lines, and lines starting with
+a TeX control sequence.
+
+There is a special provision for TeX: if a line is matched by the
+pattern, and the match is of exactly an initial \e, that line is
+only treated as a delimiter if the next line also starts with \e.
 .dc "paren-flash-delay" "(variable)"
 How long, in tenths of a second, \s-2JOVE\s0 should pause on a matching
 parenthesis in Show Match mode.  The default is 5.
@@ -1687,8 +1722,8 @@ This enters a recursive editing level.  This isn't really very
 useful.  I don't know why it's available for public use.  I think I'll
 delete it some day.
 .dc "redraw-display" "^L"
-This centers the line containing point in the window.  If that line is
-already in the middle the window is first cleared and then redrawn.
+This vertically centers the line containing point within the window.  If that
+line is already in place, the screen is first cleared and then redrawn.
 If a numeric argument is supplied, the line is positioned at that
 offset from the top of the window.  For example, \*QESC\ 0 ^L\*U positions
 the line containing point at the top of the window
@@ -1729,15 +1764,15 @@ refuses to do the save.  If
 you really do want to write the file you must use
 .IQ write-file .
 .dc "scroll-all-lines" "(variable)"
-When this is turned
-.IQ on ,
-the entire window will be scrolled left or right
-when the current line scrolls (because you are trying to move point off the
-screen).  The default value is
+When this is
 .IQ off ,
-which will
-cause \s-2JOVE\s0 to behave in the familiar way, namely to scroll only
-the current line.
+(the default) horizontal scrolling will only affect the line
+containing point.
+When it is
+.IQ on ,
+horizontal scrolling will affect the whole window.  See also the
+.IQ scroll-width
+variable.
 .dc "scroll-bar" "(variable)"
 When this is turned
 .IQ on ,
@@ -1755,9 +1790,12 @@ See the
 .IQ previous-page
 command.
 .dc "scroll-left" "Not Bound"
-This scrolls the text in the active window 10 character positions to the
+This scrolls the text in the active window to the
 left.  If a numeric argument is specified then the text is scrolled that
-number of character positions.  If the variable
+number of columns.  Otherwise, the text is scrolled by
+the number of columns specified by the variable
+.IQ scroll-width .
+If the variable
 .IQ scroll-all-lines
 is ON then
 .IQ scroll-left
@@ -1768,9 +1806,12 @@ variable
 is suitably set, an indication that the text is scrolled will be given in
 the mode line.
 .dc "scroll-right" "Not Bound"
-This scrolls the text in the active window 10 character positions to the
+This scrolls the text in the active window to the
 right.  If a numeric argument is specified then the text is scrolled that
-number of character positions.  If the variable
+number of columns.  Otherwise, the text is scrolled by
+the number of columns specified by the variable
+.IQ scroll-width .
+If the variable
 .IQ scroll-all-lines
 is ON then
 .IQ scroll-right
@@ -1799,6 +1840,18 @@ instead.
 See also the
 .IQ next-page
 command.
+.dc "scroll-width" "(variable)"
+Just as a buffer may be too long to be completely displayed in a
+window, a line may be too wide.  \s-2JOVE\s0 handles wide lines
+through horizontal scrolling, displaying only a portion of the
+line.  This variable affects horizontal scrolling.  If point is
+outside the displayed portion of its line, but is within the
+specified number of columns beyond either side, the line is scrolled
+that much.  Otherwise, the line will be scrolled to center point.
+The default value is 10.  If the variable is 0, centering will
+always be used.  See also the
+.IQ scroll-all-lines
+variable.
 .dc "search-exit-char" "(variable)"
 Set this to the character you want to use to exit incremental search.  The
 default is Newline, which makes
@@ -2144,6 +2197,11 @@ The temporary files used by \s-2JOVE\s0 are forced out to disk every
 modifications.  The default is 50, which really makes
 good sense.  Unless your system is very unstable, you probably
 shouldn't fool with this.
+.dc "tab-width" "(variable)"
+When \s-2JOVE\s0 displays a Tab character, it moves point forward to the
+next multiple of this variable.  If the value is 0, tab is displayed as ^I,
+not whitespace.
+The default value is 8.
 .dc "tag-file" "(variable)"
 This is the name of the file in which \s-2JOVE\s0 should look up tag
 definitions.  The default value is \*Q.\^/tags\*U.

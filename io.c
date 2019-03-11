@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -8,7 +8,6 @@
 #include "jove.h"
 #include "list.h"
 #include "fp.h"
-#include "termcap.h"
 #include "jctype.h"
 #include "disp.h"
 #include "scandir.h"
@@ -18,7 +17,7 @@
 #include "marks.h"
 #include "sysprocs.h"
 #include "proc.h"
-#include "wind.h"	/* only used by ReadFile for fixup */
+#include "wind.h"	/* only used by JReadFile for fixup */
 #include "rec.h"
 
 #ifdef MAC
@@ -31,28 +30,29 @@
 # include <sys/file.h>
 #endif
 
-#ifdef MSDOS
+#ifdef MSFILESYSTEM
 # include <fcntl.h>
 # include <io.h>
 # include <direct.h>
 # include <dos.h>
-# ifdef __WATCOMC__
-#  include <stdlib.h>	/* _splitpath, _makepath */
-# endif
+# include <stdlib.h>	/* _splitpath, _makepath */
 extern int UNMACRO(rename)(const char *old, const char *new);	/* <stdin.h> */
-#endif /* MSDOS */
+# ifndef _MAX_DIR
+#  define _MAX_DIR FILESIZE
+# endif
+# ifndef _MAX_FNAME
+#  define _MAX_FNAME 9
+# endif
+# ifndef _MAX_EXT
+#  define _MAX_EXT 4
+# endif
+#endif /* MSFILESYSTEM */
 
 #include <errno.h>
 
-#ifdef MAC
-# define	chk_mtime(thisbuf, fname, how)	{ }
-#else
-# ifdef MSDOS
-#  define	chk_mtime(thisbuf, fname, how)	{ }
-# else
-private void	chk_mtime proto((Buffer *thisbuf, char *fname, char *how));
-# endif /* !MSDOS */
-#endif /* !MAC */
+private void
+	filemunge proto((char *newname)),
+	chk_divergence proto((Buffer *thisbuf, char *fname, char *how));
 
 private struct block	*lookup_block proto((daddr));
 
@@ -65,9 +65,6 @@ private void
 	file_backup proto((char *fname));
 #endif
 
-private void
-	filemunge proto((char *newname));
-
 long	io_chars;		/* number of chars in this open_file */
 int	io_lines;		/* number of lines in this open_file */
 
@@ -75,11 +72,16 @@ int	io_lines;		/* number of lines in this open_file */
 bool	BkupOnWrite = NO;	/* VAR: make backup files when writing */
 #endif
 
-#ifndef MSDOS
+#ifndef MSFILESYSTEM
 
 #define	Dchdir(to)  chdir(to)
 
-#else /* MSDOS */
+#else /* MSFILESYSTEM */
+
+# ifdef WIN32
+#  define _dos_getdrive(dd)		(*(dd)=_getdrive())
+#  define _dos_setdrive(d, n)	((*(n)=_getdrive()), _chdrive((d)))
+# endif
 
 # ifdef ZTCDOS
 
@@ -235,15 +237,20 @@ char *path;
 	for (p = path; *p != '\0'; p++)
 		if (*p == '\\')
 			*p = '/';
+# ifdef MSDOS
 	return strlwr(path);
+# else
+	return path; /* Win32 is case-preserving. */
+# endif
 }
 
 private void
 abspath(so, dest)
 char *so, *dest;
 {
-	char cwd[FILESIZE], cwdD[3], cwdDIR[FILESIZE], cwdF[9], cwdEXT[5],
-	     soD[3], soDIR[FILESIZE], soF[9], soEXT[5];
+	char	cwd[FILESIZE],
+		cwdD[3], cwdDIR[_MAX_DIR], cwdF[_MAX_FNAME], cwdEXT[_MAX_EXT],
+		soD[3], soDIR[_MAX_DIR], soF[_MAX_FNAME], soEXT[_MAX_EXT];
 
 	_splitpath(fixpath(so), soD, soDIR, soF, soEXT);
 	getcwd(cwd, FILESIZE);
@@ -264,12 +271,19 @@ char *so, *dest;
 		strcat(cwd, "/x.x");	/* need dummy filename */
 
 	_splitpath(fixpath(cwd), cwdD, cwdDIR, cwdF, cwdEXT);
-	_makepath(dest, *soD == '\0'? cwdD : soD,
+	/* Reconstruct the path as follows:
+	 * - If it is NOT a UNC (network) name, and doesn't have a drive letter,
+	 *   add one.
+	 * - If it is a relative path, add the current drive/directory
+	 *   to convert it to an absolute path.
+	 */
+	_makepath(dest,
+		*soD == '\0' && (soDIR[0]!='/'||soDIR[1]!='/') ? cwdD : soD,
 		*soDIR != '/'? strcat(cwdDIR, soDIR) : soDIR, soF, soEXT);
 	fixpath(dest);	/* can't do it often enough */
 }
 
-#endif /* MSDOS */
+#endif /* MSFILESYSTEM */
 
 
 void
@@ -317,10 +331,10 @@ bool	makesure;
 		if (line1 != line2) {
 			io_lines += 1;
 			io_chars += 1;
-#ifdef MSDOS
+#ifdef USE_CRLF
 			f_putc('\r', fp);
-#endif /* MSDOS */
-			f_putc('\n', fp);
+#endif /* USE_CRLF */
+			f_putc(EOL, fp);
 		}
 		line1 = line1->l_next;
 		char1 = 0;
@@ -369,7 +383,7 @@ bool	is_insert;
 		return;
 	}
 	if (!is_insert) {
-		set_ino(curbuf);
+		(void) do_stat(curbuf->b_fname, curbuf, DS_SET);
 		set_arg_value((fp->f_flags & F_READONLY)? 1 : 0);
 		TogMinor(ReadOnly);
 	}
@@ -388,25 +402,29 @@ bool	is_insert;
 void
 SaveFile()
 {
-	if (IsModified(curbuf)) {
-		if (curbuf->b_fname == NULL) {
-			/* We change LastCmd because otherwise the prompt for
-			 * the filename will be ": visit-file".  With this
-			 * fudge, it will be ": write-file".
-			 */
-			data_obj	*saved_lc = LastCmd;
-			static data_obj	dummy = { 0, "write-file" };
-
-			LastCmd = &dummy;
-			WriteFile();
-			LastCmd = saved_lc;
-		} else {
-			filemunge(curbuf->b_fname);
-			chk_mtime(curbuf, curbuf->b_fname, "save");
-			file_write(curbuf->b_fname, NO);
+	if (!IsModified(curbuf) && !curbuf->b_diverged) {
+		if (curbuf->b_fname != NULL)
+			(void) do_stat(curbuf->b_fname, curbuf, DS_NONE);
+		if (!curbuf->b_diverged) {
+			message("No changes need to be written.");
+			return;
 		}
+	}
+	if (curbuf->b_fname == NULL) {
+		/* We change LastCmd because otherwise the prompt for
+		 * the filename will be ": visit-file".  With this
+		 * fudge, it will be ": write-file".
+		 */
+		data_obj	*saved_lc = LastCmd;
+		static data_obj	dummy = { 0, "write-file" };
+
+		LastCmd = &dummy;
+		JWriteFile();
+		LastCmd = saved_lc;
 	} else {
-		message("No changes need to be written.");
+		filemunge(curbuf->b_fname);
+		chk_divergence(curbuf, curbuf->b_fname, "save");
+		file_write(curbuf->b_fname, NO);
 	}
 }
 
@@ -457,11 +475,11 @@ Chdir()
 {
 	char	dirbuf[FILESIZE];
 
-#ifdef MSDOS
+#ifdef MSFILESYSTEM
 	MatchDir = YES;
 #endif
 	(void) ask_file((char *)NULL, PWD, dirbuf);
-#ifdef MSDOS
+#ifdef MSFILESYSTEM
 	MatchDir = NO;
 #endif
 	if (Dchdir(dirbuf) == -1)
@@ -560,18 +578,22 @@ getCWD()
 	char	*cwd;
 	char	pathname[FILESIZE];
 
+#ifndef MAC	/* no environment in MacOS */
 	cwd = getenv("CWD");
 	if (cwd == NULL || !chkCWD(cwd)) {
 		cwd = getenv("PWD");
 		if (cwd == NULL || !chkCWD(cwd)) {
+#endif
 			cwd = getcwd(pathname, sizeof(pathname));
 			if (cwd == NULL)
-				error("Cannot get current directory: %s", pathname);
+				error("Cannot get current directory");
+#ifndef MAC	/* no environment in MacOS */
 		}
 	}
-#ifdef MSDOS
+#endif
+#ifdef MSFILESYSTEM
 	cwd = fixpath(cwd);
-#endif /* MSDOS */
+#endif /* MSFILESYSTEM */
 	setCWD(cwd);
 }
 
@@ -580,7 +602,7 @@ prDIRS()
 {
 	register List	*lp;
 
-	s_mess(": %f ");
+	s_mess(ProcFmt);
 	for (lp = DirStack; lp != NULL; lp = list_next(lp))
 		add_mess("%s ", pr_name(dir_name(lp), YES));
 }
@@ -588,7 +610,8 @@ prDIRS()
 void
 prCWD()
 {
-	s_mess(": %f => \"%s\"", PWD);
+	f_mess(": %f => \"%s\"", PWD);
+	stickymsg = YES;
 }
 
 private void
@@ -622,16 +645,14 @@ Pushd()
 {
 	char	dirbuf[FILESIZE];
 
-	char	*newdir;
-
-#ifdef MSDOS
+#ifdef MSFILESYSTEM
 	MatchDir = YES;
 #endif
-	newdir = ask_file((char *)NULL, NullStr, dirbuf);
-#ifdef MSDOS
+	(void) ask_file((char *)NULL, NullStr, dirbuf);
+#ifdef MSFILESYSTEM
 	MatchDir = NO;
 #endif
-	doPushd(newdir);
+	doPushd(dirbuf);
 }
 
 void
@@ -712,6 +733,15 @@ register char	*user,
 # endif /* USE_GETPWNAM */
 #endif /* UNIX */
 
+/* Convert path in name into a more-canonical one in intobuf.
+ * - makes path absolute
+ * - handles ~ (and \~, if not MSFILESYSTEM)
+ * - if MSFILESYSTEM, turns \ into /
+ * - on MSDOS, lower cases everything
+ * Note: because \~ is turned into ~, this routine is not idempotent.
+ * ??? I suspect that there are places where in the code that presume
+ * it is idempotent!  DHR
+ */
 void
 PathParse(name, intobuf)
 char	*name,
@@ -743,31 +773,38 @@ char	*name,
 			name = uendp;
 		}
 #endif
-#ifndef MSDOS
+#ifndef MSFILESYSTEM
 	} else if (name[0] == '\\' && name[1] == '~') {
 		/* allow quoting of ~ (but \ is a path separator in MSDOS) */
 		name += 1;
-#endif /* MSDOS */
+#endif /* MSFILESYSTEM */
 	}
 	(void) strcat(localbuf, name);
 
 	/* Make path absolute, and prepare for processing each component
 	 * of the path by placing prefix in intobuf.
 	 */
-#ifndef MSDOS
+#ifndef MSFILESYSTEM
 	strcpy(intobuf, localbuf[0] == '/'? "/" : PWD);
-#else /* MSDOS */
+#else /* MSFILESYSTEM */
 	/* Convert to an absolute path, and then fudge thing so that the
 	 * generic code does not have to deal with drive specifications.
-	 * Our absolute path starts with a d: drive specification and
+	 * If the path starts with '//' it is a UNC name. Otherwise,
+	 * our absolute path starts with a d: drive specification and
 	 * uses forward slashes as the path separator (including one
 	 * right after the drive specification).
 	 */
 	abspath(localbuf, intobuf);
-	strcpy(localbuf, intobuf+3);		/* copy back all but d:/ */
-	intobuf += 2;	/* "forget" drive spec: point to / */
-	intobuf[1] = '\0';	/* truncate after d:/ */
-#endif /* MSDOS */
+	if (localbuf[0] == '/' && localbuf[1] == '/') {
+		strcpy(localbuf, intobuf+1);
+		intobuf += 1;
+		intobuf[1] = '\0';
+	} else {
+		strcpy(localbuf, intobuf+3);		/* copy back all but d:/ */
+		intobuf += 2;	/* "forget" drive spec: point to / */
+		intobuf[1] = '\0';	/* truncate after d:/ */
+	}
+#endif /* MSFILESYSTEM */
 
 	/* Process each path component, attempting to make the path canonical.
 	 * Since processing is lexical, it cannot account for links.
@@ -805,28 +842,7 @@ char	*name,
 	}
 }
 
-private void
-filemunge(newname)
-char	*newname;
-{
-	struct stat	stbuf;
-
-	if (newname != NULL
-	&& stat(newname, &stbuf) == 0
-#ifdef USE_INO
-	&& (stbuf.st_dev != curbuf->b_dev || stbuf.st_ino != curbuf->b_ino)
-#endif /* USE_INO */
-#ifndef MAC
-	&& (stbuf.st_mode & S_IFMT) != S_IFCHR
-#endif /* !MAC */
-	&& (curbuf->b_fname==NULL || strcmp(newname, curbuf->b_fname) != 0))
-	{
-		rbell();
-		confirm("\"%s\" already exists; overwrite it? ", newname);
-	}
-}
-
-#ifndef MSDOS
+#ifdef UNIX
 int	CreatMode = DFLT_MODE;	/* VAR: default mode for creat'ing files */
 #endif
 
@@ -834,23 +850,23 @@ private void
 DoWriteReg(app)
 bool	app;
 {
-	char	fnamebuf[FILESIZE],
-		*fname;
+	char	fnamebuf[FILESIZE];
 	Mark	*mp = CurMark();
 	File	*fp;
 
 	/* Won't get here if there isn't a Mark */
-	fname = ask_file((char *)NULL, (char *)NULL, fnamebuf);
+	(void) ask_file((char *)NULL, (char *)NULL, fnamebuf);
 
 	if (!app) {
-		filemunge(fname);
+		filemunge(fnamebuf);
+		chk_divergence((Buffer *)NULL, fnamebuf, "write-region");
 #ifdef BACKUPFILES
 		if (BkupOnWrite)
-			file_backup(fname);
+			file_backup(fnamebuf);
 #endif
 	}
 
-	fp = open_file(fname, iobuff, app ? F_APPEND|F_TELLALL : F_WRITE|F_TELLALL, YES);
+	fp = open_file(fnamebuf, iobuff, app ? F_APPEND|F_TELLALL : F_WRITE|F_TELLALL, YES);
 	putreg(fp, mp->m_line, mp->m_char, curline, curchar, YES);
 	close_file(fp);
 }
@@ -870,19 +886,18 @@ AppReg()
 bool	OkayBadChars = NO;	/* VAR: allow bad characters in filenames created by JOVE */
 
 void
-WriteFile()
+JWriteFile()
 {
 	char
-		*fname,
 		fnamebuf[FILESIZE];
 
 #ifdef MAC
 	if (Macmode) {
-		if (!(fname = pfile(fnamebuf)))
+		if (pfile(fnamebuf) == NULL)
 			return;
 	} else
 #endif /* MAC */
-		fname = ask_file((char *)NULL, curbuf->b_fname, fnamebuf);
+		(void) ask_file((char *)NULL, curbuf->b_fname, fnamebuf);
 	/* Don't allow bad characters when creating new files. */
 	if (!OkayBadChars
 	&& (curbuf->b_fname==NULL || strcmp(curbuf->b_fname, fnamebuf) != 0))
@@ -892,6 +907,9 @@ WriteFile()
 #endif
 #ifdef MSDOS
 		static const char	badchars[] = "*|<>? ";
+#endif
+#ifdef WIN32
+		static const char	badchars[] = "*|<>?\"";
 #endif
 #ifdef MAC
 		static const char	badchars[] = ":";
@@ -904,11 +922,11 @@ WriteFile()
 				complain("'%p': bad character in filename.", c);
 	}
 
-	chk_mtime(curbuf, fname, "write");
-	filemunge(fname);
+	filemunge(fnamebuf);
+	chk_divergence(curbuf, fnamebuf, "write");
 	curbuf->b_type = B_FILE;	/* in case it wasn't before */
-	setfname(curbuf, fname);
-	file_write(fname, NO);
+	setfname(curbuf, fnamebuf);
+	file_write(fnamebuf, NO);
 }
 
 void
@@ -995,51 +1013,58 @@ bool	complainifbad;
 	return fp;
 }
 
-#ifndef MSDOS
+/* We're about to write to a file (save-file, write-region, append-region,
+ * or write-file):  query user when it is an existing but different file.
+ * Note: even if we are doing an append-region or write-region,
+ * we assume that the current buffer's file is fair game.
+ */
+private void
+filemunge(newname)
+char	*newname;
+{
+	if (do_stat(newname, curbuf, DS_NONE) != curbuf && was_file) {
+		rbell();
+		confirm("\"%s\" already exists; overwrite it? ", newname);
+		/* in case user has fiddled some more, refresh stat cache */
+		(void) do_stat(newname, (Buffer *)NULL, DS_NONE);
+	}
+}
+
 /* Check to see if the file has been modified since it was
-   last written.  If so, make sure they know what they're
-   doing.
+   last visited or saved.  If so, make sure they know what
+   they're doing.  Buffer "thisbuf" is tested for divergence;
+   if thisbuf is NULL, the first buffer with the file is tested.
 
-   I hate to use another stat(), but to use confirm we gotta
-   do this before we open the file.
-
-   NOTE: This stats FNAME after converting it to a path-relative
-	 name.  I can't see why this would cause a problem ...
+   To avoid excessive stats, we presume that the stat cache is
+   already primed.  We refresh it if we get a confirmation because
+   it left  the user a window of opportunity for fiddling.
    */
 
 private void
-chk_mtime(thisbuf, fname, how)
+chk_divergence(thisbuf, fname, how)
 Buffer	*thisbuf;
 char	*fname,
 	*how;
 {
-	struct stat	stbuf;
-	Buffer	*b;
 	static const char	mesg[] = "Shall I go ahead and %s anyway? ";
+	Buffer	*buf = do_stat(fname, thisbuf, DS_REUSE);
 
-	if ((thisbuf->b_mtime != 0) &&		/* if we care ... */
-	    ((b = file_exists(fname)) != NULL) &&		/* we already have this file */
-	    (b == thisbuf) &&			/* and it's the current buffer */
-	    (stat(pr_name(fname, NO), &stbuf) != -1) &&	/* and we can stat it */
-	    (stbuf.st_mtime != b->b_mtime)) {	/* and there's trouble. */
+	if (buf != NULL && buf->b_diverged) {
 		rbell();
 		redisplay();	/* Ring that bell! */
 		TOstart("Warning");
 		Typeout("\"%s\" now saved on disk is not what you last", pr_name(fname, YES));
 		Typeout("visited or saved.  Probably someone else is editing");
 		Typeout("your file at the same time.");
-		if (how) {
-			Typeout(NullStr);
-			Typeout("Type \"y\" if I should %s, anyway.", how);
-			f_mess(mesg, how);
-		}
+		Typeout(NullStr);
+		Typeout("Type \"y\" if I should %s, anyway.", how);
+		f_mess(mesg, how);
 		TOstop();
-		if (how)
-			confirm(mesg, how);
+		confirm(mesg, how);
+		/* in case user has fiddled some more, refresh stat cache */
+		(void) do_stat(fname, (Buffer *)NULL, DS_NONE);
 	}
 }
-
-#endif /* !MSDOS */
 
 void
 file_write(fname, app)
@@ -1066,15 +1091,14 @@ bool	app;
 	}
 	putreg(fp, curbuf->b_first, 0, curbuf->b_last, length(curbuf->b_last), NO);
 	close_file(fp);
-	set_ino(curbuf);
+	(void) do_stat(curbuf->b_fname, curbuf, DS_SET);
 	unmodify();
 }
 
 void
-ReadFile()
+JReadFile()
 {
 	char
-		*fname,
 		fnamebuf[FILESIZE];
 	bool
 		reloading;
@@ -1085,18 +1109,20 @@ ReadFile()
 
 #ifdef MAC
 	if (Macmode) {
-		if (!(fname = gfile(fnamebuf)))
+		if (gfile(fnamebuf) == NULL)
 			return;
 	} else
 #endif /* MAC */
-		fname = ask_file((char *)NULL, curbuf->b_fname, fnamebuf);
-	chk_mtime(curbuf, fname, "read");
+		(void) ask_file((char *)NULL, curbuf->b_fname, fnamebuf);
 
 	if (IsModified(curbuf)
 	&& yes_or_no_p("Shall I make your changes to \"%s\" permanent? ", curbuf->b_name))
 		SaveFile();
 
-	reloading = file_exists(fnamebuf) == curbuf;
+	(void) do_stat(fnamebuf, (Buffer *)NULL, DS_NONE);	/* prime stat cache */
+	chk_divergence(curbuf, fnamebuf, "read");
+
+	reloading = do_stat(fnamebuf, curbuf, DS_REUSE) == curbuf;
 
 	/* preserve w_line in each window into curbuf */
 	wp = fwind;
@@ -1111,10 +1137,9 @@ ReadFile()
 
 	curlineno = reloading? LinesTo(curbuf->b_first, curline) : 0;
 
-	unmodify();
-	initlist(curbuf);
-	setfname(curbuf, fname);
-	read_file(fname, NO);
+	buf_clear(curbuf);
+	setfname(curbuf, fnamebuf);
+	read_file(fnamebuf, NO);
 
 	/* recover dot in each window into curbuf */
 	wp = fwind;
@@ -1131,16 +1156,16 @@ ReadFile()
 void
 InsFile()
 {
-	char	*fname,
+	char
 		fnamebuf[FILESIZE];
 #ifdef MAC
 	if (Macmode) {
-		if (!(fname = gfile(fnamebuf)))
+		if (gfile(fnamebuf) == NULL)
 			return;
 	} else
 #endif /* MAC */
-		fname = ask_file((char *)NULL, curbuf->b_fname, fnamebuf);
-	read_file(fname, YES);
+		(void) ask_file((char *)NULL, curbuf->b_fname, fnamebuf);
+	read_file(fnamebuf, YES);
 }
 
 #include "temp.h"
@@ -1169,12 +1194,12 @@ tmpinit()
 		);
 	tfname = copystr(buf);
 	tfname = mktemp(tfname);
-#ifndef MSDOS
+#ifndef MSFILESYSTEM
 	(void) close(creat(tfname, 0600));
 	tmpfd = open(tfname, 2);
-#else /* MSDOS */
+#else /* MSFILESYSTEM */
 	tmpfd = open(tfname, O_CREAT|O_EXCL|O_BINARY|O_RDWR, S_IWRITE|S_IREAD);
-#endif /* MSDOS */
+#endif /* MSFILESYSTEM */
 	if (tmpfd == -1)
 		complain("Warning: cannot create tmp file! %s", strerror(errno));
 #ifdef RECOVER
@@ -1284,7 +1309,7 @@ register File	*fp;
 
 	base = bp = getblock(DFree, YES);
 	nl = nleft;
-	do {
+	for (;;) {
 		c = f_getc(fp);
 		if (c == EOF)
 			break;
@@ -1301,18 +1326,21 @@ register File	*fp;
 		)
 			continue;
 
-		if (c == '\n') {
-#ifdef MSDOS
-			/* a CR followed by a LF is treated as a NL.
+		if (c == EOL) {
+#ifdef USE_CRLF
+			/* a CR followed by an EOL is treated as a NL.
 			 * Bug: the line-buffer is effectively shortened by one character.
 			 */
 			if (bp != base && bp[-1] == '\r') {
 				bp -= 1;
 				room += 1;
 			}
-#endif /* MSDOS */
+#endif /* USE_CRLF */
 			break;
 		}
+		if (--room < 0)
+			break;	/* no room for this character */
+
 		if (--nl == 0) {
 			char	*newbp;
 			size_t	nbytes;
@@ -1329,11 +1357,11 @@ register File	*fp;
 			unlockblock(old_free_block);
 		}
 		*bp++ = c;
-	} while (--room > 0);
+	}
 	*bp++ = '\0';
 	line->l_dline = DFree;
 	DFree += REQ_CHNKS(bp - base);
-	if (room == 0) {
+	if (room < 0) {
 		add_mess(" [Line too long]");
 		rbell();
 		return YES;
@@ -1375,16 +1403,22 @@ private daddr	next_bno = 0;
 
 private void	(*blkio) ptrproto((Block *, SSIZE_T (*) ptrproto((int, UnivPtr, size_t))));
 
+/* Needed to comfort dumb MS Visual C */
+private void real_blkio ptrproto((Block *, SSIZE_T (*) ptrproto((int, UnivPtr, size_t))));
+
 private void
 real_blkio(b, iofcn)
 register Block	*b;
 register SSIZE_T	(*iofcn) ptrproto((int, UnivPtr, size_t));
 {
-	(void) lseek(tmpfd, (long) (b->b_bno * JBUFSIZ), 0);
+	(void) lseek(tmpfd, (long)b->b_bno << JLGBUFSIZ, 0);
 	if ((*iofcn)(tmpfd, (UnivPtr) b->b_buf, (size_t)JBUFSIZ) != JBUFSIZ)
 		error("[Tmp file %s error: to continue editing would be dangerous]",
 			(iofcn == read) ? "READ" : "WRITE");
 }
+
+/* Needed to comfort dumb MS Visual C */
+private void fake_blkio ptrproto((Block *, SSIZE_T (*) ptrproto((int, UnivPtr, size_t))));
 
 private void
 fake_blkio(b, iofcn)
@@ -1630,47 +1664,84 @@ private void
 file_backup(fname)
 char *fname;
 {
-# ifndef MSDOS
-	char	*s;
-	register int	i;
-	int	fd1,
-		fd2;
-	char	tmp1[JBUFSIZ],
-		tmp2[JBUFSIZ];
-	struct stat buf;
-	int	mode;
+# ifndef MSFILESYSTEM
+	SSIZE_T	rr;
+	int
+		ffd,
+		bffd;
+	char
+		buf[JBUFSIZ],
+		bfname[FILESIZE];
 
-	strcpy(tmp1, fname);
-	if ((s = strrchr(tmp1, '/')) == NULL)
-		swritef(tmp2, sizeof(tmp2), "#%s~", fname);
-	else {
-		*s++ = '\0';
-		swritef(tmp2, sizeof(tmp2), "%s/#%s~", tmp1, s);
+	/* build backup file name */
+	{
+		char	*s = strrchr(fname, '/');
+		size_t	dirlen = (s == NULL)? 0 : s + 1 - fname;
+
+		strcpy(bfname, fname);
+		swritef(bfname+dirlen, (size_t) (sizeof(bfname) - dirlen), "#%s~",
+			fname+dirlen);
 	}
 
-	if ((fd1 = open(fname, 0)) < 0)
-		return;
+	if ((ffd = open(fname, 0)) < 0)
+		return;	/* cannot open original file: nothing to backup, we assume */
 
 	/* create backup file with same mode as input file */
-#  ifndef MAC
-	if (fstat(fd1, &buf) != 0)
-		mode = CreatMode;
-	else
+	{
+#  ifdef MAC
+		int	mode = CreatMode;	/* dummy */
+#  else
+		struct stat statbuf;
+		int	mode = fstat(ffd, &statbuf) != 0? CreatMode : statbuf.st_mode;
 #  endif
-		mode = buf.st_mode;
 
-	if ((fd2 = creat(tmp2, mode)) < 0) {
-		(void) close(fd1);
-		return;
+		if ((bffd = creat(bfname, mode)) < 0) {
+			int	e = errno;
+
+			(void) close(ffd);
+			complain("[cannot create backup \"%s\": %d %s]",
+				bfname, e, strerror(e));
+		}
 	}
-	while ((i = read(fd1, (UnivPtr) tmp1, sizeof(tmp1))) > 0)
-		write(fd2, (UnivPtr) tmp1, (size_t) i);
+
+	/* copy the contents */
+	while ((rr = read(ffd, (UnivPtr) buf, sizeof(buf))) > 0) {
+		char	*p = buf;
+
+		while (rr > 0) {
+			SSIZE_T	wr = write(bffd, (UnivPtr) p, (size_t) rr);
+
+			if (wr < 0) {
+				int e = errno;
+
+				close(bffd);
+				close(ffd);
+				complain("[error writing backup: %d %s]", e, strerror(e));
+			}
+			p += wr;
+			rr -= wr;
+		}
+	}
+
+	if (rr < 0 || close(ffd) != 0)
+		complain("[error reading \"%s\": %d %s]", fname, errno, strerror(errno));
 #  ifdef USE_FSYNC
-	(void) fsync(fd2);
-#  endif
-	(void) close(fd2);
-	(void) close(fd1);
-# else /* MSDOS */
+	if (fsync(bffd) != 0) {
+		int	e = errno;
+
+		(void) close(bffd);
+		complain("[error fsyncing backup: %d %s]", e, strerror(e));
+	}
+#  endif /* USE_FSYNC */
+	if (close(bffd) != 0)
+		complain("[error closing backup: %d %s]", errno, strerror(errno));
+
+# else /* MSFILESYSTEM */
+	/* This code is designed to fit withing the 8.3 limitation of
+	 * MSDOS ("FAT" -- huh!) file systems.  Even though newer versions
+	 * of these APIs (Win32) may support longer file names, we may still
+	 * be dealing with a FAT file system.
+	 */
 	char	*dot,
 			*slash,
 			tmp[FILESIZE];
@@ -1684,7 +1755,8 @@ char *fname;
 	}
 	strcat(tmp, ".bak");
 	unlink(tmp);
-	rename(fname, tmp);
-# endif /* MSDOS */
+	if (rename(fname, tmp) != 0)
+		complain("[cannot rename to \"%s\": %s]", tmp, strerror(errno));
+# endif /* MSFILESYSTEM */
 }
 #endif /* BACKUPFILES */

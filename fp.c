@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -8,7 +8,6 @@
 #include "jove.h"
 #include "fp.h"
 #include "jctype.h"
-#include "termcap.h"
 #include "disp.h"
 #include "fmt.h"
 
@@ -16,12 +15,12 @@
 #	include "mac.h"
 #else /* !MAC */
 #	include <sys/stat.h>
-#	ifndef MSDOS
+#	ifndef MSFILESYSTEM
 #		include <sys/file.h>
-#	else /* MSDOS */
+#	else /* MSFILESYSTEM */
 #		include <fcntl.h>
 #		include <io.h>
-#	endif /* MSDOS */
+#	endif /* MSFILESYSTEM */
 #endif /* !MAC */
 
 #include <errno.h>
@@ -89,7 +88,7 @@ int	flags,
 
 	switch (F_MODE(flags)) {
 	case F_READ:
-#ifdef MSDOS
+#ifdef MSFILESYSTEM
 		fd = open(name, O_RDONLY|O_BINARY);
 #else
 		fd = open(name, 0);
@@ -97,7 +96,7 @@ int	flags,
 		break;
 
 	case F_APPEND:
-#ifdef MSDOS
+#ifdef MSFILESYSTEM
 		fd = open(name, O_WRONLY|O_BINARY);
 #else
 		fd = open(name, 1);
@@ -108,7 +107,7 @@ int	flags,
 		}
 		/* FALLTHROUGH */
 	case F_WRITE:
-#ifdef MSDOS
+#ifdef MSFILESYSTEM
 		fd = open(name, O_CREAT|O_TRUNC|O_BINARY|O_RDWR, S_IWRITE|S_IREAD);
 #else
 		fd = creat(name, CreatMode);
@@ -192,13 +191,13 @@ register File	*fp;
 		f_putc(*s++, fp);
 }
 
-#ifndef IBMPC
+#ifndef NO_JSTDOUT
 void
 flushscreen()
 {
 	flushout(jstdout);
 }
-#endif /* IBMPC */
+#endif /* !NO_JSTDOUT */
 
 void
 f_seek(fp, offset)
@@ -216,8 +215,6 @@ void
 flushout(fp)
 register File	*fp;
 {
-	register int	n;
-
 	if (fp->f_flags & (F_READ | F_STRING | F_ERR)) {
 		if (fp->f_flags != F_STRING)
 			abort();	/* IMPOSSIBLE */
@@ -228,26 +225,37 @@ register File	*fp;
 		 */
 		fp->f_cnt = 1;
 		fp->f_ptr = &fp->f_base[fp->f_bufsize - 1];
-		return;
-	}
-	if ((n = (fp->f_ptr - fp->f_base)) > 0
-#ifndef RAINBOW
-	&& write(fp->f_fd, (UnivPtr) fp->f_base, (size_t)n) != n
-#else
-	&& rbwrite(fp->f_fd, fp->f_base, n) != n
-#endif
-#ifndef IBMPC
-	&& fp != jstdout
-#endif
-	)
-	{
-		fp->f_flags |= F_ERR;
-		error("[I/O error(%s); file = %s, fd = %d]",
-			strerror(errno), fp->f_name, fp->f_fd);
-	}
+	} else {
+		char	*p = fp->f_base;
 
-	fp->f_cnt = fp->f_bufsize;
-	fp->f_ptr = fp->f_base;
+		for (;;) {
+			SSIZE_T
+				n = fp->f_ptr - p,
+				wr;
+
+			if (n <= 0)
+				break;
+#ifdef RAINBOW
+			wr = rbwrite(fp->f_fd, (UnivPtr) p, (size_t)n);
+#else
+			wr = write(fp->f_fd, (UnivPtr) p, (size_t)n);
+#endif
+			if (wr >= 0) {
+				p += wr;
+			} else if (errno != EINTR) {
+#ifndef NO_JSTDOUT
+				if (fp == jstdout)
+					break;	/* bail out, silently */
+#endif
+				fp->f_flags |= F_ERR;
+				error("[I/O error(%s); file = %s, fd = %d]",
+					strerror(errno), fp->f_name, fp->f_fd);
+			}
+		}
+
+		fp->f_cnt = fp->f_bufsize;
+		fp->f_ptr = fp->f_base;
+	}
 }
 
 bool
@@ -262,11 +270,11 @@ size_t	max;
 
 	if (fp->f_flags & F_EOF)
 		return YES;
-	while ((c = f_getc(fp)) != EOF && c != '\n') {
+	while ((c = f_getc(fp)) != EOF && c != EOL) {
 		/* We can't store NUL in our buffer, so ignore it.
 		 * Similarly, we can only store characters less than NCHARS.
 		 * Of course, with a little ingenuity we could store NUL:
-		 * NUL could be represented by \n.
+		 * NUL could be represented by EOL.
 		 */
 		if (c == '\0'
 #if NCHARS != UCHAR_ROOF
@@ -288,13 +296,13 @@ size_t	max;
 			add_mess(" [Incomplete last line]");
 		return YES;
 	}
-#ifdef MSDOS
+#ifdef USE_CRLF
 	/* a CR followed by a LF is treated as a NL.
 	 * Bug: the line-buffer is effectively shortened by one character.
 	 */
 	if (cp != buf && cp[-1] == '\r')
 		*--cp = '\0';
-#endif /* MSDOS */
+#endif /* USE_CRLF */
 	io_lines += 1;
 	return NO;	/* this means okay */
 }
@@ -313,7 +321,7 @@ register File	*fp;
 		case EOF:
 			fp->f_flags |= F_EOF;
 			/*FALLTHROUGH*/
-		case '\n':
+		case EOL:
 			return;
 		}
 	}
@@ -339,13 +347,18 @@ size_t	n;
 }
 #endif /* PIPEPROCS */
 
-/* Deals with output to the terminal, setting up the amount of characters
-   to be buffered depending on the output baud rate.  Why it's in a
-   separate file I don't know ... */
+/* ScrBufSize is the size of the buffer for jstdout.  It is also the
+ * number of characters to be output between checks for input, so
+ * it is meaningful even if jstdout isn't used.  Its value is set by
+ * settout based on the baud rate of output (on systems with baud rates).
+ */
+#ifdef NO_JSTDOUT
+int	ScrBufSize = 256;
+#else
+int	ScrBufSize = 1;	/* until settout decides a better value & allocates a buf */
+#endif
 
-int	ScrBufSize = 1;
-
-#ifndef IBMPC
+#ifndef NO_JSTDOUT
 private char	one_buf;
 
 private File	stdout_File = {1, 1, 1, F_WRITE, &one_buf, &one_buf, (char *)NULL};

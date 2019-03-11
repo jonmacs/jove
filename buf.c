@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -33,7 +33,7 @@
 # include <sys/stat.h>
 #endif
 
-#ifdef pdp11
+#ifdef AUTO_BUFS
 char
 	*iobuff,
 	*genbuf,
@@ -121,23 +121,21 @@ mak_buf()
 	newb = buf_alloc();
 	newb->b_fname = NULL;
 	newb->b_name = NoName;
-	set_ino(newb);
 	newb->b_marks = NULL;
 	newb->b_themark = 0;		/* Index into markring */
 	/* No marks yet */
 	for (i = 0; i < NMARKS; i++)
 		newb->b_markring[i] = NULL;
-	newb->b_modified = NO;
+	newb->b_modified = newb->b_diverged = NO;
 	newb->b_type = B_FILE;  /* File until proven SCRATCH */
-	newb->b_ntbf = NO;
 	newb->b_minor = 0;
-	newb->b_major = TEXT;
+	newb->b_major = TEXTMODE;
 	newb->b_first = NULL;
 	newb->b_map = NULL;
 #ifdef IPROCS
 	newb->b_process = NULL;
 #endif
-	initlist(newb);
+	buf_clear(newb);
 #ifdef MAC
 	Bufchange = YES;
 #endif
@@ -153,12 +151,13 @@ ReNamBuf()
 void
 FindFile()
 {
-	register char	*name;
 	char	fnamebuf[FILESIZE];
 
-	name = ask_file((char *)NULL, curbuf->b_fname, fnamebuf);
+	(void) ask_file((char *)NULL, curbuf->b_fname, fnamebuf);
 	SetABuf(curbuf);
-	SetBuf(do_find(curwind, name, YES, NO));
+	SetBuf(do_find(curwind, fnamebuf, YES, NO));
+	if (curbuf->b_diverged)
+		rbell();	/* slight hint of divergence */
 }
 
 private void
@@ -183,24 +182,23 @@ ask_buf(def, flags)
 Buffer	*def;
 int	flags;
 {
-	/* The test for % in the next definition is a kludge to prevent
-	 * the default buffer name in the prompt string from provoking
-	 * unintended formatting.  Ugh!
-	 */
-	char	*defname = def != NULL && def->b_name != NULL
-		&& strchr(def->b_name, '%') == NULL
-		? def->b_name : (char *)NULL;
+	char	*defname = def != NULL? def->b_name : (char *)NULL;
 	char	*bnames[200];
 	register char	*bname;
 	register int	offset;
 	char	prompt[100];
 
-	if (defname != NULL)
+	/* The test for % in the next definition is a kludge to prevent
+	 * the default buffer name in the prompt string from provoking
+	 * unintended formatting.  Ugh!  The name will still be the default.
+	 */
+	if (defname != NULL && strchr(defname, '%') == NULL)
 		swritef(prompt, sizeof(prompt), ": %%f (default %s) ", defname);
 	else
 		strcpy(prompt, ProcFmt);
 	mkbuflist(bnames, &bnames[elemsof(bnames)]);
-	offset = complete(bnames, defname, prompt,
+	/* Secret bonus: if there is no default, ^R will insert curbuf's name. */
+	offset = complete(bnames, defname==NULL? curbuf->b_name : defname, prompt,
 		flags | (defname == NULL? 0 : ALLOW_EMPTY));
 	if (offset < 0)
 		bname = *Minibuf == '\0' && defname != NULL? defname : Minibuf;
@@ -287,8 +285,7 @@ BufErase()
 {
 	register Buffer	*delbuf = getNMbuf();
 
-	initlist(delbuf);
-	delbuf->b_modified = NO;
+	buf_clear(delbuf);
 }
 
 /* Free a buffer structure.
@@ -356,7 +353,7 @@ register Buffer	*delbuf;
 	free_bufs = delbuf;
 #ifdef MAC
 	Bufchange = YES;
-	delbuf->Name = NULL;
+	delbuf->Name = NULL;	/* ??? this cannot legitimately matter */
 #endif
 }
 
@@ -401,29 +398,47 @@ private const char	*const TypeNames[] = {
 void
 BufList()
 {
-	register char	*fmt = "%2s %5s %-8s %-1s %-*s  %-s";
+	register char	*fmt = "%2s %5s %-8s %-1s%-1s %-*s  %-s";
 	register Buffer	*b;
 	int	bcount = 1,		/* To give each buffer a number */
 		buf_width = 11;
+	bool
+		any_modified = NO,
+		any_ntbf = NO,
+		any_diverged = NO;
 
-	for (b = world; b != NULL; b = b->b_next)
+	for (b = world; b != NULL; b = b->b_next) {
 		buf_width = max(buf_width, (int)strlen(b->b_name));
+		any_modified |= IsModified(b);
+		any_ntbf |= b->b_ntbf;
+		any_diverged |= b->b_diverged;
+	}
 
 	TOstart("Buffer list");
 
-	Typeout("(* means buffer needs saving)");
-	Typeout("(+ means file hasn't been read yet)");
-	Typeout(NullStr);
-	Typeout(fmt, "NO", "Lines", "Type", NullStr, buf_width, "Name", "File");
-	Typeout(fmt, "--", "-----", "----", NullStr, buf_width, "----", "----");
+	if (any_modified)
+		Typeout("(* means buffer needs saving)");
+	if (any_ntbf)
+		Typeout("(+ means file hasn't been read yet)");
+	if (any_diverged)
+		Typeout("(# means file has been changed since buffer was read or written)");
+	if (any_modified | any_ntbf | any_diverged)
+		Typeout(NullStr);
+	Typeout(fmt, "NO", "Lines", "Type", NullStr, NullStr, buf_width, "Name", "File");
+	Typeout(fmt, "--", "-----", "----", NullStr, NullStr, buf_width, "----", "----");
 	for (b = world; b != NULL; b = b->b_next) {
 		char
 			bnostr[10],
 			linestr[10];
 
 		swritef(bnostr, sizeof(bnostr), "%d", bcount++);
-		swritef(linestr, sizeof(linestr), "%d", LinesTo(b->b_first, (LinePtr)NULL));
+		if (b->b_ntbf)
+			strcpy(linestr, "?");
+		else
+			swritef(linestr, sizeof(linestr), "%d",
+				LinesTo(b->b_first, (LinePtr)NULL));
 		Typeout(fmt, bnostr, linestr, TypeNames[b->b_type],
+				b->b_diverged ? "#" : NullStr,
 				IsModified(b) ? "*" :
 					 b->b_ntbf ? "+" : NullStr,
 				buf_width,	/* For the * (variable length field) */
@@ -456,7 +471,7 @@ register Buffer	*b;
 }
 
 void
-initlist(b)
+buf_clear(b)
 register Buffer	*b;
 {
 	lfreelist(b->b_first);
@@ -468,6 +483,17 @@ register Buffer	*b;
 	AllMarkReset(b, b->b_dot);
 	if (b == curbuf)
 		getDOT();
+
+	diverge(b, NO);
+	if (b->b_modified)
+		UpdModLine = YES;
+	b->b_ntbf = b->b_modified = NO;
+
+#ifdef USE_INO
+	b->b_dev = 0;
+	b->b_ino = 0;
+#endif
+	b->b_mtime = 0;
 }
 
 /* Returns pointer to buffer with name NAME, or if NAME is a string of digits
@@ -490,41 +516,120 @@ register char	*name;
 	return NULL;
 }
 
-/* Returns buffer pointer with a file name NAME, if one exists.  Stat's the
-   file and compares inodes, in case NAME is a link, as well as the actual
-   characters that make up the file name. */
+/* Returns buffer pointer with a file name NAME, if one is found.
+ * If target is NULL, all buffers are searched; otherwise, only
+ * target is examined.  Match is by inode (to catch links) or
+ * canonical name.
+ *
+ * Divergence is diligently searched for.  In particular, all
+ * buffers are examined to see if they match the specified file,
+ * in name or inode.  If they do, divergence is checked (i.e. loss
+ * of underlying file, change in inode number, or modification
+ * time different from last visit).
+ *
+ * DS_REUSE can be used to avoid redundant stat calls.  Use it
+ * with care!
+ */
+
+bool
+	was_dir,	/* do_stat found a directory */
+	was_file;	/* do_stat found a (plain) file */
 
 Buffer *
-file_exists(name)
+do_stat(name, target, flags)
 register char	*name;
+Buffer	*target;
+int	flags;
 {
 	register Buffer	*b = NULL;
+	Buffer	*result = NULL;
 	char	fnamebuf[FILESIZE];
+	static struct stat	stbuf;
 
-	if (name) {
-#ifdef USE_INO
-		struct stat	stbuf;
-#endif
+	PathParse(name, fnamebuf);
 
-#ifdef MSDOS
-		strlwr(name);
-#endif /* MSDOS */
-		PathParse(name, fnamebuf);
+	if ((flags & DS_REUSE) == 0) {
+		stbuf.st_mode = S_IFREG;	/* default if stat fails */
 #ifdef USE_INO
-		if (stat(fnamebuf, &stbuf) == -1)
-			stbuf.st_ino = 0;	/* impossible number */
+		stbuf.st_ino = 0;	/* impossible number */
+		stbuf.st_dev = 0;
 #endif
-		for (b = world; b != NULL; b = b->b_next) {
-#ifdef USE_INO
-			if(b->b_ino != 0 && b->b_ino == stbuf.st_ino
-			&& b->b_dev != 0 && b->b_dev == stbuf.st_dev)
-				break;
-#endif
-			if (b->b_fname != NULL && strcmp(b->b_fname, fnamebuf) == 0)
-				break;
-		}
+		stbuf.st_mtime = 0;
+		(void) stat(fnamebuf, &stbuf);
+		was_dir = (stbuf.st_mode & S_IFMT) == S_IFDIR;
+		was_file = stbuf.st_ino != 0 && (stbuf.st_mode & S_IFMT) == S_IFREG;
 	}
-	return b;
+	if ((flags & DS_DIR) == 0 && was_dir)
+		complain("[%s is a directory]", fnamebuf);
+	if (flags & DS_SET) {
+		if ((stbuf.st_mode & S_IFMT) == S_IFREG) {
+#ifdef USE_INO
+			target->b_dev = stbuf.st_dev;
+			target->b_ino = stbuf.st_ino;
+#endif
+			target->b_mtime = stbuf.st_mtime;
+		} else {
+#ifdef USE_INO
+			target->b_dev = 0;
+			target->b_ino = 0;
+#endif
+			target->b_mtime = 0;
+		}
+		diverge(target, NO);
+	}
+
+	for (b = world; b != NULL; b = b->b_next) {
+#ifdef USE_INO
+		if(b->b_ino != 0 && b->b_ino == stbuf.st_ino
+		&& b->b_dev != 0 && b->b_dev == stbuf.st_dev)
+		{
+			/* A buffer's inode got a match; check divergence:
+			 * - name is different & can't stat buffer's fname
+			 * - name is different & stat yields a different inode
+			 * - inode now refers to a non-file
+			 */
+			struct stat	stbchk;
+
+			if ((strcmp(b->b_fname, fnamebuf) != 0
+			   && (stat(b->b_fname, &stbchk) == -1
+			      || b->b_ino != stbchk.st_ino || b->b_dev != stbchk.st_dev))
+			|| (stbuf.st_mode & S_IFMT) != S_IFREG)
+			{
+				/* false match: buffer's file has lost its inode */
+				b->b_ino = 0;
+				b->b_dev = 0;
+				diverge(b, YES);
+				continue;	/* try again */
+			}
+			/* true match -- check times */
+			if (b->b_mtime != stbuf.st_mtime)
+				diverge(b, YES);
+			if (target == NULL || target == b)
+				result = b;
+		} else if (b->b_fname != NULL && strcmp(b->b_fname, fnamebuf) == 0) {
+			/* a name (but not inode) match */
+			if (b->b_ino != stbuf.st_ino
+			|| (stbuf.st_mode & S_IFMT) != S_IFREG)
+			{
+				/* one or the other has an inode */
+				b->b_ino = 0;
+				b->b_dev = 0;
+				diverge(b, YES);
+			}
+			if (target == NULL || target == b)
+				result = b;
+		}
+#else
+		if (b->b_fname != NULL && strcmp(b->b_fname, fnamebuf) == 0) {
+			/* a name match -- check times */
+			if (stbuf.st_mtime != b->b_mtime)
+				diverge(b, YES);
+			if (target == NULL || target == b)
+				result = b;
+		}
+#endif
+	}
+	return result;
 }
 
 private void
@@ -553,24 +658,21 @@ register char	*name;
 {
 	char	wholename[FILESIZE],
 		oldname[FILESIZE],
-		*oldptr = oldname;
+		*oldptr = NULL;
 	Buffer	*save = curbuf;
 
 	SetBuf(b);
 	UpdModLine = YES;	/* Kludge ... but speeds things up considerably */
-	if (b->b_fname == NULL)
-		oldptr = NULL;
-	else
-		strcpy(oldname, b->b_fname);
-	if (name) {
-#ifdef MSDOS
-		strlwr(name);
-#endif /* MSDOS */
-		PathParse(name, wholename);
-		curbuf->b_fname = freealloc((UnivPtr) curbuf->b_fname, strlen(wholename) + 1);
-		strcpy(curbuf->b_fname, wholename);
-	} else
+	if (b->b_fname != NULL) {
+		oldptr = strcpy(oldname, b->b_fname);
+		free((UnivPtr) b->b_fname);
 		b->b_fname = NULL;
+	}
+	if (name != NULL) {
+		PathParse(name, wholename);
+		curbuf->b_fname = strcpy(
+			(char *)emalloc(strlen(wholename) + 1), wholename);
+	}
 	DoAutoExec(curbuf->b_fname, oldptr);
 
 	/* until they're known, zero these */
@@ -579,32 +681,12 @@ register char	*name;
 	curbuf->b_ino = 0;
 #endif
 	curbuf->b_mtime = 0;
+	diverge(curbuf, NO);
 
 	SetBuf(save);
 #ifdef MAC
 	Bufchange = YES;
 #endif
-}
-
-void
-set_ino(b)
-register Buffer	*b;
-{
-	struct stat	stbuf;
-
-	if (b->b_fname == NULL || stat(pr_name(b->b_fname, NO), &stbuf) == -1) {
-#ifdef USE_INO
-		b->b_dev = 0;
-		b->b_ino = 0;
-#endif
-		b->b_mtime = 0;
-	} else {
-#ifdef USE_INO
-		b->b_dev = stbuf.st_dev;
-		b->b_ino = stbuf.st_ino;
-#endif
-		b->b_mtime = stbuf.st_mtime;
-	}
 }
 
 /* Find the file `fname' into buf and put in in window `w' */
@@ -619,12 +701,12 @@ bool	do_macros;
 	register Buffer *b;
 	Buffer	*oldb = curbuf;
 
-	b = file_exists(fname);
+	b = do_stat(fname, (Buffer *)NULL, DS_NONE);
 	if (b == NULL) {
 		b = mak_buf();
 		setfname(b, fname);
 		bufname(b);
-		set_ino(b);
+		(void) do_stat(b->b_fname, b, DS_SET | DS_REUSE);
 
 		b->b_ntbf = force;
 		SetBuf(b);	/* force => load the file */
@@ -657,11 +739,7 @@ bool	do_macros;
 			save_arg(saved_as, saved_ac);
 			last_cmd = this_cmd = OTHER_CMD;
 			for (;;) {
-				if (this_cmd != ARG_CMD) {
-					clr_arg_value();
-					last_cmd = this_cmd;
-					init_strokes();
-				}
+				cmd_sync();
 				if ((c = peekchar) != EOF) {
 					/* double ugh! */
 					peekchar = EOF;
@@ -781,7 +859,7 @@ register int	num;
 {
 	if (num < 0)
 		return prev_line(line, -num);
-	if (line)
+	if (line != NULL)
 		while (--num >= 0 && line->l_next != NULL)
 			line = line->l_next;
 	return line;
@@ -794,7 +872,7 @@ register int	num;
 {
 	if (num < 0)
 		return next_line(line, -num);
-	if (line)
+	if (line != NULL)
 		while (--num >= 0 && line->l_prev != NULL)
 			line = line->l_prev;
 	return line;

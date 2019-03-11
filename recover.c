@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -95,8 +95,8 @@ private long	Nchars,
 	Nlines;
 private char	tty[] = "/dev/tty";
 private char	*tmp_dir = TMPDIR;
-private int	UserID,
-	Verbose = 0;
+private int	UserID;
+private bool	Verbose = NO;
 private char	RecDir[] = RECDIR;
 
 private struct file_pair {
@@ -203,7 +203,7 @@ daddr	atl;
 
 char *
 copystr(s)
-char	*s;
+const char	*s;
 {
 	char	*str;
 
@@ -845,6 +845,14 @@ char	*argv[];
 	char	**argvp;
 
 	UserID = getuid();
+
+	/* override <TMPDIR> with $TMPDIR, if any */
+	{
+		char	*cp = getenv("TMPDIR");
+
+		if (cp != NULL)
+			tmp_dir = cp;
+	}
 
 	if (scanvec(argv, "-help")) {
 		printf("recover: usage: recover [-d directory] [-syscrash]\n\n");

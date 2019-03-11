@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -26,7 +26,7 @@ extern wait_status_t	UnixToBuf proto((int, char *, char *, char *));
 #define UTB_SH	8	/* shell command? */
 #define UTB_FILEARG	16	/* pass curbuf->b_fname as $0? */
 
-#ifndef MSDOS
+#ifndef MSDOS_PROCS
 extern pid_t	ChildPid;	/* pid of any outstanding non-iproc process */
 extern void	dowait proto((wait_status_t *status));
 #endif
@@ -66,7 +66,3 @@ extern char	ErrFmtStr[256];		/* VAR: format string for parse errors */
 extern bool	WtOnMk;			/* VAR: write files on compile-it command */
 extern bool	WrapProcessLines;	/* VAR: wrap process lines at CO-1 chars */
 #endif
-
-/* sysdep.h:
- *	SigMask
- */

@@ -1,14 +1,15 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
  ************************************************************************/
 
 #include "jove.h"
-#ifdef IPROCS	/* the body is the rest of this file */
-#include <signal.h>
 
+#ifdef IPROCS	/* the body is the rest of this file */
+
+#include <signal.h>
 
 #include "re.h"
 #include "jctype.h"
@@ -24,7 +25,6 @@
 #include "move.h"
 #include "proc.h"
 #include "wind.h"
-#include "termcap.h"	/* defines CO, needed by proc_strt */
 
 #ifdef USE_KILLPG
 # ifndef FULL_UNISTD
@@ -234,8 +234,18 @@ Process	p;
 char	*buf;
 size_t	nbytes;
 {
-	if (p->p_toproc >= 0)
-		(void) write(p->p_toproc, (UnivConstPtr)buf, nbytes);
+	if (p->p_toproc >= 0) {
+		while (nbytes != 0) {
+			SSIZE_T	wr = write(p->p_toproc, (UnivConstPtr)buf, nbytes);
+
+			if (wr >= 0) {
+				nbytes -= wr;
+				buf += wr;
+			} else if (errno != EINTR) {
+				complain("[error writing to iproc: %d %s]", errno, strerror(errno));
+			}
+		}
+	}
 }
 
 
@@ -358,8 +368,8 @@ kbd_init()
 		/* NOTREACHED */
 
 	case 0:
-		signal(SIGINT, SIG_IGN);
-		signal(SIGALRM, SIG_IGN);
+		(void) setsighandler(SIGINT, SIG_IGN);
+		(void) setsighandler(SIGALRM, SIG_IGN);
 		close(1);
 		dup(ProcOutput);
 		jcloseall();
@@ -412,11 +422,11 @@ kbd_kill()
 #include <sys/time.h>
 #include <fcntl.h>
 #include "select.h"
-#include "termcap.h"	/* just for CO */
 
 #include "ttystate.h"
 
 # ifdef SVR4_PTYS
+#  include <stdlib.h>	/* for grantpt and unlockpt, at least in Solaris 2.3 */
 #  include <sys/stropts.h>
   extern char	*ptsname proto((int /*filedes*/));	/* get name of slave */
 # endif
@@ -626,16 +636,16 @@ char	c;
 		buf[0] = c;
 		proc_rec(p, buf, (size_t)1);
 
-#  ifdef NO_TIOCREMOTE
-		(void) write(p->p_fd, (UnivPtr) &c, sizeof(c));
-#  else /* !NO_TIOCREMOTE */
 		{
+#  ifndef NO_TIOCREMOTE
 			int
 				off = 0,
 				on = 1;
 
-			if (ioctl(p->p_fd, TIOCREMOTE, (UnivPtr) &off) < 0)
-				complain("TIOCREMOTE OFF failed: %d %s", errno, strerror(errno));
+			while (ioctl(p->p_fd, TIOCREMOTE, (UnivPtr) &off) < 0)
+				if (errno != EINTR)
+					complain("TIOCREMOTE OFF failed: %d %s", errno, strerror(errno));
+#  endif /* !NO_TIOCREMOTE */
 			for (;;) {
 				switch (write(p->p_fd, (UnivPtr) &c, sizeof(c))) {
 				case -1: /* error: consider ERRNO */
@@ -650,10 +660,12 @@ char	c;
 				}
 				break;
 			}
-			if (ioctl(p->p_fd, TIOCREMOTE, (UnivPtr) &on) < 0)
-				complain("TIOCREMOTE ON failed: %d %s", errno, strerror(errno));
-	}
+#  ifndef NO_TIOCREMOTE
+			while (ioctl(p->p_fd, TIOCREMOTE, (UnivPtr) &on) < 0)
+				if (errno != EINTR)
+					complain("TIOCREMOTE ON failed: %d %s", errno, strerror(errno));
 #  endif /* !NO_TIOCREMOTE */
+		}
 	}
 }
 
@@ -674,7 +686,9 @@ ProcEof()
 		complain("[No process]");
 	ToLast();
 	proc_rec(p, mess, sizeof(mess)-1);
-	(void) write(p->p_fd, (UnivPtr) mess, (size_t)0);
+	while (write(p->p_fd, (UnivPtr) mess, (size_t)0) < 0)
+		if (errno != EINTR)
+			complain("[error writing EOF to iproc: %d %s]", errno, strerror(errno));
 # endif /* !NO_TIOCREMOTE */
 }
 
@@ -913,9 +927,6 @@ proc_strt(bufname, clobber, procname, va_alist)
 #  endif /* BTL_BLIT */
 # endif
 
-# ifdef SIGWINCH
-	SigHold(SIGWINCH);
-# endif
 	switch (pid = fork()) {
 	case -1:
 		/* fork failed */
@@ -931,11 +942,6 @@ proc_strt(bufname, clobber, procname, va_alist)
 
 	case 0:
 		/* child process */
-
-# ifdef SIGWINCH
-		(void) signal(SIGWINCH, SIG_DFL);	/* dare not catch these */
-		SigRelse(SIGWINCH);
-# endif
 
 # ifdef GRANTPT_BUG
 		/* grantpt() seems to be implemented using a fork/exec.
@@ -958,16 +964,16 @@ proc_strt(bufname, clobber, procname, va_alist)
 		 * us giving good diagnostics for grantpt and unlockpt.
 		 * I hope I've found all the signals caught everywhere else.
 		 */
-		(void) signal(SIGCHLD, SIG_DFL);
-		/* (void) signal(SIGWINCH, SIG_DFL); */	/* done above */
-		(void) signal(SIGALRM, SIG_DFL);
-		(void) signal(SIGINT, SIG_DFL);
-		/* (void) signal(SIGQUIT, SIG_DFL); */	/* dead anyway */
-		/* (void) signal(SIGHUP, SIG_DFL); */	/* dead anyway */
-		/* (void) signal(SIGTERM, SIG_DFL); */	/* no longer used */
-		/* (void) signal(SIGBUS, SIG_DFL); */	/* dead anyway */
-		/* (void) signal(SIGSEGV, SIG_DFL); */	/* dead anyway */
-		/* (void) signal(SIGPIPE, SIG_DFL); */	/* dead anyway */
+		(void) setsighandler(SIGCHLD, SIG_DFL);
+		(void) setsighandler(SIGWINCH, SIG_DFL);
+		(void) setsighandler(SIGALRM, SIG_DFL);
+		(void) setsighandler(SIGINT, SIG_DFL);
+		/* (void) setsighandler(SIGQUIT, SIG_DFL); */	/* dead anyway */
+		/* (void) setsighandler(SIGHUP, SIG_DFL); */	/* dead anyway */
+		/* (void) setsighandler(SIGTERM, SIG_DFL); */	/* no longer used */
+		/* (void) setsighandler(SIGBUS, SIG_DFL); */	/* dead anyway */
+		/* (void) setsighandler(SIGSEGV, SIG_DFL); */	/* dead anyway */
+		/* (void) setsighandler(SIGPIPE, SIG_DFL); */	/* dead anyway */
 
 		if (grantpt(ptyfd) < 0) {
 			_exit(errno + 1);
@@ -1046,9 +1052,6 @@ proc_strt(bufname, clobber, procname, va_alist)
 # endif /* !defined(TERMIO) && !defined(TERMIOS) */
 
 # ifdef TIOCGWINSZ
-#  ifdef SIGWINCH
-		(void) signal(SIGWINCH, SIG_DFL);
-#  endif
 		win.ws_row = curwind->w_height;
 		(void) ioctl(0, TIOCSWINSZ, (UnivPtr) &win);
 # else /* !TIOCGWINSZ */
@@ -1131,22 +1134,21 @@ proc_strt(bufname, clobber, procname, va_alist)
 	if (global_maxfd <= newp->p_fd)
 		global_maxfd = newp->p_fd + 1;
 	SetWind(owind);
-# ifdef SIGWINCH
-	SigRelse(SIGWINCH);
-# endif
 	return;
 
 fail:
 	if (ptyfd >= 0)
 		close(ptyfd);
-# ifdef SIGWINCH
-	SigRelse(SIGWINCH);
-# endif
 }
 
-/* NOTE: SIGCHLD is an asynchronous signal.  To safely handle it,
+/* NOTE 1: SIGCHLD is an asynchronous signal.  To safely handle it,
  * the sigchld_handler simply sets a flag requesting later processing.
  * reap_procs is called synchronously to do the actual work.
+ *
+ * NOTE 2: SIGCHLD is "level triggered" on some systems (HPUX, IRIX, ...).
+ * If the signal signal handler is re-established before the child is reaped,
+ * another signal will be generated immediately.  For this reason, we
+ * defer the re-establishment until reap_procs is done.
  */
 
 volatile bool	procs_to_reap = NO;
@@ -1170,7 +1172,7 @@ reap_procs()
 		pid = wait_opt(&w, (WNOHANG | WUNTRACED));
 		if (pid <= 0) {
 			if (procs_to_reap) {
-				(void) signal(SIGCHLD, sigchld_handler);
+				resetsighandler(SIGCHLD, sigchld_handler);
 				procs_to_reap = NO;
 				/* go around once more to avoid window of vulnerability */
 			} else {
@@ -1501,7 +1503,7 @@ register Mark	*mp;
 		if (line1 == line2) {
 			nbytes = char2 - char1;
 		} else {
-			genbuf[Jr_Len] = '\n';	/* replace NUL with NL */
+			genbuf[Jr_Len] = EOL;	/* replace NUL with EOL */
 			nbytes = Jr_Len - char1 + 1;	/* and include it */
 		}
 		if (nbytes != 0)

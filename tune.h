@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -51,7 +51,10 @@
 # endif
 
 # define LISP		1	/* include the code for Lisp Mode */
-# define	SUBSHELL	1	/* enable various uses of subshells */
+
+# ifndef MAC
+#  define	SUBSHELL	1	/* enable various uses of subshells */
+# endif
 
 # ifdef SUBSHELL
 #  define SPELL		1	/* spell words and buffer commands (requires SUBSHELL) */

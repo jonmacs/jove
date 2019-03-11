@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -48,6 +48,14 @@ extern void
 	redisplay proto((void));
 
 
+#ifdef WINRESIZE
+extern volatile bool
+	ResizePending;	/* asynch request for screen resize */
+# ifdef WIN32
+extern void ResizeWindow proto((void));
+# endif
+#endif
+
 extern bool
 	DisabledRedisplay;
 
@@ -63,12 +71,13 @@ extern void
 /* Variables: */
 
 extern bool	BriteMode;		/* VAR: make the mode line inverse? */
-extern int	MailInt;		/* VAR: mail check interval */
 #ifdef UNIX
+extern int	MailInt;		/* VAR: mail check interval */
 extern char	Mailbox[FILESIZE];	/* VAR: mailbox name */
 #endif /* UNIX */
 extern char	ModeFmt[120];		/* VAR: mode line format string */
 extern bool	ScrollAll;		/* VAR: when current line scrolls, scroll whole window? */
+extern int	ScrollWidth;	/* VAR: unit of horizontal scrolling */
 extern bool	UseBuffers;		/* VAR: use buffers with Typeout() */
 #ifdef ID_CHAR
 extern bool	UseIC;			/* VAR: whether or not to use i/d char processesing */

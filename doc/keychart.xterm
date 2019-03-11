@@ -1,35 +1,35 @@
   F1      F2      F3      F4      F5      F6      F7      F8      F9 ___
-Jove    Split   Next    Delete  Delete  Enlarge Spell   Fill    Fill    \
+Jove    Split   Next    Delete  Delete  Grow    Spell   Fill    Fill    \
 COMMAND WINDOW  WINDOW  Other   Current WINDOW  Buffer  Comment Para     ]
                         WINDOWs WINDOW                                  /
                                                                  <-----'
-                                          F10     F11     F12   Delete  BKsp
-                                        List    Select  Find    Delete  Delete
-                                        BUFFERs BUFFER  FILE    Prev Ch Prev Ch
+                          F10     F11     F12      |      PrSc  Scroll-L Pause
+                        List    Select  Find       |     Beg of  End of
+                        BUFFERs BUFFER  FILE       |     LINE    LINE    SPARE
 
- L1      L2                                      R1      R2      R3
-Toggle  Toggle                                  Beg of  Left    Left
-OvrWt   Fill-m                                  LINE    Paren   WORD
-
- L3      L4                                      R4      R5      R6       -
-Set     EXCH                                    End of  Right   Right   Scroll
-MARK    . & m                                   LINE    Paren   WORD    DOWN
-
-         L6                                      R7      R8      R9       +
-        COPY                                    Beg of   Up     Page    Scroll
-        Region                                  FILE            DOWN    UP
-
-         L8                                      R10     R11     R12      |
-        YANK                                    Left    Beg     Right     |
-                                                        NEXT              |
-                                                        LINE
- L9      L10                                     R13     R14     R15    ENTER
-SEARCH  KILL                                    End of  Down    Page      |
-Forwd   Region                                  FILE            UP        |
-                                                                          |
- -- Help --                                       --- 0 ---       .       |
-   Show                                             Insert      Delete  SHELL
-   Keychart                                         Line        Line      |
+ L1      L2      |                            |  NumLock   /       *       -
+Toggle  Toggle   |                            |          Left    Right   Scroll
+OvrWt   Fill-m   |                            |          WORD    WORD    DOWN
+                 |----------------------------|
+ L3      L4      |   INSERT  HOME    PREV     |    7       8       9       +
+Set     EXCH     |   Insert  Beg of  Page     |  Beg of   Up     Page    Scroll
+MARK    . & m    |   Line    FILE    UP       |  FILE            UP      UP
+                 |                            |                            |
+         L6      |    DEL    END     NEXT     |    4       5       6       |
+        COPY     |   Delete  End of  Page     |  Left    Beg     Right     |
+        Region   |   Prev Ch FILE    DOWN     |          NEXT              |
+                 |----------------------------|          LINE
+         L8      |                            |    1       2       3     ENTER
+        YANK     |                            |  End of  Down    Page      |
+                 |                            |  FILE            DOWN      |
+                 |                            |                            |
+ L9      L10     |                            |  ---- 0 ----       .       |
+SEARCH  KILL     |                            |      Insert      Kill    SHELL
+Forwd   Region   |                            |      Line        Line      |
+                 |
+ -- Help --      |
+   Show          |
+   Keychart      |
 
 In addition to the bindings shown, the following ESC combinations also work:
         ESC L9          search-reverse
@@ -89,4 +89,3 @@ Z (scroll-up)                                  (scroll-down)
  ^X ?         describe-key
  ^X ^        (grow-wind)
  ^X DEL       kill-begin-sent
-

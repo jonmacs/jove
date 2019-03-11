@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -11,7 +11,7 @@ extern data_obj	*MainKeys[NCHARS];
 extern data_obj	*EscKeys[NCHARS];
 extern data_obj	*CtlxKeys[NCHARS];
 
-#ifdef IBMPC
+#ifdef PCNONASCII
 extern data_obj	*NonASCIIKeys[NCHARS];
 #endif
 
@@ -27,6 +27,7 @@ extern data_obj	*NonASCIIKeys[NCHARS];
 #define KILLCMD		3	/* so we can merge kills */
 #define YANKCMD		4	/* so we can do yank-pop (ESC Y) */
 #define UNDOABLECMD	5	/* so we can do yank-pop to undo */
+#define MOUSE_CMD	6	/* to detect other cmds when button is down */
 
 extern int this_cmd;		/* ... */
 extern int last_cmd;		/* last command ... to implement appending to kill buffer */

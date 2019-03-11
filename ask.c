@@ -1,12 +1,11 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
  ************************************************************************/
 
 #include "jove.h"
-#include "termcap.h"
 #include "jctype.h"
 #include "chars.h"
 #include "disp.h"
@@ -90,8 +89,8 @@ bool	(*d_proc) ptrproto((ZXchar));
 	ZXchar	c;
 	int	prompt_len;
 	Buffer	*saveb = curbuf;
-	volatile int	aborted = NO;
-	int	no_typed = NO;
+	volatile bool	aborted = NO;
+	bool	no_typed = NO;
 	data_obj	*push_cmd = LastCmd;
 	int	saved_as, saved_ac;
 
@@ -121,11 +120,7 @@ bool	(*d_proc) ptrproto((ZXchar));
 
 	this_cmd = OTHER_CMD;	/* probably redundant */
 	for (;;) {
-		if (this_cmd != ARG_CMD) {
-			clr_arg_value();
-			last_cmd = this_cmd;
-			init_strokes();
-		}
+		cmd_sync();
 		s_mess("%s%s", prompt, linebuf);
 		Asking = YES;
 		AskingWidth = curchar + prompt_len;
@@ -182,7 +177,7 @@ cleanup:
 	SetBuf(saveb);
 	InRealAsk = Asking = Interactive = NO;
 	if (!aborted) {
-		if (!charp()) {
+		if (!PreEmptOutput()) {
 			Placur(ILI, 0);
 			flushscreen();
 		}
@@ -281,6 +276,7 @@ yes_or_no_p(fmt, va_alist)
 
 			    default:
 				add_mess("[Type Y or N]");
+				Asking = YES;	/* so cursor sits on question */
 				SitFor(10);
 			}
 		} else {
@@ -302,6 +298,8 @@ yes_or_no_p(fmt, va_alist)
    them according to their value in the environment (if possible) -
    this munges all over curchar and linebuf without giving it a second
    thought (I must be getting lazy in my old age) */
+
+# ifndef MAC	/* no environment in MacOS */
 
 bool	DoEVexpand = YES;	/* VAR: should we expand evironment variables? */
 
@@ -343,11 +341,13 @@ EVexpand()
 	DelMark(m);
 }
 
+# endif /* !MAC */
+
 private char	*fc_filebase;
 bool	DispBadFs = YES;	/* VAR: display filenames with bad extensions? */
 
 char	BadExtensions[sizeof(BadExtensions)] =	/* VAR: extensions to ignore */
-# ifndef MSDOS
+# ifndef MSFILESYSTEM
 /* .o: object code format
  * .Z .gz: compressed formats
  * .tar .zip .zoo: archive formats
@@ -356,14 +356,14 @@ char	BadExtensions[sizeof(BadExtensions)] =	/* VAR: extensions to ignore */
  * .elc: compiled GNU EMACS code
  */
 ".o .Z .gz .tar .zip .zoo .gif .jpg .jpeg .mpg .mpeg .tif .tiff .rgb .dvi .elc";
-# else /* MSDOS */
+# else /* MSFILESYSTEM */
 /* .obj .lib .exe .com .dll: object code files
  * .arc .zip .zoo: archive formats
  * .bmp .gif .jpg .mpg .tif .pcx: graphics formats
  * .wks .wk1 .xls: spreadsheet formats
  */
 ".obj .lib .exe .com .dll .arc .zip .zoo .bmp .gif .jpg .mpg .tif .pcx .wks .wk1 .xls";
-# endif /* MSDOS */
+# endif /* MSFILESYSTEM */
 
 private bool
 bad_extension(name)
@@ -374,24 +374,31 @@ char	*name;
 	size_t	namelen = strlen(name),
 		ext_len;
 
-# ifdef UNIX
-	if (strcmp(name, ".")==0 || strcmp(name, "..")==0)
-		return YES;
-# endif
-# ifdef MSDOS
+# if defined(UNIX) || defined(MSFILESYSTEM)
+#  ifdef DIRECTORY_ADD_SLASH
 	if (strcmp(name, "./")==0 || strcmp(name, "../")==0)
 		return YES;
-# endif
+#  else
+	if (strcmp(name, ".")==0 || strcmp(name, "..")==0)
+		return YES;
+#  endif /* DIRECTORY_ADD_SLASH */
+# endif /* UNIX || MSFILESYSTEM */
 	for (ip=bads=BadExtensions; *ip!='\0'; bads = ip+1) {
 		if ((ip = strchr(bads, ' ')) == NULL)
 			ip = bads + strlen(bads);
 		ext_len = ip - bads;
 		if (ext_len != 0 && ext_len < namelen
+# ifdef FILENAME_CASEINSENSITIVE
+		&& caseeqn(&name[namelen - ext_len], bads, ext_len))
+# else
 		&& strncmp(&name[namelen - ext_len], bads, ext_len) == 0)
+# endif
 			return YES;
 	}
 	return NO;
 }
+
+private bool f_match proto((char* file));	/* needed to comfort dumb MS Visual C */
 
 private bool
 f_match(file)
@@ -403,26 +410,22 @@ char	*file;
 		return NO;
 
 	return len == 0
-# ifdef MSDOS
+# ifdef FILENAME_CASEINSENSITIVE
 		|| caseeqn(file, fc_filebase, len);
 # else
 		|| strncmp(file, fc_filebase, len) == 0;
 # endif
 }
 
-# ifndef MSDOS
+# ifndef DIRECTORY_ADD_SLASH
 private bool
 isdir(name)
 char	*name;
 {
-	struct stat	stbuf;
-	char	filebuf[FILESIZE];
-
-	PathParse(name, filebuf);
-	return stat(filebuf, &stbuf) != -1
-		&& (stbuf.st_mode & S_IFDIR) == S_IFDIR;
+	(void) do_stat(name, (Buffer *) NULL, DS_DIR);
+	return was_dir;
 }
-# endif /* !MSDOS */
+# endif /* !DIRECTORY_ADD_SLASH */
 
 private void
 fill_in(dir_vec, n)
@@ -447,7 +450,11 @@ int	n;
 			if (!filter || !bad_extension(dir_vec[i])) {
 				minmatch = numfound == 0
 					? (int)strlen(dir_vec[i])
+#ifdef FILENAME_CASEINSENSITIVE
+					: min(minmatch, numcompcase(dir_vec[lastmatch], dir_vec[i]));
+#else
 					: min(minmatch, numcomp(dir_vec[lastmatch], dir_vec[i]));
+#endif
 				lastmatch = i;
 				numfound += 1;
 			}
@@ -465,13 +472,13 @@ int	n;
 
 			if (minmatch > (int)strlen(fc_filebase)) {
 				if (minmatch >= LBSIZE - (fc_filebase - linebuf))
-					len_error(COMPLAIN);
+					len_error(JMP_COMPLAIN);
 				the_same = NO;
 				null_ncpy(fc_filebase, dir_vec[lastmatch], (size_t) minmatch);
 				makedirty(curline);
 			}
 			Eol();
-# ifndef MSDOS /* MSDOS already has trailing '/' */
+# ifndef DIRECTORY_ADD_SLASH
 			if (numfound == 1 && fc_filebase[0] != '\0' && isdir(linebuf)) {
 				the_same = NO;
 				insert_c('/', 1);
@@ -501,12 +508,14 @@ ZXchar	c;
 	int
 		nentries;
 
+# ifndef MAC	/* no environment in MacOS */
 	if (DoEVexpand)
 		EVexpand();
+# endif
 	if (c == CR || c == LF)
 		return NO;	/* tells ask to return now */
 	fc_filebase = strrchr(linebuf, '/');
-# ifdef MSDOS
+# ifdef MSFILESYSTEM
 	{
 		char	*p = strrchr(fc_filebase == NULL? linebuf : fc_filebase, '\\');
 
@@ -515,7 +524,7 @@ ZXchar	c;
 		if (fc_filebase == NULL)
 			fc_filebase = strrchr(linebuf, ':');
 	}
-# endif /* MSDOS */
+# endif /* MSFILESYSTEM */
 	if (fc_filebase != NULL) {
 		char	tmp[FILESIZE];
 
@@ -528,7 +537,7 @@ ZXchar	c;
 		fc_filebase = linebuf;
 		strcpy(dir, ".");
 	}
-	if ((nentries = jscandir(dir, &dir_vec, f_match, alphacomp)) == -1) {
+	if ((nentries = jscandir(dir, &dir_vec, f_match, fnamecomp)) == -1) {
 		add_mess(" [Unknown directory: %s]", dir);
 		SitFor(7);
 		return YES;

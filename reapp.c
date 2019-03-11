@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -330,7 +330,13 @@ char	*filebuf,
 
 	/* ********BEGIN FAST TAG CODE******** */
 
-	if (stat(file, &stbuf) >= 0) {
+	/* Mac doesn't have fstat */
+#ifdef MAC
+	if (stat(file, &stbuf) >= 0)
+#else
+	if (fstat(fp->f_fd, &stbuf) >= 0)
+#endif
+	{
 		/* Invariant: if there is a line matching the tag, it
 		 * begins somewhere after position lower, and begins
 		 * at or before upper.  There is one possible
@@ -601,9 +607,9 @@ Bufpos	*bp;
 		case CTL('S'):
 		case CTL('R'):
 			/* If this is the first time through and we have a
-			   search string left over from last time, use that
-			   one now. */
-			if (incp == ISbuf) {
+			   search string left over from last time, and Inputp
+			   is not in use [kludge!], use that one now. */
+			if (Inputp == NULL && incp == ISbuf) {
 				Inputp = getsearch();
 				continue;
 			}

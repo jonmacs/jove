@@ -1,16 +1,16 @@
 /*
  * Copyright (C) 1986 Free Software Foundation, Inc.
- * Copyright (C) 1991 C.H.Lindsey, University of Manchester
- * 
+ * Copyright (C) 1991-1996 C.H.Lindsey, University of Manchester
+ *
  * This file is derived from the program emacstool, which is itself part of the
  * GNU Emacs system.
- * 
+ *
  * In the same way as GNU Emacs itself, this file is distributed in the hope
  * that it will be useful, but without any warranty.  No author or
  * distributor accepts responsibility to anyone for the consequences of using
  * it or for whether it serves any particular purpose or works at all, unless
  * he says so in writing.
- * 
+ *
  * Everyone is granted permission to copy, modify and redistribute this file,
  * but only under the conditions described in the document "GNU Emacs copying
  * permission notice".   A copy of that document is distributed along with
@@ -18,23 +18,24 @@
  * redistribute it all. In particular and among other things, this copyright
  * notice must be preserved on all copies of this file and of files derived
  * from it.
- * 
- * 
+ *
+ *
  * For Jove in SunView/Sun-Windows: (supported by Sun Unix v3.2) Insert a
  * notifier filter-function to convert all useful input to "key" sequences
  * that jove can understand.  See: Xjove(1).
- * 
+ *
  * Author (of Jovetool/Xjove): C. H. Lindsey, University of Manchester
  * <chl@clw.cs.man.ac.uk>
  * Author (of Emacstool): Jeff Peck, Sun Microsystems, Inc. <peck@sun.com>
- * 
+ *
  * Original Idea: Ian Batten
- * 
+ *
  */
 
 #include <xview/defaults.h>
 #include <xview/xview.h>
 #include <xview/tty.h>
+#include <xview/ttysw.h>	/* is this missing on some systems? */
 #include <xview/termsw.h>
 #include <xview/cursor.h>
 #include <xview/font.h>
@@ -45,8 +46,10 @@
 #include <string.h>
 #include <sys/file.h>
 #include <stdlib.h>
+#include <unistd.h>	/* is this missing on some systems? */
 #include <fcntl.h>
 #include <termios.h>
+
 #include "exts.h"
 #include "mousemsg.h"
 
@@ -80,29 +83,29 @@ private unsigned short default_image[] =
 {
 #include "jove.icon"
 };
-mpr_static(icon_image, 64, 64, 1, default_image);
+mpr_static_static(icon_image, 64, 64, 1, default_image);
 
 private Xv_Cursor current_cursor, jove_cursor, cut_cursor, copy_cursor, paste_cursor, default_cursor;
 
 private unsigned short cursor_image[] = {
 #include "jove.cursor"
 };
-mpr_static(cursor_pix, 16, 16, 1, cursor_image);
+mpr_static_static(cursor_pix, 16, 16, 1, cursor_image);
 
 private unsigned short cut_image[] = {
 #include "cut.cursor"
 };
-mpr_static(cut_pix, 16, 16, 1, cut_image);
+mpr_static_static(cut_pix, 16, 16, 1, cut_image);
 
 private unsigned short copy_image[] = {
 #include "copy.cursor"
 };
-mpr_static(copy_pix, 16, 16, 1, copy_image);
+mpr_static_static(copy_pix, 16, 16, 1, copy_image);
 
 private unsigned short paste_image[] = {
 #include "paste.cursor"
 };
-mpr_static(paste_pix, 16, 16, 1, paste_image);
+mpr_static_static(paste_pix, 16, 16, 1, paste_image);
 
 Xv_Font         font;
 
@@ -601,7 +604,7 @@ main(argc, argv)
 			exit(1);
 			/* NOTREACHED */
 		case 0:	/* the child */
-#if defined(SUNOS5) || defined(SVR4)
+#ifdef SYSVR4
 			setsid();	/* so it doesn't get killed when
 					 * parent dies */
 #else
@@ -620,7 +623,7 @@ main(argc, argv)
 
 	font = (Xv_font) xv_find(ttysw, FONT, FONT_NAME,
 				 defaults_get_string("font.name", "Font.Name", "lucidasanstypewriter-12"),
-				 NULL);
+				 0);
 
 	child_argv = (char **) malloc((argc + 1) * sizeof(char *));
 	if (!(child_argv[0] = (char *) getenv("JOVETOOL")))	/* Set jove command name */
@@ -653,7 +656,7 @@ main(argc, argv)
 		(BUFFER_SIZE - (strlen(buffer)) - (strlen(argv[0]))) - 1);
 
 	/* Build a frame to run in */
-	frame = xv_create((Xv_Window) NULL, FRAME,
+	frame = xv_create(XV_NULL, FRAME,
 			  XV_LABEL, buffer,
 			  FRAME_ICON, frame_icon,
 			  0);
@@ -661,7 +664,7 @@ main(argc, argv)
 	buffer[0] = '\0';
 	for (i = 1; i < argc; i++)
 		sprintf(&buffer[strlen(buffer)], "%s ", argv[i]);
-	xv_set(frame, WIN_CMD_LINE, buffer, NULL);
+	xv_set(frame, WIN_CMD_LINE, buffer, 0);
 
 	/* Create a tty with jove in it */
 	ttysw = xv_create(frame, TERMSW,
@@ -674,9 +677,9 @@ main(argc, argv)
 			  TEXTSW_FONT, font,
 			  0);
 
-	ttyview = xv_get(ttysw, OPENWIN_NTH_VIEW, 0, NULL);
-	left_margin = xv_get(ttysw, XV_LEFT_MARGIN, NULL);
-	right_margin = xv_get(ttysw, XV_RIGHT_MARGIN, NULL);
+	ttyview = xv_get(ttysw, OPENWIN_NTH_VIEW, 0);
+	left_margin = xv_get(ttysw, XV_LEFT_MARGIN);
+	right_margin = xv_get(ttysw, XV_RIGHT_MARGIN);
 	font_height = (int) xv_get(ttysw, WIN_ROW_HEIGHT);
 	font_width = (int) xv_get(ttysw, WIN_COLUMN_WIDTH);
 
@@ -699,37 +702,37 @@ main(argc, argv)
 	 */
 	       WIN_ROWS, defaults_get_integer(
 					  "window.rows", "Window.Rows", 35),
-	       NULL);
+	       0);
 
 
 	xv_set(ttyview,
 	       WIN_CONSUME_EVENTS,
-	       WIN_ASCII_EVENTS, WIN_META_EVENTS,
-	       WIN_MOUSE_BUTTONS, WIN_UP_EVENTS,
-	       LOC_DRAG,
-	       SHIFT_LEFT, SHIFT_RIGHT, SHIFT_CTRL, SHIFT_META,
-	       WIN_LEFT_KEYS, WIN_TOP_KEYS, WIN_RIGHT_KEYS,
-	       0,
+		WIN_ASCII_EVENTS, WIN_META_EVENTS,
+		WIN_MOUSE_BUTTONS, WIN_UP_EVENTS,
+		LOC_DRAG,
+		SHIFT_LEFT, SHIFT_RIGHT, SHIFT_CTRL, SHIFT_META,
+		WIN_LEFT_KEYS, WIN_TOP_KEYS, WIN_RIGHT_KEYS,
+		0,
 	       WIN_COLLAPSE_EXPOSURES, FALSE,
 	       0);
 
 	default_cursor = xv_get(ttyview, WIN_CURSOR);
-	jove_cursor = xv_create(NULL, CURSOR,
+	jove_cursor = xv_create(XV_NULL, CURSOR,
 				CURSOR_IMAGE, &cursor_pix,
 				CURSOR_XHOT, 8,
 				CURSOR_YHOT, 8,
 				0);
-	cut_cursor = xv_create(NULL, CURSOR,
+	cut_cursor = xv_create(XV_NULL, CURSOR,
 			       CURSOR_IMAGE, &cut_pix,
 			       CURSOR_XHOT, 8,
 			       CURSOR_YHOT, 8,
 			       0);
-	copy_cursor = xv_create(NULL, CURSOR,
+	copy_cursor = xv_create(XV_NULL, CURSOR,
 				CURSOR_IMAGE, &copy_pix,
 				CURSOR_XHOT, 8,
 				CURSOR_YHOT, 8,
 				0);
-	paste_cursor = xv_create(NULL, CURSOR,
+	paste_cursor = xv_create(XV_NULL, CURSOR,
 				 CURSOR_IMAGE, &paste_pix,
 				 CURSOR_XHOT, 8,
 				 CURSOR_YHOT, 8,
@@ -748,24 +751,25 @@ main(argc, argv)
 	}
 	menu_init();
 
-	bind_function_keys(XK_L1, 10, 192);
-	bind_function_keys(XK_Help, 1, 202);
-	bind_function_keys(XK_F1, 10, 224);
-	bind_function_keys(SunXK_F36, 2, 234);	/* for Suns only */
-	bind_function_keys(XK_R1, 15, 208);
+	bind_function_keys((KeySym)XK_L1, 10, 192);
+	bind_function_keys((KeySym)XK_Help, 1, 202);
+	bind_function_keys((KeySym)XK_F1, 10, 224);
+#ifdef SunXK_F36
+	bind_function_keys((KeySym)SunXK_F36, 2, 234);	/* for Suns only */
+#endif
+	bind_function_keys((KeySym)XK_R1, 15, 208);
 	/*
 	 * But note that the keys R7-R15 are intercepted by XView which
 	 * imposes its own bindings
 	 */
-	bind_function_keys(XK_Insert, 1, 247);
-	bind_function_keys(XK_KP_0, 1, 247);
-	bind_function_keys(XK_KP_Decimal, 1, 249);
-	bind_function_keys(XK_KP_Enter, 1, 250);
-	bind_function_keys(XK_KP_Add, 1, 253);
-	bind_function_keys(XK_KP_Subtract, 1, 254);
+	bind_function_keys((KeySym)XK_Insert, 1, 247);
+	bind_function_keys((KeySym)XK_KP_0, 1, 247);
+	bind_function_keys((KeySym)XK_KP_Decimal, 1, 249);
+	bind_function_keys((KeySym)XK_KP_Enter, 1, 250);
+	bind_function_keys((KeySym)XK_KP_Add, 1, 253);
+	bind_function_keys((KeySym)XK_KP_Subtract, 1, 254);
 
 	window_fit(frame);
 	window_main_loop(frame);/* And away we go */
-	exit(0);		/* if this is ever reached */
-	/* NOTREACHED */
+	return 0;		/* if this is ever reached */
 }

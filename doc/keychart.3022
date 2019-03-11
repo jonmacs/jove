@@ -105,7 +105,7 @@ Z (scroll-up)                                  (scroll-down)
                                               ESC ~        make-buffer-unmod
  ^X !         shell-command                   ESC DEL      kill-prev-word
  ^X (         begin-kbd-macro                 DEL          delt-prev-char
- ^X)          end-kbd-macro
+ ^X )         end-kbd-macro
  ^X 1        (delt-other-winds)
  ^X 2        (split-curr-wind)
  ^X 4         wind-find

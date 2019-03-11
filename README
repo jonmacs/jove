@@ -1,18 +1,18 @@
 ########################################################################
-# This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  #
+# This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  #
 # provided to you without charge, and with no warranty.  You may give  #
 # away copies of JOVE, including sources, provided that this notice is #
 # included in all the files.                                           #
 ########################################################################
 
-[Updated in November 1994]
+[Updated in September 1995]
 
 Installation on a UNIX System.
 ------------------------------
 
 To make JOVE, edit Makefile to set the right directories for the binaries,
 on line documentation, the man pages, and the TMP files, and select the
-appropriate load command (see SEPFLAG in Makefile).  (IMPORTANT! read the
+appropriate load command (see LDFLAGS in Makefile).  (IMPORTANT! read the
 Makefile carefully.)  "paths.h" will be created by MAKE automatically,
 and it will use the directories you specified in the Makefile.  (NOTE:
 You should never edit paths.h directly because your changes will be undone
@@ -57,6 +57,10 @@ in the /etc/rc file BEFORE /tmp is cleared, so that you can recover
 files after reboots (hint: look for the equivalent code to preserve vi
 tempfiles).  There should then be a crontab entry to clear out old files
 in /usr/preserve.
+
+If you plan on using JOVE with a xterm, look at doc/XTermresource.
+This file contains resource declarations that allow JOVE to respond to
+more function keys and mouse gestures.
 
 For the pdp11 version there is the Ovmakefile.  This has only been
 tested on 2.9bsd, and not recently.  It worked pretty well, actually,
@@ -108,15 +112,52 @@ fixes, and ... that's it, I guess.
 
 Good luck, have fun.
 
-	Jonathan Payne (Jonathan.Payne@sun.com until further notice :-)
+	Jonathan Payne (jpayne@starwave.com until further notice :-)
 
+Thanks to Charles Lindsey for the xjove/jovetool and xterm mouse support.
 
+Thanks to Jim Patterson for the Win 32 port.
+
+Thanks to the other JoveHacks for testing and for contributing numerous
+fixes, portability enhancements, and pieces of sage advice.
+
+	D. Hugh Redelmeier (hugh@mimosa.com)
+
+Changes since 4.16beta
+----------------------
+
+- Added the variable paragraph-delimiter-pattern to customize paragraph
+  recognition.
+
+- Ported to Win 32 (but not Win 32s)
+
+- Several variables have been renamed to more clearly indicate their function.
+  The old name will still work, but eventually it will be eliminated.
+	allow-bad-filenames => allow-bad-characters-in-filenames
+	display-bad-filenames => display-filenames-with-bad-extensions
+	internal-tabstop => tab-width
+
+- Several minor bugs fixed.  Several portability improvements.
+  + MSDOS: avoid date rollover problem
+  + Borland C: support version 4
+  + Borland and Microsoft C: enable HIGHLIGHTING
+  + NetBSD: dodge ssize_t redefinition
+  + SCO UNIX: use <ctype.h>
+  + SunOS + Solaris: make charp effective
+  + generic: Ensure screen is maintained during non-interactive processes,
+    even if the user has typed ahead
+
+- The xterm mousing interface has been completely revamped.
+  Some small ancillary consequences of this are
+  + A next-line (prev-line) landing in the middle of a Tab selects the Tab
+    character (rather than the following one)
+  + A yank-pop is no longer permitted to follow a copy-region.
 
 Changes since version 4.14.6.
 -----------------------------
 
 JOVE now works on many newer systems.  For example, it compiles
-under Solaris 2.n (SYSDEFS=-DSUNOS5).
+under Solaris 2.n (SYSDEFS=-DSYSVR4).
 
 The uninstalled binary in the JOVE directory is jjove instead of xjove
 (xjove is now something else).

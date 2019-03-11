@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -29,8 +29,6 @@ gather_argument(ns, nc)
 		ns,	/* new state */
 		nc;	/* new count */
 {
-	bool	slow = NO;
-
 	for (;;) {
 		ZXchar	c;
 		bool	neg = NO;
@@ -68,7 +66,7 @@ gather_argument(ns, nc)
 		/* Treat a following digit as AS_NUMERIC.
 		 * If in AS_TIMES, accept a '-'.
 		 */
-		c = waitchar(&slow);
+		c = waitchar();
 		if (jisdigit(c)) {
 			ns = AS_NUMERIC;
 			nc = c - '0';

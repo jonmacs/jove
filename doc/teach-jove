@@ -630,16 +630,18 @@ commands that contain "file".  To run apropos you would type
 
 	M-X apr<Space>file<Return>
 
-Finally, the full set of JOVE manuals are in five parts, and reside in the
-directory /local/src/jove/doc under the names jove.1 to jove.5.  These
-are in TROFF form and can be formatted into a form readable on the terminal
-or line-printer with the commands:
+Finally, the full JOVE manual is included in the distribution.  It is
+in NROFF/TROFF form and can be formatted into a form readable on the
+terminal or line-printer with the command:
 
-	cd /local/src/jove/doc
-	nroff -ms cmds.doc.nr jove.[1-5]
+	cd /local/src/jove
+	make doc/jove.man
 
-Besides, someone around you must have a printed version which you can
-borrow! (There's also a copy on the Berkeley Unix 4.3 manuals - in the User
+To get a typeset copy, use the make target troff-man.  You will have to
+adjust the makefile for your local facilities for TROFF output.
+
+Besides, someone around you must have a printed version which you can borrow!
+There's also an old copy in the Berkeley Unix 4.3 manuals - in the User
 Supplementary Documents manual (the one with the green spine). There is also
 a chart of JOVE commands, sorted by function, which is handy as a quick
 reference. Ask your local Jove guru for a copy.

@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -19,9 +19,9 @@
 #define	C_BRA	0100	/* open BRAket */
 #define	C_KET	0200	/* close braKET */
 
-extern const unsigned char	CharTable[NMAJORS][NCHARS];
+extern const unsigned char	CharTable[NCHARS];
 
-#define	has_syntax(c,s)	((CharTable[FUNDAMENTAL][ZXC(c)]&(s)) != 0)
+#define	has_syntax(c,s)	((CharTable[ZXC(c)]&(s)) != 0)
 #define	jisdigit(c)	has_syntax(c, C_DIGIT)
 #define	jisopenp(c)	has_syntax(c, C_BRA)
 #define	jisclosep(c)	has_syntax(c, C_KET)

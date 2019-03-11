@@ -1,5 +1,5 @@
 /***************************************************************************
- * This program is Copyright (C) 1991 by C.H.Lindsey, University of        *
+ * This program is Copyright (C) 1991-1996 by C.H.Lindsey, University of   *
  * Manchester.  (X)JOVETOOL is provided to you without charge, and with no *
  * warranty.  You may give away copies of (X)JOVETOOL, including sources,  *
  * provided that this notice is included in all the files, except insofar  *
@@ -71,10 +71,10 @@ menu_init()
 		0);
 
 VARGROUP(var_files_menu)
-			VARIBOOL("allow-bad-filenames")
+			VARIBOOL("allow-bad-characters-in-filenames")
 #ifdef F_COMPLETION
 			VARIABLE("bad-filename-extensions")
-			VARIBOOL("display-bad-filenames")
+			VARIBOOL("display-filenames-with-bad-extensions")
 			VARIBOOL("expand-environment-variables")
 #endif
 #ifndef MSDOS
@@ -138,10 +138,11 @@ VARGROUP(var_format_menu)
 #ifdef CMT_FMT
 			VARIABLE("comment-format")
 #endif
-			VARIABLE("internal-tabstop")
 			VARIABLE("left-margin")
+			VARIABLE("paragraph-delimiter-pattern")
 			VARIABLE("right-margin")
 			VARIBOOL("space-sentence-2")
+			VARIABLE("tab-width")
 	0);
 
 VARGROUP(var_abbrev_menu)
@@ -158,11 +159,11 @@ VARGROUP(var_misc_menu)
 #ifdef BIFF
 			VARIBOOL("disable-biff")
 #endif
-#ifdef IBMPC
+#ifdef IBMPCDOS
 			VARIBOOL("enhanced-keyboard")
 #endif
 #ifdef HIGHLIGHTING
-# ifdef IBMPC
+# ifdef IBMPCDOS
 			VARIABLE("highlight-attribute")
 # endif
 			VARIABLE("highlight-mark")
@@ -182,7 +183,7 @@ VARGROUP(var_misc_menu)
 #endif /* UNIX */
 			VARIBOOL("meta-key")
 			VARIABLE("mode-line")
-#ifdef IBMPC
+#ifdef IBMPCDOS
 			VARIABLE("mode-line-attribute")
 #endif
 			VARIBOOL("mode-line-should-standout")
@@ -190,9 +191,9 @@ VARGROUP(var_misc_menu)
 #ifdef RECOVER
 			VARIABLE("sync-frequency")
 #endif /* RECOVER */
-#ifdef IBMPC
+#ifdef IBMPCDOS
 			VARIABLE("text-attribute")
-#endif /* IBMPC */
+#endif /* IBMPCDOS */
 			VARIABLE("tmp-file-pathname")
 #ifdef UNIX
 			VARIABLE("update-time-frequency")

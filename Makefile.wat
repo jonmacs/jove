@@ -1,5 +1,5 @@
 ########################################################################
-# This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  #
+# This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  #
 # provided to you without charge, and with no warranty.  You may give  #
 # away copies of JOVE, including sources, provided that this notice is #
 # included in all the files.                                           #
@@ -100,15 +100,15 @@ OBJECTS = keys.obj commands.obj abbrev.obj ask.obj buf.obj c.obj &
 	io.obj jove.obj macros.obj marks.obj misc.obj mouse.obj move.obj &
 	paragrap.obj proc.obj re.obj reapp.obj scandir.obj list.obj &
 	keymaps.obj util.obj vars.obj wind.obj fmt.obj disp.obj term.obj &
-	fp.obj screen.obj msgetch.obj pcscr.obj
+	fp.obj screen.obj msgetch.obj ibmpcdos.obj
 
 HEADERS = abbrev.h argcount.h ask.h buf.h c.h case.h chars.h commands.h &
 	jctype.h dataobj.h delete.h disp.h extend.h externs.h &
-	fmt.h fp.h msgetch.h insert.h io.h iproc.h jove.h &
+	fmt.h fp.h insert.h io.h iproc.h jove.h &
 	keymaps.h list.h loadavg.h mac.h macros.h marks.h &
-	misc.h mouse.h move.h paragraph.h pcscr.h proc.h &
+	misc.h mouse.h move.h paragraph.h proc.h &
 	re.h reapp.h rec.h scandir.h screen.h &
-	sysdep.h sysprocs.h temp.h term.h termcap.h ttystate.h &
+	sysdep.h sysprocs.h temp.h term.h ttystate.h &
 	tune.h util.h vars.h version.h wind.h
 
 # This is what we really want to use, but Zortech's make doesn't work
@@ -146,7 +146,6 @@ paths.h:	Makefile.wat
 	echo $#define RECDIR "$(RECDIR)" >> paths.h
 	echo $#define LIBDIR "$(LIBDIR)" >> paths.h
 	echo $#define SHAREDIR "$(SHAREDIR)" >> paths.h
-#	echo $#define BINDIR "$(BINDIR)" >> paths.h
 	echo $#define DFLTSHELL "$(DFLTSHELL)" >> paths.h
 
 setmaps.exe:	commands.tab keys.txt setmaps.c
@@ -159,6 +158,16 @@ keys.c:	setmaps.exe keys.txt
 # Note: it may be necessary to manually copy the source file from
 # the distribution CDROM to the installation.  On the CDROM, the
 # file's path is \watcom\src\startup\wildargv.c.
+# At least with some versions, wildargv.c does not accept tabs as
+# argument delimiters.  This should be fixed.
+# Change line 82 from:
+#	    while( *p == ' ' ) ++p;	/* skip over blanks */
+# to:
+#	    while( *p == ' ' || *p == '\t' ) ++p;	/* skip over blanks */
+# Change line 103 from:
+#		    if( *p == ' ' ) break;
+# to:
+#		    if( *p == ' ' || *p == '\t' ) break;
 
 wildargv.obj:	$(%WATCOM)\src\startup\wildargv.c
 	$(CC) $(CFLAGS) $(%WATCOM)\src\startup\wildargv.c
