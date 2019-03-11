@@ -1,3 +1,11 @@
+/***************************************************************************
+ * This program is Copyright (C) 1991-1996 by C.H.Lindsey, University of   *
+ * Manchester.  (X)JOVETOOL is provided to you without charge, and with no *
+ * warranty.  You may give away copies of (X)JOVETOOL, including sources,  *
+ * provided that this notice is included in all the files, except insofar  *
+ * as a more specific copyright notices attaches to the file (x)jovetool.c *
+ ***************************************************************************/
+
 /* proto: macro to allow us to prototype any function declaration
  * without upsetting old compilers.
  */

@@ -1,16 +1,16 @@
 /*
  * Copyright (C) 1986 Free Software Foundation, Inc.
- * Copyright (C) 1991 C.H.Lindsey, University of Manchester
- * 
+ * Copyright (C) 1991-1996 C.H.Lindsey, University of Manchester
+ *
  * This file is derived from the program emacstool, which is itself part of the
  * GNU Emacs system.
- * 
+ *
  * In the same way as GNU Emacs itself, this file is distributed in the hope
  * that it will be useful, but without any warranty.  No author or
  * distributor accepts responsibility to anyone for the consequences of using
  * it or for whether it serves any particular purpose or works at all, unless
  * he says so in writing.
- * 
+ *
  * Everyone is granted permission to copy, modify and redistribute this file,
  * but only under the conditions described in the document "GNU Emacs copying
  * permission notice".   A copy of that document is distributed along with
@@ -18,30 +18,32 @@
  * redistribute it all. In particular and among other things, this copyright
  * notice must be preserved on all copies of this file and of files derived
  * from it.
- * 
- * 
+ *
+ *
  * For Jove in SunView/Sun-Windows: (supported by Sun Unix) Insert a notifier
  * filter-function to convert all useful input to "key" sequences that jove
  * can understand.  See: Jovetool(1).
- * 
+ *
  * Author (of Jovetool): C. H. Lindsey, University of Manchester
  * <chl@clw.cs.man.ac.uk>
  * Author (of Emacstool): Jeff Peck, Sun Microsystems, Inc. <peck@sun.com>
- * 
+ *
  * Original Idea: Ian Batten
- * 
+ *
  */
 
 #include <suntool/sunview.h>
 #include <suntool/tty.h>
+#include <suntool/ttysw.h>
 #include <stdio.h>
 #include <sys/file.h>
 #ifdef	__STDC__
 #include <stdlib.h>
 #endif
 #include <string.h>
-#include "mousemsg.h"
+
 #include "exts.h"
+#include "mousemsg.h"
 
 #define BUFFER_SIZE 128		/* Size of all the buffers */
 
@@ -71,29 +73,29 @@ private unsigned short default_image[] =
 {
 #include "jove.icon"
 };
-mpr_static(icon_image, 64, 64, 1, default_image);
+mpr_static_static(icon_image, 64, 64, 1, default_image);
 
 private Cursor  current_cursor, jove_cursor, cut_cursor, copy_cursor, paste_cursor, default_cursor;
 
 private short   cursor_image[] = {
 #include "jove.cursor"
 };
-mpr_static(cursor_pix, 16, 16, 1, cursor_image);
+mpr_static_static(cursor_pix, 16, 16, 1, cursor_image);
 
 private unsigned short cut_image[] = {
 #include "cut.cursor"
 };
-mpr_static(cut_pix, 16, 16, 1, cut_image);
+mpr_static_static(cut_pix, 16, 16, 1, cut_image);
 
 private unsigned short copy_image[] = {
 #include "copy.cursor"
 };
-mpr_static(copy_pix, 16, 16, 1, copy_image);
+mpr_static_static(copy_pix, 16, 16, 1, copy_image);
 
 private unsigned short paste_image[] = {
 #include "paste.cursor"
 };
-mpr_static(paste_pix, 16, 16, 1, paste_image);
+mpr_static_static(paste_pix, 16, 16, 1, paste_image);
 
 
 
@@ -206,7 +208,7 @@ button_value(event)
 
 	/*
 	 * Detect and encode multi-clicks.
-	 * 
+	 *
 	 * - a multiclick is a train of alternating mouse-down and mouse-up
 	 * events - the first must be a mouse-down - Each mouse up and down
 	 * must be of the same button - each of which happens within CLICK

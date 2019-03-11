@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -15,10 +15,11 @@
 #include "misc.h"
 #include "move.h"
 #include "paragraph.h"
+#include "re.h"
 
 private int	get_indent proto((LinePtr));
 
-/* Thanks to Brian Harvey for this paragraph boundery finding algorithm.
+/* Thanks to Brian Harvey for this paragraph boundary finding algorithm.
    It's really quite hairy figuring it out.  This deals with paragraphs that
    are seperated by blank lines, lines beginning with a Period (assumed to
    be an nroff command), lines beginning with BackSlash (assumed to be Tex
@@ -124,6 +125,9 @@ int
 	LMargin = 0,	/* VAR: left margin */
 	RMargin = 78;	/* VAR: right margin */
 
+char
+	ParaDelim[sizeof(ParaDelim)] = "[ \t]*$\\|\\.\\|\\\\";	/* VAR: paragraph-delimiter-pattern */
+
 private LinePtr
 	para_head,
 	para_tail;
@@ -134,10 +138,9 @@ private int
 
 private bool	use_lmargin;
 
-/* some defines for paragraph boundery checking */
-#define I_EMPTY		(-1)	/* line "looks" empty (spaces and tabs) */
-#define I_PERIOD	(-2)	/* line begins with "." or "\" */
-#define I_BUFEDGE	(-3)	/* line is nonexistent (edge of buffer) */
+/* some defines for paragraph boundary checking */
+#define I_DELIM		(-1)	/* line matched by paragraph-delimiter-pattern */
+#define I_BUFEDGE	(-2)	/* line is nonexistent (edge of buffer) */
 
 private bool	bslash;		/* Nonzero if get_indent finds line starting
 				   with backslash */
@@ -168,19 +171,16 @@ register LinePtr	lp;
 		return I_BUFEDGE;
 	DOTsave(&save);
 	SetLine(lp);
-	if (blnkp(linebuf))
-		indent = I_EMPTY;
-	else if (linebuf[0] == '.')
-		indent = I_PERIOD;
-	else if (linebuf[0] == '\\') {
-		/* BH 12/24/85.  Backslash is BLANK only if next line
-		   also starts with Backslash. */
-		bslash = YES;
-		SetLine(lp->l_next);
-		if (linebuf[0] == '\\')
-			indent = I_PERIOD;
-		else
-			indent = 0;
+	if (LookingAt(ParaDelim, linebuf, 0)) {
+		indent = I_DELIM;
+		if (linebuf[0] == '\\' && REeom == 1) {
+			/* BH 12/24/85.  Backslash is delimiter only if next line
+			   also starts with Backslash. */
+			bslash = YES;
+			SetLine(lp->l_next);
+			if (linebuf[0] != '\\')
+				indent = 0;
+		}
 	} else {
 		ToIndent();
 		indent = calc_pos(linebuf, curchar);
@@ -390,37 +390,41 @@ bool	ulm;
 private void
 do_space()
 {
-	int	c1 = curchar,
-		c2 = c1,
+	int
+		c1,
 		diff,
-		nspace;
-
-	while (c1 > 0 && jiswhite(linebuf[c1 - 1]))
-		c1 -= 1;
-	while (jiswhite(linebuf[c2]))
-		c2 += 1;
-	diff = (c2 - c1);
-	curchar = c2;
-
-	if (diff == 0)
-		return;
-	if (c1 > 0) {
-		nspace = 1;
-		if (diff >= 2) {
-			int	topunct = c1;
-
-			do {
-				topunct -= 1;;
-			} while (topunct > 0 && strchr("\"')]", linebuf[topunct]) != NULL);
-			if (SpaceSent2 && topunct > 0
-			&& (linebuf[c1-1] == ':' || strchr("?!.", linebuf[topunct]) != NULL))
-				nspace = 2;
-		}
-	} else
 		nspace = 0;
+	bool
+		funny_space = NO;
 
-	if (diff > nspace)
-		del_char(BACKWARD, (diff - nspace), NO);
+	skip_wht_space();
+	for (c1 = curchar; --c1 >= 0 && jiswhite(linebuf[c1]); )
+		if (linebuf[c1] != ' ')
+			funny_space = YES;
+	c1 += 1;
+	diff = (curchar - c1);
+
+	if (diff != 0) {
+		if (c1 > 0 && !eolp()) {
+			nspace = 1;
+			if (diff >= 2) {
+				int	topunct = c1;
+
+				do {
+					topunct -= 1;;
+				} while (topunct > 0 && strchr("\"')]", linebuf[topunct]) != NULL);
+
+				if (SpaceSent2 && topunct > 0
+				&& (linebuf[c1-1] == ':' || strchr("?!.", linebuf[topunct]) != NULL))
+					nspace = 2;
+			}
+		}
+
+		if (funny_space || diff > nspace) {
+			del_char(BACKWARD, diff, NO);
+			ins_str("  "+(2-nspace));
+		}
+	}
 }
 
 #ifdef MSDOS
@@ -437,9 +441,10 @@ int	c1,
 bool
 	scrunch;
 {
-	int	okay_char = -1;
 	Mark	*savedot = MakeMark(curline, curchar),
 		*endmark;
+	int	okay_char,	/* end of what fits */
+		start_char;	/* where we started the line */
 
 	(void) fixorder(&l1, &c1, &l2, &c2);	/* l1/c1 will be before l2/c2 */
 	DotTo(l1, c1);
@@ -453,51 +458,61 @@ bool
 	}
 	endmark = MakeMark(l2, c2);
 
+	okay_char = start_char = curchar;
 	for (;;) {
-		/* The while loop succeeds at least once, when curchar ==
-		   indent.  So we know that okay_char >= indent when we
-		   exit the loop. */
-		while (calc_pos(linebuf, curchar) < RMargin) {
-			if (curline == endmark->m_line && curchar >= endmark->m_char)
-				goto outahere;
-			okay_char = curchar;
+		/* for each word ... */
+
+		/* skip to end of (possibly empty) input word */
+		while (!eolp() && !jiswhite(linebuf[curchar]))
+			curchar += 1;
+
+		if (okay_char != start_char && calc_pos(linebuf, curchar) > RMargin) {
+			/* This word won't fit in output line
+			 * (the first word on a line is always considered to fit).
+			 */
+			curchar = okay_char;	/* go back to last success */
 			if (eolp()) {
-				/* delete line separator */
+				/* no need to introduce a line break: we're already at one */
+				if (lastp(curline))
+					break;	/* ran out of buffer: stop */
+				line_move(FORWARD, 1, NO);
+			} else {
+				/* break line here.  Note that we split the line before
+				 * deleting the (possibly split) whitespace.  This way
+				 * marks before and after the current whitespace character
+				 * end up on the appropriate side of the newline that
+				 * replaces it.
+				 */
+				LineInsert(1);
+				b_char(1);
+				DelWtSpace();
+				f_char(1);
+				DelWtSpace();
+				if (scrunch && TwoBlank()) {
+					Eol();
+					del_char(FORWARD, 1, NO);
+					Bol();
+				}
+			}
+			n_indent(indent);
+			okay_char = start_char = curchar;
+		} else {
+			/* this word fits (it might be empty, but that's OK) */
+			okay_char = curchar;	/* nail down success */
+			/* stop if we've run out of range */
+			if (curline == endmark->m_line && curchar >= endmark->m_char)
+				break;
+			/* process word separator */
+			if (eolp() && !lastp(curline)) {
+				/* Replace line separator with TWO spaces: this
+				 * allows sentence ends to end up with two spaces.
+				 */
 				del_char(FORWARD, 1, NO);
 				ins_str("  ");
-			} else {
-				do {
-					curchar += 1;
-				} while (linebuf[curchar] != '\0' && linebuf[curchar] != ' ');
 			}
-			do_space();
+			do_space();	/* compress space; advance past it */
 		}
-		if (okay_char > indent)
-			curchar = okay_char;
-		if (curline == endmark->m_line && curchar >= endmark->m_char)
-			goto outahere;
-
-		/* Can't fit in small margin, so if we're at the end of
-		   the line then we just move to the next line.  Otherwise
-		   we divide the line where we are and start over. */
-		if (eolp()) {
-			LinePtr	l = curline;
-
-			line_move(FORWARD, 1, NO);
-			if (l == curline)	/* didn't actually go anywhere */
-				goto outahere;
-		} else {
-			DelWtSpace();
-			LineInsert(1);
-			if (scrunch && TwoBlank()) {
-				Eol();
-				del_char(FORWARD, 1, NO);
-				Bol();
-			}
-		}
-		n_indent(indent);
 	}
-outahere:
 	ToMark(savedot);	/* Back to where we were */
 	DelMark(endmark);	/* Free up marks */
 	DelMark(savedot);
@@ -514,8 +529,8 @@ private void
 DoPara(dir)
 int	dir;
 {
-	register int	num = arg_value(),
-			first_time = YES;
+	register int	num = arg_value();
+	bool	first_time = YES;
 
 	if (num < 0) {
 		num = -num;

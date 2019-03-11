@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -11,7 +11,6 @@
 
 #ifdef MSDOS	/* the body is the rest of this file */
 
-#include "msgetch.h"
 #include "chars.h"
 #include "disp.h"	/* for redisplay() */
 
@@ -19,9 +18,9 @@
 #include <dos.h>
 
 
-private void waitfun proto((void));
+private void rawkey_wait proto((void));
 
-#ifdef IBMPC
+#ifdef IBMPCDOS
 private ZXchar	last = EOF;
 
 bool enhanced_keybrd;	/* VAR: exploit "enhanced" keyboard? */
@@ -42,7 +41,7 @@ bool enhanced_keybrd;	/* VAR: exploit "enhanced" keyboard? */
      * Interrupt 16h, service 1h (get keyboard status) and
      * interrupt 16h, service 11h (get enhanced keyboard status)
      * return with ZF cleared iff there is a character.
-     * The zkbready macro returns a non-zero int iff there is a character.
+     * The zkbready macro returns YES iff there is a character.
      *
      * Note that the nature of the Zortech asm facility demands
      * that the "service" argument be a constant expression.
@@ -77,12 +76,27 @@ bool enhanced_keybrd;	/* VAR: exploit "enhanced" keyboard? */
 #  define jkbshift()	_bios_keybrd(_KEYBRD_SHIFTSTATUS)
 # endif /* !kebready */
 
-#endif /* IBMPC */
+/* This table returns an Ascii character corresponding to a Scan Code index.
+ * If a key has no ASCII equivalent, the table contains 0.
+ */
+static const char scanToAsciiLower[] = {
+	/* 00 */ 0, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', '\\', '\b',
+	/* 10 */ '-', 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', 0, 0, 'a',
+	/* 20 */ 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', '\'', 0, '\r', 0, 'z', 'x',
+	/* 30 */ 'c', 'v', 'b', 'n', 'm', ',', '.', '/', 0, 0, 0, 0, 0, ' ', 0, 0 };
+
+static const char scanToAsciiUpper[] = {
+	/* 00 */ 0, '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+', '|', '\177',
+	/* 10 */ '_', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '{', '}', 0, 0, 'A',
+	/* 20 */ 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ':', '\"', 0, '\r', 0, 'Z', 'X',
+	/* 30 */ 'C', 'V', 'B', 'N', 'M', '<', '>', '?', 0, 0, 0, 0, 0, ' ', 0, 0 };
+
+#endif /* IBMPCDOS */
 
 ZXchar
 getrawinchar()
 {
-#ifdef IBMPC
+#ifdef IBMPCDOS
 	unsigned scan;
 
 	if (last != EOF) {
@@ -91,9 +105,7 @@ getrawinchar()
 		return scan;
 	}
 
-	while (!rawkey_ready())
-		waitfun();
-
+	rawkey_wait();
 	scan = jkbread();
 
 	/* check for Ctrl-spacebar and magically turn it into a Ctrl-@
@@ -109,37 +121,44 @@ getrawinchar()
 
 	if ((scan&0xff) == 0 || (scan&0xff) == 0xe0) {
 		ZXchar	next = ZXRC(scan >> 8);
+		ZXchar  asciiChar;
 
-		/* Re-map shifted arrow keys and shifted Insert, Delete, Home, End,
-		 * PgUp, and PgDn from 71-83 to 171-183.  This hack depends on
-		 * the same heuristic as the ctrl-spacebar hack.
-		 */
-		if (71 <= next && next <= 83 && (jkbshift() & 0x03) && !jkbready())
-			next += 100;
-
-		/* Re-map keys that should have been ASCII */
-		switch (next) {
-		case 0x03:	/* ^@ and ^Space key */
-			scan = '\0';	/* ASCII NUL */
-			break;
-		case 0x53:	/* Delete key */
-			scan = DEL;	/* ASCII DEL */
-			break;
-		default:
-			last = next;	/* not ASCII: more to come next time */
-			scan = PCNONASCII;
-			break;
+		if (MetaKey && next < sizeof(scanToAsciiUpper)
+		&& 0 != (asciiChar = ((jkbshift() & 0x03) && !jkbready()
+			? scanToAsciiUpper : scanToAsciiLower)[next]))
+		{
+			last = asciiChar;
+			scan = ESC;
+		} else {
+			/* Re-map shifted arrow keys and shifted Insert, Delete, Home, End,
+			 * PgUp, and PgDn from 71-83 to 171-183.  This hack depends on
+			 * the same heuristic as the ctrl-spacebar hack.
+			 */
+			if (71 <= next && next <= 83 && (jkbshift() & 0x03) && !jkbready())
+				next += 100;
+			/* Re-map keys that should have been ASCII */
+			switch (next) {
+			case 0x03:	/* ^@ and ^Space key */
+				scan = '\0';	/* ASCII NUL */
+				break;
+			case 0x53:	/* Delete key */
+				scan = DEL;	/* ASCII DEL */
+				break;
+			default:
+				last = next;	/* not ASCII: more to come next time */
+				scan = PCNONASCII;
+				break;
+			}
 		}
 	}
 	return scan&0xff;
 
-#else /* !IBMPC */
+#else /* !IBMPCDOS */
 # ifdef RAINBOW
 
 	union REGS regs;
 
-	while (!rawkey_ready())
-		waitfun();
+	rawkey_wait();
 
 	for (;;) {
 		regs.x.di = 2;
@@ -148,22 +167,20 @@ getrawinchar()
 			return regs.h.al;
 	}
 # else /* !RAINBOW */
-
-	while (!rawkey_ready())
-		waitfun();
+	rawkey_wait();
 	return bdos(0x06, 0x00ff, 0xff) & 0xff;
 # endif /* !RAINBOW */
-#endif /* !IBMPC */
+#endif /* !IBMPCDOS */
 }
 
-private bool waiting = NO;
+private bool	waiting = NO;
 
 bool
 rawkey_ready()
 {
-#ifdef IBMPC
+#ifdef IBMPCDOS
 	return !waiting && (last != EOF || jkbready());
-#else /* !IBMPC */
+#else /* !IBMPCDOS */
 	union REGS regs;
 
 	if (waiting)
@@ -179,42 +196,58 @@ rawkey_ready()
 	intdos(&regs, &regs);
 	return regs.h.al & 1;
 # endif /* !RAINBOW */
-#endif /* !IBMPC */
+#endif /* !IBMPCDOS */
 }
 
-#ifdef IBMPC
-private long timecount, lastcount = 0;
-#else
-private char lastmin = 0;
-#endif
-
-
+/* Wait for next character, updating the modeline if it displays the time.
+ * NOTE: this is a busy wait.
+ */
 private void
-waitfun()
+rawkey_wait()
 {
-	if (UpdModLine) {
-		waiting = YES;
-		redisplay();
-		waiting = NO;
-		return;
-	}
-#ifdef IBMPC
-	if (_bios_timeofday(_TIME_GETCLOCK, &timecount) ||  /* after midnight */
-	    (timecount > lastcount + 0x444) ) {
-		lastcount = timecount;
-		UpdModLine = YES;
-	}
-#else /* !IBMPC */
-	{
-		struct dostime_t tc;
+	while (!rawkey_ready()) {
+		if (UpdModLine) {
+			waiting = YES;
+			redisplay();
+			waiting = NO;
+		} else if (TimeDisplayed) {
+			struct dostime_t tc;
+			static char lastmin = 0;
 
-		_dos_gettime(&tc);
-		if (tc.minute != lastmin) {
-			UpdModLine = YES;
-			lastmin = tc.minute;
+			_dos_gettime(&tc);
+			if (tc.minute != lastmin) {
+				UpdModLine = YES;
+				lastmin = tc.minute;
+			}
+		} else {
+			/* No reason to busy wait: return to do a blocking read.
+			 * This might improve performance in multitasking systems.
+			 */
+			break;
 		}
 	}
-#endif /* !IBMPC */
+}
+
+void
+ttysetattr(n)
+bool	n;	/* also used as subscript! */
+{
+	static char break_state;
+
+	if (n) {
+		/* set the break state to off */
+		union REGS regs;
+
+		regs.h.ah = 0x33;		/* break status */
+		regs.h.al = 0x00;		/* request current state */
+		intdos(&regs, &regs);
+		break_state = regs.h.dl;
+
+		bdos(0x33, 0, 1);	/* turn off break */
+	} else {
+		/* restore the break state */
+		bdos(0x33, break_state, 1);
+	}
 }
 
 #endif /* MSDOS */

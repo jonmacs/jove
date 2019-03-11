@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -16,7 +16,7 @@
 #include "recover.h"
 
 #if !defined(MAC) && !defined(ZTCDOS)
-#	include <sys/file.h>
+# include <sys/file.h>
 #endif
 
 private int	rec_fd = -1;
@@ -26,7 +26,7 @@ private File	*rec_out;
 #define dmpobj(obj) fputnchar((char *) &obj, (int) sizeof(obj), rec_out)
 
 #ifndef L_SET
-#	define L_SET 0
+# define L_SET 0
 #endif
 
 private struct rec_head	Header;
@@ -49,7 +49,7 @@ recinit()
 
 	swritef(buf, sizeof(buf), "%s/%s", TmpDir,
 #ifdef MAC
-		".jrecXXX"
+		".jrecXXX"	/* must match string in mac.c:Ffilter() */
 #else
 		"jrecXXXXXX"
 #endif
@@ -115,6 +115,7 @@ register Buffer	*b;
 {
 	struct rec_entry	record;
 
+	byte_zero(&record, sizeof(struct rec_entry));	/* clean out holes for purify */
 	record.r_dotline = LinesTo(b->b_first, b->b_dot);
 	record.r_dotchar = b->b_char;
 	record.r_nlines = record.r_dotline + LinesTo(b->b_dot, (LinePtr)NULL);

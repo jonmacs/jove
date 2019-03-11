@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -59,7 +59,7 @@
 
   typedef int	wait_status_t;
 
-#  ifndef MSDOS
+#  ifdef UNIX
 
 #   define WIFSTOPPED(w)	((w & 0377) == 0177)
 #   define WIFEXITED(w)	((w & 0377) == 0)
@@ -69,7 +69,7 @@
 
 #   define wait_opt(stat_loc, options)		wait(stat_loc)
 
-#  endif /* !MSDOS */
+#  endif /* UNIX */
 
 # endif /*!BSD_WAIT*/
 #endif /*!POSIX_PROCS*/

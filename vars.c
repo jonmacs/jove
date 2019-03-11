@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -23,17 +23,16 @@
 #include "mac.h"
 #include "mouse.h"
 #include "paragraph.h"
-#include "pcscr.h"
 #include "proc.h"
 #include "re.h"
 #include "reapp.h"
 #include "rec.h"
 #include "screen.h"
+#include "term.h"
+#include "ttystate.h"
 /* #include "util.h" */
 #include "wind.h"
-#ifdef IBMPC
-# include "msgetch.h"
-#endif
+
 
 #define VAR(v)	(UnivPtr)(v), sizeof(v)
 #include "vars.tab"

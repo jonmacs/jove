@@ -1,5 +1,5 @@
 /***************************************************************************
- * This program is Copyright (C) 1991 by C.H.Lindsey, University of        *
+ * This program is Copyright (C) 1991-1996 by C.H.Lindsey, University of   *
  * Manchester.  (X)JOVETOOL is provided to you without charge, and with no *
  * warranty.  You may give away copies of (X)JOVETOOL, including sources,  *
  * provided that this notice is included in all the files, except insofar  *
@@ -9,6 +9,7 @@
 #include <xview/xview.h>
 #include <xview/font.h>
 #include <xview/tty.h>
+#include <xview/ttysw.h>	/* is this missing on some systems? */
 #include <stdio.h>
 #include "exts.h"
 #include "xjovewindows.h"
@@ -61,26 +62,29 @@ private int
 	climbing,
 	falling;
 
-caddr_t
+private void
 do_ancestor(m, mi)
 	Menu		m;
 	Menu_item	mi;
-{	Menu		parent_menu;
+{
+	Menu		parent_menu;
 	Menu_item	parent_item;
 	caddr_t		(*proc)();
 
-	parent_item = xv_get(m, MENU_PARENT, NULL);
-	if (parent_item != NULL) {
-		parent_menu = xv_get(parent_item, MENU_PARENT, NULL);
-		proc = (caddr_t (*)())xv_get(parent_item, MENU_NOTIFY_PROC, NULL);
+	parent_item = xv_get(m, MENU_PARENT);
+	if (parent_item != XV_NULL) {
+		parent_menu = xv_get(parent_item, MENU_PARENT);
+		proc = (caddr_t (*)())xv_get(parent_item, MENU_NOTIFY_PROC);
 		if (proc == NULL)
-			proc = (caddr_t (*)())xv_get(parent_menu, MENU_NOTIFY_PROC, NULL);
-		if (proc == NULL) do_ancestor(parent_menu, parent_item);
-		else (*proc)(parent_menu, parent_item);
+			proc = (caddr_t (*)())xv_get(parent_menu, MENU_NOTIFY_PROC);
+		if (proc == NULL)
+			do_ancestor(parent_menu, parent_item);
+		else
+			(*proc)(parent_menu, parent_item);
 	}
 }
 
-caddr_t
+private void
 do_notify(m, mi, p)
 	Menu		m;
 	Menu_item	mi;
@@ -97,18 +101,18 @@ do_notify(m, mi, p)
 	climbing = 1;
 	if (!(local_falling = falling)) do_ancestor(m, mi);
 	(*p)(m, mi);
-	if (!local_climbing && (pull = xv_get(mi, MENU_PULLRIGHT, NULL)) != NULL) {
+	if (!local_climbing && (pull = xv_get(mi, MENU_PULLRIGHT)) != XV_NULL) {
 		falling = 1;
-		xv_set(pull, MENU_PARENT, mi, NULL);
-		deft = xv_get(pull, MENU_DEFAULT_ITEM, NULL);
-		proc = (caddr_t (*)())xv_get(deft, MENU_NOTIFY_PROC, NULL);
+		deft = xv_get(pull, MENU_DEFAULT_ITEM);
+		proc = (caddr_t (*)())xv_get(deft, MENU_NOTIFY_PROC);
 		if (proc == NULL)
-			proc = (caddr_t (*)())xv_get(pull, MENU_NOTIFY_PROC, NULL);
+			proc = (caddr_t (*)())xv_get(pull, MENU_NOTIFY_PROC);
 		(*proc)(pull, deft);
 		falling = local_falling;
 	}
 	climbing = local_climbing;
-	if (!climbing) ttysw_input (ttysw, "\n", 1);
+	if (!climbing)
+		ttysw_input (ttysw, "\n", 1);
 }
 
 
@@ -123,15 +127,15 @@ do_print_client_data(m, mi)
 	ttysw_input(ttysw, menu_string, strlen(menu_string));
 }
 
-private caddr_t
+private void
 print_client_data(m, mi)
 	Menu		m;
 	Menu_item	mi;
 {
-	return do_notify(m, mi, do_print_client_data);
+	do_notify(m, mi, do_print_client_data);
 }
 
-private caddr_t
+private void
 main_notify(m, mi)
 	Menu		m;
 	Menu_item	mi;
@@ -139,7 +143,6 @@ main_notify(m, mi)
 	char		*menu_string;
 
 	print_client_data(m, mi);
-	/* ??? what should this function return */
 }
 
 void
@@ -155,12 +158,12 @@ do_sp_printit(m, mi)
 	ttysw_input(ttysw, menu_string, strlen(menu_string));
 }
 
-private caddr_t
+private void
 sp_printit(m, mi)
 	Menu		m;
 	Menu_item	mi;
 {
-	return do_notify(m, mi, do_sp_printit);
+	do_notify(m, mi, do_sp_printit);
 }
 
 private Menu_item
@@ -181,7 +184,7 @@ on_off_proc(item, operation)
 		if (!describing & !printing) {
 			xv_set(item, MENU_PULLRIGHT, on_off_menu, 0);
 		} else {
-			xv_set(item, MENU_PULLRIGHT, 0, 0);
+			xv_set(item, MENU_PULLRIGHT, XV_NULL, 0);
 		}
 		break;
 	    case MENU_DISPLAY_DONE:
@@ -200,18 +203,19 @@ do_set_proc(mi, operation, menu)
 {
 	if (!describing) {
 		switch (operation) {
-			case MENU_DISPLAY:
+		    case MENU_DISPLAY:
 			if (!strcmp((char *)xv_get(mi, MENU_CLIENT_DATA), "print"))
 			printing = 1;
 			return menu;
-			break;
-			case MENU_DISPLAY_DONE:
+
+		    case MENU_DISPLAY_DONE:
 			printing = 0;
-			case MENU_NOTIFY:
-			case MENU_NOTIFY_DONE:
+			/*FALLTHROUGH*/
+		    case MENU_NOTIFY:
+		    case MENU_NOTIFY_DONE:
 			return empty_menu;
-			break;
-			}
+		}
+		return empty_menu;	/* ??? what should this function return */
 	} else return empty_menu;
 }
 
@@ -237,4 +241,3 @@ do_describing_proc(m, operation)
 #define X
 
 #include "jovemenu.c"
-

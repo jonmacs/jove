@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -60,9 +60,9 @@ extern void
 	Popd proto((void)),
 	Pushd proto((void)),
 	Pushlibd proto((void)),
-	ReadFile proto((void)),
+	JReadFile proto((void)), /* ReadFile conflicts with Win32 library */
 	SaveFile proto((void)),
-	WriteFile proto((void)),
+	JWriteFile proto((void)), /* WriteFile conflicts with Win32 library */
 	WtModBuf proto((void)),
 	WrtReg proto((void)),
 	prCWD proto((void)),
@@ -73,8 +73,11 @@ extern void
 #ifdef BACKUPFILES
 extern bool	BkupOnWrite;		/* VAR: make backup files when writing */
 #endif
-#ifndef MSDOS
+#ifdef UNIX
 extern int	CreatMode;		/* VAR: default mode for creat'ing files */
+#endif
+#ifdef MAC
+# define CreatMode	0	/* dummy */
 #endif
 extern bool	EndWNewline;		/* VAR: end files with a blank line */
 extern bool	OkayBadChars;		/* VAR: allow bad characters in files created by JOVE */

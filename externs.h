@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -11,16 +11,17 @@
 
 extern int
 	creat proto((const char *, int)),
-	open proto((const char *, int)),
+	/* open may have an optional third argument, int mode */
+	open proto((const char */*path*/, int /*flags*/, ...)),
 	close proto((int)),
 	unlink proto((const char *)),
 	chdir proto((const char *));
 
 extern SSIZE_T
-	read proto((int, const char *, unsigned)),
-	write proto((int, const char *, unsigned));
+	read proto((int /*fd*/, UnivPtr /*buf*/, size_t /*nbytes*/)),
+	write proto((int /*fd*/, UnivConstPtr /*buf*/, size_t /*nbytes*/));
 
-extern long	lseek proto((int, long, unsigned));
+extern long	lseek proto((int /*fd*/, long /*offset*/, int /*whence*/));
 extern time_t	time proto((time_t *));
 
 extern void
@@ -54,7 +55,7 @@ extern void
 	free proto((UnivPtr));
 
 extern UnivPtr
-	calloc proto((unsigned int, unsigned int)),
+	calloc proto((size_t, size_t)),
 	malloc proto((size_t)),
 	realloc proto((UnivPtr, size_t));
 
@@ -72,7 +73,11 @@ extern char	*ctime proto((const time_t *));
 #ifdef POSIX_UNISTD
 # include <unistd.h>
 # if _POSIX_VERSION < 199009L	/* defined in <unistd.h>: can't test earlier */
-typedef int	ssize_t;	/* not defined in original POSIX.1 */
+   /* ssize_t is not defined in original POSIX.1
+    * Surprise: NetBSD defines it, even though it claims to be old POSIX.1!
+    * To dodge this problem, we define ssize_t as a macro, not a typedef.
+    */
+#  define ssize_t	int
 # endif
 # include <fcntl.h>
 #else /* !POSIX_UNISTD */
@@ -94,7 +99,7 @@ extern int	access proto((const char */*path*/, int /*mode*/));
 # endif
 
 extern int	creat proto((const char */*path*/, int /*mode*/));
-	/* Open may have an optional third argument, int mode */
+	/* open may have an optional third argument, int mode */
 extern int	open proto((const char */*path*/, int /*flags*/, ...));
 
 

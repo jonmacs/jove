@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -25,10 +25,11 @@
 #define DefMajor(x)	(COMMAND|MAJOR_MODE|((x) << MAJOR_SHIFT))
 #define DefMinor(x)	(COMMAND|MINOR_MODE|((x) << MAJOR_SHIFT))
 
+/* prefix of cmd, macro, keymap, variable, and sometimes buffer structs */
 typedef struct {
 	int	Type;
 	char	*Name;
-} data_obj;	/* prefix of cmd, macro, keymap and variable structs */
+} data_obj;
 
 extern data_obj	*LastCmd;	/* last command invoked */
 

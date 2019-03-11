@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -243,20 +243,23 @@ void
 WriteMacs()
 {
 	struct macro	*m;
-	char	*file,
-		filebuf[FILESIZE];
+	char
+		fnamebuf[FILESIZE];
 	File	*fp;
 	int	i;
 
-	file = ask_file((char *)NULL, (char *)NULL, filebuf);
-	fp = open_file(file, iobuff, F_WRITE, YES);
+	(void) ask_file((char *)NULL, (char *)NULL, fnamebuf);
+	fp = open_file(fnamebuf, iobuff, F_WRITE, YES);
 
 	/* Don't write the keyboard macro which is always the first */
 	for (m = macros->m_nextm; m != NULL; m = m->m_nextm) {
 		fwritef(fp, "define-macro %s ", m->Name);
 		for (i = 0; i < m->m_len; i++)
 			pr_putc(ZXC(m->m_body[i]), fp);
-		f_putc('\n', fp);
+#ifdef USE_CRLF
+		f_putc('\r', fp);
+#endif /* USE_CRLF */
+		f_putc(EOL, fp);
 	}
 	close_file(fp);
 	UnsavedMacros = NO;

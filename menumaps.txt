@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -12,6 +12,9 @@
 
 #include "jove.h"
 #include "mac.h"
+#include "commands.h"
+#include "vars.h"
+
 #MENU
 data_obj MDIV = { STRING, "(-" };
 data_obj MAJM = { STRING, "(Major Modes:" };
@@ -19,6 +22,7 @@ data_obj MINM = { STRING, "(Minor Modes:" };
 data_obj BOOL = { STRING, "(Boolean:" };
 data_obj DECM = { STRING, "(Decimal:" };
 data_obj STRM = { STRING, "(String:" };
+data_obj FILM = { STRING, "(File:" };
 data_obj CHAR = { STRING, "(Character:" };
 #define MENU_DIV &MDIV
 
@@ -50,6 +54,7 @@ struct menu Menus[NMENUS] = {
 	"auto-fill-mode",
 	"auto-indent-mode",
 	"over-write-mode",
+	"read-only-mode",
 	"show-match-mode",
 	"word-abbrev-mode",
 	MENU_DIV,
@@ -100,32 +105,68 @@ struct menu Menus[NMENUS] = {
 
 "Set",107,0, {
 	&BOOL,
-	"allow-bad-filenames",
+	"allow-bad-characters-in-filenames",
+#ifdef ABBREV
 	"auto-case-abbrev",
+#endif
 	"case-ignore-search",
+#ifdef BIFF
+	"disable-biff",
+#endif
+#ifdef F_COMPLETION
+	"display-filenames-with-bad-extensions",
+#endif
 	"files-should-end-with-newline",
+#ifdef HIGHLIGHTING
+	"highlight-mark",
+#endif
+#ifdef MAC
 	"macify",
+#endif
+#ifdef BACKUPFILES
 	"make-backup-files",
-	"marks-should-float",
+#endif
 	"match-regular-expressions",
+	"meta-key"
+	"mode-line-should-standout",
+	"one-key-confirmation",
+	"scroll-all-lines",
+#ifdef HIGHLIGHTING
+	"scroll-bar",
+#endif
 	"send-typeout-to-buffer",
+	"space-sentence-2",
+	"visible-bell",
 	"wrap-search",
+#ifdef SUBSHELL
+	"write-files-on-make",
+#endif
 	&DECM,
+	"c-argument-indentation",
 	"c-indentation-increment",
-	"internal-tabstop",
+	"error-window-size",
 	"left-margin",
 	"mark-threshold",
 	"paren-flash-delay",
 	"right-margin",
 	"scroll-step",
+#ifdef RECOVER
 	"sync-frequency",
-	&STRM,
-	"comment-format",
-	"mode-line",
+#endif
+	"tab-width",
+	&FILM,
 	"tag-file",
+	"tmp-file-pathname",
+	&STRM,
+#ifdef F_COMPLETION
+	"bad-filename-extensions",
+#endif
+	"comment-format",
+	"error-format-string",
+	"mode-line",
+	"paragraph-delimiter-pattern",
 	&CHAR,
 	"abort-char",
 	0
 }
 };
-

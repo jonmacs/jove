@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -10,7 +10,6 @@
 #include "jctype.h"
 #include "fp.h"
 #include "re.h"
-#include "termcap.h"
 #include "disp.h"
 #include "sysprocs.h"
 #include "ask.h"
@@ -30,17 +29,30 @@
 #include <signal.h>
 #include <errno.h>
 
-#ifdef MSDOS
+#ifdef MSDOS_PROCS
 # include <io.h>
 # ifndef MSC51
 #  include <sys/stat.h>	/* for S_IWRITE and S_IREAD */
 # endif
 # include <process.h>
-#endif
+#endif /* WIN32 */
 
-#if defined(UNIX) && defined(BSD_SIGS)
-long	SigMask = 0;	/* declared in sysdep.h */
-#endif
+#ifdef POSIX_SIGS
+# define SIGINTMASK_DECL	sigset_t sigintmask;
+# define SIGINTMASK_INIT()	{ sigemptyset(&sigintmask); sigaddset(&sigintmask, SIGINT); }
+# define SIGINT_BLOCK()	sigprocmask(SIG_BLOCK, &sigintmask, (sigset_t *)NULL)
+# define SIGINT_UNBLOCK()	sigprocmask(SIG_UNBLOCK, &sigintmask, (sigset_t *)NULL)
+#else /* !POSIX_SIGS */
+# ifdef USE_SIGSET
+#  define SIGINT_BLOCK()	sighold(SIGINT)
+#  define SIGINT_UNBLOCK()	sigrelse(SIGINT)
+# else /* !USE_SIGSET */
+#  ifdef BSD_SIGS
+#   define SIGINT_BLOCK()	sigsetmask(sigmask(SIGINT))
+#   define SIGINT_UNBLOCK()	sigsetmask(0)
+#  endif /* BSD_SIGS */
+# endif /* !USE_SIGSET */
+#endif /* !POSIX_SIGS */
 
 /* This disgusting RE search string parses output from the GREP
    family, from the pdp11 compiler, pcc, and lint.  Jay (HACK)
@@ -226,15 +238,17 @@ bool	forward;
 	int	num = arg_value();
 
 	NeedErrors();
-	if ((forward? e->er_next : e->er_prev) == NULL)
-		complain("You're at the %s error.", forward ? "last" : "first");
-	while (--num >= 0 || !ErrorHasReferents()) {
-		e = forward ? e->er_next : e->er_prev;
-		if (e == NULL)
-			break;
-		cur_error = e;
+	if ((forward? e->er_next : e->er_prev) == NULL) {
+		s_mess("You're at the %s error.", forward ? "last" : "first");
+	} else {
+		while (--num >= 0 || !ErrorHasReferents()) {
+			e = forward ? e->er_next : e->er_prev;
+			if (e == NULL)
+				break;
+			cur_error = e;
+		}
+		ShowErr();
 	}
-	ShowErr();
 }
 
 void
@@ -338,7 +352,7 @@ char	*command;
    on), parse the errors, and go the first error. */
 
 bool	WtOnMk = YES;		/* VAR: write files on compile-it command */
-bool    WrapProcessLines = NO;	/* VAR: wrap process lines at CO-1 chars */
+bool	WrapProcessLines = NO;	/* VAR: wrap process lines at CO-1 chars */
 
 private void
 	DoShell proto((char *, char *)),
@@ -366,7 +380,9 @@ MakeErrors()
 	{
 		if (!is_an_arg())
 			rbell();
-		Inputp = make_cmd;	/* insert the default for the user */
+		/* insert the default for the user (Kludge: only if Inputp is free) */
+		if (Inputp == NULL)
+			Inputp = make_cmd;
 		null_ncpy(make_cmd, ask(make_cmd, "Compilation command: "),
 				sizeof (make_cmd) - 1);
 	}
@@ -491,21 +507,21 @@ Shtypeout()
 	null_ncpy(ShcomBuf, ask(ShcomBuf, ProcFmt), (sizeof ShcomBuf) - 1);
 	status = UnixToBuf(UTB_DISP|UTB_SH|UTB_FILEARG, (char *)NULL, (char *)NULL,
 		ShcomBuf);
-#ifdef MSDOS
+#ifdef MSDOS_PROCS
 	if (status < 0)
 		Typeout("[%s: not executed %d]", ShcomBuf, status);
 	else if (status > 0)
 		Typeout("[%s: exited with %d]", ShcomBuf, status);
 	else if (!is_an_arg())
 		Typeout("[%s: completed successfully]", ShcomBuf);
-#else /* !MSDOS */
+#else /* !MSDOS_PROCS */
 	if (WIFSIGNALED(status))
 		Typeout("[%s: terminated by signal %d]", ShcomBuf, WTERMSIG(status));
 	else if (WIFEXITED(status) && WEXITSTATUS(status)!=0)
 		Typeout("[%s: exited with %d]", ShcomBuf, WEXITSTATUS(status));
 	else if (!is_an_arg())
 		Typeout("[%s: completed successfully]", ShcomBuf);
-#endif /* !MSDOS */
+#endif /* !MSDOS_PROCS */
 	TOstop();
 }
 
@@ -533,24 +549,24 @@ com_finish(status, cmd)
 wait_status_t	status;
 char	*cmd;
 {
-#ifdef MSDOS
+#ifdef MSDOS_PROCS
 	if (status < 0)
 		s_mess("[%s: not executed %d]", cmd, status);
 	else if (status > 0)
 		s_mess("[%s: exited with %d]", cmd, status);
 	else
 		s_mess("[%s: completed successfully]", cmd);
-#else /* !MSDOS */
+#else /* !MSDOS_PROCS */
 	if (WIFSIGNALED(status))
 		s_mess("[%s: terminated by signal %d]", cmd, WTERMSIG(status));
 	else if (WIFEXITED(status) && WEXITSTATUS(status)!=0)
 		s_mess("[%s: exited with %d]", cmd, WEXITSTATUS(status));
 	else
 		s_mess("[%s: completed successfully]", cmd);
-#endif /* !MSDOS */
+#endif /* !MSDOS_PROCS */
 }
 
-#ifndef MSDOS
+#ifndef MSDOS_PROCS
 
 /* pid of any outstanding non-iproc process.
  * Note: since there is only room for one pid, there can be no more than
@@ -602,7 +618,7 @@ wait_status_t	*status;	/* may be NULL */
 	ChildPid = 0;
 }
 
-#endif /* !MSDOS */
+#endif /* !MSDOS_PROCS */
 
 /* Run the command cmd.  Output to the buffer named bnm (if not
    NULL), first erasing bnm (if UTB_DISP and UTB_CLOBBER), and
@@ -632,27 +648,33 @@ UnixToBuf(flags, bnm, InFName, cmd)
 	char	*InFName;	/* name of file for process stdin (NULL means none) */
 	char	*cmd;	/* command to run */
 {
-#ifndef MSDOS
+#ifndef MSDOS_PROCS
 	int	p[2];
 	wait_status_t	status;
-	SIGRESTYPE	(*old_int) ptrproto((int));
-#else /* MSDOS */
+	SIGHANDLERTYPE	old_int;
+#else /* MSDOS_PROCS */
 	char	cmdbuf[129];
+	int	status;
 	char	pnbuf[FILESIZE];
 	char	*pipename;
-	int	status;
-#endif /* MSDOS */
+#endif /* MSDOS_PROCS */
 	bool	eof;
 	char	*argv[7];	/* worst case: /bin/sh sh -cf "echo $1" $1 $1 NULL */
 	char	**ap = argv;
 	File	*fp;
+#ifdef SIGINTMASK_DECL
+	SIGINTMASK_DECL
 
+	SIGINTMASK_INIT();
+#endif
+
+	SlowCmd += 1;;
 	if (flags & UTB_SH) {
 			*ap++ = Shell;
 			*ap++ = basename(Shell);
 			*ap++ = ShFlags;
 			*ap++ = cmd;
-#ifdef MSDOS
+#ifdef MSDOS_PROCS
 			/* Kludge alert!
 			 * UNIX-like DOS shells and command.com-like DOS shells
 			 * seem to differ seem to differ on two points:
@@ -677,7 +699,7 @@ UnixToBuf(flags, bnm, InFName, cmd)
 				ap[-1] = cmdbuf;
 				/* ??? can we usefully jam in a copy or two of current filename? */
 			}
-#else /* !MSDOS */
+#else /* !MSDOS_PROCS */
 			/* Two copies of the file name are passed to the shell:
 			 * The Cshell uses the first as a definition of $1.
 			 * Most versions of the Bourne shell use the second as a
@@ -691,7 +713,7 @@ UnixToBuf(flags, bnm, InFName, cmd)
 				*ap++ = fn;	/* NOTE: NULL simply terminates argv */
 				*ap++ = fn;
 			}
-#endif /* !MSDOS */
+#endif /* !MSDOS_PROCS */
 	} else {
 		*ap++ = cmd;
 		*ap++ = basename(cmd);
@@ -722,27 +744,27 @@ UnixToBuf(flags, bnm, InFName, cmd)
 	/* Now I will attempt to describe how I deal with signals during
 	   the execution of the shell command.  My desire was to be able
 	   to interrupt the shell command AS SOON AS the window pops up.
-	   So, if we have BSD_SIGS (i.e., the new signal mechanism) I
-	   hold SIGINT, meaning if we interrupt now, we will eventually
+	   So, if we have SIGINT_BLOCK (i.e., a modern signal mechanism)
+	   I hold SIGINT, meaning if we interrupt now, we will eventually
 	   see the interrupt, but not before we are ready for it.  We
 	   fork, the child releases the interrupt, it then sees the
 	   interrupt, and so exits.  Meanwhile the parent ignores the
 	   signal, so if there was a pending one, it's now lost.
 
-	   With no BSD_SIGS, the best behavior you can expect is, when
-	   you type ^] too very quickly after the window pops up, it may
+	   Without SIGINT_BLOCK, the best behavior you can expect is that
+	   when you type ^] too soon after the window pops up, it may
 	   be ignored.  The behavior BEFORE was that it would interrupt
 	   JOVE and then you would have to continue JOVE and wait a
 	   little while longer before trying again.  Now that is fixed,
 	   in that you just have to type it twice. */
 
-#ifndef MSDOS
+#ifndef MSDOS_PROCS
 	dopipe(p);
 
-# ifdef BSD_SIGS
-	SigHold(SIGINT);
+# ifdef SIGINT_BLOCK
+	SIGINT_BLOCK();
 # else
-	old_int = signal(SIGINT, SIG_IGN),
+	old_int = setsighandler(SIGINT, SIG_IGN),
 # endif
 
 # ifdef USE_VFORK
@@ -755,35 +777,29 @@ UnixToBuf(flags, bnm, InFName, cmd)
 		int	fork_errno = errno;
 
 		pipeclose(p);
-# ifdef BSD_SIGS
-		SigRelse(SIGINT);
+# ifdef SIGINT_UNBLOCK
+		SIGINT_UNBLOCK();
 # else
-		(void) signal(SIGINT, old_int),
+		(void) setsighandler(SIGINT, old_int),
 # endif
 		complain("[Fork failed: %s]", strerror(fork_errno));
 	}
 	if (ChildPid == 0) {
 # ifdef USE_VFORK
-		/*
-		 * We want to release SIGINT in the child, but we can't
-		 * use SigRelse because that would change Jove's copy
-		 * of the SigMask variable (because we're in a vfork).
-		 * So we simply set set the mask directly.
-		 *
-		 * There are several other forks in Jove, but this is
+		/* There are several other forks in Jove, but this is
 		 * the only one we execute often enough to make it worth
 		 * using a vfork.  This assumes a system with vfork also
 		 * has BSD signals!
 		 */
-		(void) signal(SIGINT, SIG_DFL);
-#  ifdef BSD_SIGS
-		(void) sigsetmask(SigMask & ~sigmask(SIGINT));
+		(void) setsighandler(SIGINT, SIG_DFL);
+#  ifdef SIGINT_UNBLOCK
+		SIGINT_UNBLOCK();
 #  endif
 # else /* !USE_VFORK */
-		(void) signal(SIGINT, SIG_DFL);
-#  ifdef BSD_SIGS
-		SigRelse(SIGINT);
-#  endif /* BSD_SIGS */
+		(void) setsighandler(SIGINT, SIG_DFL);
+#  ifdef SIGINT_UNBLOCK
+		SIGINT_UNBLOCK();
+#  endif
 # endif /* !USE_VFORK */
 		(void) close(0);
 		(void) open(InFName==NULL? "/dev/null" : InFName, 0);
@@ -797,12 +813,12 @@ UnixToBuf(flags, bnm, InFName, cmd)
 		raw_complain("Execl failed: %s", strerror(errno));
 		_exit(1);
 	}
-# ifdef BSD_SIGS
-	old_int = signal(SIGINT, SIG_IGN);
+# ifdef SIGINT_BLOCK
+	old_int = setsighandler(SIGINT, SIG_IGN);	/* got to do this eventually */
 # endif
 	(void) close(p[1]);
 	fp = fd_open(argv[1], F_READ, p[0], iobuff, LBSIZE);
-#else /* MSDOS */
+#else /* MSDOS_PROCS*/
 	{
 		int	oldi = dup(0),
 			oldo = dup(1),
@@ -845,15 +861,16 @@ UnixToBuf(flags, bnm, InFName, cmd)
 		fp = fd_open(argv[1], F_READ, ph, iobuff, LBSIZE);
 	}
 
-#endif /* MSDOS */
+#endif /* MSDOS_PROCS */
+
 	do {
 		int	wrap_col = WrapProcessLines ? CO-1 : LBSIZE;
-#ifndef MSDOS
-		inIOread = YES;
+#ifdef UNIX
+		InSlowRead = YES;
 #endif
 		eof = f_gets(fp, genbuf, (size_t)LBSIZE);
-#ifndef MSDOS
-		inIOread = NO;
+#ifdef UNIX
+		InSlowRead = NO;
 #endif
 		if (bnm != NULL) {
 			ins_str_wrap(genbuf, YES, wrap_col);
@@ -869,16 +886,20 @@ UnixToBuf(flags, bnm, InFName, cmd)
 	if (flags & UTB_DISP)
 		DrawMesg(NO);
 	close_file(fp);
-#ifndef MSDOS
+#ifndef MSDOS_PROCS
 	dowait(&status);
-# ifdef BSD_SIGS
-	(void) SigRelse(SIGINT);
+# ifdef SIGINT_UNBLOCK
+	SIGINT_UNBLOCK();
 # endif
-	(void) signal(SIGINT, old_int);
-#else /* MSDOS */
+	(void) setsighandler(SIGINT, old_int);
+#else /* MSDOS_PROCS */
 	unlink(pipename);
 	getCWD();
-#endif /* MSDOS */
+# ifdef WINRESIZE
+	ResizePending = YES;   /* In case subproc did a MODE command or something */
+# endif
+#endif /* MSDOS_PROCS */
+	SlowCmd -= 1;;
 	return status;
 }
 
@@ -892,11 +913,11 @@ char	*cmd;
 bool	wrap;
 {
 	Mark	*m = CurMark();
-	static char     tnambuf[FILESIZE];
-	char    *tname;
+	static char	tnambuf[FILESIZE];
+	char	*tname;
 	Window	*save_wind = curwind;
 	volatile wait_status_t	status;
-	volatile int	err = NO;
+	volatile bool	err = NO;
 	bool	old_wrap = WrapProcessLines;
 	File	*volatile fp;
 	jmp_buf	sav_jmp;

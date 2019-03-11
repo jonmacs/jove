@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -32,8 +32,8 @@ private void
 void
 CapChar()
 {
-	register int	num,
-			restore = NO;
+	register int	num;
+	bool	restore = NO;
 	Bufpos	b;
 
 	DOTsave(&b);

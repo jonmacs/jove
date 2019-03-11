@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -32,6 +32,8 @@ extern ZXchar	AbortChar;	/* VAR: cancels command input */
 #ifdef F_COMPLETION
 extern bool	DispBadFs;		/* VAR: display filenames with bad extensions? */
 extern char	BadExtensions[128];	/* VAR: extensions (e.g. ".o") to ignore */
+# ifndef MAC	/* no environment in MacOS */
 extern bool	DoEVexpand;		/* VAR: should we expand evironment variables? */
+# endif
 #endif
 extern bool	OneKeyConfirmation;		/* VAR: single y or n keystroke sufficient? */

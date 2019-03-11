@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -30,11 +30,13 @@ struct window {
 		w_LRscroll;	/* amount of LeftRight scrolling in window */
 #ifdef MAC
 	int	w_topline;	/* row number of top line in window */
-	char **w_control;	/* scroll bar for window */
+	/* Note: "ControlHandle w_control" would require more includes */
+	struct ControlRecord **w_control;	/* scroll bar for window */
 #endif
 };
 
 #define W_NUMWIDTH(w)	(((w)->w_flags & W_NUMLINES)? 8 : 0)
+#define SIWIDTH(off)	((off) != 0? 1 : 0)	/* width of shift indicator, if any */
 
 extern Window
 	*fwind,		/* first window in list */

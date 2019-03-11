@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -59,18 +59,23 @@ private DIR *
 opendir(dir)
 char	*dir;
 {
-	DIR	*dp = (DIR *) emalloc(sizeof *dp);
-	struct stat	stbuf;
+	int	fd;
 
-	if ((dp->d_fd = open(dir, 0)) == -1) {
-		/* this doesn't exist */
-	} else if ((fstat(dp->d_fd, &stbuf) == -1) || !(stbuf.st_mode & S_IFDIR)) {
+	if ((fd = open(dir, 0)) != -1) {
+		struct stat	stbuf;
+
+		if ((fstat(fd, &stbuf) != -1)
+		&& (stbuf.st_mode & S_IFMT) == S_IFDIR)
+		{
+			/* Success! */
+			DIR	*dp = (DIR *) emalloc(sizeof *dp);
+
+			dp->d_fd = fd;
+			return dp;
+		}
 		/* this isn't a directory! */
-		(void) close(dp->d_fd);
-	} else {
-		return dp;
+		(void) close(fd);
 	}
-	free((UnivPtr) dp);
 	return NULL;
 }
 
@@ -115,6 +120,11 @@ int	(*sorter) ptrproto((UnivConstPtr, UnivConstPtr));
 		/* note: test ensures one space left in ourarray for NULL */
 		if (nentries+1 == nalloc)
 			ourarray = (char **) erealloc((UnivPtr) ourarray, (nalloc += 10) * sizeof (char *));
+# ifdef DIRECTORY_ADD_SLASH
+		/* ??? what the heck is this?  dirent doesn't have this info. */
+		if ((entry.attrib&_A_SUBDIR) != 0)
+			strcat(entry->d_name, "/");
+# endif
 		ourarray[nentries++] = copystr(entry->d_name);
 	}
 	closedir(dirp);
@@ -129,6 +139,10 @@ int	(*sorter) ptrproto((UnivConstPtr, UnivConstPtr));
 
 #endif /* UNIX */
 
+#ifdef MSFILESYSTEM
+bool	MatchDir = NO;
+#endif
+
 #ifdef MSDOS
 # include <dos.h>
 
@@ -138,8 +152,6 @@ int	(*sorter) ptrproto((UnivConstPtr, UnivConstPtr));
 
 /* Scandir returns the number of entries or -1 if the directory cannot
    be opened or malloc fails. */
-
-bool	MatchDir = NO;
 
 int
 jscandir(dir, nmptr, qualify, sorter)
@@ -179,13 +191,15 @@ int	(*sorter) ptrproto((UnivConstPtr, UnivConstPtr));
 		if (nentries+1 == nalloc)
 			ourarray = (char **) erealloc((char *) ourarray, (nalloc += 10) * sizeof (char *));
 		strcpy(filename, entry.name);
+#ifdef DIRECTORY_ADD_SLASH
 		if ((entry.attrib&_A_SUBDIR) != 0)
 			strcat(filename, "/");
+#endif
 		ourarray[nentries++] = copystr(filename);
 	} while (_dos_findnext(&entry) == 0);
 	ourarray[nentries] = NULL;
 
-	if (sorter != (int (*)())NULL)
+	if (sorter != (int (*) ptrproto((UnivConstPtr, UnivConstPtr)))NULL)
 		qsort((char *) ourarray, nentries, sizeof (char **), sorter);
 	*nmptr = ourarray;
 
@@ -193,6 +207,70 @@ int	(*sorter) ptrproto((UnivConstPtr, UnivConstPtr));
 }
 
 #endif /* MSDOS */
+
+#ifdef WIN32
+
+# include <windows.h>
+
+/* Scandir returns the number of entries or -1 if the directory cannot
+   be opened or malloc fails. */
+
+int
+jscandir(dir, nmptr, qualify, sorter)
+char	*dir;
+char	***nmptr;
+bool	(*qualify) ptrproto((char *));
+int	(*sorter) ptrproto((UnivConstPtr, UnivConstPtr));
+{
+	WIN32_FIND_DATA entry;
+	HANDLE findHand;
+	char	**ourarray;
+	unsigned int	nalloc = 10,
+			nentries = 0;
+
+	{
+		char dirname[_MAX_PATH];
+		char *ptr;
+
+		strcpy(dirname, dir);
+		ptr = &dirname[strlen(dirname)-1];
+		if (!((dirname[1] == ':' && dirname[2] == '\0') || *ptr == '/' || *ptr == '\\'))
+			*++ptr = '/';
+		strcpy(ptr+1, "*.*");
+
+		if ((findHand = FindFirstFile(dirname, &entry)) == INVALID_HANDLE_VALUE)
+			return -1;
+	}
+	ourarray = (char **) emalloc(nalloc * sizeof (char *));
+	do  {
+		char filename[_MAX_PATH];
+
+		if (MatchDir && (entry.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY) == 0)
+			continue;
+		strcpy(filename, entry.cFileName);
+		strlwr(entry.cFileName);
+		if (qualify != NULL && !(*qualify)(entry.cFileName))
+			continue;
+		/* note: test ensures one space left in ourarray for NULL */
+		if (nentries+1 == nalloc)
+			ourarray = (char **) erealloc((char *) ourarray, (nalloc += 10) * sizeof (char *));
+#ifdef DIRECTORY_ADD_SLASH
+		if ((entry.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY) != 0)
+			strcat(filename, "/");
+#endif
+		ourarray[nentries++] = copystr(filename);
+	} while (FindNextFile(findHand, &entry));
+	FindClose(findHand);
+	ourarray[nentries] = NULL;
+
+	if (sorter != (int (*)ptrproto((UnivConstPtr, UnivConstPtr)))NULL)
+		qsort((char *) ourarray, nentries, sizeof (char **), sorter);
+	*nmptr = ourarray;
+
+	return nentries;
+}
+
+#endif /* WIN32 */
 
 void
 freedir(nmptr, nentries)

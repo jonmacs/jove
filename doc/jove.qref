@@ -87,7 +87,7 @@ previous-error		^X ^P		show-match-mode				string-length
 visible-spaces-in-windo
 
 --- REPEAT
-digit			ESC -		digit			ESC [0-9]	quadruple-numeric-argum	^U
+digit			ESC -		digit			ESC [0-9]	gather-numeric-argument	^U
 
 
 --- MACROS
@@ -112,21 +112,19 @@ auto-execute-command			auto-execute-macro			bind-macro-to-key
 bind-macro-to-word-abbr			bind-to-key				character-to-octal-inse
 date					execute-extended-comman	ESC X		fundamental-mode
 print					recursive-edit				ring-the-bell(ABORT)	^G
-set					source					unbind-key
-version
+set					source					version
 
 --- VARIABLES
-allow-^S-and-^Q				allow-bad-filenames			auto-case-abbrev
+allow-^S-and-^Q				allow-bad-characters-in-filenames	auto-case-abbrev
 bad-filename-extensions			c-indentation-increment			case-ignore-search
-comment-format				disable-biff				error-window-size
-file-creation-mode			files-should-end-with-n			internal-tabstop
+comment-format				display-filenames-with-bad-extensions	disable-biff
+error-window-size			file-creation-mode			files-should-end-with-newline
 left-margin				mailbox					mail-check-frequency
-make-backup-files			mark-threshold
-match-regular-expressio			meta-key				mode-line
-mode-line-should-stando			paren-flash-delay			physical-tabstop
-process-prompt				interrupt-character			right-margin
-scroll-step				search-exit-char			send-typeout-to-buffer
-shell					shell-flags				sync-frequency
-tag-file				tmp-file-pathname			update-time-frequency
-use-i/d-char				visible-bell				wrap-search
-write-files-on-make
+make-backup-files			mark-threshold				match-regular-expression
+meta-key				mode-line				mode-line-should-standout
+paren-flash-delay			process-prompt				interrupt-character
+right-margin				scroll-step				search-exit-char
+send-typeout-to-buffer			shell					shell-flags
+sync-frequency				tab-width				tag-file
+tmp-file-pathname			update-time-frequency			use-i/d-char
+visible-bell				wrap-search				write-files-on-make

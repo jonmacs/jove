@@ -145,7 +145,7 @@ void main()
 }
 
 _	
-\fBJOVE\ (C OvrWt)\ \ \ [Main:1]\ \ "hello.c"\ \ \(**\(**\ \ /home/foo\ \ \ \ 15:23\fP	<\ the Mode Line
+\fBJOVE\ (C OvrWt)\ \ \ [Main:1]\ \ "hello.c"\ \ \(**\ \ /home/foo\ \ \ \ 15:23\fP	<\ the Mode Line
 _	
 : write-file (default hello.c) aloha.c\^\(sq 	<\ the Message Line
 =	
@@ -241,10 +241,18 @@ the mode line tells you which one you are editing at any time.
 This is also the default filename for commands that expect a filename as
 input, as can be seen in the message line which follows.
 .LP
-The asterisks in the mode line mean that there are changes in
+The \(** in the mode line means that there are changes in
 the buffer that have not been saved in the file.
-If the file had not been changed since it was read in or last saved,
-there would be Minuses instead.
+If the buffer had not been changed since it was read in or last saved,
+there would be a minus instead.
+.LP
+Sometimes a file is changed ``behind \s-2JOVE\s0's back'': something
+changes the file (not the buffer) after it has been loaded into or
+saved from a buffer.  This can be quite dangerous, so \s-2JOVE\s0
+tests for this when it reads, writes, or finds the file.
+\s-2JOVE\s0 indicates the problem by displaying a # before the
+change indicator.  It also asks for confirmation before performing
+the read or write.
 .LP
 \fB/home/foo\fP shows the name of the current directory.
 .LP
@@ -1362,8 +1370,9 @@ are \*Q]\*U,
 \*Q\^\e\*U.  All may be represented by escaping them with a backslash (\^\e\^):
 \*Q\^\e\^]\*U, \*Q\^\e\^\-\*U, \*Q\^\e\^\e\*U.  Ranges of characters may be
 indicated by \fIa\fP\-\fIb\fP where \fIa\fP is the first character of the
-range and \fIb\fP is the last.  The special meaning of \- is lost if it is
-escaped or appears as the first or last character of the sequence.
+range and \fIb\fP is the last.  The special meaning of \- is lost if it
+appears as the first or last character of the sequence.  The special meaning
+of ] is lost if it appears as the first character of the sequence.
 .IP "[^\fIc1..cN\fP]"
 Matches any character except those contained in the sequence of characters
 \fIc1..cN\fP.  The circumflex (^) is not special except immediately
@@ -1504,7 +1513,7 @@ The way to request indentation is with the Tab command.
 Its precise effect depends on the major mode.
 In \fIText\fP mode,
 it indents to the next tab stop (as determined by the variable
-\fIinternal-tabstop\fP, whose default value is 8).
+\fItab-width\fP, whose default value is 8).
 In \fIC\fP mode or \fILisp\fP mode,
 it indents to the \*Qright\*U position for those programs (see later).
 .LP

@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -8,19 +8,7 @@
 /* some utility functions, as macros, to be included by jove.h */
 
 extern int
-	alphacomp proto((UnivConstPtr, UnivConstPtr));
-
-extern char
-	key_strokes[100],
-	*keys_p;
-
-#define init_strokes()	{ keys_p = key_strokes; *keys_p = '\0'; }
-#define add_stroke(c)	{ \
-	if (keys_p < &key_strokes[sizeof (key_strokes) - 1]) { \
-		*keys_p++ = (c); \
-		*keys_p = '\0'; \
-	} \
-}
+	fnamecomp proto((UnivConstPtr, UnivConstPtr));	/* order file names */
 
 #define IsModified(b)	((b)->b_modified)
 #define SavLine(a, b)	((a)->l_dline = putline((b)))
@@ -40,7 +28,7 @@ extern UnivPtr
 extern char
 	*IOerr proto((char *err, char *file)),
 	*basename proto((char *f)),
-	*copystr proto((char *str)),
+	*copystr proto((const char *str)),
 	*filename proto((Buffer *b)),
 	*get_time proto((time_t *timep,char *buf,int from,int to)),
 	*lcontents proto((LinePtr line)),
@@ -53,13 +41,13 @@ extern int
 	length proto((LinePtr line)),
 	max proto((int a,int b)),
 	min proto((int a,int b)),
-	numcomp proto((char *s1,char *s2));
+	numcomp proto((char *s1,char *s2)),
+	numcompcase proto((char *s1,char *s2));
 
 extern ZXchar
 	DecodePair proto((ZXchar first, ZXchar second));
 
 extern bool
-	caseeq proto((const char *s1, const char *s2)),
 	caseeqn proto((const char *s1, const char *s2, size_t n)),
 	TwoBlank proto((void)),
 	blnkp proto((char *buf)),
@@ -80,6 +68,7 @@ extern void
 	len_error proto((int flag)),
 	linecopy proto((char *onto,int atchar,char *from)),
 	modify proto((void)),
+	diverge proto((Buffer *buf, bool d)),
 	null_ncpy proto((char *to, const char *from, size_t n)),
 #ifdef UNIX
 	dopipe proto((int *p)),

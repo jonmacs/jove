@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -17,7 +17,6 @@
 /* System: Solaris 2.x, SunOS 5.x -- use SYSVR4 */
 
 #ifdef SUNOS41	/* System: SunOS4.1 to 4.1.3 */
-/* Main differences from SUNOS5 are BSD_PTYS, and NO_STRERROR. */
 # define TERMIOS	1
 # define USE_GETCWD	1
 # define POSIX_UNISTD	1
@@ -113,8 +112,10 @@
 # define USE_SELECT_H	1
 # define PTYPROCS	1
 # define BSD_PTYS	1
+# define NO_EOF_FROM_PTY    1	/* BUG! */
 # define POSIX_PROCS	1
 # define WAIT3		1
+# define POSIX_SIGS	1
 # define JOB_CONTROL	1
 # define USE_GETPWNAM	1
 # define USE_UNAME	1
@@ -144,7 +145,7 @@
 # define PTYPROCS	1
 # define BSD_PTYS	1
 # define POSIX_PROCS	1
-# define BSD_SIGS	1
+# define POSIX_SIGS	1
 # define JOB_CONTROL	1
 # define BSD_SETPGRP	1
 # define USE_KILLPG	1
@@ -155,12 +156,7 @@
 # define USE_FCHMOD	1
 #endif
 
-#if defined(IRIX4) || defined(IRIX5)
-/* System: Irix4.0.1, should work back to 3.2 or 3.3
- *
- * This is a Posix system with its own way of doing PTYS.  Older versions may
- * need MIPS_CC_BUG defined as well.
- */
+#ifdef IRIX
 # define _BSD_COMPAT	1	/* Turn on BSD setpgrp and other neat things */
 # define TERMIOS	1
 # define USE_GETCWD	1
@@ -168,14 +164,19 @@
 # define USE_SELECT	1
 # define PTYPROCS	1
 # define POSIX_PROCS	1
-# define BSD_SIGS	1
+# define POSIX_SIGS	1
 # define JOB_CONTROL	1
 # ifdef IRIX4
+   /* Should work for IRIX 4.0.4 back to 3.2 or 3.3.  This is a Posix system
+    * with its own way of doing PTYS.  Older versions may need MIPS_CC_BUG
+    * defined as well.
+    */
 #  define IRIX_PTYS	1
 #  define NO_TIOCREMOTE	1
 #  define SIGRESTYPE	int
 #  define SIGRESVALUE	0
 # else
+   /* IRIX 5 and later */
 #  define SVR4_PTYS	1
 #  define NO_TIOCREMOTE	1
 #  define NO_TIOCSIGNAL	1
@@ -207,6 +208,7 @@
 # define PTYPROCS	1
 # define SVR4_PTYS	1
 # define POSIX_PROCS	1
+# define POSIX_SIGS	1
 # define JOB_CONTROL	1
 # define USE_UNAME	1
 # define USE_GETPWNAM	1
@@ -227,7 +229,7 @@
 # define BSD_PTYS	1
 # define POSIX_PROCS	1
 # define NO_EOF_FROM_PTY    1	/* BUG! */
-# define BSD_SIGS	1
+# define POSIX_SIGS	1
 # define JOB_CONTROL	1
 # define USE_UNAME	1
 # define DEFINE_PC_BC_UP_OSPEED	1	/* May be needed for all SYSVR2 */
@@ -277,24 +279,30 @@
  * release.  JOVE's IPROCS code no longer triggers this bug.
  */
 # define PTYPROCS	1
+# define USE_CTYPE	1
 #endif
 
-#ifdef _MSC_VER	/* System: Microsoft C7 for the IBM-PC under MSDOS */
-# define MSDOS		1
-# define IBMPC		1
-# define MALLOC_CACHE	1	/* DGROUP gets full otherwise */
-# define REALSTDC	1	/* MS C only defines __STDC__ if you use /Za */
-# ifdef	M_I86LM			/* large memory model */
-#  define NBUF		62	/* NBUF*JBUFSIZ must be less than 64 kB */
-# else
-#  define NBUF		3
-#  define FAR_LINES	1	/* to squeeze larger files, distance Lines */
+#ifdef _MSC_VER	/* System: Microsoft C for the IBM-PC under MSDOS or WIN32 */
+# if defined(_WIN32) && !defined(WIN32)
+#  define WIN32 _WIN32
 # endif
+# ifdef WIN32
+#  define WINRESIZE	1
+# else /* ! WIN32 => MSDOS */
+#  define IBMPCDOS		1
+#  define MALLOC_CACHE	1	/* DGROUP gets full otherwise */
+#  if defined(M_I86LM)	/* large memory model */
+#   define NBUF		62	/* NBUF*JBUFSIZ must be less than 64 kB */
+#  else
+#   define NBUF		3
+#   define FAR_LINES	1	/* to squeeze larger files, distance Lines */
+#  endif
+# endif
+# define REALSTDC	1	/* MS C only defines __STDC__ if you use /Za */
 #endif
 
 #ifdef ZTCDOS	/* System: Zortech C V3.0 for the IBM-PC under MSDOS */
-# define MSDOS		1
-# define IBMPC		1
+# define IBMPCDOS		1
 # define getch		jgetch	/* UGH!  Zortech steals from our namespace. */
 # define MALLOC_CACHE	1	/* DGROUP gets full otherwise */
 # define REALSTDC	1	/* close enough for us, but ZTCDOS doesn't define __STDC__ */
@@ -308,11 +316,12 @@
    * (2) request support of wildcards in command-line args (UGH!)
    */
 # define STACK_DECL	unsigned int _stack = 0x2000; WILDCARDS
-# define	HIGHLIGHTING	1	/* highlighting is used for mark and scrollbar */
+# define dostime_t	dos_time_t	/* is Zortech out of step? */
+# define _dos_gettime	dos_gettime
 #endif
 
 #if defined(__WATCOMC__) && defined(MSDOS)	/* System: Watcom C V10.0 for the IBM-PC under MSDOS */
-# define IBMPC		1
+# define IBMPCDOS		1
 # define MALLOC_CACHE	1	/* DGROUP gets full otherwise */
 # define REALSTDC	1	/* close enough for us, but ZTCDOS doesn't define __STDC__ */
 # ifdef M_I86LM		/* large memory model */
@@ -321,12 +330,10 @@
 #  define NBUF		3
 #  define FAR_LINES	1	/* to squeeze larger files, distance Lines */
 # endif
-# define	HIGHLIGHTING	1	/* highlighting is used for mark and scrollbar */
 #endif
 
 #ifdef __BORLANDC__	/* System: Borland C/C++ (v3.1) for the IBM-PC under MSDOS */
-# define MSDOS		1
-# define IBMPC		1
+# define IBMPCDOS		1
 # define MALLOC_CACHE	1	/* DGROUP gets full otherwise */
 # define REALSTDC	1	/* close enough for us, but not strict ANSI */
 # ifdef __LARGE__
@@ -341,8 +348,7 @@
 # define STACK_DECL	unsigned int _stklen = 0x2000;		/* Borland's way of specifying stack size */
 #endif
 
-/*
- * All the systems marked with XXX_ are ones that this version of Jove (4.16)
+/* All the systems marked with XXX_ are ones that this version of Jove (4.16)
  * has not been tested on.  4.15 was the transition from implicit #ifdefs
  * scattered throughout the code to feature-based ifdefs that MUST be
  * enabled in sysdep.h.  The #ifdef XXX_* below have been left in to provide a
@@ -370,7 +376,7 @@
 # define BSD_WAIT	1
 # define BSD_DIR	1
 # define WAIT3		1
-# define BSD_SIGS	1
+# define BSD_SIGS	1	/* ??? */
 # define USE_KILLPG	1
 # define TERMIO		1	/* uses termio struct for terminal modes */
 # define USE_GETHOSTNAME	1
@@ -390,9 +396,8 @@
 
 #ifdef XXX_MSC51	/* System: Microsoft C 5.1 on IBM PC under DOS*/
 /* This hasn't been tested recently.  Consider stealing ZTCDOS settings. */
-# define MSDOS	1
-# define IBMPC	1
-# define NO_PTRPROTO 1
+# define IBMPCDOS		1
+# define NO_PTRPROTO	1
 # define REALSTDC	1	/* well, almost */
 # ifdef M_I86LM		/* large memory model */
 #  define NBUF		62	/* NBUF*JBUFSIZ must be less than 64 kB */
@@ -401,23 +406,94 @@
 # endif
 #endif
 
-#ifdef XXX_THINK_C	/* System: an old version of Think C on the Macintosh */
+#ifdef THINK_C	/* System: Think C version 5.0 on the Macintosh */
 # define MAC 1
-/* Think C does not have a "defined" preprocessor operator.
- * This kludge is intended to avoid the problem.
- * ??? Perhaps Think C has been fixed by now. -- DHR
- */
-# define defined(x) (x)
-  typedef int size_t;	/* Not unsigned!?! */
-# define byte_zero(s,n) setmem((s),(n),0)
-# define NO_PTRPROTO	1
+# define REALSTDC	1	/* we hope */
 # define MALLOC_CACHE	1   /* Only 32K of static space on Mac, so... */
+  typedef long	off_t;
+# define USE_GETCWD	1
 # define USE_INO	1	/* we fake it */
+  typedef int	dev_t;
+  typedef int	ino_t;
+# define DIRECTORY_ADD_SLASH 1
+# define EOL	'\r'	/* end-of-line character for files */
+# define WINRESIZE	1
+# define AUTO_BUFS	1	/* slim down data segment */
 #endif
 
+/**************** Common Characteristics ****************/
 
-/*************************************************************************/
-/*
+#ifdef pdp11
+/* On the PDP-11, UNIX allocates at least 8K for the stack.
+ * In order not to waste this space, we allocate
+ * a bunch of buffers as autos.
+ */
+# define AUTO_BUFS	1
+#endif
+
+#ifdef IBMPCDOS	/* Common characteristics for IBM-PC MS-DOS systems. */
+# ifndef MSDOS
+#  define MSDOS	1
+# endif
+# define PCNONASCII	0xFF	/* prefix for peculiar IBM PC key codes */
+# define NO_JSTDOUT	1	/* don't use jstdout */
+# define CODEPAGE437	1	/* Code Page 437 English display characters */
+# define PCSCRATTR	1	/* exploit IBMPC screen attributes */
+# define HIGHLIGHTING	1	/* highlighting is used for mark and scrollbar */
+#endif
+
+#ifdef MSDOS	/* Common characteristics for MS-DOS systems. */
+# define MSDOS_PROCS	1	/* spawn et al */
+# define FILENAME_CASEINSENSITIVE 1
+# define USE_CRLF 1
+# define DIRECTORY_ADD_SLASH 1
+# define MSFILESYSTEM 1
+#endif
+
+#ifdef WIN32	/* Common characteristics for WIN32 systems. */
+# define PCNONASCII	0xFF	/* prefix for peculiar IBM PC key codes */
+# define NO_JSTDOUT	1	/* don't use jstdout */
+# define CODEPAGE437	1	/* Code Page 437 English display characters */
+# define PCSCRATTR	1	/* exploit IBMPC screen attributes */
+# define HIGHLIGHTING	1	/* highlighting is used for mark and scrollbar */
+# define MSDOS_PROCS	1	/* spawn et al */
+# define FILENAME_CASEINSENSITIVE 1
+# define USE_CRLF 1
+# define DIRECTORY_ADD_SLASH 1
+# define MSFILESYSTEM 1
+#endif
+
+/* The operating system (MSDOS, WIN32, or MAC) must be defined by this point. */
+#if !(defined(MSDOS) || defined(WIN32) || defined(MAC))
+# define UNIX	1	/* default to UNIX */
+#endif
+
+#ifdef UNIX	/* Common characteristics for UNIX systems. */
+/* Our defaults tend to be conservative and lean towards pure SYSV */
+# define USE_INO	1
+# define TERMCAP	1
+# define WINRESIZE	1
+# define MOUSE		1
+# if !(defined(NO_IPROCS) || defined(PIPEPROCS) || defined(PTYPROCS))
+#  define PIPEPROCS	1	/* use pipes */
+# endif
+# if !defined(TERMIOS) && !defined(SGTTY)
+#  define TERMIO	1	/* uses termio struct for terminal modes */
+# endif
+/* At the moment, the PTY code mandates having select().  One day, this might
+ * change.
+ */
+# if defined(PTYPROCS) && !defined(USE_SELECT)
+   sysdep.h: Sorry, PTYPROCS requires the select() system call.  You must
+   either define USE_SELECT or undefine PTYPROCS.
+# endif
+# if defined(SIGCLD) && !defined(SIGCHLD)
+#  define SIGCHLD	SIGCLD
+# endif
+#endif /* UNIX */
+
+/*************************************************************************
+ *
  * The things below here aren't meant to be tuned, but are included here
  * because they're dependent on the things defined earlier in the file.
  */
@@ -459,14 +535,9 @@
 # endif
 #endif
 
-/* The operating system (MSDOS or MAC) must be defined by this point.  IBMPC
- * is defined in the Makefile.
+/* Determine number of buffers and the size of a buffer
+ * (and hence the maximum length of a line, among other things).
  */
-#ifndef MSDOS
-# ifndef MAC
-#   define UNIX	1	/* default to UNIX */
-# endif
-#endif
 
 #ifdef SMALL
 # ifndef NBUF
@@ -485,58 +556,26 @@
 # define JLGBUFSIZ 10
 #endif
 
-/* Maximum length of a buffer and hence a line, among other things. */
-#define	JBUFSIZ	(1<<JLGBUFSIZ)
+#define JBUFSIZ	(1<<JLGBUFSIZ)
 
-/* Our defaults tend to be conservative and lean towards pure SYSV */
-#ifdef UNIX
-# define USE_INO	1
-# define TERMCAP	1
-# define MOUSE		1
-# if !(defined(NO_IPROCS) || defined(PIPEPROCS) || defined(PTYPROCS))
-#  define PIPEPROCS	1	/* use pipes */
-# endif
-# if !defined(TERMIOS) && !defined(SGTTY)
-#  define TERMIO	1	/* uses termio struct for terminal modes */
-# endif
-/* At the moment, the PTY code mandates having select().  One day, this might
- * change.
- */
-# if defined(PTYPROCS) && !defined(USE_SELECT)
-   sysdep.h: Sorry, PTYPROCS requires the select() system call.  You must
-   either define USE_SELECT or undefine PTYPROCS.
-# endif
-# if defined(SIGCLD) && !defined(SIGCHLD)
-#  define SIGCHLD	SIGCLD
-# endif
-#endif /* UNIX */
 
 #ifndef NCHARS
 # define NCHARS 0400
 #endif
 
-#ifndef MSDOS
+#ifndef EOL
+# define EOL	'\n'	/* end-of-line character for files */
+#endif
+
+#ifndef MSDOS	/* maximum path length (including '\0') */
 # define FILESIZE	256
 #else /* MSDOS */
-# define FILESIZE	64
+# define FILESIZE	128	/* currently, 2+1+64+3+1+3+1 == 80 ought to be OK */
 #endif /* MSDOS */
 
 #ifndef SIGRESTYPE	/* default to void, correct for most modern systems */
 # define SIGRESTYPE	void
 # define SIGRESVALUE	/*void!*/
-#endif
-
-#ifdef UNIX
-# ifdef BSD_SIGS
-extern long	SigMask;
-
-#  define SigHold(s)	sigblock(SigMask |= sigmask((s)))
-#  define SigRelse(s)	sigsetmask(SigMask &= ~sigmask((s)))
-# else
-#  define signal	sigset
-#  define SigHold(s)	sighold(s)
-#  define SigRelse(s)	sigrelse(s)
-# endif
 #endif
 
 /* daddr: tmp file index type (see temp.h)
@@ -556,7 +595,7 @@ extern long	SigMask;
   typedef unsigned long	daddr;
 #endif /* SMALL */
 
-#define	NULL_DADDR		((daddr) 0)
+#define NULL_DADDR		((daddr) 0)
 
 #ifndef CHAR_BITS
 # define CHAR_BITS	8	/* factor to convert sizeof => bits */

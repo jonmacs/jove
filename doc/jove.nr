@@ -385,6 +385,8 @@ JOVELIB \(em overrides <LIBDIR> unless overridden by \-l
 .sp 0
 JOVESHARE \(em overrides <SHAREDIR> unless overridden by \-s
 .sp 0
+TMPDIR \(em overrides <TMPDIR> as directory for temporary files
+.sp 0
 LC_ALL, LC_CTYPE, LANG \(em to set the locale
 .fi
 .SH SEE ALSO

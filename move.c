@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -116,6 +116,10 @@ bool	line_cmd;
 /* how_far returns what cur_char should be to be at or beyond col
  * screen columns in to the line.
  *
+ * Note: if col indicates a position in the middle of a Tab or other
+ * extended character, the result corresponds to that character
+ * (as if col had indicated its start).
+ *
  * Note: the calc_pos, how_far, and DeTab must be in synch --
  * each thinks it knows how characters are displayed.
  */
@@ -133,8 +137,8 @@ int	col;
 	base = lp = lcontents(line);
 	pos = 0;
 
-	while (pos < col && (c = ZXC(*lp)) != '\0') {
-		if (c == '\t') {
+	do {
+		if ((c = ZXC(*lp)) == '\t' && tabstop != 0) {
 			pos += TABDIST(pos);
 		} else if (jisprint(c)) {
 			pos += 1;
@@ -145,9 +149,9 @@ int	col;
 				pos += 4;
 		}
 		lp += 1;
-	}
+	} while (pos <= col && c != '\0');
 
-	return lp - base;
+	return lp - base - 1;
 }
 
 void

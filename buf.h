@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -16,7 +16,7 @@
 
 /* major modes */
 #define FUNDAMENTAL	0	/* Fundamental mode */
-#define TEXT		1	/* Text mode */
+#define TEXTMODE	1	/* Text mode */
 #define CMODE		2	/* C mode */
 #ifdef LISP
 # define LISPMODE	3	/* Lisp mode */
@@ -40,7 +40,7 @@
 #define MinorMode(x)		BufMinorMode(curbuf, (x))
 
 /* global line scratch buffers */
-#ifdef pdp11
+#ifdef AUTO_BUFS
 extern char	*genbuf,	/* scratch pad points at s_genbuf (see main()) */
 		*linebuf,	/* points at s_linebuf */
 		*iobuff;	/* for file reading ... points at s_iobuff */
@@ -50,7 +50,7 @@ extern char	genbuf[LBSIZE],
 		iobuff[LBSIZE];
 #endif
 
-/* typedef struct line Line in jove.h */
+/* typedef struct line *LinePtr in jove.h */
 
 struct line {
 	LinePtr	l_prev,		/* pointer to prev */
@@ -100,7 +100,8 @@ struct buffer {
 		b_type,			/* file, scratch, process, iprocess */
 		b_ntbf,			/* (bool) needs to be found when we
 					   first select? */
-		b_modified;		/* (bool) is the buffer modified? */
+		b_modified,		/* (bool) is the buffer modified? */
+		b_diverged;		/* (bool) has the underlying file been changed behind our back? */
 	int	b_major,		/* major mode */
 		b_minor;		/* and minor mode */
 	struct keymap	*b_map;		/* local bindings (if any) */
@@ -133,7 +134,17 @@ extern Buffer
 	*buf_exists proto((char *name)),
 	*do_find proto((Window *w, char *fname, bool force, bool do_macros)),
 	*do_select proto((Window *w,char *name)),
-	*file_exists proto((char *name));
+	*do_stat proto((char *name, Buffer *target, int flags));
+
+/* flags to do_stat */
+#define DS_NONE	0
+#define DS_SET	1	/* set target buffers stat fields */
+#define DS_REUSE	2	/* reuse result of last stat */
+#define DS_DIR	4	/* directory OK as result */
+
+extern bool
+	was_dir,	/* do_stat found a directory */
+	was_file;	/* do_stat found a (plain) file */
 
 extern char
 	*ask_buf proto((Buffer *def, int flags));
@@ -144,9 +155,8 @@ struct macro;	/* forward declaration preventing prototype scoping */
 
 extern void
 	TogMinor proto((int bit)),
-	initlist proto((Buffer *b)),
+	buf_clear proto((Buffer *b)),
 	setfname proto((Buffer *b,char *name)),
-	set_ino proto((Buffer *b)),
 	SetABuf proto((Buffer *b)),
 	SetBuf proto((Buffer *newbuf)),
 	buf_init proto((void));

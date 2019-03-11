@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -7,7 +7,6 @@
 
 #include "jove.h"
 #include "jctype.h"
-#include "termcap.h"
 #include "chars.h"
 #include "fp.h"
 #include "disp.h"
@@ -32,10 +31,6 @@
 # include <sys/stat.h>
 #endif
 
-#ifdef BSD_SIGS
-# include <signal.h>
-#endif
-
 /* define a couple of unique daddrs */
 #define	NOWHERE_DADDR	(~NULL_DADDR | DDIRTY)	/* not in tmp file */
 #define	UNSAVED_CURLINE_DADDR	((NOWHERE_DADDR - 1) | DDIRTY)	/* not yet in tmp file */
@@ -46,10 +41,6 @@ struct screenline
 
 private void
 	DeTab proto((char *, int, char *, char *, bool)),
-#ifdef ID_CHAR
-	DelChar proto((int, int, int)),
-	InsChar proto((int, int, int, char *)),
-#endif
 	DoIDline proto((int)),
 	do_cl_eol proto((int)),
 	ModeLine proto((Window *, char *, int)),
@@ -57,13 +48,11 @@ private void
 	UpdLine proto((int)),
 	UpdWindow proto((Window *, int));
 
-#ifdef IBMPC
-# include "pcscr.h"
-#else
-private void	dobell proto((int x));
-#endif
-
 #ifdef ID_CHAR
+private void
+	DelChar proto((int, int, int)),
+	InsChar proto((int, int, int, char *));
+
 private bool
 	IDchar proto ((char *, int)),
 	OkayDelete proto ((int, int, bool)),
@@ -72,7 +61,7 @@ private bool
 private int
 	NumSimilar proto ((char *, char *, int)),
 	IDcomp proto ((char *, char *, int));
-#endif
+#endif /* ID_CHAR */
 
 private bool
 	AddLines proto((int, int)),
@@ -106,113 +95,188 @@ LinePtr	line1,
 	} while (w != fwind);
 }
 
+
+#ifdef WINRESIZE
+
+volatile bool
+	ResizePending = NO;	/* asynch request for screen resize */
+
+private void
+resize()
+{
+	bool	oldDisabledRedisplay = DisabledRedisplay;
+	int
+		oldILI = ILI,
+		oldCO = CO;
+
+	DisabledRedisplay = YES;	/* prevent tragedy */
+	ResizePending = NO;	/* early & safe */
+	ttsize();	/* update line (LI and ILI) and col (CO) info. */
+
+	if (oldILI != ILI || oldCO != CO) {
+		register int	total;
+		register Window	*wp;
+
+		/* Go through the window list, changing each window size in
+		 * proportion to the resize.  If the window would become too
+		 * small, we delete it.
+		 *
+		 * Actually, we must do the deletion in
+		 * a separate pass because del_wind donates the space to either
+		 * neighbouring window.  We test the windows in a funny order:
+		 * top-most, then bottom-up.  Although it isn't necessary
+		 * for correctness, it means that we consider any donated
+		 * space, cutting down the number of windows we decide to delete.
+		 * Loop termination is tricky: fwind may have changed due to a
+		 * del_wind.  As a simple fix, we start over whenever we
+		 * delete a window.  Although this is O(n**2), it can't
+		 * really be expensive.
+		 *
+		 * After scaling all the windows, we
+		 * give any space remaining to the current window (which would
+		 * have changed if the old current window had been deleted).
+		 *
+		 * This seems fairer than just resizing the current window.
+		 */
+		wp = fwind;
+		for (;;) {
+			int	newsize = ILI * wp->w_height / oldILI;
+
+			if (newsize < 2) {
+				del_wind(wp);
+				wp = fwind;
+			} else {
+				wp = wp->w_prev;
+				if (wp == fwind)
+					break;
+			}
+		}
+
+		total = 0;
+		do {
+			int	newsize = ILI * wp->w_height / oldILI;
+
+			wp->w_height = newsize;
+			total += newsize;
+			wp = wp->w_next;
+		} while (wp != fwind);
+
+		curwind->w_height += ILI - total;
+
+		/* Make a new screen structure */
+		make_scr();
+
+		/* Do a 'hard' update on the screen - clear and redraw */
+		ClAndRedraw();
+#ifdef WIN32
+		ResizeWindow();
+#endif
+	}
+	DisabledRedisplay = oldDisabledRedisplay;
+}
+
+#endif /* WINRESIZE */
+
 private bool	RingBell;	/* So if we have a lot of errors ...
 				  ring the bell only ONCE */
 
 void
 redisplay()
 {
-	register Window	*w;
-	int	lineno,
-		done_ID = NO,
-		i;
-	register struct scrimage	*des_p,
-					*phys_p;
-
 	if (DisabledRedisplay)
 		return;
-	curwind->w_line = curwind->w_bufp->b_dot;
-	curwind->w_char = curwind->w_bufp->b_char;
+#ifdef WINRESIZE
+	do
+#endif
+	{
+		register Window	*w;
+		int
+			lineno,
+			i;
+		bool
+			done_ID = NO,
+			old_UpdModLine;
+		register struct scrimage
+			*des_p,
+			*phys_p;
+
+#ifdef WINRESIZE
+		if (ResizePending)
+			resize();
+#endif
+		curwind->w_line = curwind->w_bufp->b_dot;
+		curwind->w_char = curwind->w_bufp->b_char;
 #ifdef MAC
-	/* To avoid calling redisplay() recursively,
-	 * we must avoid calling CheckEvent(),
-	 * so we must avoid calling charp().
-	 */
-	InputPending = NO;
+		/* To avoid calling redisplay() recursively,
+		 * we must avoid calling CheckEvent(),
+		 * so we must avoid calling charp().
+		 */
+		InputPending = NO;
 #else
-	if ((InputPending = charp()) != NO)
-		return;
+		if (PreEmptOutput())
+			return;
 #endif
-#ifdef BSD_SIGS
-	if (UpdFreq != 0)
-		SigHold(SIGALRM);
-#endif
-	if (RingBell) {
-		dobell(1);
-		RingBell = NO;
-	}
-	AbortCnt = ScrBufSize;		/* initialize this now */
-	if (UpdMesg)
-		DrawMesg(YES);
-
-	for (lineno = 0, w = fwind; lineno < ILI; w = w->w_next) {
-		UpdWindow(w, lineno);
-		lineno += w->w_height;
-	}
-
-	/* Now that we've called update window, we can
-	   assume that the modeline will be updated.  But
-	   if while redrawing the modeline the user types
-	   a character, ModeLine() is free to set this on
-	   again so that the modeline will be fully drawn
-	   at the next redisplay. */
-
-	UpdModLine = NO;
-
-	des_p = DesiredScreen;
-	phys_p = PhysScreen;
-	for (i = 0; i < ILI; i++, des_p++, phys_p++) {
-		if (!done_ID && (des_p->s_id != phys_p->s_id)) {
-			DoIDline(i);
-			done_ID = YES;
+		if (RingBell) {
+			dobell(1);
+			RingBell = NO;
 		}
-		if ((des_p->s_flags & (s_DIRTY | s_L_MOD))
-		|| des_p->s_id != phys_p->s_id
-		|| des_p->s_vln != phys_p->s_vln
-		|| des_p->s_offset != phys_p->s_offset)
-			UpdLine(i);
-		if (InputPending)
-			goto ret;
-	}
+		AbortCnt = ScrBufSize;		/* initialize this now */
+		if (UpdMesg)
+			DrawMesg(YES);
 
-	if (Asking) {
-		Placur(ILI, min(CO - 2, calc_pos(mesgbuf, AskingWidth)));
-			/* Nice kludge */
-		flushscreen();
-	} else {
-		GotoDot();
-	}
-ret:
-    ;	/* yuck */
+		for (lineno = 0, w = fwind; lineno < ILI; w = w->w_next) {
+			UpdWindow(w, lineno);
+			lineno += w->w_height;
+		}
 
-#ifdef BSD_SIGS
-	if (UpdFreq != 0)
-		SigRelse(SIGALRM);
+		/* Now that we've called update window, we can
+		   assume that the modeline will be updated.  But
+		   if while redrawing the modeline the user types
+		   a character, ModeLine() is free to set this on
+		   again so that the modeline will be fully drawn
+		   at the next redisplay.  Furthermore, if output
+		   is preempted, we'll restore the old value because
+		   we can't be sure that the updating has happened. */
+
+		old_UpdModLine = UpdModLine;
+		UpdModLine = NO;
+
+		des_p = DesiredScreen;
+		phys_p = PhysScreen;
+		for (i = 0; i < ILI; i++, des_p++, phys_p++) {
+			if (!done_ID && (des_p->s_id != phys_p->s_id)) {
+				DoIDline(i);
+				done_ID = YES;
+			}
+			if ((des_p->s_flags & (s_DIRTY | s_L_MOD))
+			|| des_p->s_id != phys_p->s_id
+			|| des_p->s_vln != phys_p->s_vln
+			|| des_p->s_offset != phys_p->s_offset)
+				UpdLine(i);
+			if (CheapPreEmptOutput()) {
+				if (old_UpdModLine)
+					UpdModLine = YES;
+				goto suppress;
+			}
+		}
+
+		if (Asking) {
+			Placur(ILI, min(CO - 2, calc_pos(mesgbuf, AskingWidth)));
+				/* Nice kludge */
+			flushscreen();
+		} else {
+			GotoDot();
+		}
+suppress: ;
+	}
+#ifdef WINRESIZE
+	/**/ while (ResizePending);
 #endif
 #ifdef MAC
 	if (Windchange)
 		docontrols();
-#endif /* MAC */
+#endif
 }
-
-#ifndef IBMPC
-private void
-dobell(n)
-int	n;
-{
-	while (--n >= 0) {
-# ifdef MAC
-		SysBeep(5);
-# else
-		if (VisBell && VB)
-			putstr(VB);
-		else
-			putpad(BL, 1);
-# endif
-	}
-	flushscreen();
-}
-#endif /* !IBMPC */
 
 /* find_pos() returns the position on the line, that C_CHAR represents
    in LINE */
@@ -240,7 +304,7 @@ register int	c_char;
 	register ZXchar	c;
 
 	while ((--c_char >= 0) && (c = ZXC(*lp++)) != 0) {
-		if (c == '\t') {
+		if (c == '\t' && tabstop != 0) {
 			pos += TABDIST(pos);
 		} else if (jisprint(c)) {
 			pos += 1;
@@ -254,8 +318,8 @@ register int	c_char;
 	return pos;
 }
 
-bool	UpdModLine = NO,
-	UpdMesg = NO;
+volatile bool	UpdModLine = NO;
+bool	UpdMesg = NO;
 
 private void
 DoIDline(start)
@@ -274,8 +338,10 @@ int	start;
 	   usually it happens with more than one window with the same
 	   buffer. */
 
+#ifdef TERMCAP
 	if (!CanScroll)
 		return;		/* We should never have been called! */
+#endif
 
 	for (i = start; i < ILI; i++, des_p++, phys_p++)
 		if (des_p->s_id != phys_p->s_id)
@@ -314,6 +380,7 @@ int	start;
    sure the current line of the Window is in the window. */
 
 bool	ScrollAll = NO;	/* VAR: when current line scrolls, scroll whole window? */
+int	ScrollWidth = 10;	/* VAR: unit of horizontal scrolling */
 
 private void
 UpdWindow(w, start)
@@ -368,22 +435,45 @@ int	start;
 
 	/* first do some calculations for the current line */
 	{
-		int	diff = W_NUMWIDTH(w),
+		int
+			nw = W_NUMWIDTH(w),
+			dot_col,
 			end_col;
 
 		strt_col = ScrollAll? w->w_LRscroll : PhysScreen[i].s_offset;
-		end_col = strt_col + (CO - 1) - diff;
+		end_col = strt_col + (CO - 1) - (nw + SIWIDTH(strt_col));
 		/* Right now we are displaying from strt_col to
-		   end_col of the buffer line.  These are PRINT
-		   columns, not actual characters. */
-		w->w_dotcol = find_pos(w->w_line, w->w_char);
+		 * end_col of the buffer line.  These are PRINT
+		 * columns, not actual characters.
+		 */
+		dot_col = w->w_dotcol = find_pos(w->w_line, w->w_char);
 		/* if the new dotcol is out of range, reselect
-		   a horizontal window */
+		 * a horizontal window
+		 */
 		if (PhysScreen[i].s_offset == -1
-	    || !(strt_col <= w->w_dotcol && w->w_dotcol < end_col))
+	    || !(strt_col <= dot_col && dot_col < end_col))
 		{
-			strt_col = w->w_dotcol < ((CO - 1) - diff)
-				? 0 : w->w_dotcol - (CO / 2);
+			/* If dot_col is within first step left of screen, step left.
+			 * Otherwise, if ditto for right.
+			 * Otherwise, if it is in first screenwidth, start from begining.
+			 * Otherwise, center dot_col.
+			 * Fudge: if a scroll left would work except for the necessary
+			 * appearance of an ! on the left, we scroll an extra column.
+			 */
+			int
+				step = min(ScrollWidth, end_col - strt_col);
+
+			strt_col =
+				strt_col > dot_col && strt_col - step <= dot_col
+					? max(strt_col - step, 0)
+				: dot_col >= end_col && dot_col < end_col + step
+					? min(strt_col + step
+					  + (strt_col == 0 && dot_col == end_col + step - 1? 1 : 0)
+					  , dot_col)
+				: dot_col < ((CO - 1) - nw)
+					? 0
+				: dot_col - ((CO - nw) / 2);
+
 			if (ScrollAll) {
 				if (w->w_LRscroll != strt_col)
 					UpdModLine = YES;
@@ -391,7 +481,7 @@ int	start;
 			}
 		}
 		w->w_dotline = i;
-		w->w_dotcol += diff;
+		w->w_dotcol = dot_col + nw + SIWIDTH(strt_col);
 	}
 
 	lp = w->w_top;
@@ -455,8 +545,8 @@ int	start;
 #ifdef MAC
 	if (UpdModLine)
 		Modechange = YES;
-	if (w == curwind && w->w_control)
-		SetScrollBar(w->w_control);
+	if (w == curwind && w->w_control != NULL)
+		SetScrollBar(w);
 #endif
 }
 
@@ -470,7 +560,7 @@ bool	abortable;
 	char	outbuf[MAXCOLS + PPWIDTH];	/* assert(CO <= MAXCOLS); */
 
 #ifndef MAC		/* same reason as in redisplay() */
-	if (charp())
+	if (PreEmptOutput())
 		return;
 #endif
 	i_set(ILI, 0);
@@ -489,7 +579,7 @@ bool	abortable;
 private void
 GotoDot()
 {
-	if (!InputPending) {
+	if (!CheapPreEmptOutput()) {
 		Placur(curwind->w_dotline,
 			curwind->w_dotcol - PhysScreen[curwind->w_dotline].s_offset);
 		flushscreen();
@@ -591,6 +681,10 @@ register int	linenum;
 
 		if (w->w_flags & W_NUMLINES)
 			swritef(outbuf, sizeof(outbuf), "%6d  ", des_p->s_vln);
+		if (des_p->s_offset != 0) {
+			outbuf[fromcol++] = '!';
+			outbuf[fromcol] = '\0';
+		}
 		lptr = lcontents(des_p->s_lp);
 		DeTab(lptr, des_p->s_offset, outbuf + fromcol,
 		      outbuf + CO, (w->w_flags & W_VISSPACE) != 0);
@@ -687,7 +781,7 @@ bool	visspace;
 #define addc(ch) { if (--offset < 0) *dst++ = (ch); }
 
 	while ((c = ZXC(*src++)) != '\0') {
-		if (c == '\t') {
+		if (c == '\t' && tabstop != 0) {
 			int	nchars = TABDIST(start_offset - offset);
 
 			c = visspace? '>' : ' ';
@@ -958,7 +1052,7 @@ char	*new;
 
 #ifdef UNIX		/* obviously ... no mail today if not Unix*/
 
-/* chkmail() returns nonzero if there is new mail since the
+/* chkmail() returns YES if there is new mail since the
    last time we checked. */
 
 char	Mailbox[FILESIZE];	/* VAR: mailbox name */
@@ -1027,7 +1121,7 @@ register const char	*str;
 }
 
 /* VAR: mode line format string */
-char	ModeFmt[120] = "%3c %w %[%sJOVE (%M)   Buffer: %b  \"%f\" %]%s%m*- %((%t)%s%)%e";
+char	ModeFmt[120] = "%3c %w %[%sJOVE (%M)   Buffer: %b  \"%f\" %]%s%i#-%m*- %((%t)%s%)%e";
 
 private void
 ModeLine(w, line, linenum)
@@ -1038,6 +1132,7 @@ int	linenum;
 	int	n,
 		glue = 0;
 	bool	ign_some = NO;
+	bool	td = NO;	/* is time (kludge: or mail status) displayed? */
 	char
 		*fmt = ModeFmt,
 		fillc,
@@ -1049,17 +1144,12 @@ int	linenum;
 	mode_p = line;
 	mend_p = &line[CO - 1];
 
-#ifdef IBMPC
-	fillc = ' ';
-#else /* !IBMPC */
-#  ifdef MAC
-	fillc = '_';	/* looks better on a Mac */
-#  else /* !MAC */
+#ifdef TERMCAP
 	if (SO == NULL)
-		BriteMode = NO;
+		BriteMode = NO;	/* we can't do it */
+#endif
+	/* ??? On Mac, perhaps '_' looks better than '-' */
 	fillc = BriteMode? ' ' : '-';
-#  endif /* !MAC */
-#endif /* !IBMPC */
 
 	while ((c = *fmt++)!='\0' && mode_p<mend_p) {
 		if (c != '%') {
@@ -1089,6 +1179,10 @@ int	linenum;
 				break;
 		}
 		switch (c) {
+		case '%':
+			mode_app("%");
+			break;
+
 		case '(':
 			if (w->w_next != fwind)	/* Not bottom window. */
 				ign_some = YES;
@@ -1106,10 +1200,10 @@ int	linenum;
 
 #ifdef UNIX
 		case 'C':	/* check mail here */
+			td = YES;	/* kludge: reflect old behaviour where alarm could trigger mail check */
 			if (chkmail(NO))
 				mode_app("[New mail]");
 			break;
-
 #endif /* UNIX */
 
 		case 'M':
@@ -1172,6 +1266,15 @@ int	linenum;
 			}
 			break;
 
+		case 'i':
+		    {
+			char	yea = (*fmt == '\0') ? '#' : *fmt++;
+			char	nay = (*fmt == '\0') ? ' ' : *fmt++;
+
+			*mode_p++ = w->w_bufp->b_diverged ? yea : nay;
+			break;
+		    }
+
 		case 'm':
 		    {
 			char	yea = (*fmt == '\0') ? '*' : *fmt++;
@@ -1216,6 +1319,7 @@ int	linenum;
 		    {
 			char	timestr[12];
 
+			td = YES;
 			mode_app(get_time((time_t *)NULL, timestr, 11, 16));
 			break;
 		    }
@@ -1281,6 +1385,12 @@ int	linenum;
 		}
 #endif
 	}
+	if (w->w_next == fwind && TimeDisplayed != td) {
+		TimeDisplayed = td;
+#ifdef UNIX
+		SetClockAlarm(YES);
+#endif
+	}
 #ifdef ID_CHAR
 	INSmode(NO);
 #endif
@@ -1288,26 +1398,6 @@ int	linenum;
 		do_cl_eol(linenum);
 	else
 		UpdModLine = YES;
-}
-
-private void
-v_clear(line1, line2)
-register int	line1;
-int	line2;
-{
-	register struct scrimage	*phys_p, *des_p;
-
-	phys_p = &PhysScreen[line1];
-	des_p = &DesiredScreen[line1];
-
-	while (line1 <= line2) {
-		i_set(line1, 0);
-		cl_eol();
-		phys_p->s_id = des_p->s_id = NULL_DADDR;
-		phys_p += 1;
-		des_p += 1;
-		line1 += 1;
-	}
 }
 
 /* This tries to place the current line of the current window in the
@@ -1325,7 +1415,7 @@ RedrawDisplay()
 	if ((line = in_window(curwind, curwind->w_line)) != -1)
 		PhysScreen[line].s_offset = -1;
 	if (newtop == curwind->w_top)
-		v_clear(FLine(curwind), FLine(curwind) + WSIZE(curwind));
+		ClAndRedraw();
 	else
 		SetTop(curwind, newtop);
 }
@@ -1416,7 +1506,7 @@ char	*str;
 	if (InJoverc)
 		return;
 	UpdMesg = YES;
-	errormsg = NO;
+	stickymsg = NO;
 	if (str != mesgbuf)
 		null_ncpy(mesgbuf, str, (sizeof mesgbuf) - 1);
 }
@@ -1444,14 +1534,14 @@ Bow()
 	SetLine(next_line(curwind->w_top, min(WSIZE(curwind) - 1, arg_value() - 1)));
 }
 
-private int	LineNo;	/* screen line for Typeout (if not UseBuffers) */
-
-private Window	*old_wind;	/* save the window we were in BEFORE
-				   before we were called, if UseBuffers
-				   is nonzero */
+/* Typeout Mechanism */
 
 bool	UseBuffers = NO,	/* VAR: use buffers with Typeout() */
 	TOabort = NO;
+
+private int	LineNo;	/* screen line for Typeout (if not UseBuffers) */
+
+private Window	*old_wind;	/* curwind before preempted by typeout to buffer */
 
 /* This initializes the typeout.  If send-typeout-to-buffers is set
    the buffer NAME is created (emptied if it already exists) and output

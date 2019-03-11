@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -37,7 +37,7 @@ register char	*what;
 
 #ifdef MAC
 matchvar(choices, what)
-register struct variable choices[];
+register const struct variable choices[];
 register char	*what;
 {
 	register int	len;
@@ -96,11 +96,7 @@ char	*into,
 
 
 int
-#ifdef MAC
-_main()		/* for Mac, so we can use redirection */
-#else
 main()
-#endif
 {
 	FILE
 		*ifile,
@@ -110,8 +106,8 @@ main()
 		comname[LINESIZE];
 	int
 		comnum,
-		lino = 0,
-		ch = 0;
+		lino,
+		ch;
 	struct {
 		int	first;
 		int	last;
@@ -121,15 +117,19 @@ main()
 		*sp = stackspace;
 #ifdef MAC
 	char	*which;
+	int	filecnt = 0;
 	bool	inmenu = NO;
-#endif
+	struct fname {
+		char	*in, *out;
+	};
+	static const struct fname	fnt[] = {
+			{ "keys.txt", "keys.c" },
+			{ "menumaps.txt", "menumaps.c" },
+			{ NULL, NULL }
+	};
+	const struct fname *fnp;
+#endif /* MAC */
 
-	ifile = stdin;
-	of = stdout;
-	if (ifile == NULL || of == NULL) {
-		fprintf(stderr, "Cannot read input or write output.\n");
-		exit(1);
-	}
 	for (comnum = 1; commands[comnum].Name != NULL; comnum++) {
 		if (strcmp(commands[comnum-1].Name, commands[comnum].Name) >= 0) {
 			fprintf(stderr, "command %s is out of order\n",
@@ -143,7 +143,40 @@ main()
 			exit(1);
 		}
 	}
-	while (fgets(line, sizeof line, ifile) != NULL) {
+#ifdef MAC
+	/* don't know how to redirect, so we do tricks */
+for (fnp = fnt; fnp->in != NULL; fnp++) {
+	printf("setmaps <%s >%s\n", fnp->in, fnp->out);
+	ifile = fopen(fnp->in, "r");
+	if (ifile == NULL) {
+		perror(fnp->in);
+		exit(1);
+	}
+	of = fopen(fnp->out, "w");
+	if (of == NULL) {
+		perror(fnp->out);
+		exit(1);
+	}
+#else /* !MAC */
+	ifile = stdin;
+	of = stdout;
+	if (ifile == NULL || of == NULL) {
+		fprintf(stderr, "Cannot read input or write output.\n");
+		exit(1);
+	}
+#endif /* !MAC */
+	lino = 0;
+	ch = 0;
+	for (;;) {
+		if (fgets(line, sizeof line, ifile) == NULL) {
+			if (sp != stackspace) {
+				fprintf(stderr, "EOF inside #if\n");
+				exit(1);
+			}
+			fclose(of);
+			fclose(ifile);
+			break;
+		}
 		lino += 1;
 		if (StartsWith(line, "#if")) {
 			sp += 1;
@@ -231,11 +264,8 @@ main()
 			ch = 0;
 		}
 	}
-	if (sp != stackspace) {
-		fprintf(stderr, "EOF inside #if\n");
-		exit(1);
-	}
-	fclose(of);
-	fclose(ifile);
+#ifdef MAC
+}
+#endif
 	return 0;
 }

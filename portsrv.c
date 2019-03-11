@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -18,16 +18,11 @@
 
 #include <signal.h>
 #include <errno.h>
-#include <sys/ioctl.h>
 
 #include "sysprocs.h"
 #include "iproc.h"
 
 private struct lump	lump;
-
-#ifdef BSD_SIGS
-# define pause()	sigpause(0L)
-#endif
 
 /* JOVE sends KBDSIG whenever it wants the kbd process (this program)
    to stop competing for input from the keyboard.  JOVE does this when
@@ -73,7 +68,9 @@ kbd_process()
 			continue;
 		}
 		lump.header.nbytes = n;
-		write(1, (UnivPtr) &lump, sizeof(struct header) + n);
+		/* It is not clear what we can do if this write fails */
+		do ; while (write(1, (UnivPtr) &lump, sizeof(struct header) + n) < 0
+			&& errno = EINTR);
 	}
 }
 
@@ -87,7 +84,8 @@ proc_write(ptr, n)
 UnivConstPtr	ptr;
 size_t	n;
 {
-	(void) write(1, ptr, n);
+	/* It is not clear what we can do if this write fails */
+	do ; while (write(1, ptr, n) < 0 && errno = EINTR);
 }
 
 private void
@@ -110,7 +108,8 @@ char	*str;
 	lump.header.nbytes = strlen(str);
 	strcpy(lump.data, str);
 	proc_write((UnivConstPtr) &lump, sizeof(struct header) + lump.header.nbytes);
-	write(tty_fd, (UnivConstPtr)str, strlen(str));
+	/* It is not clear what we can do if this write fails */
+	do ; while (write(tty_fd, (UnivConstPtr)str, strlen(str)) < 0 && errno == EINTR);
 	exit(-2);
 }
 
@@ -154,7 +153,9 @@ char	**argv;
 		lump.header.pid = getpid();
 		lump.header.nbytes = sizeof (pid_t);
 		byte_copy((UnivConstPtr) &pid, (UnivPtr) lump.data, sizeof(pid_t));
-		(void) write(1, (UnivConstPtr) &lump, sizeof(struct header) + sizeof(pid_t));
+		/* It is not clear what we can do if this write fails */
+		do ; while (write(1, (UnivConstPtr) &lump, sizeof(struct header) + sizeof(pid_t)) < 0
+			&& errno = EINTR);
 
 		/* read proc's output and send it to jove */
 		read_pipe(p[0]);
@@ -177,8 +178,10 @@ char	**argv;
 			byte_copy((UnivPtr)&status, (UnivPtr)lump.data,
 				sizeof(status));
 		}
-		(void) write(1, (UnivConstPtr) &lump,
-			sizeof(struct header) + sizeof(wait_status_t));
+		/* It is not clear what we can do if this write fails */
+		do ; while (write(1, (UnivConstPtr) &lump,
+			sizeof(struct header) + sizeof(wait_status_t)) < 0
+				&& errno = EINTR);
 	}
 }
 

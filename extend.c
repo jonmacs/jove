@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -7,7 +7,6 @@
 
 #include "jove.h"
 #include "fp.h"
-#include "termcap.h"
 #include "jctype.h"
 #include "chars.h"
 #include "commands.h"
@@ -23,10 +22,6 @@
 /* #include "util.h" */
 #include "vars.h"
 
-#ifdef IPROCS
-# include <signal.h>
-#endif
-
 #ifdef SUBSHELL
 # include <errno.h>
 #endif
@@ -35,12 +30,8 @@
 # include "mac.h"
 #endif
 
-#ifdef MSDOS
+#ifdef MSDOS_PROCS
 # include <process.h>
-#endif
-
-#ifdef IBMPC
-# include "pcscr.h"
 #endif
 
 private void
@@ -216,12 +207,12 @@ char	*buf;
 size_t	size;
 {
 	switch (vp->v_flags & V_TYPEMASK) {
-	case V_BASE10:
-		swritef(buf, size, "%d", *((int *) vp->v_value));
-		break;
-
-	case V_BASE8:
-		swritef(buf, size, "%o", *((int *) vp->v_value));
+	case V_INT:
+	case V_WHOLEX:
+	case V_WHOLE:
+	case V_NAT:
+		swritef(buf, size, (vp->v_flags & V_FMODE)? "%03o" : "%d",
+			*((int *) vp->v_value));
 		break;
 
 	case V_BOOL:
@@ -246,7 +237,8 @@ PrVar()
 	char	prbuf[MAXCOLS];
 
 	vpr_aux(vp, prbuf, sizeof(prbuf));
-	s_mess(": %f %s => %s", vp->Name, prbuf);
+	f_mess(": %f %s => %s", vp->Name, prbuf);
+	stickymsg = YES;
 }
 
 void
@@ -255,14 +247,27 @@ const struct variable	*vp;
 char	*prompt;
 {
 	switch (vp->v_flags & V_TYPEMASK) {
-	case V_BASE10:
-	case V_BASE8:
+	case V_INT:
+	case V_WHOLEX:
+	case V_WHOLE:
+	case V_NAT:
 	    {
 		char	def[30];
+		static const int	lwbt[] = {
+			~0,	/* V_INT -- I hope we are two's complement */
+			-1,	/* V_WHOLEX */
+			0,	/* V_WHOLE */
+			1,	/* V_NAT */
+			};
+		int
+			val,
+			lwb = lwbt[(vp->v_flags & V_TYPEMASK) - V_INT];
 
 		vpr_aux(vp, def, sizeof(def));
-		*((int *) vp->v_value) = ask_int(def, prompt,
-		    ((vp->v_flags & V_TYPEMASK) == V_BASE10)? 10 : 8);
+		val = ask_int(def, prompt, (vp->v_flags & V_FMODE)? 8 : 10);
+		if (val < lwb)
+			complain("[%s must not be less than %d]", vp->Name, lwb);
+		*((int *) vp->v_value) = val;
 		break;
 	    }
 
@@ -277,7 +282,7 @@ char	*prompt;
 			newval = !*valp;
 		*valp = newval;
 #ifdef MAC
-		MarkVar(vp,-1,0);	/* mark the menu item */
+		MarkVar(vp, -1, 0);	/* mark the menu item */
 #endif
 		s_mess("%s%s", prompt, possible[newval]);
 		break;
@@ -318,6 +323,10 @@ char	*prompt;
 		ClAndRedraw();
 	if (vp->v_flags & V_TTY_RESET)
 		tty_adjust();
+#ifdef UNIX
+	if (vp->v_flags & V_UPDFREQ)
+		SetClockAlarm(YES);
+#endif
 #if defined(USE_CTYPE) && !defined(NO_SETLOCALE)
 	if (vp->v_flags & V_LOCALE) {
 		locale_adjust();
@@ -383,6 +392,8 @@ private char	**Possible;	/* possible arg of complete */
 private int
 	comp_flags,	/* flags arg of complete */
 	comp_value;	/* return value for complete; set by aux_complete */
+
+private bool aux_complete proto((ZXchar c));	/* needed to comfort dumb MS Visual C */
 
 private bool
 aux_complete(c)
@@ -519,20 +530,20 @@ int	flags;
 void
 Source()
 {
-	char	*com,
-		buf[FILESIZE];
+	char
+		fnamebuf[FILESIZE];
 	bool	silence = is_an_arg();
 
-	swritef(buf, sizeof(buf),
-#ifdef MSDOS
+	swritef(fnamebuf, sizeof(fnamebuf),
+#ifdef MSFILESYSTEM
 		"%s/jove.rc",
 #else
 		"%s/.joverc",
 #endif
 		HomeDir);
-	com = ask_file((char *)NULL, buf, buf);
-	if (!joverc(buf) && !silence) {
-		message(IOerr("read", com));
+	(void) ask_file((char *)NULL, fnamebuf, fnamebuf);
+	if (!joverc(fnamebuf) && !silence) {
+		message(IOerr("read", fnamebuf));
 		complain((char *)NULL);
 	}
 }
@@ -555,11 +566,12 @@ BufPos()
 		nchars += length(lp) + (lp->l_next != NULL);	/* include the NL */
 	}
 
-	s_mess("[\"%s\" line %d/%d, char %D/%D (%d%%), cursor = %d/%d]",
+	f_mess("[\"%s\" line %d/%d, char %D/%D (%d%%), cursor = %d/%d]",
 	       filename(curbuf), dotline, i, dotchar, nchars,
 	       (nchars == 0) ? 100 : (int) (((long) dotchar * 100) / nchars),
 	       calc_pos(linebuf, curchar),
 	       calc_pos(linebuf, (int)strlen(linebuf)));
+	stickymsg = YES;
 }
 
 #ifdef SUBSHELL
@@ -636,13 +648,13 @@ char	*cmd;
 	}
 
 	/* Exec the parsed command */
-# ifndef MSDOS
+# ifdef UNIX
 	{
 		wait_status_t status;
 
 		switch (ChildPid = fork()) {
 		case -1:
-			complain("[Fork failed: if: %s]", strerror(errno));
+			complain("[Fork failed for IF: %s]", strerror(errno));
 			/*NOTREACHED*/
 
 		case 0:
@@ -655,20 +667,24 @@ char	*cmd;
 		}
 		dowait(&status);
 		if (!WIFEXITED(status))
-			complain("[no status returned from child in if test]");
+			complain("[no status returned from child in IF test]");
 		if (WIFSIGNALED(status))
-			complain("[if test terminated by signal %d]", WTERMSIG(status));
+			complain("[IF test terminated by signal %d]", WTERMSIG(status));
 		return WEXITSTATUS(status)==0;
 	}
-# else /* MSDOS */
+# else
+#  ifdef MSDOS_PROCS
 	{
 		int	status;
 
 		if ((status = spawnvp(0, args[0], args)) < 0)
-			complain("[Spawn failed: if]");
+			complain("[Spawn failed: IF]");
 		return (status == 0);	/* 0 means successful */
 	}
-# endif /* MSDOS */
+#  else /* !MSDOS_PROCS */
+	I do not know how to do this
+#  endif /* !MSDOS_PROCS */
+# endif /* !UNIX */
 }
 #endif /* SUBSHELL */
 
@@ -747,6 +763,7 @@ char	*file;
 			if (skipping == 0 && !do_if(cmd))
 				skipping |= finger;
 #endif /* SUBSHELL */
+#ifndef MAC	/* no environment in MacOS */
 		} else if (cmdmatch(Inputp, "ifenv", "\\>[ \t]*\\<\\([^ \t][^ \t]*\\)\\>[ \t]\\(.*\\)$")) {
 			finger <<= 1;
 			if (finger == 0)
@@ -762,6 +779,7 @@ char	*file;
 				if (envval==NULL || !LookingAt(envpat, envval, 0))
 					skipping |= finger;
 			}
+#endif
 		} else if (cmdmatch(Inputp, "else", "[ \\t]*$")) {
 			if (finger == 1 || (inelse & finger))
 				complain("[Unexpected `else']");
@@ -778,11 +796,7 @@ char	*file;
 			for (;;) {
 				ZXchar	c;
 
-				if (this_cmd != ARG_CMD) {
-					clr_arg_value();
-					last_cmd = this_cmd;
-					init_strokes();
-				}
+				cmd_sync();
 				this_cmd = OTHER_CMD;
 
 				if ((c = ZXC(*Inputp)) == '-' || jisdigit(c)) {

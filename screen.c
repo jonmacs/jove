@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -9,24 +9,16 @@
 #include "fp.h"
 #include "chars.h"
 #include "jctype.h"
-#include "termcap.h"
 #include "disp.h"
 #include "extend.h"
 #include "fmt.h"
 #include "term.h"
 #include "mac.h"
-#include "pcscr.h"
 #include "screen.h"
 #include "wind.h"
 
 int	AbortCnt,
 	tabstop = 8;	/* VAR: expand tabs to this number of spaces */
-
-#ifdef TERMCAP
-private void
-	GENi_lines proto((int, int, int)),
-	GENd_lines proto((int, int, int));
-#endif /* TERMCAP */
 
 struct scrimage
 	*DesiredScreen = NULL,
@@ -132,11 +124,9 @@ make_scr()
 		}
 	}
 	oldLI = LI;
-#ifndef MAC
 	SO_off();
-# ifdef HIGHLIGHTING
+#ifdef HIGHLIGHTING
 	US_effect(NO);
-# endif
 #endif
 	cl_scr(NO);
 }
@@ -158,10 +148,10 @@ register char	*cp1,
 /* Character output to bit-mapped screen is very expensive. It makes
    much more sense to write the entire line at once. So, we print all
    the characters, whether already there or not, once the line is
-   complete.  */
+   complete. */
 
-private char sput_buf[256];
-private int sput_len = 0;
+private unsigned char sput_buf[255];
+private size_t sput_len = 0;
 
 private void
 sput_start()
@@ -174,18 +164,20 @@ sput_start()
 private void
 sput_end()
 {
-	sput_buf[0] = (unsigned char) sput_len;
-	writechr(sput_buf);
-	sput_len = 0;
+	if (sput_len != 0) {
+		writetext(sput_buf, sput_len);
+		sput_len = 0;
+	}
 }
 
 private void
 sputc(c)
 register char c;
 {
+	/* if line gets too long for sput_buf, ignore subsequent chars */
 	if (sput_len < sizeof(sput_buf)) {
 		*cursor++ = c;
-		sput_buf[++sput_len] = (c == '0')? 0xAF /* slashed zero */ : c;
+		sput_buf[sput_len++] = (c == '0')? 0xAF /* slashed zero */ : c;
 		CapCol++;
 		i_col++;
 	}
@@ -196,13 +188,16 @@ register char c;
 # ifdef HIGHLIGHTING
 #  define	CharChanged(c)	(*cursor != (char) (c))
 # else /* !HIGHLIGHTING */
-private bool ChangeEffect = NO;
+private bool	ChangeEffect = NO;
 #  define	CharChanged(c)	(ChangeEffect || *cursor != (char) (c))
 # endif /* !HIGHLIGHTING */
 
-# ifdef IBMPC
+# ifdef IBMPCDOS
+/* On PC, we think that trying to avoid painting the character
+ * is slower than just doing it.  I wonder if this is true.
+ */
 #  define	sputc(c)	do_sputc(c)
-# else /* !IBMPC */
+# else /* !IBMPCDOS */
 #  define sputc(c)	{ \
 	if (CharChanged(c)) { \
 		do_sputc(c); \
@@ -211,7 +206,7 @@ private bool ChangeEffect = NO;
 		i_col += 1; \
 	} \
 }
-# endif /* !IBMPC */
+# endif /* !IBMPCDOS */
 
 private void
 do_sputc(c)
@@ -334,11 +329,7 @@ bool doit;
 		PhysScreen[i].s_id = NULL_DADDR;
 	}
 	if (doit) {
-#ifdef TERMCAP
-		putpad(CL, LI);
-#else /* !TERMCAP */
-		clr_page();	/* MAC and PCSCR define this */
-#endif /* !TERMCAP */
+		clr_page();
 		CapCol = CapLine = 0;
 		UpdMesg = YES;
 	}
@@ -480,23 +471,27 @@ bool	abortable;
 		while ((c = ZXC(*line++)) != '\0') {
 			if (abortable && i_col >= MinCol && AbortCnt < 0) {
 				AbortCnt = ScrBufSize;
-				if ((InputPending = charp()) != NO) {
+				if (PreEmptOutput()) {
 					aborted = YES;
 					break;
 				}
 			}
 #ifdef TERMCAP
-			if (Hazeltine && c == '~') {
+			if (Hazeltine && c == '~')
 				c = '`';
-			}
 #endif
-#ifdef IBMPC
-			if (c == 255) {
+#ifdef CODEPAGE437
+			/* ??? Some archane mapping of IBM PC characters.
+			 * According to the appendix of the Microsoft MSDOS
+			 * Operating System 5.0 User's Guide and Reference,
+			 * in Code Page 437 (USA English) ' ', 0x00, and 0xFF are
+			 * blank and 0x01 is a face.
+			 */
+			if (c == 0xFF)
 				c = 1;
-			} else if (c == ' ' && hl != NOEFFECT) {
-				c = 255;
-			}
-#endif /* IBMPC */
+			else if (c == ' ' && hl != NOEFFECT)
+				c = 0xFF;
+#endif /* CODEPAGE437 */
 			if (--n <= 0) {
 				/* We've got one more column -- how will we spend it?
 				 * ??? This is probably redundant -- callers do truncation.
@@ -513,12 +508,13 @@ bool	abortable;
 		if (real_effect != NULL)
 			real_effect(NO);
 #else /* !HIGHLIGHTING */
+# ifdef MAC
+		sput_end();	/* flush before reverting SO */
+# else /* !MAC */
+		ChangeEffect = NO;
+# endif /* !MAC */
 		if (hl != NOEFFECT)
 			SO_off();
-		ChangeEffect = NO;
-# ifdef MAC
-		sput_end();
-# endif /* MAC */
 #endif /* !HIGHLIGHTING */
 		if (cursor > Curline->s_roof)
 			Curline->s_roof = cursor;
@@ -619,16 +615,7 @@ int num,
 
 	for (i = 0; i < num; i++)
 		Screen[top + i] = Savelines[i];
-
-#ifdef IBMPC
-	scr_win(-num, top, 0, bottom, CO-1);
-#else /* !IBMPC */
-# ifdef MAC
 	i_lines(top, bottom, num);
-# else /* !MAC */
-	GENi_lines(top, bottom, num);
-# endif /* !MAC */
-#endif /* !IBMPC */
 }
 
 /* Delete `num' lines starting at `top' leaving the lines below `bottom'
@@ -664,16 +651,7 @@ int num,
 
 	for (i = 0; i < num; i++)
 		Screen[bottom - i] = Savelines[i];
-
-#ifdef IBMPC
-	scr_win(num, top, 0, bottom, CO-1);
-#else /* !IBMPC */
-# ifdef MAC
 	d_lines(top, bottom, num);
-# else /* !MAC */
-	GENd_lines(top, bottom, num);
-# endif /* !MAC */
-#endif /* !IBMPC */
 }
 
 #ifdef TERMCAP	/* remainder of this file */
@@ -694,8 +672,6 @@ private struct cursaddr	*HorMin,
 			*DirectMin;
 
 private void
-	GENi_lines proto((int, int, int)),
-	GENd_lines proto((int, int, int)),
 	ForTab proto((int)),
 	RetTab proto((int)),
 	DownMotion proto((int)),
@@ -917,7 +893,7 @@ int line,
 	   Homing first's total is the sum of the cost of homing
 	   and the sum of tabbing (if possible) to the right. */
 
-	if (Screen[line].s_effects != NOEFFECT) {
+	if (Screen[line].s_effects != NOEFFECT && CM != NULL) {
 		/* We are going to a line with inversion or underlining;
 		   Don't try any clever stuff */
 		DirectMin = &WarpDirect[DIRECT];
@@ -926,9 +902,9 @@ int line,
 	} else if (VertMin->cm_numchars + HorMin->cm_numchars <= 3) {
 		/* Since no direct method is ever shorter than 3 chars, don't try it. */
 		DirectMin = &WarpDirect[DIRECT];	/* A dummy ... */
-		DirectMin->cm_numchars = 100;
+		DirectMin->cm_numchars = INFINITY;
 	} else {
-		WarpDirect[DIRECT].cm_numchars = CM ?
+		WarpDirect[DIRECT].cm_numchars = CM != NULL ?
 				strlen(Cmstr = targ2(CM, col, line)) : INFINITY;
 		WarpDirect[HOME].cm_numchars = HOlen + line +
 				WarpHor[RETFORTAB].cm_numchars;
@@ -991,53 +967,8 @@ int to;
 	return ntabs + (from>to? from-to : to-from);
 }
 
-# ifdef WIRED_TERMS
-
-private void
-BGi_lines(top, bottom, num)
-int top,
-    bottom,
-    num;
-{
-	writef("\033[%d;%dr\033[%dL\033[r", top + 1, bottom + 1, num);
-	CapCol = CapLine = 0;
-}
-
-private void
-SUNi_lines(top, bottom, num)
-int top,
-    bottom,
-    num;
-{
-	Placur(bottom - num + 1, 0);
-	writef("\033[%dM", num);
-	Placur(top, 0);
-	writef("\033[%dL", num);
-}
-
-private void
-C100i_lines(top, bottom, num)
-int top,
-    bottom,
-    num;
-{
-	if (num <= 1) {
-		GENi_lines(top, bottom, num);
-		return;
-	}
-	writef("\033v%c%c%c%c", ' ', ' ', ' ' + bottom + 1, ' ' + CO);
-	CapLine = CapCol = 0;
-	Placur(top, 0);
-	while (num--)
-		putpad(AL, ILI - CapLine);
-	writef("\033v%c%c%c%c", ' ', ' ', ' ' + LI, ' ' + CO);
-	CapLine = CapCol = 0;
-}
-
-# endif /* WIRED_TERMS */
-
-private void
-GENi_lines(top, bottom, num)
+void
+i_lines(top, bottom, num)
 int top,
     bottom,
     num;
@@ -1057,8 +988,8 @@ int top,
 	}
 }
 
-private void
-GENd_lines(top, bottom, num)
+void
+d_lines(top, bottom, num)
 int top,
     bottom,
     num;

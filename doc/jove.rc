@@ -57,7 +57,7 @@ bind-to-key forward-character ^[OC
 bind-to-key backward-character ^[OD
 
 # An alternative modeline with better usage of the space.
-set mode-line %[Jove%]%w%w%c(%M)%3c[%b:%n]%2c"%f"%2c%m*-%m*-%2c%p%2s%(%d%e(%t)%)
+set mode-line %[Jove%]%w%w%c(%M)%3c[%b:%n]%2c"%f"%c%i# %m*-%2c%p%2s%(%d%e(%t)%)
 
 # Modern terminals do not need ^S/^Q for flow control.
 # The exceptions (e.g. vt100) should turn it off again in jove.rc.TERM.

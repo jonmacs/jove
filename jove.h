@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -12,11 +12,13 @@
 # include "tune.h"
 #endif
 
+#include <string.h>
+
 #ifndef MAC
 # include <sys/types.h>
-# include <string.h>
 #else
 # include <types.h>
+# include <time.h>	/* for time_t */
 #endif
 
 /* proto: macro to allow us to prototype any function declaration
@@ -126,6 +128,48 @@ typedef int	bool;
 
 #define elemsof(a)	(sizeof(a) / sizeof(*(a)))	/* number of array elements */
 
+/* Safe-where-possible signal handling.
+ *
+ * SIGHANDLERTYPE: the type of a pointer to a signal handler
+ * setsighandler: the best way to establish a signal handler
+ * resetsighandler: the best way to re-establish a signal handler
+ */
+
+typedef SIGRESTYPE (*SIGHANDLERTYPE) ptrproto((int));
+
+#ifdef POSIX_SIGS
+extern SIGHANDLERTYPE setsighandler proto((int, SIGHANDLERTYPE));
+# define resetsighandler(signo, handler)	/* nothing */
+#else /* !POSIX_SIGS */
+# ifdef USE_SIGSET
+#  define setsighandler(signo, handler)	sigset((signo), (handler))
+#  define resetsighandler(signo, handler)	/* nothing */
+# else /* !USE_SIGSET */
+   /* BSD_SIGS or default: use signal() */
+#  define setsighandler(signo, handler)	signal((signo), (handler))
+# endif /* !USE_SIGSET */
+#endif /* !POSIX_SIGS */
+
+#ifndef resetsighandler
+ /* On some systems, the signal handler is left established,
+  * but this is not the case with original UNIX signals.
+  * This code adjusts to the system at hand, at fairly low cost.
+  * This code is even used for BSD_SIGS, even though it should not
+  * be needed: it compensates for mis-configuration.
+  * Note: this routine will only work if every execution of a particular
+  * call is for the same handler.  Furthermore, all executions should
+  * be due to the handler being invoked by a signal.  These restrictions
+  * ensure that the setting of the static variable indicates whether
+  * signal handlers need to be re-established.
+  */
+# define resetsighandler(signo, handler)	{ \
+	static SIGHANDLERTYPE   reset_handler = NULL; \
+ \
+	if (reset_handler != (handler)) \
+		reset_handler = setsighandler((signo), (handler)); \
+}
+#endif
+
 /* Principles of character representation in JOVE:
  *
  * - Only legal characters (excluding NUL) may be stored in the buffer.
@@ -219,7 +263,20 @@ typedef int ZXchar;	/* type for expanded char (possibly EOF) */
 /* Pervasive exports of other modules */
 
 /* disp.c */
-extern bool	UpdModLine;	/* Does the mode line need to be updated? */
+extern volatile bool	UpdModLine;	/* Does the mode line need to be updated? */
+
+/* term.c: universal termcap-like declarations */
+
+#define MAXCOLS		256	/* maximum number of columns */
+
+extern int
+	SG,		/* number of magic cookies left by SO and SE */
+	LI,		/* number of lines */
+	ILI,		/* number of internal lines (LI - 1) */
+	CO;		/* number of columns (CO <= MAXCOLS) */
+
+extern bool
+	TABS;		/* terminal supports tabs */
 
 /* typedef pervasive structure definitions */
 
@@ -227,11 +284,10 @@ typedef struct window	Window;	/* wind.h */
 typedef struct position	Bufpos;	/* buf.h */
 typedef struct mark	Mark;	/* buf.h (not mark.h!) */
 typedef struct buffer	Buffer;	/* buf.h */
-typedef struct line	Line;	/* buf.h */
 #ifdef FAR_LINES
-typedef Line _far	*LinePtr;
+typedef struct line _far	*LinePtr;	/* buf.h */
 #else
-typedef Line	*LinePtr;
+typedef struct line	*LinePtr;	/* buf.h */
 #endif
 typedef struct FileStruct	File;	/* fp.h */
 
@@ -263,10 +319,10 @@ extern char
 
 
 /* setjmp/longjmp args for DoKeys() mainjmp */
-#define FIRSTCALL	0
-#define ERROR		1
-#define COMPLAIN	2	/* do the error without a getDOT */
-#define QUIT		3	/* leave this level of recursion */
+#define JMP_FIRSTCALL	0
+#define JMP_ERROR		1
+#define JMP_COMPLAIN	2	/* do the error without a getDOT */
+#define JMP_QUIT		3	/* leave this level of recursion */
 
 extern jmp_buf	mainjmp;
 
@@ -279,19 +335,29 @@ extern ZXchar
 	LastKeyStruck;	/* used by SelfInsert and friends */
 
 extern int
-	RecDepth;	/* recursion depth (used by disp.c for modeline) */
+	RecDepth,	/* recursion depth (used by disp.c for modeline) */
+	SlowCmd;	/* depth of nesting of slow commands */
 
 extern bool
 	TOabort,	/* flag set by Typeout() */
-	errormsg,	/* last message was an error message
-			   so don't erase the error before it
-			   has been read */
-	InputPending,	/* nonzero if there is input waiting to
-			   be processed */
-	Interactive,
-	inIOread;	/* so we know whether we can do a redisplay. */
+	stickymsg,	/* the last message should stick around */
+	InputPending,	/* is there input waiting to be processed? */
+	Interactive;
+
+#ifdef UNIX
+extern bool
+	InSlowRead;	/* Can we do a redisplay in a signal handler? */
+#endif
 
 extern char	*Inputp;
+
+#ifdef WINRESIZE
+# define PreEmptOutput()	(ResizePending || (SlowCmd == 0 && charp()))
+# define CheapPreEmptOutput()	(ResizePending || (SlowCmd == 0 && InputPending))
+#else
+# define PreEmptOutput()	(SlowCmd == 0 && charp())
+# define CheapPreEmptOutput()	(SlowCmd == 0 && InputPending)
+#endif
 
 #ifdef SUBSHELL
 extern void	jcloseall proto((void));
@@ -307,9 +373,12 @@ extern bool
 extern ZXchar
 	getch proto((void)),
 	kbd_getch proto((void)),
-	waitchar proto((bool *slow));
+	waitchar proto((void)),
+	ask_ks proto((void));
 
 extern void
+	cmd_sync proto((void)),
+	add_stroke proto((ZXchar)),
 	error proto((const char *, ...)),
 	complain proto((const char *, ...)),
 	raw_complain proto((const char *, ...)),
@@ -334,11 +403,9 @@ extern void
 
 /* Variables: */
 
-extern ZXchar	IntChar;		/* VAR: ttysetattr sets this to generate QUIT */
 extern bool	MetaKey;		/* VAR: this terminal has a meta key */
-extern bool	OKXonXoff;		/* VAR: XON/XOFF can be used as ordinary chars */
+extern bool	TimeDisplayed;	/* is time actually displayed in modeline? */
+#ifdef UNIX
 extern int	UpdFreq;		/* VAR: how often to update modeline */
-
-#ifdef BIFF
-extern bool	DisBiff;		/* VAR: turn off/on biff with entering/exiting jove */
+extern void	SetClockAlarm proto((bool unset));
 #endif

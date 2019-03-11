@@ -1,3 +1,11 @@
+###########################################################################
+# This program is Copyright (C) 1991-1996 by C.H.Lindsey, University of   #
+# Manchester.  (X)JOVETOOL is provided to you without charge, and with no #
+# warranty.  You may give away copies of (X)JOVETOOL, including sources,  #
+# provided that this notice is included in all the files, except insofar  #
+# as a more specific copyright notices attaches to the file (x)jovetool.c #
+###########################################################################
+
 The two programs in this directory 'xjove' and 'jovetool' are front ends for
 the 'jove' editor to enable it to be controlled by the mouse in windowing
 environments. 'Jovetool' is for use with Sunview. 'Xjove' is for use with
@@ -30,17 +38,21 @@ be when using 'xjove') the portion of the total buffer visible within the
 window has its highlighting reversed.
 
 To compile 'jovetool' you need a Sun running OS4.x. You also need to set the
-DEFINES and SYSDEFS macros in the Makefile.
+DEFINES and SYSDEFS macros in the Makefile.  If you build it through the
+makejovetool or installjovetool targets of the JOVE Makefile, these will
+be set automatically.
 
 To compile 'xjove' you need the XView toolkit which is normally supplied as
 part of the Openwindows package on Suns and some other machines. If you do
 not have XView, then it may be obtained from the MIT X-distribution. You
-need to set the SYSDEFS macro in the Makefile (the only possibilities it is
-really interested in are 'SUNOS5' and 'SVR4' on the one hand, as opposed to
-any other system on the other). There is also a difference in the 'LDFLAGS'
-for SUNOS5. It is also necessary for the OPENWINHOME environment variable to
-be set correctly. If you are are a user rather than a hacker of the system,
-you may wish to replace the '-g' in the CFLAGS macro by '-O'.
+need to set the SYSDEFS macro in the Makefile (it is only used to
+distinguish SYSVR4 (which includes SunOS 5, also known as Solaris 2) from
+any other system). There is also a difference in the 'LDFLAGS' for SunOS 5.
+It is also necessary for the OPENWINHOME environment variable to be set
+correctly. If you are are a user rather than a hacker of the system, you
+may wish to replace the '-g' in the OPTFLAGS macro by '-O'. If you build xjove
+through the makexjove or installxjove targets of the main JOVE Makefile,
+most of these settings will be inherited (check xjove/Makefile for details).
 
 In the menus brought up by pressing the third mouse button under 'xjove', the
 key bindings shown against each command use the function keys (of which
@@ -104,10 +116,25 @@ preprocessor variable MOUSE must be defined in sysdep.h. This is done
 automatically for any UNIX system.
 
 If you use the 'xterm' terminal emulator, a simplified subset of the
-facilites provided by 'xjove' is provided, using a rather similar mechanism
+facilities provided by 'xjove' is provided, using a rather similar mechanism
 to that used by 'xjove'.
 
 'Xjove' and 'jovetool' were written by Charles Lindsey. Comments, bug
 reports, and whatever may be sent to chl@clw.cs.man.ac.uk (or alternatively
 to hugh@mimosa.com along with reports on the rest of jove).
 
+
+KNOWN XVIEW BUG:
+
+xjove terminal emulation is described by the "sun-cmd" termcap and
+terminfo entries.  Due to an XView bug, the environment variable
+TERMCAP is set to "sun-cmd:te=\E[>4h:ti=\E[>4l:tc=sun:".  (This may be
+fixed some day.)  To be correct, the tc capability should be replaced
+by the contents of the /etc/termcap entry for "sun".
+
+Any program that uses the termcap-based library will fail.  If a
+program uses terminfo, it will avoid this problem.  Solaris programs
+normally use terminfo.  At least some Linux systems use terminfo.  One
+workaround would be to write a shell script wrapper to unset TERMCAP
+before invoking the "real" program.  Use the xjove -rc flag to specify
+which program to run.

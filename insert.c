@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -25,10 +25,6 @@
 #include "sysprocs.h"
 #include "proc.h"
 #include "wind.h"
-  
-#ifdef IBMPC
-# include "msgetch.h"	/* for PCNONASCII */
-#endif
 
 private void
 	DoNewline proto((bool indentp));
@@ -116,13 +112,15 @@ register int	goal;
 	DelWtSpace();
 	dotcol = calc_pos(linebuf, curchar);
 
-	for (;;) {
-		int	incrmt = TABDIST(dotcol);
+	if (tabstop != 0) {
+		for (;;) {
+			int	incrmt = TABDIST(dotcol);
 
-		if (dotcol + incrmt > goal)
-			break;
-		insert_c('\t', 1);
-		dotcol += incrmt;
+			if (dotcol + incrmt > goal)
+				break;
+			insert_c('\t', 1);
+			dotcol += incrmt;
+		}
 	}
 	if (dotcol != goal)
 		insert_c(' ', (goal - dotcol));
@@ -159,7 +157,7 @@ int	n;
 		/* Delete one *column* forward (except that we don't
 		 * notice that control characters take two columns).
 		 */
-		if (!eolp() && (linebuf[curchar] != '\t'
+		if (!eolp() && (linebuf[curchar] != '\t' || tabstop == 0
 		  || TABDIST(calc_pos(linebuf, curchar)) == 1))
 		{
 			del_char(FORWARD, 1, NO);
@@ -179,7 +177,14 @@ SelfInsert()
 	else
 		Insert(LastKeyStruck);
 
-	if (MinorMode(Fill) && calc_pos(linebuf, curchar) >= RMargin) {
+	/* If we are in fill mode and at or beyond the right margin,
+	 * we break the line.  However, we won't do this if the new
+	 * character is whitespace and we are at the end of the line:
+	 * DoJustify would discard the trailing space.
+	 */
+	if (MinorMode(Fill) && calc_pos(linebuf, curchar) >= RMargin
+	&& !(jiswhite(LastKeyStruck) && eolp()))
+	{
 		int margin;
 		Bufpos save;
 
@@ -253,8 +258,7 @@ Tab()
 void
 QuotChar()
 {
-	bool	slow = NO;
-	ZXchar	c = waitchar(&slow);
+	ZXchar	c = ask_ks();
 
 	if (c == '\0') {
 		int	n = arg_value();
@@ -263,9 +267,9 @@ QuotChar()
 			ins_str("^@");
 	} else {
 		Insert(c);
-#ifdef IBMPC
+#ifdef PCNONASCII
 		if (c == PCNONASCII) {
-			c = waitchar(&slow);
+			c = waitchar();
 			if (c == '\0') {
 				int	n = arg_value();
 
@@ -312,7 +316,7 @@ DoParen()
 
 	if (MinorMode(ShowMatch)
 #ifndef MAC
-	&& !charp()
+	&& !PreEmptOutput()
 #endif
 	&& !in_macro())
 	{
@@ -474,7 +478,7 @@ Buffer	*whatbuf;
 	int	startchar = atchar;
 
 	lsave();
-	if (whatbuf)
+	if (whatbuf != NULL)
 		modify();
 	(void) ltobuf(atline, genbuf);
 	strcpy(save, &genbuf[atchar]);
@@ -505,7 +509,8 @@ Buffer	*whatbuf;
 	IFixMarks(startline, startchar, atline, atchar);
 	bp.p_line = atline;
 	bp.p_char = atchar;
-	this_cmd = YANKCMD;
+	if (whatbuf != NULL)
+		this_cmd = YANKCMD;
 	getDOT();			/* Whatever used to be in linebuf */
 	return &bp;
 }
@@ -580,7 +585,7 @@ struct chunk {
 	ChunkPtr	c_nextchunk;	/* Next chunk of lines */
 	int	c_nlines;	/* Number of lines in this chunk (so they
 				   don't all have to be CHUNKSIZE long). */
-	Line	c_block[1 /* or larger */];	/* Chunk of memory */
+	struct line	c_block[1 /* or larger */];	/* Chunk of memory */
 };
 
 private ChunkPtr	fchunk = NULL;	/* first chunk */
@@ -659,7 +664,7 @@ newchunk()
 	bool	done_gc = NO;
 
 	for (;;) {
-		f = CHUNKMALLOC(sizeof(struct chunk) + sizeof(Line) * (nlines-1));
+		f = CHUNKMALLOC(sizeof(struct chunk) + sizeof(struct line) * (nlines-1));
 		if (f != NULL)
 			break;
 		if (!done_gc) {

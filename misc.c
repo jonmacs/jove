@@ -1,5 +1,5 @@
 /************************************************************************
- * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is  *
  * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
  * included in all the files.                                           *
@@ -19,27 +19,22 @@
 #include "move.h"
 #include "paragraph.h"
 
-#ifdef IBMPC
-# include "msgetch.h"	/* for PCNONASCII */
-#endif
-
 void
 prCTIME()
 {
-	s_mess(": %f %s", get_time((time_t *)NULL, (char *)NULL, 0, -1));
+	f_mess(": %f %s", get_time((time_t *)NULL, (char *)NULL, 0, -1));
+	stickymsg = YES;
 }
 
 void
 ChrToOct()
 {
-	ZXchar	c;
-	bool	slow = NO;
+	ZXchar	c = ask_ks();
 
-	c = waitchar(&slow);
 	ins_str(sprint("\\%03o", c));
-#ifdef IBMPC
+#ifdef PCNONASCII
 	if (c == PCNONASCII) {
-		c = waitchar(&slow);
+		c = waitchar();
 		ins_str(sprint("\\%03o", c));
 	}
 #endif
@@ -66,7 +61,8 @@ StrLength()
 			complain(inquotes);
 			/*NOTREACHED*/
 		case '"':
-			s_mess("%d characters", numchars);
+			f_mess("%d characters", numchars);
+			stickymsg = YES;
 			return;
 		case '\\':
 			if (!jisdigit(*cp)) {
@@ -131,7 +127,7 @@ TransLines()
 void
 Leave()
 {
-	longjmp(mainjmp, QUIT);
+	longjmp(mainjmp, JMP_QUIT);
 }
 
 /* If argument is specified, kill that many lines down.  Otherwise,
