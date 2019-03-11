@@ -35,10 +35,12 @@ BSD:
   make SYSDEFS="-DBSDPOSIX" install
 
 LINUX:
-  make SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500" install
-  If this fails because the system doesn't have -ltermcap, try:
-  make SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500" TERMCAPLIB=-lncurses install
-  To build RPMs on Red Hat LINUX: rpmbuild -ta jove*.tgz
+  Using RPM (if sufficiently close to Red Hat; no need to have untared):
+    rpmbuild -ta jove*.tgz
+  Otherwise:
+    make SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500" install
+    If this fails because the system doesn't have -ltermcap, try:
+    make SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500" TERMCAPLIB=-lncurses install
 
 Solaris:
   make SYSDEFS="-DSYSVR4" install
