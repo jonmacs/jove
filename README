@@ -5,29 +5,58 @@
 # this notice is included in all the source files and documentation.     #
 ##########################################################################
 
-[Updated in 2001 December]
+[Updated in 2004 February]
 
-Installation on a UNIX System.
-------------------------------
+JOVE on UNIX Systems
+--------------------
 
-Quick summary:
+For information about other systems, see the other READMEs.
 
-- Configuration is not automatic, but it is simple for modern systems.
-- usually only SYSDEFS is critical; can be specified in make command
-- BSD, the first of the following that works:
-  make SYSDEFS="-DBSDPOSIX -DUSE_OPENPTY" EXTRALIBS=-lutil install
-  make SYSDEFS="-DBSDPOSIX -DUSE_OPENPTY -DHAS_LIBUTILS_H" EXTRALIBS=-lutil install
+
+Quick Summary of Installation
+-----------------------------
+
+Configuration is not automatic, but it is simple for modern systems.
+Usually only SYSDEFS is critical and this can be specified in the make
+command line.
+
+Unpack the tar file somewhere convenient and cd into it:
+tar tzf jove*.tgz
+
+BSD:
+  use the first of the following that works:
+  make SYSDEFS="-DBSDPOSIX_STDC -DUSE_OPENPTY" EXTRALIBS=-lutil install
+  make SYSDEFS="-DBSDPOSIX_STDC -DUSE_OPENPTY -DHAS_LIBUTILS_H" EXTRALIBS=-lutil install
+  make SYSDEFS="-DBSDPOSIX_STDC" install
   make SYSDEFS="-DBSDPOSIX" install
-- Solaris: make SYSDEFS="SYSDEFS=-DSYSVR4" install
-- LINUX: make SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500" install
-  To build RPMs on RedHat: rpm -ta tarfile.tgz
-- other systems: read comments about SYSDEFS in Makefile
-- if ld complains that there is no -ltermcap, add TERMCAPLIB=-lcurses.
-  The curses library is much fatter than termcap, but will do.
-- when in doubt, read the rest of this document
 
-End of quick summary
+LINUX:
+  make SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500" install
+  If this fails because the system doesn't have -ltermcap, try:
+  make SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500" TERMCAPLIB=-lncurses install
+  To build RPMs on Red Hat LINUX: rpmbuild -ta jove*.tgz
 
+Solaris:
+  make SYSDEFS="-DSYSVR4" install
+
+Other systems:
+  Read comments about SYSDEFS settings in Makefile
+
+Some systems have dropped the termcap library.  The curses (or
+ncurses) library is much fatter than termcap, but will do.
+If ld complains that there is no -ltermcap, add TERMCAPLIB=-lcurses.
+If ld then complains that there is no -lcurses, try TERMCAPLIB=-lncurses.
+
+When in doubt, read the rest of this document.
+
+Please help us keep up with new systems.  If your system isn't covered
+here on in the SYSDEFS section of Makefile, tell us what works.  If
+your system is covered, but the documented procedure doesn't work,
+tell us.
+
+
+Full Story of Installation
+--------------------------
 
 JOVE does not use any automatic configuring mechanism.  Most
 configuring is done by editing definitions in Makefile (in some
@@ -38,7 +67,7 @@ JOVE has been around for a long time, and a lot of care has been taken
 to make it work on many systems, new and old.  For current systems,
 less configuring is require -- hurray for standards!
 
-Makefile specifies paths for installing jove components (JOVEHOME,
+Makefile specifies paths for installing JOVE components (JOVEHOME,
 SHAREDIR, LIBDIR, BINDIR, MANDIR, MANEXT), tempfiles (TMPDIR, RECDIR),
 and the default shell (DFLTSHELL).  Although the defaults are
 reasonable, you may wish to change them.
@@ -99,8 +128,8 @@ and it was possible to turn on all the compile time options with this
 version.
 
 For LINUX, jove.spec is provided to specify how an RPM should be created.
-On RedHat 6.x and 7.x, "rpm -ta tarfile.tgz" will build source and binary
-RPMs -- rpm looks inside the .tgz to find jove.spec.
+On Red Hat LINUX 7.x, 8.0, and 9, "rpmbuild -ta jove*.tgz" will build
+source and binary RPMs -- rpm looks inside the .tgz to find jove.spec.
 
 
 Some features.
