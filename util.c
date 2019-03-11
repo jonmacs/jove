@@ -669,9 +669,9 @@ size_t	n;
 /* Copy a string into a buffer; truncate silently if string is too large */
 void
 truncstrsub(buf, str, bufsz)
-unsigned char *buf;
+char *buf;
 size_t bufsz;
-const unsigned char *str;
+const char *str;
 {
 	if (strlen(str) < bufsz)
 		strcpy(buf, str);
@@ -686,9 +686,9 @@ const unsigned char *str;
 /* Copy a string into a buffer; complain if string is too large */
 void
 jamstrsub(buf, str, bufsz)
-unsigned char *buf;
+char *buf;
 size_t bufsz;
-const unsigned char *str;
+const char *str;
 {
 	if (strlen(str) < bufsz)
 		strcpy(buf, str);
