@@ -103,8 +103,8 @@ message("Space or Y, Period, Rubout or N, C-R or R, C-W, C-U or U, P or !, Retur
 			offset = curchar = REeom;
 			makedirty(curline);
 			if (query) {
-				message(mesgbuf);	/* No blinking. */
-				redisplay();		/* Show the change. */
+				message(mesgbuf);	/* no blinking */
+				redisplay();		/* show the change */
 			}
 			UNDO_da = curline->l_dline;
 			UNDO_lp = curline;
@@ -112,10 +112,7 @@ message("Space or Y, Period, Rubout or N, C-R or R, C-W, C-U or U, P or !, Retur
 nxtline:			break;
 		}
 	}
-	set_mark();
-done:	s_mess("%d substitution%n.", numdone, numdone);
-
-	return numdone;
+done:	return numdone;
 }
 
 /* prompt for search and replacement strings and do the substitution */
@@ -127,7 +124,8 @@ replace(query, inreg)
 	Line	*l1 = curline,
 		*l2 = curbuf->b_last;
 	int	char1 = curchar,
-		char2 = length(curbuf->b_last);
+		char2 = length(curbuf->b_last),
+		numdone;
 
 	if (inreg) {
 		m = CurMark();
@@ -136,7 +134,7 @@ replace(query, inreg)
 		(void) fixorder(&l1, &char1, &l2, &char2);
 	}
 
-	/* Get search string. */
+	/* get search string */
 	strcpy(rep_search, ask(rep_search[0] ? rep_search : (char *) 0, ProcFmt));
 	REcompile(rep_search, UseRE, compbuf, alternates);
 	/* Now the replacement string.  Do_ask() so the user can play with
@@ -147,9 +145,13 @@ replace(query, inreg)
 		rep_ptr = NullStr;
 	strcpy(rep_str, rep_ptr);
 
-	if ((substitute(query, l1, char1, l2, char2) != 0) &&
-	    (inreg == NO))
+	if (((numdone = substitute(query, l1, char1, l2, char2)) != 0) &&
+	    (inreg == NO)) {
 		do_set_mark(l1, char1);
+		add_mess(" ");		/* just making things pretty */
+	} else
+		message("");
+	add_mess("(%d substitution%n)", numdone, numdone);
 }
 
 RegReplace()
@@ -250,9 +252,7 @@ found:		if (!LookingAt(pattern, line, 0)) {
 			putmatch(1, filebuf, FILESIZE);
 			putmatch(2, searchbuf, 100);
 			success = YES;
-/*			if (strcmp(tag, line) == 0)	/* exact match */
-				break;
-			continue;
+			break;
 		}
 	}
 	close_file(fp);

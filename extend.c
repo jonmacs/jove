@@ -467,16 +467,23 @@ Extend()
    in the string must be integers or we return -1; otherwise we stop
    reading at the first nondigit. */
 
-chr_to_int(cp, base, allints)
+chr_to_int(cp, base, allints, result)
 register char	*cp;
+register int	*result;
 {
 	register int	c;
-	int	value = 0;
+	int	value = 0,
+		sign;
 
+	if ((c = *cp) == '-') {
+		sign = -1;
+		cp += 1;
+	} else
+		sign = 1;
 	while (c = *cp++) {
 		if (!isdigit(c)) {
-			if (allints)
-				return -1;
+			if (allints == YES)
+				return INT_BAD;
 			break;
 		}
 		c = c - '0';
@@ -484,7 +491,8 @@ register char	*cp;
 			complain("You must specify in base %d.", base);
 		value = value * base + c;
 	}
-	return value;
+	*result = value * sign;
+	return INT_OKAY;
 }
 
 ask_int(prompt, base)
@@ -492,9 +500,9 @@ char	*prompt;
 int	base;
 {
 	char	*val = ask((char *) 0, prompt);
-	int	value = chr_to_int(val, base, 1);
+	int	value;
 
-	if (value < 0)
+	if (chr_to_int(val, base, YES, &value) == INT_BAD)
 		complain("That's not a number!");
 	return value;
 }

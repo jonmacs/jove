@@ -76,7 +76,7 @@
 #define F_COMPLETION	/* filename completion */
 #define ABBREV		/* word abbreviation mode */
 #ifndef IBMPC
-#define ANSICODES	/* extra commands that process ANSI codes */
+#   define ANSICODES	/* extra commands that process ANSI codes */
 #endif
 #define LISP			/* include the code for Lisp Mode */
 #define CMT_FMT		/* include the comment formatting routines */
@@ -113,7 +113,7 @@
 #   endif
 #endif
 
-#if defined(SYSV)||defined(MSDOS)
+#if defined(SYSV) || defined(MSDOS)
 #   define byte_copy(s2, s1, n)	memcpy(s1, s2, n)
 #   define bzero(s, n)	memset(s, 0, n)
 #   define index	strchr
@@ -133,7 +133,7 @@ extern char
 	*d_tempfile,
 	*p_tempfile,
 	*Recover,
-	CmdDb[],
+	*CmdDb,
 	*Joverc,
 
 #ifdef PIPEPROCS

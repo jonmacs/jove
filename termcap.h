@@ -5,7 +5,11 @@
  * included in all the files.                                           *
  ************************************************************************/
 
-/* Termcap definitions */
+#define MAXCOLS		256	/* maximum number of columns */
+
+#ifndef _TERM
+
+/* termcap definitions */
 
 extern char
 	*UP,	/* Scroll reverse, or up */
@@ -61,3 +65,5 @@ extern char
 	*BC;		/* back space */
 
 extern short	ospeed;
+
+#endif /* _TERM */

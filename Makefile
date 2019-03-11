@@ -60,10 +60,11 @@ LIBS = -ltermcap
 #	PDP-11 with separate I&D:	SEPFLAG = -i
 #	PDP-11 without separate I&D:	SEPFLAG = -n
 
-LDFLAGS = 
+LDFLAGS = -m68010 -L/pub.MC68010/lib -L/usr.MC68010/lib
+
 SEPFLAG =
 
-CFLAGS = -O
+CFLAGS = -O -m68010 -L/pub.MC68010/lib -L/usr.MC68010/lib
 
 BASESEG = funcdefs.o keymaps.o argcount.o ask.o buf.o ctype.o delete.o \
 	  disp.o insert.o io.o jove.o malloc.o marks.o misc.o re.o \
@@ -95,11 +96,11 @@ DOCS =	doc/cmds.doc.nr doc/example.rc doc/jove.1 doc/jove.2 doc/jove.3 \
 MISC = Makefile Ovmakefile Makefile.dos pcjove.lnk tune.dos tune.template \
 	README Readme.dos iproc-pipes.c iproc-ptys.c
 
-SUPPORT = teachjove.c recover.c setmaps.c portsrv.c keymaps.txt
+SUPPORT = teachjove.c recover.c setmaps.c portsrv.c keymaps.txt macvert.c
 
 BACKUPS = $(HEADERS) $(C_SRC) $(ASM_SRC) $(DOCS) $(SUPPORT) $(MISC)
 
-all:	sdate xjove recover teachjove portsrv edate
+all:	sdate xjove recover teachjove portsrv macvert edate
 
 sdate:
 	@echo "**** make started at `date` ****"
@@ -161,6 +162,12 @@ tune.c: Makefile tune.template
 	     -e 's;LIBDIR;$(LIBDIR);' \
 	     -e 's;BINDIR;$(BINDIR);' \
 	     -e 's;SHELL;$(SHELL);' tune.template >> tune.c
+
+iproc.o: iproc-ptys.c iproc-pipes.c iproc.c
+	cc -c $(CFLAGS) iproc.c
+
+macvert:	macvert.c
+	cc -o macvert macvert.c
 
 install: $(DESTDIR)$(LIBDIR) $(TEACH-JOVE) $(CMDS.DOC) $(JOVERC) \
 	 $(PORTSRV) $(RECOVER) $(JOVE) $(TEACHJOVE) $(JOVEM) \
@@ -228,17 +235,14 @@ backup: $(BACKUPS)
 	tar cf backup $(BACKUPS)
 
 tape-backup:
-	tar cbf 20 /dev/rmt0 $(BACKUPS)
-
-rtape-backup:
-	rtar cbf 20 sen:/dev/rmt0 $(BACKUPS)
+	tar c $(BACKUPS)
 
 touch:
 	touch $(OBJECTS)
 
 clean:
 	rm -f a.out core *.o keymaps.c tune.c xjove portsrv recover setmaps \
-	teachjove
+	teachjove macvert
 
 # This version only works under 4.3BSD
 #depend:

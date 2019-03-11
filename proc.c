@@ -113,7 +113,7 @@ char	*fmtstr;
 			last_lnum = -1;		/* signals new file */
 			err_line = buf->b_first;
 		}
-		lnum = chr_to_int(lineno, 10, 0);
+		(void) chr_to_int(lineno, 10, NO, &lnum);
 		if (lnum == last_lnum)	/* one error per line is nicer */
 			continue;
 		if (last_lnum == -1)
@@ -388,6 +388,28 @@ ShellCom()
 	DoShell(MakeName(ShcomBuf), ShcomBuf);
 }
 
+ShNoBuf()
+{
+	int	status;
+
+	null_ncpy(ShcomBuf, ask(ShcomBuf, ProcFmt), (sizeof ShcomBuf) - 1);
+	status = UnixToBuf((char *) 0, NO, 0, NO, Shell, ShFlags, ShcomBuf, (char *) 0);
+	com_finish(status, ShcomBuf);
+}
+
+Shtypeout()
+{
+	int	status;
+
+	null_ncpy(ShcomBuf, ask(ShcomBuf, ProcFmt), (sizeof ShcomBuf) - 1);
+	status = UnixToBuf((char *) 0, YES, 0, NO, Shell, ShFlags, ShcomBuf, (char *) 0);
+	if (status == 0)
+		Typeout("[%s: completed successfully]", ShcomBuf);
+	else
+		Typeout("[%s: exited (%d)]", ShcomBuf, status);
+	TOstop();
+}
+
 /* Run the shell command into `bufname'.  Empty the buffer except when we
    give a numeric argument, in which case it inserts the output at the
    current position in the buffer.  */
@@ -408,7 +430,7 @@ char	*bufname,
 
 private
 com_finish(status, cmd)
-register int	status;
+int	status;
 char	*cmd;
 {
 	s_mess("[%s: ", cmd);
@@ -490,13 +512,20 @@ va_dcl
 	va_start(ap);
 	make_argv(argv, ap);
 	va_end(ap);
-	if (clobber)
+	if (bufname != 0 && clobber == YES)
 		isprocbuf(bufname);
 	if (disp) {
-		message("Starting up...");
-		pop_wind(bufname, clobber, clobber ? B_PROCESS : B_FILE);
-		set_wsize(wsize);
-		redisplay();
+		if (bufname != 0)
+			message("Starting up...");
+		else {
+			TOstart(argv[0], TRUE);
+			Typeout("Starting up...");
+		}
+		if (bufname != 0) {
+			pop_wind(bufname, clobber, clobber ? B_PROCESS : B_FILE);
+			set_wsize(wsize);
+			redisplay();
+		}
 	}
 	/* Now I will attempt to describe how I deal with signals during
 	   the execution of the shell command.  My desire was to be able
@@ -583,10 +612,13 @@ va_dcl
 		inIOread = 1;
  		eof = f_gets(fp, genbuf, LBSIZE);
 		inIOread = 0;
-		ins_str(genbuf, YES);
-		if (!eof)
-			LineInsert(1);
-		if (disp != 0 && fp->f_cnt <= 0) {
+		if (bufname != 0) {
+			ins_str(genbuf, YES);
+			if (!eof)
+				LineInsert(1);
+		} else if (disp == YES)
+			Typeout("%s", genbuf);
+		if (bufname != 0 && disp != 0 && fp->f_cnt <= 0) {
 #ifdef LOAD_AV
 		    {
 		    	double	theavg;
@@ -602,8 +634,10 @@ va_dcl
 #else
 			mess = "Chugging along...";
 #endif /* LOAD_AV */
-			message(mess);
-			redisplay();
+			if (bufname != 0) {
+				message(mess);
+				redisplay();
+			}
 		}
 	} while (!eof);
 	if (disp)

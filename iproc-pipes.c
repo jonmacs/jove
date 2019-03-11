@@ -86,7 +86,7 @@ procs_read()
 
 	if (here)	
 		return;
-	sighold(SIGCHLD);	/* Block any other children. */
+	sighold(SIGCHLD);	/* block any other children */
 	here = YES;
 	for (;;) {
 		(void) ioctl(ProcInput, FIONREAD, (struct sgttyb *) &nbytes);
@@ -115,7 +115,7 @@ register int	nbytes;
 	}
 	if (proc_state(p) == NEW) {
 		int	rpid;
-		/* Pid of real child, not of portsrv. */
+		/* pid of real child, not of portsrv */
 
 		doread(ProcInput, (char *) &rpid, nbytes);
 		nbytes -= sizeof rpid;
@@ -126,7 +126,6 @@ register int	nbytes;
 	if (nbytes == EOF) {		/* okay to clean up this process */
 		proc_close(p);
 		makedead(p);
-		proc_rec(p, "[Process Eof]");
 		return;
 	}
 
@@ -158,11 +157,15 @@ private
 proc_close(p)
 Process	*p;
 {
+	sighold(SIGCHLD);
+
 	if (p->p_toproc >= 0) {
 		(void) close(p->p_toproc);
 		p->p_toproc = -1;	/* writes will fail */
 		NumProcs -= 1;
 	}
+
+	sigrelse(SIGCHLD);
 }
 
 do_rtp(mp)
@@ -214,12 +217,20 @@ va_dcl
 				   or is of type B_PROCESS */
 	dopipe(toproc);
 
+	sighold(SIGCHLD);
+#ifdef SIGWINCH
+	sighold(SIGWINCH);
+#endif
 	switch (pid = fork()) {
 	case -1:
 		pclose(toproc);
 		complain("[Fork failed.]");
 
 	case 0:
+		sigrelse(SIGCHLD);
+#ifdef SIGWINCH
+		sigrelse(SIGWINCH);
+#endif
 	    	argv[0] = "portsrv";
 	    	argv[1] = foo;
 		sprintf(foo, "%d", ProcInput);
@@ -231,11 +242,10 @@ va_dcl
 		(void) dup2(ProcOutput, 2);
 		pclose(toproc);
 		execv(Portsrv, argv);
-		printf("Execl failed.\n");
+		printf("execl failed\n");
 		_exit(1);
 	}
 
-	sighold(SIGCHLD);
 	newp = (Process *) malloc(sizeof *newp);
 	newp->p_next = procs;
 	newp->p_state = NEW;
@@ -268,8 +278,11 @@ va_dcl
 	newp->p_reason = 0;
 	NumProcs += 1;
 	(void) close(toproc[0]);
-	sigrelse(SIGCHLD);
 	SetWind(owind);
+	sigrelse(SIGCHLD);
+#ifdef SIGWINCH
+	sigrelse(SIGWINCH);
+#endif
 }
 
 pinit()

@@ -56,7 +56,6 @@ private int	dw_biff = NO;		/* whether or not to fotz at all */
 #endif
 #endif /* MSDOS */
 
-time_t	time0;			/* when jove started up */
 int	errormsg;
 extern char	*tfname;
 char	NullStr[] = "";
@@ -245,7 +244,7 @@ getchar()
 					while (nfds--) {
 						tmp = ffs(reads) - 1;
 						read_proc(tmp);
-						reads &= ~(1 << tmp);
+						reads &= ~(1L << tmp);
 					}
 
 					break;
@@ -286,12 +285,11 @@ getchar()
 #else
 			nchars = read(0, smbuf, sizeof smbuf);
 #endif
-		}
-		while (nchars < 0
+		} while (nchars < 0
 #ifndef MSDOS
-							&& errno == EINTR
+			&& errno == EINTR
 #endif
-												);
+			);
 
 		if (nchars <= 0)
 			finish(SIGHUP);
@@ -362,14 +360,14 @@ ResetTerm()
 	putpad(TI, 1);
 	putpad(VS, 1);
 	putpad(KS, 1);
+#ifndef MSDOS
+	(void) chkmail(YES);	/* force it to check to we can be accurate */
+#endif
 #ifdef BIFF
 	if (BiffChk != dw_biff)
 		biff_init();
 	/* just in case we changed our minds about whether to deal with
 	   biff */
-#endif
-#ifndef MSDOS
-	(void) chkmail(YES);	/* force it to check to we can be accurate */
 #endif
 	do_sgtty();		/* this is so if you change baudrate or stuff
 				   like that, JOVE will notice. */
@@ -793,22 +791,29 @@ char	*argv[];
 			case 'p':
 				argv += 1;
 				argc -= 1;
-				SetBuf(do_find(curwind, argv[1], 0));
-				ParseAll();
-				nwinds = 0;
+				if (argv[1] != 0) {
+					SetBuf(do_find(curwind, argv[1], 0));
+					ParseAll();
+					nwinds = 0;
+				}
 				break;
 
 			case 't':
 				argv += 1;
 				argc -= 1;
-				find_tag(argv[1], YES);
+				if (argv[1] != 0)
+					find_tag(argv[1], YES);
 				break;
 
 			case 'w':
 				if (argv[1][2] == '\0')
 					nwinds += 1;
-				else
-					nwinds += -1 + chr_to_int(&argv[1][2], 10, NIL);
+				else {
+					int	n;
+
+					(void) chr_to_int(&argv[1][2], 10, NO, &n);
+					nwinds += -1 + n;
+				}
 				(void) div_wind(curwind, nwinds - 1);
 				break;
 
@@ -822,7 +827,8 @@ char	*argv[];
 			case '7':
 			case '8':
 			case '9':
-				lineno = chr_to_int(&argv[1][1], 10, 0) - 1;
+				(void) chr_to_int(&argv[1][1], 10, NO, &lineno);
+				lineno -= 1;
 				break;
 		}
 		argv += 1;
@@ -1181,9 +1187,6 @@ char	*argv[];
 	(void) joverc(Joverc);	/* same in current directory	*/
 #endif /* MSDOS */
 
-#ifdef MSDOS
-	(void) time(&time0);
-#endif /* MSDOS */
 	ttinit();	/* initialize terminal (after ~/.joverc) */
 	settout(ttbuf);	/* not until we know baudrate */
 #ifdef MSDOS
@@ -1211,8 +1214,7 @@ char	*argv[];
 	/* set things up to update the modeline every UpdFreq seconds */
 #ifndef MSDOS
 	(void) signal(SIGALRM, updmode);
-	(void) time(&time0);
-	(void) alarm((unsigned) (60 - (time0 % 60)));
+	(void) alarm((unsigned) (60 - (time((time_t *) 0) % 60)));
 #endif /* MSDOS */
 
 #ifndef MSDOS

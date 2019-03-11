@@ -65,9 +65,10 @@ REgetc()
 #define BACKREF	NONE_OF+2	/* \# */
 #define EOP	BACKREF+2	/* end of pattern */
 
-#define NPAR	9	/* [1-9] */
+#define NPAR	10	/* [0-9] - 0th is the entire matched string, i.e. & */
 private int	nparens;
 private char	*comp_p,
+		*start_p,
 		**alt_p,
 		**alt_endp;
 
@@ -78,7 +79,7 @@ char	*pattern,
 {
 	REptr = pattern;
 	REpeekc = -1;
-	comp_p = cur_compb = into_buf;
+	comp_p = cur_compb = start_p = into_buf;
 	alt_p = alt_bufp;
 	alt_endp = alt_p + NALTS;
 	*alt_p++ = comp_p;
@@ -103,8 +104,15 @@ do_comp(kind)
 	last_p = 0;
 	ret_code = 1;
 
+	if (kind == OKAY_RE) {
+		*comp_p++ = OPENP;
+		*comp_p++ = nparens;
+		*parenp++ = nparens++;
+		start_p = comp_p;
+	}
+
 	while (c = REgetc()) {
-		if (comp_p > &cur_compb[(sizeof compbuf) - 4])
+		if (comp_p > &cur_compb[(sizeof compbuf) - 6])
 toolong:		complain("Search string too long/complex.");
 		if (c != '*')
 			last_p = comp_p;
@@ -162,9 +170,15 @@ toolong:		complain("Search string too long/complex.");
 			case '|':
 				if (alt_p >= alt_endp)
 					complain("Too many alternates; max %d.", NALTS);
+				*comp_p++ = CLOSEP;
+				*comp_p++ = *--parenp;
 				*comp_p++ = EOP;
 				*alt_p++ = comp_p;
 				nparens = 0;
+				*comp_p++ = OPENP;
+				*comp_p++ = nparens;
+				*parenp++ = nparens++;
+				start_p = comp_p;
 				break;
 
 			case '1':
@@ -177,7 +191,7 @@ toolong:		complain("Search string too long/complex.");
 			case '8':
 			case '9':
 				*comp_p++ = BACKREF;
-				*comp_p++ = c - '1';
+				*comp_p++ = c - '0';
 				break;
 
 			case '<':
@@ -203,7 +217,7 @@ toolong:		complain("Search string too long/complex.");
 			break;
 
 		case '^':
-			if (comp_p == cur_compb || comp_p[-1] == EOP) {
+			if (comp_p == start_p) {
 				*comp_p++ = AT_BOL;
 				break;
 			}
@@ -256,13 +270,30 @@ toolong:		complain("Search string too long/complex.");
 		case '*':
 			if (last_p == 0 || *last_p <= NOSTR)
 				goto defchar;
+
+			/* The * operator applies only to the previous
+			   character.  If we were building a chr_cnt at
+			   the time we got the *, we have to remove the
+			   last character from the chr_cnt (by decrementing
+			   *chr_cnt) and replacing it with a new STAR entry.
+
+			   If we are decrementing the count to 0, we just
+			   delete the chr_cnt entry altogether, replacing
+			   it with the STAR entry. */
+
 			if (chr_cnt) {
 				char	lastc = chr_cnt[*chr_cnt];
 
-				comp_p = chr_cnt + *chr_cnt;
-				(*chr_cnt) -= 1;
-				*comp_p++ = chr_cnt[-1] | STAR;
-				*comp_p++ = lastc;
+				if (*chr_cnt == 1) {
+					comp_p = chr_cnt;
+					comp_p[-1] |= STAR;
+					*comp_p++ = lastc;
+				} else {
+					comp_p = chr_cnt + *chr_cnt;
+					(*chr_cnt) -= 1;
+					*comp_p++ = chr_cnt[-1] | STAR;
+					*comp_p++ = lastc;
+				}
 			} else
 				*last_p |= STAR;
 			break;
@@ -282,6 +313,10 @@ defchar:		if (chr_cnt)
 	}
 outahere:
 	/* End of pattern, let's do some error checking. */
+	if (kind == OKAY_RE) {
+		*comp_p++ = CLOSEP;
+		*comp_p++ = *--parenp;
+	}
 	if (parenp != parens)
 		complain("Unmatched ()'s.");
 	if (kind == IN_CB && c == 0)	/* End of pattern with \}. */
@@ -724,9 +759,12 @@ char	*tobuf;
 				*tp++ = '\\';
 	  			goto endchk;
 			} else if (c >= '1' && c <= nparens + '1') {
-				tp = insert(tp, endp, c - '1');
+				tp = insert(tp, endp, c - '0');
 				continue;
 			}
+		} else if (c == '&') {
+			tp = insert(tp, endp, 0);
+			continue;
 		}
 		*tp++ = c;
 endchk:		if (tp >= endp)
@@ -746,7 +784,7 @@ endchk:		if (tp >= endp)
 putmatch(which, buf, size)
 char	*buf;
 {
-	*(insert(buf, buf + size, which - 1)) = 0;
+	*(insert(buf, buf + size, which)) = 0;
 }
 
 setsearch(str)

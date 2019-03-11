@@ -177,6 +177,8 @@ extern int
 	SetVar(),
  	SetMark(),
 	ShellCom(),
+	ShNoBuf(),
+	Shtypeout(),
 	ShToBuf(),
 	ShrWindow(),
 	Source(),
@@ -499,7 +501,9 @@ struct cmd	commands[] = {
 	FUNCTION, "shell", WIRED_CMD(ShellProc),
 #endif
 	FUNCTION, "shell-command", WIRED_CMD(ShellCom),
+	FUNCTION, "shell-command-no-buffer", WIRED_CMD(ShNoBuf),
 	FUNCTION, "shell-command-to-buffer", WIRED_CMD(ShToBuf),
+	FUNCTION, "shell-command-with-typeout", WIRED_CMD(Shtypeout),
 	DefMinor(ShowMatch), "show-match-mode", 0,
 	FUNCTION, "shrink-window", WIRED_CMD(ShrWindow),
 	FUNCTION, "source", WIRED_CMD(Source),

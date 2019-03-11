@@ -15,8 +15,8 @@
 #   include <sys/stat.h>
 #endif
 
-int	AbortChar = CTL('G');
-int	DoEVexpand = NO;	/* should we expand evironment variables? */
+int	AbortChar = CTL('G'),
+	DoEVexpand = NO;	/* should we expand evironment variables? */
 
 int	Asking = NO;
 char	Minibuf[LBSIZE];
@@ -291,6 +291,7 @@ va_dcl
 
 #ifdef F_COMPLETION
 static char	*fc_filebase;
+int	DispBadFs = YES;	/* display bad file names? */
 #ifndef MSDOS
 char	BadExtensions[128] = ".o";
 #else /* MSDOS */
@@ -327,6 +328,14 @@ f_match(file)
 char	*file;
 {
 	int	len = strlen(fc_filebase);
+	char	bads[128];
+
+	if (DispBadFs == NO) {
+		strcpy(bads, BadExtensions);
+		/* bad_extension() is destructive */
+		if (bad_extension(file, bads))
+			return NO;
+	}
 
 #ifdef MSDOS
 	return ((len == 0) ||
@@ -363,10 +372,14 @@ register char	**dir_vec;
 	char	bads[128];
 
 	for (i = 0; i < n; i++) {
-		strcpy(bads, BadExtensions);
-		/* bad_extension() is destructive */
-		if (bad_extension(dir_vec[i], bads))
-			continue;
+		/* if it's no, then we have already filtered them out
+		   in f_match() so there's no point in doing it again */
+		if (DispBadFs == YES) {
+			strcpy(bads, BadExtensions);
+			/* bad_extension() is destructive */
+			if (bad_extension(dir_vec[i], bads))
+				continue;
+		}
 		if (numfound)
 			minmatch = min(minmatch,
 				       numcomp(dir_vec[lastmatch], dir_vec[i]));
@@ -475,8 +488,11 @@ f_complete(c)
 				which = (col * linespercol) + lines;
 				if (which >= nentries)
 					break;
-				strcpy(bads, BadExtensions);
-				isbad = bad_extension(dir_vec[which], bads);
+				if (DispBadFs == YES) {
+					strcpy(bads, BadExtensions);
+					isbad = bad_extension(dir_vec[which], bads);
+				} else
+					isbad = NO;
 				Typeout("%s%-*s", isbad ? "!" : NullStr,
 					maxlen - isbad, dir_vec[which]);
 			}

@@ -19,7 +19,7 @@ int	proc_child();
 #   include "iproc-ptys.c"
 #endif
 
-char	proc_prompt[80] = "% ";
+char	proc_prompt[128] = "% ";
 
 KillProcs()
 {
@@ -100,7 +100,7 @@ register Process	*p;
 }
 
 /* Free process CHILD.  Do all the necessary cleaning up (closing fd's,
-   etc.), and insert a exit status string. */
+   etc.). */
 
 free_proc(child)
 Process	*child;
@@ -116,7 +116,12 @@ Process	*child;
 		prev->p_next = child->p_next;
 	proc_close(child);		/* if not already closed */
 	
-	child->p_buffer->b_process = 0;
+	/* It's possible that the buffer has been given another process
+	   between the time CHILD dies and CHILD's death is noticed (via
+	   list-processes).  So we only set it the buffer's process to
+	   0 if CHILD is still the controlling process. */
+	if (child->p_buffer->b_process == child)
+		child->p_buffer->b_process = 0;
 	PopPBs();
 	{
 		Buffer	*old = curbuf;
@@ -131,9 +136,10 @@ Process	*child;
 
 ProcList()
 {
-	register Process	*p;
+	register Process	*p,
+				*next;
 	char	*fmt = "%-15s  %-15s  %-8s %s",
-		pidstr[10];
+		pidstr[16];
 
 	if (procs == 0) {
 		message("[No subprocesses]");
@@ -143,20 +149,31 @@ ProcList()
 
 	Typeout(fmt, "Buffer", "Status", "Pid ", "Command");
 	Typeout(fmt, "------", "------", "--- ", "-------");
-	for (p = procs; p != 0; p = p->p_next) {
+	for (p = procs; p != 0; p = next) {
+		next = p->p_next;
 		sprintf(pidstr, "%d", p->p_pid);
 		Typeout(fmt, proc_buf(p), pstate(p), pidstr, p->p_name);
+		if (isdead(p)) {
+			free_proc(p);
+			UpdModLine = YES;
+		}
 	}
 	TOstop();
 }
 
 ProcNewline()
 {
+#ifdef ABBREV
+	MaybeAbbrevExpand();
+#endif
 	SendData(YES);
 }
 
 ProcSendData()
 {
+#ifdef ABBREV
+	MaybeAbbrevExpand();
+#endif
 	SendData(NO);
 }
 
@@ -184,7 +201,12 @@ SendData(newlinep)
 		DOTsave(&bp);
 		ToLast();
 		Bol();
-		while (LookingAt(proc_prompt, linebuf, curchar))
+		/* While we're looking at a prompt, and while we're
+		   moving forward.  This is for people who accidently
+		   set their process-prompt to ">*" which will always
+		   match! */
+		while ((LookingAt(proc_prompt, linebuf, curchar)) &&
+ 		       (REeom > curchar))
 			curchar = REeom;
 		MarkSet(p->p_mark, curline, curchar);
 		SetDot(&bp);
@@ -211,7 +233,8 @@ SendData(newlinep)
 		if (LookingAt(proc_prompt, linebuf, curchar)) {
 			do
 				curchar = REeom;
-			while (LookingAt(proc_prompt, linebuf, curchar));
+			while ((LookingAt(proc_prompt, linebuf, curchar)) &&
+			       (REeom > curchar));
 			strcpy(genbuf, linebuf + curchar);
 			Eof();
 			ins_str(genbuf, NO);
@@ -309,7 +332,6 @@ union wait	w;
 			SetBuf(save);
 			redisplay();
 		}
-		free_proc(child);
 	}
 }
 
