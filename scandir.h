@@ -14,5 +14,6 @@ extern void
 	freedir proto((char ***nmptr,int nentries));
 
 #ifdef MSFILESYSTEM
+/* NOTE: MatchDir affects any call to jscandir */
 extern bool	MatchDir;
 #endif

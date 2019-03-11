@@ -421,8 +421,12 @@ do_space()
 		}
 
 		if (funny_space || diff > nspace) {
-			del_char(BACKWARD, diff, NO);
+			/* NOTE: insert spaces left of deletion before doing
+			 * deletion so that marks will remain on the same side.
+			 */
+			b_char(diff);
 			ins_str("  "+(2-nspace));
+			del_char(FORWARD, diff, NO);
 		}
 	}
 }
@@ -506,9 +510,11 @@ bool
 			if (eolp() && !lastp(curline)) {
 				/* Replace line separator with TWO spaces: this
 				 * allows sentence ends to end up with two spaces.
+				 * NOTE: insert spaces left of deletion before doing
+				 * deletion so that marks will remain on the same side.
 				 */
-				del_char(FORWARD, 1, NO);
 				ins_str("  ");
+				del_char(FORWARD, 1, NO);
 			}
 			do_space();	/* compress space; advance past it */
 		}

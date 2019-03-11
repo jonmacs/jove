@@ -59,7 +59,6 @@ extern bool
 	KillProcs proto((void));
 
 extern const char
-	*dbxness proto((Process)),
 	*pstate proto((Process));
 
 extern pid_t	DeadPid;	/* info about ChildPid, if reaped by kill_off */
@@ -71,7 +70,6 @@ extern void
 /* Commands: */
 extern void
 	ProcInt proto((void)),
-	DBXpoutput proto((void)),
 	Iprocess proto((void)),
 	ShellProc proto((void)),
 	ProcQuit proto((void)),

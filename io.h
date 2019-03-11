@@ -32,6 +32,7 @@ extern File
 extern void
 	setCWD proto((char *d)),
 	getCWD proto((void)),
+	PathCat proto((char *buf, size_t, const char *pre, const char *post)),
 	PathParse proto((char *name,char *intobuf)),
 	SyncTmp proto((void)),
 	close_file proto((File *fp)),

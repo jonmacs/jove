@@ -461,7 +461,7 @@ register Buffer	*b;
 
 	if (b->b_fname == NULL)
 		complain("[No file name]");
-	cp = basename(b->b_fname);
+	cp = jbasename(b->b_fname);
 	strcpy(tmp, cp);
 	while (buf_exists(tmp)) {
 		swritef(tmp, sizeof(tmp), "%s.%d", cp, try);

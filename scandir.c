@@ -120,11 +120,6 @@ int	(*sorter) ptrproto((UnivConstPtr, UnivConstPtr));
 		/* note: test ensures one space left in ourarray for NULL */
 		if (nentries+1 == nalloc)
 			ourarray = (char **) erealloc((UnivPtr) ourarray, (nalloc += 10) * sizeof (char *));
-# ifdef DIRECTORY_ADD_SLASH
-		/* ??? what the heck is this?  dirent doesn't have this info. */
-		if ((entry.attrib&_A_SUBDIR) != 0)
-			strcat(entry->d_name, "/");
-# endif
 		ourarray[nentries++] = copystr(entry->d_name);
 	}
 	closedir(dirp);
@@ -140,6 +135,11 @@ int	(*sorter) ptrproto((UnivConstPtr, UnivConstPtr));
 #endif /* UNIX */
 
 #ifdef MSFILESYSTEM
+/* NOTE: MatchDir affects any call to jscandir!
+ * Currently, the only calls to jscandir are from:
+ * - the recover program (which never touches MatchDir)
+ * - descendants of ask_file or ask_dir (which always set it)
+ */
 bool	MatchDir = NO;
 #endif
 
@@ -175,7 +175,7 @@ int	(*sorter) ptrproto((UnivConstPtr, UnivConstPtr));
 			*++ptr = '/';
 		strcpy(ptr+1, "*.*");
 
-		if (_dos_findfirst(dirname, MatchDir? _A_SUBDIR : _A_NORMAL|_A_RDONLY|_A_HIDDEN|_A_SUBDIR, &entry))
+		if (_dos_findfirst(dirname, _A_NORMAL|_A_RDONLY|_A_HIDDEN|_A_SUBDIR, &entry))
 		   return -1;
 	}
 	ourarray = (char **) emalloc(nalloc * sizeof (char *));

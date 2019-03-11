@@ -754,7 +754,7 @@ bool show_bindings;
 	char	CmdDb[FILESIZE];	/* path for cmds.doc */
 	File *fp;
 
-	swritef(CmdDb, sizeof(CmdDb), "%s/cmds.doc", ShareDir);
+	PathCat(CmdDb, sizeof(CmdDb), ShareDir, "cmds.doc");
 	fp = open_file(CmdDb, iobuff, F_READ, YES);
 	Placur(ILI, 0);
 	flushscreen();

@@ -229,11 +229,20 @@ get_files(dirname)
 char	*dirname;
 {
 	char	**nmptr;
+	int	nentries;
+
+	/* first, free any previous entries */
+	while (First != NULL) {
+		struct file_pair	*p = First;
+
+		First = p->file_next;
+		free((UnivPtr) p);
+	}
 
 	CurDir = dirname;
-	First = NULL;
-	jscandir(dirname, &nmptr, add_name,
+	nentries = jscandir(dirname, &nmptr, add_name,
 		(int (*) ptrproto((UnivConstPtr, UnivConstPtr)))NULL);
+	freedir(&nmptr, nentries);
 }
 
 private bool
@@ -284,7 +293,7 @@ char *fname;
 	}
 	/* If we get here, we've found both files, so we put them
 	   in the list. */
-	fp = (struct file_pair *) malloc (sizeof *fp);
+	fp = (struct file_pair *) malloc(sizeof *fp);
 	if (fp == NULL) {
 		fprintf(stderr, "recover: cannot malloc for file_pair.\n");
 		exit(-1);

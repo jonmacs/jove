@@ -47,7 +47,7 @@ recinit()
 {
 	char	buf[FILESIZE];
 
-	swritef(buf, sizeof(buf), "%s/%s", TmpDir,
+	PathCat(buf, sizeof(buf), TmpDir,
 #ifdef MAC
 		".jrecXXX"	/* must match string in mac.c:Ffilter() */
 #else

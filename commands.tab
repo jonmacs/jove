@@ -65,6 +65,9 @@ const struct cmd	commands[] = {
 	{ COMMAND, "copy-region", WIRED_CMD(CopyRegion) },
 	{ COMMAND, "current-error", WIRED_CMD(ShowErr) },
 	{ COMMAND, "date", WIRED_CMD(prCTIME) },
+#ifdef IPROCS
+	{ DefMinor(DbxMode), "dbx-mode", WIRED_CMD(NULL) },
+#endif
 #ifdef ABBREV
 	{ COMMAND, "define-global-word-abbrev", WIRED_CMD(DefGAbbrev) },
 #endif
@@ -207,10 +210,10 @@ const struct cmd	commands[] = {
 	{ COMMAND, "previous-window", WIRED_CMD(PrevWindow) },
 	{ COMMAND, "print", WIRED_CMD(PrVar) },
 #ifdef IPROCS
-	{ COMMAND, "process-bind-keymap-to-key", WIRED_CMD(PBindMac) },
+	{ COMMAND, "process-bind-keymap-to-key", WIRED_CMD(PBindMap) },
 	{ COMMAND, "process-bind-macro-to-key", WIRED_CMD(PBindMac) },
 	{ COMMAND, "process-bind-to-key", WIRED_CMD(PBindAKey) },
-	{ COMMAND, "process-dbx-output", WIRED_CMD(DBXpoutput) },
+	{ DefMinor(DbxMode), "process-dbx-output", WIRED_CMD(NULL) },
 	{ MODCMD, "process-newline", WIRED_CMD(ProcNewline) },
 	{ COMMAND, "process-send-data-no-return", WIRED_CMD(ProcSendData) },
 #endif

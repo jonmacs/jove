@@ -14,7 +14,7 @@
 #define B_FILE		2	/* normal file (we auto-save these.) */
 #define B_PROCESS	3	/* unix process output in this buffer */
 
-/* major modes */
+/* major modes (order must match entries in disp.c:majname[]) */
 #define FUNDAMENTAL	0	/* Fundamental mode */
 #define TEXTMODE	1	/* Text mode */
 #define CMODE		2	/* C mode */
@@ -28,13 +28,17 @@
 #define MajorMode(x)	(curbuf->b_major == (x))
 #define SetMajor(x)	{ curbuf->b_major = (x); UpdModLine = YES; }
 
-/* minor modes */
-#define Indent		(1 << 0)	/* indent same as previous line after return */
-#define ShowMatch	(1 << 1)	/* paren flash mode */
-#define Fill		(1 << 2)	/* text fill mode */
-#define OverWrite	(1 << 3)	/* over write mode */
-#define Abbrev		(1 << 4)	/* abbrev mode */
-#define ReadOnly	(1 << 5)	/* buffer is read only */
+/* minor modes (order must match entries in disp.c:minname[]) */
+#define Fill		(1 << 0)	/* text fill mode */
+#define Abbrev		(1 << 1)	/* abbrev mode */
+#define OverWrite	(1 << 2)	/* over write mode */
+#define Indent		(1 << 3)	/* indent same as previous line after return */
+#define ReadOnly	(1 << 4)	/* buffer is read only */
+#define ShowMatch	(1 << 5)	/* paren flash mode */
+#ifdef IPROCS
+  /* buffer is running DBX process -- track source references */
+# define DbxMode	(1 << 6)
+#endif
 
 #define BufMinorMode(b, x)	(((b)->b_minor & (x)) != 0)
 #define MinorMode(x)		BufMinorMode(curbuf, (x))

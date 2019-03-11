@@ -550,10 +550,30 @@ size_t	size;
 	return ptr;
 }
 
-/* Return the basename of file F. */
+/* Return the basename of pathname F.
+ *
+ * - System V release 4 includes a function named "basename" in libgen.
+ *   It is incompatible with ours:
+ *   + it strips trailing "/" characters (does this matter?)
+ *   + although not clearly documented, this stripping modifies the argument!
+ *   + it handles the NULL pointer and the null string as "."
+ *
+ * - LINUX also provides a basename
+ *   + at least one version of Slackware puts the prototype in <unistd.h>
+ *     so it cannot be ignored.
+ *   + This LINUX prototype declares the parameter to be of const char *
+ *     type.  This is incompatible with ours and with SVR4's.
+ *   + The fact that the argument is a pointer to const implies that
+ *     the source string cannot be modified.  Therefore trailing "/"
+ *     characters are not stripped from the source.
+ *   + Either stripping isn't done to the result OR the result must be
+ *     placed in a distinct chunk of memory.  How is this memory managed?
+ *
+ * To avoid conflict, we have renamed ours to "jbasename".
+ */
 
 char *
-basename(f)
+jbasename(f)
 register char	*f;
 {
 	register char	*cp;

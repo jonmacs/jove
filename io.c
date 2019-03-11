@@ -10,7 +10,6 @@
 #include "fp.h"
 #include "jctype.h"
 #include "disp.h"
-#include "scandir.h"
 #include "ask.h"
 #include "fmt.h"
 #include "insert.h"
@@ -442,32 +441,44 @@ pwd()
 	return PWD;
 }
 
+/* Format a file name without redundant prefix.
+ * The result will be in a static buffer.
+ * Note: by always using the static buffer, we allow ask_ford,
+ * as it is currently coded, to accept aliased arguments.
+ */
 char *
 pr_name(fname, okay_home)
 char	*fname;
 bool	okay_home;
 {
-	int	n;
+	if (fname == NULL) {
+		return NULL;
+	} else {
+		static char	name_buf[FILESIZE];
+		size_t	PWDlen = strlen(PWD);
+		size_t	improvement = 0;
 
-	if (fname != NULL) {
-		n = numcomp(fname, PWD);
+		if (strlen(fname) >= (size_t)FILESIZE)
+			complain("filename longer than %d", FILESIZE-1);
 
-		if ((PWD[n] == '\0') &&	/* Matched to end of PWD */
-		    (fname[n] == '/'))
-			return fname + n + 1;
-
-		if (okay_home && strcmp(HomeDir, "/") != 0
-		&& strncmp(fname, HomeDir, HomeLen) == 0
-		&& fname[HomeLen] == '/')
-		{
-			static char	name_buf[100];
-
-			swritef(name_buf, sizeof(name_buf),
-				"~%s", fname + HomeLen);
-			return name_buf;
+		strcpy(name_buf, fname);	/* default: unchanged */
+		if (strncmp(fname, PWD, PWDlen) == 0 && fname[PWDlen] == '/') {
+			/* Below current directory: strip prefix and /.
+			 * Assumption: fname[PWDlen+1] is not / or \0.
+			 */
+			strcpy(name_buf, fname + PWDlen + 1);
+			improvement = PWDlen + 1;
 		}
+		if (okay_home && HomeLen > improvement + 1
+		&& strncmp(fname, HomeDir, HomeLen) == 0 && fname[HomeLen] == '/')
+		{
+			/* Below home directory: replace prefix with ~. */
+			name_buf[0] = '~';
+			strcpy(name_buf + 1, fname + HomeLen);
+			/* improvement = HomeLen - 1; */
+		}
+		return name_buf;
 	}
-	return fname;
 }
 
 void
@@ -475,13 +486,7 @@ Chdir()
 {
 	char	dirbuf[FILESIZE];
 
-#ifdef MSFILESYSTEM
-	MatchDir = YES;
-#endif
-	(void) ask_file((char *)NULL, PWD, dirbuf);
-#ifdef MSFILESYSTEM
-	MatchDir = NO;
-#endif
+	(void) ask_dir((char *)NULL, PWD, dirbuf);
 	if (Dchdir(dirbuf) == -1)
 	{
 		s_mess("cd: cannot change into %s.", dirbuf);
@@ -645,13 +650,7 @@ Pushd()
 {
 	char	dirbuf[FILESIZE];
 
-#ifdef MSFILESYSTEM
-	MatchDir = YES;
-#endif
-	(void) ask_file((char *)NULL, NullStr, dirbuf);
-#ifdef MSFILESYSTEM
-	MatchDir = NO;
-#endif
+	(void) ask_dir((char *)NULL, NullStr, dirbuf);
 	doPushd(dirbuf);
 }
 
@@ -733,11 +732,35 @@ register char	*user,
 # endif /* USE_GETPWNAM */
 #endif /* UNIX */
 
+/* Concatenate two parts of a pathname.
+ * They should end up separated by a '/' (or optionally '\\', if MSFILESYSTEM)
+ * but we are careful not to add one if the prefix already ends in one.
+ * Arbitrarily, if pre is empty, the result is the same as if it were root (/).
+ */
+void
+PathCat(buf, buflen, pre, post)
+char	*buf;
+size_t	buflen;
+const char	*pre, *post;
+{
+	size_t	prelen = strlen(pre);
+
+	swritef(buf, buflen,
+		prelen > 0
+			&& (pre[prelen-1] == '/'
+#ifdef	MSFILESYSTEM
+				|| pre[prelen-1] == '\\'
+#endif
+			   )? "%s%s" : "%s/%s",
+		pre, post);
+}
+
 /* Convert path in name into a more-canonical one in intobuf.
  * - makes path absolute
  * - handles ~ (and \~, if not MSFILESYSTEM)
  * - if MSFILESYSTEM, turns \ into /
  * - on MSDOS, lower cases everything
+ * Note: name and intobuf must not be aliases.
  * Note: because \~ is turned into ~, this routine is not idempotent.
  * ??? I suspect that there are places where in the code that presume
  * it is idempotent!  DHR
@@ -806,13 +829,14 @@ char	*name,
 	}
 #endif /* MSFILESYSTEM */
 
-	/* Process each path component, attempting to make the path canonical.
-	 * Since processing is lexical, it cannot account for links.
-	 */
+	/* Process each path component, attempting to make the path canonical. */
 	{
 		char
 			*fp = localbuf,	/* start of current component */
 			*dp = intobuf;	/* current end of resulting path (but lazy) */
+#ifdef HAS_SYMLINKS
+		int	linkcnt = 0;	/* to detect symlink loops */
+#endif
 
 		while (*fp != '\0') {
 			/* for each path component: */
@@ -826,9 +850,43 @@ char	*name,
 			} else if (strcmp(fp, "..") == 0) {
 				/* Strip one directory name from "intobuf".
 				 * Assume that intobuf[0] == '/'.
+				 * Symlinks are the only hard part.
 				 * ??? is this correct for the Mac?  CP/M?
 				 */
+#ifdef HAS_SYMLINKS
+				char	linkbuf[FILESIZE];
+				int	linklen;
+#endif
+
 				do ; while (dp > intobuf+1 && *--dp != '/');
+#ifdef HAS_SYMLINKS
+				/* If we find that the path up to the .. is a symlink,
+				 * and we don't appear to be in a symlink loop
+				 * and we have room to handle it,
+				 * we jam the symlink's target on the front of fp
+				 * and try again.
+				 * Note: this code will only work for UNIX-like pathnames.
+				 */
+				if (sp != NULL)
+					*sp = '/';
+				linklen = readlink(intobuf, linkbuf, sizeof(linkbuf)-1);
+				if (linklen >= 0  && ++linkcnt < 100
+				&& strlen(fp) + linklen + (linkbuf[0]=='/'? 0 : dp - intobuf) + 2 <= sizeof(linkbuf))
+				{
+					if (linklen <= 1 || linkbuf[linklen-1] != '/')
+						linkbuf[linklen++] = '/';
+					strcpy(&linkbuf[linklen], fp);
+					strcpy(localbuf, linkbuf);
+					fp = localbuf;
+					if (linkbuf[0] == '/') {
+						fp += 1;
+						dp = &intobuf[0];
+						*dp++ = '/';
+					}
+					*dp = '\0';
+					continue;
+				}
+#endif
 				*dp = '\0';
 			} else {
 				if (dp!=intobuf && dp[-1]!='/')
@@ -1185,7 +1243,7 @@ tmpinit()
 {
 	char	buf[FILESIZE];
 
-	swritef(buf, sizeof(buf), "%s/%s", TmpDir,
+	PathCat(buf, sizeof(buf), TmpDir,
 #ifdef MAC
 		".joveXXX"	/* must match string in mac.c:Ffilter() */
 #else
@@ -1746,11 +1804,13 @@ char *fname;
 			*slash,
 			tmp[FILESIZE];
 
+	if (access(fname, 0) < 0)
+		return;	/* cannot open original file: nothing to backup, we assume */
 	strcpy(tmp, fname);
-	slash = basename(tmp);
+	slash = jbasename(tmp);
 	if ((dot = strrchr(slash, '.')) != NULL) {
-		if (stricmp(dot,".bak") != 0)
-			return;
+		if (stricmp(dot,".bak") == 0)
+			return;	/* don't rename .bak to .bak */
 		*dot = '\0';
 	}
 	strcat(tmp, ".bak");

@@ -267,7 +267,7 @@ EditAbbrevs()
 	buf_clear(ebuf);
 	/* Empty buffer.  Save the definitions to a tmp file
 	   and read them into this buffer so we can edit them. */
-	swritef(tname, sizeof(tname), "%s/%s", TmpDir,
+	PathCat(tname, sizeof(tname), TmpDir,
 #ifdef MAC
 		".jabbXXX"	/* must match string in mac.c:Ffilter() */
 #else

@@ -242,14 +242,20 @@ register File	*fp;
 #endif
 			if (wr >= 0) {
 				p += wr;
-			} else if (errno != EINTR) {
+			} else {
+#ifndef MSDOS
+				if (errno != EINTR) {
+#endif /* MSDOS */
 #ifndef NO_JSTDOUT
-				if (fp == jstdout)
-					break;	/* bail out, silently */
+					if (fp == jstdout)
+						break;	/* bail out, silently */
 #endif
-				fp->f_flags |= F_ERR;
-				error("[I/O error(%s); file = %s, fd = %d]",
-					strerror(errno), fp->f_name, fp->f_fd);
+					fp->f_flags |= F_ERR;
+					error("[I/O error(%s); file = %s, fd = %d]",
+						strerror(errno), fp->f_name, fp->f_fd);
+#ifndef MSDOS
+				}
+#endif /* MSDOS */
 			}
 		}
 

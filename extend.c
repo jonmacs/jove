@@ -500,6 +500,8 @@ ZXchar	c;
 			 * or if we made no progress.
 			 */
 			null_ncpy(linebuf, Possible[lastmatch], (size_t) minmatch);
+			modify();
+			makedirty(curline);
 			Eol();
 			if (c == '\r' || minmatch == len) {
 				add_mess(numfound == 1? " [complete]" : " [ambiguous]");
@@ -534,13 +536,13 @@ Source()
 		fnamebuf[FILESIZE];
 	bool	silence = is_an_arg();
 
-	swritef(fnamebuf, sizeof(fnamebuf),
+	PathCat(fnamebuf, sizeof(fnamebuf), HomeDir,
 #ifdef MSFILESYSTEM
-		"%s/jove.rc",
+		"jove.rc"
 #else
-		"%s/.joverc",
+		".joverc"
 #endif
-		HomeDir);
+		);
 	(void) ask_file((char *)NULL, fnamebuf, fnamebuf);
 	if (!joverc(fnamebuf) && !silence) {
 		message(IOerr("read", fnamebuf));
