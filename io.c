@@ -1776,7 +1776,7 @@ char *fname;
 	SSIZE_T	rr;
 	int
 		ffd,
-		bffd;
+		bffd = 0;	/* avoid uninitialized complaint from gcc -W */
 	char
 		buf[JBUFSIZ],
 		bfname[FILESIZE];
@@ -1803,7 +1803,19 @@ char *fname;
 		int/*mode_t*/	mode = fstat(ffd, &statbuf) != 0? CreatMode : statbuf.st_mode;
 #  endif
 
-		if ((bffd = creat(bfname, mode)) < 0) {
+		/* Unlink the pathname before creating.  It may have been
+		 * created by someone else, or worse it may be linked or 
+		 * symlinked somewhere else, none of which we want to
+		 * overwrite.  There is still a possible race-condition,
+		 * so we need to use O_EXCL if we can.
+		 */
+		if ((unlink(bfname) < 0 && errno != ENOENT)
+#  ifdef O_EXCL
+		|| (bffd = open(bfname, O_CREAT | O_EXCL | O_RDWR, mode)) < 0
+#  else
+		|| (bffd = creat(bfname, mode)) < 0
+#  endif
+		) {
 			int	e = errno;
 
 			(void) close(ffd);

@@ -319,7 +319,6 @@ extern char
 
 
 /* setjmp/longjmp args for DoKeys() mainjmp */
-#define JMP_FIRSTCALL	0
 #define JMP_ERROR		1
 #define JMP_COMPLAIN	2	/* do the error without a getDOT */
 #define JMP_QUIT		3	/* leave this level of recursion */
@@ -409,3 +408,4 @@ extern bool	TimeDisplayed;	/* is time actually displayed in modeline? */
 extern int	UpdFreq;		/* VAR: how often to update modeline */
 extern void	SetClockAlarm proto((bool unset));
 #endif
+extern bool	SaveOnExit;		/* VAR: offer to save buffers on exit */

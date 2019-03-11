@@ -1770,6 +1770,13 @@ buffer has not been modified
 refuses to do the save.  If
 you really do want to write the file you must use
 .IQ write-file .
+.dc "save-on-exit" "(variable)"
+If this is
+.IQ on 
+when \s-2JOVE\s0 is about to exit, it will ask, for each modified buffer,
+whether you wish it to be saved.
+See
+.IQ write-modified-files .
 .dc "scroll-all-lines" "(variable)"
 When this is
 .IQ off ,
