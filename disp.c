@@ -8,64 +8,54 @@
 #include "jove.h"
 #include "ctype.h"
 #include "termcap.h"
-
+#include "chars.h"
+#include "fp.h"
+#include "disp.h"
 
 #ifdef MAC
-#	include "mac.h"
+# include "mac.h"
 #else
-#	include <varargs.h>
-#	include <sys/stat.h>
+# include <varargs.h>
+# include <sys/stat.h>
 #endif
 
 #include <signal.h>
 
 #ifdef MAC
-#	undef private
-#	define private
+# undef private
+# define private
 #endif
 
-#ifdef	LINT_ARGS
 private void
 #ifdef ID_CHAR
-	DeTab(int, char *, char *, int, int),
-	DelChar(int, int, int),
-	InsChar(int, int, int, char *),
+	DeTab proto((int, char *, char *, int, int)),
+	DelChar proto((int, int, int)),
+	InsChar proto((int, int, int, char *)),
 #endif
-	DoIDline(int),
-	do_cl_eol(int),
-	ModeLine(Window *),
-	mode_app(char *),
-	GotoDot(void),
-	UpdLine(int),
-	UpdWindow(Window *, int);
+	DoIDline proto((int)),
+	do_cl_eol proto((int)),
+	ModeLine proto((Window *)),
+	mode_app proto((char *)),
+	dobell proto((int x)),
+	GotoDot proto((void)),
+	UpdLine proto((int)),
+	UpdWindow proto((Window *, int));
 
 private int
-	AddLines(int, int),
-	DelLines(int, int),
-	UntilEqual(int);
-#else
-private void
 #ifdef ID_CHAR
-	DeTab(),
-	DelChar(),
-	InsChar(),
+	IDchar proto ((char *, int, int)),
+	NumSimilar proto ((char *, char *, int)),
+	IDcomp proto ((char *, char *, int)),
+	OkayDelete proto ((int, int, int)),
+	OkayInsert proto ((int, int)),
 #endif
-	DoIDline(),
-	do_cl_eol(),
-	GotoDot(),
-	ModeLine(),
-	mode_app(),
-	UpdLine(),
-	UpdWindow();
-private int
-	AddLines(),
-	DelLines(),
-	UntilEqual();
-#endif	/* LINT_ARGS */
+	AddLines proto((int, int)),
+	DelLines proto((int, int)),
+	UntilEqual proto((int));
 
 #ifdef MAC
-#	undef private
-#	define private static
+# undef private
+# define private static
 #endif
 
 int	DisabledRedisplay = NO;
@@ -112,13 +102,13 @@ redisplay()
 	curwind->w_char = curwind->w_bufp->b_char;
 #ifdef MAC
 	InputPending = 0;
-#else	
+#else
 	if (InputPending = charp())	/* calls CheckEvent, which could */
 		return;	/* result in a call to rediplay(). We don't want that. */
 #endif
 #ifdef JOB_CONTROL
 	if (UpdFreq)
-		sighold(SIGALRM);
+		SigHold(SIGALRM);
 #endif
 	if (RingBell) {
 		dobell(1);
@@ -166,7 +156,7 @@ redisplay()
 ret:
 #ifdef JOB_CONTROL
 	if (UpdFreq)
-		sigrelse(SIGALRM);
+		SigRelse(SIGALRM);
 #else
 	;	/* yuck */
 #endif
@@ -219,13 +209,12 @@ register int	c_char;
 			pos += 2;
 		else
 			pos += 1;
- 	}
+	}
 	return pos;
 }
 
 int	UpdModLine = 0,
-	UpdMesg = 0,
-	CanScroll = 0;
+	UpdMesg = 0;
 
 private void
 DoIDline(start)
@@ -320,11 +309,11 @@ retry:
 			goto retry;
 		} else if (ntries == 2) {
 			w->w_top = w->w_line = w->w_bufp->b_first;
-			printf("\rERROR in redisplay: I got hopelessly lost!");
+			writef("\rERROR in redisplay: I got hopelessly lost!");
 			dobell(2);
 			goto retry;
 		} else if (ntries == 3) {
-			printf("\n\rOops, still lost, quitting ...\r\n");
+			writef("\n\rOops, still lost, quitting ...\r\n");
 			finish(1);
 		}
 	}
@@ -395,8 +384,10 @@ retry:
 	if (((des_p->s_id = (int) w->w_bufp) != phys_p->s_id) || UpdModLine)
 		des_p->s_flags = MODELINE | DIRTY;
 #ifdef MAC
-	if(UpdModLine) Modechange = 1;
-	if(w == curwind && w->w_control) SetScrollBar(w->w_control);
+	if (UpdModLine)
+		Modechange = 1;
+	if (w == curwind && w->w_control)
+		SetScrollBar(w->w_control);
 #endif
 }
 
@@ -492,8 +483,8 @@ register int	at,
 }
 
 /* Update line linenum in window w.  Only set PhysScreen to DesiredScreen
-   if the swrite or cl_eol works, that is nothing is interupted by 
-   characters typed. */ 
+   if the swrite or cl_eol works, that is nothing is interupted by
+   characters typed. */
 
 private void
 UpdLine(linenum)
@@ -522,7 +513,7 @@ register int	linenum;
 			int	fromcol = (w->w_flags & W_NUMLINES) ? 8 : 0;
 
 			if (w->w_flags & W_NUMLINES)
-				sprintf(outbuf, "%6d  ", des_p->s_vln);
+				swritef(outbuf, "%6d  ", des_p->s_vln);
 			lptr = lcontents(des_p->s_lp);
 			DeTab(des_p->s_offset, lptr, outbuf + fromcol,
 				(sizeof outbuf) - 1 - fromcol,
@@ -632,15 +623,15 @@ char	*outbuf;
 			phys_p = &outbuf[CO - 1];
 			*phys_p++ = '!';
 			break;
-		}			
+		}
 	}
 	*phys_p = 0;
 }
 
 /* ID character routines full of special cases and other fun stuff like that.
-   It actually works though ... 
+   It actually works though ...
 
-  	Returns Non-Zero if you are finished (no differences left). */
+	Returns Non-Zero if you are finished (no differences left). */
 
 private int
 IDchar(new, lineno, col)
@@ -738,7 +729,7 @@ OkayInsert(Saved, num)
 	if (IC)		/* Per character prefixes */
 		n = min(num * IClen, MIClen);
 
-	if (IM && !IN_INSmode) {	
+	if (IM && !IN_INSmode) {
 		/* Good terminal.  Fewer characters in this case */
 		n += IMlen;
 	}
@@ -762,10 +753,7 @@ DelChar(lineno, col, num)
 
 	Placur(lineno, col);
 	if (M_DC && num > 1) {
-		char	minibuf[16];
-
-		sprintf(minibuf, M_DC, num);
-		putpad(minibuf, num);
+		putargpad(M_DC, num, num);
 	} else {
 		for (i = num; --i >= 0; )
 			putpad(DC, 1);
@@ -813,10 +801,7 @@ char	*new;
 		if (!IN_INSmode)
 			INSmode(1);
 	} else if (M_IC && num > 1) {
-		char	minibuf[16];
-
-		sprintf(minibuf, M_IC, num);
-		putpad(minibuf, num);
+		putargpad(M_IC, num, num);
 	} else if (IC) {
 		for (i = 0; i < num; i++)
 			putpad(IC, 1);
@@ -837,44 +822,41 @@ char	*new;
    last time we checked. */
 
 char	Mailbox[FILESIZE];	/* initialized in main */
-int	MailInt = 60;	/* check no more often than 60 seconds */
+int	MailInt = 60;		/* check no more often than 60 seconds */
 #ifdef BIFF
-int	BiffChk = NO;	/* whether or not to turn off biff while in JOVE */
+int	BiffChk = NO;		/* whether to turn off biff while in JOVE */
 #endif
 
 int
 chkmail(force)
 {
 	time_t	now;
-	static time_t	last_chk = 0;
-	static int	value = FALSE;
-	static off_t	last_size = 0;
+	static int	state = NO;	/* assume unknown */
+	static time_t	last_chk = 0,
+			mbox_time;
 	struct stat	stbuf;
-	int	last_val;
-	static time_t	last_time = 0;
 
+	if (MailInt == 0)
+		return NO;
 	time(&now);
-	if (!force && (now < last_chk + MailInt))
-		return value;
+	if ((force == NO) && (now < last_chk + MailInt))
+		return state;
 	last_chk = now;
-	if (force)
-		last_time = now;
 	if (stat(Mailbox, &stbuf) < 0) {
-		value = FALSE;
-		return FALSE;
+		state = NO;		/* no mail */
+		return NO;
 	}
-	last_val = value;
-	value = ((stbuf.st_mtime > last_time) &&
-		 (stbuf.st_size > 0) &&
-		 (stbuf.st_size >= last_size) &&
-		 (stbuf.st_mtime + 5 > stbuf.st_atime));
-	if (value == TRUE &&
-		      ((value != last_val) || (stbuf.st_size != last_size)))
-		dobell(3);
-	if (stbuf.st_size < last_size)
-		last_time = now;
-	last_size = stbuf.st_size;
-	return value;
+	if (((stbuf.st_atime > stbuf.st_mtime) &&
+	     (stbuf.st_atime > mbox_time)) ||
+	    (stbuf.st_size == 0)) {
+		mbox_time = stbuf.st_atime;
+		state = NO;
+	} else if (stbuf.st_mtime > mbox_time) {
+		mbox_time = stbuf.st_mtime;
+		state = YES;
+		dobell(3);		/* announce the change */
+	}
+	return state;
 }
 
 #endif /* UNIX */
@@ -889,8 +871,6 @@ private void
 mode_app(str)
 register char	*str;
 {
-	if (mode_p >= mend_p)
-		return;
 	while ((mode_p < mend_p) && (*mode_p++ = *str++))
 		;
 	mode_p -= 1;	/* back over the null */
@@ -905,7 +885,8 @@ register Window	*w;
 	extern int	i_line;
 	extern char	*pwd();
 	int	n,
-		ign_some = NO;
+		ign_some = NO,
+		glue = 0;
 	char	line[MAXCOLS],
 		*fmt = ModeFmt,
 		fillc,
@@ -916,19 +897,20 @@ register Window	*w;
 	mode_p = line;
 	mend_p = &line[(sizeof line) - 1];
 
-#if defined(UNIX) || (defined (MSDOS) && !defined(IBMPC))
-	if (BriteMode != 0 && SO == 0)
+#ifdef IBMPC
+	/* very subtle - don't mess up attributes too much */
+	fillc = '-';
+#else /* !IBMPC */
+#  ifdef MAC
+	fillc = '_';	/* looks better on a Mac */
+#  else /* !MAC */
+	if (SO == 0)
 		BriteMode = 0;
 	fillc = BriteMode ? ' ' : '-';
-#endif /* UNIX */
-#ifdef IBMPC		/* very subtle - don't mess up attributes too much */
-	fillc = '-'; /*BriteMode ? ' ' : '-';*/
-#endif /* IBMPC */
-#ifdef MAC
-	fillc = '_';	/* looks better on a Mac */
-#endif /* MAC */
+#  endif /* !MAC */
+#endif /* !IBMPC */
 
-	while (c = *fmt++) {
+	while ((c = *fmt++)!='\0' && mode_p<mend_p) {
 		if (c != '%') {
 			if (c == '\\')
 				if ((c = *fmt++) == '\0')
@@ -948,6 +930,8 @@ register Window	*w;
 				n = n * 10 + (c - '0');
 				c = *fmt++;
 			}
+			if (c == '\0')
+				break;
 		}
 		switch (c) {
 		case '(':
@@ -961,16 +945,13 @@ register Window	*w;
 
 		case '[':
 		case ']':
-		    {
-		    	char	*strs = (c == '[') ? "[[[[[[[[[[" : "]]]]]]]]]]";
-
-		    	mode_app(strs + 10 - RecDepth);
+			for (n=RecDepth; n>0 && mode_p<mend_p; n--)
+				*mode_p++ = c;
 			break;
-		    }
-			
+
 #ifdef UNIX
 		case 'C':	/* check mail here */
-			if (chkmail(NO))
+			if (chkmail(NO) == YES)
 				mode_app("[New mail]");
 			break;
 
@@ -978,7 +959,7 @@ register Window	*w;
 
 		case 'M':
 		    {
-		    	static char	*mmodes[] = {
+			static char	*mmodes[] = {
 				"Fundamental ",
 				"Text ",
 				"C ",
@@ -988,7 +969,7 @@ register Window	*w;
 				0
 			};
 
-		    	mode_app(mmodes[thisbuf->b_major]);
+			mode_app(mmodes[thisbuf->b_major]);
 
 			if (BufMinorMode(thisbuf, Fill))
 				mode_app("Fill ");
@@ -998,6 +979,8 @@ register Window	*w;
 				mode_app("OvrWt ");
 			if (BufMinorMode(thisbuf, Indent))
 				mode_app("AI ");
+			if (BufMinorMode(thisbuf, ReadOnly))
+				mode_app("RO ");
 			if (InMacDefine)
 				mode_app("Def ");
 			mode_p -= 1;	/* Back over the extra space. */
@@ -1005,26 +988,18 @@ register Window	*w;
 		    }
 
 		case 'c':
-			while (--n >= 0)
+			while (--n>=0 && mode_p<mend_p)
 				*mode_p++ = fillc;
 			break;
 
-#ifdef CHDIR
 		case 'd':	/* print working directory */
 			mode_app(pr_name(pwd(), YES));
 			break;
-#endif
-			
-		case 'e':
-		    {
-			/* 2 space pad pluss padding for magic cookies */
-			char	*last_p = &line[CO - 2 - (2 * SG)];
 
-			while (mode_p < last_p)
-				*mode_p++ = fillc;
-
-		    	goto outahere;		/* %e means we're done! */
-		    }
+		case 'e':	/* stretchable glue */
+			*mode_p++ = '\0';	/* glue marker */
+			glue++;
+			break;
 
 		case 'b':
 			mode_app(thisbuf->b_name);
@@ -1046,25 +1021,26 @@ register Window	*w;
 		case 'l':
 		    {
 			double	theavg;
-		    	char	minibuf[10];
+			char	minibuf[10];
 
-		    	get_la(&theavg);
-		    	theavg += .005;	/* round to nearest .01 */
-		    	sprintf(minibuf, "%d.%02d",
+			get_la(&theavg);
+			theavg += .005;	/* round to nearest .01 */
+			swritef(minibuf, "%d.%02d",
 			       (int) theavg,
 			       (int)((theavg - (int) theavg) * 100));
-		    	mode_app(minibuf);
+			mode_app(minibuf);
 			break;
 		    }
 #endif
 
 		case 'm':
-			if (IsModified(w->w_bufp))
-				*mode_p++ = fmt[0];
-			else
-				*mode_p++ = fmt[1];
-			fmt += 2;	/* skip two characters */
+		    {
+			char	yea = (*fmt == '\0') ? '*' : *fmt++;
+			char	nay = (*fmt == '\0') ? ' ' : *fmt++;
+
+			*mode_p++ = IsModified(w->w_bufp) ? yea : nay;
 			break;
+		    }
 
 		case 'n':
 		    {
@@ -1073,7 +1049,7 @@ register Window	*w;
 				if (bp == thisbuf)
 					break;
 
-			sprintf(tmp, "%d", n);
+			swritef(tmp, "%d", n);
 			mode_app(tmp);
 			break;
 		    }
@@ -1082,8 +1058,9 @@ register Window	*w;
 		case 'p':
 		    if (thisbuf->b_type == B_PROCESS) {
 			char	tmp[40];
+			extern char	*pstate();
 
-			sprintf(tmp, "(%s)", (thisbuf->b_process == 0) ?
+			swritef(tmp, "(%s)", (thisbuf->b_process == 0) ?
 					     "No process" :
 					     pstate(thisbuf->b_process));
 			mode_app(tmp);
@@ -1092,26 +1069,54 @@ register Window	*w;
 #endif
 
 		case 's':
-			if (mode_p[-1] == ' ')
-				continue;
-			*mode_p++ = ' ';
+			if (mode_p[-1] != ' ')
+				*mode_p++ = ' ';
 			break;
 
 		case 't':
 		    {
 			char	timestr[12];
 
-		    	mode_app(get_time((time_t *) 0, timestr, 11, 16));
+			mode_app(get_time((time_t *) 0, timestr, 11, 16));
 			break;
 		    }
 
 		case 'w':
-			if (w->w_LRscroll > 0) 
+			if (w->w_LRscroll > 0)
 				mode_app(">");
+			break;
 		}
 	}
 
-outahere:
+	/* Glue (Knuth's term) is a field that expands to fill
+	 * any leftover space.  Multiple glue fields compete
+	 * on an equal basis.  This is a generalization of a
+	 * mechanism to allow centring and right-justification.
+	 * The original meaning of %e (fill the rest of the
+	 * line) has also been generalized.  %e can now
+	 * meaningfully be used 0 or more times.
+	 */
+
+	if  (glue) {
+		/* 2 space pad plus padding for magic cookies */
+		register char	*to = &line[CO - 2 - (2 * SG)],
+				*from = mode_p;
+
+		if (to < from)
+			to = from;
+		mode_p = to;
+		while (from != line) {
+			if ((*--to = *--from) == '\0') {
+				register int	portion = (to-from) / glue;
+
+				glue--;
+				*to = fillc;
+				while (--portion >= 0)
+					*--to = fillc;
+			}
+		}
+	}
+
 	*mode_p = 0;
 
 	/* Highlight mode line. */
@@ -1120,22 +1125,33 @@ outahere:
 		if (IN_INSmode)
 			INSmode(0);
 #endif
-#ifdef TERMCAP
-		putpad(SO, 1);
-#else 
 		SO_on();
-#endif /* TERMCAP */
 	}
 	if (swrite(line, BriteMode, YES))
 		do_cl_eol(i_line);
 	else
 		UpdModLine = 1;
 	if (BriteMode)
-#ifdef TERMCAP
-		putpad(SE, 1);
-#else 
 		SO_off();
-#endif /* TERMCAP */
+}
+
+void
+v_clear(line1, line2)
+register int	line1;
+{
+	register struct scrimage	*phys_p, *des_p;
+
+	phys_p = &PhysScreen[line1];
+	des_p = &DesiredScreen[line1];
+
+	while (line1 <= line2) {
+		i_set(line1, 0);
+		cl_eol();
+		phys_p->s_id = des_p->s_id = 0;
+		phys_p += 1;
+		des_p += 1;
+		line1 += 1;
+	}
 }
 
 /* This tries to place the current line of the current window in the
@@ -1156,25 +1172,6 @@ RedrawDisplay()
 		v_clear(FLine(curwind), FLine(curwind) + SIZE(curwind));
 	else
 		SetTop(curwind, newtop);
-}
-
-void
-v_clear(line1, line2)
-register int	line1;
-{
-	register struct scrimage	*phys_p, *des_p;
-
-	phys_p = &PhysScreen[line1];
-	des_p = &DesiredScreen[line1];
-
-	while (line1 <= line2) {
-		i_set(line1, 0);
-		cl_eol();
-		phys_p->s_id = des_p->s_id = 0;
-		phys_p += 1;
- 		des_p += 1;
-		line1 += 1;
-	}
 }
 
 void
@@ -1226,7 +1223,7 @@ PageScrollUp()
 void
 PageScrollDown()
 {
-   	int i, n;
+	int i, n;
 
 	n = max(1, SIZE(curwind) - 1);
 	for (i=0; i<n; i++) {
@@ -1420,7 +1417,7 @@ TOstop()
 		}
 		if (last_col != 0)
 			Typeout((char *) 0);
-  		Typeout("----------");
+		Typeout("----------");
 		cl_eol();
 		flusho();
 		c = getchar();

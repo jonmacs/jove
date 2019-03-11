@@ -6,21 +6,22 @@
  ***************************************************************************/
 
 #include "jove.h"
+#include "fp.h"
 #include <ctype.h>
 #include <errno.h>
 
 #ifndef MAC	/* most of the file... */
 
 #ifndef MSDOS
-#ifdef SYSV
+# ifdef SYSV
 #   include <termio.h>
-#else
+# else
 #   include <sgtty.h>
-#endif /* SYSV */
+# endif /* SYSV */
 #endif /* MSDOS */
 
 #ifdef IPROCS
-#   include <signal.h>
+# include <signal.h>
 #endif
 
 #define _TERM
@@ -60,7 +61,8 @@ char	*CS,
 	*BL,
 	*IP,	/* insert pad after character inserted */
 	*lPC,
-	*NL;
+	*NL,
+	*DO;
 #endif
 
 int	LI,
@@ -71,6 +73,7 @@ int	LI,
 	MI,
 	SG,	/* number of magic cookies left by SO and SE */
 	XS,	/* whether standout is braindamaged */
+	HZ,	/* Hazeltine tilde kludge */
 
 	TABS,
 	UPlen,
@@ -87,24 +90,24 @@ extern char	PC,
 	 * on I got a multiple definition of PC because it was already
 	 * defined in -ltermcap.  Similarly for BC and UP ...
 	 */
-#ifdef SYSVR2 /* release 2, at least */
+# ifdef SYSVR2 /* release 2, at least */
 char	PC;
-#else
+# else
 extern char	PC;
-#endif /* SYSVR2 */
+# endif /* SYSVR2 */
 #endif
 
 #ifndef IBMPC
 static char	tspace[256];
 
 /* The ordering of ts and meas must agree !! */
-static char	*ts="vsvealdlspcssosecmclcehoupbcicimdceillsfsrvbksketiteALDLICDCpcipblnl";
+static char	*ts="vsvealdlspcssosecmclcehoupbcicimdceillsfsrvbksketiteALDLICDCpcipblnldo";
 static char	**meas[] = {
 	&VS, &VE, &AL, &DL, &SP, &CS, &SO, &SE,
 	&CM, &CL, &CE, &HO, &UP, &BC, &IC, &IM,
 	&DC, &EI, &LL, &SF, &SR, &VB, &KS, &KE,
 	&TI, &TE, &M_AL, &M_DL, &M_IC, &M_DC,
-	&lPC, &IP, &BL, &NL, 0
+	&lPC, &IP, &BL, &NL, &DO, 0
 };
 
 static void
@@ -112,7 +115,7 @@ gets(buf)
 char	*buf;
 {
 	buf[read(0, buf, 12) - 1] = 0;
-}	
+}
 
 /* VARARGS1 */
 
@@ -120,7 +123,7 @@ static void
 TermError(fmt, a)
 char	*fmt;
 {
-	printf(fmt, a);
+	writef(fmt, a);
 	flusho();
 	_exit(1);
 }
@@ -167,6 +170,9 @@ wimperr:	TermError("You can't run JOVE on a %s terminal.\n", termname);
 	if ((XS = tgetflag("xs")) == -1)
 		XS = 0;			/* Used for mode line only */
 
+	if ((HZ = tgetflag("hz")) == -1)
+		HZ = 0;			/* Hazeltine tilde kludge */
+
 	for (i = 0; meas[i]; i++) {
 		*(meas[i]) = (char *) tgetstr(ts, &termp);
 		ts += 2;
@@ -197,9 +203,14 @@ wimperr:	TermError("You can't run JOVE on a %s terminal.\n", termname);
 		if (*NL == '*')
 			NL += 1;
 	}
+	if (!DO)
+		DO = NL;
 
 	if (BL == 0)
 		BL = "\007";
+
+	if (tgetflag("km") > 0)		/* has meta-key */
+		MetaKey = YES;
 
 #ifdef ID_CHAR
 	disp_opt_init();
@@ -222,7 +233,7 @@ getTERM()
 {
 	char	*getenv(), *tgetstr() ;
 	char	*termname;
-    	void	init_43(), init_term();
+	void	init_43(), init_term();
 	unsigned char lpp(), chpl();
 
 	if (getenv("EGA") || (!stricmp(getenv("TERM"), "EGA"))) {
@@ -253,7 +264,7 @@ int	LI,
 	CO,
 	TABS,
 	SG;
-	
+
 void getTERM()
 {
 	SG = 0;
@@ -262,4 +273,99 @@ void getTERM()
 
 #endif /* MAC */
 
+/* put a string with padding */
 
+#ifndef IBMPC
+void
+tputc(c)
+{
+	putchar(c);
+}
+#endif /* IBMPC */
+
+#ifndef MAC
+void
+putpad(str, lines)
+char	*str;
+{
+#ifndef IBMPC
+	if (str)
+		tputs(str, lines, tputc);
+#else /* IBMPC */
+	write_emif(str);
+#endif /* IBMPC */
+}
+
+putargpad(str, arg, lines)
+char	*str;
+int	lines, arg;
+{
+#ifndef	IBMPC
+	if (str) {
+		tputs(
+#ifdef	TERMINFO
+			tparm(str, arg),
+#else	TERMINFO
+			tgoto(str, 0, arg),	/* fudge */
+#endif	TERMINFO
+			lines, tputc);
+	}
+#else	/* IBMPC */
+	/* This code is only a guess: I don't know if any M_* termcap
+	 * attributes are defined for the PC.  If they are not used,
+	 * this routine is not called.  Perhaps this routine should
+	 * simply abort.
+	 */
+	if (str) {
+		char	buf[16];	/* hope that this is long enough */
+
+		swritef(buf, str, arg);	/* hope only %d appears in str */
+		write_em(buf);
+	}
+#endif	/* IBMPC */
+}
+
+#endif MAC
+
+/* Determine the number of characters to buffer at each baud rate.  The
+   lower the number, the quicker the response when new input arrives.  Of
+   course the lower the number, the more prone the program is to stop in
+   output.  Decide what matters most to you. This sets BufSize to the right
+   number or chars, and initializes `stdout'.  */
+
+void
+settout(ttbuf)
+char	*ttbuf;
+{
+#if !(defined(MSDOS) || defined(MAC))
+	extern short	ospeed;
+#endif
+	int	speed_chars;
+	static int speeds[] = {
+		1,	/* 0	*/
+		1,	/* 50	*/
+		1,	/* 75	*/
+		1,	/* 110	*/
+		1,	/* 134	*/
+		1,	/* 150	*/
+		1,	/* 200	*/
+		2,	/* 300	*/
+		4,	/* 600	*/
+		8,	/* 1200 */
+		16,	/* 1800	*/
+		32,	/* 2400	*/
+		128,	/* 4800	*/
+		256,	/* 9600	*/
+		512,	/* EXTA	*/
+		1024	/* EXT	*/
+	};
+
+#if (defined(MSDOS) || defined(MAC))
+	speed_chars = 256;
+#else
+	speed_chars = speeds[ospeed];
+#endif
+	flusho();		/* flush the one character buffer */
+	BufSize = min(MAXTTYBUF, speed_chars * max(LI / 24, 1));
+	stdout = fd_open("/dev/tty", F_WRITE|F_LOCKED, 1, ttbuf, BufSize);
+}

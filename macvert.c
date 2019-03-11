@@ -129,7 +129,7 @@ retry:		bodylen = int_fmt(tmp);
 		mac_io(read, macname, namelen);
 		mac_io(read, macbuf, bodylen);
 		output_new_definition(macname, macbuf, bodylen);
-	}		
+	}
 }
 
 pr_putc(c)

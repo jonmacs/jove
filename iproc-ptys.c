@@ -5,14 +5,10 @@
  * included in all the files.                                              *
  ***************************************************************************/
 
-#ifdef BSD4_2
-#   include <sys/wait.h>
-#else
-#   include <wait.h>
-#endif
 #include <signal.h>
 #include <sgtty.h>
 #include <errno.h>
+#include "wait.h"
 
 #define DEAD	1	/* dead but haven't informed user yet */
 #define STOPPED	2	/* job stopped */
@@ -47,33 +43,6 @@ extern struct tchars tc1;
 	extern struct ltchars ls1;
 #endif
 
-char *
-pstate(p)
-Process	*p;
-{
-	switch (proc_state(p)) {
-	case STOPPED:
-		return "Stopped";
-
-	case RUNNING:
-		return "Running";
-
-	case DEAD:
-		if (p->p_howdied == EXITED) {
-			if (p->p_reason == 0)
-				return "Done";
-			return sprint("Exit %d", p->p_reason);
-		}
-		return sprint("Killed %d", p->p_reason);
-
-	case NEW:
-		return "New";
-
-	default:
-		return "Unknown state";
-	}
-}
-
 static Process *
 proc_pid(pid)
 {
@@ -90,7 +59,7 @@ read_proc(fd)
 register int	fd;
 {
 	register Process	*p;
-	unsigned int	n;
+	int	n;
 	char	ibuf[1024];
 
 	for (p = procs; p != 0; p = p->p_next)
@@ -98,7 +67,7 @@ register int	fd;
 			break;
 
 	if (p == 0) {
-		printf("\riproc: unknown fd %d", fd);
+		writef("\riproc: unknown fd %d", fd);
 		return;
 	}
 
@@ -119,7 +88,7 @@ register int	fd;
 		if (n == 0)
 			strcpy(ibuf, "[Process EOF]");
 		else
-			sprintf(ibuf, "\n[pty read error: %d]\n", errno);
+			swritef(ibuf, "\n[pty read error: %d]\n", errno);
 	} else
 		ibuf[n] = '\0';
 	proc_rec(p, ibuf);
@@ -148,8 +117,9 @@ ProcCont()
 		complain("[No process]");
 	if (p->p_state != DEAD) {
 		proc_kill(p, SIGCONT);
+		UpdModLine = YES;
 		p->p_state = RUNNING;
-	}		
+	}
 }
 
 ProcEof()
@@ -196,7 +166,7 @@ private
 proc_close(p)
 Process *p;
 {
-	sighold(SIGCHLD);	/* be mutually exclusive */
+	SigHold(SIGCHLD);	/* be mutually exclusive */
 
 	if (p->p_fd >= 0) {
 		(void) close(p->p_fd);
@@ -205,35 +175,14 @@ Process *p;
 		p->p_fd = -1;
 	}
 
-	sigrelse(SIGCHLD);
+	SigRelse(SIGCHLD);
 }
 
-do_rtp(mp)
-register Mark	*mp;
+proc_write(p, buf, nbytes)
+Process *p;
+char	*buf;
 {
-	register Process	*p = curbuf->b_process;
-	Line	*line1 = curline,
-		*line2 = mp->m_line;
-	int	char1 = curchar,
-		char2 = mp->m_char;
-	char	*gp;
-	int	nbytes;
-
-	if (isdead(p) || p->p_buffer != curbuf)
-		return;
-
-	(void) fixorder(&line1, &char1, &line2, &char2);
-	while (line1 != line2->l_next) {
-		gp = ltobuf(line1, genbuf) + char1;
-		if (line1 == line2)
-			gp[char2] = '\0';
-		else
-			strcat(gp, "\n");
-		if (nbytes = strlen(gp))
-			(void) write(p->p_fd, gp, nbytes);
-		line1 = line1->l_next;
-		char1 = 0;
-	}
+	(void) write(p->p_fd, buf, nbytes);
 }
 
 /* VARARGS2 */
@@ -253,13 +202,13 @@ va_dcl
 	int	i,
 		ptyfd,
 		ttyfd,
-	 	ldisc,
+		ldisc,
 		lmode;
 	register char	*s,
 			*t;
 	extern int	errno;
-	static char	ttybuf[11],
-			ptybuf[11];
+	char	ttybuf[11],
+		ptybuf[11];
 	char	cmdbuf[128];
 #ifdef BRLUNIX
 	struct sg_brl sg;
@@ -280,7 +229,7 @@ va_dcl
 				   or is of type B_PROCESS */
 	for (s = "pqrs"; *s; s++) {
 		for (t = "0123456789abcdef"; *t; t++) {
-			sprintf(ptybuf, "/dev/pty%c%c", *s, *t);
+			swritef(ptybuf, "/dev/pty%c%c", *s, *t);
 			if ((ptyfd = open(ptybuf, 2)) >= 0) {
 				strcpy(ttybuf, ptybuf);
 				ttybuf[5] = 't';
@@ -310,9 +259,9 @@ out:	if (s == 0 && t == 0)
 #  endif /* BTL_BLIT */
 #endif
 
-	sighold(SIGCHLD);
+	SigHold(SIGCHLD);
 #ifdef SIGWINCH
-	sighold(SIGWINCH);
+	SigHold(SIGWINCH);
 #endif
 	switch (pid = fork()) {
 	case -1:
@@ -321,9 +270,9 @@ out:	if (s == 0 && t == 0)
 		goto fail;
 
 	case 0:
-		sigrelse(SIGCHLD);
+		SigRelse(SIGCHLD);
 #ifdef SIGWINCH
-		sigrelse(SIGWINCH);
+		SigRelse(SIGWINCH);
 #endif
 		for (i = 0; i < 32; i++)
 			(void) close(i);
@@ -400,7 +349,7 @@ out:	if (s == 0 && t == 0)
 	cmdbuf[0] = '\0';
 	va_start(ap);
 	while (cp = va_arg(ap, char *))
-		sprintf(&cmdbuf[strlen(cmdbuf)], "%s ", cp++);
+		swritef(&cmdbuf[strlen(cmdbuf)], "%s ", cp++);
 	va_end(ap);
 
 	newp->p_name = copystr(cmdbuf);
@@ -414,12 +363,12 @@ out:	if (s == 0 && t == 0)
 	global_fd |= 1L << newp->p_fd;
 	SetWind(owind);
 
-fail:	sigrelse(SIGCHLD);
+fail:	SigRelse(SIGCHLD);
 #ifdef SIGWINCH
-	sigrelse(SIGWINCH);
+	SigRelse(SIGWINCH);
 #endif
 }
-	
+
 pinit()
 {
 	(void) signal(SIGCHLD, proc_child);

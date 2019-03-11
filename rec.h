@@ -10,7 +10,7 @@ struct rec_head {
 			Pid;		/* pid of jove process */
 	time_t		UpdTime;	/* last time this was updated */
 	int		Nbuffers;	/* number of buffers */
-	disk_line	FreePtr;	/* position of DFree */
+	daddr		FreePtr;	/* position of DFree */
 };
 
 struct rec_entry {

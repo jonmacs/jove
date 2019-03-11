@@ -84,7 +84,7 @@ int	c;
 		strcpy(cp, "ESC");
 #ifdef IBMPC
 	else if (c == '\377')
-	        strcpy(cp, "M");
+		strcpy(cp, "M");
 #endif /* IBMPC */
 	else if (c < ' ')
 		(void) sprintf(cp, "C-%c", c + '@');
@@ -192,7 +192,7 @@ main()
 				fprintf(of, "	(data_obj *) 0,\n");
 			else
 				fprintf(of, "	(data_obj *) &%s[%d],\n",which, comnum);
-		} 
+		}
 		else {
 #endif
 		if (comnum == 12345)

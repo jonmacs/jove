@@ -6,45 +6,38 @@
  ***************************************************************************/
 
 #include "jove.h"
-#include "io.h"
+#include "fp.h"
 #include "termcap.h"
 #include "ctype.h"
+#include "chars.h"
+#include "disp.h"
+
 #ifdef JOB_CONTROL
-#	include <signal.h>
+# include <signal.h>
 #endif
 
 #ifdef MAC
-#	include "mac.h"
+# include "mac.h"
 #else
-#	include <varargs.h>
+# include <varargs.h>
 #endif
 
 #ifdef MSDOS
-#include <process.h>
+# include <process.h>
 #endif
 
 #ifdef MAC
-#	undef private
-#	define private
+# undef private
+# define private
 #endif
 
-#ifdef	LINT_ARGS
-private	void
-	fb_aux(data_obj *, data_obj **, char *, char *),
-	find_binds(data_obj *, char *),
-	vpr_aux(struct variable *, char *);
-#else
-private	void
-	fb_aux(),
-	find_binds(),
-	vpr_aux();
-#endif	/* LINT_ARGS */
+private void
+	DefAutoExec proto((struct data_obj *(*proc)()));
 
-#ifdef MAC
-#	undef private
-#	define private static
+#if defined(MAC)
+# undef private
+# define private static
 #endif
-
 
 int	InJoverc = 0;
 
@@ -80,12 +73,12 @@ MAutoExec()
 
 /* VARARGS0 */
 
-void
+private void
 DefAutoExec(proc)
-#ifdef LINT_ARGS
+#if defined(MAC)
 data_obj	*(*proc)();
 #else
-data_obj	*(*proc)();
+data_obj	*(*proc) proto((char *));
 #endif
 {
 	data_obj	*d;
@@ -101,7 +94,7 @@ data_obj	*(*proc)();
 	    for (i = 0; i < ExecIndex; i++)
 		if ((AutoExecs[i].a_cmd == d) &&
 		    (strcmp(pattern, AutoExecs[i].a_pattern) == 0))
-		    	return;		/* eliminate duplicates */
+			return;		/* eliminate duplicates */
 	AutoExecs[ExecIndex].a_pattern = copystr(pattern);
 	AutoExecs[ExecIndex].a_cmd = d;
 	ExecIndex += 1;
@@ -127,63 +120,6 @@ register char	*new,
 			ExecCmd(AutoExecs[i].a_cmd);
 }
 
-void
-BindAKey()
-{
-	BindSomething(findcom);
-}
-
-void
-BindMac()
-{
-	BindSomething(findmac);
-}
-
-extern void	EscPrefix(),
-		CtlxPrefix(),
-		MiscPrefix();
-
-data_obj **
-IsPrefix(cp)
-data_obj	*cp;
-{
-#ifdef MAC
-	void (*proc)();
-#else
-	int	(*proc)();
-#endif
-	
-	if (cp == 0 || (cp->Type & TYPEMASK) != FUNCTION)
-		return 0;
-	proc = ((struct cmd *) cp)->c_proc;
-	if (proc == EscPrefix)
-		return pref1map;
-	if (proc == CtlxPrefix)
-		return pref2map;
-	if (proc == MiscPrefix)
-		return miscmap;
-	return 0;
-}
-
-void
-UnbindC()
-{
-	char	*keys;
-	data_obj	**map = mainmap;
-
-	keys = ask((char *) 0, ProcFmt);
-	for (;;) {
-		if (keys[1] == '\0')
-			break;
-		if ((map = IsPrefix(map[*keys])) == 0)
-			break;
-		keys += 1;
-	}
-	if (keys[1] != 0)
-		complain("That's not a legitimate key sequence.");
-	map[keys[0]] = 0;
-}
-		
 int
 addgetc()
 {
@@ -211,297 +147,6 @@ addgetc()
 		}
 	}
 	return c;
-}
-
-void
-BindWMap(map, lastkey, cmd)
-data_obj	**map,
-		*cmd;
-{
-	data_obj	**nextmap;
-	int	c;
-
-	c = addgetc();
-	if (c == EOF) {
-		if (lastkey == EOF)
-			complain("[Empty key sequence]");
-		complain("[Premature end of key sequence]");
-	} else {
-		if (nextmap = IsPrefix(map[c]))
-			BindWMap(nextmap, c, cmd);
-		else {
-			map[c] = cmd;
-#ifdef MAC
-			((struct cmd *) cmd)->c_key = c;	/* see about_j() in mac.c */
-			if(map == mainmap) ((struct cmd *) cmd)->c_map = F_MAINMAP;
-			else if(map == pref1map) ((struct cmd *) cmd)->c_map = F_PREF1MAP;
-			else if(map == pref2map) ((struct cmd *) cmd)->c_map = F_PREF2MAP;
-#endif
-		}
-	}
-}
-
-/* VARARGS0 */
-
-void
-BindSomething(proc)
-#ifdef LINT_ARGS
-data_obj	*(*proc)();
-#else
-data_obj	*(*proc)();
-#endif
-{
-	data_obj	*d;
-
-	if ((d = (*proc)(ProcFmt)) == 0)
-		return;
-	s_mess(": %f %s ", d->Name);
-	BindWMap(mainmap, EOF, d);
-}
-
-/* Describe key */
-
-void
-DescWMap(map, key)
-data_obj	**map;
-{
-	data_obj	*cp = map[key],
-			**prefp;
-
-	if (cp == 0)
-		add_mess("is unbound.");
-	else if (prefp = IsPrefix(cp))
-		DescWMap(prefp, addgetc());
-	else
-		add_mess("is bound to %s.", cp->Name);
-}
-
-void
-KeyDesc()
-{
-	s_mess(ProcFmt);
-	DescWMap(mainmap, addgetc());
-}
-
-void
-DescCom()
-{
-	data_obj	*dp;
-	char	pattern[100],
-		doc_type[40],
-		*file = CmdDb;
-	File	*fp;
-
-	if (!strcmp(LastCmd->Name, "describe-variable"))
-		dp = (data_obj *) findvar(ProcFmt);
-	else
-		dp = (data_obj *) findcom(ProcFmt);
-	if (dp == 0)
-		return;
-	fp = open_file(file, iobuff, F_READ, COMPLAIN, QUIET);
-	Placur(ILI, 0);
-	flusho();
-	sprintf(pattern, "^:entry \"%s\" \"\\([^\"]*\\)\"", dp->Name);
-	TOstart("Help", TRUE);
-	for (;;) {
-		if (f_gets(fp, genbuf, LBSIZE) == EOF) {
-			Typeout("There is no documentation for \"%s\".", dp->Name);
-			goto outahere;
-		}
-		if ((strncmp(genbuf, ":entry", 6) == 0) && LookingAt(pattern, genbuf, 0))
-			break;
-	}
-	/* found it ... let's print it */
-	putmatch(1, doc_type, sizeof doc_type);
-	if (strcmp("Variable", doc_type) == 0)
-		Typeout(dp->Name);
-	else if (strcmp("Command", doc_type) == 0) {
-		char	binding[128];
-
-		find_binds(dp, binding);
-		if (blnkp(binding))
-			Typeout("To invoke %s, type \"ESC X %s<cr>\".",
-				dp->Name,
-				dp->Name);
-		else
-			Typeout("Type \"%s\" to invoke %s.", binding, dp->Name);
-	}
-	Typeout("");
-	while (f_gets(fp, genbuf, LBSIZE) != EOF)
-		if (strncmp(genbuf, ":entry", 6) == 0)
-			goto outahere;
-		else
-			Typeout("%s", genbuf);
-outahere:
-	f_close(fp);
-	TOstop();
-}
-
-void
-DescBindings()
-{
-	extern void	Typeout();
-
-	TOstart("Key Bindings", TRUE);
-	DescMap(mainmap, NullStr);
-	TOstop();
-}
-
-extern int specialmap;
-
-void
-DescMap(map, pref)
-data_obj	**map;
-char	*pref;
-{
-	int	c1,
-		c2 = 0,
-		numbetween;
-	char	keydescbuf[40];
-	data_obj	**prefp;
-
-#ifdef IBMPC
-	specialmap = (map == miscmap);
-#endif
-
-	for (c1 = 0; c1 < NCHARS && c2 < NCHARS; c1 = c2 + 1) {
-		c2 = c1;
-		if (map[c1] == 0)
-			continue;
-		while (++c2 < NCHARS && map[c1] == map[c2])
-			;
-		c2 -= 1;
-		numbetween = c2 - c1;
-		if (numbetween == 1)
-			sprintf(keydescbuf, "%s {%p,%p}", pref, c1, c2);
-		else if (numbetween == 0)
-			sprintf(keydescbuf, "%s %p", pref, c1);
-		else
-			sprintf(keydescbuf, "%s [%p-%p]", pref, c1, c2);
-		if ((prefp = IsPrefix(map[c1])) && (prefp != map))
-			DescMap(prefp, keydescbuf);
-		else
-			Typeout("%-18s%s", keydescbuf, map[c1]->Name);
-	}
-}
-
-private void
-find_binds(dp, buf)
-data_obj	*dp;
-char	*buf;
-{
-	char	*endp;
-
-	buf[0] = '\0';
-	fb_aux(dp, mainmap, (char *) 0, buf);
-	endp = buf + strlen(buf) - 2;
-	if ((endp > buf) && (strcmp(endp, ", ") == 0))
-		*endp = '\0';
-}
-
-private void
-fb_aux(cp, map, prefix, buf)
-register data_obj	*cp,
-			**map;
-char	*buf,
-	*prefix;
-{
-	int	c1,
-		c2;
-	char	*bufp = buf + strlen(buf),
-		prefbuf[20];
-	data_obj	**prefp;
-
-#ifdef IBMPC
-	specialmap = (map == miscmap);
-#endif	
-
-	for (c1 = c2 = 0; c1 < NCHARS && c2 < NCHARS; c1 = c2 + 1) {
-		c2 = c1;
-		if (map[c1] == cp) {
-			while (++c2 < NCHARS && map[c1] == map[c2])
-				;
-			c2 -= 1;
-			if (prefix)
-				sprintf(bufp, "%s ", prefix);
-			bufp += strlen(bufp);
-			switch (c2 - c1) {
-			case 0:
-				sprintf(bufp, "%p, ", c1);
-				break;
-	
-			case 1:
-				sprintf(bufp, "{%p,%p}, ", c1, c2);
-				break;
-	
-			default:
-				sprintf(bufp, "[%p-%p], ", c1, c2);
-				break;
-			}
-		}
-		if ((prefp = IsPrefix(map[c1])) && (prefp != map))  {
-			sprintf(prefbuf, "%p", c1);
-			fb_aux(cp, prefp, prefbuf, bufp);
-		}
-		bufp += strlen(bufp);
-	}
-}
-
-void
-Apropos()
-{
-	register struct cmd	*cp;
-	register struct macro	*m;
-	register struct variable	*v;
-	char	*ans;
-	int	anyfs = NO,
-		anyvs = NO,
-		anyms = NO;
-	char	buf[256];
-
-	ans = ask((char *) 0, ": %f (keyword) ");
-	TOstart("Help", TRUE);
-	for (cp = commands; cp->Name != 0; cp++)
-		if (sindex(ans, cp->Name)) {
-			if (anyfs == 0) {
-				Typeout("Commands");
-				Typeout("--------");
-			}
-			find_binds((data_obj *) cp, buf);
-			if (buf[0])
-				Typeout(": %-35s(%s)", cp->Name, buf);
-			else
-				Typeout(": %s", cp->Name);
-			anyfs = YES;
-		}
-	if (anyfs)
-		Typeout(NullStr);
-	for (v = variables; v->Name != 0; v++)
-		if (sindex(ans, v->Name)) {
-			if (anyvs == 0) {
-				Typeout("Variables");
-				Typeout("---------");
-			}
-			anyvs = YES;
-			vpr_aux(v, buf);
-			Typeout(": set %-26s%s", v->Name, buf);
-		}
-	if (anyvs)
-		Typeout(NullStr);
-	for (m = macros; m != 0; m = m->m_nextm)
-		if (sindex(ans, m->Name)) {
-			if (anyms == 0) {
-				Typeout("Macros");
-				Typeout("------");
-			}
-			anyms = YES;
-			find_binds((data_obj *) m, buf);
-			if (buf[0])
-				Typeout(": %-35s(%s)", m->Name, buf);
-			else
-				Typeout(": %-35s%s", "execute-macro", m->Name);
-		}
-	TOstop();
 }
 
 void
@@ -560,31 +205,31 @@ int	base;
 	return value;
 }
 
-private void
+void
 vpr_aux(vp, buf)
 register struct variable	*vp;
 char	*buf;
 {
 	switch (vp->v_flags & V_TYPEMASK) {
 	case V_BASE10:
-		sprintf(buf, "%d", *(vp->v_value));
+		swritef(buf, "%d", *((int *) vp->v_value));
 		break;
 
 	case V_BASE8:
-		sprintf(buf, "%o", *(vp->v_value));
+		swritef(buf, "%o", *((int *) vp->v_value));
 		break;
 
 	case V_BOOL:
-		sprintf(buf, (*(vp->v_value)) ? "on" : "off");
+		swritef(buf, (*((int *) vp->v_value)) ? "on" : "off");
 		break;
 
 	case V_STRING:
 	case V_FILENAME:
-		sprintf(buf, "%s", (char *) vp->v_value);
+		swritef(buf, "%s", vp->v_value);
 		break;
 
 	case V_CHAR:
-		sprintf(buf, "%p", *(vp->v_value));
+		swritef(buf, "%p", *((int *) vp->v_value));
 		break;
 	}
 }
@@ -615,61 +260,61 @@ SetVar()
 	case V_BASE10:
 	case V_BASE8:
 	    {
-	    	int	value;
+		int	value;
 
 		value = ask_int(prompt, ((vp->v_flags & V_TYPEMASK) == V_BASE10)
 					  ? 10 : 8);
-		*(vp->v_value) = value;
-	    	break;
+		*((int *) vp->v_value) = value;
+		break;
 	    }
 
 	case V_BOOL:
 	    {
-	    	char	*def = *(vp->v_value) ? "off" : "on",
-	    		*on_off;
-	    	int	value;
+		char	*def = *((int *) vp->v_value) ? "off" : "on",
+			*on_off;
+		int	value;
 
-	    	on_off = ask(def, prompt);
+		on_off = ask(def, prompt);
 		if (casecmp(on_off, "on") == 0)
 			value = ON;
-	    	else if (casecmp(on_off, "off") == 0)
-	    		value = OFF;
-	    	else
-	    		complain("Boolean variables must be ON or OFF.");
-	    	*(vp->v_value) = value;
+		else if (casecmp(on_off, "off") == 0)
+			value = OFF;
+		else
+			complain("Boolean variables must be ON or OFF.");
+		*((int *) vp->v_value) = value;
 #ifdef MAC
 		MarkVar(vp,-1,0);	/* mark the menu item */
 #endif
-	    	s_mess("%s%s", prompt, value ? "on" : "off");
-	    	break;
+		s_mess("%s%s", prompt, value ? "on" : "off");
+		break;
 	    }
 
 	case V_FILENAME:
 	    {
 		char	fbuf[FILESIZE];
 
-	    	sprintf(&prompt[strlen(prompt)], "(default %s) ", vp->v_value);
-	    	(void) ask_file(prompt, (char *) vp->v_value, fbuf);
+		swritef(&prompt[strlen(prompt)], "(default %s) ", vp->v_value);
+		(void) ask_file(prompt, (char *) vp->v_value, fbuf);
 		strcpy((char *) vp->v_value, fbuf);
-	    	break;
+		break;
 	    }
 
 	case V_STRING:
 	    {
 		char	*str;
 
-	    	/* Do_ask() so you can set string to "" if you so desire. */
-	    	str = do_ask("\r\n", (int (*)()) 0, (char *) vp->v_value, prompt);
-	    	if (str == 0)
+		/* Do_ask() so you can set string to "" if you so desire. */
+		str = do_ask("\r\n", (int (*)()) 0, (char *) vp->v_value, prompt);
+		if (str == 0)
 			str = NullStr;
-	    	strcpy((char *) vp->v_value, str);
+		strcpy(vp->v_value, str);
 		/* ... and hope there is enough room. */
-	    	break;
+		break;
 	    }
 	case V_CHAR:
 		f_mess(prompt);
-	    	*(vp->v_value) = addgetc();
-		break;	    	
+		*((int *) vp->v_value) = addgetc();
+		break;
 
 	}
 	if (vp->v_flags & V_MODELINE)
@@ -683,7 +328,7 @@ SetVar()
 	if (vp->v_flags & V_TTY_RESET)
 		tty_reset();
 }
-			
+
 /* Command completion - possible is an array of strings, prompt is
    the prompt to use, and flags are ... well read jove.h.
 
@@ -707,7 +352,7 @@ aux_complete(c)
 		for (lp = linebuf; *lp != '\0'; lp++)
 #if (defined(IBMPC) || defined(MAC))
 			lower(lp);
-#else			
+#else
 			if (isupper(*lp))
 				*lp = tolower(*lp);
 #endif
@@ -741,9 +386,9 @@ aux_complete(c)
 	case ' ':
 	    {
 		int	minmatch = 1000,
-	    		maxmatch = 0,
-	    		numfound = 0,
-	    		lastmatch = -1,
+			maxmatch = 0,
+			numfound = 0,
+			lastmatch = -1,
 			length = strlen(linebuf);
 
 		for (i = 0; Possible[i] != 0; i++) {
@@ -779,12 +424,12 @@ aux_complete(c)
 			}
 			break;
 		}
-	    	if (c != '\t' && numfound == 1) {
-	    		comp_value = lastmatch;
+		if (c != '\t' && numfound == 1) {
+			comp_value = lastmatch;
 			return 0;
 		}
 		null_ncpy(linebuf, Possible[lastmatch], minmatch);
-	    	Eol();
+		Eol();
 		if (minmatch == length)	/* No difference */
 			rbell();
 		break;
@@ -822,7 +467,7 @@ char	*prompt;
 	return comp_value;
 }
 
-int
+private int
 match(choices, what)
 register char	**choices,
 		*what;
@@ -864,7 +509,7 @@ Source()
 		buf[FILESIZE];
 
 #ifndef MSDOS
-	sprintf(buf, "%s/.joverc", getenv("HOME"));
+	swritef(buf, "%s/.joverc", getenv("HOME"));
 #else /* MSDOS */
 	if (com = getenv("JOVERC"))
 		strcpy(buf, com);
@@ -905,13 +550,13 @@ BufPos()
 #define IF_FALSE	!IF_TRUE
 
 #ifndef MAC
-int
+private int
 do_if(cmd)
 char	*cmd;
 {
 #ifdef MSDOS
 	int status;
-#else	
+#else
 	int	pid,
 		status;
 #endif /* MSDOS */
@@ -928,8 +573,8 @@ char	*cmd;
 			*cp = cmd,
 			**ap = args;
 
-	    	*ap++ = cmd;
-	    	for (;;) {
+		*ap++ = cmd;
+		for (;;) {
 			if ((cp = index(cp, ' ')) == 0)
 				break;
 			*cp++ = '\0';
@@ -947,16 +592,16 @@ char	*cmd;
 #endif /* MSDOS */
 
 #ifndef MSDOS
-	    	(void) execvp(args[0], args);
+		(void) execvp(args[0], args);
 		_exit(-10);	/* signals exec error (see below) */
 	    }
 	}
 #ifdef IPROCS
-	sighold(SIGCHLD);
+	SigHold(SIGCHLD);
 #endif
 	dowait(pid, &status);
 #ifdef IPROCS
-	sigrelse(SIGCHLD);
+	SigRelse(SIGCHLD);
 #endif
 	if (status == -10)
 		complain("[Exec failed]");
@@ -978,6 +623,7 @@ char	*file;
 	jmp_buf	savejmp;
 	int	IfStatus = IF_UNBOUND;
 	File	*fp;
+	extern char	*Inputp;
 
 	fp = open_file(file, buf, F_READ, !COMPLAIN, QUIET);
 	if (fp == NIL)

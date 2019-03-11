@@ -7,7 +7,7 @@
 
 #define NOEXTERNS
 
-#include "tune.h"
+#include "jove.h"
 
 char	*d_tempfile = "joveXXXXXX",	/* buffer lines go here */
 	*p_tempfile = "jrecXXXXXX",	/* line pointers go here */
@@ -15,15 +15,16 @@ char	*d_tempfile = "joveXXXXXX",	/* buffer lines go here */
 	*CmdDb = "LIBDIR/cmds.doc",
 		/* copy of "cmds.doc" lives in the doc subdirectory */
 
-	*Joverc = "LIBDIR/.joverc",
+	*Joverc = "LIBDIR/jove.rc",
 
 #ifdef PIPEPROCS
 	*Portsrv = "LIBDIR/portsrv",
+	*Kbd_Proc = "LIBDIR/kbd",
 #endif
 
 /* these are variables that can be set with the set command, so they are
    allocated more memory than they actually need for the defaults */
 
-	TmpFilePath[128] = "TMPDIR",
-	Shell[128] = "SHELL",
+	TmpFilePath[FILESIZE] = "TMPDIR",
+	Shell[FILESIZE] = "SHELL",
 	ShFlags[16] = "-c";

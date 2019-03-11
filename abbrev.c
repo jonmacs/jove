@@ -7,13 +7,13 @@
 
 #include "jove.h"
 
-#ifdef ABBREV
+#if defined(ABBREV)
 
-#include "io.h"
+#include "fp.h"
 #include "ctype.h"
 
-#ifdef MSDOS
-#include <io.h>
+#if defined(MSDOS)
+# include <io.h>
 #endif
 #define HASHSIZE	20
 
@@ -25,34 +25,23 @@ struct abbrev {
 	data_obj	*a_cmdhook;
 };
 
-#ifdef MAC
-#	undef private
-#	define private
+#if defined(MAC)
+# undef private
+# define private
 #endif
 
-#ifdef	LINT_ARGS
 private	void
-	define(struct abbrev **, char *, char *),
-	def_abbrev(struct abbrev **),
-	rest_abbrevs(char *),
-	save_abbrevs(char *);
+	define proto((struct abbrev **, char *, char *)),
+	def_abbrev proto((struct abbrev **)),
+	rest_abbrevs proto((char *)),
+	save_abbrevs proto((char *));
 
-private	unsigned int hash(char *);
-private	struct abbrev * lookup(struct abbrev **, char *);
-#else
-private	void
-	define(),
-	def_abbrev(),
-	rest_abbrevs(),
-	save_abbrevs();
+private	unsigned int hash proto((char *));
+private	struct abbrev * lookup proto((struct abbrev **, char *));
 
-private	unsigned int hash();
-private	struct abbrev * lookup();
-#endif	/* LINT_ARGS */
-
-#ifdef MAC
-#	undef private
-#	define private static
+#if defined(MAC)
+# undef private
+# define private static
 #endif
 
 #define GLOBAL	NMAJORS
@@ -135,7 +124,7 @@ AbbrevExpand()
 	register int	c;
 #else
 	int c;
-#endif	
+#endif
 	int	UC_count = 0;
 	struct abbrev	*ap;
 
@@ -150,7 +139,7 @@ AbbrevExpand()
 				lower(&c);
 #else
 				c = tolower(c);
-#endif				
+#endif
 			}
 		}
 		*wp++ = c;
@@ -164,7 +153,7 @@ AbbrevExpand()
 		SetDot(&point);
 		return;
 	}
-	del_char(BACKWARD, (wp - wordbuf));
+	del_char(BACKWARD, (wp - wordbuf), NO);
 
 	for (cp = ap->a_phrase; c = *cp; ) {
 		if (AutoCaseAbbrev) {
@@ -183,7 +172,7 @@ private char	*mode_names[NMAJORS + 1] = {
 	"Fundamental Mode",
 	"Text Mode",
 	"C Mode",
-#ifdef LISP
+#if defined(LISP)
 	"Lisp Mode",
 #endif
 	"Global"
@@ -202,10 +191,10 @@ char	*file;
 
 	fp = open_file(file, buf, F_WRITE, COMPLAIN, QUIET);
 	for (i = 0; i <= GLOBAL; i++) {
-		fprintf(fp, "------%s abbrevs------\n", mode_names[i]);
+		fwritef(fp, "------%s abbrevs------\n", mode_names[i]);
 		for (tp = A_tables[i]; tp < &A_tables[i][HASHSIZE]; tp++)
 			for (ap = *tp; ap; ap = ap->a_next) {
-				fprintf(fp, "%s:%s\n",
+				fwritef(fp, "%s:%s\n",
 					ap->a_abbrev,
 					ap->a_phrase);
 				count += 1;
@@ -303,7 +292,6 @@ EditAbbrevs()
 		SetBuf(ebuf);
 		file_write(tname, 0);
 		rest_abbrevs(tname);
-		unmodify();
 	}
 	(void) unlink(tname);
 	SetBuf(do_select(curwind, obuf->b_name));
@@ -320,7 +308,7 @@ BindMtoW()
 
 	if ((ap = lookup(A_tables[curbuf->b_major], word)) == 0 &&
 	    (ap = lookup(A_tables[GLOBAL], word)) == 0)
-	    	complain("%s: unknown abbrev.", word);
+		complain("%s: unknown abbrev.", word);
 
 	hook = findmac("Macro: ");
 	if (hook == 0)

@@ -326,6 +326,7 @@ following segments:
      io.c
      jove.c
      keymaps.c
+     list.c
      --------
      mac.c
      macros.c
@@ -339,8 +340,7 @@ following segments:
      re1.c
      rec.c
      screen.c
-     table.c       (segment 4)
-     term.c
+     term.c       (segment 4)
      util.c
      vars.c
      version.c

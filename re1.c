@@ -6,50 +6,41 @@
  ***************************************************************************/
 
 #include "jove.h"
-#include "io.h"
+#include "fp.h"
 #include "re.h"
 #include "ctype.h"
+#include "chars.h"
+#include "disp.h"
 
 #ifdef MAC
-#	include "mac.h"
+# include "mac.h"
 #else
-#	include <sys/stat.h>
+# include <sys/stat.h>
 #endif
 
 #ifdef MAC
-#	undef private
-#	define private
+# undef private
+# define private
 #endif
 
-#ifdef	LINT_ARGS
-private Bufpos * doisearch(int, int, int);
+private Bufpos *doisearch proto((int, int, int));
 
 private void
-	IncSearch(int),
-	replace(int, int);
+	IncSearch proto((int)),
+	replace proto((int, int));
 private int
-	isearch(int, Bufpos *),
-	lookup(char *, char *, char *, char *),
-	substitute(int, Line *, int, Line *, int);
-#else
-private Bufpos * doisearch();
-
-private void
-	IncSearch(),
-	replace();
-private int
-	isearch(),
-	lookup(),
-	substitute();
-#endif	/* LINT_ARGS */
+	isearch proto((int, Bufpos *)),
+	lookup proto((char *, char *, char *, char *)),
+	substitute proto((struct RE_block *, int, Line *, int, Line *, int));
 
 #ifdef MAC
-#	undef private
-#	define private static
+# undef private
+# define private static
 #endif
 
 private int
-substitute(query, l1, char1, l2, char2)
+substitute(re_blk, query, l1, char1, l2, char2)
+struct RE_block	*re_blk;
 Line	*l1,
 	*l2;
 {
@@ -57,8 +48,8 @@ Line	*l1,
 	int	numdone = 0,
 		offset = curchar,
 		stop = NO;
-	disk_line	UNDO_da = 0;
-	Line		*UNDO_lp = 0;
+	daddr	UNDO_da = 0;
+	Line	*UNDO_lp = 0;
 
 	lsave();
 	REdirection = FORWARD;
@@ -66,15 +57,20 @@ Line	*l1,
 	lp = l1;
 	for (lp = l1; (lp != l2->l_next) && !stop; lp = lp->l_next) {
 		offset = (lp == l1) ? char1 : 0;
-		while (!stop && re_lindex(lp, offset, compbuf, alternates, 0)) {
+		while (!stop && re_lindex(lp, offset, re_blk, NO)) {
 			if (lp == l2 && REeom > char2)	/* nope, leave this alone */
 				break;
 			DotTo(lp, REeom);
 			offset = curchar;
 			if (query) {
+				int	c;
+
 				message("Replace (Type '?' for help)? ");
 reswitch:			redisplay();
-				switch (CharUpcase(getchar())) {
+				c = getchar();
+				if (c == AbortChar)
+					goto done;
+				switch (CharUpcase(c)) {
 				case '.':
 					stop = YES;
 					/* Fall into ... */
@@ -91,10 +87,13 @@ reswitch:			redisplay();
 					continue;
 
 				case CTL('W'):
-					re_dosub(linebuf, YES);
+					re_dosub(re_blk, linebuf, YES);
+					modify();
 					numdone += 1;
 					offset = curchar = REbom;
 					makedirty(curline);
+					UNDO_da = curline->l_dline;
+					UNDO_lp = curline;
 					/* Fall into ... */
 
 				case CTL('R'):
@@ -106,10 +105,13 @@ reswitch:			redisplay();
 
 				case CTL('U'):
 				case 'U':
-					if (UNDO_lp == 0)
-						continue;
+					if (UNDO_lp == 0) {
+						rbell();
+						goto reswitch;
+					}
 					lp = UNDO_lp;
-					lp->l_dline = UNDO_da | DIRTY;
+					lp->l_dline = UNDO_da;
+					makedirty(lp);
 					offset = 0;
 					numdone -= 1;
 					continue;
@@ -134,7 +136,7 @@ message("Space or Y, Period, Rubout or N, C-R or R, C-W, C-U or U, P or !, Retur
 					goto reswitch;
 				}
 			}
-			re_dosub(linebuf, NO);
+			re_dosub(re_blk, linebuf, NO);
 			numdone += 1;
 			modify();
 			offset = curchar = REeom;
@@ -163,6 +165,7 @@ replace(query, inreg)
 	int	char1 = curchar,
 		char2 = length(curbuf->b_last),
 		numdone;
+	struct RE_block	re_blk;
 
 	if (inreg) {
 		m = CurMark();
@@ -173,7 +176,7 @@ replace(query, inreg)
 
 	/* get search string */
 	strcpy(rep_search, ask(rep_search[0] ? rep_search : (char *) 0, ProcFmt));
-	REcompile(rep_search, UseRE, compbuf, alternates);
+	REcompile(rep_search, UseRE, &re_blk);
 	/* Now the replacement string.  Do_ask() so the user can play with
 	   the default (previous) replacement string by typing C-R in ask(),
 	   OR, he can just hit Return to replace with nothing. */
@@ -182,7 +185,7 @@ replace(query, inreg)
 		rep_ptr = NullStr;
 	strcpy(rep_str, rep_ptr);
 
-	if (((numdone = substitute(query, l1, char1, l2, char2)) != 0) &&
+	if (((numdone = substitute(&re_blk, query, l1, char1, l2, char2)) != 0) &&
 	    (inreg == NO)) {
 		do_set_mark(l1, char1);
 		add_mess(" ");		/* just making things pretty */
@@ -213,7 +216,8 @@ RepSearch()
    alphabetically.  The FASTTAGS code, which is implemented with
    a binary search, depends on this assumption.  If it's not true
    it is possible to comment out the fast tag code (which is clearly
-   labeled) and everything else will just work. */
+   labeled), delete the marked test in the sequential loop, and
+   everything else will just work. */
 
 private int
 lookup(searchbuf, filebuf, tag, file)
@@ -227,76 +231,81 @@ char	*searchbuf,
 		pattern[128];
 	register File	*fp;
 	struct stat	stbuf;
-	int	fast = YES,
-		success = NO;
-	register off_t	lower, upper;
+	int	success = NO;
 
-	sprintf(pattern, "^%s[^\t]*\t*\\([^\t]*\\)\t*[?/]\\([^?/]*\\)[?/]", tag);
 	fp = open_file(file, iobuff, F_READ, !COMPLAIN, QUIET);
 	if (fp == NIL)
-		return 0;
+		return NO;
+	swritef(pattern, "^%s[^\t]*\t*\\([^\t]*\\)\t*\\([?/]\\)\\(.*\\)\\2$", tag);
 
 	/* ********BEGIN FAST TAG CODE******** */
 
-	if (stat(file, &stbuf) < 0)
-		fast = NO;
-	else {
-		lower = 0;
-		upper = stbuf.st_size;
-		if (upper - lower < BUFSIZ)
-			fast = NO;
-	}
-	if (fast == YES) for (;;) {
-		off_t	mid;
-		int	whichway,
-			chars_eq;
+	if (stat(file, &stbuf) >= 0) {
+		/* Invariant: if there is a line matching the tag, it
+		 * begins somewhere after position lower, and begins
+		 * at or before upper.  There is one possible
+		 * exception: if lower is 0, the line with the tag
+		 * might be the very first line.
+		 *
+		 * When this loop is done, we seek to lower, advance
+		 * past the next newline (unless lower is 0), and fall
+		 * into the sequential search.
+		 */
+		register off_t	lower = 0;
+		register off_t	upper = stbuf.st_size;
 
-		if (upper - lower < BUFSIZ) {
-			f_seek(fp, lower);
-			break;			/* stop this nonsense */
+		for (;;) {
+			off_t	mid;
+			int	chars_eq;
+
+			if (upper - lower < BUFSIZ)
+				break;	/* small range: search sequentially */
+			mid = (lower + upper) / 2;
+			f_seek(fp, mid);	/* mid will not be 0 */
+			f_toNL(fp);
+			if (f_gets(fp, line, sizeof line) == EOF)
+				break;		/* unexpected: bail out */
+			chars_eq = numcomp(line, tag);
+			if (chars_eq == taglen && iswhite(line[chars_eq])) {
+				/* we hit the exact line: get out */
+				lower = mid;
+				break;
+			}
+			if (line[chars_eq] < tag[chars_eq])
+				lower = mid;	/* line is BEFORE tag */
+			else
+				upper = mid;	/* line is AFTER tag */
 		}
-		mid = (lower + upper) / 2;
-		f_seek(fp, mid);
-		f_toNL(fp);
-		if (f_gets(fp, line, sizeof line) == EOF)
-			break;
-		chars_eq = numcomp(line, tag);
-		if (chars_eq == taglen && iswhite(line[chars_eq]))
-			goto found;
-		whichway = line[chars_eq] - tag[chars_eq];
-		if (whichway < 0) {		/* line is BEFORE tag */
-			lower = mid;
-			continue;
-		} else if (whichway > 0) {	/* line is AFTER tag */
-			upper = mid;
-			continue;
-		}
+		/* sequentially search from lower */
+		f_seek(fp, lower);
+		if (lower > 0)
+			f_toNL(fp);
 	}
-	f_toNL(fp);
+
 	/* END FAST TAG CODE */
 
 	while (f_gets(fp, line, sizeof line) != EOF) {
-		int	cmp;
+		int	cmp = line[0] - *tag;
 
-		if (line[0] > *tag)
-			break;
-		else if ((cmp = strncmp(line, tag, taglen)) > 0)
-			break;
-		else if (cmp < 0)
-			continue;
-		/* if we get here, we've found the match */
-found:		if (!LookingAt(pattern, line, 0)) {
-			complain("I thought I saw it!");
-			break;
-		} else {
-			putmatch(1, filebuf, FILESIZE);
-			putmatch(2, searchbuf, 100);
-			success = YES;
-			break;
+		if (cmp == 0) {
+			cmp = strncmp(line, tag, taglen);
+			if (cmp == 0) {
+				/* we've found the match */
+				if (!LookingAt(pattern, line, 0)) {
+					complain("I thought I saw it!");
+				} else {
+					putmatch(1, filebuf, FILESIZE);
+					putmatch(3, searchbuf, 100);
+					success = YES;
+				}
+				break;
+			}
 		}
+		if (cmp > 0)
+			break;	/* failure: gone too far.  PRESUMES ALPHABETIC ORDER */
 	}
 	close_file(fp);
-		
+
 	if (success == NO)
 		s_mess("Can't find tag \"%s\".", tag);
 	return success;
@@ -322,7 +331,7 @@ char	*tag;
 	if (!localp) {
 		char	prompt[128];
 
-		sprintf(prompt, "With tag file (%s default): ", TagFile);
+		swritef(prompt, "With tag file (%s default): ", TagFile);
 		tagfname = ask_file(prompt, TagFile, tfbuf);
 	} else
 		tagfname = TagFile;
@@ -572,7 +581,7 @@ Bufpos	*bp;
 
 		case BACKUP:
 			/* If we're not failing, we just continue to to the
-			   for loop; otherwise we keep returning to the 
+			   for loop; otherwise we keep returning to the
 			   previous levels until we find one that isn't
 			   failing OR we reach the beginning. */
 			if (failing)

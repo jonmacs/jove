@@ -6,430 +6,18 @@
  ***************************************************************************/
 
 #include "jove.h"
-#include "io.h"
+#include "fp.h"
 #include "ctype.h"
 #include "termcap.h"
-
-#ifdef IBMPC
-
-/* here come the actual emulation routines	*/
-
-#include <dos.h>
-#include <conio.h>
-
-#define BYTE	unsigned char
-#define WORD	unsigned int
-
-#ifdef MAC
-#	undef private
-#	define private
-#endif
-
-#ifdef	LINT_ARGS
-private BYTE near get_mode(void);
-
-private WORD
-	near cur_page(void),
-	near get_cur(void);
-
-private void
-	near ch_out(BYTE, BYTE),
-	near clr_eop(void),
-	near cur_advance(void),
-	near cur_down(void),
-	near cur_left(void),
-	near cur_right(void),
-	near cur_up(void),
-	near line_feed(void),
-	near normfun(char),
-	near scr_win(int, BYTE, BYTE, BYTE, BYTE),
-	near set_cur(WORD),
-	near set_mode(BYTE),
-	near wherexy(BYTE *, BYTE *);
-#else
-private BYTE near get_mode();
-
-private WORD
-	near cur_page(),
-	near get_cur();
-
-private void
-	near ch_out(),
-	near clr_eop(),
-	near cur_advance(),
-	near cur_down(),
-	near cur_left(),
-	near cur_right(),
-	near cur_up(),
-	near line_feed(),
-	near normfun(),
-	near scr_win(),
-	near set_cur(),
-	near set_mode(),
-	near wherexy();
-#endif	/* LINT_ARGS */
-
-#ifdef MAC
-#	undef private
-#	define private static
-#endif
-
-#define VIDEO   0x10
-
-#define intr(n, r)	int86(n, r, r);
-
-BYTE CHPL=80, 
-     LPP=25, 
-     CUR_PAGE=0, 
-     C_ATTR = 0x07,
-     C_X=0, 
-     C_Y=0;
-
-int Fgcolor = 7,
-    Bgcolor = 0,
-	Mdcolor = 0;
-    
-void setcolor(fg, bg)
-BYTE fg, bg;
-{
-   C_ATTR = ((bg&0xf)<<4)|(fg&0xf);
-}   
-
-private
-WORD near cur_page()
-{
-   union REGS vr;
-
-   vr.h.ah = 0x0f;
-   intr(VIDEO, &vr);
-   return(vr.h.bh);
-}
-   
-private
-void near set_cur(xy)
-WORD xy;
-{
-   union REGS vr;
-   
-   vr.h.bh = CUR_PAGE;
-   vr.h.ah = 0x02;
-   vr.x.dx = xy;
-   intr(VIDEO, &vr);
-}
-
-private
-WORD near get_cur()
-{
-   union REGS vr;
-
-   vr.h.bh = CUR_PAGE;
-   vr.h.ah = 0x03;
-   intr(VIDEO, &vr);
-   return (vr.x.dx);
-}		    
- 
-private
-BYTE near get_mode()
-{
-  union REGS vr;
-
-  vr.h.ah = 0x0f;
-  intr(VIDEO, &vr);
-  return(vr.h.al);
-}
-
-BYTE lpp()
-{
-   int far *regen = (int far *) 0x44C;
-   int what;
-   BYTE chpl();
-   
-   what = (*regen&0xff00)/2/chpl();
-   return (what > 43 ? 25 : what);
-}    
-	  
-private
-void near set_mode(n)
-BYTE n;
-{
-  union REGS vr;
-
-  vr.h.ah = 0x00;
-  vr.h.al = n;
-  intr(VIDEO, &vr);
-} 
-
-#define gotoxy(x,y)	set_cur((x)<<8|((y)&0xff))
-#define cur_mov(x,y)	set_cur((C_X=x)<<8|((C_Y=y)&0xff))
-
-private
-void near wherexy( x, y)
-BYTE *x, *y;
-{
-  register WORD xy;
-
-  xy = get_cur();
-  *x = xy>>8;
-  *y = xy&0xff;
-}
-    
-#define wherex()	C_X
-#define wherey()	C_Y
-
-private
-void near scr_win(no, ulr, ulc, lrr, lrc)
-int no;
-BYTE ulr, ulc, lrr, lrc;
-{
-  union REGS vr;
-
-  if (no >= 0)
-     vr.h.ah = 0x06;
-  else {
-     vr.h.ah = 0x07;
-     no = - no;
-  }
-  vr.h.al = no;
-  vr.x.cx = ulr<<8 | ulc;
-  vr.x.dx = lrr<<8 | lrc;
-  vr.h.bh = C_ATTR;
-  intr(VIDEO, &vr);
-}    
-
-BYTE chpl()
-{
-  union REGS vr;
-
-  vr.h.ah = 0x0f;
-  intr(VIDEO, &vr);
-  return(vr.h.ah);
-}
-   
-#define clr_page()	scr_win(0, 0, 0, LPP-1, CHPL-1), \
-			gotoxy(C_X = 0, C_Y = 0)
-		
-private
-void near cur_right()
-{
-   if (C_Y < CHPL-1) 
-      C_Y++;
-   gotoxy(C_X, C_Y);
-}	     
-
-private
-void near cur_up()
-{
-   if (C_X)
-      C_X--;
-   gotoxy(C_X, C_Y);
-}
-
-private
-void near cur_left()
-{
-   if (C_Y)
-      C_Y--;
-   gotoxy(C_X, C_Y);
-}
-
-private
-void near cur_down()
-{
-   if (C_X < LPP-1)
-      C_X++;
-   gotoxy(C_X, C_Y);
-}
- 			  
-private
-void near ch_out(c, n)
-BYTE c, n;
-{
-  union REGS vr;
-
-  vr.h.ah = 0x09;
-  vr.h.al = c;
-  vr.h.bl = C_ATTR;
-  vr.h.bh = CUR_PAGE;
-  vr.x.cx = n;
-  intr(VIDEO, &vr);
-}
-
-#define wrch(c)		ch_out((c), 1), cur_advance()
-
-#define home_cur()	gotoxy(C_X = 0, C_Y = 0)
-
-#define clr_eoln()	ch_out(' ', CHPL-wherey())
-
-private
-void near clr_eop()
-{
-  clr_eoln();
-  scr_win(LPP-1-wherex(), wherex()+1, 0, LPP-1, CHPL-1);
-}
-
-void init_43()
-{
-   BYTE far *info = (BYTE far *) 0x487;
-   WORD far *CRTC = (WORD far *) 0x463;
-   union REGS vr;
-   WORD cur;
-         
-   CUR_PAGE = cur_page();
-   CHPL = chpl();
-   LPP = lpp();
-
-   if (get_mode()!=3)
-      set_mode(3);
-   cur = get_cur();
-   
-   vr.x.ax = 0x1112;
-   vr.h.bl = 0;
-   intr(VIDEO, &vr);
-
-   *info |= 1;
-   vr.x.ax = 0x0100;
-   vr.h.bh = 0;
-   vr.x.cx = 0x0600;
-   intr(VIDEO, &vr);
-
-   outp(*CRTC, 0x14);
-   outp(*CRTC+1, 0x07);
-
-   vr.x.ax = 0x1200;
-   vr.h.bl = 0x20;
-   intr(VIDEO, &vr);
-   
-   LPP = lpp();
-
-   set_cur(cur);
-   wherexy(&C_X, &C_Y);
-}
-
-void reset_43()
-{
-   BYTE far *info = (BYTE far *) 0x487;
-   WORD far *CRTC = (WORD far *) 0x463;
-   union REGS vr;
-   
-   set_mode(3);
-
-   *info &= 128;
-   vr.x.ax = 0x0100;
-   vr.h.bh = 0x0607;
-   vr.x.cx = 0x0607;
-   intr(VIDEO, &vr);             
-
-   outp(*CRTC, 0x14);
-   outp(*CRTC+1, 13);
-
-}
-
-#define scr_up()		scr_win(1, 0, 0, LPP-1, CHPL-1)
-#define back_space()	cur_left()
-
-private
-void near line_feed()
-{
-   if (++C_X > LPP-1) {
-      C_X = LPP-1;
-      scr_up();
-   }   
-   gotoxy(C_X, C_Y);
-}
-
-#define BELL_P 0x61			/* speaker */
-#define BELL_D 0x2dc			/* 550 hz  */
-#define TIME_P 0x40			/* timer   */
-#define TINI   182			/* 10110110b timer initialization */
-
-void dobell(x)
-{
-   unsigned int n = 0x8888;
-   int orgval;
-
-   outp(TIME_P+3, TINI);
-   outp(TIME_P+2, BELL_D&0xff);
-   outp(TIME_P+2, BELL_D>>8);
-   orgval = inp(BELL_P);
-   outp(BELL_P, orgval|3);		/* turn speaker on  */
-   while (--n > 0)
-	 ;
-   outp(BELL_P, orgval);
-}
-
-#define carriage_return()	gotoxy(wherex(), C_Y = 0)
-   
-private
-void near cur_advance()
-{
-   if (++C_Y > CHPL-1) {
-      C_Y = 0;
-      if (++C_X > LPP-1) {
-         scr_up();   	
-         C_X = LPP-1;
-      }   
-   }
-   gotoxy(C_X, C_Y);
-}	     
-
-void init_term()
-{
-   if (lpp() == 43)
-      reset_43();   
-   CUR_PAGE = cur_page();
-   CHPL = chpl();
-   LPP = lpp();
-   wherexy(&C_X, &C_Y); 
-}
-
-private
-void near normfun();
-
-void write_em(s)
-char *s;
-{
-  while (*s)
-        normfun(*s++);
-}          
-
-void write_emif(s)
-char *s;
-{
-  if (s)
-	 write_em(s);
-}
-
-void write_emc(s, n)
-char *s;
-int n;
-{
-   while (n--)
-         normfun(*s++);
-}           
-
-private
-void near normfun(c)
-char c;
-{
-      switch (c) {
-        case 10: line_feed(); break;
-        case 13: carriage_return(); break;
-        case  8: back_space(); break;
-        case  7: dobell(0); break;
-		case  0: break;
-        default: wrch(c);
-      }  
-}
-
-#endif	/* IBMPC */
-
+#include "disp.h"
 
 extern int	BufSize;
 
 int	AbortCnt,
+	CanScroll = 0,
 	tabstop = 8;
 
-#if !(defined(IBMPC) || defined(MAC))	
+#if !(defined(IBMPC) || defined(MAC))
 int	(*TTins_line)(),
 	(*TTdel_line)();
 #endif /* (defined(IBMPC) || defined(MAC)) */
@@ -481,7 +69,7 @@ make_scr()
 
 	nsp = (char *) malloc((unsigned)CO * LI);
 	if (nsp == 0) {
-		printf("\n\rCannot malloc screen!\n");
+		writef("\n\rCannot malloc screen!\n");
 		finish(1);
 	}
 
@@ -504,16 +92,16 @@ register char	*cp1,
 }
 
 #if !(defined(IBMPC) || defined(MAC))
-#define sputc(c)	((*cursor != (char) (c)) ? dosputc(c) : (cursor++, i_col++))
+# define sputc(c)	((*cursor != (char) (c)) ? dosputc(c) : (cursor++, i_col++))
 #endif /* (defined(IBMPC) || defined(MAC)) */
 
 #ifdef IBMPC
 int force = 0;
-#define sputc(c)	dosputc(c)
+# define sputc(c)	dosputc(c)
 #endif /* IBMPC */
 
 #ifdef MAC
-#define sputc(c)	bufputc(c)	/* line buffered for mac display */
+# define sputc(c)	bufputc(c)	/* line buffered for mac display */
 #endif /* MAC */
 
 #define soutputc(c)	if (--n <= 0) break; else sputc(c)
@@ -531,7 +119,7 @@ cl_eol()
 			Placur(i_line, i_col);
 #ifdef TERMCAP
 			putpad(CE, 1);
-#else 
+#else
 		clr_eoln();
 #endif /* TERMCAP */
 			clrline(cursor, Curline->s_length);
@@ -563,7 +151,7 @@ cl_scr(doit)
 	if (doit) {
 #ifdef TERMCAP
 		putpad(CL, LI);
-#else 
+#else
 		clr_page();
 #endif /* TERMCAP */
 		CapCol = CapLine = 0;
@@ -584,10 +172,10 @@ register char	c;
 {
 #ifndef IBMPC
 	if (*cursor != c) {
-#ifdef ID_CHAR
+# ifdef ID_CHAR
 		if (IN_INSmode)
 			INSmode(0);
-#endif
+# endif
 #else /* IBMPC */
 	if ((force) || (*cursor != c)) {
 #endif /* IBMPC */
@@ -617,16 +205,16 @@ register char	c;
    much more sense to write the entire line at once. So, we print all
    the characters, whether already there or not, once the line is
    complete.  */
-   
+
 #define BUFFLUSH (char) 0
 #define BUFSTART (char) 1
-    
+
 bufputc(c)
 register char c;
 {
 	static char buf[256];
 	static int len = 0;
-	
+
 	if(c == BUFSTART) {
 /*		if (i_line != CapLine || i_col != CapCol)*/
 			NPlacur(i_line, i_col);
@@ -642,7 +230,7 @@ register char c;
 		if(len > 255) return;
 		*cursor++ = c;
 		if(c == '0') buf[++len] = 0xAF;	/* slashed zero */
- 		else buf[++len] = c;
+		else buf[++len] = c;
 		CapCol++;
 		i_col++;
 	}
@@ -670,6 +258,13 @@ register int	abortable;
 	sputc(BUFSTART);	/* Okay, because no interruption possible */
 
 	while (c = *line++) {
+		if (abortable && AbortCnt < 0) {
+			AbortCnt = BufSize;
+			if (InputPending = charp()) {
+				aborted = 1;
+				break;
+			}
+		}
 		if (c == '\t') {
 			int	nchars;
 
@@ -700,6 +295,7 @@ register int	abortable;
 	sputc(BUFFLUSH);
 	return !aborted;
 }
+
 #else /* MAC */
 
 int
@@ -714,18 +310,17 @@ register int	abortable;
 #ifndef IBMPC
 	int	or_byte = inversep ? 0200 : 0,
 		thebyte;
-#else 
+#else
 	int	thebyte;
 #endif /* IBMPC */
 
 #ifdef IBMPC
-        force = inversep? 1: 0;  /* to force a redraw of the modeline */
+	force = inversep? 1: 0;  /* to force a redraw of the modeline */
 #endif /* IBMPC */
 
 	if (n <= 0)
 		return 1;
 	while (c = *line++) {
-#if !(defined(IBMPC) || defined(MAC))	/* don't check after every character */
 		if (abortable && AbortCnt < 0) {
 			AbortCnt = BufSize;
 			if (InputPending = charp()) {
@@ -733,7 +328,6 @@ register int	abortable;
 				break;
 			}
 		}
-#endif /* (defined(IBMPC) || defined(MAC)) */
 		if (c == '\t') {
 			int	nchars;
 
@@ -763,12 +357,18 @@ register int	abortable;
 			soutputc(c);
 #endif /* IBMPC */
 			col += 2;
+#ifdef TERMCAP
+		} else if (HZ && c == '~') {
+			thebyte = ('`' | or_byte);
+			soutputc(thebyte);
+			col += 1;
+#endif
 		} else {
 #ifndef IBMPC
 			thebyte = (c | or_byte);
 			soutputc(thebyte);
 #else /* IBMPC */
- 		    if (c == 255) c = 1;
+		    if (c == 255) c = 1;
 			if (c == ' ' && inversep) c = 255;
 			soutputc(c);
 #endif /* IBMPC */
@@ -834,7 +434,6 @@ BufSwrite(linenum)
 #endif
 
 	if (c != '\0') while (c = *bp++) {
-#if !(defined(IBMPC) || defined(MAC))		/* will never get true so why bother */
 		if (AbortCnt < 0) {
 			AbortCnt = BufSize;
 			if (InputPending = charp()) {
@@ -842,7 +441,6 @@ BufSwrite(linenum)
 				break;
 			}
 		}
-#endif /* (defined(IBMPC) || defined(MAC)) */
 		if (c == '\t') {
 			int	nchars = (tabstop - (col % tabstop));
 
@@ -859,6 +457,11 @@ BufSwrite(linenum)
 			soutputc('^');
 			soutputc((c == '\177') ? '?' : c + '@');
 			col += 2;
+#ifdef TERMCAP
+		} else if (HZ && c == '~') {
+			soutputc('`');
+			col += 1;
+#endif
 		} else {
 			if (c == ' ' && visspace)
 				c = '_';
@@ -896,6 +499,31 @@ register int	nline,
 	i_col = ncol;
 }
 
+SO_on()
+{
+	/* If there are magic cookies, then WHERE the SO string is
+	   printed decides where the SO actually starts on the screen.
+	   So it's important to make sure the cursor is positioned there
+	   anyway.  I think this is right. */
+	if (SG != 0) {
+		Placur(i_line, i_col);
+		i_col += SG;
+		CapCol += SG;
+	}
+	putpad(SO, 1);
+}
+
+SO_off()
+{
+	/* see comment in SO_on() */
+	if (SG != 0) {
+		Placur(i_line, i_col);
+		i_col += SG;
+		CapCol += SG;
+	}
+	putpad(SE, 1);
+}
+
 /* Insert `num' lines a top, but leave all the lines BELOW `bottom'
    alone (at least they won't look any different when we are done).
    This changes the screen array AND does the physical changes. */
@@ -930,11 +558,11 @@ v_ins_line(num, top, bottom)
 
 #ifdef MAC
 	i_lines(top, bottom, num);
-#endif 
+#endif
 
 #ifdef IBMPC
 	scr_win(-num, top, 0, bottom, CHPL-1);
-#endif 
+#endif
 }
 
 /* Delete `num' lines starting at `top' leaving the lines below `bottom'
@@ -977,70 +605,11 @@ v_del_line(num, top, bottom)
 
 #ifdef IBMPC
 	scr_win(num, top, 0, bottom, CHPL-1);
-#endif 
+#endif
 
 }
 
 #ifndef MAC	/* remainder of this file */
-#ifdef IBMPC
-
-/* No cursor optimization on an IBMPC, this simplifies things a lot.
-   Think about it: it would be silly!
- */
-
-int	phystab = 8;
-
-void
-Placur(line, col)
-{
-	cur_mov(line, col);
-	CapCol = col;
-	CapLine = line;
-}
-
-void
-SO_on()
-{
-	if (Mdcolor)
-		setcolor(Mdcolor&0xf, Mdcolor>>4);
-	else
-		setcolor(Bgcolor, Fgcolor);
-}
-
-void
-SO_off()
-{
-   setcolor(Fgcolor, Bgcolor);
-}
-
-extern int EGA;
-
-void
-
-UnsetTerm(foo)
-char *foo;
-{
-  Placur(ILI, 0);
-  clr_eoln();
-  if (EGA)
-	 reset_43();
-}
-
-
-void
-ResetTerm()
-{
-	if (EGA)
-	   init_43();
-	else
-   	   init_term();
-	   
-	do_sgtty();		/* this is so if you change baudrate or stuff
-				   like that, JOVE will notice. */
-	ttyset(ON);
-}
-
-#else /* IBMPC */ 
 
 /* The cursor optimization happens here.  You may decide that this
    is going too far with cursor optimization, or perhaps it should
@@ -1069,7 +638,7 @@ private void
 	GoDirect(),
 	HomeGo(),
 	BottomUp();
-	
+
 
 private struct cursaddr	WarpHor[] = {
 	0,	ForMotion,
@@ -1214,7 +783,7 @@ register int	destline;
 	register int	nlines = destline - CapLine;
 
 	while (--nlines >= 0)
-		putpad(NL, 1);
+		putpad(DO, 1);
 	CapLine = destline;
 }
 
@@ -1303,11 +872,11 @@ Placur(line, col)
 	/* Which of these is simpler */
 	CursMin(VertMin, WarpVert, NUMVERT);
 
-	/* Homing first and lowering first are considered 
+	/* Homing first and lowering first are considered
 	   direct motions.
 	   Homing first's total is the sum of the cost of homing
 	   and the sum of tabbing (if possible) to the right. */
-	
+
 	if (VertMin->cm_numchars + HorMin->cm_numchars <= 3) {
 		DirectMin = &WarpDirect[DIRECT];	/* A dummy ... */
 		DirectMin->cm_numchars = 100;
@@ -1368,7 +937,7 @@ register int	from;
 void
 BGi_lines(top, bottom, num)
 {
-	printf("\033[%d;%dr\033[%dL\033[r", top + 1, bottom + 1, num);
+	writef("\033[%d;%dr\033[%dL\033[r", top + 1, bottom + 1, num);
 	CapCol = CapLine = 0;
 }
 
@@ -1376,9 +945,9 @@ void
 SUNi_lines(top, bottom, num)
 {
 	Placur(bottom - num + 1, 0);
-	printf("\033[%dM", num);
+	writef("\033[%dM", num);
 	Placur(top, 0);
-	printf("\033[%dL", num);
+	writef("\033[%dL", num);
 }
 
 void
@@ -1388,12 +957,12 @@ C100i_lines(top, bottom, num)
 		GENi_lines(top, bottom, num);
 		return;
 	}
-	printf("\033v%c%c%c%c", ' ', ' ', ' ' + bottom + 1, ' ' + CO);
+	writef("\033v%c%c%c%c", ' ', ' ', ' ' + bottom + 1, ' ' + CO);
 	CapLine = CapCol = 0;
 	Placur(top, 0);
 	while (num--)
 		putpad(AL, ILI - CapLine);
-	printf("\033v%c%c%c%c", ' ', ' ', ' ' + LI, ' ' + CO);
+	writef("\033v%c%c%c%c", ' ', ' ', ' ' + LI, ' ' + CO);
 	CapLine = CapCol = 0;
 }
 
@@ -1415,20 +984,14 @@ GENi_lines(top, bottom, num)
 	} else {
 		Placur(bottom - num + 1, 0);
 		if (M_DL && (num > 1)) {
-			char	minibuf[16];
-
-			sprintf(minibuf, M_DL, num);
-			putpad(minibuf, ILI - CapLine);
+			putargpad(M_DL, num, ILI - CapLine);
 		} else {
 			for (i = 0; i < num; i++)
 				putpad(DL, ILI - CapLine);
 		}
 		Placur(top, 0);
 		if (M_AL && (num > 1)) {
-			char	minibuf[16];
-
-			sprintf(minibuf, M_AL, num);
-			putpad(minibuf, ILI - CapLine);
+			putargpad(M_AL, num, ILI - CapLine);
 		} else {
 			for (i = 0; i < num; i++)
 				putpad(AL, ILI - CapLine);
@@ -1441,7 +1004,7 @@ GENi_lines(top, bottom, num)
 void
 BGd_lines(top, bottom, num)
 {
-	printf("\033[%d;%dr\033[%dM\033[r", top + 1, bottom + 1, num);
+	writef("\033[%d;%dr\033[%dM\033[r", top + 1, bottom + 1, num);
 	CapCol = CapLine = 0;
 }
 
@@ -1449,9 +1012,9 @@ void
 SUNd_lines(top, bottom, num)
 {
 	Placur(top, 0);
-	printf("\033[%dM", num);
+	writef("\033[%dM", num);
 	Placur(bottom + 1 - num, 0);
-	printf("\033[%dL", num);
+	writef("\033[%dL", num);
 }
 
 void
@@ -1461,12 +1024,12 @@ C100d_lines(top, bottom, num)
 		GENd_lines(top, bottom, num);
 		return;
 	}
-	printf("\033v%c%c%c%c", ' ', ' ', ' ' + bottom + 1, ' ' + CO);
+	writef("\033v%c%c%c%c", ' ', ' ', ' ' + bottom + 1, ' ' + CO);
 	CapLine = CapCol = 0;
 	Placur(top, 0);
 	while (num--)
 		putpad(DL, ILI - CapLine);
-	printf("\033v%c%c%c%c", ' ', ' ', ' ' + LI, ' ' + CO);
+	writef("\033v%c%c%c%c", ' ', ' ', ' ' + LI, ' ' + CO);
 	CapLine = CapCol = 0;
 }
 
@@ -1488,20 +1051,14 @@ GENd_lines(top, bottom, num)
 	} else {
 		Placur(top, 0);
 		if (M_DL && (num > 1)) {
-			char	minibuf[16];
-
-			sprintf(minibuf, M_DL, num);
-			putpad(minibuf, ILI - top);
+			putargpad(M_DL, num, ILI - top);
 		} else {
 			for (i = 0; i < num; i++)
 				putpad(DL, ILI - top);
 		}
 		Placur(bottom + 1 - num, 0);
 		if (M_AL && (num > 1)) {
-			char	minibuf[16];
-
-			sprintf(minibuf, M_AL, num);
-			putpad(minibuf, ILI - CapLine);
+			putargpad(M_AL, num, ILI - CapLine);
 		} else {
 			for (i = 0; i < num; i++)
 				putpad(AL, ILI - CapLine);
@@ -1538,5 +1095,4 @@ char	*tname;
 	TTdel_line = idp->D_proc;
 }
 
-#endif /* IBMPC */
 #endif /* MAC */

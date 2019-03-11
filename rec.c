@@ -6,7 +6,7 @@
  ***************************************************************************/
 
 #include "jove.h"
-#include "io.h"
+#include "fp.h"
 #include "rec.h"
 
 #ifndef MAC
@@ -28,9 +28,9 @@ recinit()
 	char	buf[128];
 
 #ifdef MAC
-	sprintf(buf, "%s/%s", HomeDir, p_tempfile);
+	swritef(buf, "%s/%s", HomeDir, p_tempfile);
 #else
-	sprintf(buf, "%s/%s", TmpFilePath, p_tempfile);
+	swritef(buf, "%s/%s", TmpFilePath, p_tempfile);
 #endif
 	recfname = copystr(buf);
 	recfname = mktemp(recfname);
@@ -61,11 +61,11 @@ recclose()
 
 private
 putaddr(addr, p)
-disk_line	addr;
+daddr	addr;
 register File	*p;
 {
 	register char	*cp = (char *) &addr;
-	register int	nchars = sizeof (disk_line);
+	register int	nchars = sizeof (daddr);
 
 	while (--nchars >= 0)
 		putc(*cp++ & 0377, p);
@@ -118,13 +118,13 @@ int	SyncFreq = 50;
 
 SyncRec()
 {
-	extern disk_line	DFree;
+	extern daddr	DFree;
 	register Buffer	*b;
 	static int	beenhere = NO;
 
 	if (beenhere == NO) {
-		recinit();	/* Init recover file. */
 		beenhere = YES;
+		recinit();	/* Init recover file. */
 	}
 	if (rec_fd == -1)
 		return;

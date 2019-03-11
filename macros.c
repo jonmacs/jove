@@ -7,41 +7,29 @@
 
 #include "jove.h"
 #include "ctype.h"
-#include "io.h"
+#include "fp.h"
+#include "chars.h"
+#include "disp.h"
 
 #ifdef MAC
-#	undef private
-#	define private
+# undef private
+# define private
 #endif
 
-#ifdef	LINT_ARGS
 private void
-	add_mac(struct macro *),
-	del_mac(struct macro *),
-	pop_macro_stack(void),
-	push_macro_stack(struct macro *, int);
-	
-private int
-	PrefChar(int);
+	add_mac proto((struct macro *)),
+	del_mac proto((struct macro *)),
+	pop_macro_stack proto((void)),
+	push_macro_stack proto((struct macro *, int));
 
-private struct macro * mac_exists(char *);
-#else
-private void
-	add_mac(),
-	del_mac(),
-	pop_macro_stack(),
-	push_macro_stack();
-	
-private int
-	PrefChar();
-
-private struct macro * mac_exists();
-#endif	/* LINT_ARGS */
+private struct macro *mac_exists proto((char *));
 
 #ifdef MAC
-#	undef private
-#	define private static
+# undef private
+# define private static
 #endif
+
+#define SAVE		01	/* this macro needs saving to a file */
 
 struct macro	*macros = 0;		/* macros */
 int	InMacDefine = NO;
@@ -95,6 +83,19 @@ struct m_thread {
 
 private struct m_thread	*mac_stack = 0;
 
+struct m_thread *
+alloc_mthread()
+{
+	return (struct m_thread *) emalloc(sizeof (struct m_thread));
+}
+
+void
+free_mthread(t)
+struct m_thread	*t;
+{
+	free((char *) t);
+}
+
 void
 unwind_macro_stack()
 {
@@ -113,25 +114,17 @@ pop_macro_stack()
 	free_mthread(m);
 }
 
-struct m_thread *
-alloc_mthread()
-{
-	return (struct m_thread *) emalloc(sizeof (struct m_thread));
-}
-
-void
-free_mthread(t)
-struct m_thread	*t;
-{
-	free((char *) t);
-}
-
 private void
 push_macro_stack(m, count)
-struct macro	*m;
+register struct macro	*m;
 {
-	struct m_thread	*t;
+	register struct m_thread	*t;
 
+	for (t = mac_stack; t != 0; t = t->mt_prev)
+		if (t->mt_mp == m)
+			complain("[Cannot execute macro recusively]");
+	if (count <= 0)
+		complain("[Cannot execute macro a negative number of times]");
 	t = alloc_mthread();
 	t->mt_prev = mac_stack;
 	mac_stack = t;
@@ -246,7 +239,7 @@ RunMacro()
 		do_macro(m);
 }
 
-void
+private void
 pr_putc(c, fp)
 File	*fp;
 {
@@ -273,7 +266,7 @@ WriteMacs()
 
 	/* Don't write the keyboard macro which is always the first */
 	for (m = macros->m_nextm; m != 0; m = m->m_nextm) {
-		fprintf(fp, "define-macro %s ", m->Name);
+		fwritef(fp, "define-macro %s ", m->Name);
 		for (i = 0; i < m->m_len; i++)
 			pr_putc(m->m_body[i], fp);
 		putc('\n', fp);
@@ -340,14 +333,6 @@ Remember()
 		KeyMacro.m_len = 0;
 		message("Defining...");
 	}
-}
-
-/* Is `c' a prefix character */
-
-private int
-PrefChar(c)
-{
-	return (int) IsPrefix(mainmap[c]);
 }
 
 void

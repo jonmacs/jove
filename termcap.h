@@ -13,7 +13,6 @@
 /* termcap definitions */
 
 extern char
-	*UP,	/* Scroll reverse, or up */
 	*CS,	/* If on vt100 */
 	*SO,	/* Start standout */
 	*SE,	/* End standout */
@@ -45,7 +44,8 @@ extern char
 	*BL,	/* audible bell */
 	*IP,	/* insert pad after character inserted */
 	*lPC,
-	*NL;	/* newline character (usually \n) */
+	*NL,	/* newline character (usually \n) */
+	*DO;
 
 extern int
 	LI,		/* number of lines */
@@ -56,6 +56,7 @@ extern int
 	MI,		/* okay to move while in insert mode */
 	SG,		/* number of magic cookies left by SO and SE */
 
+	HZ,		/* Hazeltine tilde kludge */
 	TABS,		/* whether we are in tabs mode */
 	UPlen,		/* length of the UP string */
 	HOlen,		/* length of Home string */
@@ -63,13 +64,14 @@ extern int
 
 extern char
 	PC,
-	*BC;		/* back space */
+	*BC,		/* back space */
+	*UP;	/* Scroll reverse, or up */
 
 extern short	ospeed;
 
 #endif /* _TERM */
 
-#else /* MAC */	
+#else /* MAC */
 extern int	/* probably should clean this up */
 	LI,		/* number of lines */
 	ILI,		/* number of internal lines */

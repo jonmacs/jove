@@ -33,21 +33,21 @@
    systems, like the IBM PC, if the blocks are sorted before sync'ing. */
 
 #ifdef SMALL
-#   define CH_BITS		4
-#   if BUFSIZ == 512
-#	define MAX_BLOCKS	1024
-#   else
-#	define MAX_BLOCKS	512
-#   endif
+# define CH_BITS		4
+# if BUFSIZ == 512
+#  define MAX_BLOCKS		1024
+# else
+#  define MAX_BLOCKS		512
+# endif
 #else
-#   define CH_BITS		0
-#   define MAX_BLOCKS		4096	/* basically unlimited */
+# define CH_BITS		0
+# define MAX_BLOCKS		4096	/* basically unlimited */
 #endif /* SMALL */
 
 #if BUFSIZ == 512
-#   define BNO_SHIFT		(9 - CH_BITS)
+# define BNO_SHIFT		(9 - CH_BITS)
 #else
-#   define BNO_SHIFT		(10 - CH_BITS)
+# define BNO_SHIFT		(10 - CH_BITS)
 #endif
 
 /* CH_SIZE is how big each chunk is.  For each 1 the DFree pointer
@@ -59,26 +59,14 @@
 
    NOTE:  It's pretty important that these numbers be multiples of
 	  2.  Be careful if you change things. */
-#ifndef MAC
-#define CH_SIZE			(1 << CH_BITS)
-#define CH_PBLOCK		(BUFSIZ / CH_SIZE)
-#define RND_MASK		(CH_PBLOCK - 1)
-#define OFF_MASK		(BUFSIZ - 1)
-#define BNO_MASK		(MAX_BLOCKS - 1)
-#define blk_round(daddr)	(daddr & ~RND_MASK)
-#define forward_block(daddr)	(daddr + CH_PBLOCK)
-#define da_to_bno(daddr)	((daddr >> BNO_SHIFT) & BNO_MASK)
-#define da_to_off(daddr)	((daddr << CH_BITS) & OFF_MASK)
-#define da_too_huge(daddr)	((daddr >> BNO_SHIFT) >= MAX_BLOCKS)
-#else
-#define CH_SIZE			((disk_line)1 << CH_BITS)
-#define CH_PBLOCK		((disk_line)BUFSIZ / CH_SIZE)
-#define RND_MASK		((disk_line)CH_PBLOCK - 1)
-#define OFF_MASK		((disk_line)BUFSIZ - 1)
-#define BNO_MASK		((disk_line)MAX_BLOCKS - 1)
-#define blk_round(daddr)	((disk_line)daddr & ~RND_MASK)
-#define forward_block(daddr)	((disk_line)daddr + CH_PBLOCK)
-#define da_to_bno(daddr)	((disk_line)(daddr >> BNO_SHIFT) & BNO_MASK)
-#define da_to_off(daddr)	((disk_line)(daddr << CH_BITS) & OFF_MASK)
-#define da_too_huge(daddr)	((disk_line)(daddr >> BNO_SHIFT) >= MAX_BLOCKS)
-#endif
+
+#define CH_SIZE			((daddr) 1 << CH_BITS)
+#define CH_PBLOCK		((daddr) BUFSIZ / CH_SIZE)
+#define RND_MASK		((daddr) CH_PBLOCK - 1)
+#define OFF_MASK		((daddr) BUFSIZ - 1)
+#define BNO_MASK		((daddr) MAX_BLOCKS - 1)
+#define blk_round(addr)		((daddr) addr & ~RND_MASK)
+#define forward_block(addr)	((daddr) addr + CH_PBLOCK)
+#define da_to_bno(addr)		((daddr) (addr >> BNO_SHIFT) & BNO_MASK)
+#define da_to_off(addr)		((daddr) (addr << CH_BITS) & OFF_MASK)
+#define da_too_huge(addr)	((daddr) (addr >> BNO_SHIFT) >= MAX_BLOCKS)

@@ -10,7 +10,7 @@
 
 #define NMENUS 6
 #define NMENUITEMS 40	/* This has GOT to be enough! */
-	
+
 typedef data_obj *menumap[NMENUITEMS];
 #ifndef _mac
 	typedef char **MenuHandle;
@@ -51,8 +51,8 @@ codes, which are different. this table simply translates a keycode
 into a character code that is appropriate. */
 
 #define NOKEY -1
-#define RET 0x0D	
-#define TAB 0x09	
+#define RET 0x0D
+#define TAB 0x09
 #define BACKSP 0x08
 #define ENTERL NOKEY	/* left enter key absent on MacPlus */
 #define COMMAND NOKEY	/* will be no translation anyway for these */

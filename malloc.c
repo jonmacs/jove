@@ -11,17 +11,17 @@
 
 /*	avoid break bug */
 #ifdef pdp11
-#	define GRANULE 64
+# define GRANULE 64
 #else
-#	define GRANULE 0
+# define GRANULE 0
 #endif
 
 /*	C storage allocator
  *	circular first-fit strategy
  *	works with noncontiguous, but monotonically linked, arena
- *	each block is preceded by a ptr to the (pointer of) 
+ *	each block is preceded by a ptr to the (pointer of)
  *	the next following block
- *	blocks are exact number of words long 
+ *	blocks are exact number of words long
  *	aligned to the data type requirements of ALIGN
  *	pointers to blocks must have BUSY bit 0
  *	bit in ptr is 1 for busy, 0 for idle

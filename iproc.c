@@ -7,11 +7,19 @@
 
 #include "jove.h"
 #include "re.h"
+#include "ctype.h"
+#include "disp.h"
+
 #include <varargs.h>
 
 #ifdef IPROCS
 
 int	proc_child();
+
+private int
+	proc_close proto ((Process *)),
+	proc_rec proto ((process *, char *)),
+	SendData proto ((int));
 
 #ifdef PIPEPROCS
 #   include "iproc-pipes.c"
@@ -20,6 +28,33 @@ int	proc_child();
 #endif
 
 char	proc_prompt[128] = "% ";
+
+char *
+pstate(p)
+Process	*p;
+{
+	switch (proc_state(p)) {
+	case NEW:
+		return "New";
+
+	case STOPPED:
+		return "Stopped";
+
+	case RUNNING:
+		return "Running";
+
+	case DEAD:
+		if (p->p_howdied == EXITED) {
+			if (p->p_reason == 0)
+				return "Done";
+			return sprint("Exit %d", p->p_reason);
+		}
+		return sprint("Killed %d", p->p_reason);
+
+	default:
+		return "Unknown state";
+	}
+}
 
 KillProcs()
 {
@@ -109,7 +144,7 @@ Process	*child;
 				*prev = 0;
 
 	if (!isdead(child))
-		return;	
+		return;
 	for (p = procs; p != child; prev = p, p = p->p_next)
 		;
 	if (prev == 0)
@@ -117,15 +152,13 @@ Process	*child;
 	else
 		prev->p_next = child->p_next;
 	proc_close(child);		/* if not already closed */
-	
+
 	/* It's possible that the buffer has been given another process
 	   between the time CHILD dies and CHILD's death is noticed (via
 	   list-processes).  So we only set it the buffer's process to
 	   0 if CHILD is still the controlling process. */
 	if (child->p_buffer->b_process == child) {
 		child->p_buffer->b_process = 0;
-		if (curbuf == child->p_buffer)
-			PopPBs();
 	}
 	{
 		Buffer	*old = curbuf;
@@ -155,7 +188,7 @@ ProcList()
 	Typeout(fmt, "------", "------", "--- ", "-------");
 	for (p = procs; p != 0; p = next) {
 		next = p->p_next;
-		sprintf(pidstr, "%d", p->p_pid);
+		swritef(pidstr, "%d", p->p_pid);
 		Typeout(fmt, proc_buf(p), pstate(p), pidstr, p->p_name);
 		if (isdead(p)) {
 			free_proc(p);
@@ -163,6 +196,34 @@ ProcList()
 		}
 	}
 	TOstop();
+}
+
+do_rtp(mp)
+register Mark	*mp;
+{
+	register Process	*p = curbuf->b_process;
+	Line	*line1 = curline,
+		*line2 = mp->m_line;
+	int	char1 = curchar,
+		char2 = mp->m_char;
+	char	*gp;
+	int	nbytes;
+
+	if (isdead(p) || p->p_buffer != curbuf)
+		return;
+
+	(void) fixorder(&line1, &char1, &line2, &char2);
+	while (line1 != line2->l_next) {
+		gp = ltobuf(line1, genbuf) + char1;
+		if (line1 == line2)
+			gp[char2] = '\0';
+		else
+			strcat(gp, "\n");
+		if (nbytes = strlen(gp))
+			proc_write(p, gp, nbytes);
+		line1 = line1->l_next;
+		char1 = 0;
+	}
 }
 
 ProcNewline()
@@ -210,7 +271,7 @@ SendData(newlinep)
 		   set their process-prompt to ">*" which will always
 		   match! */
 		while ((LookingAt(proc_prompt, linebuf, curchar)) &&
- 		       (REeom > curchar))
+		       (REeom > curchar))
 			curchar = REeom;
 		MarkSet(p->p_mark, curline, curchar);
 		SetDot(&bp);
@@ -282,7 +343,7 @@ Iprocess()
 	bufname = MakeName(command);
 	strcpy(scratch, bufname);
 	while ((bp = buf_exists(scratch)) && !isdead(bp->b_process))
-		sprintf(scratch, "%s.%d", bufname, cnt++);
+		swritef(scratch, "%s.%d", bufname, cnt++);
 	proc_strt(scratch, YES, Shell, ShFlags, command, (char *) 0);
 }
 
@@ -320,7 +381,7 @@ union wait	w;
 		if (WIFEXITED(w))
 			child->p_howdied = EXITED;
 		else if (WIFSIGNALED(w)) {
-			child->p_reason = w.w_termsig;
+			child->p_reason = w_termsignum(w);
 			child->p_howdied = KILLED;
 		}
 		{
@@ -328,93 +389,13 @@ union wait	w;
 			char	mesg[128];
 
 			/* insert status message now */
-			sprintf(mesg, "[Process %s: %s]\n",
+			swritef(mesg, "[Process %s: %s]\n",
 				proc_cmd(child),
 				pstate(child));
 			SetBuf(child->p_buffer);
 			ins_str(mesg, NO);
 			SetBuf(save);
 			redisplay();
-		}
-	}
-}
-
-/* Push/pod process bindings.  I openly acknowledge that this is a
-   kludge, but I can't be bothered making it right. */
-
-struct proc_bind {
-	int		pb_key;
-	data_obj	**pb_map;
-	data_obj	*pb_push;
-	data_obj	*pb_cmd;
-	struct proc_bind *pb_next;
-};
-
-struct proc_bind *PBinds = 0;
-
-PopPBs()
-{
-	register struct proc_bind *p;
-
-	for (p = PBinds; p != 0; p = p->pb_next)
-		p->pb_map[p->pb_key] = p->pb_push;
-}
-
-PushPBs()
-{
-	register struct proc_bind *p;
-
-	for (p = PBinds; p != 0; p = p->pb_next) {
-		p->pb_push = p->pb_map[p->pb_key];
-		p->pb_map[p->pb_key] = p->pb_cmd;
-	}
-}
-/* VARARGS0 */
-
-ProcBind()
-{
-	register data_obj	*d;
-
-	if ((d = findcom(ProcFmt)) == 0)
-		return;
-	s_mess(": %f %s ", d->Name);
-	ProcB2(mainmap, EOF, d);
-}
-
-ProcB2(map, lastkey, cmd)
-data_obj	**map,
-		*cmd;
-{
-	register struct proc_bind *p;
-	register data_obj	**nextmap;
-	int	c;
-
-	c = addgetc();
-	if (c == EOF) {
-		if (lastkey == EOF)
-			complain("[Empty key sequence]");
-		complain("[Unexpected end-of-line]");
-	} else {
-		if (nextmap = IsPrefix(map[c]))
-			ProcB2(nextmap, c, cmd);
-		else {
-			if (curbuf->b_process)
-				PopPBs();
-
-			for (p = PBinds; p != 0; p = p->pb_next)
-				if (p->pb_key == c && p->pb_map == map)
-					break;
-			if (p == 0) {
-				p = (struct proc_bind *) emalloc(sizeof *p);
-				p->pb_next = PBinds;
-				PBinds = p;
-			}
-			p->pb_map = map;
-			p->pb_key = c;
-			p->pb_cmd = cmd;
-
-			if (curbuf->b_process)
-				PushPBs();
 		}
 	}
 }

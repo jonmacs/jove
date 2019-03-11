@@ -5,13 +5,10 @@
  * included in all the files.                                              *
  ***************************************************************************/
 
-#ifdef BSD4_2
-#   include <sys/wait.h>
-#else
-#   include <wait.h>
-#endif
 #include <signal.h>
 #include <sgtty.h>
+#include "fp.h"
+#include "wait.h"
 
 #define DEAD	1	/* Dead but haven't informed user yet */
 #define STOPPED	2	/* Job stopped */
@@ -31,36 +28,10 @@
 
 private Process	*procs = 0;
 
-int	ProcInput,
-	ProcOutput,
+File	*ProcInput;
+int	ProcOutput,
+	kbd_pid = 0,
 	NumProcs = 0;
-
-char *
-pstate(p)
-Process	*p;
-{
-	switch (proc_state(p)) {
-	case NEW:
-		return "Pre-birth";
-
-	case STOPPED:
-		return "Stopped";
-
-	case RUNNING:
-		return "Running";
-
-	case DEAD:
-		if (p->p_howdied == EXITED) {
-			if (p->p_reason == 0)
-				return "Done";
-			return sprint("Exit %d", p->p_reason);
-		}
-		return sprint("Killed %d", p->p_reason);
-
-	default:
-		return "Unknown state";
-	}
-}
 
 static Process *
 proc_pid(pid)
@@ -74,33 +45,6 @@ proc_pid(pid)
 	return p;
 }
 
-procs_read()
-{
-	struct header {
-		int	pid;
-		int	nbytes;
-	} header;
-	int	n;
-	long	nbytes;
-	static int	here = NO;
-
-	if (here)	
-		return;
-	sighold(SIGCHLD);	/* block any other children */
-	here = YES;
-	for (;;) {
-		(void) ioctl(ProcInput, FIONREAD, (struct sgttyb *) &nbytes);
-		if (nbytes < sizeof header)
-			break;
-		n = read(ProcInput, (char *) &header, sizeof header);
-		if (n != sizeof header)
-			finish(1);
-		read_proc(header.pid, header.nbytes);
-	}
-	here = NO;
-	sigrelse(SIGCHLD);
-}
-
 read_proc(pid, nbytes)
 int	pid;
 register int	nbytes;
@@ -110,20 +54,27 @@ register int	nbytes;
 	char	ibuf[512];
 
 	if ((p = proc_pid(pid)) == 0) {
-		printf("\riproc: unknown pid (%d)", pid);
+		writef("\riproc: unknown pid (%d)", pid);
 		return;
 	}
+
 	if (proc_state(p) == NEW) {
 		int	rpid;
 		/* pid of real child, not of portsrv */
 
-		doread(ProcInput, (char *) &rpid, nbytes);
-		nbytes -= sizeof rpid;
+		(void) f_readn(ProcInput, (char *) &rpid, sizeof (int));
 		p->p_pid = rpid;
 		p->p_state = RUNNING;
+		return;
 	}
 
 	if (nbytes == EOF) {		/* okay to clean up this process */
+		int	status;
+
+		f_readn(ProcInput, &status, sizeof (int));
+		while (wait((int *) 0) != p->p_portpid)
+			;
+		kill_off(p->p_portpid, status);
 		proc_close(p);
 		makedead(p);
 		return;
@@ -131,7 +82,7 @@ register int	nbytes;
 
 	while (nbytes > 0) {
 		n = min((sizeof ibuf) - 1, nbytes);
-		doread(ProcInput, ibuf, n);
+		f_readn(ProcInput, ibuf, n);
 		ibuf[n] = 0;	/* Null terminate for convenience */
 		nbytes -= n;
 		proc_rec(p, ibuf);
@@ -157,42 +108,20 @@ private
 proc_close(p)
 Process	*p;
 {
-	sighold(SIGCHLD);
-
 	if (p->p_toproc >= 0) {
 		(void) close(p->p_toproc);
 		p->p_toproc = -1;	/* writes will fail */
 		NumProcs -= 1;
 	}
-
-	sigrelse(SIGCHLD);
 }
 
-do_rtp(mp)
-register Mark	*mp;
+proc_write(p, buf, nbytes)
+Process	*p;
+char	*buf;
 {
-	register Process	*p = curbuf->b_process;
-	Line	*line1 = curline,
-		*line2 = mp->m_line;
-	int	char1 = curchar,
-		char2 = mp->m_char;
-	char	*gp;
-
-	if (isdead(p) || p->p_buffer != curbuf)
-		return;
-
-	(void) fixorder(&line1, &char1, &line2, &char2);
-	while (line1 != line2->l_next) {
-		gp = ltobuf(line1, genbuf) + char1;
-		if (line1 == line2)
-			gp[char2] = '\0';
-		else
-			strcat(gp, "\n");
-		(void) write(p->p_toproc, gp, strlen(gp));
-		line1 = line1->l_next;
-		char1 = 0;
-	}
+	(void) write(p->p_toproc, buf, nbytes);
 }
+
 
 /* VARARGS3 */
 
@@ -206,43 +135,33 @@ va_dcl
 		pid;
 	Process	*newp;
 	Buffer	*newbuf;
-    	char	*argv[32],
-    		*cp,
-    		foo[10],
+	char	*argv[32],
+		*cp,
+		foo[10],
 		cmdbuf[128];
-    	int	i;
+	int	i;
 	va_list	ap;
 
 	isprocbuf(bufname);	/* make sure BUFNAME is either nonexistant
 				   or is of type B_PROCESS */
 	dopipe(toproc);
 
-	sighold(SIGCHLD);
-#ifdef SIGWINCH
-	sighold(SIGWINCH);
-#endif
 	switch (pid = fork()) {
 	case -1:
 		pclose(toproc);
 		complain("[Fork failed.]");
 
 	case 0:
-		sigrelse(SIGCHLD);
-#ifdef SIGWINCH
-		sigrelse(SIGWINCH);
-#endif
-	    	argv[0] = "portsrv";
-	    	argv[1] = foo;
-		sprintf(foo, "%d", ProcInput);
+		argv[0] = "portsrv";
 		va_start(ap);
-		make_argv(&argv[2], ap);
+		make_argv(&argv[1], ap);
 		va_end(ap);
 		(void) dup2(toproc[0], 0);
 		(void) dup2(ProcOutput, 1);
 		(void) dup2(ProcOutput, 2);
 		pclose(toproc);
 		execv(Portsrv, argv);
-		printf("execl failed\n");
+		writef("execl failed\n");
 		_exit(1);
 	}
 
@@ -254,7 +173,7 @@ va_dcl
 	cmdbuf[0] = '\0';
 	va_start(ap);
 	while (cp = va_arg(ap, char *))
-		sprintf(&cmdbuf[strlen(cmdbuf)], "%s ", cp);
+		swritef(&cmdbuf[strlen(cmdbuf)], "%s ", cp);
 	va_end(ap);
 	newp->p_name = copystr(cmdbuf);
 	procs = newp;
@@ -277,31 +196,65 @@ va_dcl
 	newp->p_toproc = toproc[1];
 	newp->p_reason = 0;
 	NumProcs += 1;
+	if (NumProcs == 1)
+		(void) kbd_strt();
 	(void) close(toproc[0]);
 	SetWind(owind);
-	sigrelse(SIGCHLD);
-#ifdef SIGWINCH
-	sigrelse(SIGWINCH);
-#endif
 }
 
 pinit()
 {
 	int	p[2];
 
-	(void) signal(SIGCHLD, proc_child);
 	(void) pipe(p);
-	ProcInput = p[0];
+	ProcInput = fd_open("process-input", F_READ|F_LOCKED, p[0],
+			    (char *) 0, 512);
 	ProcOutput = p[1];
-	(void) signal(INPUT_SIG, procs_read);
-	sighold(INPUT_SIG);	/* Released during terminal read */
+	if ((kbd_pid = fork()) == -1) {
+		printf("Cannot fork kbd process!\n");
+		finish(1);
+	}
+	if (kbd_pid == 0) {
+		signal(SIGINT, SIG_IGN);
+		signal(SIGALRM, SIG_IGN);
+		close(1);
+		dup(ProcOutput);
+		execl(Kbd_Proc, "kbd", 0);
+		exit(-1);
+	}
 }
 
-doread(fd, buf, n)
-char	*buf;
-{
-	int	nread;
+private int	kbd_state = OFF;
 
-	if ((nread = read(fd, buf, n)) != n)
-		complain("Cannot read %d (got %d) bytes.", n, nread);
+/* kbd_strt() and kbd_stop() return true if they changed the state
+   of the keyboard process.  E.g., kbd_strt() returns TRUE if the
+   kbd process was previously stopped.  This is so kbd starting and
+   stopping in pairs works - see finish() in jove.c. */
+
+kbd_strt()
+{
+	if (kbd_state == OFF) {
+		kbd_state = ON;
+		kill(kbd_pid, SIGQUIT);
+		return TRUE;
+	}
+	return FALSE;
+}
+
+kbd_stop()
+{
+	if (kbd_state == ON) {
+		kbd_state = OFF;
+		kill(kbd_pid, SIGQUIT);
+		return TRUE;
+	}
+	return FALSE;
+}
+
+kbd_kill()
+{
+	if (kbd_pid != 0) {
+		kill(kbd_pid, SIGKILL);
+		kbd_pid = 0;
+	}
 }

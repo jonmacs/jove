@@ -7,30 +7,25 @@
 
 #include "jove.h"
 #include "ctype.h"
-#include "table.h"
+#include "list.h"
+#include "chars.h"
+#include "disp.h"
 
 #ifdef MAC
-#	undef private
-#	define private
+# undef private
+# define private
 #endif
 
-#ifdef	LINT_ARGS
 private int
-	newchunk(void);
-private void	
-	init_specials(void),
-	remfreelines(struct chunk *);
-#else
-private int
-	newchunk();
-private void	
-	init_specials(),
-	remfreelines();
-#endif	/* LINT_ARGS */
+	newchunk proto((void));
+private void
+	DoNewline proto((int indentp)),
+	init_specials proto((void)),
+	remfreelines proto((struct chunk *));
 
 #ifdef MAC
-#	undef private
-#	define private static
+# undef private
+# define private static
 #endif
 
 /* Make a newline after AFTER in buffer BUF, UNLESS after is 0,
@@ -60,7 +55,7 @@ register Line	*after;
 	if (buf && buf->b_dot == 0)
 		buf->b_dot = newline;
 	return newline;
-}	
+}
 
 /* Divide the current line and move the current line to the next one */
 
@@ -98,7 +93,7 @@ register int	num;
 	curchar = 0;
 	makedirty(curline);
 	IFixMarks(olddot, oldchar, curline, curchar);
-}	
+}
 
 /* Makes the indent of the current line == goal.  If the current indent
    is greater than GOAL it deletes.  If more indent is needed, it uses
@@ -155,9 +150,9 @@ SelfInsert()
 			if (!eolp()) {
 				if (linebuf[curchar] == '\t') {
 					if ((pos + 1) == ((pos + tabstop) - (pos % tabstop)))
-						del_char(FORWARD, 1);
+						del_char(FORWARD, 1, NO);
 				} else
-					del_char(FORWARD, 1);
+					del_char(FORWARD, 1, NO);
 			}
 			insert_c(LastKeyStruck, 1);
 		}
@@ -201,7 +196,7 @@ insert_c(c, n)
 	ins_c(c, linebuf, curchar, n, LBSIZE);
 	IFixMarks(curline, curchar, curline, curchar + n);
 	curchar += n;
-}	
+}
 
 /* Tab in to the right place for C mode */
 
@@ -235,17 +230,15 @@ void
 QuotChar()
 {
 	int	c,
-		slow;
+		slow = NO;
 
 	c = waitchar(&slow);
-	if (slow)
-		message(key_strokes);
 	if (c != CTL('@'))
 		Insert(c);
 }
 
 /* Insert the paren.  If in C mode and c is a '}' then insert the
-   '}' in the "right" place for C indentation; that is indented 
+   '}' in the "right" place for C indentation; that is indented
    the same amount as the matching '{' is indented. */
 
 int	PDelay = 5,	/* 1/2 a second */
@@ -305,9 +298,9 @@ void
 Newline()
 {
 	DoNewline(MinorMode(Indent));
-}	
+}
 
-void
+private void
 DoNewline(indentp)
 {
 	Bufpos	save;
@@ -329,7 +322,7 @@ DoNewline(indentp)
 #endif
 	    if (indentp || blnkp(linebuf))
 		DelWtSpace();
-		
+
 	/* If there is more than 2 blank lines in a row then don't make
 	   a newline, just move down one. */
 	if (arg_value() == 1 && eolp() && TwoBlank())
@@ -625,12 +618,12 @@ GCchunks()
 	register int	i;
 	register Line	*newline;
 
- 	for (cp = fchunk; cp != 0; cp = next) {
+	for (cp = fchunk; cp != 0; cp = next) {
 		for (i = 0, newline = cp->c_block; i < cp->c_nlines; newline++, i++)
 			if (newline->l_dline != 0)
 				break;
 
- 		next = cp->c_nextfree;
+		next = cp->c_nextfree;
 
 		if (i == cp->c_nlines) {		/* Unlink it!!! */
 			if (prev)
@@ -674,7 +667,7 @@ GSexpr()
 /* lisp_indent() indents a new line in Lisp Mode, according to where
    the matching close-paren would go if we typed that (sort of). */
 
-private Table	*specials = NIL;
+private List	*specials = NIL;
 
 private void
 init_specials()
@@ -696,20 +689,23 @@ init_specials()
 	};
 	char	**wordp = words;
 
-	specials = make_table();
 	while (*wordp)
-		add_word(*wordp++, specials);
+		list_push(&specials, (Element *) *wordp++);
 }
 
 void
 AddSpecial()
 {
 	char	*word;
+	register List	*lp;
 
-	word = ask((char *) 0, ProcFmt);
 	if (specials == NIL)
 		init_specials();
-	add_word(copystr(word), specials);
+	word = ask((char *) 0, ProcFmt);
+	for (lp = specials; lp != NIL; lp = list_next(lp))
+		if (strcmp((char *) list_data(lp), word) == 0)
+			return;		/* already in list */
+	(void) list_push(&specials, (Element *) copystr(word));
 }
 
 Bufpos *
@@ -725,23 +721,25 @@ lisp_indent()
 		return 0;
 
 	/* We want to end up
-	 
-	 	(atom atom atom ...
-	 	      ^ here.
+
+		(atom atom atom ...
+		      ^ here.
 	 */
 
 	DOTsave(&savedot);
 	SetDot(bp);
 	f_char(1);
 	if (linebuf[curchar] != '(') {
-		register Word	*wp;
+		register List	*lp;
 
 		if (specials == NIL)
 			init_specials();
-		for (wp = table_top(specials); wp != NIL; wp = next_word(wp))
-			if (casencmp(word_text(wp), &linebuf[curchar], word_length(wp)) == 0)
+		for (lp = specials; lp != NIL; lp = list_next(lp))
+			if (casencmp((char *) list_data(lp),
+				     &linebuf[curchar],
+				     strlen((char *) list_data(lp))) == 0)
 				break;
-		if (wp == NIL) {	/* not special */
+		if (lp == NIL) {	/* not special */
 			int	c_char = curchar;
 
 			WITH_TABLE(curbuf->b_major)
