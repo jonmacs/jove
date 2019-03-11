@@ -60,6 +60,30 @@
  *   + when the button is released to the right of the end of a text line
  *     (but xterm's idea of this may well differ from JOVE's since JOVE
  *     optimizes screen output)
+ *
+ * - When the mouse is enabled, xterm interprets ^[[ ... T as an
+ *   Initiate Hilite Mouse Tracking command.  Otherwise, recent
+ *   versions interpret it as Parameterized Scroll Down.  Some recent
+ *   termcap/terminfo xterm entries define the SR capability using
+ *   this sequence.  But it doesn't work all the time!
+ *   It is hard to say what the best fix would be:
+ *   + get X to distinguish the two T commands by the number of parameters
+ *   + correctly document the limitation and remove SR from the
+ *     xterm termcap and terminfo datebases
+ *
+ *   In any case, the problem will be in the wild for some time
+ *   so JOVE now has an ugly kludge to dodge the bug.
+ *   KLUDGE: suppress M_SR (our name for SR) if in mouse mode and M_SR
+ *   ends in "T".
+ *
+ *   First observed and analyzed in Fedora Core 4 in 2005 September.
+ *
+ * - xterm has gained more capabilities over the years.  Some misguided
+ *   people of revised the termcap/terminfo entries for xterm to exploit
+ *   new features.  This has unfortunate consequences when the xterm
+ *   is on a different system from the termcap/terminfo database:
+ *   if they don't match, JOVE will potentially curdle the screen.
+ *   JOVE cannot work around this problem, the user must.
  */
 
 bool	XtermMouse = NO;	/* VAR: should we enable xterm mouse? */
@@ -89,10 +113,21 @@ private Mark	*oldpos = NULL;	/* Use a Mark so it is adjusted automatically */
 #define LMA_LINE	0040
 private int last_mouse_act = LMA_NONE;
 
+private const char *saved_M_SR = NULL;	/* KLUDGE for xterm/termcap bug */
+
 void
 MouseOn()
 {
 	if (XtermMouse != xtMouseState) {
+		/* KLUDGE for xterm/termcap bug */
+		if (XtermMouse && M_SR != NULL) {
+		    size_t len = strlen(M_SR);
+
+		    saved_M_SR = M_SR;
+		    if (len > 0 && M_SR[len-1] == 'T')
+			M_SR = NULL;
+		}
+		/* end if KLUDGE */
 		putpad(XtermMouse? xtMouseEnable : xtMouseDisable, 1);
 		xtMouseState = XtermMouse;
 	}
@@ -104,6 +139,7 @@ MouseOff()
 	if (xtMouseState) {
 		putpad(xtMouseDisable, 1);
 		xtMouseState = NO;
+		M_SR = saved_M_SR;	/* KLUDGE for xterm/termcap bug */
 	}
 }
 
