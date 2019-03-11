@@ -7,11 +7,22 @@
 
 /* Note: jove.spec must be updated when version number changes */
 
-#define	jversion     "4.16.0.58" /* 2003 January 8 */
-#define	jversion_lnum 4,16,0,58  /* list-of-numbers form for Win32 jjove.rc */
+#define	jversion     "4.16.0.61" /* 2003 January 31 */
+#define	jversion_lnum 4,16,0,61  /* list-of-numbers form for Win32 jjove.rc */
 
 /*
  * $Log: version.h,v $
+ * Revision 1.411  2003/02/01 02:02:08  hugh
+ * 4.16.0.61: increase MESG_SIZE to support wider terminals
+ *
+ * Revision 1.410  2003/01/31 22:15:33  hugh
+ * 4.16.0.60: fix screen update bug involving scrolling region
+ * Surprise: cursor location undefined after setting scrolling region
+ *
+ * Revision 1.409  2003/01/31 22:01:40  hugh
+ * 4.16.0.59: add "distrib" and "signeddistrib" Makefile targets
+ * tar file will now unpack into jove<version> directory
+ *
  * Revision 1.408  2003/01/09 02:07:15  hugh
  * adjust jove.spec for yet another new rpmbuild requirement
  *

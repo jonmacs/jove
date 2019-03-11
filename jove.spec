@@ -5,7 +5,7 @@
 # For example, macros are expanded even in comments!
 
 # This version number must be kept in sync with version.h.
-%define version 4.16.0.58
+%define jversion 4.16.0.61
 
 # configflags: flags passed to each make to configure for LINUX.
 # The choices are explained in Makefile and sysdep.doc.
@@ -18,19 +18,19 @@
 # on those, use the fatter libcurses by adding TERMCAPLIB=-lcurses
 # inside the SYSDEFS string.
 
-#define configflags SYSDEFS="-DBSDPOSIX -DJLGBUFSIZ=12 -DIPROC_TERM='\\"TERM=vanilla\\"'" PORTSRVINST="" TROFF=groff TROFFPOST=""
-%define configflags SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500 -DJLGBUFSIZ=12 -DIPROC_TERM='\\"TERM=vanilla\\"'" PORTSRVINST="" TROFF=groff TROFFPOST=""
-#define configflags SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500 -DJLGBUFSIZ=12 -DIPROC_TERM=\"TERM=vanilla\" TERMCAPLIB=-lcurses" PORTSRVINST="" TROFF=groff TROFFPOST=""
+#define configflags -C jove%{jversion} SYSDEFS="-DBSDPOSIX -DJLGBUFSIZ=12 -DIPROC_TERM='\\"TERM=vanilla\\"'" PORTSRVINST="" TROFF=groff TROFFPOST=""
+%define configflags -C jove%{jversion} SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500 -DJLGBUFSIZ=12 -DIPROC_TERM='\\"TERM=vanilla\\"'" PORTSRVINST="" TROFF=groff TROFFPOST=""
+#define configflags -C jove%{jversion} SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500 -DJLGBUFSIZ=12 -DIPROC_TERM=\"TERM=vanilla\" TERMCAPLIB=-lcurses" PORTSRVINST="" TROFF=groff TROFFPOST=""
 
 
 Summary: Jonathan's Own Version of Emacs
 Name: jove
-Version: %{version}
+Version: %{jversion}
 Release: 1
 Copyright: Copyright (C) 1986-2002 by Jonathan Payne, freely redistributable
 Packager: jovehacks@cs.toronto.edu
 Group: Applications/Editors/Emacs
-Source: ftp://ftp.cs.toronto.edu/pub/hugh/jove-dev/jove%{version}.tgz
+Source: ftp://ftp.cs.toronto.edu/pub/hugh/jove-dev/jove%{jversion}.tgz
 BuildRoot: /var/tmp/%{name}-rpmroot
 %description
 
@@ -74,7 +74,12 @@ rm $RPM_BUILD_ROOT/usr/man/man1/xjove.1
 %doc /usr/man/man1/teachjove.1.gz
 #doc /usr/man/man1/jovetool.1.gz
 #doc /usr/man/man1/xjove.1.gz
-%doc README doc/jove.man doc/jove.man.ps doc/jove.rc doc/example.rc doc/jove.qref
+%doc jove%{jversion}/README
+%doc jove%{jversion}/doc/jove.man
+%doc jove%{jversion}/doc/jove.man.ps
+%doc jove%{jversion}/doc/jove.rc
+%doc jove%{jversion}/doc/example.rc
+%doc jove%{jversion}/doc/jove.qref
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -83,17 +88,3 @@ rm -rf $RPM_BUILD_ROOT
 make JOVEHOME=$RPM_BUILD_ROOT/usr %{configflags} clean
 
 %changelog
-* Thu Mar 22 2001 <hugh@mimosa.com>
-  - 4.16.0.51: improve portability; use openpty on *BSD
-* Sun Feb 04 2001 <hugh@mimosa.com>
-  - 4.16.0.50: survive covert gzipping; format manuals correctly
-* Thu Nov 09 2000 Bennett Todd <bet@rahul.net>
-  - 4.16.0.49: use RPM_BUILD_ROOT -- don't interfere with system install
-* Wed Jul 12 2000 <hugh@mimosa.com>
-  - 4.26.0.48: switched to using UNIX98 PTYs for security
-* Wed Aug 18 1999 <hugh@mimosa.com>
-  - Updated in preparation for new release
-* Tue Jul 28 1998 <markster@marko.net>
-  - Updated to version 4.16.0.28
-* Wed May 12 1997 <bet@fcmc.com>
-  - Initial wrap

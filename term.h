@@ -95,7 +95,7 @@ extern const char
 	*M_SF,	/* Scroll forward with arg */
 	*M_SR;	/* Scroll back with arg */
 
-# define	INFINITY	1000	/* cost too high to afford */
+# define	INFINITY	10000	/* cost too high to afford */
 
 extern int
 	UPlen,		/* length of the UP string */

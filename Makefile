@@ -503,6 +503,29 @@ backup.tgz: .filelist
 tape-backup:	.filelist
 	tar cf /dev/rst8 `cat .filelist`
 
+# Extract version number from version.h
+# At same time, check that all copies agree.
+.version:	version.h jove.spec
+	sed -n -e '/^#define[ 	]*jversion[ 	]*"\([0-9.]*\)".*/s//\1/p' version.h >.version || rm -f .version
+	sed -n -e '/^#define[ 	]*jversion_lnum[ 	]*\([0-9,]*\).*/s//\1/p' version.h | sed -e 's/,/./g' | diff - .version
+	sed -n -e '/^%define[ 	]*jversion[ 	]*\([0-9.]*\).*/s//\1/p' jove.spec | diff - .version
+
+# Build a distribution: a gzipped tar file with a name "jove<version>.tgz"
+# The tar will unpack into a directory with the name jove<version>
+# Beware: old files with these names will be blown away.
+distrib:	.filelist .version
+	set -u ; set -e ; \
+	BN=jove`cat .version` ; \
+	rm -rf $$BN $$BN.tgz* ; \
+	mkdir $$BN ; \
+	tar cf - `cat .filelist` | ( cd $$BN ; tar xf - ) ; \
+	tar czf $$BN.tgz $$BN ; \
+	rm -rf $$BN
+
+# create a distribution and a separate PGP signature for it
+signeddistrib:	distrib
+	pgp -sba jove`cat .version`.tgz
+
 # System V sum can be made to match BSD with a -r flag.
 # To get this effect, override with SUM = sum -r
 SUM = sum
@@ -539,13 +562,14 @@ jjove.ico:	jjoveico.uue
 touch:
 	touch $(OBJECTS)
 
+# Note: does not clean jove<version>*: too dangerous
 clean:
 	rm -f a.out core *.o keys.c jjove$(XEXT) portsrv$(XEXT) recover$(XEXT) setmaps \
 		teachjove$(XEXT) paths.h \#* *~ make.log *.map jjove.ico \
 		doc/cmds.doc doc/jove.man doc/jove.doc doc/jove.man.ps \
 		doc/jove.$(MANEXT) doc/teachjove.$(MANEXT) \
 		doc/jovetool.$(MANEXT) \
-		jjove.pure_* tags ID .filelist
+		jjove.pure_* tags ID .filelist .version
 
 cleanall: clean
 	( cd xjove ; make clean )
