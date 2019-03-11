@@ -129,6 +129,34 @@
 # define USE_CTYPE	1
 #endif
 
+#ifdef AIX4_2	/* System: IBM AIX 4.2 */
+# define AIX		1
+# define FULL_UNISTD	1
+# define USE_GETWD	1
+# define TERMIOS	1	/* uses termio struct for terminal modes */
+# define USE_UNAME	1
+# define USE_SELECT	1
+# define USE_SELECT_H	1
+# define PTYPROCS	1
+# define BSD_PTYS	1
+# define NO_EOF_FROM_PTY    1	/* BUG! */
+# define POSIX_PROCS	1
+# define WAIT3		1
+# define POSIX_SIGS	1
+# define JOB_CONTROL	1
+# define USE_GETPWNAM	1
+# define USE_UNAME	1
+# define USE_FSYNC	1
+# define USE_FSTAT	1
+# define USE_FCHMOD	1
+# define HAS_SYMLINKS	1
+# define USE_CTYPE	1
+  /* Only difference from AIX3_2, perhaps due to switching from
+   * -ltermcap to -lcurses (-ltermcap seems to have disappeared):
+   */
+# define DEFINE_PC_BC_UP_OSPEED	1	/* May be needed for all SYSVR2 */
+#endif
+
 #ifdef __convex__	/* System: ConvexOS (versions 10.x - 11.x) */
 /* Note: this must be placed before BSDPOSIX ifdef (we define BSDPOSIX). */
 # define BSDPOSIX	1	/* mostly like BSDPOSIX */
@@ -501,9 +529,16 @@
 # define HIGHLIGHTING	1	/* highlighting is used for mark and scrollbar */
 # define MSDOS_PROCS	1	/* spawn et al */
 # define FILENAME_CASEINSENSITIVE 1
-# define USE_CRLF 1
+# define USE_CRLF	1
 # define DIRECTORY_ADD_SLASH 1
-# define MSFILESYSTEM 1
+# define MSFILESYSTEM	1
+# if defined(_MSC_VER) && _MSC_VER >= 1200 /* VC 6.0+ */
+   /* <basetsd.h> defines SSIZE_T -- a name that we thought was safely
+    * in our namespace!  To prevent havoc, we include that header now
+    * so that our own definition will be suppressed.
+    */
+#  include <basetsd.h>
+# endif
 #endif
 
 /* The operating system (MSDOS, WIN32, or MAC) must be defined by this point. */

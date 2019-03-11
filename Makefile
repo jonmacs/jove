@@ -101,7 +101,8 @@ JOVETOOLM = $(MANDIR)/jovetool.$(MANEXT)
 #	DG AViiON 5.3R4			SYSDEFS=-DSYSVR4 -DBSD_SIGS
 #	HP/UX 8 or 9			SYSDEFS=-DHPUX -Ac
 #	HP/UX 11 (-Ac redundant)	SYSDEFS=-DHPUX
-#	IBM RS6000s			SYSDEFS=-DAIX3_2
+#	IBM AIX 3.2			SYSDEFS=-DAIX3_2
+#	IBM AIX 4.2			SYSDEFS=-DAIX4_2 LIBS="-lcurses -ls"
 #	Irix 3.3-4.0.5			SYSDEFS=-DIRIX -DIRIX4
 #	Irix 5.0 onwards		SYSDEFS=-DIRIX -prototypes
 #	LINUX (eg. RedHat 4, 5)		SYSDEFS=-DBSDPOSIX
@@ -216,9 +217,13 @@ OVLAY5 = proc.o scandir.o term.o case.o
 
 OBJECTS = $(BASESEG) $(OVLAY1) $(OVLAY2) $(OVLAY3) $(OVLAY4) $(OVLAY5)
 
+# These TROFF and TROFFPOST settings work with ditroff.
+# For groff:
+#	TROFF = groff
+#	TROFFPOST =
 NROFF = nroff
 TROFF = troff -Tpost
-TROFFPOST = | /usr/lib/lp/postscript/dpost - >troff.out.ps
+TROFFPOST = | /usr/lib/lp/postscript/dpost -
 
 MANUALS = $(JOVEM) $(TEACHJOVEM) $(XJOVEM) $(JOVETOOLM)
 
@@ -362,8 +367,8 @@ doc/cmds.doc:	doc/cmds.macros.nr doc/cmds.nr
 doc/jove.man:	doc/intro.nr doc/cmds.nr
 	( cd doc; tbl intro.nr | $(NROFF) -ms - cmds.nr >jove.man )
 
-troff-man:
-	( cd doc; tbl intro.nr | $(TROFF) -ms - cmds.nr contents.nr $(TROFFPOST) )
+doc/jove.man.ps:
+	( cd doc; tbl intro.nr | $(TROFF) -ms - cmds.nr contents.nr $(TROFFPOST) >jove.man.ps )
 
 $(CMDS.DOC): doc/cmds.doc
 	$(TINSTALL) doc/cmds.doc $(CMDS.DOC)
@@ -522,7 +527,7 @@ touch:
 clean:
 	rm -f a.out core *.o keys.c jjove$(XEXT) portsrv$(XEXT) recover$(XEXT) setmaps \
 		teachjove$(XEXT) paths.h \#* *~ make.log *.map jjove.ico \
-		doc/cmds.doc doc/jove.man doc/jove.doc doc/troff.out.ps \
+		doc/cmds.doc doc/jove.man doc/jove.doc doc/jove.man.ps \
 		doc/jove.$(MANEXT) doc/teachjove.$(MANEXT) \
 		doc/jovetool.$(MANEXT) \
 		jjove.pure_* tags ID .filelist

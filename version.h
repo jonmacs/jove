@@ -7,11 +7,14 @@
 
 /* Note: jove.spec must be updated when version number changes */
 
-#define	jversion     "4.16.0.49" /* 2000 Nov 9 */
-#define	jversion_lnum 4,16,0,49  /* list-of-numbers form for Win32 jjove.rc */
+#define	jversion     "4.16.0.50" /* 2000 Nov 9 */
+#define	jversion_lnum 4,16,0,50  /* list-of-numbers form for Win32 jjove.rc */
 
 /*
  * $Log: version.h,v $
+ * Revision 1.400  2001/02/04 21:01:50  hugh
+ * 4.16.0.50 support groff; fix jove.spec for RPM creation
+ *
  * Revision 1.399  2000/11/10 07:58:22  hugh
  * [BET+DHR] support installation into a playpen; exploit when building RPM
  *

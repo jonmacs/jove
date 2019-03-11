@@ -49,9 +49,10 @@
 .ps \\n(PS
 ..
 .
-.\" Set the extra vertical spacing around .DS/.DE
-.if n .nr DD 0v
-.if t .nr DD \n(PD/2u
+.\" Change the extra vertical spacing around .DS/.DE
+.\" Does not work with groff's version of MS (GS is 1 iff groff MS)
+.if !\n(GS .if n .nr DD 0v
+.if !\n(GS .if t .nr DD \n(PD/2u
 .
 .nr LL 6.5i
 .nr LT 6.5i
@@ -145,7 +146,7 @@ void main()
 }
 
 _	
-\fBJOVE\ (C OvrWt)\ \ \ [Main:1]\ \ "hello.c"\ \ \(**\ \ /home/foo\ \ \ \ 15:23\fP	<\ the Mode Line
+\fBJOVE\ (C OvrWt)\ \ \ [Main:1]\ \ "hello.c"\ \ \(**\ \ /home/foo\fP	<\ the Mode Line
 _	
 : write-file (default hello.c) aloha.c\^\(sq 	<\ the Message Line
 =	
@@ -1971,7 +1972,7 @@ _
 \ \ \ \ return 0;	<\ second Window
 }\^\(sq
 _	
-\fBJOVE\ (C OvrWt)\ \ \ [Main:1]\ \ "aloha.c"\ \ \-\-\ \ /home/foo\ \ \ \ 15:28\fP	<\ the Mode Line
+\fBJOVE\ (C OvrWt)\ \ \ [Main:1]\ \ "aloha.c"\ \ \-\-\ \ /home/foo\fP	<\ the Mode Line
 _	
 [Point pushed]	<\ the Message Line
 =	
@@ -3125,9 +3126,9 @@ definitely set to be \fIon\fP, rather than merely being toggled.
 .LP
 The format of the mode line is controlled by the variable \fImode-line\fP.
 Here is a suggested setting.
-.RS
-set mode-line %[Jove%]%w%w%c(%M)%3c[%b:%n]%2c"%f"%2c%m\(**-%m\(**-%2c%p%2s%(%d%e(%t)%)
-.RE
+.DS
+%[Jove%]%w%w%c(%M)%3c[%b:%n]%2c"%f"%2c%m\(**-%m\(**-%2c%p%2s%(%d%e(%t)%)
+.DE
 .LP
 and here is what it all means.
 .IP %[\^...\^%] 12n
