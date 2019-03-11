@@ -860,7 +860,9 @@ proc_strt(bufname, clobber, procname, va_alist)
 		}
 		strcpy(ttybuf, s);
 	}
+#  ifdef TIOCFLUSH
 	(void) ioctl(ptyfd, TIOCFLUSH, (UnivPtr) NULL);	/* ??? why? */
+#  endif
 # endif /* SVR4_PTYS */
 # ifdef BSD_PTYS
 	{
