@@ -56,6 +56,7 @@ extern int
 	EndWNewline,		/* end files with a blank line */
 	MarkThresh,		/* moves greater than MarkThresh will SetMark */
 	PDelay,			/* paren flash delay in tenths of a second */
+	CArgIndent,		/* how to indent arguments to C functions */
 	CIndIncrmt,		/* how much each indentation level pushes
 				   over in C mode */
 	CreatMode,		/* default mode for creat'ing files */
@@ -91,11 +92,7 @@ extern int
 	Bgcolor,
 	Mdcolor,
 #endif /* IBMPC */
-#ifdef F_COMPLETION
-	DispBadFs,		/* display filenames with bad extensions? */
-#endif
 	ScrollAll,		/* we current line scrolls, scroll whole window? */
-	DefReadOnly,		/* make find-file buffers readonly by default */
 #ifndef MAC
 	EWSize;			/* size to make the error window */
 #else
@@ -122,6 +119,7 @@ extern char
 #endif
 #ifdef IPROCS
 	proc_prompt[128],	/* process prompt */
+	dbx_parse_fmt[128],	/* dbx-mode parse string */
 #endif
 #ifdef F_COMPLETION
 	BadExtensions[128],	/* extensions (e.g., ".o" to ignore) */

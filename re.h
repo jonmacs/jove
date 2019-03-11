@@ -29,8 +29,9 @@ extern char	searchstr[128],
 		rep_str[128];		/* contains replacement string */
 
 extern int	REdirection,
+		REbom,		/* beginning and end columns of match */
 		REeom,
-		REbom;
+		REdelta;	/* increase in line length due to last re_dosub */
 #endif
 
 extern char
@@ -39,7 +40,7 @@ extern char
 extern int
 	LookingAt proto((char *pattern,char *buf,int offset)),
 	look_at proto((char *expr)),
-	re_lindex proto((struct line *line,int offset,struct RE_block *re_blk, int lbuf_okay));
+	re_lindex proto((struct line *line,int offset,struct RE_block *re_blk, int lbuf_okay, int crater));
 
 extern Bufpos
 	*docompiled proto((int dir, struct RE_block *)),

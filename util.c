@@ -189,11 +189,11 @@ int	*slow;
 
 char *
 StrIndex(dir, buf, charpos, what)
-char	*buf,
-	what;
+register char	*buf;
+register int	what;
 {
-	char	*cp = &buf[charpos],
-		c;
+	register char	*cp = &buf[charpos];
+	register int	c;
 
 	if (dir > 0) {
 		while (c = *cp++)
@@ -216,6 +216,18 @@ register char	*buf;
 	while ((c = *buf++) && (c == ' ' || c == '\t'))
 		;
 	return c == 0;	/* It's zero if we got to the end of the Line */
+}
+
+int
+within_indent()
+{
+	register char	c;
+	register int	i;
+
+	i = curchar;
+	while (--i >= 0 && ((c = linebuf[i]) == ' ' || c == '\t'))
+		;
+	return (i < 0);		/* it's < 0 if we got to the beginning */
 }
 
 Line *
@@ -595,7 +607,8 @@ len_error(flag)
 
 void
 ins_c(c, buf, atchar, num, max)
-char	c, *buf;
+int	c;
+char	*buf;
 {
 	register char	*pp, *pp1;
 	register int	len;

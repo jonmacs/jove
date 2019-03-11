@@ -51,8 +51,8 @@ register Window	*wp;
 	if (one_windp())
 		complain(onlyone);
 
-	wp->w_prev->w_next = wp->w_next;
-	wp->w_next->w_prev = wp->w_prev;
+	prev->w_next = wp->w_next;
+	wp->w_next->w_prev = prev;
 
 	if (fwind == wp) {
 		fwind = wp->w_next;
@@ -161,7 +161,7 @@ void
 SetWind(new)
 register Window	*new;
 {
-	if (!Asking) {		/* can you say kludge? */
+	if (!Asking && curbuf!=NULL) {		/* can you say kludge? */
 		curwind->w_line = curline;
 		curwind->w_char = curchar;
 		curwind->w_bufp = curbuf;
@@ -428,8 +428,16 @@ register int	inc;
 			complain(toosmall);
 		w->w_height += inc;
 		w->w_prev->w_height -= inc;
-	} else			/* Growing the window. */
-		WindSize(w->w_next, -inc);
+	} else {		/* Growing the window. */
+		/* Change made from original code so that growing a window
+		   exactly offsets effect of shrinking a window, i.e.
+		   doing either followed by the other restores original
+		   sizes of all affected windows. */
+		if (w->w_prev->w_height - inc < 2)
+			complain(toosmall);
+		w->w_height += inc;
+		w->w_prev->w_height -= inc;
+	}
 #ifdef MAC
 	Windchange++;
 #endif

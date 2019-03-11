@@ -168,7 +168,7 @@ extern int	IN_INSmode;
 #ifndef MAC
 int		/* only for lints sake */
 dosputc(c)
-register char	c;
+register int	c;
 {
 #ifndef IBMPC
 	if (*cursor != c) {
@@ -499,6 +499,8 @@ register int	nline,
 	i_col = ncol;
 }
 
+#if !(defined(MAC))
+void
 SO_on()
 {
 	/* If there are magic cookies, then WHERE the SO string is
@@ -513,6 +515,7 @@ SO_on()
 	putpad(SO, 1);
 }
 
+void
 SO_off()
 {
 	/* see comment in SO_on() */
@@ -523,6 +526,7 @@ SO_off()
 	}
 	putpad(SE, 1);
 }
+#endif
 
 /* Insert `num' lines a top, but leave all the lines BELOW `bottom'
    alone (at least they won't look any different when we are done).
@@ -617,8 +621,8 @@ v_del_line(num, top, bottom)
    What ever turns you on ...   */
 
 private struct cursaddr {
-	int	cm_numchars,
-		(*cm_proc)();
+	int	cm_numchars;
+	void	(*cm_proc)();
 };
 
 private char	*Cmstr;
@@ -1068,8 +1072,8 @@ GENd_lines(top, bottom, num)
 
 struct ID_lookup {
 	char	*ID_name;
-	int	(*I_proc)();	/* proc to insert lines */
-	int	(*D_proc)();	/* proc to delete lines */
+	void	(*I_proc)();	/* proc to insert lines */
+	void	(*D_proc)();	/* proc to delete lines */
 } ID_trms[] = {
 	"generic",	GENi_lines,	GENd_lines,	/* This should stay here */
 #ifdef WIRED_TERMS

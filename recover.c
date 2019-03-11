@@ -113,6 +113,7 @@ DIR	*dp;
 /* Get a line at `tl' in the tmp file into `buf' which should be LBSIZE
    long. */
 
+void
 getline(tl, buf)
 daddr	tl;
 char	*buf;
@@ -690,6 +691,7 @@ char	*dir;
 	return nfound;
 }
 
+void
 main(argc, argv)
 int	argc;
 char	*argv[];

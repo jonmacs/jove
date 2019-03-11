@@ -18,11 +18,6 @@
 # include <sys/stat.h>
 #endif
 
-#ifdef MAC
-# undef private
-# define private
-#endif
-
 private Bufpos *doisearch proto((int, int, int));
 
 private void
@@ -33,11 +28,6 @@ private int
 	lookup proto((char *, char *, char *, char *)),
 	substitute proto((struct RE_block *, int, Line *, int, Line *, int));
 
-#ifdef MAC
-# undef private
-# define private static
-#endif
-
 private int
 substitute(re_blk, query, l1, char1, l2, char2)
 struct RE_block	*re_blk;
@@ -46,30 +36,35 @@ Line	*l1,
 {
 	Line	*lp;
 	int	numdone = 0,
-		offset = curchar,
+		UNDO_nd = 0,
+		offset = char1,
 		stop = NO;
 	daddr	UNDO_da = 0;
-	Line	*UNDO_lp = 0;
+	Line	*UNDO_lp = NULL;
 
 	lsave();
 	REdirection = FORWARD;
 
-	lp = l1;
-	for (lp = l1; (lp != l2->l_next) && !stop; lp = lp->l_next) {
-		offset = (lp == l1) ? char1 : 0;
-		while (!stop && re_lindex(lp, offset, re_blk, NO)) {
+	for (lp = l1; lp != l2->l_next; lp = lp->l_next) {
+		int	crater = -1;	/* end of last substitution on this line */
+		int	LineDone = NO;	/* already replaced last empty string on line? */
+
+		while (!LineDone && re_lindex(lp, offset, re_blk, NO, crater)) {
 			if (lp == l2 && REeom > char2)	/* nope, leave this alone */
 				break;
+
 			DotTo(lp, REeom);
 			offset = curchar;
 			if (query) {
 				int	c;
 
 				message("Replace (Type '?' for help)? ");
-reswitch:			redisplay();
+reswitch:
+				redisplay();
 				c = getchar();
 				if (c == AbortChar)
-					goto done;
+					return numdone;
+
 				switch (CharUpcase(c)) {
 				case '.':
 					stop = YES;
@@ -82,15 +77,20 @@ reswitch:			redisplay();
 				case BS:
 				case RUBOUT:
 				case 'N':
-					if (linebuf[offset++] == '\0')
-						goto nxtline;
+					if (REbom == REeom) {
+						offset += 1;
+						if (linebuf[REeom] == '\0')
+							LineDone = YES;
+					}
 					continue;
 
 				case CTL('W'):
 					re_dosub(re_blk, linebuf, YES);
+					if (lp == l2)
+						char2 += REdelta;
 					modify();
 					numdone += 1;
-					offset = curchar = REbom;
+					curchar = REbom;
 					makedirty(curline);
 					UNDO_da = curline->l_dline;
 					UNDO_lp = curline;
@@ -99,21 +99,25 @@ reswitch:			redisplay();
 				case CTL('R'):
 				case 'R':
 					RErecur();
+					UNDO_lp = NULL;	/* can't reliably undo this */
 					offset = curchar;
 					lp = curline;
 					continue;
 
 				case CTL('U'):
 				case 'U':
-					if (UNDO_lp == 0) {
+					if (UNDO_lp == NULL) {
 						rbell();
 						goto reswitch;
 					}
+					if (UNDO_lp == NULL)
+						getline(UNDO_da, linebuf);	/* someone ought to */
 					lp = UNDO_lp;
 					lp->l_dline = UNDO_da;
 					makedirty(lp);
 					offset = 0;
-					numdone -= 1;
+					numdone = UNDO_nd;
+					UNDO_lp = NULL;
 					continue;
 
 				case 'P':
@@ -124,7 +128,7 @@ reswitch:			redisplay();
 				case CR:
 				case LF:
 				case 'Q':
-					goto done;
+					return numdone;
 
 				case CTL('L'):
 					RedrawDisplay();
@@ -136,22 +140,30 @@ message("Space or Y, Period, Rubout or N, C-R or R, C-W, C-U or U, P or !, Retur
 					goto reswitch;
 				}
 			}
+			if (UNDO_lp != curline) {
+				UNDO_da = curline->l_dline;
+				UNDO_lp = curline;
+				UNDO_nd = numdone;
+			}
+			if (REbom == REeom && linebuf[REeom] == '\0')
+				LineDone = YES;
 			re_dosub(re_blk, linebuf, NO);
+			if (lp == l2)
+				char2 += REdelta;
 			numdone += 1;
 			modify();
-			offset = curchar = REeom;
+			crater = offset = curchar = REeom;
 			makedirty(curline);
 			if (query) {
 				message(mesgbuf);	/* no blinking */
 				redisplay();		/* show the change */
 			}
-			UNDO_da = curline->l_dline;
-			UNDO_lp = curline;
-			if (linebuf[offset] == 0)
-nxtline:			break;
+			if (stop)
+				return numdone;
 		}
+		offset = 0;
 	}
-done:	return numdone;
+	return numdone;
 }
 
 /* prompt for search and replacement strings and do the substitution */

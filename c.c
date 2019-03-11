@@ -11,11 +11,6 @@
 #include "re.h"
 #include "ctype.h"
 
-#ifdef MAC
-# undef private
-# define private
-#endif
-
 private int
 	backslashed proto((char *, int));
 private void
@@ -27,11 +22,11 @@ private void
 	parse_cmt_fmt proto((char *)),
 	strip_c proto((char *, char *));
 
-#if defined(MAC)
-# undef private
-# define private static
-#endif
-
+extern void
+	FSexpr(),
+	FList(),
+	BSexpr(),
+	BList();
 
 private int
 backslashed(lp, cpos)
@@ -50,6 +45,7 @@ private int	mp_kind;
 #define MP_OKAY		0
 #define MP_MISMATCH	1
 #define MP_UNBALANCED	2
+#define MP_INCOMMENT	3
 
 void
 mp_error()
@@ -61,6 +57,10 @@ mp_error()
 
 	case MP_UNBALANCED:
 		message("[Unbalanced parenthesis]");
+		break;
+
+	case MP_INCOMMENT:
+		message("[Inside a comment]");
 		break;
 
 	case MP_OKAY:
@@ -82,7 +82,7 @@ mp_error()
 
 Bufpos *
 m_paren(p_type, dir, can_mismatch, can_stop)
-char	p_type;
+int	p_type;
 register int	dir;
 {
 	static Bufpos	ret;
@@ -119,13 +119,9 @@ register int	dir;
 			break;
 		lp = lbptr(sp->p_line);
 
-/*		if (sp->p_line != curline)
-			/* let's assume that strings do NOT go over line
-			   bounderies (for now don't check for wrapping
-			   strings)
-			quote_c = 0; */
 		curline = sp->p_line;
 		curchar = sp->p_char;	/* here's where I cheat */
+
 		c_char = curchar;
 		if (dir == FORWARD)
 			c_char -= 1;
@@ -136,6 +132,7 @@ register int	dir;
 		if (quote_c == 0 && c == '/') {
 			int	new_ic;
 
+			/* close comment */
 			if ((c_char != 0) && lp[c_char - 1] == '*') {
 				new_ic = (dir == FORWARD) ? NO : YES;
 				if (new_ic == NO && in_comment == -1) {
@@ -331,29 +328,139 @@ FindMatch(dir)
 			   know about it */
 }
 
+#define ALIGN_ARGS	-1
+
+/* If CArgIndent == ALIGN_ARGS then the indentation routine will
+   indent a continued line by lining it up with the first argument.
+   Otherwise, it will indent CArgIndent characters past the indent
+   of the first line of the procedure call. */
+
+int	CArgIndent = ALIGN_ARGS;
+
+/* indent for C code */
 Bufpos *
-c_indent(incrmt)
+c_indent(brace)
 {
 	Bufpos	*bp;
-	int	indent = 0;
+	int	new_indent = 0,
+		current_indent,
+		increment;
 
-	if (bp = m_paren('}', BACKWARD, NO, YES)) {
+	if (brace == NO)
+		increment = CIndIncrmt;
+	else
+		increment = 0;
+	/* Find matching paren, which may be a mismatch now.  If it
+	   is not a matching curly brace then it is a paren (most likely).
+	   In that case we try to line up the arguments to a procedure
+	   or inside an of statement. */
+	if (bp = m_paren('}', BACKWARD, YES, YES)) {
 		Bufpos	save;
+		int	matching_indent;
 
 		DOTsave(&save);
 		SetDot(bp);		/* go to matching paren */
-		ToIndent();		/* calculate indent for that line */
-		indent = calc_pos(linebuf, curchar);
+		ToIndent();
+		matching_indent = calc_pos(linebuf, curchar);
+		SetDot(bp);
+		switch (linebuf[curchar]) {
+		case '{':
+			new_indent = matching_indent;
+			if (!bolp()) {
+				b_char(1);
+				/* If we're not within the indent then we
+				   can assume that there is either a C keyword
+				   line DO on the line before the brace, or
+				   there is a parenthesized expression.  If
+				   that's the case we want to go backward
+				   over that to the beginning of the expression
+				   so that we can get the correct indent for
+				   this matching brace.  This handles wrapped
+				   if statements, etc. */
+				if (!within_indent()) {
+					Bufpos	savematch;
+
+					savematch = *bp;
+
+					do_expr(BACKWARD, NO);
+					ToIndent();
+					new_indent = calc_pos(linebuf, curchar);
+
+					/* do_expr() calls b_paren, which
+					   returns a pointer to a structure,
+					   and that pointer is in BP so we
+					   have to save away the matching
+					   paren and restore it in the
+					   following line ... sigh */
+					*bp = savematch;
+				}
+			}
+			if (brace == NO)
+				new_indent += (increment - (new_indent % increment));
+			break;
+			
+		case '(':
+			if (CArgIndent == ALIGN_ARGS) {
+				f_char(1);
+				new_indent = calc_pos(linebuf, curchar);
+			} else
+				new_indent = matching_indent + CArgIndent;
+			break;
+		}
 		SetDot(&save);
 	}
-	if (incrmt) {
-		if (indent == 0)
-			incrmt = tabstop;
-		else
-			incrmt = (tabstop - (indent%tabstop));
-	}
-	n_indent(indent + incrmt);
+
+	/* new_indent is the "correct" place to indent.  Now we check to
+	   see if what we consider as the correct place to indent is to
+	   the LEFT of where we already are.  If it is, and we are NOT
+	   handling a brace, then we assume that the person wants to tab
+	   in further than what we think is right (for some reason) and
+	   so we allow that. */
+
+	ToIndent();
+	current_indent = calc_pos(linebuf, curchar);
+	if (brace == NO && new_indent <= current_indent)
+		new_indent = current_indent + (increment - (current_indent % increment));
+	Bol();
+	DelWtSpace();			/* nice uniform Tabs*Space* */
+	n_indent(new_indent);
+
 	return bp;
+}
+
+static void
+re_indent(incr)
+{
+	Line	*l1, *l2, *lp;
+	int	c1, c2;
+	Mark	*m = CurMark();
+	Bufpos	savedot;
+
+	DOTsave(&savedot);
+	l1 = curline;
+	c1 = curchar;
+	l2 = m->m_line;
+	c2 = m->m_char;
+	(void) fixorder(&l1, &c1, &l2, &c2);
+	for (lp = l1; lp != l2->l_next; lp = lp->l_next) {
+		int	indent;
+
+		SetLine(lp);
+		ToIndent();
+		indent = calc_pos(linebuf, curchar);
+		n_indent(indent + incr);
+	}
+	SetDot(&savedot);
+}
+
+LRShift()
+{
+	re_indent(-CIndIncrmt);
+}
+
+RRShift()
+{
+	re_indent(CIndIncrmt);
 }
 
 #if defined(CMT_FMT)
@@ -602,6 +709,7 @@ char	*format;
 		if (curline == open_c_mark->m_line->l_next) {
 			;
 		} else {
+			Bol();
 			n_indent(indent_pos);
 			ins_str(l_header, NO);
 		}

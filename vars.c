@@ -24,10 +24,14 @@ struct variable	variables[] = {
 #ifdef F_COMPLETION
 	VARIABLE, "bad-filename-extensions", BadExtensions, V_STRING,
 #endif
+	VARIABLE, "c-argument-indentation", (char *) &CArgIndent, V_BASE10,
 	VARIABLE, "c-indentation-increment", (char *) &CIndIncrmt, V_BASE10,
 	VARIABLE, "case-ignore-search", (char *) &CaseIgnore, V_BOOL,
 #ifdef CMT_FMT
 	VARIABLE, "comment-format", CmtFmt, V_STRING,
+#endif
+#ifdef IPROCS
+	VARIABLE, "dbx-format-string", dbx_parse_fmt, V_STRING,
 #endif
 #ifdef BIFF
 	VARIABLE, "disable-biff", (char *) &BiffChk, V_BOOL,
@@ -42,7 +46,6 @@ struct variable	variables[] = {
 	VARIABLE, "expand-environment-variables", (char *) &DoEVexpand, V_BOOL,
 	VARIABLE, "file-creation-mode", (char *) &CreatMode, V_BASE8,
 	VARIABLE, "files-should-end-with-newline", (char *) &EndWNewline, V_BOOL,
-	VARIABLE, "find-files-read-only", (char *) &DefReadOnly, V_BOOL,
 #ifdef IBMPC
 	VARIABLE, "foreground-color", (char *) &Fgcolor, V_BASE10|V_CLRSCREEN,
 #endif /* IBMPC */
@@ -81,7 +84,7 @@ struct variable	variables[] = {
 	VARIABLE, "search-exit-char", (char *) &SExitChar, V_CHAR,
 	VARIABLE, "send-typeout-to-buffer", (char *) &UseBuffers, V_BOOL,
 #ifndef MAC
-	VARIABLE, "shell", Shell, V_STRING,
+	VARIABLE, "shell", Shell, V_FILENAME,
 	VARIABLE, "shell-flags", ShFlags, V_STRING,
 #endif
 #ifndef MSDOS

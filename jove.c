@@ -41,11 +41,6 @@
 # include <fcntl.h>
 #endif
 
-#ifdef MAC
-# undef private
-# define private
-#endif
-
 #ifdef MSDOS
 extern	time_t	time proto((time_t *));
 private	void	break_off proto((void)),
@@ -56,11 +51,6 @@ private void
 	DoKeys proto((int firsttime)),
 	UNIX_cmdline proto((int argc,char * *argv)),
 	UnsetTerm proto((char *));
-
-#ifdef MAC
-# undef private
-# define private static
-#endif
 
 #ifdef UNIX
 # ifdef TIOCSLTC
@@ -143,7 +133,9 @@ finish(code)
 		}
 	}
 	DisabledRedisplay = YES;
+#ifndef MAC
 	UnsetTerm(NullStr);
+#endif
 #ifdef PIPEPROCS
 	kbd_kill();		/* kill the keyboard process */
 #endif
@@ -478,12 +470,18 @@ Push()
 #ifdef IPROCS
 	SigHold(SIGCHLD);
 #endif
+#if defined(TIOCGWINSZ) && defined(SIGWINCH) && defined(SigRelse)
+	SigHold(SIGWINCH);
+#endif
 	switch (pid = fork()) {
 	case -1:
 		complain("[Fork failed]");
 
 	case 0:
 		UnsetTerm(NullStr);
+#if defined(TIOCGWINSZ) && defined(SIGWINCH) && defined(SigRelse)
+		SigRelse(SIGWINCH);
+#endif
 #ifdef IPROCS
 		SigRelse(SIGCHLD);
 #endif
@@ -509,7 +507,12 @@ Push()
 	if (spawnl(0, Shell, basename(Shell), (char *)0) == -1)
 		message("[Spawn failed]");
 #endif /* MSDOS */
+#ifndef MAC
 	ResetTerm();
+#endif
+#if defined(TIOCGWINSZ) && defined(SIGWINCH) && defined(SigRelse)
+	SigRelse(SIGWINCH);
+#endif
 	ClAndRedraw();
 #ifndef MSDOS
 	(void) signal(SIGQUIT, old_quit);
@@ -551,6 +554,12 @@ ttsize()
 #	endif /* BTL_BLIT */
 #   endif /* TIOCGWINSZ */
 #endif /* UNIX */
+#ifdef MAC
+	CO = getCO();	/* see mac.c */
+	LI = getLI();
+	Windchange = 1;
+	clr_page();
+#endif
 	ILI = LI - 1;
 }
 
@@ -586,6 +595,8 @@ biff(on)
 private void
 ttinit()
 {
+	void	do_sgtty();
+
 #ifdef BIFF
 	biff_init();
 #endif
@@ -1107,25 +1118,22 @@ updmode()
 }
 #endif /* UNIX */
 
-#ifndef MSDOS
-# if defined(TIOCGWINSZ) && defined(SIGWINCH)
-extern win_reshape();
-# endif
-#else /* MSDOS */
+#ifdef MSDOS
 # ifndef IBMPC
 char	ttbuf[BUFSIZ];
 # endif	/* IBMPC */
 #endif /* MSDOS */
 
-#if defined(TIOCGWINSZ) && defined(SIGWINCH)
+#if defined(MAC) || (defined(TIOCGWINSZ) && defined(SIGWINCH))
 win_reshape()
 {
 	register int	oldLI;
 	register int newsize, total;
 	register Window *wp;
 
+#ifdef UNIX
 	(void) SigHold(SIGWINCH);
-
+#endif
 	/*
 	 * Save old number of lines.
 	 */
@@ -1173,7 +1181,9 @@ win_reshape()
 	flusho();
 	redisplay();
 
+#ifdef UNIX
 	(void) signal(SIGWINCH, win_reshape);
+#endif
 }
 #endif
 
@@ -1245,9 +1255,10 @@ char	*argv[];
 	if (getenv("METAKEY"))
 		MetaKey = 1;
 	ttsize();
-	InitCM();
 #ifdef MAC
 	InitEvents();
+#else
+	InitCM();
 #endif
 
 	d_cache_init();		/* initialize the disk buffer cache */
@@ -1258,9 +1269,11 @@ char	*argv[];
 	if ((cp = getenv("DESCRIBE")) && (*cp != '\0'))
 	   strcpy(CmdDb, cp);
 #else /* !MSDOS */
+#ifndef MAC
 	if ((cp = getenv("SHELL")) && (*cp != '\0')) {
 		strcpy(Shell, cp);
 	}
+#endif
 #endif /* !MSDOS */
 
 	make_scr();
@@ -1333,8 +1346,9 @@ char	*argv[];
 	(void) signal(SIGALRM, updmode);
 	(void) alarm((unsigned) (60 - (time((time_t *) 0) % 60)));
 #endif /* UNIX */
-
+#ifndef MAC
 	ResetTerm();
+#endif
 	cl_scr(1);
 	flusho();
 	RedrawDisplay();	/* start the redisplay process. */

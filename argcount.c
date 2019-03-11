@@ -8,19 +8,9 @@
 #include "jove.h"
 #include <ctype.h>
 
-#if defined(MAC)
-# undef private
-# define private
-#endif
-
 private	void
 	gather_numeric_argument proto((int)),
 	quad_numeric_arg proto((void));
-
-#if defined(MAC)
-# undef private
-# define private static
-#endif
 
 int	arg_supplied_p,
 	arg_count;

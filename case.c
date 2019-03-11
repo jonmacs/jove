@@ -9,11 +9,6 @@
 #include "disp.h"
 #include "ctype.h"
 
-#if defined(MAC)
-# undef private
-# define private
-#endif
-
 private	int
 # if !(defined(IBMPC) || defined(MAC))
 	lower proto((char *)),
@@ -24,11 +19,6 @@ private void
 	CaseReg proto((int up)),
 	case_reg proto((struct line *line1,int char1,struct line *line2,int char2,int up)),
 	case_word proto((int up));
-
-#if defined(MAC)
-# undef private
-# define private static
-#endif
 
 void
 CapChar()

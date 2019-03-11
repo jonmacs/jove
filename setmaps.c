@@ -112,7 +112,9 @@ void
 #ifdef MAC
 _main()		/* for Mac, so we can use redirection */
 #else
-main()
+main(argc, argv)
+int	argc;
+char	*argv[];
 #endif
 {
 	FILE	*ifile,

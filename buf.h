@@ -130,6 +130,10 @@ extern char
 	*ask_buf proto((struct buffer *def)),
 	*ralloc proto((char *obj,int size));
 
+#ifdef	__STDC__
+struct macro;
+#endif	/* __STDC__ */
+
 extern void
 	TogMinor proto((int bit)),
 	bufname proto((struct buffer *b)),

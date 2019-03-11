@@ -28,6 +28,9 @@ private void
 private int
 	okay_error proto((void));
 
+extern void
+	ShowErr();
+
 #if defined(MSDOS)
 private int
 	openforpipe proto((void)),
@@ -91,6 +94,35 @@ Buffer	*buf;
 	return new;
 }
 
+get_FL_info(fname, lineno)
+char	fname[FILESIZE],
+	lineno[FILESIZE];
+{
+	putmatch(1, fname, FILESIZE);
+	putmatch(2, lineno, FILESIZE);
+
+	/* error had lineno followed fname, so switch the two */
+	if (!isdigit(lineno[0])) {
+		char	tmp[FILESIZE];
+
+		strcpy(tmp, lineno);
+		strcpy(lineno, fname);
+		strcpy(fname, tmp);
+	}
+}
+
+/* Free up all the errors */
+
+void
+ErrFree()
+{
+	register struct error	*ep;
+
+	for (ep = errorlist; ep != 0; ep = ep->er_next)
+		free((char *) ep);
+	errorlist = cur_error = 0;
+}
+
 /* Parse errors of the form specified in ErrFmtStr in the current
    buffer.  Do a show error of the first error.  This is neat because this
    will work for any kind of output that prints a file name and a line
@@ -117,17 +149,7 @@ ErrParse()
 	/* Find a line with a number on it. */
 	while (bp = docompiled(FORWARD, &re_blk)) {
 		SetDot(bp);
-		putmatch(1, fname, sizeof fname);
-		putmatch(2, lineno, sizeof lineno);
-
-		/* error had lineno followed fname, so switch the two */
-		if (!isdigit(lineno[0])) {
-			char	tmp[FILESIZE];
-
-			strcpy(tmp, lineno);
-			strcpy(lineno, fname);
-			strcpy(fname, tmp);
-		}
+		get_FL_info(fname, lineno);
 		buf = do_find((Window *) 0, fname, YES);
 		if (buf != lastb) {
 			lastb = buf;
@@ -145,18 +167,6 @@ ErrParse()
 	}
 	if (cur_error != 0)
 		ShowErr();
-}
-
-/* Free up all the errors */
-
-void
-ErrFree()
-{
-	register struct error	*ep;
-
-	for (ep = errorlist; ep != 0; ep = ep->er_next)
-		free((char *) ep);
-	errorlist = cur_error = 0;
 }
 
 /* Internal next error sets cur_error to the next error, taking the
@@ -340,35 +350,6 @@ MakeErrors()
 #ifdef SPELL
 
 void
-SpelBuffer()
-{
-	char	*Spell = "Spell",
-		com[100];
-	Window	*savewp = curwind;
-
-	put_bufs(0);
-	swritef(com, "spell %s", curbuf->b_fname);
-	(void) UnixToBuf(Spell, YES, EWSize, YES, Shell, ShFlags, com, (char *) 0);
-	message("[Delete the irrelevant words and then type C-X C-C]");
-	ToFirst();
-	Recur();
-	SetWind(savewp);
-	SpelParse(Spell);
-}
-
-void
-SpelWords()
-{
-	char	*buftospel;
-	Buffer	*wordsb = curbuf;
-
-	if ((buftospel = ask_buf((Buffer *) 0)) == 0)
-		return;
-	SetBuf(do_select(curwind, buftospel));
-	SpelParse(wordsb->b_name);
-}
-
-void
 SpelParse(bname)
 char	*bname;
 {
@@ -402,6 +383,35 @@ char	*bname;
 	add_mess("Done.");
 	SetBuf(buftospel);
 	ShowErr();
+}
+
+void
+SpelBuffer()
+{
+	char	*Spell = "Spell",
+		com[100];
+	Window	*savewp = curwind;
+
+	put_bufs(0);
+	swritef(com, "spell %s", curbuf->b_fname);
+	(void) UnixToBuf(Spell, YES, EWSize, YES, Shell, ShFlags, com, (char *) 0);
+	message("[Delete the irrelevant words and then type C-X C-C]");
+	ToFirst();
+	Recur();
+	SetWind(savewp);
+	SpelParse(Spell);
+}
+
+void
+SpelWords()
+{
+	char	*buftospel;
+	Buffer	*wordsb = curbuf;
+
+	if ((buftospel = ask_buf((Buffer *) 0)) == 0)
+		return;
+	SetBuf(do_select(curwind, buftospel));
+	SpelParse(wordsb->b_name);
 }
 
 #endif /* SPELL */
@@ -717,14 +727,6 @@ va_dcl
 #endif /* MSDOS */
 }
 
-void
-FilterRegion()
-{
-	char	*cmd = ask((char *) 0, ": %f (through command) ", ProcFmt);
-
-	RegToUnix(curbuf, cmd);
-}
-
 /* Send the current region to CMD and insert the output from the
    command into OUT_BUF. */
 
@@ -772,10 +774,11 @@ char	*cmd;
 #endif /* MSDOS */
 	status = UnixToBuf(outbuf->b_name, NO, 0, outbuf->b_type == B_SCRATCH,
 #ifndef MSDOS
-			   Shell, ShFlags, combuf, (char *) 0);
+			   Shell, ShFlags, combuf, (char *) 0
 #else /* MSDOS */
-			   Shell, ShFlags, cmd, (char *) 0);
+			   Shell, ShFlags, cmd, (char *) 0
 #endif /* MSDOS */
+			   );
     ONERROR
 	error = YES;
     ENDCATCH
@@ -795,6 +798,16 @@ char	*cmd;
 #else
 		com_finish(status, cmd);
 #endif
+}
+
+void
+FilterRegion()
+{
+	static char	FltComBuf[LBSIZE];
+
+	null_ncpy(FltComBuf, ask(FltComBuf, ": %f (through command) "),
+		(sizeof FltComBuf) - 1);
+	RegToUnix(curbuf, FltComBuf);
 }
 
 void

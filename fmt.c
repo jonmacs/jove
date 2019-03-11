@@ -17,23 +17,13 @@
 # include <varargs.h>
 #endif
 
-#ifdef MAC
-# undef private
-# define private
-#endif
-
 private void
-	doformat proto((File *, char *, ...)),
+	doformat proto((File *, char *, va_list)),
 	outld proto((long, int)),
 	pad proto((int, int)),
 	PPchar proto((int, char *)),
 	putld proto((long, int)),
 	puts proto((char *));
-
-#ifdef MAC
-# undef private
-# define private static
-#endif
 
 char	mesgbuf[MESG_SIZE];
 

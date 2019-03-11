@@ -13,11 +13,6 @@
 #include "re.h"
 #include "ctype.h"
 
-#ifdef MAC
-# undef private
-# define private
-#endif
-
 private char *insert proto((char *, char *, int));
 
 private void
@@ -29,11 +24,6 @@ private int
 	member proto((char *, int, int)),
 	REgetc proto((void)),
 	REmatch proto((char *, char *));
-
-#ifdef MAC
-# undef private
-# define private static
-#endif
 
 char	searchstr[128],		/* global search string */
 	rep_search[128],	/* replace search string */
@@ -419,12 +409,14 @@ outahere:
 
 private char	*pstrtlst[NPAR],	/* index into re_blk->r_lbuf */
 		*pendlst[NPAR],
-		*REbolp,
-		*loc1,
-		*loc2;
+		*REbolp,	/* begining-of-line pointer */
+		*locrater,	/* roof of last substitution */
+		*loc1,	/* start of matched text */
+		*loc2;	/* roof of matched text */
 
-int	REbom,
-	REeom;		/* beginning and end of match */
+int	REbom,		/* beginning and end columns of match */
+	REeom,
+	REdelta;	/* increase in line length due to last re_dosub */
 
 private int
 backref(n, linep)
@@ -480,10 +472,10 @@ register char	*linep,
 	case EOP:
 		loc2 = linep;
 		REeom = (loc2 - REbolp);
-		return 1;	/* Success! */
+		return YES;	/* Success! */
 
 	case AT_BOL:
-		if (linep == REbolp)
+		if (linep == REbolp && linep != locrater)
 			continue;
 		return NO;
 
@@ -498,12 +490,13 @@ register char	*linep,
 		return NO;
 
 	case AT_BOW:
-		if (ismword(*linep) && (linep == REbolp || !ismword(linep[-1])))
+		if (linep != locrater && ismword(*linep)
+		&& (linep == REbolp || !ismword(linep[-1])))
 			continue;
 		return NO;
 
 	case AT_EOW:
-		if ((*linep == 0 || !ismword(*linep)) &&
+		if (linep != locrater && (*linep == 0 || !ismword(*linep)) &&
 		    (linep != REbolp && ismword(linep[-1])))
 			continue;
 		return NO;
@@ -599,7 +592,7 @@ star:
 			linep += pendlst[n] - pstrtlst[n];
 		while (linep > first_p) {
 			if (REmatch(linep, comp_ptr))
-				return 1;
+				return YES;
 			linep -= pendlst[n] - pstrtlst[n];
 		}
 		continue;
@@ -607,7 +600,7 @@ star:
 	default:
 		complain("RE error match (%d).", comp_ptr[-1]);
 	}
-	/* NOTREACHED. */
+	/* NOTREACHED */
 }
 
 private void
@@ -631,9 +624,12 @@ REreset()
    search is a must as far as I am concerned. */
 
 int
-re_lindex(line, offset, re_blk, lbuf_okay)
+re_lindex(line, offset, re_blk, lbuf_okay, crater)
 Line	*line;
+int	offset;
 struct RE_block	*re_blk;
+int	lbuf_okay;
+int	crater;	/* offset of previous substitute (or -1) */
 {
 	register char	*p;
 	register int	firstc = re_blk->r_firstc;
@@ -657,13 +653,14 @@ struct RE_block	*re_blk;
 
 	if (anchored == YES) {
 		if (re_dir == FORWARD) {
-			if (offset != 0)
+			if (offset != 0 || crater != -1)
 				return NO;
 		} else
 			offset = 0;
 	}
 
 	p = REbolp + offset;
+	locrater = REbolp + crater;
 
 	if (firstc != '\0') {
 		char	*first_alt = *alts;
@@ -754,7 +751,7 @@ register struct RE_block	*re_blk;
 	}
 
 	do {
-		if (re_lindex(lp, offset, re_blk, YES))
+		if (re_lindex(lp, offset, re_blk, YES, -1))
 			break;
 doit:		lp = (dir == FORWARD) ? lp->l_next : lp->l_prev;
 		if (lp == 0) {
@@ -807,41 +804,50 @@ struct RE_block	*re_blk;
 char	*tobuf;
 {
 	register char	*tp,
-			*rp,
-			*repp;
-	int	c;
+			*rp;
 	char	*endp;
 
 	tp = tobuf;
 	endp = tp + LBSIZE;
 	rp = re_blk->r_lbuf;
-	repp = rep_str;
 
 	while (rp < loc1)
 		*tp++ = *rp++;
 
-	if (!delp) while (c = *repp++) {
-		if (c == '\\') {
-			c = *repp++;
-			if (c >= '0' && c <= re_blk->r_nparens + '1') {
-				tp = insert(tp, endp, c - '0');
-				continue;
+	if (!delp) {
+		register int	c;
+
+		rp = rep_str;
+		while (c = *rp++) {
+			if (c == '\\') {
+				c = *rp++;
+				if (c >= '0' && c < re_blk->r_nparens + '0') {
+					tp = insert(tp, endp, c - '0');
+					continue;
+				}
+				if (c == '\0') {
+					*tp++ = '\\';
+					rp--;   /* be sure to hit again */
+				}
 			}
-			if (c == '\0') {
-				*tp++ = '\\';
-				repp--;   /* be sure to hit again */
-			}
+			*tp++ = c;
+			if (tp >= endp)
+				len_error(ERROR);
 		}
-		*tp++ = c;
-		if (tp >= endp)
-			len_error(ERROR);
 	}
 	rp = loc2;
-	loc2 = re_blk->r_lbuf + max(1, tp - tobuf);
-	REeom = loc2 - re_blk->r_lbuf;
-	/* At least one character past the match, to prevent an infinite
-	   number of replacements in the same position, e.g.,
-	   replace "^" with "". */
+	REdelta = -REeom;
+	REeom = tp - tobuf;
+	REdelta += REeom;
+	if (loc1==rp && *rp!='\0') {
+		/* Skip an extra character if the matched text was a null
+		 * string, but don't skip over the end of line.  This is to
+		 * prevent an infinite number of replacements in the same
+		 * position, e.g., replace "^" with "".
+		 */
+		REeom += 1;
+	}
+	loc2 = re_blk->r_lbuf + REeom;
 	while (*tp++ = *rp++)
 		if (tp >= endp)
 			len_error(ERROR);
@@ -942,6 +948,7 @@ char	*pattern,
 
 	REcompile(pattern, YES, &re_blk);
 	REreset();
+	locrater = NULL;
 	REbolp = buf;
 
 	while (*alt)
@@ -958,6 +965,7 @@ char	*expr;
 
 	REcompile(expr, 0, &re_blk);
 	REreset();
+	locrater = NULL;
 	REbolp = linebuf;
 	if (REmatch(linebuf + curchar, re_blk.r_alternates[0]))
 		return YES;

@@ -18,7 +18,7 @@ extern int
 
 extern int
 	BufSwrite proto((int linenum)),
-	dosputc proto((char c)),
+	dosputc proto((int c)),
 	swrite proto((char *line,int inversep,int abortable));
 
 extern void

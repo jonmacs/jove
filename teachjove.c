@@ -31,7 +31,7 @@ main()
 	}
 	(void) sprintf(fname, "%s/teach-jove", home);
 	if (access(fname, F_OK) != 0) {
-		(void) sprintf(cmd, "cp %s %s", TEACHJOVE, fname);
+		(void) sprintf(cmd, "cp %s %s; chmod %s 644", TEACHJOVE, fname, fname);
 		system(cmd);
 	}
 	(void) execlp("jove", "teachjove", fname, (char *) 0);

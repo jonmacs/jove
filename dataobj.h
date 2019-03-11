@@ -37,11 +37,7 @@ struct macro {
 struct cmd {
 	int	Type;
 	char	*Name;
-#ifdef MAC
 	void (*c_proc)();
-#else
-	int (*c_proc)();
-#endif
 #ifdef MAC
 	char c_map;			/* prefix map for About Jove... */
 	char c_key;			/* key binding for About Jove... */

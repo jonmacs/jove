@@ -119,6 +119,8 @@ extern void
 	RegJustify(),
 	SetLMargin(),
 	SetRMargin(),
+	LRShift(),
+	RRShift(),
 	BufKill(),
 	KillBos(),
 	KillEos(),
@@ -227,6 +229,7 @@ extern void
 	ProcList(),
 	ProcBind(),
 	Iprocess(),
+	DBXpoutput();
 #endif
 
 #if defined(LISP)
@@ -321,6 +324,9 @@ struct cmd	commands[] = {
 	FUNCTION, "current-error", WIRED_CMD(ShowErr),
 #endif
 	FUNCTION, "date", WIRED_CMD(prCTIME),
+#if defined(IPROCS)
+	FUNCTION, "process-dbx-output", WIRED_CMD(DBXpoutput),
+#endif
 #if defined(ABBREV)
 	FUNCTION, "define-global-word-abbrev", WIRED_CMD(DefGAbbrev),
 	FUNCTION, "define-mode-word-abbrev", WIRED_CMD(DefMAbbrev),
@@ -526,6 +532,8 @@ struct cmd	commands[] = {
 	FUNCTION, "shell-command-to-buffer", WIRED_CMD(ShToBuf),
 	FUNCTION, "shell-command-with-typeout", WIRED_CMD(Shtypeout),
 #endif
+	MODFUNC, "shift-region-left", WIRED_CMD(LRShift),
+	MODFUNC, "shift-region-right", WIRED_CMD(RRShift),
 	DefMinor(ShowMatch), "show-match-mode", WIRED_CMD(0),
 	FUNCTION, "shrink-window", WIRED_CMD(ShrWindow),
 	FUNCTION, "source", WIRED_CMD(Source),
@@ -601,7 +609,7 @@ char	*prompt;
 				}
 			beenhere = YES;
 		}
-#if defined(MAC)
+#ifdef MAC
 		menus_off();	/* Block menu choices during input */
 #endif
 		/* gather the cmd name */

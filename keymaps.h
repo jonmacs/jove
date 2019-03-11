@@ -28,8 +28,8 @@ extern int
 			   to kill buffer */
 
 extern void
-	BindSomething proto((struct data_obj *(*proc)())),
-	BindWMap proto((struct data_obj **map, int lastkey, struct data_obj *cmd)),
-	DescMap proto((struct data_obj **map, char *pref)),
-	DescWMap proto((struct data_obj **map, int key)),
+	BindSomething proto((struct data_obj *(*proc)(), struct keymap *map)),
+	BindWMap proto((struct keymap *map, int lastkey, struct data_obj *cmd)),
+	DescMap proto((struct keymap *map, char *pref)),
+	DescWMap proto((struct keymap *map, int key)),
 	dispatch proto((int c));

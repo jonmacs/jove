@@ -12,6 +12,7 @@
 
 #ifdef MAC
 #	include "mac.h"
+	extern int errno;
 #else
 #	include <sys/stat.h>
 #	ifndef MSDOS
@@ -24,19 +25,9 @@
 
 #include <errno.h>
 
-#ifdef MAC
-# undef private
-# define private
-#endif
-
 private File * f_alloc proto((char *, int, int, char *, int));
 #ifdef RAINBOW
 private int rbwrite proto((int, char *, int));
-#endif
-
-#ifdef MAC
-# undef private
-# define private static
 #endif
 
 #ifndef L_SET

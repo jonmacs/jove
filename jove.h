@@ -8,15 +8,15 @@
 /* jove.h header file to be included by EVERYONE */
 
 #include <setjmp.h>
-#if !defined(TUNED)
+#ifndef TUNED
 # include "tune.h"
 #endif
 #if !defined(MAC)
 # include <sys/types.h>
+# include <string.h>
 #else
 # include <types.h>
 #endif
-#include <string.h>
 
 #if defined(__STDC__) || defined(LINT_ARGS)
 # define proto(x)        x
@@ -109,6 +109,7 @@ extern int
 
 	Crashing,	/* we are in the middle of crashing */
 	Asking,		/* are we on read a string from the terminal? */
+	InRealAsk,	/* are we currently executing real_ask()? */
 	inIOread;	/* so we know whether we can do a redisplay. */
 
 extern char	Minibuf[LBSIZE];

@@ -18,7 +18,7 @@ int	proc_child();
 
 private int
 	proc_close proto ((Process *)),
-	proc_rec proto ((process *, char *)),
+	proc_rec proto ((Process *, char *)),
 	SendData proto ((int));
 
 #ifdef PIPEPROCS
@@ -83,6 +83,41 @@ register Buffer	*b;
 			 proc_cmd(p), b, pstate(p));
 }
 
+char	dbx_parse_fmt[128] = "line \\([0-9]*\\) in \\{file,\\} *\"\\([^\"]*\\)\"";
+
+DBXpoutput()
+{
+	if (curbuf->b_process == 0)
+		complain("[Must be in a process buffer to enable dbx mode]");
+	curbuf->b_process->p_dbx_mode = !curbuf->b_process->p_dbx_mode;
+	UpdModLine = YES;
+}
+
+void
+watch_input(m)
+Mark	*m;
+{
+	Bufpos	save,
+		*bp;
+	char	fname[FILESIZE],
+		lineno[FILESIZE];
+	int	lnum;
+	Window	*savew = curwind;
+	Buffer	*buf;
+
+	DOTsave(&save);
+	ToMark(m);
+	if (dosearch(dbx_parse_fmt, FORWARD, YES) != NULL) {
+		get_FL_info(fname, lineno);
+		buf = do_find((Window *) 0, fname, YES);
+		pop_wind(buf->b_name, NO, -1);
+		lnum = atoi(lineno);
+		SetLine(next_line(buf->b_first, lnum - 1));
+		SetWind(savew);
+	}
+	SetDot(&save);
+}
+
 /* Process receive: receives the characters in buf, and appends them to
    the buffer associated with p. */
 
@@ -108,8 +143,9 @@ char	*buf;
 	ToMark(p->p_mark);		/* where output last stopped */
 	if (savepoint->m_line == curline && savepoint->m_char == curchar)
 		sameplace = YES;
-
 	ins_str(buf, YES);
+	if (do_disp == YES && p->p_dbx_mode == YES)
+		watch_input(p->p_mark);
 	MarkSet(p->p_mark, curline, curchar);
 	if (!sameplace)
 		ToMark(savepoint);	/* back to where we were */

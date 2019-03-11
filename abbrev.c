@@ -25,11 +25,6 @@ struct abbrev {
 	data_obj	*a_cmdhook;
 };
 
-#if defined(MAC)
-# undef private
-# define private
-#endif
-
 private	void
 	define proto((struct abbrev **, char *, char *)),
 	def_abbrev proto((struct abbrev **)),
@@ -38,11 +33,6 @@ private	void
 
 private	unsigned int hash proto((char *));
 private	struct abbrev * lookup proto((struct abbrev **, char *));
-
-#if defined(MAC)
-# undef private
-# define private static
-#endif
 
 #define GLOBAL	NMAJORS
 private struct abbrev	*A_tables[NMAJORS + 1][HASHSIZE] = {0};
