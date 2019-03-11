@@ -16,6 +16,7 @@ SHELL = /bin/sh
 # XEXT is the extension for executables (empty for UNIX; .exe for CYGWIN32)
 # MANDIR is where the manual pages go for JOVE, RECOVER and TEACHJOVE.
 # MANEXT is the extension for the man pages, e.g., jove.1 or jove.l or jove.m.
+#	Must not be "nr".
 #
 # If they don't exist, this makefile will try to create the directories
 # LIBDIR and SHAREDIR.  All others must already exist.
@@ -263,7 +264,11 @@ SUPPORT = teachjove.c recover.c setmaps.c portsrv.c keys.txt \
 
 BACKUPS = $(HEADERS) $(C_SRC) $(SUPPORT) $(MISC)
 
-all:	jjove$(XEXT) recover$(XEXT) teachjove$(XEXT) portsrv$(XEXT) doc/cmds.doc
+# all: default target.
+# Builds everything that "install" needs.
+all:	jjove$(XEXT) recover$(XEXT) teachjove$(XEXT) portsrv$(XEXT) \
+	doc/cmds.doc doc/jove.$(MANEXT) doc/teachjove.$(MANEXT) \
+	doc/jovetool.$(MANEXT)
 
 jjove$(XEXT):	$(OBJECTS)
 	$(LDCC) $(LDFLAGS) $(OPTFLAGS) -o jjove$(XEXT) $(OBJECTS) $(LIBS)
@@ -311,7 +316,6 @@ keys.c:	setmaps keys.txt
 keys.o:	keys.c tune.h sysdep.h jove.h keymaps.h dataobj.h commands.h
 
 paths.h: Makefile
-	-rm -f paths.h
 	@echo "/* Changes should be made in Makefile, not to this file! */" > paths.h
 	@echo "" >> paths.h
 	@echo \#define TMPDIR \"$(TMPDIR)\" >> paths.h
@@ -332,6 +336,10 @@ makejovetool:
 installjovetool:
 	( cd xjove ; make CC="$(CC)" OPTFLAGS="$(OPTFLAGS)" SYSDEFS="$(SYSDEFS)" DEFINES=-DSUNVIEW XINSTALL="$(XINSTALL)" BINDIR="$(BINDIR)" INSTALLFLAGS="$(INSTALLFLAGS)" $(TOOLMAKEEXTRAS) installjovetool )
 
+# Note: everything needed by "install" should be built by "all".
+# Thus, if "all" is done first, "install" can be invoked with
+# JOVEHOME pointing at a playpen where files are to be marshalled.
+# This property is fragile.
 install: $(LIBDIR) $(SHAREDIR) \
 	 $(TEACH-JOVE) $(CMDS.DOC) $(TERMSDIR)docs \
 	 $(PORTSRVINST) $(RECOVER) $(JOVE) $(TEACHJOVE) $(MANUALS)
@@ -378,13 +386,14 @@ $(JOVE): jjove$(XEXT)
 $(TEACHJOVE): teachjove$(XEXT)
 	$(XINSTALL) teachjove$(XEXT) $(TEACHJOVE)
 
-$(JOVEM): doc/jove.nr
-	@sed -e 's;<TMPDIR>;$(TMPDIR);' \
+doc/jove.$(MANEXT): doc/jove.nr
+	sed -e 's;<TMPDIR>;$(TMPDIR);' \
 	     -e 's;<LIBDIR>;$(LIBDIR);' \
 	     -e 's;<SHAREDIR>;$(SHAREDIR);' \
-	     -e 's;<SHELL>;$(DFLTSHELL);' doc/jove.nr > 0jove.nr
-	$(TINSTALL) 0jove.nr $(JOVEM)
-	rm 0jove.nr
+	     -e 's;<SHELL>;$(DFLTSHELL);' doc/jove.nr > doc/jove.$(MANEXT)
+
+$(JOVEM): doc/jove.$(MANEXT)
+	$(TINSTALL) doc/jove.$(MANEXT) $(JOVEM)
 
 # doc/jove.doc is the formatted manpage (only needed by DOS)
 # Building it should be like building $(JOVEM) except that we
@@ -394,22 +403,24 @@ $(JOVEM): doc/jove.nr
 doc/jove.doc: doc/jove.nr
 	$(NROFF) -man doc/jove.nr >doc/jove.doc
 
-$(TEACHJOVEM): doc/teachjove.nr
-	@sed -e 's;<TMPDIR>;$(TMPDIR);' \
+doc/teachjove.$(MANEXT): doc/teachjove.nr
+	sed -e 's;<TMPDIR>;$(TMPDIR);' \
 	     -e 's;<LIBDIR>;$(LIBDIR);' \
 	     -e 's;<SHAREDIR>;$(SHAREDIR);' \
-	     -e 's;<SHELL>;$(DFLTSHELL);' doc/teachjove.nr > 0teachjove.nr
-	$(TINSTALL) 0teachjove.nr $(TEACHJOVEM)
-	rm 0teachjove.nr
+	     -e 's;<SHELL>;$(DFLTSHELL);' doc/teachjove.nr > doc/teachjove.$(MANEXT)
+
+$(TEACHJOVEM): doc/teachjove.$(MANEXT)
+	$(TINSTALL) doc/teachjove.$(MANEXT) $(TEACHJOVEM)
 
 $(XJOVEM): doc/xjove.nr
 	$(TINSTALL) doc/xjove.nr $(XJOVEM)
 
-$(JOVETOOLM): doc/jovetool.nr
-	@sed -e 's;<MANDIR>;$(MANDIR);' \
-	     -e 's;<MANEXT>;$(MANEXT);' doc/jovetool.nr > 0jovetool.nr
-	$(TINSTALL) 0jovetool.nr $(JOVETOOLM)
-	rm 0jovetool.nr
+doc/jovetool.$(MANEXT): doc/jovetool.nr
+	sed -e 's;<MANDIR>;$(MANDIR);' \
+	     -e 's;<MANEXT>;$(MANEXT);' doc/jovetool.nr > doc/jovetool.$(MANEXT)
+
+$(JOVETOOLM): doc/jovetool.$(MANEXT)
+	$(TINSTALL) doc/jovetool.$(MANEXT) $(JOVETOOLM)
 
 echo:
 	@echo $(C-FILES) $(HEADERS)
@@ -512,8 +523,9 @@ clean:
 	rm -f a.out core *.o keys.c jjove$(XEXT) portsrv$(XEXT) recover$(XEXT) setmaps \
 		teachjove$(XEXT) paths.h \#* *~ make.log *.map jjove.ico \
 		doc/cmds.doc doc/jove.man doc/jove.doc doc/troff.out.ps \
-		jjove.pure_* tags ID .filelist \
-		0jove.nr 0teachjove.nr 0jovetool.nr
+		doc/jove.$(MANEXT) doc/teachjove.$(MANEXT) \
+		doc/jovetool.$(MANEXT) \
+		jjove.pure_* tags ID .filelist
 
 cleanall: clean
 	( cd xjove ; make clean )
