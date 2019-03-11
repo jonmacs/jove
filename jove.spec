@@ -2,7 +2,7 @@
 # To create SRPM and RPM: rpm -ta distribution.tgz
 # places so it needs to be adjusted every time the version changes!
 
-%define version 4.16.0.53
+%define version 4.16.0.54
 
 Summary: Jonathan's Own Version of Emacs
 Name: jove

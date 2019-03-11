@@ -5,10 +5,29 @@
 # included in all the files.                                           #
 ########################################################################
 
-[Updated in 1999 August]
+[Updated in 2001 December]
 
 Installation on a UNIX System.
 ------------------------------
+
+Quick summary:
+
+- Configuration is not automatic, but it is simple for modern systems.
+- usually only SYSDEFS is critical; can be specified in make command
+- BSD, the first of the following that works:
+  make SYSDEFS="-DBSDPOSIX -DUSE_OPENPTY" EXTRALIBS=-lutil install
+  make SYSDEFS="-DBSDPOSIX -DUSE_OPENPTY -DHAS_LIBUTILS_H" EXTRALIBS=-lutil install
+  make SYSDEFS="-DBSDPOSIX" install
+- Solaris: make SYSDEFS="SYSDEFS=-DSYSVR4" install
+- LINUX: make SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500" install
+  To build RPMs on RedHat: rpm -ta tarfile.tgz
+- other systems: read comments about SYSDEFS in Makefile
+- if ld complains that there is no -ltermcap, add TERMCAPLIB=-lcurses.
+  The curses library is much fatter than termcap, but will do.
+- when in doubt, read the rest of this document
+
+End of quick summary
+
 
 JOVE does not use any automatic configuring mechanism.  Most
 configuring is done by editing definitions in Makefile (in some
@@ -36,7 +55,7 @@ and edit sysdep.h suitably.  See "sysdep.doc" for the possible set of
 system-dependent aspects that you can select/tune.
 
 On some systems, you may need to change the flags passed to the
-compiler (OPTFLAGS) or the linker (LIBS, LDFLAGS).
+compiler (OPTFLAGS) or the linker (TERMCAPLIB, EXTRALIBS, LDFLAGS).
 
 Next you may edit "tune.h" to select the compile time features you care
 about.  See "tune.doc" for a description of all the compile time options.
@@ -80,6 +99,9 @@ and it was possible to turn on all the compile time options with this
 version.
 
 For LINUX, jove.spec is provided to specify how an RPM should be created.
+On RedHat 6.x and 7.x, "rpm -ta tarfile.tgz" will build source and binary
+RPMs -- rpm looks inside the .tgz to find jove.spec.
+
 
 Some features.
 --------------

@@ -27,8 +27,8 @@ to definitions:
 - XINSTALL=install $(INSTALLFLAGS) -c -m 755
 - TINSTALL=install $(INSTALLFLAGS) -c -m 644
 - SYSDEFS=-DCYGWIN32
-- LIBS = -L/usr/local/lib -lcurses
-Search for CYGWIN32 in the Makefile.
+- TERMCAPLIB = -L/usr/local/lib -lcurses
+Search for Cygwin32 in the Makefile.
 
 The environment used for the port was GNU-Win32 Beta 19.1 and the EGCS 2.90.27
 compiler set, and Windows 95.  You'll need either GNU Termcap 1.3 or ncurses
