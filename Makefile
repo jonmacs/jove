@@ -648,7 +648,7 @@ move.o: $(JOVE_H) re.h chars.h jctype.h disp.h move.h screen.h
 paragraph.o: $(JOVE_H) jctype.h disp.h delete.h insert.h fmt.h marks.h misc.h move.h paragraph.h re.h
 proc.o: $(JOVE_H) jctype.h fp.h re.h disp.h sysprocs.h ask.h delete.h extend.h fmt.h insert.h iproc.h marks.h misc.h move.h proc.h wind.h
 re.o: $(JOVE_H) re.h jctype.h ask.h disp.h fmt.h marks.h
-reapp.o: $(JOVE_H) fp.h re.h jctype.h chars.h disp.h ask.h fmt.h marks.h reapp.h wind.h mac.h
+reapp.o: $(JOVE_H) fp.h re.h jctype.h chars.h disp.h ask.h extend.h fmt.h marks.h reapp.h wind.h mac.h
 rec.o: $(JOVE_H) fp.h sysprocs.h rec.h fmt.h recover.h
 scandir.o: $(JOVE_H) scandir.h
 screen.o: $(JOVE_H) fp.h chars.h jctype.h disp.h extend.h fmt.h term.h mac.h screen.h wind.h
