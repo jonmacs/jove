@@ -931,7 +931,8 @@ size_t	size;
 		if (d.dirInfo.ioDrDirID == 2)
 			break;	/* home directory */
 	}
-	strcpy(buf, p);	/* left justify */
+	/* strcpy(buf, p) won't do because the destination overlaps the source */
+	memmove((UnivPtr)buf, (UnivPtr)p, buf + size - p);	/* left justify */
 	return buf;
 }
 

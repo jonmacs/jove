@@ -309,7 +309,10 @@ DelWtSpace()
 	if (sp != ep) {
 		curchar = sp - linebuf;
 		DFixMarks(curline, curchar, curline, curchar + (ep - sp));
-		strcpy(sp, ep);
+		/* Shift the remaining characters left in the buffer to close the gap.
+		 * strcpy(sp, ep) won't do because the destination overlaps the source.
+		 */
+		do ; while ((*sp++ = *ep++) != '\0');
 		makedirty(curline);
 		modify();
 	}

@@ -5,7 +5,7 @@
 # For example, macros are expanded even in comments!
 
 # This version number must be kept in sync with version.h.
-%define jversion 4.16.0.71
+%define jversion 4.16.0.72
 
 # configflags: flags passed to each make to configure for LINUX.
 # The choices are explained in Makefile and sysdep.doc.
@@ -97,6 +97,10 @@ rm -rf $RPM_BUILD_ROOT
 #make JOVEHOME=$RPM_BUILD_ROOT/usr LIBDIR=$RPM_BUILD_ROOT%{_libdir}/jove SHAREDIR=$RPM_BUILD_ROOT%{_datadir}/jove MANDIR=$RPM_BUILD_ROOT%{_mandir}/man1 OPTFLAGS="%{optflags}" %{configflags} clean
 
 %changelog
+* Mon May 24 2010 D. Hugh Redelmeier 4.16.0.72
+- eliminate strcpy and byte_copy calls with overlapping source and destination
+- fix setmaps.c misuse of fprintf
+
 * Sun May 16 2010 D. Hugh Redelmeier 4.16.0.71
 - add new variable display-default-filenames (Casey Leedom)
 - eliminate most GCC warnings; improve handling of some errors

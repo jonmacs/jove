@@ -1002,17 +1002,26 @@ int	lineno,
 	col,
 	num;
 {
-	register char	*from,
-			*to;
 	struct screenline *sp = (&Screen[lineno]);
 
 	Placur(lineno, col);
 	putmulti(DC, M_DC, num, 1);
 
-	to = sp->s_line + col;
-	from = to + num;
+	/* Shift the remaining characters left in the buffer to close the gap.
+	 * byte_copy cannot be used since the destination overlaps the source.
+	 */
+	{
+		register char	*to = sp->s_line + col,
+				*from = to + num;
+		register size_t	len = sp->s_roof - from;
 
-	byte_copy(from, to, (size_t) (sp->s_roof - from));
+#ifdef USE_MEMORY_H
+		memmove((UnivPtr)to, (UnivConstPtr)from, len);
+#else
+		while (len--)
+			*to++ = *from++;
+#endif
+	}
 	clrline(sp->s_roof - num, sp->s_roof);
 	sp->s_roof -= num;
 }
