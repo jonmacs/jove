@@ -6,7 +6,7 @@
 
 Summary: Jonathan's Own Version of Emacs
 Name: jove
-Version: 4.16.0.50
+Version: 4.16.0.51
 Release: 1
 Copyright: Copyright (C) 1986-1999 by Jonathan Payne, freely redistributable
 Packager: jovehacks@cs.toronto.edu
@@ -67,6 +67,8 @@ make JOVEHOME=$RPM_BUILD_ROOT/usr \
 	clean
 
 %changelog
+* Thu Mar 22 2001 <hugh@mimosa.com>
+  - 4.16.0.51: improve portability; use openpty on *BSD
 * Sun Feb 04 2001 <hugh@mimosa.com>
   - 4.16.0.50: survive covert gzipping; format manuals correctly
 * Thu Nov 09 2000 Bennett Todd <bet@rahul.net>
@@ -74,7 +76,7 @@ make JOVEHOME=$RPM_BUILD_ROOT/usr \
 * Wed Jul 12 2000 <hugh@mimosa.com>
   - 4.26.0.48: switched to using UNIX98 PTYs for security
 * Wed Aug 18 1999 <hugh@mimosa.com>
-  - Updated in prepartation for new release
+  - Updated in preparation for new release
 * Tue Jul 28 1998 <markster@marko.net>
   - Updated to version 4.16.0.28
 * Wed May 12 1997 <bet@fcmc.com>

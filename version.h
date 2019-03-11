@@ -7,11 +7,14 @@
 
 /* Note: jove.spec must be updated when version number changes */
 
-#define	jversion     "4.16.0.50" /* 2000 Nov 9 */
-#define	jversion_lnum 4,16,0,50  /* list-of-numbers form for Win32 jjove.rc */
+#define	jversion     "4.16.0.51" /* 2001 March 22 */
+#define	jversion_lnum 4,16,0,51  /* list-of-numbers form for Win32 jjove.rc */
 
 /*
  * $Log: version.h,v $
+ * Revision 1.401  2001/03/22 07:17:26  hugh
+ * 4.16.0.51: improve portability; use openpty on *BSD
+ *
  * Revision 1.400  2001/02/04 21:01:50  hugh
  * 4.16.0.50 support groff; fix jove.spec for RPM creation
  *
