@@ -1179,7 +1179,7 @@ volatile bool	procs_to_reap = NO;
 /*ARGSUSED*/
 SIGRESTYPE
 sigchld_handler(junk)
-int	junk;	/* needed for signal handler; not used */
+int	UNUSED(junk);	/* needed for signal handler; not used */
 {
 	procs_to_reap = YES;
 	return SIGRESVALUE;
@@ -1656,9 +1656,9 @@ Iprocess()
 	char	*fn = curbuf->b_fname == NULL
 		? NULL : strcpy(fnspace, pr_name(curbuf->b_fname, NO));
 
-	null_ncpy(ShcomBuf, ask(ShcomBuf, ProcFmt), (sizeof ShcomBuf) - 1);
+	jamstr(ShcomBuf, ask(ShcomBuf, ProcFmt));
 	bnm = MakeName(ShcomBuf);
-	null_ncpy(scratch, bnm, (sizeof scratch) - 1);
+	truncstr(scratch, bnm);
 	while ((bp = buf_exists(scratch)) != NULL && !dead(bp->b_process))
 		swritef(scratch, sizeof(scratch), "%s.%d", bnm, cnt++);
 	proc_strt(scratch, YES, ShcomBuf, Shell, ShFlags, ShcomBuf, fn, fn, (char *)NULL);

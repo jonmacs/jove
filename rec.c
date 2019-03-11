@@ -115,7 +115,7 @@ register Buffer	*b;
 	record.r_dotchar = b->b_char;
 	record.r_nlines = record.r_dotline + LinesTo(b->b_dot, (LinePtr)NULL);
 	strcpy(record.r_fname, b->b_fname ? b->b_fname : NullStr);
-	strcpy(record.r_bname, b->b_name);
+	null_ncpy(record.r_bname, b->b_name, sizeof(record.r_bname) - 1);
 	dmpobj(record);
 }
 

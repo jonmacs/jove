@@ -363,7 +363,7 @@ extern void	jcloseall proto((void));
 #endif
 
 extern SIGRESTYPE
-	finish proto((int code)),	/* doesn't return at all! */
+	finish proto((int code)) NEVER_RETURNS,	/* doesn't return at all! */
 	win_reshape proto((int /*junk*/));
 
 extern bool

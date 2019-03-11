@@ -358,7 +358,7 @@ private int do_creat proto((HParmBlkPtr p, StringPtr nm));
 int
 creat(name, perm)
 const char	*name;
-int/*mode_t*/	perm;	/* perm is irrelevant on a Mac */
+jmode_t	perm;	/* perm is irrelevant on a Mac */
 {
 	int fd, err;
 	StringPtr nm;

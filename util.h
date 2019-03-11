@@ -84,6 +84,16 @@ extern void
 extern UnivPtr
 	freealloc proto((UnivPtr obj, size_t size));
 
+/* copy a string into a possibly-too-small buffer
+ * trunc* silently truncates a too-large string.
+ * jam* complain if the string is too large.
+ */
+#define truncstr(buf, str)	truncstrsub(buf, str, sizeof(buf))
+#define jamstr(buf, str)	jamstrsub(buf, str, sizeof(buf))
+extern void
+	truncstrsub proto((unsigned char *buf, const unsigned char *str, size_t bufsz)),
+	jamstrsub proto((unsigned char *buf, const unsigned char *str, size_t bufsz));
+
 /* Variables: */
 
 extern int	MarkThresh;		/* VAR: moves greater than MarkThresh will SetMark */

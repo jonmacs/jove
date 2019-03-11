@@ -41,7 +41,7 @@ private void
 setsearch(str)
 const char	*str;
 {
-	strcpy(searchstr, str);
+	jamstr(searchstr, str);
 }
 
 private char *
@@ -241,8 +241,6 @@ replace(query, inreg)
 bool	query,
 	inreg;
 {
-	Mark	*m;
-	const char	*rep_ptr;
 	LinePtr	l1 = curline,
 		l2 = curbuf->b_last;
 	int	char1 = curchar,
@@ -251,24 +249,28 @@ bool	query,
 	struct RE_block	re_blk;
 
 	if (inreg) {
-		m = CurMark();
+		Mark	*m = CurMark();
+
 		l2 = m->m_line;
 		char2 = m->m_char;
 		(void) fixorder(&l1, &char1, &l2, &char2);
 	}
 
 	/* get search string */
-	strcpy(rep_search, ask(rep_search[0] ? rep_search : (char *)NULL, ProcFmt));
+	jamstr(rep_search,
+		ask(rep_search[0] ? rep_search : (char *)NULL, ProcFmt));
 	REcompile(rep_search, UseRE, &re_blk);
+
 	/* Now the replacement string.  Do_ask() so the user can play with
 	 * the default (previous) replacement string by typing ^R in ask(),
 	 * OR, he can just hit Return to replace with nothing.
 	 */
-	rep_ptr = do_ask("\r\n", NULL_ASK_EXT, rep_str, ": %f %s with ",
-		rep_search);
-	if (rep_ptr == NULL)
-		rep_ptr = NullStr;
-	strcpy(rep_str, rep_ptr);
+	{
+		const char	*rp = do_ask("\r\n",
+			NULL_ASK_EXT, rep_str, ": %f %s with ", rep_search);
+
+		jamstr(rep_str, rp == NULL? NullStr : rp);
+	}
 
 	if ((numdone = substitute(&re_blk, query, l1, char1, l2, char2)) != 0
 	&& !inreg)
@@ -417,7 +419,7 @@ char	*tag;
 bool	localp;
 {
 	char	filebuf[FILESIZE],
-		sstr[100],
+		sstr[200],	/* 100 wasn't big enough */
 		tfbuf[FILESIZE];
 	register Bufpos	*bp;
 	register Buffer	*b;
@@ -444,7 +446,7 @@ FindTag()
 	bool	localp = !is_an_arg();
 	char	tag[128];
 
-	strcpy(tag, ask((char *)NULL, ProcFmt));
+	jamstr(tag, ask((char *)NULL, ProcFmt));
 	find_tag(tag, localp);
 }
 

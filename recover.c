@@ -96,7 +96,7 @@ private long	Nchars,
 	Nlines;
 private char	tty[] = "/dev/tty";
 private const char	*tmp_dir = TMPDIR;
-private int	UserID;
+private uid_t	UserID;
 private bool	Verbose = NO;
 private char	RecDir[] = RECDIR;
 
@@ -141,7 +141,10 @@ size_t size;
 	return ptr;
 }
 
-/* duplicated in util.c, needed by scandir.c */
+/* copy a string into buffer; truncate silently if too large; NUL-pad.
+ * Note: buffer must be 1 larger than n to fit NUL!
+ * Duplicated from util.c: needed by scandir.c
+ */
 void
 null_ncpy(to, from, n)
 char	*to;
@@ -417,7 +420,7 @@ private jmp_buf	int_env;
 
 private SIGRESTYPE
 catch(junk)
-int	junk;
+int	UNUSED(junk);
 {
 	longjmp(int_env, 1);
 	/*NOTREACHED*/
@@ -862,7 +865,7 @@ const char	*dir;
 
 int
 main(argc, argv)
-int	argc;
+int	UNUSED(argc);
 char	*argv[];
 {
 	int	nfound;

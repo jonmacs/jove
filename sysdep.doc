@@ -93,6 +93,11 @@ is a size_t, but it must be signed because -1 is a possible value).
 We use SSIZE_T which defaults to ssize_t if FULL_UNISTD, otherwise int.
 This can be overridden by defining SSIZE_T.
 
+In modern systems, the type mode_t is used for permission bits (in
+creat(2), stat(2), and open(2)).  In ancient systems, this was just int;
+unsigned would have been better.  Jove uses the macro jmode_t.  If you
+don't provide a definition, it defaults to mode_t.
+
 Different environments have different memory and address space limitations.
 Generally, these controls default appropriately.
 NBUF		Number of memory blocks allocated to cache for buffers.

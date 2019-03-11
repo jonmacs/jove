@@ -399,15 +399,8 @@ char *
 copystr(str)
 const char	*str;
 {
-	char	*val;
-
-	if (str == NULL)
-		return NULL;
-
-	val = emalloc((size_t) (strlen(str) + 1));
-
-	strcpy(val, str);
-	return val;
+	return str == NULL? NULL :
+		strcpy(emalloc(strlen(str) + 1), str);
 }
 
 #ifndef byte_copy
@@ -659,6 +652,10 @@ register size_t	n;
 	}
 }
 
+/* copy a string into buffer; truncate silently if too large; NUL-pad.
+ * Note: buffer must be 1 larger than n to fit NUL!
+ * Duplicated in recover.c: needed by scandir.c
+ */
 void
 null_ncpy(to, from, n)
 char	*to;
@@ -667,6 +664,36 @@ size_t	n;
 {
 	(void) strncpy(to, from, n);
 	to[n] = '\0';
+}
+
+/* Copy a string into a buffer; truncate silently if string is too large */
+void
+truncstrsub(buf, str, bufsz)
+unsigned char *buf;
+size_t bufsz;
+const unsigned char *str;
+{
+	if (strlen(str) < bufsz)
+		strcpy(buf, str);
+	else if (bufsz == 0)
+		complain("internal error");	/* cannot even fit NUL */
+	else {
+		strncpy(buf, str, bufsz - 1);
+		buf[bufsz-1] = '\0';
+	}
+}
+
+/* Copy a string into a buffer; complain if string is too large */
+void
+jamstrsub(buf, str, bufsz)
+unsigned char *buf;
+size_t bufsz;
+const unsigned char *str;
+{
+	if (strlen(str) < bufsz)
+		strcpy(buf, str);
+	else
+		complain("string too long");
 }
 
 bool

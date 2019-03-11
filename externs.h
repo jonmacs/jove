@@ -10,8 +10,8 @@
 #ifdef MAC
 
 extern int
-	creat proto((const char *, int/*mode_t*/)),
-	/* open may have an optional third argument, int(mode_t) mode */
+	creat proto((const char *, jmode_t)),
+	/* open may have an optional third argument, promo(jmode_t) mode */
 	open proto((const char */*path*/, int /*flags*/, ...)),
 	close proto((int)),
 	unlink proto((const char *)),
@@ -121,11 +121,11 @@ extern int	access proto((const char */*path*/, int /*mode*/));
 #  define R_OK	4	/* readable by caller? */
 # endif
 
-extern int	creat proto((const char */*path*/, int/*mode_t*/ /*mode*/));
-	/* open may have an optional third argument, int(mode_t) mode */
+extern int	creat proto((const char */*path*/, jmode_t /*mode*/));
+	/* open may have an optional third argument, promo(jmode_t) mode */
 extern int	open proto((const char */*path*/, int /*flags*/, ...));
 
-extern int/*mode_t*/ umask proto((int/*mode_t*/));
+extern jmode_t umask proto((jmode_t));
 # ifdef NO_MKSTEMP
 #  ifndef NO_MKTEMP
 extern char *mktemp proto((char */*template*/));
@@ -167,7 +167,7 @@ extern int	close proto((int));
 extern int	dup proto((int));
 extern int	dup2 proto((int /*old_fd*/, int /*new_fd*/));
 extern long	lseek proto((int /*fd*/, long /*offset*/, int /*whence*/));
-extern int	fchmod proto((int /*fd*/, int/*mode_t*/ /*mode*/));
+extern int	fchmod proto((int /*fd*/, jmode_t /*mode*/));
 extern int	chown proto((const char *, int, int));
 
 extern int	unlink proto((const char */*path*/));

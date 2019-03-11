@@ -62,9 +62,8 @@ struct abbrev	*table[HASHSIZE];
 	char	abbrev[100],
 		phrase[100];
 
-	null_ncpy(abbrev, ask((char *)NULL, "abbrev: "), sizeof(abbrev)-1);
-	null_ncpy(phrase, ask((char *)NULL, "abbrev: %s phrase: ", abbrev),
-		sizeof(phrase)-1);
+	jamstr(abbrev, ask((char *)NULL, "abbrev: "));
+	jamstr(phrase, ask((char *)NULL, "abbrev: %s phrase: ", abbrev));
 	define(table, abbrev, phrase);
 }
 
