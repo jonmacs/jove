@@ -490,6 +490,7 @@
 /* Our defaults tend to be conservative and lean towards pure SYSV */
 # define USE_INO	1
 # define TERMCAP	1
+# define NCURSES_BUG	1   /* almost certainly safe anyway */
 # define WINRESIZE	1
 # define MOUSE		1
 # if !(defined(NO_IPROCS) || defined(PIPEPROCS) || defined(PTYPROCS))

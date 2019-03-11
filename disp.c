@@ -949,8 +949,10 @@ bool	samelength;
 {
 	/* If the old and the new have different lengths, then the competition
 	 * will have to clear to end of line.  We take that into consideration.
+	 * Note: we must avoid multiplying by INFINITY.
 	 */
-	return Saved + (samelength ? 0 : CElen) > min(MDClen, DClen * num);
+	return Saved + (samelength ? 0 : CElen) >
+		min(MDClen, DC != NULL? DClen * num : INFINITY);
 }
 
 private bool
@@ -958,18 +960,29 @@ OkayInsert(Saved, num)
 int	Saved,
 	num;
 {
-	register int	n = 0;
+# ifdef NCURSES_BUG
+	/* Note: with the ncurses version of termcap/terminfo, we must use
+	 * any one of insert mode, insert character, or multiple insert character.
+	 */
+	register int	n = INFINITY;
 
+	if (IC != NULL)		/* Per character prefixes */
+		n = num * IClen;
+	n = min(n, MIClen);
+	n = min(n, IMEIlen);
+# else /* !NCURSES_BUG */
 	/* Note: the way termcap/terminfo is defined, we must use *both*
 	 * IC and IM to insert, but normally only one will be defined.
 	 * See terminfo(5), under the heading "Insert/Delete Character".
 	 */
+	register int	n = 0;
+
 	if (IC != NULL)		/* Per character prefixes */
 		n = min(num * IClen, MIClen);
 
 	if (!IN_INSmode)
-		n += IMlen;
-
+		n += IMEIlen;
+# endif /* !NCURSES_BUG */
 	n += num;	/* The characters themselves */
 
 	return Saved > n;
@@ -1031,6 +1044,16 @@ char	*new;
 
 	Placur(lineno, col);
 
+# ifdef NCURSES_BUG
+	/* Note: with the ncurses version of termcap/terminfo, we must use
+	 * any one of insert mode, insert character, or multiple insert character.
+	 */
+	if (IN_INSmode
+	|| ((IC == NULL || IMEIlen < num * IClen) && IMEIlen < MIClen))
+		INSmode(YES);
+	else
+		putmulti(IC, M_IC, num, 1);
+# else /* !NCURSES_BUG */
 	/* Note: the way termcap/terminfo is defined, we must use *both*
 	 * IC and IM, but normally only one will be defined.
 	 * See terminfo(5), under the heading "Insert/Delete Character".
@@ -1039,6 +1062,7 @@ char	*new;
 		putmulti(IC, M_IC, num, 1);
 	if (IM != NULL)
 		INSmode(YES);
+# endif /* !NCURSES_BUG */
 
 	for (i = 0; i < num; i++) {
 		scr_putchar(new[i]);

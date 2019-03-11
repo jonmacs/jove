@@ -859,7 +859,7 @@ int line,
 	dcol = col - CapCol;
 # ifdef ID_CHAR
 	if (IN_INSmode && MI)
-		xtracost = EIlen + IMlen;
+		xtracost = IMEIlen;
 	/* If we're already in insert mode, it is likely that we will
 	   want to be in insert mode again, after the insert. */
 # endif
