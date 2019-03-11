@@ -37,30 +37,29 @@
 #	define L_INCR	1
 #endif
 
-char	blk_buf[BUFSIZ];
-int	nleft;
-FILE	*ptrs_fp;
-int	data_fd;
-struct rec_head	Header;
-char	datafile[40],
-	pntrfile[40];
-long	Nchars,
-	Nlines;
-char	tty[] = "/dev/tty";
-int	UserID,
-	Verbose = 0;
-char	*Directory = 0;		/* the directory we're looking in */
+extern char	*ctime proto((time_t *));
 
-struct file_pair {
+private char	blk_buf[BUFSIZ];
+private int	nleft;
+private FILE	*ptrs_fp;
+private int	data_fd;
+private struct rec_head	Header;
+private long	Nchars,
+	Nlines;
+private char	tty[] = "/dev/tty";
+private int	UserID,
+	Verbose = 0;
+private char	*Directory = 0;		/* the directory we're looking in */
+
+private struct file_pair {
 	char	*file_data,
 		*file_rec;
 #define INSPECTED	01
 	int	file_flags;
 	struct file_pair	*file_next;
-} *First = 0,
-  *Last = 0;
+} *First = 0;
 
-struct rec_entry	*buflist[100] = {0};
+private struct rec_entry	*buflist[100];	/* system initializes to 0 */
 
 #ifndef BSD4_2
 
@@ -113,6 +112,8 @@ DIR	*dp;
 /* Get a line at `tl' in the tmp file into `buf' which should be LBSIZE
    long. */
 
+private char	*getblock proto((daddr atl));
+
 void
 getline(tl, buf)
 daddr	tl;
@@ -121,14 +122,13 @@ char	*buf;
 	register char	*bp,
 			*lp;
 	register int	nl;
-	char	*getblock();
 
 	lp = buf;
 	bp = getblock(tl >> 1);
 	nl = nleft;
 	tl = blk_round(tl);
 
-	while (*lp++ = *bp++) {
+	while ((*lp++ = *bp++) != '\0') {
 		if (--nl == 0) {
 			tl = forward_block(tl);
 			bp = getblock(tl >> 1);
@@ -137,7 +137,7 @@ char	*buf;
 	}
 }
 
-char *
+private char *
 getblock(atl)
 daddr	atl;
 {
@@ -150,6 +150,8 @@ daddr	atl;
 	nleft = BUFSIZ - off;
 
 	if (bno != curblock) {
+		extern long	lseek proto((int, long, int));
+
 		lseek(data_fd, (long) bno * BUFSIZ, L_SET);
 		read(data_fd, blk_buf, BUFSIZ);
 		curblock = bno;
@@ -163,7 +165,7 @@ char	*s;
 {
 	char	*str;
 
-	str = malloc(strlen(s) + 1);
+	str = malloc((size_t) (strlen(s) + 1));
 	strcpy(str, s);
 
 	return str;
@@ -172,11 +174,12 @@ char	*s;
 /* Scandir returns the number of entries or -1 if the directory cannoot
    be opened or malloc fails. */
 
+private int
 scandir(dir, nmptr, qualify, sorter)
 char	*dir;
 struct direct	***nmptr;
-int	(*qualify)();
-struct direct	*(*sorter)();
+int	(*qualify) proto((struct direct *));
+int	(*sorter) proto((struct direct **, struct direct **));
 {
 	DIR	*dirp;
 	struct direct	*entry,
@@ -188,10 +191,11 @@ struct direct	*(*sorter)();
 		return -1;
 	ourarray = (struct direct **) malloc(nalloc * sizeof (struct direct *));
 	while ((entry = readdir(dirp)) != NULL) {
-		if (qualify != 0 && (*qualify)(entry) == 0)
+		if (qualify != NULL && (*qualify)(entry) == 0)
 			continue;
 		if (nentries == nalloc) {
-			ourarray = (struct direct **) realloc(ourarray, (nalloc += 10) * sizeof (struct direct));
+			ourarray = (struct direct **) realloc((char *)ourarray,
+				(nalloc += 10) * sizeof (struct direct));
 			if (ourarray == NULL)
 				return -1;
 		}
@@ -201,37 +205,34 @@ struct direct	*(*sorter)();
 	}
 	closedir(dirp);
 	if (nentries != nalloc)
-		ourarray = (struct direct **) realloc(ourarray,
+		ourarray = (struct direct **) realloc((char *)ourarray,
 					(nentries * sizeof (struct direct)));
-	if (sorter != 0)
+	if (sorter != NULL)
 		qsort(ourarray, nentries, sizeof (struct direct **), sorter);
 	*nmptr = ourarray;
 
 	return nentries;
 }
 
-alphacomp(a, b)
-struct direct	**a,
-		**b;
-{
-	return strcmp((*a)->d_name, (*b)->d_name);
-}
-
-char	*CurDir;
+private char	*CurDir;
 
 /* Scan the DIRNAME directory for jove tmp files, and make a linked list
    out of them. */
 
+private int	add_name proto((struct direct *dp));
+
+private void
 get_files(dirname)
 char	*dirname;
 {
-	int	add_name();
 	struct direct	**nmptr;
 
 	CurDir = dirname;
-	scandir(dirname, &nmptr, add_name, (int (*)())0);
+	scandir(dirname, &nmptr, add_name,
+		(int (*) proto((struct direct **, struct direct **)))NULL);
 }
 
+private int
 add_name(dp)
 struct direct	*dp;
 {
@@ -280,6 +281,7 @@ struct direct	*dp;
 	return 1;
 }
 
+private void
 options()
 {
 	printf("Options are:\n");
@@ -293,7 +295,10 @@ options()
 
 /* Returns a legitimate buffer # */
 
-struct rec_entry **
+private void	tellme proto((char *, char *)),
+	list proto((void));
+
+private struct rec_entry **
 getsrc()
 {
 	char	name[128];
@@ -333,7 +338,7 @@ getdest()
 
 #include "ctype.h"
 
-char *
+private char *
 readword(buf)
 char	*buf;
 {
@@ -353,6 +358,7 @@ char	*buf;
 	return buf;
 }
 
+private void
 tellme(quest, answer)
 char	*quest,
 	*answer;
@@ -366,13 +372,17 @@ char	*quest,
 
 /* Print the specified file to strandard output. */
 
-jmp_buf	int_env;
+private jmp_buf	int_env;
 
+private void
 catch()
 {
 	longjmp(int_env, 1);
 }
 
+private void	get proto((struct rec_entry **src, char *dest));
+
+private void
 restore()
 {
 	register int	i;
@@ -403,6 +413,9 @@ tryagain:
 	printf("Recovered %d buffers.\n", nrecovered);
 }
 
+private void	dump_file proto((int which, FILE *out));
+
+private void
 get(src, dest)
 struct rec_entry	**src;
 char	*dest;
@@ -428,7 +441,7 @@ char	*dest;
 	(void) signal(SIGINT, SIG_DFL);
 }
 
-char **
+private char **
 scanvec(args, str)
 register char	**args,
 		*str;
@@ -441,6 +454,7 @@ register char	**args,
 	return 0;
 }
 
+private void
 read_rec(recptr)
 struct rec_entry	*recptr;
 {
@@ -448,18 +462,20 @@ struct rec_entry	*recptr;
 		fprintf(stderr, "recover: cannot read record.\n");
 }
 
+private void
 seekto(which)
+int	which;
 {
-	struct rec_entry	rec;
 	long	offset;
 	int	i;
 
-	offset = sizeof (Header) + (Header.Nbuffers * sizeof (rec));
+	offset = sizeof (Header) + (Header.Nbuffers * sizeof (struct rec_entry));
 	for (i = 1; i < which; i++)
 		offset += buflist[i]->r_nlines * sizeof (daddr);
 	fseek(ptrs_fp, offset, L_SET);
 }
 
+private void
 makblist()
 {
 	int	i;
@@ -477,7 +493,7 @@ makblist()
 	}
 }
 
-daddr
+private daddr
 getaddr(fp)
 register FILE	*fp;
 {
@@ -491,7 +507,9 @@ register FILE	*fp;
 	return addr;
 }
 
+private void
 dump_file(which, out)
+int	which;
 FILE	*out;
 {
 	register int	nlines;
@@ -516,6 +534,7 @@ FILE	*out;
 
 /* List all the buffers. */
 
+private void
 list()
 {
 	int	i;
@@ -527,6 +546,9 @@ list()
 			buflist[i]->r_nlines);
 }
 
+private void	ask_del proto((char *prompt, struct file_pair *fp));
+
+private int
 doit(fp)
 struct file_pair	*fp;
 {
@@ -619,6 +641,9 @@ struct file_pair	*fp;
 	}
 }
 
+private void	del_files proto((struct file_pair *fp));
+
+private void
 ask_del(prompt, fp)
 char	*prompt;
 struct file_pair	*fp;
@@ -630,6 +655,7 @@ struct file_pair	*fp;
 		del_files(fp);
 }
 
+private void
 del_files(fp)
 struct file_pair	*fp;
 {
@@ -669,14 +695,12 @@ savetmps()
 }
 #endif
 
+private int
 lookup(dir)
 char	*dir;
 {
 	struct file_pair	*fp;
-	struct rec_head		header;
-	char	yorn[20];
-	int	nfound = 0,
-		this_one;
+	int	nfound = 0;
 
 	printf("Checking %s ...\n", dir);
 	Directory = dir;
@@ -721,9 +745,9 @@ char	*argv[];
 		printf("Done.\n");
 		exit(0);
 	} */
-	if (argvp = scanvec(argv, "-uid"))
+	if ((argvp = scanvec(argv, "-uid")) != NULL)
 		UserID = atoi(argvp[1]);
-	if (argvp = scanvec(argv, "-d"))
+	if ((argvp = scanvec(argv, "-d")) != NULL)
 		nfound = lookup(argvp[1]);
 	else
 		nfound = lookup(TmpFilePath);

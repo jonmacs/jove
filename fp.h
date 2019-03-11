@@ -5,6 +5,8 @@
  * included in all the files.                                              *
  ***************************************************************************/
 
+extern void	putchar proto((int c));	/* hidden by macro */
+
 #define putchar(c)	putc(c, stdout)
 #define putc(c, fp)	(--(fp)->f_cnt >= 0 ? (*(fp)->f_ptr++ = (c)) : _flush((c), fp))
 #define getc(fp)	(((--(fp)->f_cnt < 0) ? filbuf(fp) : *(fp)->f_ptr++))
@@ -53,14 +55,14 @@ extern File
 
 extern int
 	f_getint proto((File *fp)),
-	f_gets proto((File *fp,char *buf,int max)),
+	f_gets proto((File *fp,char *buf,size_t max)),
 	filbuf proto((File *fp)),
 	_flush proto((int c,File *fp)),
 	f_readn proto((File *fp,char *addr,int n));
 
 extern void
 	f_close proto((File *fp)),
-	f_seek proto((File *fp,long offset)),
+	f_seek(),	/* proto((File *fp, off_t offset)) */
 	f_toNL proto((File *fp)),
 	flush proto((File *fp)),
 	flusho proto((void)),

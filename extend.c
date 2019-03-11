@@ -11,6 +11,7 @@
 #include "ctype.h"
 #include "chars.h"
 #include "disp.h"
+#include "re.h"
 
 #ifdef JOB_CONTROL
 # include <signal.h>
@@ -19,7 +20,11 @@
 #ifdef MAC
 # include "mac.h"
 #else
-# include <varargs.h>
+# ifdef	STDARGS
+#  include <stdargs.h>
+# else
+#  include <varargs.h>
+# endif
 #endif
 
 #ifdef MSDOS
@@ -34,9 +39,6 @@ private int
 
 int	InJoverc = 0;
 
-extern int	getch(),
-		getchar();
-
 /* Auto execute code */
 
 #define NEXECS	20
@@ -44,7 +46,7 @@ extern int	getch(),
 private struct {
 	char	*a_pattern;
 	data_obj	*a_cmd;
-} AutoExecs[NEXECS] = {0};
+} AutoExecs[NEXECS];	/* must be initialized by system to 0 */
 
 private int	ExecIndex = 0;
 
@@ -63,8 +65,6 @@ MAutoExec()
 {
 	DefAutoExec(findmac);
 }
-
-/* VARARGS0 */
 
 private void
 DefAutoExec(proc)
@@ -147,7 +147,7 @@ Extend()
 {
 	data_obj	*d;
 
-	if (d = findcom(": "))
+	if ((d = findcom(": ")) != NULL)
 		ExecCmd(d);
 }
 
@@ -159,6 +159,8 @@ Extend()
 int
 chr_to_int(cp, base, allints, result)
 register char	*cp;
+int	base,
+	allints;
 register int	*result;
 {
 	register int	c;
@@ -170,7 +172,7 @@ register int	*result;
 		cp += 1;
 	} else
 		sign = 1;
-	while (c = *cp++) {
+	while ((c = *cp++) != '\0') {
 		if (!isdigit(c)) {
 			if (allints == YES)
 				return INT_BAD;
@@ -200,7 +202,7 @@ int	base;
 
 void
 vpr_aux(vp, buf)
-register struct variable	*vp;
+register const struct variable	*vp;
 char	*buf;
 {
 	switch (vp->v_flags & V_TYPEMASK) {
@@ -334,9 +336,9 @@ private int	comp_value,
 
 int
 aux_complete(c)
+int	c;
 {
 	int	command,
-		length,
 		i;
 
 	if (comp_flags & CASEIND) {
@@ -382,14 +384,14 @@ aux_complete(c)
 			maxmatch = 0,
 			numfound = 0,
 			lastmatch = -1,
-			length = strlen(linebuf);
+			len = strlen(linebuf);
 
 		for (i = 0; Possible[i] != 0; i++) {
 			int	this_len;
 
 			this_len = numcomp(Possible[i], linebuf);
 			maxmatch = max(maxmatch, this_len);
-			if (this_len >= length) {
+			if (this_len >= len) {
 				if (numfound)
 					minmatch = min(minmatch, numcomp(Possible[lastmatch], Possible[i]));
 				else
@@ -408,7 +410,7 @@ aux_complete(c)
 			/* If we're not in the .joverc then
 			   let's do something helpful for the
 			   user. */
-			if (maxmatch < length) {
+			if (maxmatch < len) {
 				char	*cp;
 
 				cp = linebuf + maxmatch;
@@ -421,29 +423,33 @@ aux_complete(c)
 			comp_value = lastmatch;
 			return 0;
 		}
-		null_ncpy(linebuf, Possible[lastmatch], minmatch);
+		null_ncpy(linebuf, Possible[lastmatch], (size_t) minmatch);
 		Eol();
-		if (minmatch == length)	/* No difference */
+		if (minmatch == len)	/* No difference */
 			rbell();
 		break;
 	    }
 
 	case '?':
+		{
+		int	len;
+
 		if (InJoverc)
 			complain((char *) 0);
 		/* kludge: in case we're using UseBuffers, in which case
 		   linebuf gets written all over */
 		strcpy(Minibuf, linebuf);
-		length = strlen(Minibuf);
+		len = strlen(Minibuf);
 		TOstart("Completion", TRUE);	/* for now ... */
 		for (i = 0; Possible[i]; i++)
-			if (numcomp(Possible[i], Minibuf) >= length) {
+			if (numcomp(Possible[i], Minibuf) >= len) {
 				Typeout(Possible[i]);
 				if (TOabort != 0)
 					break;
 			}
 
 		TOstop();
+		}
 		break;
 	}
 	return !FALSE;
@@ -453,6 +459,7 @@ int
 complete(possible, prompt, flags)
 register char	*possible[];
 char	*prompt;
+int	flags;
 {
 	/* protect static "Possible" from being overwritten due to recursion */
 	if (InRealAsk)
@@ -502,7 +509,8 @@ register char	**choices,
 void
 Source()
 {
-	char	*com, *getenv(),
+	extern char	*getenv();
+	char	*com,
 		buf[FILESIZE];
 
 #ifndef MSDOS
@@ -562,6 +570,7 @@ char	*cmd;
 	switch (pid = fork()) {
 	case -1:
 		complain("[Fork failed: if]");
+		/*NOTREACHED*/
 
 	case 0:
 	    {
@@ -620,9 +629,8 @@ char	*file;
 	jmp_buf	savejmp;
 	int	IfStatus = IF_UNBOUND;
 	File	*fp;
-	extern char	*Inputp;
 
-	fp = open_file(file, buf, F_READ, !COMPLAIN, QUIET);
+	fp = open_file(file, buf, F_READ, NO, YES);
 	if (fp == NIL)
 		return NO;	/* joverc returns an integer */
 

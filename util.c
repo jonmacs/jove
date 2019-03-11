@@ -12,20 +12,24 @@
 #include <signal.h>
 
 #ifdef MAC
-#	include "mac.h"
+# include "mac.h"
 #else
-#	include <varargs.h>
+# ifdef	STDARGS
+#  include <stdargs.h>
+# else
+#  include <varargs.h>
+# endif
 #endif
 
 #ifdef MSDOS
 #include <time.h>
 #endif
 
-struct cmd *
+const struct cmd *
 FindCmd(proc)
 register void 	(*proc)();
 {
-	register struct cmd	*cp;
+	register const struct cmd	*cp;
 
 	for (cp = commands; cp->Name; cp++)
 		if (cp->c_proc == proc)
@@ -73,7 +77,7 @@ register Line	*lp;
 {
 	register Line	*next;
 
-	while (next = lp->l_next)
+	while ((next = lp->l_next) != NULL)
 		lp = next;
 	return lp;
 }
@@ -81,15 +85,17 @@ register Line	*lp;
 char	key_strokes[100],
 	*keys_p = key_strokes;
 
+void
 pp_key_strokes(buffer, size)
 char	*buffer;
+size_t	size;
 {
 	char	*buf_end = buffer + size - 5,	/* leave some extra space */
 		*kp = key_strokes,
 		c;
 
 	*buffer = '\0';
-	while (c = *kp++) {
+	while ((c = *kp++) != '\0') {
 		swritef(buffer, "%p ", c);
 		buffer += strlen(buffer);
 		if (buffer > buf_end)
@@ -189,18 +195,20 @@ int	*slow;
 
 char *
 StrIndex(dir, buf, charpos, what)
+int	dir;
 register char	*buf;
+int	charpos;
 register int	what;
 {
 	register char	*cp = &buf[charpos];
 	register int	c;
 
 	if (dir > 0) {
-		while (c = *cp++)
-			if (c == what)
+		while ((c = *cp++) != '\0')
+			if ((c == what) != '\0')
 				return (cp - 1);
 	} else {
-		while (cp >= buf && (c = *cp--))
+		while (cp >= buf && (c = *cp--)!='\0')
 			if (c == what)
 				return (cp + 1);
 	}
@@ -213,7 +221,7 @@ register char	*buf;
 {
 	register char	c;
 
-	while ((c = *buf++) && (c == ' ' || c == '\t'))
+	while ((c = *buf++)!='\0' && (c == ' ' || c == '\t'))
 		;
 	return c == 0;	/* It's zero if we got to the end of the Line */
 }
@@ -259,6 +267,7 @@ register int	num;
 void
 DotTo(line, col)
 Line	*line;
+int	col;
 {
 	Bufpos	bp;
 
@@ -314,6 +323,8 @@ int
 inorder(nextp, char1, endp, char2)
 register Line	*nextp,
 		*endp;
+int	char1,
+	char2;
 {
 	int	count = 0;
 	register Line	*prevp = nextp;
@@ -357,7 +368,7 @@ length(line)
 Line	*line;
 {
 	return strlen(lcontents(line));
-};
+}
 
 void
 to_word(dir)
@@ -393,6 +404,7 @@ register int	dir;
 
 int
 ModBufs(allp)
+int	allp;
 {
 	register Buffer	*b;
 
@@ -453,8 +465,6 @@ register Buffer	*bp;
 		CalcWind(w);	/* ah, this has been missing since the
 				   beginning of time! */
 }
-
-extern int	Jr_Len;
 
 char *
 lcontents(line)
@@ -534,8 +544,6 @@ int	ModCount = 0;
 void
 modify()
 {
-	extern int	DOLsave;
-
 	if (!curbuf->b_modified) {
 		UpdModLine = YES;
 		curbuf->b_modified = YES;
@@ -574,7 +582,7 @@ char	*str;
 
 	if (str == 0)
 		return 0;
-	val = emalloc(strlen(str) + 1);
+	val = emalloc((size_t) (strlen(str) + 1));
 
 	strcpy(val, str);
 	return val;
@@ -594,6 +602,7 @@ register int	count;
 
 void
 len_error(flag)
+int	flag;
 {
 	char	*mesg = "[line too long]";
 
@@ -609,6 +618,9 @@ void
 ins_c(c, buf, atchar, num, max)
 int	c;
 char	*buf;
+int	atchar,
+	num,
+	max;
 {
 	register char	*pp, *pp1;
 	register int	len;
@@ -644,12 +656,13 @@ void
 linecopy(onto, atchar, from)
 register char	*onto,
 		*from;
+int	atchar;
 {
 	register char	*endp = &onto[LBSIZE - 2];
 
 	onto += atchar;
 
-	while (*onto = *from++)
+	while ((*onto = *from++) != '\0')
 		if (onto++ >= endp)
 			len_error(ERROR);
 }
@@ -663,34 +676,35 @@ char	*err, *file;
 
 #ifdef UNIX
 void
+dopipe(p)
+int	*p;
+{
+	if (pipe(p) == -1)
+		complain("[Pipe failed]");
+}
+
+void
 pclose(p)
 int	*p;
 {
 	(void) close(p[0]);
 	(void) close(p[1]);
 }
-
-void
-dopipe(p)
-int	p[];
-{
-	if (pipe(p) == -1)
-		complain("[Pipe failed]");
-}
-
 #endif /* UNIX */
+
 /* NOSTRICT */
 
 char *
 emalloc(size)
+size_t	size;
 {
 	register char	*ptr;
 
-	if (ptr = malloc((unsigned) size))
+	if ((ptr = malloc(size)) != NULL)
 		return ptr;
 	/* Try garbage collecting lines */
 	GCchunks();
-	if (ptr = malloc((unsigned) size))
+	if ((ptr = malloc(size)) != NULL)
 		return ptr;
 	/* Uh ... Oh screw it! */
 	error("[Out of memory] ");
@@ -705,7 +719,7 @@ register char	*f;
 {
 	register char	*cp;
 
-	if (cp = rindex(f, '/'))
+	if ((cp = rindex(f, '/')) != NULL)
 		return cp + 1;
 	else
 #ifdef MSDOS
@@ -766,6 +780,7 @@ double	*dp;
 	double	avenrun[3];
 #endif
 	static int	kmem = 0;
+	extern long	lseek proto((int, long, int));
 
 	if (kmem == -1) {
 		*dp = 4.0;	/* So shell commands will say "Chugging" */
@@ -806,8 +821,10 @@ double	*dp;
 /* get the time buf, designated by *timep, from FROM to TO. */
 char *
 get_time(timep, buf, from, to)
-char	*buf;
 time_t	*timep;
+char	*buf;
+int	from,
+	to;
 {
 	time_t	now;
 	char	*cp;
@@ -841,20 +858,10 @@ register int	c;
 	register int	c1;
 
 	if (c != 0)
-		while (c1 = *s++)
+		while ((c1 = *s++) != '\0')
 			if (c == c1)
 				return s - 1;
 	return 0;
-}
-
-int
-my_strcmp(s1, s2)
-register char	*s1,
-		*s2;
-{
-	if (!s1 || !s2)
-		return 1;	/* which is not zero ... */
-	return strcmp(s1, s2);
 }
 
 int
@@ -888,6 +895,7 @@ void
 null_ncpy(to, from, n)
 char	*to,
 	*from;
+size_t	n;
 {
 	(void) strncpy(to, from, n);
 	to[n] = '\0';
@@ -943,7 +951,7 @@ int	delay;
 	redisplay();
 	select(1, &readfds, (long *)0, (long *)0, &timer);
 #else
-	static int cps[] = {
+	static const int cps[] = {
 		0,
 		5,
 		7,
@@ -1037,7 +1045,7 @@ va_list	ap;
 
 	argv[i++] = va_arg(ap, char *);
 	argv[i++] = basename(argv[0]);
-	while (cp = va_arg(ap, char *))
+	while ((cp = va_arg(ap, char *)) != NULL)
 		argv[i++] = cp;
 	argv[i] = 0;
 }
@@ -1057,13 +1065,14 @@ pnt_line()
 char *
 ralloc(obj, size)
 register char	*obj;
+int	size;
 {
 	register char	*new;
 
 	if (obj)
-		new = realloc(obj, (unsigned) size);
+		new = realloc(obj, (size_t) size);
 	if (new == 0 || !obj)
-		new = emalloc(size);
+		new = emalloc((size_t) size);
 	return new;
 }
 

@@ -79,6 +79,7 @@ register Window	*wp;
 Window *
 div_wind(wp, n)
 register Window	*wp;
+int	n;
 {
 	register Window	*new;
 	int	amt;
@@ -245,11 +246,6 @@ WindFind()
 	Line	*ltop = curwind->w_top;
 	Bufpos	odot,
 		ndot;
-	extern void
-		FindTag(),
-		FDotTag(),
-		BufSelect(),
-		FindFile();
 
 	DOTsave(&odot);
 
@@ -346,6 +342,7 @@ PageNWind()
 Window *
 w_nam_typ(name, type)
 register char	*name;
+int	type;
 {
 	register Window *w;
 	register Buffer	*b;
@@ -372,11 +369,13 @@ register char	*name;
 void
 pop_wind(name, clobber, btype)
 register char	*name;
+int	clobber;
+int	btype;
 {
 	register Window	*wp;
 	register Buffer	*newb;
 
-	if (newb = buf_exists(name))
+	if ((newb = buf_exists(name)) != NIL)
 		btype = -1;	/* if the buffer exists, don't change
 				   it's type */
 	if ((wp = w_nam_typ(name, btype)) == 0) {
@@ -507,7 +506,6 @@ SplitWind()
 void
 GotoWind()
 {
-	extern Buffer	*lastbuf;
 	char	*bname;
 	Window	*w;
 

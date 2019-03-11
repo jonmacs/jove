@@ -22,8 +22,6 @@ struct RE_block {
 		r_anchored;
 };
 
-#if !defined(RE_SRC)
-
 extern char	searchstr[128],
 		rep_search[128],	/* replace search string */
 		rep_str[128];		/* contains replacement string */
@@ -32,8 +30,9 @@ extern int	REdirection,
 		REbom,		/* beginning and end columns of match */
 		REeom,
 		REdelta;	/* increase in line length due to last re_dosub */
-#endif
 
+extern int	okay_wrap;	/* Do a wrap search ... not when we're
+				   parsing errors ... */
 extern char
 	*getsearch proto((void));
 
@@ -49,6 +48,7 @@ extern Bufpos
 extern void
 	REcompile proto((char *pattern,int re,struct RE_block *)),
 	find_tag proto((char *tag,int localp)),
-	putmatch proto((int which,char *buf,int size)),
+	putmatch proto((int which,char *buf,size_t size)),
 	re_dosub proto((struct RE_block *re_blk, char *tobuf, int delp)),
-	setsearch proto((char *str));
+	setsearch proto((char *str)),
+	RErecur proto((void));

@@ -25,3 +25,21 @@ struct process {
 	char	p_dbx_mode;	/* whether to parse output for file/lineno
 				   pairs */
 };
+
+extern int  NumProcs;
+
+#ifdef PIPEPROCS
+extern File	*ProcInput;
+extern int	kbd_pid;
+#else
+extern long global_fd;
+#endif
+
+extern void
+	read_proc proto((int)),
+	pinit proto((void)),
+	KillProcs proto((void)),
+	pbuftiedp proto((Buffer *));
+
+extern char *
+	pstate proto((Process *));

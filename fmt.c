@@ -14,7 +14,11 @@
 #ifdef MAC
 # include  "mac.h"
 #else
-# include <varargs.h>
+# ifdef	STDARGS
+#  include <stdargs.h>
+# else
+#  include <varargs.h>
+# endif
 #endif
 
 private void
@@ -27,12 +31,11 @@ private void
 
 char	mesgbuf[MESG_SIZE];
 
-/* VARARGS2 */
-
 void
 format(buf, len, fmt, ap)
 char	*buf,
 	*fmt;
+size_t	len;
 va_list	ap;
 {
 	File	strbuf,
@@ -54,7 +57,7 @@ int	specialmap = 0,
 
 #define Empty ""
 
-char *altseq[133] = {
+const char *const altseq[133] = {
 Empty, Empty, Empty, "Ctrl-@", Empty, Empty, Empty, Empty,
 Empty, Empty, Empty, Empty, Empty, Empty, Empty, "Left",
 "Alt-Q", "Alt-W", "Alt-E", "Alt-R", "Alt-T", "Alt-Y", "Alt-U", "Alt-I",
@@ -116,39 +119,41 @@ private struct fmt_state {
 private void
 putld(d, base)
 long	d;
+int	base;
 {
-	int	length = 1;
+	int	len = 1;
 	long	tmpd = d;
 
 	if (current_fmt.width == 0 && current_fmt.precision) {
 		current_fmt.width = current_fmt.precision;
 		current_fmt.padc = '0';
 	}
-	while (tmpd = (tmpd / base))
-		length += 1;
+	while ((tmpd = (tmpd / base)) != 0)
+		len += 1;
 	if (d < 0)
-		length += 1;
+		len += 1;
 	if (!current_fmt.leftadj)
-		pad(current_fmt.padc, current_fmt.width - length);
+		pad(current_fmt.padc, current_fmt.width - len);
 	if (d < 0) {
 		putc('-', current_fmt.iop);
 		d = -d;
 	}
 	outld(d, base);
 	if (current_fmt.leftadj)
-		pad(current_fmt.padc, current_fmt.width - length);
+		pad(current_fmt.padc, current_fmt.width - len);
 }
 
 private void
 outld(d, base)
 long	d;
+int	base;
 {
 	register long	n;
-	static char	chars[] = {'0', '1', '2', '3', '4', '5', '6',
+	static const char	chars[] = {'0', '1', '2', '3', '4', '5', '6',
 				    '7', '8', '9', 'a', 'b', 'c', 'd',
 				    'e', 'f'};
 
-	if (n = (d / base))
+	if ((n = (d / base)) != 0)
 		outld(n, base);
 	putc((int) (chars[(int) (d % base)]), current_fmt.iop);
 }
@@ -157,27 +162,27 @@ private void
 puts(str)
 char	*str;
 {
-	int	length;
+	int	len;
 	register char	*cp;
 
 	if (str == 0)
-#if pyr
+#if defined(pyr)
 		str = "";
 #else
 		str = "(null)";
 #endif
-	length = strlen(str);
-	if (current_fmt.precision == 0 || length < current_fmt.precision)
-		current_fmt.precision = length;
+	len = strlen(str);
+	if (current_fmt.precision == 0 || len < current_fmt.precision)
+		current_fmt.precision = len;
 	else
-		length = current_fmt.precision;
+		len = current_fmt.precision;
 	cp = str;
 	if (!current_fmt.leftadj)
-		pad(' ', current_fmt.width - length);
+		pad(' ', current_fmt.width - len);
 	while (--current_fmt.precision >= 0)
 		putc(*cp++, current_fmt.iop);
 	if (current_fmt.leftadj)
-		pad(' ', current_fmt.width - length);
+		pad(' ', current_fmt.width - len);
 }
 
 private void
@@ -201,7 +206,7 @@ va_list	ap;
 	prev_fmt = current_fmt;
 	current_fmt.iop = sp;
 
-	while (c = *fmt++) {
+	while ((c = *fmt++) != '\0') {
 		if (c != '%') {
 			putc(c, current_fmt.iop);
 			continue;
@@ -303,32 +308,38 @@ va_list	ap;
 	current_fmt = prev_fmt;
 }
 
-/* VARARGS1 */
-
-char *
+#ifdef	STDARGS
+	char *
+sprint(char *fmt, ...)
+#else
+	/*VARARGS1*/ char *
 sprint(fmt, va_alist)
-char	*fmt;
-va_dcl
+	char	*fmt;
+	va_dcl
+#endif
 {
 	va_list	ap;
 	static char	line[100];
 
-	va_start(ap);
+	va_init(ap, fmt);
 	format(line, sizeof line, fmt, ap);
 	va_end(ap);
 	return line;
 }
 
-/* VARARGS1 */
-
-void
+#ifdef	STDARGS
+	void
+writef(char *fmt, ...)
+#else
+	/*VARARGS1*/ void
 writef(fmt, va_alist)
-char	*fmt;
-va_dcl
+	char	*fmt;
+	va_dcl
+#endif
 {
 	va_list	ap;
 
-	va_start(ap);
+	va_init(ap, fmt);
 #ifndef IBMPC
 	doformat(stdout, fmt, ap);
 #else /* IBMPC */
@@ -338,63 +349,75 @@ va_dcl
 	va_end(ap);
 }
 
-/* VARARGS1 */
-
-void
+#ifdef	STDARGS
+	void
+fwritef(File *fp, char *fmt, ...)
+#else
+	/*VARARGS2*/ void
 fwritef(fp, fmt, va_alist)
-File	*fp;
-char	*fmt;
-va_dcl
+	File	*fp;
+	char	*fmt;
+	va_dcl
+#endif
 {
 	va_list	ap;
 
-	va_start(ap);
+	va_init(ap, fmt);
 	doformat(fp, fmt, ap);
 	va_end(ap);
 }
 
-/* VARARGS2 */
-
-void
+#ifdef	STDARGS
+	void
+swritef(char *str, char *fmt, ...)
+#else
+	/*VARARGS2*/ void
 swritef(str, fmt, va_alist)
-char	*str,
-	*fmt;
-va_dcl
+	char	*str,
+		*fmt;
+	va_dcl
+#endif
 {
 	va_list	ap;
 
-	va_start(ap);
-	format(str, 130, fmt, ap);
+	va_init(ap, fmt);
+	format(str, (size_t)130, fmt, ap);
 	va_end(ap);
 }
 
-/* VARARGS1 */
-
-void
+#ifdef	STDARGS
+	void
+s_mess(char *fmt, ...)
+#else
+	/*VARARGS1*/ void
 s_mess(fmt, va_alist)
-char	*fmt;
-va_dcl
+	char	*fmt;
+	va_dcl
+#endif
 {
 	va_list	ap;
 
 	if (InJoverc)
 		return;
-	va_start(ap);
+	va_init(ap, fmt);
 	format(mesgbuf, sizeof mesgbuf, fmt, ap);
 	va_end(ap);
 	message(mesgbuf);
 }
 
-/* VARARGS1 */
-
-void
+#ifdef	STDARGS
+	void
+f_mess(char *fmt, ...)
+#else
+	/*VARARGS1*/ void
 f_mess(fmt, va_alist)
-char	*fmt;
-va_dcl
+	char	*fmt;
+	va_dcl
+#endif
 {
 	va_list	ap;
 
-	va_start(ap);
+	va_init(ap, fmt);
 	format(mesgbuf, sizeof mesgbuf, fmt, ap);
 	va_end(ap);
 	DrawMesg(NO);
@@ -402,19 +425,22 @@ va_dcl
 	UpdMesg = YES;	/* still needs updating (for convenience) */
 }
 
-/* VARARGS1 */
-
-void
+#ifdef	STDARGS
+	void
+add_mess(char *fmt, ...)
+#else
+	/*VARARGS1*/ void
 add_mess(fmt, va_alist)
-char	*fmt;
-va_dcl
+	char	*fmt;
+	va_dcl
+#endif
 {
 	int	mesg_len = strlen(mesgbuf);
 	va_list	ap;
 
 	if (InJoverc)
 		return;
-	va_start(ap);
+	va_init(ap, fmt);
 	format(&mesgbuf[mesg_len], (sizeof mesgbuf) - mesg_len, fmt, ap);
 	va_end(ap);
 	message(mesgbuf);

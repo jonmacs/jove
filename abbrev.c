@@ -27,15 +27,13 @@ struct abbrev {
 
 private	void
 	define proto((struct abbrev **, char *, char *)),
-	def_abbrev proto((struct abbrev **)),
 	rest_abbrevs proto((char *)),
 	save_abbrevs proto((char *));
 
 private	unsigned int hash proto((char *));
-private	struct abbrev * lookup proto((struct abbrev **, char *));
 
 #define GLOBAL	NMAJORS
-private struct abbrev	*A_tables[NMAJORS + 1][HASHSIZE] = {0};
+private struct abbrev	*A_tables[NMAJORS + 1][HASHSIZE];	/* Must be zeroed! */
 
 int AutoCaseAbbrev = 1;
 
@@ -46,7 +44,7 @@ register char	*a;
 	register unsigned int	hashval = 0;
 	register int	c;
 
-	while (c = *a++)
+	while ((c = *a++) != '\0')
 		hashval = (hashval << 2) + c;
 
 	return hashval;
@@ -59,13 +57,14 @@ struct abbrev	*table[HASHSIZE];
 	char	abbrev[100],
 		phrase[100];
 
-	strcpy(abbrev, ask((char *) 0, "abbrev: "));
-	strcpy(phrase, ask((char *) 0, "abbrev: %s phrase: ", abbrev));
+	null_ncpy(abbrev, ask((char *) 0, "abbrev: "), sizeof(abbrev)-1);
+	null_ncpy(phrase, ask((char *) 0, "abbrev: %s phrase: ", abbrev),
+		sizeof(phrase)-1);
 	define(table, abbrev, phrase);
 }
 
 private struct abbrev *
-lookup(table, abbrev)
+lookup_abbrev(table, abbrev)
 register struct abbrev	*table[HASHSIZE];
 register char	*abbrev;
 {
@@ -87,7 +86,7 @@ char	*abbrev,
 {
 	register struct abbrev	*ap;
 
-	ap = lookup(table, abbrev);
+	ap = lookup_abbrev(table, abbrev);
 	if (ap == 0) {
 		register unsigned int	h = hash(abbrev);
 
@@ -138,14 +137,14 @@ AbbrevExpand()
 	*wp = '\0';
     END_TABLE();
 
-	if ((ap = lookup(A_tables[curbuf->b_major], wordbuf)) == 0 &&
-	    (ap = lookup(A_tables[GLOBAL], wordbuf)) == 0) {
+	if ((ap = lookup_abbrev(A_tables[curbuf->b_major], wordbuf)) == 0 &&
+	    (ap = lookup_abbrev(A_tables[GLOBAL], wordbuf)) == 0) {
 		SetDot(&point);
 		return;
 	}
 	del_char(BACKWARD, (wp - wordbuf), NO);
 
-	for (cp = ap->a_phrase; c = *cp; ) {
+	for (cp = ap->a_phrase; (c = *cp) != '\0'; ) {
 		if (AutoCaseAbbrev) {
 			insert_c(islower(c) && UC_count &&
 			       (cp == ap->a_phrase || (UC_count > 1 && (cp[-1] == ' '))) ?
@@ -179,7 +178,7 @@ char	*file;
 	int	i,
 		count = 0;
 
-	fp = open_file(file, buf, F_WRITE, COMPLAIN, QUIET);
+	fp = open_file(file, buf, F_WRITE, YES, YES);
 	for (i = 0; i <= GLOBAL; i++) {
 		fwritef(fp, "------%s abbrevs------\n", mode_names[i]);
 		for (tp = A_tables[i]; tp < &A_tables[i][HASHSIZE]; tp++)
@@ -205,9 +204,9 @@ char	*file;
 	File	*fp;
 	char	buf[LBSIZE];
 
-	fp = open_file(file, buf, F_READ, COMPLAIN, QUIET);
+	fp = open_file(file, buf, F_READ, YES, YES);
 	while (mode <= GLOBAL) {
-		eof = f_gets(fp, genbuf, LBSIZE);
+		eof = f_gets(fp, genbuf, (size_t) LBSIZE);
 		if (eof || genbuf[0] == '\0')
 			break;
 		lnum += 1;
@@ -263,7 +262,7 @@ EditAbbrevs()
 	Buffer	*obuf = curbuf,
 		*ebuf;
 
-	if (ebuf = buf_exists(EditName)) {
+	if ((ebuf = buf_exists(EditName)) != NIL) {
 		if (ebuf->b_type != B_SCRATCH)
 			confirm("Over-write buffer %b?", ebuf);
 	}
@@ -296,8 +295,8 @@ BindMtoW()
 
 	word = ask((char *) 0, "Word: ");
 
-	if ((ap = lookup(A_tables[curbuf->b_major], word)) == 0 &&
-	    (ap = lookup(A_tables[GLOBAL], word)) == 0)
+	if ((ap = lookup_abbrev(A_tables[curbuf->b_major], word)) == 0 &&
+	    (ap = lookup_abbrev(A_tables[GLOBAL], word)) == 0)
 		complain("%s: unknown abbrev.", word);
 
 	hook = findmac("Macro: ");

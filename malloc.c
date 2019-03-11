@@ -61,7 +61,7 @@ char	*sbrk();
 
 char *
 malloc(nbytes)
-unsigned int	nbytes;
+size_t	nbytes;
 {
 	register union store	*p,
 				*q;
@@ -135,7 +135,7 @@ register char	*ap;
 char *
 realloc(obj, nbytes)
 char	*obj;
-unsigned int	nbytes;
+size_t	nbytes;
 {
 	register union store	*q,
 				*p = (union store *) obj;

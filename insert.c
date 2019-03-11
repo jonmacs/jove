@@ -15,8 +15,7 @@ private int
 	newchunk proto((void));
 private void
 	DoNewline proto((int indentp)),
-	init_specials proto((void)),
-	remfreelines proto((struct chunk *c));
+	init_specials proto((void));
 
 /* Make a newline after AFTER in buffer BUF, UNLESS after is 0,
    in which case we insert the newline before after. */
@@ -164,6 +163,7 @@ SelfInsert()
 
 void
 Insert(c)
+int	c;
 {
 	if (c == CTL('J'))
 		LineInsert(arg_value());
@@ -174,6 +174,8 @@ Insert(c)
 /* insert character C N times at point */
 void
 insert_c(c, n)
+int	c,
+	n;
 {
 	if (n <= 0)
 		return;
@@ -243,8 +245,9 @@ int	PDelay = 5,	/* 1/2 a second */
 void
 DoParen()
 {
-	Bufpos	*bp = (Bufpos *) -1;
-	int	nx,
+	Bufpos	*bp;
+	int	tried = NO,
+		nx,
 		c = LastKeyStruck;
 
 	if (!isclosep(c)) {
@@ -252,11 +255,15 @@ DoParen()
 		return;
 	}
 
-	if (MajorMode(CMODE) && c == '}' && within_indent())
+	if (MajorMode(CMODE) && c == '}' && within_indent()) {
 		bp = c_indent(YES);
+		tried = TRUE;
+	}
 #ifdef LISP
-	if (MajorMode(LISPMODE) && c == ')' && blnkp(linebuf))
+	if (MajorMode(LISPMODE) && c == ')' && blnkp(linebuf)) {
 		bp = lisp_indent();
+		tried = TRUE;
+	}
 #endif
 	SelfInsert();
 #ifdef MAC
@@ -265,7 +272,7 @@ DoParen()
 	if (MinorMode(ShowMatch) && !charp() && !in_macro()) {
 #endif
 		b_char(1);	/* Back onto the ')' */
-		if ((int) bp == -1)
+		if (!tried)
 			bp = m_paren(c, BACKWARD, NO, YES);
 		f_char(1);
 		if (bp != 0) {
@@ -298,6 +305,7 @@ Newline()
 
 private void
 DoNewline(indentp)
+int	indentp;
 {
 	Bufpos	save;
 	int	indent;
@@ -341,6 +349,7 @@ DoNewline(indentp)
 void
 ins_str(str, ok_nl)
 register char	*str;
+int	ok_nl;
 {
 	register char	c;
 	Bufpos	save;
@@ -350,7 +359,7 @@ register char	*str;
 		return;		/* ain't nothing to insert! */
 	DOTsave(&save);
 	llen = strlen(linebuf);
-	while (c = *str++) {
+	while ((c = *str++) != '\0') {
 		if (c == '\n' || (ok_nl && llen >= LBSIZE - 2)) {
 			IFixMarks(save.p_line, save.p_char, curline, curchar);
 			modify();
@@ -371,6 +380,7 @@ register char	*str;
 
 void
 open_lines(n)
+int	n;
 {
 	Bufpos	dot;
 
@@ -393,6 +403,9 @@ DoYank(fline, fchar, tline, tchar, atline, atchar, whatbuf)
 Line	*fline,
 	*tline,
 	*atline;
+int	fchar,
+	tchar,
+	atchar;
 Buffer	*whatbuf;
 {
 	register Line	*newline;
@@ -639,6 +652,8 @@ GCchunks()
 
 #ifdef LISP
 
+#include "re.h"
+
 /* Grind S-Expr */
 
 void
@@ -671,7 +686,7 @@ private List	*specials = NIL;
 private void
 init_specials()
 {
-	static char *words[] = {
+	static char *const words[] = {
 		"case",
 		"def",
 		"dolist",
@@ -686,7 +701,7 @@ init_specials()
 		"selectq",
 		0
 	};
-	char	**wordp = words;
+	char	*const *wordp = words;
 
 	while (*wordp)
 		list_push(&specials, (Element *) *wordp++);
@@ -716,8 +731,8 @@ lisp_indent()
 
 	bp = m_paren(')', BACKWARD, NO, YES);
 
-	if (bp == 0)
-		return 0;
+	if (bp == NULL)
+		return NULL;
 
 	/* We want to end up
 

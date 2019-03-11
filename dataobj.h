@@ -51,14 +51,14 @@ typedef struct data_obj {
 
 extern data_obj	*LastCmd;	/* last command invoked */
 
-extern struct cmd	commands[];
+extern const struct cmd	commands[];
 extern struct macro	*macros;
 
 extern struct macro
 	*macstack[],
 	KeyMacro;
 
-extern struct cmd
+extern const struct cmd
 	*FindCmd proto((void (*proc)()));
 
 extern data_obj

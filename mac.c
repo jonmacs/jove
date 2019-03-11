@@ -2393,7 +2393,6 @@ static void init_slate()
 {
 	FontInfo f;
 
-	extern char *version;
 	char *Name = "Jove ";
 	char *Title;
 

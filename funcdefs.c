@@ -13,252 +13,6 @@
 #endif
 
 #if !defined(TXT_TO_C)
-extern void
-	UnbindC(),
-	ShowVersion(),
-	WVisSpace(),
-	AppReg(),
-	Apropos(),
-	BackChar(),
-	BList(),
-	FList(),
-	BUpList(),
-	FDownList(),
-	BSexpr(),
-	BackWord(),
-	Bof(),
-	Bol(),
-	Bos(),
-	Bow(),
-	BindAKey(),
-	BindMac(),
-	BufPos(),
-#if defined(MSDOS)
-	Buf1Select(),
-	Buf2Select(),
-	Buf3Select(),
-	Buf4Select(),
-	Buf5Select(),
-	Buf6Select(),
-	Buf7Select(),
-	Buf8Select(),
-	Buf9Select(),
-	Buf10Select(),
-#endif /* MSDOS */
-	CasRegLower(),
-	CasRegUpper(),
-	CapChar(),
-	CapWord(),
-	LowWord(),
-	UppWord(),
-	Chdir(),
-	prCWD(),
-	prDIRS(),
-	Pushd(),
-	Popd(),
-	prCTIME(),
-	ChrToOct(),
-	ClAndRedraw(),
-#if !defined(MAC)
-	MakeErrors(),
-	ErrParse(),
-#endif
-	CopyRegion(),
-	BufSelect(),
-	DelBlnkLines(),
-	DelNChar(),
-	DelNWord(),
-	OneWindow(),
-	DelPChar(),
-	DelPWord(),
-	DelReg(),
-	KillSome(),
-	DelWtSpace(),
-	DelCurWindow(),
-	KeyDesc(),
-	Digit(),
-	Digit0(),
-	Digit1(),
-	Digit2(),
-	Digit3(),
-	Digit4(),
-	Digit5(),
-	Digit6(),
-	Digit7(),
-	Digit8(),
-	Digit9(),
-	DescBindings(),
-	DescCom(),
-	Eof(),
-	Eol(),
-	Eos(),
-	Eow(),
-	ForPara(),
-	BackPara(),
-	BufErase(),
-	PtToMark(),
-	Extend(),
-	ExecMacro(),
-	RunMacro(),
-	Leave(),
-	FindFile(),
-	WindFind(),
-	FindTag(),
-	FDotTag(),
-	ToIndent(),
-	ForChar(),
-	FSexpr(),
-	ForWord(),
-	TimesFour(),
-	GoLine(),
-	GrowWindow(),
-	IncFSearch(),
-	IncRSearch(),
-	InsFile(),
-	Justify(),
-	RegJustify(),
-	SetLMargin(),
-	SetRMargin(),
-	LRShift(),
-	RRShift(),
-	BufKill(),
-	KillBos(),
-	KillEos(),
-	KillEOL(),
-	KillExpr(),
-	BufList(),
-	NotModified(),
-	NameMac(),
-	DelMacro(),
-	Newline(),
-	OpenLine(),
-	LineAI(),
-#if !defined(MAC)
-	ShowErr(),
-	NextError(),
-#endif /* MAC */
-#if defined(MSDOS)
-	PageScrollUp(),
-	PageScrollDown(),
-#endif /* MSDOS */
-#if !defined(MAC)
-	PrevError(),
-#endif /* MAC */
-	NextLine(),
-	NextPage(),
-	NextWindow(),
-	Recur(),
-	PopMark(),
-	PageNWind(),
-	Tab(),
-	DoParen(),
-#if !defined(MAC)
-	ParseAll(),
-#endif
-#if defined(SPELL)
-	SpelWords(),
-#endif
-#if defined(JOB_CONTROL)
-	PauseJove(),
-#endif
-	PrevLine(),
-	PrevPage(),
-	PrevWindow(),
-#if !defined(MAC)
-	Push(),
-#endif
-	RegReplace(),
-	QRepSearch(),
-	QuotChar(),
-	ReadFile(),
-	DefKBDMac(),
-	RedrawDisplay(),
-	ReNamBuf(),
-	RepSearch(),
-	DownScroll(),
-	UpScroll(),
-	ForSearch(),
-	FSrchND(),
-	RevSearch(),
-	RSrchND(),
-	SelfInsert(),
-	SetVar(),
-	SetMark(),
-#if !defined(MAC)
-	ShellCom(),
-	ShNoBuf(),
-	Shtypeout(),
-	ShToBuf(),
-#endif
-	ShrWindow(),
-	Source(),
-#if defined(SPELL)
-	SpelBuffer(),
-#endif
-	SplitWind(),
-	GotoWind(),
-	Remember(),
-	Forget(),
-	StrLength(),
-	TransChar(),
-	TransLines(),
-	SaveFile(),
-	WtModBuf(),
-	WriteFile(),
-	WriteMacs(),
-	WrtReg(),
-	Yank(),
-	YankPop(),	PrVar(),
-#if !defined(MAC)
-	FilterRegion(),
-#endif
-	WNumLines(),
-#if defined(IPROCS)
-	ShellProc(),
-	ProcInt(),
-	ProcQuit(),
-	ProcKill(),
-#  if !defined(PIPEPROCS)
-	ProcEof(),
-	ProcStop(),
-	ProcCont(),
-	ProcDStop(),
-#  endif
-	ProcSendData(),
-	ProcNewline(),
-	ProcList(),
-	ProcBind(),
-	Iprocess(),
-	DBXpoutput();
-#endif
-
-#if defined(LISP)
-	GSexpr(),	/* Grind S Expression. */
-	AddSpecial(),	/* add lisp special form */
-#endif
-	CAutoExec(),
-	MAutoExec(),
-
-	DefMAbbrev(),
-	DefGAbbrev(),
-	SaveAbbrevs(),
-	RestAbbrevs(),
-	EditAbbrevs(),
-	BindMtoW(),
-
-#if defined(CMT_FMT)
-	Comment(),
-#endif
-
-	ScrollLeft(),
-	ScrollRight(),
-
-	MakeKMap(),
-	KmBind(),
-	ProcKmBind(),
-
-	MacInter();		/* This is the last one. */
-
 
 #if defined(MAC)
 #	define WIRED_CMD(c) c,'\0','\0'	/* for About Jove... */
@@ -275,7 +29,7 @@ extern void
 #endif
 #endif /* TXT_TO_C */
 
-struct cmd	commands[] = {
+const struct cmd	commands[] = {
 #if defined(LISP)
 	FUNCTION, "add-lisp-special", WIRED_CMD(AddSpecial),
 #endif
@@ -582,17 +336,17 @@ char	*prompt;
 	   than initializing the minibuffer for each line. */
 	if (InJoverc) {
 		char	cmdbuf[128];
-		register struct cmd	*cmd;
+		register const struct cmd	*cmd;
 		register char	*cp = cmdbuf;
 #if !(defined(IBMPC) || defined(MAC))
 		register int	c;
 #else
 		int c;
 #endif
-		struct cmd	*which;
+		const struct cmd	*which;
 		int	cmdlen,
 			found = 0;
-		static struct cmd	*cmdhash[26];
+		static const struct cmd	*cmdhash[26];
 		static int	beenhere = NO;
 
 /* special case for prefix commands--only upper case ones */
@@ -639,11 +393,13 @@ char	*prompt;
 				which = cmd;
 			}
 		    }
-		if (found > 1)
+		if (found > 1) {
 			complain("[\"%s\" ambiguous]", cmdbuf);
-		else if (found == 0)
+			/* NOTREACHED */
+		} else if (found == 0) {
 			complain("[\"%s\" unknown]", cmdbuf);
-		else
+			/* NOTREACHED */
+		}else
 			return (data_obj *) which;
 	} else {
 		static char	*strings[(sizeof commands) / sizeof (commands[0])];
@@ -652,7 +408,7 @@ char	*prompt;
 
 		if (beenhere == NO) {
 			register char	**strs = strings;
-			register struct cmd	*c;
+			register const struct cmd	*c;
 
 			for (c = commands; c->Name != 0; c++)
 				*strs++ = c->Name;
@@ -664,6 +420,5 @@ char	*prompt;
 			return 0;
 		return (data_obj *) &commands[com];
 	}
-	/* NOTREACHED */
 }
 #endif

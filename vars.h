@@ -24,7 +24,7 @@ struct variable {
 #define V_CLRSCREEN	0200	/* clear and redraw screen */
 #define V_TTY_RESET	0400	/* redo the tty modes */
 
-extern struct variable	variables[];
+extern const struct variable	variables[];
 
 #ifdef MAC
 # ifdef TXT_TO_C

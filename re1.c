@@ -33,6 +33,9 @@ substitute(re_blk, query, l1, char1, l2, char2)
 struct RE_block	*re_blk;
 Line	*l1,
 	*l2;
+int	query,
+	char1,
+	char2;
 {
 	Line	*lp;
 	int	numdone = 0,
@@ -49,10 +52,10 @@ Line	*l1,
 		int	crater = -1;	/* end of last substitution on this line */
 		int	LineDone = NO;	/* already replaced last empty string on line? */
 
-		while (!LineDone && re_lindex(lp, offset, re_blk, NO, crater)) {
-			if (lp == l2 && REeom > char2)	/* nope, leave this alone */
-				break;
-
+		while (!LineDone
+		&& re_lindex(lp, offset, re_blk, NO, crater)
+		&& (lp != l2 || REeom <= char2))
+		{
 			DotTo(lp, REeom);
 			offset = curchar;
 			if (query) {
@@ -68,8 +71,7 @@ reswitch:
 				switch (CharUpcase(c)) {
 				case '.':
 					stop = YES;
-					/* Fall into ... */
-
+					/*FALLTHROUGH*/
 				case ' ':
 				case 'Y':
 					break;
@@ -94,8 +96,7 @@ reswitch:
 					makedirty(curline);
 					UNDO_da = curline->l_dline;
 					UNDO_lp = curline;
-					/* Fall into ... */
-
+					/*FALLTHROUGH*/
 				case CTL('R'):
 				case 'R':
 					RErecur();
@@ -169,6 +170,8 @@ message("Space or Y, Period, Rubout or N, C-R or R, C-W, C-U or U, P or !, Retur
 /* prompt for search and replacement strings and do the substitution */
 private void
 replace(query, inreg)
+int	query,
+	inreg;
 {
 	Mark	*m;
 	char	*rep_ptr;
@@ -245,7 +248,7 @@ char	*searchbuf,
 	struct stat	stbuf;
 	int	success = NO;
 
-	fp = open_file(file, iobuff, F_READ, !COMPLAIN, QUIET);
+	fp = open_file(file, iobuff, F_READ, NO, YES);
 	if (fp == NIL)
 		return NO;
 	swritef(pattern, "^%s[^\t]*\t*\\([^\t]*\\)\t*\\([?/]\\)\\(.*\\)\\2$", tag);
@@ -306,8 +309,8 @@ char	*searchbuf,
 				if (!LookingAt(pattern, line, 0)) {
 					complain("I thought I saw it!");
 				} else {
-					putmatch(1, filebuf, FILESIZE);
-					putmatch(3, searchbuf, 100);
+					putmatch(1, filebuf, (size_t)FILESIZE);
+					putmatch(3, searchbuf, (size_t)100);
 					success = YES;
 				}
 				break;
@@ -332,6 +335,7 @@ char	TagFile[FILESIZE] = "tags";
 void
 find_tag(tag, localp)
 char	*tag;
+int	localp;
 {
 	char	filebuf[FILESIZE],
 		sstr[100],
@@ -387,7 +391,7 @@ FDotTag()
 	while (ismword(linebuf[c2]))
 		c2 += 1;
 
-	null_ncpy(tagname, linebuf + c1, c2 - c1);
+	null_ncpy(tagname, linebuf + c1, (size_t) (c2 - c1));
 	find_tag(tagname, !is_an_arg());
 }
 
@@ -420,7 +424,6 @@ register int	c,
 {
 	static Bufpos	buf;
 	Bufpos	*bp;
-	extern int	okay_wrap;
 
 	if (c == CTL('S') || c == CTL('R'))
 		goto dosrch;
@@ -458,6 +461,7 @@ IncRSearch()
 
 private void
 IncSearch(dir)
+int	dir;
 {
 	Bufpos	save_env;
 
@@ -477,6 +481,7 @@ IncSearch(dir)
 
 private int
 isearch(dir, bp)
+int	dir;
 Bufpos	*bp;
 {
 	Bufpos	pushbp;
@@ -525,7 +530,7 @@ Bufpos	*bp;
 
 		case CTL('\\'):
 			c = CTL('S');
-
+			/*FALLTHROUGH*/
 		case CTL('S'):
 		case CTL('R'):
 			/* If this is the first time through and we have a
@@ -552,14 +557,12 @@ Bufpos	*bp;
 			}
 			*incp++ = '\\';
 			add_mess("\\");
-			/* Fall into ... */
-
+			/*FALLTHROUGH*/
 		case CTL('Q'):
 		case CTL('^'):
 			add_mess("");
 			c = getch() | 0400;
-			/* Fall into ... */
-
+			/*FALLTHROUGH*/
 		default:
 			if (c & 0400)
 				c &= CHARMASK;
@@ -598,8 +601,7 @@ Bufpos	*bp;
 			   failing OR we reach the beginning. */
 			if (failing)
 				return BACKUP;
-			/* Fall into ... */
-
+			/*FALLTHROUGH*/
 		case DELETE:
 			incp = orig_incp;
 			*incp = 0;

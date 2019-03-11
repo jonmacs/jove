@@ -50,6 +50,6 @@ extern int	SyntaxTable;
 	SyntaxTable = push; \
 }
 
-extern char	CharTable[NMAJORS][NCHARS];
-extern char	CaseEquiv[NCHARS];
+extern const unsigned char	CharTable[NMAJORS][NCHARS];
+extern const char	CaseEquiv[NCHARS];
 #define CharUpcase(c)	(CaseEquiv[c])

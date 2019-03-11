@@ -14,11 +14,16 @@
 extern int	read(),
 		write();
 
-int	mac_fd;
+static void
+	output_new_definition();
 
+static int	mac_fd;
+
+static void
 mac_io(fcn, ptr, nbytes)
 int	(*fcn)();
 char	*ptr;
+int	nbytes;
 {
 	int	nio;
 
@@ -32,12 +37,13 @@ char	*ptr;
 #define NEWWAY	1
 #define OLDWAY	0
 
-int	int_how = NEWWAY;
+static int	int_how = NEWWAY;
 
 /* Formatting int's the old way or the new "improved" way? */
 
-#if vax || pdp11
-long htonl(x)
+#if defined(vax) || defined(pdp11)
+static long
+ntohl(x)
 register long x;
 {
 	return(	(((x >>  0) & 0377) << 24) |
@@ -46,61 +52,44 @@ register long x;
 		(((x >> 24) & 0377) <<  0) );
 }
 
-short htons(x)
+static short
+ntohs(x)
 register short x;
 {
 	return(	(((x >>  0) & 0377) << 8) |
 		(((x >>  8) & 0377) << 0) );
 }
 
-long ntohl(x)
-register long x;
-{
-	return(	(((x >>  0) & 0377) << 24) |
-		(((x >>  8) & 0377) << 16) |
-		(((x >> 16) & 0377) <<  8) |
-		(((x >> 24) & 0377) <<  0) );
-}
-
-short ntohs(x)
-register short x;
-{
-	return(	(((x >>  0) & 0377) << 8) |
-		(((x >>  8) & 0377) << 0) );
-}
 #else
-long htonl(x)
+
+static long
+ntohl(x)
 register long x;
 {
 	return(x);
 }
 
-short htons(x)
+static short
+ntohs(x)
 register short x;
 {
 	return(x);
 }
 
-long ntohl(x)
-register long x;
-{
-	return(x);
-}
-
-short ntohs(x)
-register short x;
-{
-	return(x);
-}
 #endif
 
+static int
 int_fmt(i)
+int	i;
 {
-	if (int_how == NEWWAY)
-		return ntohl(i);
+	if (int_how == NEWWAY) {
+		/* Note: using ntohl() for an int is not portable! */
+		return (int) ntohl((long) i);
+	}
 	return i;
 }
 
+static void
 read_and_write_macros(filein)
 char	*filein;
 {
@@ -124,7 +113,7 @@ retry:		bodylen = int_fmt(tmp);
 				exit(1);
 			}
 		}
-		mac_io(read, (char *) &namelen, sizeof namelen);
+		mac_io(read, (char *) &namelen, (int) (sizeof namelen));
 		namelen = int_fmt(namelen);
 		mac_io(read, macname, namelen);
 		mac_io(read, macbuf, bodylen);
@@ -132,7 +121,9 @@ retry:		bodylen = int_fmt(tmp);
 	}
 }
 
+static void
 pr_putc(c)
+int	c;
 {
 	if (c == '\\' || c == '^')
 		putchar('\\');
@@ -143,9 +134,11 @@ pr_putc(c)
 	putchar(c);
 }
 
+static void
 output_new_definition(name, body, bodylen)
 char	*name,
 	*body;
+int	bodylen;
 {
 	int	i;
 
@@ -155,7 +148,9 @@ char	*name,
 	putchar('\n');
 }
 
+int
 main(argc, argv)
+int	argc;
 char	*argv[];
 {
 	if (argc != 2) {
@@ -164,4 +159,5 @@ char	*argv[];
 	}
 
 	read_and_write_macros(argv[1]);
+	return 0;
 }

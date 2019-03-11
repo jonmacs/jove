@@ -7,8 +7,6 @@
 
 /* search package */
 
-#define RE_SRC	1
-
 #include "jove.h"
 #include "re.h"
 #include "ctype.h"
@@ -91,6 +89,7 @@ private char	*comp_ptr,
 void
 REcompile(pattern, re, re_blk)
 char	*pattern;
+int	re;
 struct RE_block	*re_blk;
 {
 	REptr = pattern;
@@ -145,9 +144,10 @@ struct RE_block	*re_blk;
 private int
 do_comp(re_blk, kind)
 struct RE_block	*re_blk;
+int	kind;
 {
-	char	*this_cmd,
-		*prev_cmd,
+	char	*this_verb,
+		*prev_verb,
 		*start_p,
 		*comp_endp;
 	int	parens[NPAR],
@@ -156,7 +156,7 @@ struct RE_block	*re_blk;
 		ret_code;
 
 	parenp = parens;
-	this_cmd = NULL;
+	this_verb = NULL;
 	ret_code = 1;
 	comp_endp = &re_blk->r_compbuf[COMPSIZE - 6];
 
@@ -169,11 +169,11 @@ struct RE_block	*re_blk;
 
 	start_p = comp_ptr;
 
-	while (c = REgetc()) {
+	while ((c = REgetc()) != '\0') {
 		if (comp_ptr > comp_endp)
 toolong:		complain("Search string too long/complex.");
-		prev_cmd = this_cmd;
-		this_cmd = comp_ptr;
+		prev_verb = this_verb;
+		this_verb = comp_ptr;
 
 		if (kind == NORM && index(".[*", c) != 0)
 			goto defchar;
@@ -182,6 +182,7 @@ toolong:		complain("Search string too long/complex.");
 			switch (c = REgetc()) {
 			case 0:
 				complain("[Premature end of pattern]");
+				/*NOTREACHED*/
 
 			case '{':
 			    {
@@ -299,7 +300,7 @@ toolong:		complain("Search string too long/complex.");
 				goto toolong;
 			bzero(comp_ptr, SETSIZE);
 			if ((REpeekc = REgetc()) == '^') {
-				*this_cmd = NONE_OF;
+				*this_verb = NONE_OF;
 				/* Get it for real this time. */
 				(void) REgetc();
 			}
@@ -334,10 +335,10 @@ toolong:		complain("Search string too long/complex.");
 		    }
 
 		case '*':
-			if (prev_cmd == NULL || *prev_cmd <= NOSTR || (*prev_cmd&STAR)!=0)
+			if (prev_verb == NULL || *prev_verb <= NOSTR || (*prev_verb&STAR)!=0)
 				goto defchar;
 
-			if (*prev_cmd == NORMC || *prev_cmd == CINDC) {
+			if (*prev_verb == NORMC || *prev_verb == CINDC) {
 				char	lastc = comp_ptr[-1];
 
 				/* The * operator applies only to the
@@ -351,42 +352,42 @@ toolong:		complain("Search string too long/complex.");
 				 * so do not need or have character counts.
 				 */
 
- 				if (prev_cmd[1] == 1) {
+ 				if (prev_verb[1] == 1) {
 					/* Only one char in string:
 					 * delete old command.
 					 */
-					this_cmd = prev_cmd;
+					this_verb = prev_verb;
  				} else {
 					/* Several chars in string:
 					 * strip off the last.
 					 * New verb is derived from old.
 					 */
-					prev_cmd[1] -= 1;
-					this_cmd -= 1;
-					*this_cmd = *prev_cmd;
+					prev_verb[1] -= 1;
+					this_verb -= 1;
+					*this_verb = *prev_verb;
  				}
-				comp_ptr = this_cmd + 1;
+				comp_ptr = this_verb + 1;
 				*comp_ptr++ = lastc;
 			} else {
 				/* This command is just the previous one,
 				 * whose verb we will modify.
 				 */
-				this_cmd = prev_cmd;
+				this_verb = prev_verb;
 			}
-			*this_cmd |= STAR;
+			*this_verb |= STAR;
 			break;
 		default:
 defchar:
-			if ((prev_cmd == NULL) ||
-			    !(*prev_cmd == NORMC || *prev_cmd == CINDC)) {
+			if ((prev_verb == NULL) ||
+			    !(*prev_verb == NORMC || *prev_verb == CINDC)) {
 				/* create new string command */
 				*comp_ptr++ = (CaseIgnore) ? CINDC : NORMC;
 				*comp_ptr++ = 0;
 			} else {
 				/* merge this into previous string command */
-				this_cmd = prev_cmd;
+				this_verb = prev_verb;
 			}
-			this_cmd[1] += 1;
+			this_verb[1] += 1;
 			*comp_ptr++ = c;
 			break;
 		}
@@ -420,6 +421,7 @@ int	REbom,		/* beginning and end columns of match */
 
 private int
 backref(n, linep)
+int	n;
 register char	*linep;
 {
 	register char	*backsp,
@@ -645,8 +647,6 @@ int	crater;	/* offset of previous substitute (or -1) */
 	} else {
 		REbolp = ltobuf(line, re_blk->r_lbuf);
 		if (offset == -1) {	/* Reverse search, find end of line. */
-			extern int	Jr_Len;
-
 			offset = Jr_Len;	/* Just Read Len. */
 		}
 	}
@@ -699,6 +699,8 @@ int	okay_wrap = 0;	/* Do a wrap search ... not when we're
 Bufpos *
 dosearch(pattern, dir, re)
 char	*pattern;
+int dir,
+    re;
 {
 	Bufpos	*pos;
 	struct RE_block	re_blk;		/* global re-compiled buffer */
@@ -714,6 +716,7 @@ char	*pattern;
 
 Bufpos *
 docompiled(dir, re_blk)
+int dir;
 register struct RE_block	*re_blk;
 {
 	static Bufpos	ret;
@@ -781,6 +784,7 @@ private char *
 insert(off, endp, which)
 char	*off,
 	*endp;
+int which;
 {
 	register char	*pp;
 	register int	n;
@@ -802,6 +806,7 @@ void
 re_dosub(re_blk, tobuf, delp)
 struct RE_block	*re_blk;
 char	*tobuf;
+int delp;
 {
 	register char	*tp,
 			*rp;
@@ -818,7 +823,7 @@ char	*tobuf;
 		register int	c;
 
 		rp = rep_str;
-		while (c = *rp++) {
+		while ((c = *rp++) != '\0') {
 			if (c == '\\') {
 				c = *rp++;
 				if (c >= '0' && c < re_blk->r_nparens + '0') {
@@ -848,14 +853,16 @@ char	*tobuf;
 		REeom += 1;
 	}
 	loc2 = re_blk->r_lbuf + REeom;
-	while (*tp++ = *rp++)
+	while ((*tp++ = *rp++) != '\0')
 		if (tp >= endp)
 			len_error(ERROR);
 }
 
 void
 putmatch(which, buf, size)
+int which;
 char	*buf;
+size_t size;
 {
 	*(insert(buf, buf + size, which)) = '\0';
 }
@@ -915,6 +922,9 @@ RSrchND()
 
 private void
 search(dir, re, setdefault)
+int dir,
+    re,
+    setdefault;
 {
 	Bufpos	*newdot;
 	char	*s;
@@ -942,6 +952,7 @@ int
 LookingAt(pattern, buf, offset)
 char	*pattern,
 	*buf;
+int offset;
 {
 	struct RE_block	re_blk;
 	char	**alt = re_blk.r_alternates;

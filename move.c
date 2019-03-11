@@ -8,15 +8,8 @@
 #include "jove.h"
 #include "re.h"
 #include "ctype.h"
-
+#include "disp.h"
 private void to_sent proto((int));
-
-extern void
-	Bol(),
-	Eol(),
-	Eos(),
-	Eof(),
-	Bof();
 
 private int	line_pos;
 
@@ -91,6 +84,9 @@ PrevLine()
 
 void
 line_move(dir, n, line_cmd)
+int	dir,
+	n,
+	line_cmd;
 {
 	Line	*(*proc)() = (dir == FORWARD) ? next_line : prev_line;
 	Line	*line;
@@ -119,6 +115,7 @@ line_move(dir, n, line_cmd)
 int
 how_far(line, col)
 Line	*line;
+int	col;
 {
 	register char	*lp;
 	register int	pos,
@@ -128,7 +125,7 @@ Line	*line;
 	base = lp = lcontents(line);
 	pos = 0;
 
-	while (pos < col && (c = (*lp & CHARMASK))) {
+	while (pos < col && (c = (*lp & CHARMASK)) != '\0') {
 		if (c == '\t')
 			pos += (tabstop - (pos % tabstop));
 		else if (isctrl(c))
@@ -173,10 +170,10 @@ Bof()
 
 private void
 to_sent(dir)
+int	dir;
 {
 	Bufpos	*new,
 		old;
-	extern char	*ParaStr;
 
 	DOTsave(&old);
 
@@ -207,8 +204,6 @@ to_sent(dir)
 			to_sent(1);
 		}
 	} else {
-		extern int	REbom;
-
 		curchar = REbom + 1;	/* Just after the [?.!] */
 		if (LookingAt("[\")]  *\\|[\")]$", linebuf, curchar))
 			curchar += 1;

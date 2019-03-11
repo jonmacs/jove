@@ -88,6 +88,7 @@ CapWord()
 
 private void
 case_word(up)
+int	up;
 {
 	Bufpos	before;
 
@@ -163,7 +164,9 @@ private void
 case_reg(line1, char1, line2, char2, up)	
 Line	*line1,
 	*line2;
-int	char1;
+int	char1,
+	char2,
+	up;
 {
 	(void) fixorder(&line1, &char1, &line2, &char2);
 	DotTo(line1, char1);
@@ -194,6 +197,7 @@ CasRegUpper()
 
 private void
 CaseReg(up)
+int	up;
 {
 	register Mark	*mp = CurMark();
 	Bufpos	savedot;

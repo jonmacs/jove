@@ -5,4 +5,6 @@
  * included in all the files.                                              *
  ***************************************************************************/
 
-char	*version = "4.11";
+#include "jove.h"
+
+char	*version = "4.12";

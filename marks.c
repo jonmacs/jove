@@ -5,15 +5,15 @@
  * included in all the files.                                              *
  ***************************************************************************/
 
-int	MarksShouldFloat = 1;
-
 #include "jove.h"
 
-extern void	PtToMark proto((void));
+int	MarksShouldFloat = 1;
 
 Mark *
 MakeMark(line, column, type)
 register Line	*line;
+int	column,
+	type;
 {
 	register Mark	*newmark = (Mark *) emalloc(sizeof *newmark);
 
@@ -61,6 +61,7 @@ void
 AllMarkSet(b, line, col)
 Buffer	*b;
 register Line	*line;
+int	col;
 {
 	register Mark	*mp;
 
@@ -72,6 +73,7 @@ void
 MarkSet(m, line, column)
 Mark	*m;
 Line	*line;
+int	column;
 {
 	m->m_line = line;
 	m->m_char = column;
@@ -122,6 +124,7 @@ set_mark()
 void
 do_set_mark(l, c)
 Line	*l;
+int	c;
 {
 	curbuf->b_themark = (curbuf->b_themark + 1) % NMARKS;
 	if (curmark == 0)
@@ -176,6 +179,8 @@ void
 DFixMarks(line1, char1, line2, char2)
 register Line	*line1,
 		*line2;
+int	char1,
+	char2;
 {
 	register Mark	*m;
 	Line	*lp = line1;
@@ -222,6 +227,8 @@ void
 IFixMarks(line1, char1, line2, char2)
 register Line	*line1,
 		*line2;
+int	char1,
+	char2;
 {
 	register Mark	*m;
 

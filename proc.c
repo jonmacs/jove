@@ -10,9 +10,14 @@
 #include "fp.h"
 #include "re.h"
 #include "termcap.h"
+#include "disp.h"
 
 #include <signal.h>
-#include <varargs.h>
+#ifdef	STDARGS
+# include <stdargs.h>
+#else
+# include <varargs.h>
+#endif
 
 #ifdef MSDOS
 # include <io.h>
@@ -22,14 +27,15 @@
 private void
 	DoShell proto((char *, char *)),
 	com_finish proto((int, char *)),
-	toerror proto((int, int)),
+	toerror proto((int, int));
+
+#ifdef	MSDOS
+private void
 	closepipe proto((void));
+#endif
 
 private int
 	okay_error proto((void));
-
-extern void
-	ShowErr();
 
 #if defined(MSDOS)
 private int
@@ -58,9 +64,9 @@ struct error {
 			*er_next;
 };
 
-struct error	*cur_error = 0,
-		*errorlist = 0;
-Buffer		*perr_buf = 0;	/* Buffer with error messages */
+private struct error	*cur_error = NULL,
+		*errorlist = NULL;
+Buffer		*perr_buf = NULL;	/* Buffer with error messages */
 
 int	WtOnMk = 1;		/* Write the modified files when we make */
 
@@ -73,6 +79,7 @@ struct error	*laste;
 Line	*errline,
 	*line;
 Buffer	*buf;
+int	charpos;
 {
 	struct error	*new = (struct error *) emalloc(sizeof *new);
 
@@ -94,12 +101,13 @@ Buffer	*buf;
 	return new;
 }
 
+void
 get_FL_info(fname, lineno)
-char	fname[FILESIZE],
-	lineno[FILESIZE];
+char	*fname,
+	*lineno;
 {
-	putmatch(1, fname, FILESIZE);
-	putmatch(2, lineno, FILESIZE);
+	putmatch(1, fname, (size_t)FILESIZE);
+	putmatch(2, lineno, (size_t)FILESIZE);
 
 	/* error had lineno followed fname, so switch the two */
 	if (!isdigit(lineno[0])) {
@@ -147,7 +155,7 @@ ErrParse()
 	perr_buf = curbuf;
 	REcompile(ErrFmtStr, YES, &re_blk);
 	/* Find a line with a number on it. */
-	while (bp = docompiled(FORWARD, &re_blk)) {
+	while ((bp = docompiled(FORWARD, &re_blk)) != NULL) {
 		SetDot(bp);
 		get_FL_info(fname, lineno);
 		buf = do_find((Window *) 0, fname, YES);
@@ -177,6 +185,8 @@ private char	errbounds[] = "You're at the %s error.",
 
 private void
 toerror(forward, num)
+int	forward,
+	num;
 {
 	register struct error	*e = cur_error;
 
@@ -218,6 +228,7 @@ okay_error()
 
 void
 ToError(forward)
+int	forward;
 {
 	do {
 		toerror(forward, arg_value());
@@ -291,25 +302,25 @@ char *
 MakeName(command)
 char	*command;
 {
-	static char	bufname[50];
-	register char	*cp = bufname,
+	static char	bnm[50];
+	register char	*cp = bnm,
 			c;
 
-	while ((c = *command++) && (c == ' ' || c == '\t'))
+	while ((c = *command++) != '\0' && (c == ' ' || c == '\t'))
 		;
 	do
 		*cp++ = c;
-	while ((c = *command++) && (c != ' ' && c != '\t'));
+	while ((c = *command++) != '\0' && (c != ' ' && c != '\t'));
 	*cp = 0;
-	strcpy(bufname, basename(bufname));
+	strcpy(bnm, basename(bnm));
 
-	return bufname;
+	return bnm;
 }
 
 /* Run make, first writing all the modified buffers (if the WtOnMk flag is
    non-zero), parse the errors, and go the first error. */
 
-char	make_cmd[LBSIZE] = "make";
+private char	make_cmd[LBSIZE] = "make";
 
 void
 MakeErrors()
@@ -330,8 +341,6 @@ MakeErrors()
 	compilation = (sindex("make", make_cmd) || sindex("cc", make_cmd));
 	if (is_an_arg() || !compilation) {
 		if (!compilation) {
-			extern char	*Inputp;
-
 			rbell();
 			Inputp = make_cmd;	/* insert the default for the user */
 		}
@@ -349,7 +358,7 @@ MakeErrors()
 
 #ifdef SPELL
 
-void
+private void
 SpelParse(bname)
 char	*bname;
 {
@@ -372,7 +381,7 @@ char	*bname;
 		swritef(wordspel, "\\<%s\\>", linebuf);
 		SetBuf(buftospel);
 		ToFirst();
-		while (bp = dosearch(wordspel, 1, 1)) {
+		while ((bp = dosearch(wordspel, 1, 1)) != NULL) {
 			SetDot(bp);
 			ep = AddError(ep, wordsb->b_dot, buftospel,
 					  curline, curchar);
@@ -419,12 +428,12 @@ SpelWords()
 void
 ShToBuf()
 {
-	char	bufname[128],
+	char	bnm[128],
 		cmd[128];
 
-	strcpy(bufname, ask((char *) 0, "Buffer: "));
+	strcpy(bnm, ask((char *) 0, "Buffer: "));
 	strcpy(cmd, ask(ShcomBuf, "Command: "));
-	DoShell(bufname, cmd);
+	DoShell(bnm, cmd);
 }
 
 void
@@ -434,6 +443,7 @@ ShellCom()
 	DoShell(MakeName(ShcomBuf), ShcomBuf);
 }
 
+void
 ShNoBuf()
 {
 	int	status;
@@ -444,6 +454,7 @@ ShNoBuf()
 	com_finish(status, ShcomBuf);
 }
 
+void
 Shtypeout()
 {
 	int	status;
@@ -458,19 +469,19 @@ Shtypeout()
 	TOstop();
 }
 
-/* Run the shell command into `bufname'.  Empty the buffer except when we
+/* Run the shell command into `bnm'.  Empty the buffer except when we
    give a numeric argument, in which case it inserts the output at the
    current position in the buffer.  */
 
 private void
-DoShell(bufname, command)
-char	*bufname,
+DoShell(bnm, command)
+char	*bnm,
 	*command;
 {
 	Window	*savewp = curwind;
 	int	status;
 
-	status = UnixToBuf(bufname, YES, 0, !is_an_arg(), Shell, ShFlags,
+	status = UnixToBuf(bnm, YES, 0, !is_an_arg(), Shell, ShFlags,
 		command, curbuf->b_fname, curbuf->b_fname, (char *) 0);
 	com_finish(status, command);
 	SetWind(savewp);
@@ -525,18 +536,24 @@ int	pid,
 }
 #endif /* MSDOS */
 
-/* Run the command to bufname, erase the buffer if clobber is non-zero,
-   and redisplay if disp is non-zero.  Leaves current buffer in `bufname'
+/* Run the command to bnm, erase the buffer if clobber is non-zero,
+   and redisplay if disp is non-zero.  Leaves current buffer in `bnm'
    and leaves any windows it creates lying around.  It's up to the caller
    to fix everything up after we're done.  (Usually there's nothing to
    fix up.) */
 
-/* VARARGS4 */
-
-int
-UnixToBuf(bufname, disp, wsize, clobber, va_alist)
-char	*bufname;
-va_dcl
+#ifdef	STDARGS
+	int
+UnixToBuf(char *bnm, int disp, int wsize, int clobber, ...)
+#else
+	/*VARARGS4*/ int
+UnixToBuf(bnm, disp, wsize, clobber, va_alist)
+	char	*bnm;
+	int	disp;
+	int	wsize;
+	int	clobber;
+	va_dcl
+#endif
 {
 #ifndef MSDOS
 	int	p[2],
@@ -555,20 +572,20 @@ va_dcl
 	File	*fp;
 	int	(*old_int)();
 
-	va_start(ap);
+	va_init(ap, clobber);
 	make_argv(argv, ap);
 	va_end(ap);
-	if (bufname != 0 && clobber == YES)
-		isprocbuf(bufname);
+	if (bnm != 0 && clobber == YES)
+		isprocbuf(bnm);
 	if (disp) {
-		if (bufname != 0)
+		if (bnm != 0)
 			message("Starting up...");
 		else {
 			TOstart(argv[0], TRUE);
 			Typeout("Starting up...");
 		}
-		if (bufname != 0) {
-			pop_wind(bufname, clobber, clobber ? B_PROCESS : B_FILE);
+		if (bnm != 0) {
+			pop_wind(bnm, clobber, clobber ? B_PROCESS : B_FILE);
 			set_wsize(wsize);
 			redisplay();
 		}
@@ -672,17 +689,17 @@ va_dcl
 #ifndef MSDOS
 		inIOread = 1;
 #endif
-		eof = f_gets(fp, genbuf, LBSIZE);
+		eof = f_gets(fp, genbuf, (size_t)LBSIZE);
 #ifndef MSDOS
 		inIOread = 0;
 #endif
-		if (bufname != 0) {
+		if (bnm != 0) {
 			ins_str(genbuf, YES);
 			if (!eof)
 				LineInsert(1);
 		} else if (disp == YES)
 			Typeout("%s", genbuf);
-		if (bufname != 0 && disp != 0 && fp->f_cnt <= 0) {
+		if (bnm != 0 && disp != 0 && fp->f_cnt <= 0) {
 #ifdef LOAD_AV
 		    {
 			double	theavg;
@@ -698,7 +715,7 @@ va_dcl
 #else
 			mess = "Chugging along...";
 #endif /* LOAD_AV */
-			if (bufname != 0) {
+			if (bnm != 0) {
 				message(mess);
 				redisplay();
 			}
@@ -743,7 +760,7 @@ char	*cmd;
 #endif /* MSDOS */
 	Window	*save_wind = curwind;
 	int	status,
-		error = NO;
+		err = NO;
 #ifdef MSDOS
 	int p0, oldi;
 #endif /* MSDOS */
@@ -752,7 +769,7 @@ char	*cmd;
 #ifndef MSDOS
 	strcpy (tnambuf, "/tmp/jfilterXXXXXX");
 	tname = mktemp(tnambuf);
-	fp = open_file(tname, iobuff, F_WRITE, COMPLAIN, QUIET);
+	fp = open_file(tname, iobuff, F_WRITE, YES, YES);
 #else /* MSDOS */
 	p0 = openforpipe();
 #endif /* MSDOS */
@@ -780,7 +797,7 @@ char	*cmd;
 #endif /* MSDOS */
 			   );
     ONERROR
-	error = YES;
+	err = YES;
     ENDCATCH
 #ifndef MSDOS
 	f_close(fp);
@@ -792,7 +809,7 @@ char	*cmd;
 	closepipe();
 #endif /* MSDOS */
 	SetWind(save_wind);
-	if (error == NO)
+	if (err == NO)
 #ifndef MSDOS
 		com_finish(status, combuf);
 #else
@@ -811,13 +828,13 @@ FilterRegion()
 }
 
 void
-isprocbuf(bufname)
-char	*bufname;
+isprocbuf(bnm)
+char	*bnm;
 {
 	Buffer	*bp;
 
-	if ((bp = buf_exists(bufname)) != 0 && bp->b_type != B_PROCESS)
-		confirm("Over-write buffer %s?", bufname);
+	if ((bp = buf_exists(bnm)) != 0 && bp->b_type != B_PROCESS)
+		confirm("Over-write buffer %s?", bnm);
 }
 
 #ifdef MSDOS
@@ -825,14 +842,11 @@ char	*bufname;
 
 #include <dos.h>
 #include <fcntl.h>
-#include <sys/types.h>
 #include <sys/stat.h>
 
 static char pipeiname[64];
 static char pipeoname[64];
 static int  pipehandle;
-
-extern char TmpFilePath[];
 
 private int
 openforpipe()

@@ -5,15 +5,30 @@
  * included in all the files.                                              *
  ***************************************************************************/
 
+extern char	*HomeDir;
+
+extern int	HomeLen;
+
+extern int	DOLsave;	/* Do Lsave flag.  If lines aren't being saved
+				   when you think they should have been, this
+				   flag is probably not being set, or is being
+				   cleared before lsave() was called. */
+
+extern daddr	DFree;  /* pointer to end of tmp file */
+
+extern int	Jr_Len;		/* length of Just Read Line */
+
 extern char
 	*lbptr proto((struct line *line)),
 	*pr_name proto((char *fname,int okay_home)),
 	*sprint proto((char *, ...));
 
 extern struct file
-	*open_file proto((char *fname,char *buf,int how,int ifbad,int loudness));
+	*open_file proto((char *fname,char *buf,int how,int complainifbad,int loudness));
 
 extern void
+	setCWD proto((char *d)),
+	getCWD proto((void)),
 	PathParse proto((char *name,char *intobuf)),
 	SyncTmp proto((void)),
 	close_file proto((struct file *fp)),
@@ -29,6 +44,14 @@ extern void
 
 	WriteFile proto((void));
 
+extern int
+	chkCWD proto((char *dn));
+
 extern daddr
 	f_getputl proto((struct line *line,struct file *fp)),
 	putline proto((char *buf));
+
+#if !(defined(MSDOS) || defined(MAC))
+extern void
+	chk_mtime proto((Buffer *thisbuf, char *fname, char *how));
+#endif

@@ -56,6 +56,7 @@ quad_numeric_arg()
 
 private void
 gather_numeric_argument(c)
+	int	c;
 {
 	int	sign = 0;
 	static int	digited;

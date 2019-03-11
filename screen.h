@@ -10,7 +10,15 @@ struct screenline {
 		*s_length;
 };
 
+extern struct screenline	*Screen,
+				*Curline;
+
+extern char *cursend;
+
 extern int
+	i_line,
+	i_col,
+	AbortCnt,
 	CanScroll,	/* can this terminal scroll? */
 
 	CapLine,	/* cursor line and cursor column */
@@ -22,6 +30,7 @@ extern int
 	swrite proto((char *line,int inversep,int abortable));
 
 extern void
+	IDline_setup proto((char *tname)),
 	Placur proto((int line,int col)),
 	cl_eol proto((void)),
 	cl_scr proto((int doit)),

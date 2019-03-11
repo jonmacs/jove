@@ -10,7 +10,7 @@
 
 int	SyntaxTable = FUNDAMENTAL;	/* Current table to use. */
 
-char CharTable[NMAJORS][NCHARS] = {
+const unsigned char CharTable[NMAJORS][NCHARS] = {
     {
 	_C,	_C,	_C,	_C,	_C,	_C,	_C,	_C,
 	_C,	_C,	_C,	_C,	_C,	_C,	_C,	_C,
@@ -164,12 +164,13 @@ char CharTable[NMAJORS][NCHARS] = {
 
 int
 ismword(c)
+int	c;
 {
 	return ((CharTable[curbuf->b_major])[c]&(_W));
 }
 
 #ifdef IBMPC
-char	CaseEquiv[NCHARS] = {
+const char	CaseEquiv[NCHARS] = {
 	'\000',	'\001',	'\002',	'\003',	'\004',	'\005',	'\006',	'\007',
 	'\010',	'\011',	'\012',	'\013',	'\014',	'\015',	'\016',	'\017',
 	'\020',	'\021',	'\022',	'\023',	'\024',	'\025',	'\026',	'\027',
@@ -198,7 +199,7 @@ char	CaseEquiv[NCHARS] = {
 #endif /* IBMPC */
 
 #ifdef MAC
-char	CaseEquiv[NCHARS] = {
+const char	CaseEquiv[NCHARS] = {
 	'\000',	'\001',	'\002',	'\003',	'\004',	'\005',	'\006',	'\007',
 	'\010',	'\011',	'\012',	'\013',	'\014',	'\015',	'\016',	'\017',
 	'\020',	'\021',	'\022',	'\023',	'\024',	'\025',	'\026',	'\027',
@@ -235,7 +236,7 @@ char	CaseEquiv[NCHARS] = {
 #endif /* MAC */
 
 #ifdef ASCII
-char CaseEquiv[] = {
+const char CaseEquiv[] = {
 	'\000',	'\001',	'\002',	'\003',	'\004',	'\005',	'\006',	'\007',
 	'\010',	'\011',	'\012',	'\013',	'\014',	'\015',	'\016',	'\017',
 	'\020',	'\021',	'\022',	'\023',	'\024',	'\025',	'\026',	'\027',

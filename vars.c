@@ -9,7 +9,7 @@
 #include "jove.h"
 #endif
 
-struct variable	variables[] = {
+const struct variable	variables[] = {
 	VARIABLE, "abort-char", (char *) &AbortChar, V_CHAR,
 #ifdef UNIX
 	VARIABLE, "allow-^S-and-^Q", (char *) &OKXonXoff, V_BOOL|V_TTY_RESET,
@@ -119,7 +119,7 @@ char	*prompt;
 
 	if (beenhere == 0) {
 		register char	**strs = strings;
-		register struct variable	*v = variables;
+		register const struct variable	*v = variables;
 
 		beenhere = 1;
 		for (; v->Name; v++)

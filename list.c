@@ -1,11 +1,7 @@
+#include "jove.h"
 #include "list.h"
-#include "tune.h"
-
-#define NIL	0
 
 extern char	*emalloc();
-
-#define private	static
 
 private List *
 list_new()
@@ -50,6 +46,7 @@ List	**list;
 	return element;
 }
 
+#ifdef	NEVER
 Element *
 list_remove(list_head, element)
 List	**list_head;
@@ -104,3 +101,4 @@ Element	*element;
 			return element;
 	return NIL;
 }
+#endif	/* NEVER */

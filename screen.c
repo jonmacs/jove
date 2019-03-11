@@ -11,14 +11,12 @@
 #include "termcap.h"
 #include "disp.h"
 
-extern int	BufSize;
-
 int	AbortCnt,
 	CanScroll = 0,
 	tabstop = 8;
 
 #if !(defined(IBMPC) || defined(MAC))
-int	(*TTins_line)(),
+private void	(*TTins_line)(),
 	(*TTdel_line)();
 #endif /* (defined(IBMPC) || defined(MAC)) */
 
@@ -27,10 +25,14 @@ struct scrimage
 	*PhysScreen = 0;
 
 struct screenline	*Screen = 0,	/* the screen (a bunch of screenline) */
-			*Savelines = 0,	/* another bunch (LI of them) */
 			*Curline = 0;	/* current line */
-char	*cursor,			/* offset into current Line */
-	*cursend;
+
+private struct screenline   *Savelines = 0;	/* another bunch (LI of them) */
+
+
+private char	*cursor;			/* offset into current Line */
+
+char	*cursend;
 
 int	CapCol,
 	CapLine,
@@ -139,6 +141,7 @@ cl_eol()
 
 void
 cl_scr(doit)
+int doit;
 {
 	register int	i;
 	register struct screenline	*sp = Screen;
@@ -158,10 +161,6 @@ cl_scr(doit)
 		UpdMesg = YES;
 	}
 }
-
-#ifdef ID_CHAR
-extern int	IN_INSmode;
-#endif
 
 /* Output one character (if necessary) at the current position */
 
@@ -198,6 +197,7 @@ register int	c;
 		cursor += 1;
 		i_col += 1;
 	}
+	return 0;   /* useless result */
 }
 #else /* MAC */
 
@@ -301,6 +301,7 @@ register int	abortable;
 int
 swrite(line, inversep, abortable)
 register char	*line;
+int	inversep;
 register int	abortable;
 {
 	register int	c;
@@ -320,10 +321,10 @@ register int	abortable;
 
 	if (n <= 0)
 		return 1;
-	while (c = *line++) {
+	while ((c = *line++) != '\0') {
 		if (abortable && AbortCnt < 0) {
 			AbortCnt = BufSize;
-			if (InputPending = charp()) {
+			if ((InputPending = charp()) != '\0') {
 				aborted = 1;
 				break;
 			}
@@ -403,6 +404,7 @@ register int	abortable;
 
 int
 BufSwrite(linenum)
+int linenum;
 {
 	register int	n = cursend - cursor,
 			col = 0,
@@ -433,10 +435,10 @@ BufSwrite(linenum)
 	sputc(BUFSTART);	/* Okay because we can't be interrupted */
 #endif
 
-	if (c != '\0') while (c = *bp++) {
+	if (c != '\0') while ((c = *bp++) != '\0') {
 		if (AbortCnt < 0) {
 			AbortCnt = BufSize;
-			if (InputPending = charp()) {
+			if ((InputPending = charp()) != '\0') {
 				aborted = 1;
 				break;
 			}
@@ -534,6 +536,9 @@ SO_off()
 
 void
 v_ins_line(num, top, bottom)
+int num,
+    top,
+    bottom;
 {
 	register int	i;
 
@@ -574,6 +579,9 @@ v_ins_line(num, top, bottom)
 
 void
 v_del_line(num, top, bottom)
+int num,
+    top,
+    bottom;
 {
 	register int	i,
 			bot;
@@ -620,7 +628,7 @@ v_del_line(num, top, bottom)
    limit the amount of checking to when the output speed is slow.
    What ever turns you on ...   */
 
-private struct cursaddr {
+struct cursaddr {
 	int	cm_numchars;
 	void	(*cm_proc)();
 };
@@ -706,6 +714,8 @@ register int	col;
 
 private void
 HomeGo(line, col)
+int line,
+    col;
 {
 	PrintHo();
 	DownMotion(line);
@@ -805,7 +815,6 @@ register int	destline;
 #ifdef ID_CHAR
 static int	EIlen;
 #endif
-extern int	IMlen;
 
 void
 InitCM()
@@ -819,8 +828,12 @@ InitCM()
 #endif
 }
 
+private int ForNum proto((int from, int to));
+
 void
 Placur(line, col)
+int line,
+    col;
 {
 	int	dline,		/* Number of lines to move */
 		dcol;		/* Number of columns to move */
@@ -915,9 +928,10 @@ Placur(line, col)
 
 #define abs(x)	((x) >= 0 ? (x) : -(x))
 
-int
+private int
 ForNum(from, to)
 register int	from;
+int to;
 {
 	register int	tabgoal,
 			tabstp = phystab;
@@ -938,15 +952,21 @@ register int	from;
 
 #ifdef WIRED_TERMS
 
-void
+private void
 BGi_lines(top, bottom, num)
+int top,
+    bottom,
+    num;
 {
 	writef("\033[%d;%dr\033[%dL\033[r", top + 1, bottom + 1, num);
 	CapCol = CapLine = 0;
 }
 
-void
+private void
 SUNi_lines(top, bottom, num)
+int top,
+    bottom,
+    num;
 {
 	Placur(bottom - num + 1, 0);
 	writef("\033[%dM", num);
@@ -954,8 +974,11 @@ SUNi_lines(top, bottom, num)
 	writef("\033[%dL", num);
 }
 
-void
+private void
 C100i_lines(top, bottom, num)
+int top,
+    bottom,
+    num;
 {
 	if (num <= 1) {
 		GENi_lines(top, bottom, num);
@@ -974,6 +997,9 @@ C100i_lines(top, bottom, num)
 
 private void
 GENi_lines(top, bottom, num)
+int top,
+    bottom,
+    num;
 {
 	register int	i;
 
@@ -1005,15 +1031,21 @@ GENi_lines(top, bottom, num)
 
 #ifdef WIRED_TERMS
 
-void
+private void
 BGd_lines(top, bottom, num)
+int top,
+    bottom,
+    num;
 {
 	writef("\033[%d;%dr\033[%dM\033[r", top + 1, bottom + 1, num);
 	CapCol = CapLine = 0;
 }
 
-void
+private void
 SUNd_lines(top, bottom, num)
+int top,
+    bottom,
+    num;
 {
 	Placur(top, 0);
 	writef("\033[%dM", num);
@@ -1021,8 +1053,11 @@ SUNd_lines(top, bottom, num)
 	writef("\033[%dL", num);
 }
 
-void
+private void
 C100d_lines(top, bottom, num)
+int top,
+    bottom,
+    num;
 {
 	if (num <= 1) {
 		GENd_lines(top, bottom, num);
@@ -1041,6 +1076,9 @@ C100d_lines(top, bottom, num)
 
 private void
 GENd_lines(top, bottom, num)
+int top,
+    bottom,
+    num;
 {
 	register int	i;
 
@@ -1070,7 +1108,7 @@ GENd_lines(top, bottom, num)
 	}
 }
 
-struct ID_lookup {
+private const struct ID_lookup {
 	char	*ID_name;
 	void	(*I_proc)();	/* proc to insert lines */
 	void	(*D_proc)();	/* proc to delete lines */
@@ -1088,7 +1126,7 @@ void
 IDline_setup(tname)
 char	*tname;
 {
-	register struct ID_lookup	*idp;
+	register const struct ID_lookup	*idp;
 
 	for (idp = &ID_trms[1]; idp->ID_name; idp++)
 		if (strncmp(idp->ID_name, tname, strlen(idp->ID_name)) == 0)

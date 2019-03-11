@@ -5,6 +5,10 @@
  * included in all the files.                                              *
  ***************************************************************************/
 
+/* NOTE WELL:
+ * This file is "included" into iproc.c -- it is not compiled separately!
+ */
+
 #include <signal.h>
 #include <sgtty.h>
 #include <errno.h>
@@ -31,20 +35,11 @@ private Process	*procs = 0;
 long	global_fd = 1;
 int	NumProcs = 0;
 
-#ifdef BRLUNIX
-	extern struct sg_brl sg1;
-#else
-	extern struct sgttyb sg1;
-#endif
+#include "ttystate.h"
 
-extern struct tchars tc1;
-
-#ifdef TIOCSLTC
-	extern struct ltchars ls1;
-#endif
-
-static Process *
+private Process *
 proc_pid(pid)
+int	pid;
 {
 	register Process	*p;
 
@@ -55,6 +50,7 @@ proc_pid(pid)
 	return p;
 }
 
+void
 read_proc(fd)
 register int	fd;
 {
@@ -94,10 +90,10 @@ register int	fd;
 	proc_rec(p, ibuf);
 }
 
+void
 ProcKill()
 {
 	register Buffer	*b;
-	Process	*buf_to_proc();
 	char	*bname;
 
 	bname = ask_buf(curbuf);
@@ -109,6 +105,7 @@ ProcKill()
 	proc_kill(b->b_process, SIGKILL);
 }
 
+void
 ProcCont()
 {
 	Process	*p;
@@ -122,31 +119,7 @@ ProcCont()
 	}
 }
 
-ProcEof()
-{
-	send_p(tc1.t_eofc);
-}
-
-ProcInt()
-{
-	send_p(tc1.t_intrc);
-}
-
-ProcQuit()
-{
-	send_p(tc1.t_quitc);
-}
-
-ProcStop()
-{
-	send_p(ls1.t_suspc);
-}
-
-ProcDStop()
-{
-	send_p(ls1.t_dsuspc);
-}
-
+private void
 send_p(c)
 char	c;
 {
@@ -162,7 +135,37 @@ char	c;
 	(void) write(p->p_fd, &c, 1);
 }
 
-private
+void
+ProcEof()
+{
+	send_p(tc1.t_eofc);
+}
+
+void
+ProcInt()
+{
+	send_p(tc1.t_intrc);
+}
+
+void
+ProcQuit()
+{
+	send_p(tc1.t_quitc);
+}
+
+void
+ProcStop()
+{
+	send_p(ls1.t_suspc);
+}
+
+void
+ProcDStop()
+{
+	send_p(ls1.t_dsuspc);
+}
+
+private void
 proc_close(p)
 Process *p;
 {
@@ -178,19 +181,25 @@ Process *p;
 	SigRelse(SIGCHLD);
 }
 
+private void
 proc_write(p, buf, nbytes)
 Process *p;
 char	*buf;
+int	nbytes;
 {
 	(void) write(p->p_fd, buf, nbytes);
 }
 
-/* VARARGS2 */
-
-private
+#ifdef	STDARGS
+	private void
+proc_strt(char *bufname, int clobber, ...)
+#else
+	private /*VARARGS2*/ void
 proc_strt(bufname, clobber, va_alist)
-char	*bufname;
-va_dcl
+	char	*bufname;
+	int	clobber;
+	va_dcl
+#endif
 {
 	va_list	ap;
 	char	*argv[32],
@@ -206,7 +215,6 @@ va_dcl
 		lmode;
 	register char	*s,
 			*t;
-	extern int	errno;
 	char	ttybuf[11],
 		ptybuf[11];
 	char	cmdbuf[128];
@@ -327,7 +335,7 @@ out:	if (s == 0 && t == 0)
 		i = getpid();
 		(void) ioctl(0, TIOCSPGRP, (struct sgttyb *) &i);
 		(void) setpgrp(0, i);
-		va_start(ap);
+		va_init(ap, clobber);
 		make_argv(argv, ap);
 		va_end(ap);
 		execv(argv[0], &argv[1]);
@@ -353,8 +361,8 @@ out:	if (s == 0 && t == 0)
 		LineInsert(1);
 
 	cmdbuf[0] = '\0';
-	va_start(ap);
-	while (cp = va_arg(ap, char *))
+	va_init(ap, clobber);
+	while ((cp = va_arg(ap, char *)) != NIL)
 		swritef(&cmdbuf[strlen(cmdbuf)], "%s ", cp++);
 	va_end(ap);
 
@@ -376,6 +384,7 @@ fail:	SigRelse(SIGCHLD);
 #endif
 }
 
+void
 pinit()
 {
 	(void) signal(SIGCHLD, proc_child);

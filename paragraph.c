@@ -6,6 +6,7 @@
  ***************************************************************************/
 
 #include "jove.h"
+#include "disp.h"
 
 private int	get_indent proto((Line *));
 private Line	*tailrule proto((Line *));
@@ -112,9 +113,9 @@ private void	DoPara proto((int dir));
 
 int	RMargin = 78,
 	LMargin = 0;
-Line	*para_head,
+private Line	*para_head,
 	*para_tail;
-int	head_indent,
+private int	head_indent,
 	body_indent;
 static int	use_lmargin;
 
@@ -202,6 +203,7 @@ register Line	*lp;
 
 private void
 find_para(how)
+int	how;
 {
 	Line	*this,
 		*prev,
@@ -284,8 +286,7 @@ strt:
 			else if (bslash)
 				head = lp->l_prev;
 			else if (i != this_indent) {
-				Line	*this = lp->l_prev;
-
+				this = lp->l_prev;
 				if (get_indent(this->l_prev) == i)
 					head = this->l_next;
 				else
@@ -369,6 +370,7 @@ RegJustify()
 
 void
 do_rfill(ulm)
+int	ulm;
 {
 	Mark	*mp = CurMark();
 	Line	*l1 = curline,
@@ -429,6 +431,10 @@ void
 DoJustify(l1, c1, l2, c2, scrunch, indent)
 Line	*l1,
 	*l2;
+int	c1,
+	c2,
+	scrunch,
+	indent;
 {
 	int	okay_char = -1;
 	char	*cp;
@@ -504,11 +510,9 @@ outahere:
 /*#pragma loop_opt() */
 #endif
 
-extern Line	*para_head,
-		*para_tail;
-
 private void
 DoPara(dir)
+int	dir;
 {
 	register int	num = arg_value(),
 			first_time = TRUE;

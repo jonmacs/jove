@@ -11,6 +11,7 @@
 #ifndef TUNED
 # include "tune.h"
 #endif
+
 #if !defined(MAC)
 # include <sys/types.h>
 # include <string.h>
@@ -18,10 +19,13 @@
 # include <types.h>
 #endif
 
-#if defined(__STDC__) || defined(LINT_ARGS)
+#if defined(__STDC__) || defined(USE_PROTOTYPES)
 # define proto(x)        x
+#define	STDARGS	1
+#define	va_init(ap, parmN)	va_start(ap, parmN)
 #else
 # define proto(x)        ()
+#define	va_init(ap, parmN)	va_start(ap)
 #endif
 
 #define EOF	-1
@@ -81,8 +85,6 @@ extern jmp_buf	mainjmp;
 #define COMPLAIN	2	/* do the error without a getDOT */
 #define QUIT		3	/* leave this level of recursion */
 
-#define QUIET		1	/* sure, why not? */
-
 #define YES_NODIGIT	2
 
 #define INT_OKAY	0
@@ -112,7 +114,11 @@ extern int
 	InRealAsk,	/* are we currently executing real_ask()? */
 	inIOread;	/* so we know whether we can do a redisplay. */
 
-extern char	Minibuf[LBSIZE];
+extern char
+	*Inputp,
+	Minibuf[LBSIZE],
+	ShcomBuf[LBSIZE],
+	*version;
 
 #define MESG_SIZE 128
 extern char	mesgbuf[MESG_SIZE];

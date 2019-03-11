@@ -10,16 +10,22 @@
 #include "ctype.h"
 #include "disp.h"
 
-#include <varargs.h>
+#ifdef	STDARGS
+# include <stdargs.h>
+#else
+# include <varargs.h>
+#endif
 
 #ifdef IPROCS
 
-int	proc_child();
+private void
+	proc_rec proto ((Process *, char *)),
+	proc_close proto ((Process *)),
+	proc_kill proto((Process *, int)),
+	SendData proto ((int));
 
 private int
-	proc_close proto ((Process *)),
-	proc_rec proto ((Process *, char *)),
-	SendData proto ((int));
+	proc_child proto((void));
 
 #ifdef PIPEPROCS
 #   include "iproc-pipes.c"
@@ -56,6 +62,7 @@ Process	*p;
 	}
 }
 
+void
 KillProcs()
 {
 	register Process	*p;
@@ -73,6 +80,7 @@ KillProcs()
 		}
 }
 
+void
 pbuftiedp(b)
 register Buffer	*b;
 {
@@ -85,6 +93,7 @@ register Buffer	*b;
 
 char	dbx_parse_fmt[128] = "line \\([0-9]*\\) in \\{file,\\} *\"\\([^\"]*\\)\"";
 
+void
 DBXpoutput()
 {
 	if (curbuf->b_process == 0)
@@ -93,12 +102,11 @@ DBXpoutput()
 	UpdModLine = YES;
 }
 
-void
+private void
 watch_input(m)
 Mark	*m;
 {
-	Bufpos	save,
-		*bp;
+	Bufpos	save;
 	char	fname[FILESIZE],
 		lineno[FILESIZE];
 	int	lnum;
@@ -121,7 +129,7 @@ Mark	*m;
 /* Process receive: receives the characters in buf, and appends them to
    the buffer associated with p. */
 
-private
+private void
 proc_rec(p, buf)
 register Process	*p;
 char	*buf;
@@ -161,8 +169,10 @@ char	*buf;
 	SetBuf(saveb);
 }
 
+private void
 proc_kill(p, sig)
 register Process	*p;
+int	sig;
 {
 	if (isdead(p))
 		return;
@@ -173,6 +183,7 @@ register Process	*p;
 /* Free process CHILD.  Do all the necessary cleaning up (closing fd's,
    etc.). */
 
+private void
 free_proc(child)
 Process	*child;
 {
@@ -207,6 +218,7 @@ Process	*child;
 	free((char *) child);
 }
 
+void
 ProcList()
 {
 	register Process	*p,
@@ -234,6 +246,7 @@ ProcList()
 	TOstop();
 }
 
+private void
 do_rtp(mp)
 register Mark	*mp;
 {
@@ -255,13 +268,14 @@ register Mark	*mp;
 			gp[char2] = '\0';
 		else
 			strcat(gp, "\n");
-		if (nbytes = strlen(gp))
+		if ((nbytes = strlen(gp)) != 0)
 			proc_write(p, gp, nbytes);
 		line1 = line1->l_next;
 		char1 = 0;
 	}
 }
 
+void
 ProcNewline()
 {
 #ifdef ABBREV
@@ -270,6 +284,7 @@ ProcNewline()
 	SendData(YES);
 }
 
+void
 ProcSendData()
 {
 #ifdef ABBREV
@@ -278,8 +293,9 @@ ProcSendData()
 	SendData(NO);
 }
 
-private
+private void
 SendData(newlinep)
+int	newlinep;
 {
 	register Process	*p = curbuf->b_process;
 	register char	*lp,
@@ -353,6 +369,7 @@ SendData(newlinep)
 	}
 }
 
+void
 ShellProc()
 {
 	char	*shbuf = "*shell*";
@@ -364,25 +381,25 @@ ShellProc()
 	pop_wind(shbuf, NO, -1);
 }
 
+void
 Iprocess()
 {
-	extern char	ShcomBuf[100],
-			*MakeName();
 	register char	*command;
 	char	scratch[64],
-		*bufname;
+		*bnm;
 	int	cnt = 1;
 	Buffer	*bp;
 
 	command = ask(ShcomBuf, ProcFmt);
 	null_ncpy(ShcomBuf, command, (sizeof ShcomBuf) - 1);
-	bufname = MakeName(command);
-	strcpy(scratch, bufname);
-	while ((bp = buf_exists(scratch)) && !isdead(bp->b_process))
-		swritef(scratch, "%s.%d", bufname, cnt++);
+	bnm = MakeName(command);
+	strcpy(scratch, bnm);
+	while ((bp = buf_exists(scratch)) != NIL && !isdead(bp->b_process))
+		swritef(scratch, "%s.%d", bnm, cnt++);
 	proc_strt(scratch, YES, Shell, ShFlags, command, (char *) 0);
 }
 
+private int
 proc_child()
 {
 	union wait	w;
@@ -398,8 +415,10 @@ proc_child()
 			break;
 		kill_off(pid, w);
 	}
+	return 0;	/* signal handlers return something! */
 }
 
+void
 kill_off(pid, w)
 register int	pid;
 union wait	w;

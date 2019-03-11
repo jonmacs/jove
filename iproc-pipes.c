@@ -5,6 +5,10 @@
  * included in all the files.                                              *
  ***************************************************************************/
 
+/* NOTE WELL:
+ * This file is "included" into iproc.c -- it is not compiled separately!
+ */
+
 #include <signal.h>
 #include <sgtty.h>
 #include "fp.h"
@@ -33,8 +37,9 @@ int	ProcOutput,
 	kbd_pid = 0,
 	NumProcs = 0;
 
-static Process *
+private Process *
 proc_pid(pid)
+int	pid;
 {
 	register Process	*p;
 
@@ -45,6 +50,7 @@ proc_pid(pid)
 	return p;
 }
 
+void
 read_proc(pid, nbytes)
 int	pid;
 register int	nbytes;
@@ -89,22 +95,25 @@ register int	nbytes;
 	}
 }
 
+void
 ProcKill()
 {
 	proc_kill(curbuf->b_process, SIGKILL);
 }
 
+void
 ProcInt()
 {
 	proc_kill(curbuf->b_process, SIGINT);
 }
 
+void
 ProcQuit()
 {
 	proc_kill(curbuf->b_process, SIGQUIT);
 }
 
-private
+private void
 proc_close(p)
 Process	*p;
 {
@@ -115,20 +124,26 @@ Process	*p;
 	}
 }
 
+void void
 proc_write(p, buf, nbytes)
 Process	*p;
 char	*buf;
+int	nbytes;
 {
 	(void) write(p->p_toproc, buf, nbytes);
 }
 
 
-/* VARARGS3 */
-
-private
+#ifdef	STDARGS
+	private void
+proc_strt(char *bufname, int clobber, ...)
+#else
+	private /*VARARGS3*/ void
 proc_strt(bufname, clobber, va_alist)
-char	*bufname;
-va_dcl
+	char	*bufname;
+	int	clobber;
+	va_dcl
+#endif
 {
 	Window	*owind = curwind;
 	int	toproc[2],
@@ -153,7 +168,7 @@ va_dcl
 
 	case 0:
 		argv[0] = "portsrv";
-		va_start(ap);
+		va_init(ap, clobber);
 		make_argv(&argv[1], ap);
 		va_end(ap);
 		(void) dup2(toproc[0], 0);
@@ -171,10 +186,11 @@ va_dcl
 	newp->p_cmd = 0;
 
 	cmdbuf[0] = '\0';
-	va_start(ap);
+	va_init(ap, clobber);
 	while (cp = va_arg(ap, char *))
 		swritef(&cmdbuf[strlen(cmdbuf)], "%s ", cp);
 	va_end(ap);
+	va_init(ap, clobber);
 	newp->p_name = copystr(cmdbuf);
 	procs = newp;
 	newp->p_portpid = pid;
@@ -203,6 +219,7 @@ va_dcl
 	SetWind(owind);
 }
 
+void
 pinit()
 {
 	int	p[2];
