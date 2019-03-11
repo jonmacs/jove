@@ -876,27 +876,28 @@ proc_strt(bufname, clobber, procname, va_alist)
 				swritef(ttybuf, sizeof(ttybuf), "/dev/pty%c%c", *s, *t);
 				if ((ptyfd = open(ttybuf, 2)) >= 0) {
 					ttybuf[5] = 't';	/* pty => tty */
-#  ifdef NEVER
-					/* Make sure both ends are available.
-					 * ??? This code seems to confuse BSDI's BSD/386 v1.[01]
-					 * so we have eliminated it.  We leave this scar
-					 * in case the checking was in fact useful on other
-					 * systems.  Part of this checking will still be
-					 * done by the "access" below, but with no recovery.
+					/* Make sure other end is available too */
+#  ifdef BSDI_PTY_BUG
+					/* ??? This code seems to confuse BSDI's BSD/386 v1.[01]
+					 * so we have eliminated it.  Part of this checking will
+					 * still be done by the "access" below, but with no
+					 * recovery.
 					 */
+					break;
+#  else
 					{
 						int	i = open(ttybuf, 2);
 
 						if (i < 0) {
+							/* can't open, so give up on this pty */
 							(void) close(ptyfd);
 							ptyfd = -1;
 						} else {
+							/* it worked: use this one */
 							(void) close(i);
 							break;
 						}
 					}
-#  else
-					break;
 #  endif
 				}
 			}
@@ -908,7 +909,7 @@ proc_strt(bufname, clobber, procname, va_alist)
 	 * GRANTPT_BUG because the grantpt and unlockpt have not been done yet.
 	 */
 # ifndef GRANTPT_BUG
-	if (access(ttybuf, W_OK) != 0) {
+	if (access(ttybuf, R_OK | W_OK) != 0) {
 		s_mess("[Couldn't access %s: %s]", ttybuf, strerror(errno));
 		goto fail;
 	}
@@ -1012,10 +1013,13 @@ proc_strt(bufname, clobber, procname, va_alist)
 # endif
 
 # ifdef TIOCSCTTY
-		/* This is needed by OSF.  It may be needed by BSDPOSIX systems.
-		 * It should not hurt any system that define TIOCSCTTY.
+		/* Make this controling tty.
+		 * This is needed by OSF.  It may be needed by BSDPOSIX systems.
+		 * It should not hurt on any system that defines TIOCSCTTY.
 		 */
-		(void) ioctl(0, TIOCSCTTY); /* make this controling tty */
+		if (ioctl(0, TIOCSCTTY) == -1)
+			_exit(errno+1);	/* no good way to signal user */
+
 # endif
 
 # ifndef NO_TIOCREMOTE

@@ -280,9 +280,9 @@
 # define USE_INDEX	1
 #endif
 
-#ifdef SCO	/* System: SCO ODT 3.0 */
+#ifdef SCO_ODT3	/* System: SCO ODT 3.0 */
 # define TERMIOS	1
-# define FULLUNISTD	1
+/* # define FULL_UNISTD	1 */	/* Not tested!  May be worth trying. */
 # define USE_GETCWD	1
 # define POSIX_UNISTD	1
 # define USE_SELECT	1

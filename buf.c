@@ -549,13 +549,14 @@ int	flags;
 	PathParse(name, fnamebuf);
 
 	if ((flags & DS_REUSE) == 0) {
-		stbuf.st_mode = S_IFREG;	/* default if stat fails */
-#ifdef USE_INO
-		stbuf.st_ino = 0;	/* impossible number */
-		stbuf.st_dev = 0;
-#endif
-		stbuf.st_mtime = 0;
-		(void) stat(fnamebuf, &stbuf);
+		if (stat(fnamebuf, &stbuf) < 0) {
+			stbuf.st_mode = S_IFREG;
+	#ifdef USE_INO
+			stbuf.st_ino = 0;	/* impossible number */
+			stbuf.st_dev = 0;
+	#endif
+			stbuf.st_mtime = 0;
+		}
 		was_dir = (stbuf.st_mode & S_IFMT) == S_IFDIR;
 		was_file = stbuf.st_ino != 0 && (stbuf.st_mode & S_IFMT) == S_IFREG;
 	}

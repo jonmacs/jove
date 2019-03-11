@@ -93,8 +93,8 @@ extern int	lmword[2];		/* local mode word */
 #   include <sys/jioctl.h>	/* get BTL window resizing definitions */
 #  endif
 
-#  ifdef SCO
-#   undef TIOCGWINSZ	/* SCO ODT defines this but does not implement it!!! */
+#  ifdef SCO_ODT3
+#   undef TIOCGWINSZ	/* SCO ODT 3 defines this but does not implement it!!! */
 #  endif
 
 /* Variables: */
