@@ -1,8 +1,8 @@
 /************************************************************************
- * This program is Copyright (C) 1986 by Jonathan Payne.  JOVE is	*
- * provided to you without charge, and with no warranty.  You may give	*
+ * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * provided to you without charge, and with no warranty.  You may give  *
  * away copies of JOVE, including sources, provided that this notice is *
- * included in all the files.						*
+ * included in all the files.                                           *
  ************************************************************************/
 
 /* menumaps.txt K. Mitchum 1/88. The same warnings apply as in keymaps.txt.

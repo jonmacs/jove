@@ -1,12 +1,12 @@
-/***************************************************************************
- * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
- * is provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is    *
- * included in all the files.                                              *
- ***************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 #include "jove.h"
-#include "ctype.h"
+#include "jctype.h"
 #include "fp.h"
 #include "chars.h"
 #include "disp.h"
@@ -15,11 +15,15 @@
 #include "macros.h"
 #include "extend.h"
 #include "fmt.h"
+/* #include "util.h" */
 
 private void
 	pop_macro_stack proto((void));
 
-#define SAVE		01	/* this macro needs saving to a file */
+private struct macro
+	*ask_macname proto((const char *, int));
+
+private bool	UnsavedMacros = NO;	/* are there any macros that need saving to a file? */
 
 struct macro	*macros = NULL;		/* macros */
 bool	InMacDefine = NO;
@@ -42,24 +46,6 @@ struct macro	*new;
 	new->m_nextm = NULL;
 	new->Type = MACRO;
 }
-
-private void
-del_mac(mac)
-struct macro	*mac;
-{
-	register struct macro	*m;
-
-	for (m = macros; m != NULL; m = m->m_nextm)
-		if (m->m_nextm == mac) {
-			m->m_nextm = mac->m_nextm;
-			break;
-		}
-	free((UnivPtr) mac->Name);
-	free((UnivPtr) mac->m_body);
-	free((UnivPtr) mac);
-}
-
-private struct macro	KeyMacro;	/* Macro used for defining */
 
 /* To execute a macro, we have a "stack" of running macros.  Whenever
    we execute a macro, we push it on the stack, run it, then pop it
@@ -131,41 +117,35 @@ struct macro	*mac;
 	push_macro_stack(mac, arg_value());
 }
 
-private struct macro *
-mac_exists(name)
-char	*name;
-{
-	register struct macro	*mp;
+private struct macro	KeyMacro = {	/* Macro used for defining */
+	MACRO, "keyboard-macro", 0, NULL, NULL
+};
 
-	for (mp = macros; mp; mp = mp->m_nextm)
-		if (strcmp(mp->Name, name) == 0)
-			return mp;
-	return NULL;
-}
+private int	kmac_len;
+private int	kmac_buflen = 0;
 
 void
 mac_init()
 {
 	add_mac(&KeyMacro);
-	KeyMacro.Name = "keyboard-macro";
-	KeyMacro.m_len = 0;
-	KeyMacro.m_buflen = 16;
-	KeyMacro.m_body = emalloc((size_t) KeyMacro.m_buflen);
 }
 
 void
 mac_putc(c)
-int	c;
+char	c;
 {
-	if (KeyMacro.m_len >= KeyMacro.m_buflen) {
-		KeyMacro.m_buflen += 16;
-		KeyMacro.m_body = realloc((UnivPtr) KeyMacro.m_body, (size_t) KeyMacro.m_buflen);
-		if (KeyMacro.m_body == NULL) {
-			KeyMacro.m_buflen = KeyMacro.m_len = 0;
-			complain("[Can't allocate storage for keyboard macro]");
-		}
+	if (kmac_len >= kmac_buflen) {
+		KeyMacro.m_body = erealloc((UnivPtr) KeyMacro.m_body, (size_t) kmac_buflen + 16);
+		kmac_buflen += 16;
 	}
-	KeyMacro.m_body[KeyMacro.m_len++] = c;
+	KeyMacro.m_body[kmac_len++] = c;
+}
+
+void
+note_dispatch()
+{
+	if (kmac_len > 0)
+		KeyMacro.m_len = kmac_len - 1;
 }
 
 bool
@@ -174,7 +154,7 @@ in_macro()
 	return (mac_stack != NULL);
 }
 
-int
+ZXchar
 mac_getc()
 {
 	struct m_thread	*mthread;
@@ -189,59 +169,74 @@ mac_getc()
 			pop_macro_stack();
 		return mac_getc();
 	}
-	return m->m_body[mthread->mt_offset++];
+	return ZXC(m->m_body[mthread->mt_offset++]);
+}
+
+private void
+MacDef(m, name, len, body)
+struct macro	*m;	/* NULL, or def to overwrite */
+char	*name;	/* must be stable if m isn't NULL */
+int	len;
+char	*body;
+{
+	if (m == NULL) {
+		m = (struct macro *) emalloc(sizeof *m);
+		m->Name = name;
+	} else {
+		if (m->m_body != NULL)
+			free((UnivPtr) m->m_body);
+	}
+	m->m_len = len;
+	if (len == 0) {
+		m->m_body = NULL;
+	} else {
+		m->m_body = emalloc((size_t) len);
+		byte_copy(body, m->m_body, (size_t) len);
+	}
+	add_mac(m);
+	if (!InJoverc)
+		UnsavedMacros = YES;
 }
 
 void
 NameMac()
 {
-	char	*name;
+	char	*name = NULL;
 	struct macro	*m;
 
 	if (KeyMacro.m_len == 0)
 		complain("[No keyboard macro to name!]");
 	if (in_macro() || InMacDefine)
 		complain("[Can't name while defining/executing]");
-	if ((m = mac_exists(name = ask((char *) NULL, ProcFmt))) == NULL)
-		m = (struct macro *) emalloc(sizeof *m);
-	else {
-		if (strcmp(name, KeyMacro.Name) == 0)
-			complain("[Can't name it that!]");
-		free((UnivPtr) m->Name);
-		free((UnivPtr) m->m_body);
-	}
-	name = copystr(name);
-	m->Type = KeyMacro.Type;
-	m->m_len = KeyMacro.m_len;
-	m->m_buflen = KeyMacro.m_buflen;
-	m->m_body = emalloc((size_t) m->m_buflen);
-	byte_copy(KeyMacro.m_body, m->m_body, (size_t) m->m_len);
-	m->m_flags = SAVE;
-	m->Name = name;
-	add_mac(m);
+	if ((m = ask_macname(ProcFmt, ALLOW_OLD | ALLOW_INDEX | ALLOW_NEW)) == NULL)
+		name = copystr(Minibuf);
+	if (m == &KeyMacro)
+		complain("[Can't name it that!]");
+	MacDef(m, name, KeyMacro.m_len, KeyMacro.m_body);
 }
 
 void
 RunMacro()
 {
-	struct macro	*m;
-
-	if ((m = (struct macro *) findmac(ProcFmt)) != NULL)
-		do_macro(m);
+	do_macro((struct macro *) findmac(ProcFmt));
 }
 
 private void
 pr_putc(c, fp)
-int	c;
+ZXchar	c;
 File	*fp;
 {
 	if (c == '\\' || c == '^') {
-		jputc('\\', fp);
-	} else if (jiscntrl(c)) {
-		jputc('^', fp);
-		c = (c == RUBOUT) ? '?' : (c + '@');
+		f_putc('\\', fp);
+		f_putc(c, fp);
+	} else {
+		char	buf[PPWIDTH];
+		char	*p;
+
+		PPchar(c, buf);
+		for (p = buf; *p != '\0'; p++)
+			f_putc(*p, fp);
 	}
-	jputc(c, fp);
 }
 
 void
@@ -254,61 +249,44 @@ WriteMacs()
 	int	i;
 
 	file = ask_file((char *)NULL, (char *)NULL, filebuf);
-	fp = open_file(file, iobuff, F_WRITE, YES, YES);
+	fp = open_file(file, iobuff, F_WRITE, YES);
 
 	/* Don't write the keyboard macro which is always the first */
 	for (m = macros->m_nextm; m != NULL; m = m->m_nextm) {
 		fwritef(fp, "define-macro %s ", m->Name);
 		for (i = 0; i < m->m_len; i++)
-			pr_putc(m->m_body[i], fp);
-		jputc('\n', fp);
-		m->m_flags &= ~SAVE;
+			pr_putc(ZXC(m->m_body[i]), fp);
+		f_putc('\n', fp);
 	}
 	close_file(fp);
+	UnsavedMacros = NO;
 }
 
 void
 DefKBDMac()
 {
-	char	*macro_name,
+	struct macro	*m = ask_macname(ProcFmt,
+		ALLOW_OLD | ALLOW_INDEX | ALLOW_NEW);
+	ZXchar	c;
+	char
+		*macro_name = m == NULL? copystr(Minibuf) : m->Name,
 		*macro_body,
-		nextc,
-		c,
 		macro_buffer[LBSIZE];
-	int	i;
-	struct macro	*m;
+	int	len;
 
-	macro_name = do_ask(" \r\n", (bool (*) ptrproto((int))) NULL, (char *) NULL,
-		ProcFmt);
-	if (macro_name == NULL)
-		complain("[No default]");
-	macro_name = copystr(macro_name);
-	if ((m = mac_exists(macro_name)) != NULL)
-		del_mac(m);
-	macro_body = ask((char *)NULL, ": %f %s enter body: ", macro_name);
-	i = 0;
-	while ((c = *macro_body++) != '\0') {
-		if (c == '\\') {
-			if ((nextc = *macro_body++) == LF)
-				complain("[Premature end of line]");
-			c = nextc;
-		} else if (c == '^') {
-			if ((nextc = *macro_body++) == '?')
-				c = RUBOUT;
-			else if (jisalpha(nextc) || strchr("@[\\]^_", nextc))
-				c = CTL(nextc);
-			else
-				complain("Bad control-character: '%c'", nextc);
-		}
-		macro_buffer[i++] = c;
+	if (m == &KeyMacro)
+		complain("[Can't name it that!]");
+	/* ??? I hope that this ask doesn't change *m! */
+	macro_body = ask(NullStr, ": %f %s enter body: ", macro_name);
+	len = 0;
+	while ((c = ZXC(*macro_body++)) != '\0') {
+		if (c == '\\' || c == '^')
+			c = DecodePair(c, ZXC(*macro_body++));
+		if (len >= LBSIZE)
+			complain("Macro to large");
+		macro_buffer[len++] = c;
 	}
-	m = (struct macro *) emalloc(sizeof (*m));
-	m->Name = macro_name;
-	m->m_len = m->m_buflen = i;
-	m->m_body = emalloc((size_t) i);
-	m->m_flags = InJoverc ? 0 : SAVE;
-	byte_copy(macro_buffer, m->m_body, (size_t) i);
-	add_mac(m);
+	MacDef(m, macro_name, len, macro_buffer);
 }
 
 void
@@ -323,7 +301,7 @@ Remember()
 	else {
 		UpdModLine = YES;
 		InMacDefine = YES;
-		KeyMacro.m_len = 0;
+		kmac_len = KeyMacro.m_len = 0;
 		message("Defining...");
 	}
 }
@@ -331,20 +309,10 @@ Remember()
 void
 Forget()
 {
-	char	*cp;
-	struct macro	*m = &KeyMacro;
-
 	UpdModLine = YES;
 	if (InMacDefine) {
 		message("Keyboard macro defined.");
 		InMacDefine = NO;
-
-		/* try and strip off the key sequence that invoked us */
-		cp = &m->m_body[m->m_len - 2];
-		if (PrefChar(*cp))
-			m->m_len -= 2;
-		else if (commands[cp[1]].c_proc == Forget)
-			m->m_len -= 1;
 	} else
 		complain("[end-kbd-macro: not currently defining macro!]");
 }
@@ -365,43 +333,43 @@ MacInter()
 bool
 ModMacs()
 {
+	return UnsavedMacros;
+}
+
+/* Ask for macro name, with completion.
+ * Flags is passed directly to complete.  If ALLOW_NEW is on,
+ * the name might be new, in which case NULL is returned and the
+ * actual name in in Minibuf.
+ */
+
+private struct macro *
+ask_macname(prompt, flags)
+const char	*prompt;
+int flags;
+{
+	char	*strings[100];
+	register char	**strs = strings;
+	register int	com;
 	register struct macro	*m;
 
-	for (m = macros->m_nextm; m != NULL; m = m->m_nextm)
-		if (m->m_flags & SAVE)
-			return YES;
-	return NO;
+	for (m = macros; m != NULL; m = m->m_nextm) {
+		if (strs == &strings[elemsof(strings)-1])
+			complain("[too many macros]");
+		*strs++ = m->Name;
+	}
+	*strs = NULL;
+
+	if ((com = complete(strings, (char *)NULL, prompt, flags)) < 0)
+		return NULL;
+	m = macros;
+	while (--com >= 0)
+		m = m->m_nextm;
+	return m;
 }
 
 data_obj *
 findmac(prompt)
 const char	*prompt;
 {
-	char	*strings[100];
-	register char	**strs = strings;
-	register int	com;
-	register struct macro	*m = macros;
-
-	for (; m != NULL; m = m->m_nextm)
-		*strs++ = m->Name;
-	*strs = NULL;
-
-	if ((com = complete(strings, prompt, NOTHING)) < 0)
-		return NULL;
-	m = macros;
-	while (--com >= 0)
-		m = m->m_nextm;
-	return (data_obj *) m;
-}
-
-void
-DelMacro()
-{
-	struct macro	*m;
-
-	if ((m = (struct macro *) findmac(ProcFmt)) == NULL)
-		return;
-	if (m == &KeyMacro)
-		complain("[It's illegal to delete the keyboard-macro!]");
-	del_mac(m);
+	return (data_obj *)ask_macname(prompt, ALLOW_OLD | ALLOW_INDEX);
 }

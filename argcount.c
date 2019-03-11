@@ -1,12 +1,12 @@
-/***************************************************************************
- * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
- * is provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is    *
- * included in all the files.                                              *
- ***************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 #include "jove.h"
-#include "ctype.h"
+#include "jctype.h"
 
 int	arg_state = AS_NONE,
 	arg_count;
@@ -29,10 +29,10 @@ gather_argument(ns, nc)
 		ns,	/* new state */
 		nc;	/* new count */
 {
-	int	slow = NO;
+	bool	slow = NO;
 
 	for (;;) {
-		int	c;
+		ZXchar	c;
 		bool	neg = NO;
 
 		if (arg_count < 0) {
@@ -87,6 +87,17 @@ void
 TimesFour()
 {
 	gather_argument(AS_TIMES, 4);
+}
+
+void
+Digit()
+{
+	if (LastKeyStruck == '-')
+		gather_argument(AS_NEGSIGN, -1);
+	else if (jisdigit(LastKeyStruck))
+		gather_argument(AS_NUMERIC, LastKeyStruck - '0');
+	else
+		complain((char *)NULL);
 }
 
 void

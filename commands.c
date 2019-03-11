@@ -1,14 +1,15 @@
-/***************************************************************************
- * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
- * is provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is    *
- * included in all the files.                                              *
- ***************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 #include "jove.h"
-#include "ctype.h"
+#include "jctype.h"
 #include "extend.h"
 #include "macros.h"
+#include "mouse.h"
 
 /* included for command routine declarationss */
 #include "abbrev.h"
@@ -45,15 +46,15 @@ data_obj *
 findcom(prompt)
 const char	*prompt;
 {
-	/* This is for faster startup.  This just reads until a space or a
-	   tab or a newline character is reached, and then does a
-	   semi-hashed lookup on that string.  This should be much faster
-	   than initializing the minibuffer for each line. */
 	if (InJoverc) {
+		/* This is for faster startup.  This just reads until a space or a
+		   tab or a newline character is reached, and then does a
+		   semi-hashed lookup on that string.  This should be much faster
+		   than initializing the minibuffer for each line. */
 		char	cmdbuf[128];
 		register const struct cmd	*cmd;
 		register char	*cp = cmdbuf;
-		register int	c;
+		register ZXchar	c;
 		const struct cmd	*which = NULL;
 		size_t	cmdlen;
 		static const struct cmd	*cmdhash[26];
@@ -74,26 +75,23 @@ const char	*prompt;
 			}
 			beenhere = YES;
 		}
-#ifdef	MAC
+#ifdef MAC
 		/* ??? Is this necessary?  The input is comming from a file! */
 		menus_off();	/* Block menu choices during input */
 #endif
 		/* gather the cmd name */
-		while (((c = getch()) != EOF) && !strchr(" \t\r\n", c)) {
-			if (jisupper(c))
-				c = jtolower(c);
-			*cp++ = c;
+		while (jisprint(c = getch()) && c != ' ') {
+			*cp++ = CharDowncase(c);
+			if (cp == &cmdbuf[sizeof(cmdbuf)])
+				complain("command too long");
 		}
-		if (c == EOF)
-			return NULL;
 		*cp = '\0';
 		cmdlen = cp - cmdbuf;
-		if (cmdlen == 0)
-			return NULL;
 
 		/* look it up (in the reduced search space) */
-		if (jislower(cmdbuf[0])
-		&& (cmd = cmdhash[hash(cmdbuf[0])]) != NULL) {
+		c = ZXC(cmdbuf[0]);
+		if ('a' <= c && c <= 'z'
+		&& (cmd = cmdhash[hash(c)]) != NULL) {
 		    for (; cmd->Name != NULL && cmd->Name[0] == cmdbuf[0]; cmd++) {
 			if (strncmp(cmd->Name, cmdbuf, cmdlen) == 0) {
 				if (cmd->Name[cmdlen] == '\0')
@@ -107,29 +105,26 @@ const char	*prompt;
 		if (which == NULL)
 			complain("[\"%s\" unknown]", cmdbuf);
 		return (data_obj *) which;
+#undef	hash
 	} else {
-		static char	*strings[(sizeof commands) / sizeof (commands[0])];
-		static bool	beenhere = NO;
-		register int	com;
+		static char	*strings[elemsof(commands)];
+		static int	last = -1;
 
-		if (!beenhere) {
+		if (strings[0] == NULL) {
 			register char	**strs = strings;
 			register const struct cmd	*c = commands;
 
 			do ; while ((*strs++ = (*c++).Name) != NULL);
-			beenhere = YES;
 		}
-
-		if ((com = complete(strings, prompt, CASEIND)) < 0)
-			return NULL;
-		return (data_obj *) &commands[com];
+		last = complete(strings, last >= 0? strings[last] : (char *)NULL,
+			prompt, CASEIND | ALLOW_OLD);
+		return (data_obj *) &commands[last];
 	}
-#undef	hash
 }
 
 const struct cmd *
 FindCmd(proc)
-register void	(*proc) proto((void));
+register void	(*proc) ptrproto((void));
 {
 	register const struct cmd	*cp;
 
@@ -145,19 +140,19 @@ register data_obj	*cp;
 {
 	LastCmd = cp;
 	if (cp->Type & MAJOR_MODE) {
-		SetMajor((cp->Type >> 8));
+		SetMajor((cp->Type >> MAJOR_SHIFT));
 	} else if (cp->Type & MINOR_MODE) {
-		TogMinor((cp->Type >> 8));
+		TogMinor((cp->Type >> MAJOR_SHIFT));
 	} else	switch (cp->Type&TYPEMASK) {
 		case MACRO:
 			do_macro((struct macro *) cp);
 			break;
 
-		case FUNCTION:
+		case COMMAND:
 		    {
 			register struct cmd	*cmd = (struct cmd *) cp;
 
-			if (cmd->c_proc) {
+			if (cmd->c_proc != NULL) {
 				if ((cmd->Type & MODIFIER)
 				&& BufMinorMode(curbuf, ReadOnly))
 				{

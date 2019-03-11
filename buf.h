@@ -1,9 +1,9 @@
-/***************************************************************************
- * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
- * is provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is    *
- * included in all the files.                                              *
- ***************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 /* maximum length of a line (including '\0').  Currently cannot
    be larger than a logical disk block. */
@@ -18,7 +18,7 @@
 #define FUNDAMENTAL	0	/* Fundamental mode */
 #define TEXT		1	/* Text mode */
 #define CMODE		2	/* C mode */
-#ifdef	LISP
+#ifdef LISP
 # define LISPMODE	3	/* Lisp mode */
 # define NMAJORS	4
 #else
@@ -40,7 +40,7 @@
 #define MinorMode(x)		BufMinorMode(curbuf, (x))
 
 /* global line scratch buffers */
-#ifdef	pdp11
+#ifdef pdp11
 extern char	*genbuf,	/* scratch pad points at s_genbuf (see main()) */
 		*linebuf,	/* points at s_linebuf */
 		*iobuff;	/* for file reading ... points at s_iobuff */
@@ -53,47 +53,41 @@ extern char	genbuf[LBSIZE],
 /* typedef struct line Line in jove.h */
 
 struct line {
-	Line	*l_prev,		/* pointer to prev */
-		*l_next;		/* pointer to next */
+	LinePtr	l_prev,		/* pointer to prev */
+		l_next;		/* pointer to next */
 	daddr	l_dline;		/* pointer to disk location */
 };
 
 /* typedef struct mark Mark in jove.h */
 
 struct mark {
-	Line	*m_line;
+	LinePtr	m_line;
 	int	m_char;
+	bool	m_big_delete;	/* mark was within the range of a multi-line delete */
 	Mark	*m_next;	/* list of marks */
-#define M_FIXED		00
-#define M_FLOATER	01
-#define M_BIG_DELETE	02
-	char	m_flags;	/* FLOATERing mark? */
 };
 
 /* typedef struct buffer Buffer in jove.h */
 
-#ifdef ZORTECH
-/* FUDGE FUDGE FUDGE */
-typedef short	dev_t;
-typedef short	ino_t;
-#endif
-
 struct buffer {
-#ifdef	MAC
+#ifdef MAC
 	int Type;		/* kludge... to look like a data_obj */
 	char *Name;		/* Name will not be used */
 #endif
 	Buffer	*b_next;		/* next buffer in chain */
 	char	*b_name,		/* buffer name */
 		*b_fname;		/* file name associated with buffer */
+#ifdef USE_INO
+	/* unique identification of file */
 	dev_t	b_dev;			/* device of file name. */
 	ino_t	b_ino;			/* inode of file name */
+#endif
 	time_t	b_mtime;		/* last modify time ...
 					   to detect two people writing
 					   to the same file */
-	Line	*b_first,		/* pointer to first line in list */
-		*b_dot,			/* current line */
-		*b_last;		/* last line in list */
+	LinePtr	b_first,		/* pointer to first line in list */
+		b_dot,			/* current line */
+		b_last;		/* last line in list */
 	int	b_char;			/* current character in line */
 
 #define NMARKS	8			/* number of marks in the ring */
@@ -110,8 +104,8 @@ struct buffer {
 	int	b_major,		/* major mode */
 		b_minor;		/* and minor mode */
 	struct keymap	*b_map;		/* local bindings (if any) */
-#ifdef	IPROCS
-	Process	*b_process;		/* process we're attached to */
+#ifdef IPROCS
+	struct process	*b_process;		/* process we're attached to */
 #endif
 };
 
@@ -128,7 +122,7 @@ extern Buffer
 /* typedef struct position Bufpos in jove.h */
 
 struct position {
-	Line	*p_line;
+	LinePtr	p_line;
 	int	p_char;
 };
 
@@ -137,31 +131,31 @@ extern bool
 
 extern Buffer
 	*buf_exists proto((char *name)),
-	*do_find proto((struct window *w, char *fname, bool force)),
-	*do_select proto((struct window *w,char *name)),
+	*do_find proto((Window *w, char *fname, bool force, bool do_macros)),
+	*do_select proto((Window *w,char *name)),
 	*file_exists proto((char *name));
 
 extern char
-	*ask_buf proto((struct buffer *def));
+	*ask_buf proto((Buffer *def, int flags));
 
-#ifdef	USE_PROTOTYPES
+#ifdef USE_PROTOTYPES
 struct macro;	/* forward declaration preventing prototype scoping */
-#endif	/* USE_PROTOTYPES */
+#endif /* USE_PROTOTYPES */
 
 extern void
 	TogMinor proto((int bit)),
-	initlist proto((struct buffer *b)),
-	setfname proto((struct buffer *b,char *name)),
-	set_ino proto((struct buffer *b)),
-	SetABuf proto((struct buffer *b)),
-	SetBuf proto((struct buffer *newbuf)),
+	initlist proto((Buffer *b)),
+	setfname proto((Buffer *b,char *name)),
+	set_ino proto((Buffer *b)),
+	SetABuf proto((Buffer *b)),
+	SetBuf proto((Buffer *newbuf)),
 	buf_init proto((void));
 
-extern  struct line
-	*lastline proto((struct line *lp)),
-	*listput proto((struct buffer *buf,struct line *after)),
-	*next_line proto((struct line *line,int num)),
-	*prev_line proto((struct line *line,int num));
+extern LinePtr
+	lastline proto((LinePtr lp)),
+	listput proto((Buffer *buf,LinePtr after)),
+	next_line proto((LinePtr line,int num)),
+	prev_line proto((LinePtr line,int num));
 
 /* Commands: */
 
@@ -174,7 +168,6 @@ extern void
 	KillSome proto((void)),
 	ReNamBuf proto((void));
 
-#ifdef	MSDOS
 extern void
 	Buf1Select proto((void)),
 	Buf2Select proto((void)),
@@ -186,4 +179,3 @@ extern void
 	Buf8Select proto((void)),
 	Buf9Select proto((void)),
 	Buf10Select proto((void));
-#endif	/* MSDOS */

@@ -1,34 +1,22 @@
-/***************************************************************************
- * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
- * is provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is    *
- * included in all the files.                                              *
- ***************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
-struct rec_head {
-#ifdef UNIX
-	int		Uid;		/* uid of owner */
-	pid_t		Pid;		/* pid of jove process */
-#endif
-	time_t		UpdTime;	/* last time this was updated */
-	int		Nbuffers;	/* number of buffers */
-	daddr		FreePtr;	/* position of DFree */
-};
-
-struct rec_entry {
-	char	r_bname[128],
-		r_fname[128];
-	int	r_nlines,
-		r_dotline,	/* so we can really save the context */
-		r_dotchar;
-};
+#ifdef RECOVER	/* the body is the rest of this file */
 
 extern void
 	SyncRec proto((void)),
+	rectmpname proto((char *)),
 	recclose proto((void)),
-	recremove proto((void)),
-	FullRecover proto((void));
+	recremove proto((void));
+
+extern int	ModCount;	/* number of buffer mods since last sync */
 
 /* Variables: */
 
-extern int	SyncFreq;		/* how often to sync the file pointers */
+extern int	SyncFreq;	/* VAR: how often to sync the file pointers */
+
+#endif /* RECOVER */

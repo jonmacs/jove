@@ -1,6 +1,6 @@
 if /ua/jonathan/src/jove/lib/isttytype iq120
 	bind-to-key Prefix-1 \\
-	bind-to-key set-mark ^[ 
+	bind-to-key set-mark ^[
 	set allow-^S-and-^Q on
 endif
 if /ua/jonathan/src/jove/lib/modemp
@@ -8,7 +8,7 @@ if /ua/jonathan/src/jove/lib/modemp
 else
 	set mode-line  -%n- %["%f" %m [%b] %]%s%((%t%s%C%s%l)%)%s(%M) %e
 endif
-auto-execute-command show-match .*\.[ch]$
+1 auto-execute-command show-match .*\.[ch]$
 set comment-format /* %!   %c%! */
 set disable-biff on
 set match-regular-expressions on

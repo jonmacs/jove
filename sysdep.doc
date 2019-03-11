@@ -60,11 +60,49 @@ externs.h are used.
 POSIX_UNISTD	Have Posix P1003.1 compliant unistd.h with declarations.
 FULL_UNISTD	Have fully-prototyped header files, superset of Posix P1003.1
 
+Usually, the result type returned by read() and write() is int.
+Posix carefully defines a type name for this type: ssize_t (it logically
+is a size_t, but it must be signed because -1 is a possible value).
+We use SSIZE_T which defaults to ssize_t if FULL_UNISTD, otherwise int.
+This can be overridden by defining SSIZE_T.
+
+Different environments have different memory and address space limitations.
+Generally, these controls default appropriately.
+NBUF		Number of memory blocks allocated to cache for buffers.
+JLGBUFSIZ	log-base-2(sizeof buffer block).  Generally 9 or 10,
+		yielding blocks of size 512 or 1024 bytes.  Each Text line
+		in JOVE is restricted to fit within a single block, so
+		larger is better.  Also, larger blocks should reduce
+		the number of blocks transfered between the temp file
+		and RAM.  Smaller blocks reduce the number of bytes
+		transferred and more efficiently use cache memory
+		(there would be more blocks in an identically sized cache).
+SMALL		Intended for machines with small address spaces, for example
+		the PDP-11 and small or medium model on x86.  It drastically
+		reduces NBUF, cuts down JLGBUFSIZ, and makes daddr an
+		unsigned short.
+MALLOC_CACHE	Causes the in-core cache for disk blocks to be malloced
+		rather than allocated as a static variable.  This helps
+		environments where statically allocated things are placed
+		in one limited segment, but malloced things are placed
+		in separate segments.  Examples include MAC and large
+		model x86.  Remember that NBUF * ((1<<JLGBUFSIZ) + overhead)
+		will probably have to fit within a single segment.
+
+
+IPROCS is defined if interactive processes are to be supported.  It
+is defined in tune.h, implying that it is a matter of preference, at
+least on UNIX systems.  Unfortunately, in some cases control is
+needed in sysdep.h (because it is a matter of feasibility).  To
+reflect this, if NO_IPROCS is defined in sysdep.h, tune.h will not
+define IPROCS.  Beware: doc/jove.rc (the standard system-wide rc file)
+binds several process commands, so it will need changing if interactive
+process support is not compiled in.
 
 To multiplex between different processes and the keyboard (when IPROCS
 is defined), define USE_SELECT, or failing that, NONBLOCKINGREAD.
 USE_SELECT	Have the select() system call. Almost essential!
-USE_SELECT_H	sys/select.h needed for FD_* macros.  AIX.
+USE_SELECT_H	sys/select.h needed for FD_* macros.  AIX and QNX.
 NONBLOCKINGREAD	doesn't have select, supports fcntl(... O_NDELAY)
 		M_XENIX, SYSV
 Jove also uses select() for delays if available.  Without select(),
@@ -85,6 +123,28 @@ BSD_PTYS	canonical BSD ptys, search through pty[pqrst]
 IRIX_PTYS	Irix 3.x onwards -- open a master device, then fstat to get
 		major and minor numbers.
 
+Certain early SVR4 systems have a buggy grantpt library routine that
+is used if PTYPROCS is defined.  A symptom is that the "shell"
+command will always fail with a [grantpt failed] message.  System V
+Release 4.0 and Solaris 2.0 (but not Solaris 2.3) and have this bug.
+GRANTPT_BUG  Define this to enable a work-around.
+
+Certain systems, for example IRIX 4 and IRIX 5.3, define the symbol
+TIOCREMOTE but don't implement this ioctl correctly.  A symptom is
+that the eof-process command will not work.
+NO_TIOCREMOTE	Define this to avoid using TIOCREMOTE even if the
+		system defines it.
+
+Certain systems, for example IRIX 5.3, define the symbol TIOCSIGNAL
+but don't implement this ioctl correctly.  A symptom is that the
+interrupt-process command will not work.
+NO_TIOCSIGNAL	Define this to avoid using TIOCSIGNAL and TIOCSIG even
+		if system defines them.
+
+Certain systems, for example HP/UX 9, don't seem to send EOF to the master
+side of the pty when the slave side shuts down.  On these systems, JOVE
+should be told not to wait for EOF:
+NO_EOF_FROM_PTY	Define this if your system fails to signal EOF to pty master
 
 To deal with SUBSHELL and IPROCS (both in tune.h), define one of the
 following:
@@ -162,11 +222,16 @@ USE_FSTAT	Have the fstat() call.  Just about every modern Unix does.
 USE_FCHMOD	Have the fchmod() call.  Again, true on most modern Unixes
 		after BSD4.2.
 
-If you define LOAD_AV, you need to define one of the following:
-USE_AVENRUN	open /dev/kmem and use the _avenrun symbol to get load average.
-		BSD4 and systems similar to it.
-USE_LOADAV	has the loadav() system call (library routine?)
-USE_GLDAV	has the gldav() system call (library routine?)
+JOVE supports 7-bit or 8-bit character sets.  It has a wired-in
+notion of what each kind of character is, but it can use the
+system's classification of control characters.
+NCHARS		the number of distinct character codes.  This defaults to 256
+		but can be set to 128 for 7-bit character sets.
+USE_CTYPE	use the system's <ctype.h> functions.  If this is
+		defined and these functions only work for 7-bit
+		characters, be sure to define NCHARS to be 128
+NO_SETLOCALE	define if you wish to define USE_CTYPE but the system
+		has no setlocale routine.
 
 
 DEFINE_PC_BC_UP_OSPEED
@@ -180,7 +245,7 @@ DEFINE_PC_BC_UP_OSPEED
 
 USE_MEMORY_H	include memory.h for declarations of memcpy() et al.
 		Older SysV, IBMPCs, Xenix.
-		
+
 
 USE_BCOPY	use bcopy in place of missing memcpy.
 		BSD4.2 and precursors from Berkeley.
@@ -188,8 +253,9 @@ USE_BCOPY	use bcopy in place of missing memcpy.
 USE_INDEX	use index in place of missing strchr.
 		BSD4.2 and precursors, including V7.
 
-ASCII7		defined for systems with only 7-bit ASCII.
-		Anachronistically, automatically defined for UNIX systems.
+USE_INO		use the inode number (and device number) to tell if two
+		paths refer to the same file or directory.  Automatically
+		defined for UNIX.  Supported for MAC too.
 
 USE_EXIT	Normally, JOVE exits by calling _exit, to avoid stdio.
 		When this symbol is defined, exit() is used instead.
@@ -205,8 +271,6 @@ TERMCAP		Support display diversity via termcap database.
 TERMINFO	Support for System V variant of TERMCAP.  TERMCAP
 		must also be defined.  This differentiates between
 		tparm and tgoto.  It is untested.
-
-SMALL		Small address space.  PDP-11 and small/medium model on x86.
 
 
 The following have not been tested recently.  It is likely that some

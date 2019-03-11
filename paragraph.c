@@ -1,11 +1,12 @@
-/***************************************************************************
- * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
- * is provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is    *
- * included in all the files.                                              *
- ***************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 #include "jove.h"
+#include "jctype.h"
 #include "disp.h"
 #include "delete.h"
 #include "insert.h"
@@ -15,7 +16,7 @@
 #include "move.h"
 #include "paragraph.h"
 
-private int	get_indent proto((Line *));
+private int	get_indent proto((LinePtr));
 
 /* Thanks to Brian Harvey for this paragraph boundery finding algorithm.
    It's really quite hairy figuring it out.  This deals with paragraphs that
@@ -116,12 +117,21 @@ private int	get_indent proto((Line *));
 
    End of Algorithm.  I implemented rule 6+ because it seemed nicer.  */
 
-int	RMargin = 78,
-	LMargin = 0;
-private Line	*para_head,
-	*para_tail;
-private int	head_indent,
+bool
+	SpaceSent2 = YES;	/* VAR: space-sentence-2 */
+
+int
+	LMargin = 0,	/* VAR: left margin */
+	RMargin = 78;	/* VAR: right margin */
+
+private LinePtr
+	para_head,
+	para_tail;
+
+private int
+	head_indent,
 	body_indent;
+
 private bool	use_lmargin;
 
 /* some defines for paragraph boundery checking */
@@ -129,26 +139,26 @@ private bool	use_lmargin;
 #define I_PERIOD	(-2)	/* line begins with "." or "\" */
 #define I_BUFEDGE	(-3)	/* line is nonexistent (edge of buffer) */
 
-static bool	bslash;		/* Nonzero if get_indent finds line starting
+private bool	bslash;		/* Nonzero if get_indent finds line starting
 				   with backslash */
 
 private bool
 i_blank(lp)
-Line	*lp;
+LinePtr	lp;
 {
 	return get_indent(lp) < 0;
 }
 
 private bool
 i_bsblank(lp)
-Line	*lp;
+LinePtr	lp;
 {
 	return i_blank(lp) || bslash;
 }
 
 private int
 get_indent(lp)
-register Line	*lp;
+register LinePtr	lp;
 {
 	Bufpos	save;
 	register int	indent;
@@ -180,9 +190,9 @@ register Line	*lp;
 	return indent;
 }
 
-private Line *
+private LinePtr
 tailrule(lp)
-register Line	*lp;
+register LinePtr	lp;
 {
 	int	i;
 
@@ -208,12 +218,12 @@ private void
 find_para(how)
 int	how;
 {
-	Line	*this,
-		*prev,
-		*next,
-		*head = NULL,
-		*body = NULL,
-		*tail = NULL;
+	LinePtr	this,
+		prev,
+		next,
+		head = NULL,
+		body = NULL,
+		tail = NULL;
 	int	this_indent;
 	Bufpos	orig;		/* remember where we were when we started */
 
@@ -273,7 +283,7 @@ strt:
 	}
 	/* rule 5 -- find the missing parts */
 	if (head == NULL) {    /* haven't found head of paragraph so do so now */
-		Line	*lp;
+		LinePtr	lp;
 		int	i;
 
 		lp = this;
@@ -317,18 +327,18 @@ Justify()
 		  use_lmargin ? LMargin : body_indent);
 }
 
-private Line *
+private LinePtr
 max_line(l1, l2)
-Line	*l1,
-	*l2;
+LinePtr	l1,
+	l2;
 {
 	return inorder(l1, 0, l2, 0)? l2 : l1;
 }
 
-private Line *
+private LinePtr
 min_line(l1, l2)
-Line	*l1,
-	*l2;
+LinePtr	l1,
+	l2;
 {
 	return inorder(l1, 0, l2, 0)? l1 : l2;
 }
@@ -338,12 +348,12 @@ RegJustify()
 {
 	Mark	*mp = CurMark(),
 		*tailmark;
-	Line	*l1 = curline,
-		*l2 = mp->m_line;
+	LinePtr	l1 = curline,
+		l2 = mp->m_line;
 	int	c1 = curchar,
 		c2 = mp->m_char;
-	Line	*rl1,
-		*rl2;
+	LinePtr	rl1,
+		rl2;
 
 	use_lmargin = is_an_arg();
 	(void) fixorder(&l1, &c1, &l2, &c2);
@@ -352,7 +362,7 @@ RegJustify()
 		find_para(FORWARD);
 		rl1 = max_line(l1, para_head);
 		rl2 = min_line(l2, para_tail);
-		tailmark = MakeMark(para_tail, 0, M_FLOATER);
+		tailmark = MakeMark(para_tail, 0);
 		DoJustify(rl1, (rl1 == l1) ? c1 : 0, rl2,
 			  (rl2 == l2) ? c2 : length(rl2),
 			  NO, use_lmargin ? LMargin : body_indent);
@@ -367,8 +377,8 @@ do_rfill(ulm)
 bool	ulm;
 {
 	Mark	*mp = CurMark();
-	Line	*l1 = curline,
-		*l2 = mp->m_line;
+	LinePtr	l1 = curline,
+		l2 = mp->m_line;
 	int	c1 = curchar,
 		c2 = mp->m_char;
 
@@ -384,11 +394,10 @@ do_space()
 		c2 = c1,
 		diff,
 		nspace;
-	char	ch;
 
-	while (c1 > 0 && ((ch = linebuf[c1 - 1]) == ' ' || ch == '\t'))
+	while (c1 > 0 && jiswhite(linebuf[c1 - 1]))
 		c1 -= 1;
-	while ((ch = linebuf[c2]) == ' ' || ch == '\t')
+	while (jiswhite(linebuf[c2]))
 		c2 += 1;
 	diff = (c2 - c1);
 	curchar = c2;
@@ -396,16 +405,15 @@ do_space()
 	if (diff == 0)
 		return;
 	if (c1 > 0) {
-		int	topunct = c1 - 1;
-
 		nspace = 1;
 		if (diff >= 2) {
-			while (strchr("\")]", linebuf[topunct])) {
-				if (topunct == 0)
-					break;
-				topunct -= 1;
-			}
-			if (strchr("?!.:", linebuf[topunct]))
+			int	topunct = c1;
+
+			do {
+				topunct -= 1;;
+			} while (topunct > 0 && strchr("\"')]", linebuf[topunct]) != NULL);
+			if (SpaceSent2 && topunct > 0
+			&& (linebuf[c1-1] == ':' || strchr("?!.", linebuf[topunct]) != NULL))
 				nspace = 2;
 		}
 	} else
@@ -413,18 +421,16 @@ do_space()
 
 	if (diff > nspace)
 		del_char(BACKWARD, (diff - nspace), NO);
-	else if (diff < nspace)
-		insert_c(' ', (nspace - diff));
 }
 
-#ifdef	MSDOS
+#ifdef MSDOS
 /*#pragma loop_opt(off) */
 #endif
 
 void
 DoJustify(l1, c1, l2, c2, scrunch, indent)
-Line	*l1,
-	*l2;
+LinePtr	l1,
+	l2;
 int	c1,
 	c2,
 	indent;
@@ -432,8 +438,7 @@ bool
 	scrunch;
 {
 	int	okay_char = -1;
-	char	*cp;
-	Mark	*savedot = MakeMark(curline, curchar, M_FLOATER),
+	Mark	*savedot = MakeMark(curline, curchar),
 		*endmark;
 
 	(void) fixorder(&l1, &c1, &l2, &c2);	/* l1/c1 will be before l2/c2 */
@@ -446,7 +451,7 @@ bool
 		}
 		ToIndent();
 	}
-	endmark = MakeMark(l2, c2, M_FLOATER);
+	endmark = MakeMark(l2, c2);
 
 	for (;;) {
 		/* The while loop succeeds at least once, when curchar ==
@@ -459,13 +464,11 @@ bool
 			if (eolp()) {
 				/* delete line separator */
 				del_char(FORWARD, 1, NO);
-				ins_str("  ", NO);
+				ins_str("  ");
 			} else {
-				cp = StrIndex(FORWARD, linebuf, curchar + 1, ' ');
-				if (cp == NULL)
-					Eol();
-				else
-					curchar = (cp - linebuf);
+				do {
+					curchar += 1;
+				} while (linebuf[curchar] != '\0' && linebuf[curchar] != ' ');
 			}
 			do_space();
 		}
@@ -474,14 +477,14 @@ bool
 		if (curline == endmark->m_line && curchar >= endmark->m_char)
 			goto outahere;
 
-		/* Can't fit in small margin, so if' we're at the end of
+		/* Can't fit in small margin, so if we're at the end of
 		   the line then we just move to the next line.  Otherwise
 		   we divide the line where we are and start over. */
 		if (eolp()) {
-			Line	*l = curline;
+			LinePtr	l = curline;
 
 			line_move(FORWARD, 1, NO);
-			if (l == curline)	/* didn't actuall go anywhere */
+			if (l == curline)	/* didn't actually go anywhere */
 				goto outahere;
 		} else {
 			DelWtSpace();
@@ -498,11 +501,12 @@ outahere:
 	ToMark(savedot);	/* Back to where we were */
 	DelMark(endmark);	/* Free up marks */
 	DelMark(savedot);
-	this_cmd = last_cmd = OTHER_CMD; /* So everything is under control */
+	/* ??? why is the following necessary? -- DHR */
+	this_cmd = last_cmd = OTHER_CMD;	/* So everything is under control */
 	f_mess(NullStr);
 }
 
-#ifdef	MSDOS
+#ifdef MSDOS
 /*#pragma loop_opt() */
 #endif
 
@@ -513,6 +517,10 @@ int	dir;
 	register int	num = arg_value(),
 			first_time = YES;
 
+	if (num < 0) {
+		num = -num;
+		dir = -dir;
+	}
 	while (--num >= 0) {
 tryagain:
 		find_para(dir);		/* find paragraph bounderies */

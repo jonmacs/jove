@@ -1,13 +1,13 @@
-/***************************************************************************
- * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
- * is provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is    *
- * included in all the files.                                              *
- ***************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 /* Macintosh related things. K. Mitchum 2/88 */
 
-#ifdef	MAC
+#ifdef MAC	/* the body is the rest of this file */
 
 #define NMENUS 6
 #define NMENUITEMS 40	/* This has GOT to be enough! */
@@ -39,6 +39,8 @@ typedef char *va_list;
 
 extern void	MarkVar((struct variable *vp, int mnu, int itm));
 
+extern jmp_buf auxjmp;
+
 extern char
 	*pfile proto((char *)),
 	*gfile proto((char *));
@@ -59,15 +61,16 @@ extern void
 	InitEvents proto((void)),
 	menus_on proto((void));
 
-/* Variables: */
-
 extern bool
-	Macmode;	/* see mac.c */
 	Keyonly,
 	Bufchange,
 	Modechange,
 	EventCmd,
-	Windchange,
-	Macmode;
+	Windchange;
 
-#endif	/* MAC */
+/* Variables: */
+
+extern bool
+	Macmode;	/* VAR: use Mac file selector */
+
+#endif /* MAC */

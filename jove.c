@@ -1,9 +1,9 @@
-/***************************************************************************
- * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
- * is provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is    *
- * included in all the files.                                              *
- ***************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 /* Contains the main loop initializations, and some system dependent
    type things, e.g. putting terminal in CBREAK mode, etc. */
@@ -11,30 +11,32 @@
 #include "jove.h"
 #include "fp.h"
 #include "termcap.h"
-#include "ctype.h"
+#include "jctype.h"
 #include "chars.h"
 #include "disp.h"
-#include "reapp.h"	/* for find_tag() */
+#include "re.h"	/* for dosearch() */
+#include "reapp.h"	/* for find_tag(), UseRE */
 #include "sysprocs.h"
 #include "rec.h"
 #include "ask.h"
 #include "extend.h"
 #include "fmt.h"
-#include "getch.h"
-#include "loadavg.h"
-#include "mac.h"
+#include "msgetch.h"
 #include "macros.h"
 #include "marks.h"
+#include "mouse.h"
+#include "paths.h"
 #include "proc.h"
 #include "screen.h"
 #include "term.h"
 #include "version.h"
 #include "wind.h"
-#ifdef	IPROCS
+#ifdef IPROCS
 # include "iproc.h"
-# ifdef	PTYPROCS
+#endif
+#ifdef USE_SELECT
+#  include <sys/time.h>
 #  include "select.h"
-# endif
 #endif
 
 #ifdef SCO	/* ??? what is this for? */
@@ -45,68 +47,84 @@
 #include <signal.h>
 #include <errno.h>
 
-#ifdef	MAC
+#ifdef MAC
 
 # include "mac.h"
 # define	WINRESIZE	1
 
-#else	/* !MAC */
+#else /* !MAC */
 
 # include <sys/stat.h>
 
-#endif	/* !MAC */
+#endif /* !MAC */
 
-#ifdef	MSDOS
+#ifdef MSDOS
+# include <bios.h>
+# include <dos.h>
+# include <time.h>
 # include <process.h>
 # define SIGHUP	99
 private	void
 	break_off proto((void)),
 	break_rst proto((void));
-private char	switchar proto((void));
-
-# ifdef	ZORTECH
-unsigned int	_stack = 0x2000;	/* Zortech's way of specifying stack size */
+# if defined(__WATCOMC__)
+#  include <malloc.h>	/* for _heapgrow */
 # endif
+#endif /* MSDOS */
+
+#ifdef STACK_DECL	/* provision for setting up appropriate stack */
+STACK_DECL
 #endif
 
 private void
-	ttyset proto((bool n)),
-	UnsetTerm proto((char *)),
-	do_sgtty proto((void)),
+	ttysetattr proto((bool n)),
+	UnsetTerm proto((bool)),
 	DoKeys proto((bool firsttime));
 
 #ifdef NONBLOCKINGREAD
 private void	setblock proto((bool on));
 #endif
 
-/* Various tty state structures.
- * Each is an array, subscripted by one of "NO" or "YES".
- */
+#ifdef UNIX
 
-#ifdef	UNIX
+# include "ttystate.h"
 
-#include "ttystate.h"
+# if defined(TIOCGWINSZ) && defined(SIGWINCH)
+#  define	WINRESIZE	1
+# endif
 
-#ifdef SCO	/* ??? Surely this is needed for ODT? */
-# undef TIOCGWINSZ
-#endif
+# ifdef BIFF
+bool	DisBiff = NO;		/* VAR: turn off/on biff with entering/exiting jove */
+# endif /* BIFF */
 
-#ifdef	TIOCGWINSZ
-#  ifdef	SIGWINCH
-#    define	WINRESIZE	1
-#  endif
-#endif
+/* set things up to update the modeline every UpdFreq seconds */
 
-# ifdef	BIFF
-private struct stat	tt_stat;	/* for biff */
-#  if	!defined(USE_FSTAT) || !defined(USE_FCHMOD)
-private char	*tt_name = NULL;		/* name of the control tty */
-extern char	*ttyname proto((int));		/* for systems w/o fstat ... */
-#  endif
-private bool	dw_biff = NO;		/* whether or not to fotz at all */
-# endif	/* BIFF */
+int	UpdFreq = 30;	/* VAR: how often to update modeline */
+bool	inIOread = NO;
 
-#endif	/* UNIX */
+#define SetClockAlarm()	{ \
+		if (UpdFreq != 0) { \
+			(void) signal(SIGALRM, updmode); \
+			(void) alarm((unsigned) (UpdFreq - (time((time_t *)NULL) % UpdFreq))); \
+		} \
+	}
+
+/*ARGSUSED*/
+private SIGRESTYPE
+updmode(junk)
+int	junk;	/* passed in on signal; of no interest */
+{
+	int save_errno = errno;	/* Subtle, but necessary! */
+
+	UpdModLine = YES;
+	if (inIOread)
+		redisplay();
+	SetClockAlarm();
+	errno = save_errno;
+	return SIGRESVALUE;
+}
+
+#endif /* UNIX */
 
 bool	errormsg;
 
@@ -118,74 +136,131 @@ fd_set	global_fd;	/* set of file descriptors of interest (for select) */
 int	global_maxfd;
 #endif
 
+/* paths */
+
+/* path of machine-independent library */
+#ifdef SHAREDIR
+char	ShareDir[FILESIZE] = SHAREDIR;
+#else
+char	ShareDir[FILESIZE];
+#endif
+
+/* VAR: directory/device to store tmp files */
+#ifdef TMPDIR
+char	TmpDir[FILESIZE] = TMPDIR;
+#else
+char	TmpDir[FILESIZE];
+#endif
+
+#ifdef SUBSHELL
+char
+	Shell[FILESIZE] = DFLTSHELL,	/* VAR: shell to use */
+# ifdef MSDOS
+	ShFlags[sizeof(ShFlags)] = "/c";	/* VAR: flags to shell */
+# else
+	ShFlags[sizeof(ShFlags)] = "-c";	/* VAR: flags to shell */
+# endif /* MSDOS */
+#endif
+
+/* LibDir: path of machine-dependent library (for Portsrv and Recover) */
+
+#if defined(SUBSHELL) || defined(PIPEPROCS)
+# define NEED_LIBDIR	1
+private char	LibDir[FILESIZE] = LIBDIR;
+#endif
+
+/* finish: handle bad-news signals.
+ * It also handles internally generated requests for termination.
+ * For most values of code (signal types) an attempt
+ * is made to save the buffers for recovery by "recover".
+ * For most values of code, this routine stops JOVE
+ * by calling abort, which causes a core dump under UNIX.
+ *
+ * - code -1 is an internally generated request to die with an
+ *   attempt to save the buffers.  It had better not be the code
+ *   for some real signal (it cannot be one under UNIX).
+ *
+ * - code 0 is an internally generated request to die quietly.
+ *   It had better not be the code for some real signal
+ *   (it cannot be one under UNIX).  This is the only code
+ *   for which buffers are not saved.
+ *
+ * - SIGINT is caused by the user hitting the INTR key.
+ *   We give him a choice of death or continuation.
+ *
+ * - SIGHUP is caused by loss of connection.  This code and
+ *   code 0 are the only ones which don't cause an abort.
+ *   Generated by OS and by JOVE itself.
+ */
+
 SIGRESTYPE
 finish(code)
 int	code;
 {
 	int save_errno = errno;	/* Subtle, but necessary! */
-	static int	Crashing = 0;	/* we are in the middle of crashing */
-	bool	CoreDump = (code != 0 && code != SIGHUP),
-		DelTmps = YES;		/* Usually we delete them. */
+	bool	DelTmps = YES;		/* Usually we delete them. */
 
 	if (code == SIGINT) {
 		char	c;
-#if	defined(IPROCS) && defined(PIPEPROCS)
+#ifdef PIPEPROCS
 		bool	started;
 #endif
 
 		(void) signal(code, finish);
 		f_mess("Abort (Type 'n' if you're not sure)? ");
 #ifdef UNIX
-#if	defined(IPROCS) && defined(PIPEPROCS)
+# ifdef PIPEPROCS
 		started = kbd_stop();
 # endif
 		/*
 		 * Yuk!  This doesn't deal with all cases, we really need a
-		 * standard jove input routine that's lower than jgetchar so
+		 * standard jove input routine that's lower than kbd_getch so
 		 * that this can use it.  The code that this replaces was even
 		 * more ugly.  What about nonblocking reads? -- MM.
 		 */
-#ifdef	NONBLOCKINGREAD
+# ifdef NONBLOCKINGREAD
 		setblock(YES);	/* turn blocking on (in case it was off) */
-#endif
+# endif
 		for (;;) {
 			c = 'n';
 			if (read(0, (UnivPtr) &c, sizeof(c)) < 0) {
 				switch (errno) {
 				case EINTR:
-#if	EWOULDBLOCK != EAGAIN	/* aliases in SvR4 */
+# if EWOULDBLOCK != EAGAIN	/* aliases in SvR4 */
 				case EWOULDBLOCK:
-#endif
+# endif
 				case EAGAIN:
 					continue;
 				}
 			}
 			break;
 		}
-#if	defined(IPROCS) && defined(PIPEPROCS)
+# ifdef PIPEPROCS
 		if (started)
 			kbd_strt();
-# endif /* defined(IPROCS) && defined(PIPEPROCS) */
+# endif /* PIPEPROCS */
 #endif /* UNIX */
 #ifdef MSDOS
 		c = getrawinchar();
-#endif	/* MSDOS */
+#endif /* MSDOS */
 		message(NullStr);
-		if ((c & 0377) != 'y') {
+		if (c != 'y') {
 			redisplay();
 			errno = save_errno;
 			return SIGRESVALUE;
 		}
 	}
 	DisabledRedisplay = YES;
-#ifndef	MAC
-	UnsetTerm(NullStr);
+#ifndef MAC
+	UnsetTerm(NO);
 #endif
-#if	defined(IPROCS) && defined(PIPEPROCS)
+#ifdef PIPEPROCS
 	kbd_kill();		/* kill the keyboard process */
 #endif
-#ifndef	MSDOS
+#ifdef RECOVER
 	if (code != 0) {
+		static bool	Crashing = NO;	/* we are in the middle of crashing */
+
 		if (!Crashing) {
 			Crashing = YES;
 			lsave();
@@ -197,37 +272,34 @@ int	code;
 				writef("Use \"jove -r\" to have a look at them.\n");
 				DelTmps = NO;	/* Don't delete anymore. */
 			} else {
-				writef("You didn't lose any work.\n");
+				writef("No buffers needed saving: you didn't lose any work.\n");
 			}
 		} else {
 			writef("\r\nYou may have lost your work!\n");
 		}
 	}
-#endif	/* MSDOS */
+#endif /* RECOVER */
 	flushscreen();
 	if (DelTmps) {
-#if	defined(IPROCS) && defined(PTYPROCS)
-		(void) signal(SIGCHLD, SIG_IGN);
-#endif
 		tmpremove();
-#ifndef	MSDOS
+#ifdef RECOVER
 		recremove();
-#endif	/* MSDOS */
+#endif /* RECOVER */
 	}
-#ifdef	UNIX
-	if (CoreDump)
+#ifdef UNIX
+	if (code != 0 && code != SIGHUP)
 		abort();
-#ifdef	USE_EXIT
+# ifdef USE_EXIT
 	exit(0);
-#else
+# else
 	_exit(0);
-#endif
-#else	/* !UNIX */
-#ifdef	MSDOS
+# endif
+#else /* !UNIX */
+# ifdef MSDOS
 	break_rst();	/* restore previous ctrl-c handling */
-#endif
+# endif
 	exit(0);
-#endif	/* !UNIX */
+#endif /* !UNIX */
 	/*NOTREACHED*/
 }
 
@@ -235,12 +307,9 @@ private char	smbuf[20],
 		*bp = smbuf;
 private int	nchars = 0;
 
-private char	peekbuf[10],
-		*peekp = peekbuf;
-
 #ifdef NONBLOCKINGREAD
 
-#include <fcntl.h>
+# include <fcntl.h>
 
 private void
 setblock(on)	/* turn blocking on or off */
@@ -262,114 +331,144 @@ bool	on;
 		finish(SIGHUP);
 }
 
-#endif	/* NONBLOCKINGREAD */
-
-private int
-Peekc()
-{
-	return peekp == peekbuf? EOF : *--peekp & 0377;
-}
-
-void
-Ungetc(c)
-int	c;
-{
-	if (peekp != &peekbuf[(sizeof peekbuf) - 1])
-		*peekp++ = c;
-}
+#endif /* NONBLOCKINGREAD */
 
 bool	InputPending = NO;
 
+/* Inputp is used to jam a NUL-terminated string into JOVE's input stream.
+ * It is used to feed each line of the joverc file, to fill in the default
+ * make_cmd in compile-it, and to fill in the default i-search string.
+ * ??? Probably this means that i-search or compile-it cannot be done from
+ * a joverc -- DHR.
+ */
 char	*Inputp = NULL;
 
-int
-jgetchar()
+/* kbd_ungetch must only be used to push back a character that
+ * was just returned by kbd_getch.
+ */
+private ZXchar	kbdpeek = EOF;
+
+void
+kbd_ungetch(c)
+ZXchar	c;
 {
-	register int	c;
+	InputPending = YES;
+	kbdpeek = c;
+}
 
-	while (nchars <= 0) {
-		bp = smbuf;
-#ifdef	MSDOS
-		*bp = getrawinchar();
-		nchars = 1;
-#else	/* !MSDOS */
-# if	defined(IPROCS) && defined(PTYPROCS)
-		/* Get a character from the keyboard, first checking for
-		   any input from a process.  Handle that first, and then
-		   deal with the terminal input. */
-		{
-			fd_set	reads;
-			int
-				nfds,
-				fd;
+ZXchar
+kbd_getch()
+{
+	register ZXchar	c;
 
+	if (kbdpeek != EOF) {
+		c = kbdpeek;
+		kbdpeek = EOF;
+		InputPending = nchars > 0;
+		return c;
+	}
+#if NCHARS != UCHAR_ROOF
+	do {
+#endif
+		while (nchars <= 0) {
 			bp = smbuf;
-			do {
-				reads = global_fd;
-				nfds = select(global_maxfd,
-					&reads, (fd_set *)NULL, (fd_set *)NULL,
-					(struct timeval *)NULL);
-			} while (nfds < 0 && errno == EINTR);
+#ifdef MSDOS
+			*bp = getrawinchar();
+			nchars = 1;
+#else /* !MSDOS */
+# ifdef PTYPROCS
+			/* Get a character from the keyboard, first checking for
+			   any input from a process.  Handle that first, and then
+			   deal with the terminal input. */
+			{
+				fd_set	reads;
+				int
+					nfds,
+					fd;
 
-			if (nfds == -1) {
-				complain("\rerror in select: %s", strerror(errno));
-				/* NOTREACHED */
-			}
-			if (FD_ISSET(0, &reads)) {
-				nchars = read(0, (UnivPtr) smbuf, sizeof(smbuf));
-				if (nchars < 0 && errno != EINTR)
-					finish(SIGHUP);
-				nfds -= 1;
-			}
-			for (fd=1; nfds != 0; fd += 1) {
-				if (FD_ISSET(fd, &reads)) {
+				bp = smbuf;
+				for (;;) {
+					while (procs_to_reap)
+							reap_procs();	/* synchronous process reaping */
+					reads = global_fd;
+					nfds = select(global_maxfd,
+						&reads, (fd_set *)NULL, (fd_set *)NULL,
+						(struct timeval *)NULL);
+					if (nfds >= 0)
+						break;
+
+					if (errno != EINTR) {
+						complain("\rerror in select: %s", strerror(errno));
+						/* NOTREACHED */
+					}
+				}
+
+				if (FD_ISSET(0, &reads)) {
+					do {
+						nchars = read(0, (UnivPtr) smbuf, sizeof(smbuf));
+					} while (nchars < 0 && errno == EINTR);
+					if (nchars <= 0)
+						finish(SIGHUP);
 					nfds -= 1;
-					read_proc(fd);
+				}
+				for (fd=1; nfds != 0; fd += 1) {
+					if (FD_ISSET(fd, &reads)) {
+						nfds -= 1;
+						read_pty_proc(fd);
+						if (UpdModLine)
+							redisplay();
+					}
 				}
 			}
-		}
-# else	/* !(defined(IPROCS) && defined(PTYPROCS)) */
-#  if	defined(IPROCS) && defined(PIPEPROCS)
-		if (NumProcs > 0) {
-			/* Handle process input until kbd input arrives */
-			struct header	header;
-			size_t	n = f_readn(ProcInput, (char *) &header, sizeof(header));
+# else /* !PTYPROCS */
+#  ifdef PIPEPROCS
+			if (NumProcs > 0) {
+				/* Handle process input until kbd input arrives */
+				struct header	header;
+				size_t	n = f_readn(ProcInput, (char *) &header, sizeof(header));
 
-			if (n != sizeof(header)) {
-				raw_complain("\r\nError reading kbd process, expected %d, got %d bytes\r\n", sizeof header, n);
-				finish(SIGHUP);
-			}
-			if (header.pid == kbd_pid) {
-				/* data is from the keyboard process */
-				nchars = f_readn(ProcInput, smbuf, (size_t)header.nbytes);
-				if (nchars != header.nbytes) {
-					raw_complain("\r\nError reading kbd process, expected %d, got %d bytes.\r\n", header.nbytes, nchars);
+				if (n != sizeof(header)) {
+					raw_complain("\r\nError reading kbd process, expected %d, got %d bytes", sizeof header, n);
 					finish(SIGHUP);
 				}
-			} else {
-				/* data is from an interactive process */
-				read_proc(header.pid, header.nbytes);
-				if (NumProcs == 0)
-					(void) kbd_stop();
+				if (header.pid == kbd_pid) {
+					/* data is from the keyboard process */
+					nchars = f_readn(ProcInput, smbuf, (size_t)header.nbytes);
+					if (nchars != header.nbytes) {
+						raw_complain("\r\nError reading kbd process, expected %d, got %d bytes.", header.nbytes, nchars);
+						finish(SIGHUP);
+					}
+				} else {
+					/* data is from an interactive process */
+					read_pipe_proc(header.pid, header.nbytes);
+					if (NumProcs == 0)
+						(void) kbd_stop();
+					if (UpdModLine)
+						redisplay();
+				}
+			} else /*...*/
+#  endif /* PIPEPROCS */
+			/*...*/ {
+				do {
+					nchars = read(0, (UnivPtr) smbuf, sizeof smbuf);
+				} while (nchars < 0 && errno == EINTR);
+				if (nchars <= 0)
+					finish(SIGHUP);
 			}
-		} else /*...*/
-#  endif	/* defined(IPROCS) && defined(PIPEPROCS) */
-		/*...*/ {
-			nchars = read(0, (UnivPtr) smbuf, sizeof smbuf);
-			if (nchars < 0 && errno != EINTR)
-				finish(SIGHUP);
+# endif /* !PTYPROCS */
+#endif /* !MSDOS */
 		}
-# endif	/* !(defined(IPROCS) && defined(PTYPROCS)) */
-#endif	/* !MSDOS */
-	}
-	c = *bp++;
-	if ((c & 0200) && MetaKey) {
-		*--bp = c & CHARMASK;
-		nchars += 1;
-		c = ESC;
-	}
-	InputPending = --nchars > 0;
-	return c & CHARMASK;
+		c = ZXRC(*bp++);
+		if ((c & 0200) && MetaKey) {
+			*--bp = c & ~0200;
+			nchars += 1;
+			c = ESC;
+		}
+		InputPending = --nchars > 0;
+#if NCHARS != UCHAR_ROOF
+	} while (c >= NCHARS);	/* discard c if it is a bad char */
+#endif
+	return c;
 }
 
 /* Returns non-zero if a character waiting */
@@ -377,16 +476,16 @@ jgetchar()
 bool
 charp()
 {
-	if (InJoverc != 0 || nchars > 0 || Inputp != NULL)
+	if (InJoverc != 0 || kbdpeek != EOF || nchars > 0 || Inputp != NULL)
 		return YES;
-#ifdef	FIONREAD
+#ifdef FIONREAD
 	{
 		/*
 		 * Some manual pages, notably SunOS4.1.3 say 'c' should be
 		 * 'long', but that's a lie -- it's an 'int' according to all
 		 * kernels I've seen (including SunOS4.1.3) and most other
-		 * manual pages.  At any rate, 'int' works correctly on 32 and
-		 * 62 bit architectures, whereas long breaks on the 64
+		 * manual pages.  At any rate, 'int' works correctly on 32- and
+		 * 64-bit architectures, whereas long breaks on the 64
 		 * bitters. -- MM.
 		 */
 		int c;
@@ -395,25 +494,25 @@ charp()
 			c = 0;
 		return c > 0;
 	}
-#else
-#ifdef	NONBLOCKINGREAD
+#else /* !FIONREAD */
+# ifdef NONBLOCKINGREAD
 	setblock(NO);		/* turn blocking off */
 	nchars = read(0, (UnivPtr) smbuf, sizeof smbuf);	/* Is anything there? */
 	setblock(YES);		/* turn blocking on */
 	bp = smbuf;			/* make sure bp points to it */
 	return nchars > 0;	/* just say we found something */
-#else
-#ifdef	MSDOS
+# else /* !NONBLOCKINGREAD */
+#  ifdef MSDOS
 	return rawkey_ready();
-#else
-#ifdef	MAC
+#  else /* !MSDOS */
+#   ifdef MAC
 	return rawchkc();
-#else
+#   else
 	return NO;	/* who knows? */
-#endif
-#endif
-#endif
-#endif
+#   endif
+#  endif /* !MSDOS */
+# endif /* !NONBLOCKINGREAD */
+#endif /* !FIONREAD */
 }
 
 /*
@@ -422,20 +521,11 @@ charp()
  * rest.
  */
 
-#ifdef	USE_SELECT
-# include <sys/time.h>
-#endif
-
-#ifdef	MSDOS
-# include <bios.h>
-# include <dos.h>
-#endif
-
 void
 SitFor(delay)
 int	delay;
 {
-#ifdef	MAC
+#ifdef MAC
 	long
 		start,
 		end;
@@ -449,11 +539,11 @@ int	delay;
 	do ; while ((InputPending = charp()) == NO && *Ticks < end);
 #undef	Ticks
 
-#else	/* !MAC */
+#else /* !MAC */
 
-#ifndef	MSDOS
+# ifndef MSDOS
 	if (!charp()) {
-#ifdef USE_SELECT
+#  ifdef USE_SELECT
 		struct timeval	timer;
 		fd_set	readfds;
 
@@ -472,7 +562,7 @@ int	delay;
 		(void) select(1,
 			&readfds, (fd_set *)NULL, (fd_set *)NULL,
 			&timer);
-#else	/* ! USE_SELECT */
+#  else /* ! USE_SELECT */
 		/* Pause by spitting NULs at the terminal.  Ugh! */
 		static const int cps[] = {
 			0,
@@ -496,54 +586,50 @@ int	delay;
 				check_cnt;
 
 		nchars = (delay * cps[ospeed]) / 10;
-		check_cnt = BufSize;
+		check_cnt = ScrBufSize;
 		redisplay();
 		if (!NP) {
 			while ((--nchars > 0) && !InputPending) {
-				jputchar(PC);
+				scr_putchar(PC);
 				if (--check_cnt == 0) {
-					check_cnt = BufSize;
+					check_cnt = ScrBufSize;
 					InputPending = charp();
 				}
 			}
 		}
-#endif	/* USE_SLECT */
+#  endif /* !USE_SELECT */
 	}
-#else	/* MSDOS */
+# else /* MSDOS */
 
 	long	start,
 		end;
-#ifndef	IBMPC
+#  ifndef IBMPC
 	struct dostime_t tc;
-#endif
+#  endif
 
 	redisplay();
-#ifdef	IBMPC
+#  ifdef IBMPC
 	_bios_timeofday(_TIME_GETCLOCK, &start);
-#else
+#  else
 	_dos_gettime(&tc);
 	start = (long)(tc.hour*60L*60L*10L)+(long)(tc.minute*60L*10L)+
 	    (long)(tc.second*10)+(long)(tc.hsecond/10);
-#endif
+#  endif
 	end = (start + delay);
 	do  {
 		if ((InputPending = charp()) != NO)
 			break;
-#ifdef	IBMPC
+#  ifdef IBMPC
 		if (_bios_timeofday(_TIME_GETCLOCK, &start))
 			break;	/* after midnight */
-#else
+#  else
 		start = (long)(tc.hour*60L*60L*10L)+(long)(tc.minute*60L*10L)+
 			(long)(tc.second*10)+(long)(tc.hsecond/10);
-#endif
+#  endif
 	} while (start < end);
-#endif	/* MSDOS */
-#endif	/* !MAC */
+# endif /* MSDOS */
+#endif /* !MAC */
 }
-
-#ifdef	MSDOS
-#include <time.h>
-#endif
 
 char
 	key_strokes[100],
@@ -562,12 +648,10 @@ size_t	size;
 	while ((c = *kp++) != '\0') {
 		swritef(buffer, (size_t) (buf_end-buffer), "%p ", c);
 		buffer += strlen(buffer);
-		if (buffer >= buf_end)
-			break;
 	}
 }
 
-private int	*slowp = NULL;	/* for waitchar() */
+private bool	*slowp = NULL;	/* for waitchar() */
 
 /*ARGSUSED*/
 private SIGRESTYPE
@@ -587,108 +671,100 @@ int	junk;
 
 #define N_SEC	1	/* will be precisely 1 second on 4.2 */
 
-int
+ZXchar
 waitchar(slow)
-int	*slow;
+bool	*slow;
 {
-	int	c;
-#ifdef	UNIX
-	unsigned int	old_time;
-	SIGRESTYPE	(*oldproc) proto((int));
-#else	/* !UNIX */
-	long sw, time();
-#endif	/* !UNIX */
+	ZXchar	c;
 
 	slowp = slow;
 
-	if (in_macro())		/* make macros faster ... */
+	if (InJoverc || (!Interactive && in_macro()))		/* make macros faster ... */
 		return getch();
 
 	/* If slow is a valid pointer and it's value is yes, then
 	   we know we have already been slow during this sequence,
 	   so we just wait for the character and then echo it. */
-	if (slow != NULL && *slow == YES) {
+	if (slow != NULL && *slow) {
 		c = getch();
 		slowpoke(0);
 		return c;
 	}
-#ifdef	UNIX
-	oldproc = signal(SIGALRM, slowpoke);
-
-	if ((old_time = alarm((unsigned) N_SEC)) == 0)
-		old_time = UpdFreq;
+#ifdef UNIX
+	(void) signal(SIGALRM, slowpoke);
+	(void) alarm((unsigned) N_SEC);
 	c = getch();
-	(void) alarm(old_time);
-	(void) signal(SIGALRM, oldproc);
+	alarm((unsigned)0);	/* suppress alarm, in case it hasn't fired */
+	SetClockAlarm();
 
-	if (slow != NULL && *slow == YES)
+	if (slow != NULL && *slow)
 		slowpoke(0);
 	return c;
 
-#else	/* !UNIX */
-#ifdef	MAC
+#else /* !UNIX */
+# ifdef MAC
 	Keyonly = YES;
-	if (charp() || in_macro()) {
+	if (charp()) {
 		c = getch();	/* to avoid flicker */
-		if (slow != NULL && *slow == YES)
+		if (slow != NULL && *slow)
 			slowpoke(0);
 		return c;
 	}
-#endif
-	time(&sw);
-	sw += N_SEC;
-	while (time(NULL) <= sw)
-		if (charp() || in_macro())
-			return getch();
-#ifdef	MAC
+# endif
+	/* NOTE: busy wait! */
+	{
+		time_t sw = N_SEC + time((time_t *)NULL);
+
+		while (time((time_t *)NULL) <= sw)
+			if (charp())
+				return getch();
+	}
+# ifdef MAC
 	menus_off();
-#endif
+# endif
 	slowpoke(0);
 	c = getch();
 	slowpoke(0);
 
 	return c;
-#endif	/* !UNIX */
+#endif /* !UNIX */
 }
 
-#ifdef	BIFF
-private void	biff_init proto((void));
+#ifdef MSDOS
+# include "pcscr.h"
 #endif
 
 private void
-ResetTerm()
+SetTerm()
 {
-#ifdef	IBMPC
-	pcResetTerm();
+#ifdef IBMPC
+	pcSetTerm();
 #endif
-	do_sgtty();		/* this is so if you change baudrate or stuff
-				   like that, JOVE will notice. */
-	ttyset(YES);
-#ifdef	TERMCAP
-	putpad(TI, 1);
-	putpad(VS, 1);
-	putpad(KS, 1);
+	ttysetattr(YES);
+#ifdef TERMCAP
+	putpad(TI, 1);	/* Cursor addressing start */
+	putpad(VS, 1);	/* Visual start */
+	putpad(KS, 1);	/* Keypad mode start */
+# ifdef MOUSE
+	MouseOn();
+# endif
 #endif
-#ifdef	UNIX
-	(void) chkmail(YES);	/* force it to check to we can be accurate */
-#endif
-#ifdef	BIFF
-	if (BiffChk != dw_biff)
-		biff_init();
-	/* just in case we changed our minds about whether to deal with
-	   biff */
+#ifdef UNIX
+	(void) chkmail(YES);	/* force it to check so we can be accurate */
 #endif
 }
 
 private void
-UnsetTerm(mesg)
-char	*mesg;
+UnsetTerm(WarnUnwritten)
+bool	WarnUnwritten;
 {
-	ttyset(NO);
-#ifdef	TERMCAP
-#ifdef	ID_CHAR
+#ifdef TERMCAP
+# ifdef ID_CHAR
 	INSmode(NO);
-#endif /* ID_CHAR */
+# endif /* ID_CHAR */
+# ifdef MOUSE
+	MouseOff();
+# endif
 	putpad(KE, 1);
 	putpad(VE, 1);
 	Placur(ILI, 0);
@@ -698,172 +774,156 @@ char	*mesg;
 #else /* !TERMCAP */
 	Placur(ILI, 0);
 	clr_eoln();
-#endif /* TERMCAP */
-	if (mesg[0] != '\0')
-		writef("%s\n", mesg);
+#endif /* !TERMCAP */
 	flushscreen();
-#ifdef	IBMPC
+#ifdef IBMPC
 	pcUnsetTerm();
 #endif /* IBMPC */
+	ttysetattr(NO);
+	if (WarnUnwritten && ModBufs(NO))
+		raw_complain("[There are modified buffers]");
 }
 
+#ifdef JOB_CONTROL
 void
 PauseJove()
 {
-#ifdef	JOB_CONTROL
-	UnsetTerm(ModBufs(NO) ? "[There are modified buffers]" : NullStr);
+	UnsetTerm(YES);
 	(void) kill(0, SIGTSTP);
-	ResetTerm();
+	SetTerm();
 	ClAndRedraw();
-#else /* ! JOB_CONTROL */
-	message("[Job Control not supported]");
-#endif /* JOB_CONTROL */
 }
+#endif /* JOB_CONTROL */
 
+#ifdef SUBSHELL
+
+# ifndef MSDOS
 void
 jcloseall()
 {
 	tmpclose();
+#ifdef RECOVER
 	recclose();
-#ifdef	LOAD_AV
-	closekmem();
-#endif	/* LOAD_AV */
-#ifdef	IPROCS
+#endif
+#ifdef IPROCS
 	closeiprocs();
 #endif
 }
+# endif /* !MSDOS */
 
-#ifdef	SUBSHELL
 void
 Push()
 {
-#ifndef	MSDOS
-	pid_t	pid;
-	SIGRESTYPE	(*old_quit) ptrproto((int)) = signal(SIGQUIT, SIG_IGN);
-#endif	/* !MSDOS */
 	SIGRESTYPE	(*old_int) ptrproto((int)) = signal(SIGINT, SIG_IGN);
-# if	defined(IPROCS) && defined(PIPEPROCS)
-	bool	started;
-# endif
+# ifdef MSDOS
 
-#ifndef	MSDOS
-#ifdef	IPROCS
-	SigHold(SIGCHLD);
-#endif
-#ifdef	WINRESIZE
+	UnsetTerm(YES);
+	(void) signal(SIGINT, SIG_DFL);
+	break_rst();
+	if (spawnl(0, Shell, basename(Shell), (char *)NULL) == -1)
+		s_mess("[Spawn failed %d]", errno);
+	SetTerm();
+	ClAndRedraw();
+	break_off();
+	getCWD();
+	(void) signal(SIGINT, old_int);
+# else /* !MSDOS */
+	int	forkerr = 0;
+#  ifdef PIPEPROCS
+	bool	started = kbd_stop();
+#  endif
+
+#  ifdef WINRESIZE
 	SigHold(SIGWINCH);
-#endif
-#ifdef UNIX
+#  endif
 	alarm((unsigned)0);
-#endif
-# if	defined(IPROCS) && defined(PIPEPROCS)
-	started = kbd_stop();
-# endif
-	switch (pid = fork()) {
+	UnsetTerm(YES);
+	switch (ChildPid = fork()) {
 	case -1:
-# if	defined(IPROCS) && defined(PIPEPROCS)
-		if (started)
-			kbd_strt();
-# endif
-		complain("[Fork failed: %s]", strerror(errno));
-		/*NOTREACHED*/
+		/* parent, fork failed */
+		forkerr = errno;
+		break;
+
+	default:
+		/* parent, fork worked */
+		dowait((wait_status_t *) NULL);
+		break;
 
 	case 0:
-		UnsetTerm(ModBufs(NO) ? "[There are modified buffers]" : NullStr);
-#ifdef	WINRESIZE
+		/* child */
+#  ifdef WINRESIZE
+		(void) signal(SIGWINCH, SIG_DFL);
 		SigRelse(SIGWINCH);
-#endif
-#ifdef	IPROCS
-		SigRelse(SIGCHLD);
-#endif
-		(void) signal(SIGTERM, SIG_DFL);
-#else	/* MSDOS */
-		UnsetTerm(ModBufs(NO) ? "[There are modified buffers]" : NullStr);
-#endif	/* MSDOS */
+#  endif
+		/* (void) signal(SIGTERM, SIG_DFL); */
 		(void) signal(SIGINT, SIG_DFL);
-#ifdef	UNIX
-		(void) signal(SIGQUIT, SIG_DFL);
 		jcloseall();
 		/* note that curbuf->bfname may be NULL */
 		execl(Shell, basename(Shell), "-is", pr_name(curbuf->b_fname, NO),
 			(char *)NULL);
 		raw_complain("[Execl failed: %s]", strerror(errno));
 		_exit(1);
+		/*NOTREACHED*/
 	}
-	dowait(pid, (wait_status_t *) NULL);
-#ifdef	IPROCS
-	SigRelse(SIGCHLD);
-#endif
-#endif	/* UNIX */
-#ifdef	MSDOS
-	break_rst();
-	if (spawnl(0, Shell, basename(Shell), (char *)NULL) == -1)
-		message("[Spawn failed]");
-#endif	/* MSDOS */
-	ResetTerm();
-#ifdef	WINRESIZE
+	SetTerm();
+#  ifdef WINRESIZE
 	SigRelse(SIGWINCH);
-#endif
+#  endif
 	ClAndRedraw();
-#ifndef	MSDOS
-	(void) signal(SIGQUIT, old_quit);
-#else	/* MSDOS */
-	break_off();
-	getCWD();
-#endif	/* MSDOS */
 	(void) signal(SIGINT, old_int);
-#ifdef UNIX
-	if (UpdFreq != 0)
-		(void) alarm((unsigned) (UpdFreq - (time((time_t *)NULL) % UpdFreq)));
-#endif
-# if	defined(IPROCS) && defined(PIPEPROCS)
+	SetClockAlarm();
+#  ifdef PIPEPROCS
 	if (started)
 		kbd_strt();
-# endif
+#  endif
+	if (forkerr != 0)
+		complain("[Fork failed: %s]", strerror(errno));
+# endif /* !MSDOS */
 }
 
-#endif	/* SUBSHELL */
+#endif /* SUBSHELL */
 
-bool	OKXonXoff = NO;	/* ^S and ^Q initially DON'T work */
-int	IntChar = CTL(']');
-
-#ifdef	BTL_BLIT
-#	include <sys/jioctl.h>
+#ifdef UNIX
+bool	OKXonXoff = NO;	/* VAR: XON/XOFF can be used as ordinary chars */
+ZXchar	IntChar = CTL(']');	/* VAR: ttysetattr sets this to generate SIGINT */
 #endif
 
 private void
 ttsize()
 {
-#ifdef	UNIX
-#   ifdef	TIOCGWINSZ
+#ifdef UNIX
+# ifdef TIOCGWINSZ
 	struct winsize win;
 
 	if (ioctl(0, TIOCGWINSZ, (UnivPtr) &win) == 0) {
-		/* Note: Solaris 2 / OpenWindows 3 generates SIGWINCH
-		 * several signals while creating a window.  For the
-		 * first few of them TIOCGWINSZ returns nonsensical sizes.
-		 * To protect JOVE, we ignore outliers.
-		 */
-		if (0<win.ws_col && win.ws_col<JBUFSIZ-1)
+		if (win.ws_col != 0) {
 			CO = win.ws_col;
-		if (0<win.ws_row && win.ws_row<200)
+			if (CO > MAXCOLS)
+				CO = MAXCOLS;
+		}
+		if (win.ws_row != 0)
 			LI = win.ws_row;
 	}
-#   else	/* !TIOCGWINSZ */
-#	ifdef	BTL_BLIT
+# else /* !TIOCGWINSZ */
+#  ifdef BTL_BLIT
 	struct jwinsize jwin;
 
 	if (ioctl(0, JWINSIZE, (UnivPtr) &jwin) == 0) {
-		if (jwin.bytesx)
+		if (jwin.bytesx != 0) {
 			CO = jwin.bytesx;
-		if (jwin.bytesy)
+			if (CO > MAXCOLS)
+				CO = MAXCOLS;
+		}
+		if (jwin.bytesy != 0)
 			LI = jwin.bytesy;
 	}
-#	endif	/* BTL_BLIT */
-#   endif	/* !TIOCGWINSZ */
-#endif	/* UNIX */
-#ifdef	MAC
+#  endif /* BTL_BLIT */
+# endif /* !TIOCGWINSZ */
+#endif /* UNIX */
+#ifdef MAC
 	CO = getCO();	/* see mac.c */
+	if (CO > MAXCOLS)
+		CO = MAXCOLS;
 	LI = getLI();
 	Windchange = YES;
 	clr_page();
@@ -871,117 +931,117 @@ ttsize()
 	ILI = LI - 1;
 }
 
-#ifdef	BIFF
-private void
-biff_init()
+/* adjust the tty to reflect possible change to JOVE variables */
+void
+tty_adjust()
 {
-	dw_biff = BiffChk
-#   ifdef USE_FSTAT
-		&& fstat(0, &tt_stat) != -1
-#   else
-		&& ((tt_name != NULL) || (tt_name = ttyname(0)) != NULL)
-		&& stat(tt_name, &tt_stat) != -1
-#   endif
-		&& (tt_stat.st_mode & S_IEXEC);	/* he's using biff */
-
+	ttysetattr(YES);
+#ifdef MOUSE
+	MouseOn();	/* XtermMouse might have changed */
+#endif
 }
 
-private void
-biff(on)
-int	on;
-{
-	if (dw_biff) {
-#ifdef	USE_FCHMOD
-		(void) fchmod(0,
-			on? tt_stat.st_mode : (tt_stat.st_mode & ~S_IEXEC));
-#else
-		if (tt_name != NULL || (tt_name = ttyname(0)) != NULL)
-			(void) chmod(tt_name,
-				on? tt_stat.st_mode : (tt_stat.st_mode & ~S_IEXEC));
-#endif
-	}
-}
-
-#endif	/* BIFF */
+/* Set tty to original (if !n) or JOVE (if n) modes.
+ * This is designed to be idempotent: it can be called
+ * several times with the same argument without damage.
+ */
 
 private void
-ttinit()
+ttysetattr(n)
+bool	n;	/* also used as subscript! */
 {
-#ifdef	BIFF
-	biff_init();
-#endif
-#ifdef SGTTY
-# ifdef	TIOCSLTC
-	(void) ioctl(0, TIOCGLTC, (UnivPtr) &ls[NO]);
-	ls[YES] = ls[NO];
-	ls[YES].t_suspc = (char) -1;
-	ls[YES].t_dsuspc = (char) -1;
-	ls[YES].t_flushc = (char) -1;
-	ls[YES].t_lnextc = (char) -1;
+	static bool	prev_n = NO;
+
+	if (!prev_n) {
+#ifdef UNIX
+		/* Previously, the tty was not in JOVE mode.
+		 * Find out the current settings:
+		 * do the ioctls or whatever to fill in NO half
+		 * of each appropriate tty state pair.
+		 * NOTE: the nested tangle of ifdefs is intended to follow
+		 * the structure of the definitions in ttystate.c.
+		 */
+# ifdef SGTTY
+		(void) gtty(0, &sg[NO]);
 # endif
 
-# ifdef	TIOCGETC
-	/* Change interupt and quit. */
-	(void) ioctl(0, TIOCGETC, (UnivPtr) &tc[NO]);
-	tc[YES] = tc[NO];
-	tc[YES].t_intrc = IntChar;
-	tc[YES].t_quitc = (char) -1;
-	if (OKXonXoff) {
-		tc[YES].t_stopc = (char) -1;
-		tc[YES].t_startc = (char) -1;
-	}
-# endif	/* TIOCGETC */
-#endif /* SGTTY */
-	do_sgtty();
-}
-
-private int	done_ttinit = NO;
-
-private void
-do_sgtty()
-{
-#ifdef	UNIX
-# ifdef	TERMIO
-	(void) ioctl(0, TCGETA, (UnivPtr) &sg[NO]);
+# ifdef TERMIO
+		(void) ioctl(0, TCGETA, (UnivPtr) &sg[NO]);
 # endif
+
 # ifdef TERMIOS
-	(void) tcgetattr(0, &sg[NO]);
+		(void) tcgetattr(0, &sg[NO]);
 # endif
+
+# ifdef USE_TIOCSLTC
+		(void) ioctl(0, TIOCGLTC, (UnivPtr) &ls[NO]);
+# endif /* USE_TIOCSLTC */
 
 # ifdef SGTTY
-	(void) gtty(0, &sg[NO]);
 
-#  ifdef LPASS8
-	(void) ioctl(0, TIOCLGET, (UnivPtr) &lmword[NO]);
-	lmword[YES] = lmword[NO];
-	if (MetaKey)
-		lmword[YES] |= LPASS8;
-#  endif /* LPASS8 */
+#  ifdef TIOCGETC
+		(void) ioctl(0, TIOCGETC, (UnivPtr) &tc[NO]);
+#  endif
 
-#  ifdef LTILDE
-	if (Hazeltine)
-		lmword[YES] &= ~LTILDE;
-#  endif /* LTILDE */
-# endif	/* SGTTY */
+#  ifdef LPASS8	/* use 4.3BSD's LPASS8 instead of raw for meta-key */
+		(void) ioctl(0, TIOCLGET, (UnivPtr) &lmword[NO]);
+#  endif
+
+# endif /* SGTTY */
+
+/* extract some info from results */
+
+#  if defined(TERMIO) || defined(TERMIOS)
+#   ifdef TAB3
+		TABS = (sg[NO].c_oflag & TABDLY) != TAB3;
+#   endif
+#   ifdef TERMIOS
+		ospeed = cfgetospeed(&sg[NO]);
+#   else /* ! TERMIOS */
+#    ifdef CBAUD
+		ospeed = sg[NO].c_cflag & CBAUD;
+#    else /* ! CBAUD */
+		ospeed = B9600;	/* XXX */
+#    endif /* CBAUD */
+#   endif /* TERMIOS */
+#  endif /* defined(TERMIO) || defined(TERMIOS) */
+
+#  ifdef SGTTY
+		TABS = !(sg[NO].sg_flags & XTABS);
+		ospeed = sg[NO].sg_ospeed;
+#  endif /* SGTTY */
+
+#endif /* UNIX */
+
+#ifdef MSDOS
+		TABS = NO;
+#endif /* MSDOS */
+	}
+
+#ifdef UNIX
+
+	/* Fill in YES half of each appropriate tty state pair.
+	 * They are filled in as late as possible so that each will
+	 * reflect the latest settings of controling variables.
+	 * NOTE: the nested tangle of ifdefs is intended to follow
+	 * the structure of the definitions in ttystate.c.
+	 */
+
 	sg[YES] = sg[NO];
 
-# if defined(TERMIO) || defined(TERMIOS)
-#  ifdef TAB3
-	TABS = (sg[NO].c_oflag & TAB3) != TAB3;
+# ifdef SGTTY
+	sg[YES].sg_flags &= ~(XTABS|ECHO|CRMOD);
+#  ifdef LPASS8
+	sg[YES].sg_flags |= CBREAK;
+#  else
+	sg[YES].sg_flags |= (MetaKey ? RAW : CBREAK);
 #  endif
-#  ifdef TERMIOS
-	ospeed = cfgetospeed(&sg[NO]);
-#  else /* ! TERMIOS */
-#   ifdef CBAUD
-	ospeed = sg[NO].c_cflag & CBAUD;
-#   else /* ! CBAUD */
-	ospeed = B9600;	/* XXX */
-#   endif /* CBAUD */
-#  endif /* TERMIOS */
+# endif
 
+# if defined(TERMIO) || defined(TERMIOS)
 	if (OKXonXoff)
 		sg[YES].c_iflag &= ~(IXON | IXOFF);
-	sg[YES].c_iflag &= ~(INLCR|ICRNL|IGNCR);
+	sg[YES].c_iflag &= ~(INLCR|ICRNL|IGNCR | (MetaKey? ISTRIP : 0));
 	sg[YES].c_lflag &= ~(ICANON|ECHO);
 	sg[YES].c_oflag &= ~(OPOST);
 	sg[YES].c_cc[VINTR] = IntChar;
@@ -994,7 +1054,7 @@ do_sgtty()
 #   endif /* !_POSIX_VDISABLE */
 #  endif /* VDISABLE */
 
-#  ifdef VQUIT	
+#  ifdef VQUIT
 	sg[YES].c_cc[VQUIT] = VDISABLE;
 #  endif
 	/* VERASE, VKILL, VEOL2 irrelevant */
@@ -1003,13 +1063,12 @@ do_sgtty()
 	sg[YES].c_cc[VSWTCH] = VDISABLE;
 #  endif
 
-	/* Under SunOS 4.0, <termios.h> does not match POSIX,
-	 * so we cannot use it.  Instead, we use <termio.h>.
-	 * Unfortunately, <termio.h> includes <termios.h>
-	 * so the extra V symbols get defined, but they must
-	 * not be used in struct termio since the c_cc array
-	 * does not have entries for all of them!  This is why
-	 * the following goo is doubly ifdefed.
+	/* Under at least one system (SunOS 4.0), <termio.h>
+	 * mistakenly defines the extra V symbols of <termios.h>
+	 * without extending the c_cc array in struct termio
+	 * to hold them!  This is why the following goo is doubly
+	 * ifdefed.  It turns out that we don't use <termio.h>
+	 * on SunOS 4.0, so the problem may be moot.
 	 */
 
 #  ifdef TERMIOS
@@ -1034,160 +1093,251 @@ do_sgtty()
 	sg[YES].c_cc[VTIME] = 1;
 # endif /* defined(TERMIO) || defined(TERMIOS) */
 
+# ifdef USE_TIOCSLTC
+	ls[YES] = ls[NO];
+	ls[YES].t_suspc = (char) -1;
+	ls[YES].t_dsuspc = (char) -1;
+	ls[YES].t_flushc = (char) -1;
+	ls[YES].t_lnextc = (char) -1;
+# endif /* USE_TIOCSLTC */
+
 # ifdef SGTTY
-	TABS = !(sg[NO].sg_flags & XTABS);
-	sg[YES].sg_flags &= ~(XTABS|ECHO|CRMOD);
-	ospeed = sg[NO].sg_ospeed;
 
-#  ifdef	LPASS8
-	sg[YES].sg_flags |= CBREAK;
-#  else
-	sg[YES].sg_flags |= (MetaKey ? RAW : CBREAK);
-#  endif
-# endif	/* SGTTY */
-#endif	/* UNIX */
-
-#ifdef	MSDOS
-# ifndef	IBMPC
-	setmode(1, 0x8000);
-# endif	/* IBMPC */
-	TABS = NO;
-#endif	/* MSDOS */
-}
-
-void
-tty_reset()
-{
-	if (done_ttinit) {
-		ttyset(NO);	/* go back to original modes */
-		ttinit();
-		ttyset(YES);
+#  ifdef TIOCGETC
+	tc[YES] = tc[NO];
+	tc[YES].t_intrc = IntChar;
+	tc[YES].t_quitc = (char) -1;
+	if (OKXonXoff) {
+		tc[YES].t_stopc = (char) -1;
+		tc[YES].t_startc = (char) -1;
 	}
-}
-
-/* If n is NO reset to original modes */
-
-private void
-ttyset(n)
-bool	n;
-{
-	if (!done_ttinit && !n)	/* Try to reset before we've set! */
-		return;
-#ifdef	UNIX
-# ifdef	TERMIO
-	(void) ioctl(0, TCSETAW, (UnivPtr) &sg[n]);
-# endif	/* TERMIO */
-
-# ifdef	TERMIOS
-	(void) tcsetattr(0, TCSADRAIN, &sg[n]);
-# endif /* TERMIOS */
-
-# ifdef	SGTTY
-#  ifdef TIOCSETN
-	(void) ioctl(0, TIOCSETN, (UnivPtr) &sg[n]);
-#  else
-	(void) stty(0, &sg[n]);
 #  endif
+
+#  ifdef LPASS8	/* use 4.3BSD's LPASS8 instead of raw for meta-key */
+	lmword[YES] = lmword[NO];
+
+	if (MetaKey)
+		lmword[YES] |= LPASS8;
+
+#   ifdef LLITOUT
+	/* ??? under what conditions should we turn on LLITOUT flag? */
+#   endif /* LLITOUT */
+
+#   ifdef LTILDE
+	if (Hazeltine)
+		lmword[YES] &= ~LTILDE;
+#   endif /* LTILDE */
+
+#  endif /* LPASS8 */
+
+# endif /* SGTTY */
+
+	/* Set tty state according to appropriate entry of each state pair.
+	 * NOTE: the nested tangle of ifdefs is intended to follow
+	 * the structure of the definitions in ttystate.c.
+	 */
+
+# ifdef SGTTY
+#   ifdef TIOCSETN
+	(void) ioctl(0, TIOCSETN, (UnivPtr) &sg[n]);
+#   else
+	(void) stty(0, &sg[n]);
+#   endif
+# endif
+
+# ifdef TERMIO
+	do ; while (ioctl(0, TCSETAW, (UnivPtr) &sg[n]) < 0 && errno == EINTR);
+# endif
+
+# ifdef TERMIOS
+	do ; while (tcsetattr(0, TCSADRAIN, &sg[n]) < 0 && errno == EINTR);
+# endif
+
+# ifdef USE_TIOCSLTC
+	(void) ioctl(0, TIOCSLTC, (UnivPtr) &ls[n]);
+# endif /* USE_TIOCSLTC */
+
+# ifdef SGTTY
 
 #  ifdef TIOCGETC
 	(void) ioctl(0, TIOCSETC, (UnivPtr) &tc[n]);
-#  endif /* TIOCSETC */
-#  ifdef TIOCSLTC
-	(void) ioctl(0, TIOCSLTC, (UnivPtr) &ls[n]);
-#  endif /* TIOCSLTC */
-#  ifdef LPASS8
-	(void) ioctl(0, TIOCLSET, (UnivPtr) &lmword[n]);
-#  endif /* LPASS8 */
-# endif /* SGTTY */
-#endif	/* UNIX */
+#  endif
 
-#ifdef	MSDOS
-# ifndef	IBMPC
-	setmode(1, n? 0x8000 : 0x4000);
+#  ifdef LPASS8	/* use 4.3BSD's LPASS8 instead of raw for meta-key */
+	(void) ioctl(0, TIOCLSET, (UnivPtr) &lmword[n]);	/* local mode word */
+#  endif
+
+# endif /* SGTTY */
+
+#endif /* UNIX */
+
+#ifdef MSDOS
+# ifndef IBMPC
+	/* ??? this seems peculiar: surely the mode won't carry over to child or parent. */
+	setmode(1, n? 0x8000 : 0x4000);	/* ??? set stdout to O_BINARY or O_TEXT mode */
 # endif
-#endif	/* MSDOS */
-	done_ttinit = YES;
-#ifdef	BIFF
-	biff(!n);
-#endif
+#endif /* MSDOS */
+
+#ifdef BIFF
+
+	/* biff state is an honorary part of the tty state.
+	 * On the other hand, it is different from the rest of the state
+	 * since we only want to examine the setting if DisBiff
+	 * has been set by the user.  For this reason, the code is
+	 * somewhat more intricate.
+	 */
+	{
+#		define BS_UNEXAMINED	0	/* we don't know if biff is enabled */
+#		define BS_DISABLED	1	/* we have disabled biff */
+#		define BS_UNCHANGED	2	/* we didn't disable biff */
+		static int	biff_state = BS_UNEXAMINED;
+
+		static struct stat	tt_stat;
+# if !defined(USE_FSTAT) || !defined(USE_FCHMOD)
+		static char	*tt_name = NULL;	/* name of the control tty */
+		extern char	*ttyname proto((int));	/* for systems w/o fstat */
+# endif
+
+		if (n && DisBiff) {
+			/* biff supression is our business */
+			if (biff_state == BS_UNEXAMINED) {
+				/* and we haven't looked after it */
+				biff_state = BS_UNCHANGED;	/* at least so far */
+				if (
+# ifdef USE_FSTAT
+					fstat(0, &tt_stat) != -1
+# else
+					((tt_name != NULL) || (tt_name = ttyname(0)) != NULL)
+					&& stat(tt_name, &tt_stat) != -1
+# endif
+				&& (tt_stat.st_mode & S_IEXEC))
+				{
+					/* so let's suppress it */
+# ifdef USE_FCHMOD
+					(void) fchmod(0, tt_stat.st_mode & ~S_IEXEC);
+					biff_state = BS_DISABLED;
+# else
+					if ((tt_name != NULL || (tt_name = ttyname(0)) != NULL)
+					&& chmod(tt_name, tt_stat.st_mode & ~S_IEXEC) != -1)
+					{
+						/* Note: only change biff_state if we were able to
+						 * get the tt_name -- this prevents the other
+						 * chmod from blowing up.
+						 */
+						biff_state = BS_DISABLED;
+					}
+# endif
+				}
+			}
+		} else {
+			/* any biff suppression should be undone */
+			if (biff_state == BS_DISABLED) {
+				/* and we did suppress it, so we enable it */
+# ifdef USE_FCHMOD
+				(void) fchmod(0, tt_stat.st_mode);
+# else
+				(void) chmod(tt_name, tt_stat.st_mode);
+# endif
+			}
+			biff_state = BS_UNEXAMINED;	/* it's out of our hands */
+		}
+#		undef BS_UNEXAMINED
+#		undef BS_DISABLED
+#		undef BS_UNCHANGED
+	}
+
+#endif /* BIFF */
+	prev_n = n;
 }
 
 bool	Interactive = NO;	/* True when we invoke with the command handler? */
 
-int
-	LastKeyStruck,
-	MetaKey = NO;
+ZXchar
+	peekchar = EOF,	/* holds pushed-back getch output */
+	LastKeyStruck;	/* used by SelfInsert and friends */
 
-int
+bool
+	MetaKey = NO;		/* VAR: this terminal has a meta key */
+
+void
+Ungetc(c)
+ZXchar	c;
+{
+	peekchar = c;
+}
+
+ZXchar
 getch()
 {
-	register int	c,
-			peekc;
+	register ZXchar	c;
 
 	if (Inputp) {
-		if ((c = *Inputp++) != '\0')
+		if ((c = ZXC(*Inputp++)) != '\0')
 			return LastKeyStruck = c;
 		Inputp = NULL;
 	}
 
-	if (InJoverc)
-		return EOF;	/* somethings wrong if Inputp runs out while
-				   we're reading a .joverc file. */
+	if (InJoverc) {
+		/* somethings wrong if Inputp runs out while
+		   we're reading a .joverc file. */
+		complain("[command line too short]");
+	}
 
-#ifndef	MSDOS
+#ifdef RECOVER
 	if (ModCount >= SyncFreq) {
 		ModCount = 0;
 		SyncRec();
 	}
-#endif	/* MSDOS */
+#endif /* RECOVER */
 
-	/* If there are no ungetc'd characters,
-	   AND we're interactive or we're not executing a macro,
-	   we read from the terminal (i.e., jgetchar()).
-	   Note: characters only get put in macros from inside this if. */
-	if ((peekc = c = Peekc()) == EOF
-	&& (Interactive || (c = mac_getc()) == EOF))
-	{
-		/* So messages that aren't error messages don't
-		 * hang around forever.
-		 * Note: this code is duplicated in SitFor()!
-		 */
-		if (!UpdMesg && !Asking && mesgbuf[0] != '\0' && !errormsg)
-			message(NullStr);
-		redisplay();
-#ifdef	UNIX
-		inIOread = YES;
+	if ((c = peekchar) != EOF) {
+		/* got input from pushback */
+		peekchar = EOF;
+	} else {
+		if (!Interactive && (c = mac_getc()) != EOF) {
+			/* got input from macro */
+		} else {
+			/* So messages that aren't error messages don't
+			 * hang around forever.
+			 * Note: this code is duplicated in SitFor()!
+			 */
+			if (!UpdMesg && !Asking && mesgbuf[0] != '\0' && !errormsg)
+				message(NullStr);
+			redisplay();
+#ifdef UNIX
+			inIOread = YES;
 #endif
-		if ((c = jgetchar()) == EOF)
-			finish(SIGHUP);
-#ifdef	UNIX
-		inIOread = NO;
+			c = kbd_getch();
+#ifdef UNIX
+			inIOread = NO;
 #endif
-
-		if (!Interactive && InMacDefine)
-			mac_putc(c);
-	}
-	if (peekc == EOF)	/* don't add_stroke peekc's */
+			if (!Interactive && InMacDefine)
+				mac_putc(c);
+		}
 		add_stroke(c);
+	}
 	return LastKeyStruck = c;
 }
 
-#ifdef	UNIX
+#if defined(SUBSHELL) && defined(RECOVER)
 private void
 dorecover()
 {
+	char	Recover[FILESIZE];	/* path to recover program (in LibDir) */
+
 	/* Since recover is a normal cooked mode program, reset the terminal */
-	UnsetTerm(NullStr);
-#if	defined(IPROCS) && defined(PIPEPROCS)
+	UnsetTerm(NO);
+# ifdef PIPEPROCS
 	kbd_kill();		/* kill the keyboard process */
-#endif
-	execl(Recover, "recover", "-d", TmpFilePath, (char *) NULL);
+# endif
+	swritef(Recover, sizeof(Recover), "%s/recover", LibDir);
+	execl(Recover, "recover", "-d", TmpDir, (char *) NULL);
 	writef("%s: execl failed! %s\n", Recover, strerror(errno));
 	flushscreen();
 	_exit(-1);
 	/* NOTREACHED */
 }
-#endif	/* UNIX */
+#endif /* defined(SUBSHELL) && defined(RECOVER) */
 
 void
 ShowVersion()
@@ -1202,52 +1352,58 @@ char	*argv[];
 {
 	int	lineno = 0,
 		nwinds = 1;
+	char	*pattern = NULL;
 	Buffer	*b;
 
-	ShowVersion();
 	while (argc > 1) {
-		if (argv[1][0] != '-' && argv[1][0] != '+') {
-			bool	force = (nwinds > 0 || lineno != 0);
-
-#ifdef	MSDOS
-			strlwr(argv[1]);
-#endif
-			minib_add(argv[1], force);
-			b = do_find(nwinds > 0 ? curwind : (Window *) NULL,
-				    argv[1], force);
-			if (force) {
-				SetABuf(curbuf);
-				SetBuf(b);
-				if (lineno >= 0)
-					SetLine(next_line(curbuf->b_first, lineno));
-				else
-					SetLine(curbuf->b_last);
-				if (nwinds > 1)
-					NextWindow();
-				if (nwinds)
-					nwinds -= 1;
+		switch (argv[1][0]) {
+		case '+':
+			if ('0' <= argv[1][1] && argv[1][1] <= '9') {
+				(void) chr_to_int(&argv[1][1], 10, NO, &lineno);
+				break;
+			} else switch (argv[1][1]) {
+			case '\0':
+				/* goto end of file just like some people's favourite editor */
+				lineno = -1;
+				break;
+ 			case '/':	/* search for pattern */
+ 				/* check if syntax is +/pattern or +/ pattern */
+ 				if (argv[1][2] != 0) {
+ 					pattern = &argv[1][2];
+ 				} else {
+ 					argv += 1;
+ 					argc -= 1;
+ 					if (argv[1] != 0)
+ 						pattern = &argv[1][0];
+ 				}
+ 				break;
+ 			default:
+ 				error("Invalid switch %s",argv[1]);
+ 				break;
 			}
-			lineno = 0;
-		} else	switch (argv[1][1]) {
-			case 'd':
+			break;
+		case '-':
+			switch (argv[1][1]) {
+			case 'd':	/* Ignore current directory path */
+			case 'l':	/* Ignore libdir path */
+			case 's':	/* Ignore sharedir path */
 				argv += 1;
 				argc -= 1;
 				break;
 
-			case 'j':	/* Ignore .joverc in HOME */
+			case 'J':	/* Ignore jove.rc in SHAREDIR */
+			case 'j':	/* Ignore ~/.joverc */
 				break;
-#ifdef	SUBSHELL
-			case 'p':
+			case 'p':	/* parse errors in file */
 				argv += 1;
 				argc -= 1;
 				if (argv[1] != NULL) {
-					SetBuf(do_find(curwind, argv[1], NO));
+					SetBuf(do_find(curwind, argv[1], YES, YES));
 					ErrParse();
 					nwinds = 0;
 				}
 				break;
-#endif
-			case 't':
+			case 't':	/* find tag */
 				/* check if syntax is -tTag or -t Tag */
 				if (argv[1][2] != '\0') {
 					find_tag(&(argv[1][2]), YES);
@@ -1259,7 +1415,7 @@ char	*argv[];
 				}
 				break;
 
-			case 'w':
+			case 'w':	/* multiple windows */
 				if (argv[1][2] == '\0')
 					nwinds += 1;
 				else {
@@ -1270,30 +1426,53 @@ char	*argv[];
 				}
 				(void) div_wind(curwind, nwinds - 1);
 				break;
+ 			default:
+ 				error("Invalid switch %s",argv[1]);
+ 				break;
+			}
+			break;
+		default:
+			{
+			bool	force = (nwinds > 0 || lineno != 0 || pattern != NULL);
 
-			case '0':
-			case '1':
-			case '2':
-			case '3':
-			case '4':
-			case '5':
-			case '6':
-			case '7':
-			case '8':
-			case '9':
-				(void) chr_to_int(&argv[1][1], 10, NO, &lineno);
-				lineno -= 1;
-				break;
-			case '\0':
-				lineno = -1;	/* goto end of file ... */
-				break;		/* just like some people's */
-		}				/* favourite editor */
+#ifdef MSDOS
+			strlwr(argv[1]);
+#endif
+			minib_add(argv[1], force);
+			b = do_find(nwinds > 0 ? curwind : (Window *) NULL,
+				    argv[1], force, YES);
+			if (force) {
+				SetABuf(curbuf);
+				SetBuf(b);
+				if (lineno > 0)
+					SetLine(next_line(curbuf->b_first, lineno));
+				else if (lineno == -1)
+					SetLine(curbuf->b_last);
+				if (pattern != NULL) {
+					Bufpos	*bufp;
+
+					if ((bufp = dosearch(pattern, FORWARD, UseRE)) != NULL
+					|| (bufp = dosearch(pattern, BACKWARD, UseRE)) != NULL)
+						SetDot(bufp);
+					else
+						complain("Couldn't match pattern in file.");
+				}
+				if (nwinds > 1)
+					NextWindow();
+				if (nwinds > 0)
+					nwinds -= 1;
+			}
+			lineno = 0;
+			pattern = NULL;
+			}
+			break;
+		}
 		argv += 1;
 		argc -= 1;
 	}
 }
 
-#ifdef	STDARGS
+#ifdef STDARGS
 void
 error(const char *fmt, ...)
 #else
@@ -1315,7 +1494,7 @@ error(fmt, va_alist)
 	longjmp(mainjmp, ERROR);
 }
 
-#ifdef	STDARGS
+#ifdef STDARGS
 void
 complain(const char *fmt, ...)
 #else
@@ -1337,7 +1516,9 @@ complain(fmt, va_alist)
 	longjmp(mainjmp, COMPLAIN);
 }
 
-#ifdef	STDARGS
+/* format and display a message without using the normal display mechanisms */
+
+#ifdef STDARGS
 void
 raw_complain(const char *fmt, ...)
 #else
@@ -1347,17 +1528,17 @@ raw_complain(fmt, va_alist)
 	va_dcl
 #endif
 {
+	char	buf[MESG_SIZE];
 	va_list	ap;
 
-	if (fmt) {
-		va_init(ap, fmt);
-		format(mesgbuf, sizeof mesgbuf, fmt, ap);
-		va_end(ap);
-		write(2, (UnivConstPtr)mesgbuf, strlen(mesgbuf));
-	}
+	va_init(ap, fmt);
+	format(buf, sizeof(buf) - 2, fmt, ap);
+	va_end(ap);
+	strcat(buf, "\r\n");	/* \r *may* be redundant */
+	write(2, (UnivConstPtr)buf, strlen(buf));
 }
 
-#ifdef	STDARGS
+#ifdef STDARGS
 void
 confirm(const char *fmt, ...)
 #else
@@ -1389,7 +1570,7 @@ Recur()
 	Buffer	*b = curbuf;
 	Mark	*m;
 
-	m = MakeMark(curline, curchar, M_FLOATER);
+	m = MakeMark(curline, curchar);
 
 	RecDepth += 1;
 	UpdModLine = YES;
@@ -1405,10 +1586,6 @@ Recur()
 	DelMark(m);
 }
 
-#ifdef	MAC
-jmp_buf auxjmp;
-#endif
-
 private int	iniargc;	/* main sets these for DoKeys() */
 private char	**iniargv;
 
@@ -1416,7 +1593,6 @@ private void
 DoKeys(firsttime)
 bool	firsttime;
 {
-	int	c;
 	jmp_buf	savejmp;
 
 	push_env(savejmp);
@@ -1439,8 +1615,9 @@ bool	firsttime;
 				if (!yes_or_no_p("Some buffers haven't been saved; leave anyway? "))
 					break;
 			}
-#ifdef	IPROCS
-			KillProcs();
+#ifdef IPROCS
+			if (!KillProcs())
+				break;	/* user chickened out */
 #endif
 		}
 		pop_env(savejmp);
@@ -1462,10 +1639,20 @@ bool	firsttime;
 		}
 	}
 
+#ifdef SIGWINCH
+	/* Note: Under at least some versions of UNIX, the signal mask
+	 * is restored by a longjmp.  For this reason, the SigRelse must
+	 * be placed before the setjmp or on each path after it.
+	 * For some reason that I don't remember, we wish to process
+	 * the command line before releasing SIGWINCH, so we must do so
+	 * here, on all paths leading out of the setjmp.
+	 */
+	(void) SigRelse(SIGWINCH);
+#endif
 	this_cmd = last_cmd = OTHER_CMD;
 
 	for (;;) {
-#ifdef	MAC
+#ifdef MAC
 		setjmp(auxjmp);
 #endif
 		if (this_cmd != ARG_CMD) {
@@ -1473,14 +1660,12 @@ bool	firsttime;
 			last_cmd = this_cmd;
 			init_strokes();
 		}
-#ifdef	MAC
+#ifdef MAC
 		HiliteMenu(0);
 		EventCmd = NO;
 		menus_on();
 #endif
-		c = getch();
-		if (c != EOF)
-			dispatch(c);
+		dispatch(getch());
 	}
 }
 
@@ -1497,31 +1682,22 @@ register char	**args,
 	return NULL;
 }
 
-#ifdef	UNIX
-int	UpdFreq = 30,
-	inIOread = NO;
+#ifdef WINRESIZE
+
+# ifdef UNIX
+private jmp_buf winresizejmp;
 
 /*ARGSUSED*/
 private SIGRESTYPE
-updmode(junk)
-int	junk;	/* passed in on signal; of no interest */
+restart_win_reshape(junk)
+int	junk;	/* passed in when invoked by a signal; of no interest */
 {
-	int save_errno = errno;	/* Subtle, but necessary! */
-
-	UpdModLine = YES;
-	if (inIOread)
-		redisplay();
-#ifndef	BSD_SIGS
-	(void) signal(SIGALRM, updmode);
-#endif
-	if (UpdFreq != 0)
-		(void) alarm((unsigned) (UpdFreq - (time((time_t *)NULL) % UpdFreq)));
-	errno = save_errno;
-	return SIGRESVALUE;
+	longjmp(winresizejmp, 1);
+	/* NOTREACHED */
 }
-#endif	/* UNIX */
+# endif
 
-#ifdef	WINRESIZE
+/*ARGSUSED*/
 SIGRESTYPE
 win_reshape(junk)
 int	junk;	/* passed in when invoked by a signal; of no interest */
@@ -1531,9 +1707,25 @@ int	junk;	/* passed in when invoked by a signal; of no interest */
 	register int newsize, total;
 	register Window *wp;
 
-#ifdef	UNIX
-	(void) SigHold(SIGWINCH);
-#endif
+# ifdef UNIX
+	/*
+	 * Programs such as xjove (even shelltool) can generate a large
+	 * number of SIGWINCHes on startup.  It is important that we act on,
+	 * and do not miss, the last one.  We therefore arrange that each
+	 * SIGWINCH interrupts whatever its predecessor was doing, and
+	 * starts over.  However, we do not want to get interrupted whilst
+	 * adjusting the window sizes.  Neither do we want a redisplay()
+	 * caused by an updmode() triggered by a SIGALRM.
+	 */
+
+	setjmp(winresizejmp);	/* the start over point */
+
+	signal(SIGWINCH, restart_win_reshape);
+	(void) SigHold(SIGWINCH);	/* but don't allow recursive call just yet */
+	(void) SigHold(SIGALRM);
+	/* Note that a SigHold is ineffective on a signal that was going
+	   to be ignored anyway */
+# endif
 	/*
 	 * Save old number of lines.
 	 */
@@ -1572,40 +1764,98 @@ int	junk;	/* passed in when invoked by a signal; of no interest */
 		}
 	} while (wp != fwind);
 
-	curwind->w_height += LI - total - 1;
+	curwind->w_height += ILI - total;
 
 	/* Make a new screen structure */
 	make_scr();
+
+# ifdef UNIX
+	(void) SigRelse(SIGWINCH);
+# endif
 	/* Do a 'hard' update on the screen - clear and redraw */
 	cl_scr(YES);
 	flushscreen();
 	redisplay();
 
-#ifdef	UNIX
-	(void) SigRelse(SIGWINCH);
+# ifdef UNIX
 	(void) signal(SIGWINCH, win_reshape);
-#endif
+	(void) SigRelse(SIGALRM);
+# endif
 	errno = save_errno;
-	return SIGRESVALUE;
+	longjmp(mainjmp, COMPLAIN);		/* safer to start over after all that messing */
+	/* NOT REACHED */
 }
+#endif /* WINRESIZE */
+
+private bool
+carefulcpy(to, from, maxsize, mess, raw)
+char	*to,*from;
+size_t	maxsize;
+char	*mess;
+bool	raw;
+{
+	if (from != NULL) {
+		char	*ugh;
+
+		if (strlen(from) >= maxsize)
+			ugh = "too long";
+		else if (*from == '\0')
+			ugh = "empty";
+		else {
+			strcpy(to, from);
+			return YES;
+		}
+		if (raw) {
+			raw_complain("\r\n%s %s", mess, ugh);
+		} else {
+			swritef(mesgbuf, sizeof mesgbuf, "%s %s", mess, ugh);
+			message(mesgbuf);
+		}
+	}
+	return NO;
+}
+
+private void
+dojovercs(dosys, dousr)
+bool	dosys;
+bool	dousr;
+{
+	char	Joverc[FILESIZE];
+
+	if (dosys) {
+		swritef(Joverc, sizeof(Joverc), "%s/jove.rc", ShareDir);
+		(void) joverc(Joverc);	/* system wide jove.rc */
+	}
+
+	if (dousr) {
+#ifdef MSDOS
+		/* We don't want to run the same rc file twice */
+		if (!dosys || strcmp(HomeDir, ShareDir) != 0) {
+			swritef(Joverc, sizeof(Joverc), "%s/jove.rc", HomeDir);
+			(void) joverc(Joverc);	/* jove.rc in home directory */
+		}
+#else
+		swritef(Joverc, sizeof(Joverc), "%s/.joverc", HomeDir);
+		(void) joverc(Joverc);	/* .joverc in home directory */
 #endif
+	}
+}
 
 int
-#ifdef	MAC	/* will get args from user, if option key held during launch */
+#ifdef MAC	/* will get args from user, if option key held during launch */
 main()
 {
 	int argc;
 	char **argv;
-#else	/* !MAC */
+#else /* !MAC */
 main(argc, argv)
 int	argc;
 char	*argv[];
 {
-#endif	/* !MAC */
-	char	*cp;
-	char	ttbuf[MAXTTYBUF];
-#ifdef	pdp11
-	/* On the PDP-11, UNIX allocates at least 8K.
+#endif /* !MAC */
+	char	**argp;
+#ifdef pdp11
+	/* On the PDP-11, UNIX allocates at least 8K for the stack.
 	 * In order not to waste this space, we allocate
 	 * a bunch of buffers as autos.
 	 */
@@ -1619,147 +1869,177 @@ char	*argv[];
 	linebuf = s_linebuf;
 #endif
 
-#ifdef	MAC
+#ifdef MAC
 	MacInit();		/* initializes all */
 	argc = getArgs(&argv);
-#endif	/* MAC */
+#endif /* MAC */
+
+#if defined(__WATCOMC__) && defined(FAR_LINES)
+	/* Watcom C under DOS won't grow the near heap after any far
+	 * allocation, so we must bump it up to the full 64K now.
+	 */
+	_heapgrow();
+#endif
 
 	iniargc = argc;
 	iniargv = argv;
 
 	if (setjmp(mainjmp)) {
 		writef("\rAck! I can't deal with error \"%s\" now.\n\r", mesgbuf);
-		finish(SIGTERM);	/* some bad signal (not SIGHUP) */
+		finish(-1);
 	}
 
-#ifdef	MSDOS
-	/* import the temporary file path from the environment and
-	   fix the string, so that we can append a slash safely	*/
-
-	if (((cp = getenv("TMPDIR"))!=NULL || (cp = getenv("TEMP"))!=NULL)
-	&& (*cp != '\0'))
-	{
-		strcpy(TmpFilePath, cp);
-		cp = &TmpFilePath[strlen(TmpFilePath)-1];
-		if ((*cp == '/') || (*cp == '\\'))
-			*cp = '\0';
-	}
-	ShFlags[0] = switchar();
-#endif	/* MSDOS */
+#if defined(USE_CTYPE) && !defined(NO_SETLOCALE)
+	/* make ctype reflect "native environment" */
+	locale_adjust();
+#endif
 
 	getTERM();	/* Get terminal. */
 	if (getenv("METAKEY"))
 		MetaKey = YES;
+	ttysetattr(YES);
 	ttsize();
-#ifdef	MAC
+
+#ifdef UNIX
+# ifdef WINRESIZE
+	(void) signal(SIGWINCH, win_reshape);
+	(void) SigHold(SIGWINCH);	/* we must not miss any, but we cannot
+					   handle them until DoKeys */
+# endif
+#endif
+
+#ifdef MAC
 	InitEvents();
-#else
-	InitCM();
 #endif
 
 	d_cache_init();		/* initialize the disk buffer cache */
-#ifdef	SUBSHELL
-# ifdef	MSDOS
-	if ((cp = getenv("COMSPEC"))!=NULL && (*cp != '\0')) {
-		strcpy(Shell, cp);
-	}
-# else	/* !MSDOS */
-	if ((cp = getenv("SHELL"))!=NULL && (*cp != '\0')) {
-		strcpy(Shell, cp);
-	}
-# endif	/* !MSDOS */
-#endif /* SUBSHELL */
-#ifdef MSDOS
-	if ((cp = getenv("DESCRIBE"))!=NULL && (*cp != '\0'))
-	   strcpy(CmdDb, cp);
-#endif
 
 	make_scr();
 	mac_init();	/* Initialize Macros */
 	winit();	/* Initialize Window */
-#if	defined(IPROCS) && defined(PTYPROCS)
+#ifdef PTYPROCS
 # ifdef SIGCHLD
-	(void) signal(SIGCHLD, proc_child);
+	(void) signal(SIGCHLD, sigchld_handler);
 # endif
 #endif
-#ifdef	USE_SELECT
+#ifdef USE_SELECT
 	FD_ZERO(&global_fd);
 	FD_SET(0, &global_fd);
 	global_maxfd = 1;
 #endif
 	buf_init();
 
-	{
-		char	**argp;
-
-		if ((argp = scanvec(argv, "-d"))!=NULL
-#ifdef	UNIX
-		&& chkCWD(argp[1])
-#endif
-		)
-			setCWD(argp[1]);
-		else
-			getCWD();	/* After we setup curbuf in case we have to getwd() */
-	}
+	if ((argp = scanvec(argv, "-d")) != NULL && chkCWD(argp[1]))
+		setCWD(argp[1]);
+	else
+		getCWD();	/* After we setup curbuf in case we have to getwd() */
 
 	HomeDir = getenv("HOME");
-	if (HomeDir == NULL)
+	if (HomeDir == NULL) {
+#ifdef MSDOS
+		HomeDir = copystr(pwd());	/* guess at current (initial) directory */
+#else
 		HomeDir = "/";
-	HomeLen = strlen(HomeDir);
-
-#ifdef	UNIX
-	if ((cp = getenv("MAIL")) != NULL && strlen(cp) < (size_t)FILESIZE) {
-		strcpy(Mailbox, cp);
-	}
 #endif
+	}
+	HomeLen = strlen(HomeDir);
 
 	InitKeymaps();
 
-	ttinit();	/* initialize terminal (before ~/.joverc) */
-	settout(ttbuf);	/* not until we know baudrate */
-	ResetTerm();
+	settout();	/* not until we know baudrate */
+	SetTerm();
 
-	(void) joverc(Joverc);			/* system wide .joverc */
-	cp = NULL;
-#ifndef	MAC
-	/* If a JOVERC environment variable is set, then use that instead */
-	if ((cp = getenv("JOVERC"))!=NULL && (*cp != '\0'))
-	   (void) joverc(cp);
-#endif	/* !MAC */
-	if (!scanvec(argv, "-j") && (!cp || *cp == '\0')) {
-		char	tmpbuf[FILESIZE];
+	/* Handle overrides for ShareDir and LibDir.
+	 * We take care to use the last specification.
+	 * Even if we don't use LibDir, we accept it.
+	 */
+	 {
+		char
+			*so = getenv("JOVESHARE");
+#ifdef NEED_LIBDIR
+		char
+			*lo = getenv("JOVELIB");
+#endif
 
-		swritef(tmpbuf, sizeof(tmpbuf), "%s/.joverc", HomeDir);
-		(void) joverc(tmpbuf);		/* .joverc in home directory */
+		for (argp = argv; argp[0] != NULL && argp[1] != NULL; argp++) {
+			if (strcmp(*argp, "-s") == 0)
+				so = *++argp;
+#ifdef NEED_LIBDIR
+			else if (strcmp(*argp, "-l") == 0)
+				lo = *++argp;
+			else if (strcmp(*argp, "-ls") == 0 || strcmp(*argp, "-sl") == 0)
+				lo = so = *++argp;
+#endif
+		}
+		if (so != NULL)
+			if (!carefulcpy(ShareDir, so, sizeof(ShareDir)-9, "ShareDir", YES))
+				finish(0);
+#ifdef NEED_LIBDIR
+		if (lo != NULL)
+			if (!carefulcpy(LibDir, lo, sizeof(LibDir)-9, "LibDir", YES))
+				finish(0);
+# ifdef PIPEPROCS
+		swritef(Portsrv, sizeof(Portsrv), "%s/portsrv", LibDir);
+# endif
+#endif /* NEED_LIBDIR */
 	}
 
-#ifndef	MSDOS
-	if (scanvec(argv, "-r"))
-		dorecover();
-	if (scanvec(argv, "-rc"))
-		FullRecover();
-#endif	/* MSDOS */
+	ShowVersion();	/* but the 'carefulcpy's which follow might overwrite it */
 
-#ifdef	MSDOS
+#ifdef MSDOS
+	/* import the temporary file path from the environment
+	   and fix the string, so that we can append a slash
+	   safely	*/
+	{
+		char	*cp;
+
+		if (((cp = getenv("TMPDIR"))!=NULL || (cp = getenv("TEMP"))!=NULL)
+		&& carefulcpy(TmpDir, cp, sizeof(TmpDir), "TMPDIR or TEMP", NO))
+		{
+			cp = &TmpDir[strlen(TmpDir)];
+			while (cp != TmpDir && (*--cp == '/' || *cp == '\\'))
+				*cp = '\0';
+		}
+	}
+#endif /* MSDOS */
+
+#ifdef SUBSHELL
+# ifdef MSDOS
+	carefulcpy(Shell, getenv("COMSPEC"), sizeof(Shell), "COMSPEC", NO);
+	/* SHELL, if present in DOS environment, will take precedence over COMSPEC */
+# endif /* MSDOS */
+	carefulcpy(Shell, getenv("SHELL"), sizeof(Shell), "SHELL", NO);
+#endif /* SUBSHELL */
+
+#ifdef UNIX
+	carefulcpy(Mailbox, getenv("MAIL"), sizeof(Mailbox), "MAIL", NO);
+#endif
+
+	dojovercs(scanvec(argv, "-J") == NULL, scanvec(argv, "-j") == NULL);
+
+#if defined(SUBSHELL) && defined(RECOVER)
+	if (scanvec(argv, "-r") != NULL)
+		dorecover();
+#endif
+
+#ifdef MSDOS
 	(void) signal(SIGINT, SIG_IGN);
 	break_off();	/* disable ctrl-c checking */
-#endif	/* MSDOS */
-#ifdef	UNIX
+#endif /* MSDOS */
+#ifdef UNIX
+# ifndef DEBUGCRASH
 	(void) signal(SIGHUP, finish);
 	(void) signal(SIGINT, finish);
+#  ifdef SIGBUS
 	(void) signal(SIGBUS, finish);
+#  endif /* SIGBUS */
 	(void) signal(SIGSEGV, finish);
 	(void) signal(SIGPIPE, finish);
 	/* ??? Why should we ignore SIGTERM? */
 	/* (void) signal(SIGTERM, SIG_IGN); */
-# ifdef	WINRESIZE
-	(void) signal(SIGWINCH, win_reshape);
-# endif
-	/* set things up to update the modeline every UpdFreq seconds */
-	(void) signal(SIGALRM, updmode);
-	if (UpdFreq != 0)
-		(void) alarm((unsigned) (UpdFreq - (time((time_t *)NULL) % UpdFreq)));
-#endif	/* UNIX */
+# endif /* DEBUGCRASH */
+	SetClockAlarm();
+#endif /* UNIX */
 	cl_scr(YES);
 	flushscreen();
 	RedrawDisplay();	/* start the redisplay process. */
@@ -1768,25 +2048,7 @@ char	*argv[];
 	/* NOTREACHED*/
 }
 
-#ifdef	MSDOS
-
-/* ??? how many of these includes are redundant? */
-
-#include <dos.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-
-/* ??? Set the DOS path separator character to '/' from '\\' */
-private char
-switchar()
-{
-  union REGS regs;
-
-  regs.h.ah = 0x37;
-  regs.h.al = 0;
-  intdos(&regs, &regs);
-  return regs.h.dl;
-}
+#ifdef MSDOS
 
 private	char break_state;
 
@@ -1809,4 +2071,4 @@ break_rst()
 {
 	bdos(0x33, break_state, 1);
 }
-#endif
+#endif /* MSDOS */

@@ -1,26 +1,27 @@
-/***************************************************************************
- * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
- * is provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is    *
- * included in all the files.                                              *
- ***************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 /* Routines to perform all kinds of deletion.  */
 
 #include "jove.h"
+#include "jctype.h"
 #include "disp.h"
 #include "delete.h"
 #include "insert.h"
 #include "marks.h"
 #include "move.h"
 
-/* Assumes that either line1 or line2 is actual the current line, so it can
+/* Assumes that either line1 or line2 is actually the current line, so it can
    put its result into linebuf. */
 
 private void
 patchup(line1, char1, line2, char2)
-Line	*line1,
-	*line2;
+LinePtr	line1,
+	line2;
 register int	char1,
 		char2;
 {
@@ -42,14 +43,14 @@ register int	char1,
    and patching things up.  The unlinked lines are still in
    order.  */
 
-Line *
+LinePtr
 reg_delete(line1, char1, line2, char2)
-Line	*line1,
-	*line2;
+LinePtr	line1,
+	line2;
 int	char1,
 	char2;
 {
-	register Line	*retline;
+	register LinePtr	retline;
 
 	if ((line1 == line2 && char1 == char2) || line2 == NULL)
 		complain((char *)NULL);
@@ -89,10 +90,10 @@ int	char1,
 
 private void
 lremove(line1, line2)
-register Line	*line1,
-		*line2;
+register LinePtr	line1,
+		line2;
 {
-	Line	*next = line1->l_next;
+	LinePtr	next = line1->l_next;
 
 	if (line1 == line2)
 		return;
@@ -141,8 +142,8 @@ DelPChar()
 void
 del_char(dir, num, OK_kill)
 int	dir,
-	num,
-	OK_kill;
+	num;
+bool	OK_kill;
 {
 	Bufpos	before,
 		after;
@@ -165,21 +166,64 @@ int	dir,
 	}
 }
 
+/* The kill ring.
+ * Newest entry is at killptr; second newest is at killptr-1, etc.
+ * All empty slots are at the end of the array.
+ */
+
+LinePtr	killbuf[NUMKILLS];
+int	killptr = 0;	/* index of newest entry (if any) */
+
+void
+DelKillRing()	/* delete newest entry */
+{
+	int	i;
+
+	lfreelist(killbuf[killptr]);	/* free entry */
+
+	/* move space to end */
+	for (i = killptr; i != NUMKILLS-1; i++)
+		killbuf[i] = killbuf[i+1];
+	killbuf[i] = NULL;
+
+	/* make killptr index predecessor (if any) */
+	killptr = (killptr + NUMKILLS - 1) % NUMKILLS;
+	while (killbuf[killptr] == NULL && killptr != 0)
+		killptr -= 1;
+}
+
+private void
+AddKillRing(text)	/* add a new entry */
+LinePtr	text;
+{
+	if (killbuf[killptr] != NULL) {
+		killptr = (killptr +1) % NUMKILLS;
+		if (killbuf[NUMKILLS-1] == NULL) {
+			/* there is space: move one slot here */
+			int	i;
+
+			for (i = NUMKILLS-1; i != killptr; i--)
+				killbuf[i] = killbuf[i-1];
+		} else {
+			/* no free slots: delete oldest element */
+			lfreelist(killbuf[killptr]);
+		}
+	}
+	killbuf[killptr] = text;
+}
+
 /* This kills a region between point, and line1/char1 and puts it on
    the kill-ring.  If the last command was one of the kill commands,
    the region is appended (prepended if backwards) to the last entry.  */
 
-int	killptr = 0;
-Line	*killbuf[NUMKILLS];
-
 void
 reg_kill(line2, char2, dot_moved)
-Line	*line2;
+LinePtr	line2;
 int	char2;
 bool	dot_moved;
 {
-	Line	*nl,
-		*line1 = curline;
+	LinePtr	nl,
+		line1 = curline;
 	int	char1 = curchar;
 	bool	backwards;
 
@@ -198,16 +242,14 @@ bool	dot_moved;
 	nl = reg_delete(line1, char1, line2, char2);
 
 	if (last_cmd != KILLCMD) {
-		killptr = ((killptr + 1) % NUMKILLS);
-		lfreelist(killbuf[killptr]);
-		killbuf[killptr] = nl;
+		AddKillRing(nl);
 	} else {
-		Line	*lastln = lastline(nl);
+		LinePtr	lastln = lastline(nl);
 
 		if (backwards) {
 			(void) DoYank(nl, 0, lastln, length(lastln), killbuf[killptr], 0, (Buffer *)NULL);
 		} else {
-			Line	*olastln = lastline(killbuf[killptr]);
+			LinePtr	olastln = lastline(killbuf[killptr]);
 
 			(void) DoYank(nl, 0, lastln, length(lastln), olastln, length(olastln), (Buffer *)NULL);
 		}
@@ -228,7 +270,7 @@ DelReg()
 void
 CopyRegion()
 {
-	register Line	*nl;
+	register LinePtr	nl;
 	register Mark	*mp;
 	register int	status;
 
@@ -236,10 +278,8 @@ CopyRegion()
 	if (mp->m_line == curline && mp->m_char == curchar)
 		complain((char *)NULL);
 
-	killptr = ((killptr + 1) % NUMKILLS);
-	if (killbuf[killptr])
-		lfreelist(killbuf[killptr]);
-	nl = killbuf[killptr] = nbufline();
+	nl = nbufline();
+	AddKillRing(nl);
 	SavLine(nl, NullStr);
 	nl->l_next = nl->l_prev = NULL;
 
@@ -261,9 +301,9 @@ DelWtSpace()
 	register char	*ep = &linebuf[curchar],
 			*sp = &linebuf[curchar];
 
-	while (*ep == ' ' || *ep == '\t')
+	while (jiswhite(*ep))
 		ep += 1;
-	while (sp > linebuf && (sp[-1] == ' ' || sp[-1] == '\t'))
+	while (sp > linebuf && jiswhite(sp[-1]))
 		sp -= 1;
 	if (sp != ep) {
 		curchar = sp - linebuf;
@@ -282,7 +322,7 @@ DelBlnkLines()
 
 	if (!blnkp(&linebuf[curchar]))
 		return;
-	dot = MakeMark(curline, curchar, M_FLOATER);
+	dot = MakeMark(curline, curchar);
 	all = !blnkp(linebuf);
 	while (blnkp(linebuf) && curline->l_prev)
 		SetLine(curline->l_prev);

@@ -1,12 +1,12 @@
-/***************************************************************************
- * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
- * is provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is    *
- * included in all the files.                                              *
- ***************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 extern void
-	find_tag proto((char *tag,int localp));
+	find_tag proto((char *tag,bool localp));
 
 /* Commands: */
 
@@ -25,6 +25,6 @@ extern void
 
 /* Variables: */
 
-extern int	SExitChar;		/* type this to stop i-search */
-extern char	TagFile[FILESIZE];		/* default tag file */
-extern bool	UseRE;			/* use regular expressions in search */
+extern ZXchar	SExitChar;		/* VAR: type this to stop i-search */
+extern char	TagFile[FILESIZE];	/* VAR: default tag file */
+extern bool	UseRE;			/* VAR: use regular expressions in search */

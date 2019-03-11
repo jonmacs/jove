@@ -1,14 +1,35 @@
-/***************************************************************************
- * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
- * is provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is    *
- * included in all the files.                                              *
- ***************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
+
+#ifdef HIGHLIGHTING
+
+typedef struct LErange {
+	unsigned
+		start,	/* starting column for highlighting */
+		width;	/* width of highlighting */
+	void (*norm) ptrproto((bool));
+	void (*high) ptrproto((bool));
+} *LineEffects;
+
+#define	NOEFFECT	((LineEffects) NULL)
+extern void US_effect proto((bool));
+
+#else /* !HIGHLIGHTING */
+
+typedef bool	LineEffects;	/* standout or not */
+#define	NOEFFECT	NO
+
+#endif /* !HIGHLIGHTING */
 
 struct screenline {
 	char
 		*s_line,
 		*s_roof;	/* character after last */
+	LineEffects s_effects;
 };
 
 extern struct screenline
@@ -18,8 +39,6 @@ extern struct screenline
 extern char *cursend;
 
 extern int
-	i_line,
-	i_col,
 	AbortCnt,
 
 	CapLine,	/* cursor line and cursor column */
@@ -27,7 +46,10 @@ extern int
 
 extern bool
 	BufSwrite proto((int linenum)),
-	swrite proto((char *line,bool inversep,bool abortable));
+	swrite proto((char *line, LineEffects hl, bool abortable));
+
+extern LineEffects
+	WindowRange proto((Window *w));
 
 extern void
 	Placur proto((int line,int col)),
@@ -38,16 +60,11 @@ extern void
 	make_scr proto((void)),
 	v_ins_line proto ((int num, int top, int bottom)),
 	v_del_line proto ((int num, int top, int bottom)),
-	InitCM proto((void)),
-	SO_off proto((void)),
-	SO_on proto((void));
+	SO_effect proto((bool)),
+	SO_off proto((void));
 
 #define	TABDIST(col)	(tabstop - (col)%tabstop)	/* cols to next tabstop */
 
 /* Variables: */
 
-#ifndef	MAC
-extern int	phystab;		/* terminal's tabstop settings */
-#endif
-
-extern int	tabstop;		/* expand tabs to this number of spaces */
+extern int	tabstop;		/* VAR: expand tabs to this number of spaces */

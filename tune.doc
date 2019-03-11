@@ -1,5 +1,5 @@
 Here's a list of the compile time options and what they mean.  All options
-except LOAD_AV are turned ON in the distributed version of Jove.
+are turned ON in the distributed version of Jove.
 
 ABBREV		Enables word-abbrev-mode which again is nice for paper writers.
 
@@ -32,17 +32,16 @@ IPROCS		Nice feature which lets you run interactive UNIX commands in
 		this one is hard even within Unix systems -- non-Unix systems
 		may not want to even try supporting this.
 
-LOAD_AV		Enables the display of load average on the mode line, and
-		cute messages when shell commands get run.  OFF in the
-		default config, because most systems don't have an
-		easy way for non-root (or kmem) users to get load av.
-
 LISP		Enables Lisp Mode.  This includes code to indent "properly"
 		for Lisp code and new routines to move over s-expressions.
 		You probably won't want (or need) this on PDP-11's.
 
+RECOVER		Enables code to support recovery of data from crashed JOVE
+		sessions.
+
 SPELL		Enables the spell-buffer and parse-spelling-errors commands.
 		They are nice especially if you have lots of paper writers.
+		Requires SUBSHELL (to run spell program).
 
 SUBSHELL	Enables various uses of sub-shells (eg. push-shell,
 		filter-region, shell-command-to-buffer) Somewhat easier to

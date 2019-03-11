@@ -1,17 +1,17 @@
-/***************************************************************************
- * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
- * is provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is    *
- * included in all the files.                                              *
- ***************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 /* This file is #included by commands.c and setmaps.c */
 
-#ifdef	MAC
+#ifdef MAC
 #	define WIRED_CMD(c) PROC(c),'\0','\0'	/* for About Jove... */
 #else
 #	define WIRED_CMD(c)	PROC(c)
-#endif	/* MAC */
+#endif /* MAC */
 
 /* Table of commands
  *
@@ -19,293 +19,302 @@
  */
 
 const struct cmd	commands[] = {
-#ifdef	LISP
-	{ FUNCTION, "add-lisp-special", WIRED_CMD(AddSpecial) },
+#ifdef LISP
+	{ COMMAND, "add-lisp-special", WIRED_CMD(AddSpecial) },
 #endif
-	{ FUNCTION, "append-region", WIRED_CMD(AppReg) },
-	{ FUNCTION, "apropos", WIRED_CMD(Apropos) },
-	{ FUNCTION, "auto-execute-command", WIRED_CMD(CAutoExec) },
-	{ FUNCTION, "auto-execute-macro", WIRED_CMD(MAutoExec) },
+	{ COMMAND, "append-region", WIRED_CMD(AppReg) },
+	{ COMMAND, "apropos", WIRED_CMD(Apropos) },
+	{ COMMAND, "auto-execute-command", WIRED_CMD(CAutoExec) },
+	{ COMMAND, "auto-execute-macro", WIRED_CMD(MAutoExec) },
 	{ DefMinor(Fill), "auto-fill-mode", WIRED_CMD(NULL) },
 	{ DefMinor(Indent), "auto-indent-mode", WIRED_CMD(NULL) },
-	{ FUNCTION, "backward-character", WIRED_CMD(BackChar) },
-	{ FUNCTION, "backward-list", WIRED_CMD(BList) },
-	{ FUNCTION, "backward-paragraph", WIRED_CMD(BackPara) },
-	{ FUNCTION, "backward-s-expression", WIRED_CMD(BSexpr) },
-	{ FUNCTION, "backward-sentence", WIRED_CMD(Bos) },
-	{ FUNCTION, "backward-up-list", WIRED_CMD(BUpList) },
-	{ FUNCTION, "backward-word", WIRED_CMD(BackWord) },
-	{ FUNCTION, "begin-kbd-macro", WIRED_CMD(Remember) },
-	{ FUNCTION, "beginning-of-file", WIRED_CMD(Bof) },
-	{ FUNCTION, "beginning-of-line", WIRED_CMD(Bol) },
-	{ FUNCTION, "beginning-of-window", WIRED_CMD(Bow) },
-	{ FUNCTION, "bind-keymap-to-key", WIRED_CMD(KmBind) },
-	{ FUNCTION, "bind-macro-to-key", WIRED_CMD(BindMac) },
-#ifdef	ABBREV
-	{ FUNCTION, "bind-macro-to-word-abbrev", WIRED_CMD(BindMtoW) },
+	{ COMMAND, "backward-character", WIRED_CMD(BackChar) },
+	{ COMMAND, "backward-list", WIRED_CMD(BList) },
+	{ COMMAND, "backward-paragraph", WIRED_CMD(BackPara) },
+	{ COMMAND, "backward-s-expression", WIRED_CMD(BSexpr) },
+	{ COMMAND, "backward-sentence", WIRED_CMD(Bos) },
+	{ COMMAND, "backward-up-list", WIRED_CMD(BUpList) },
+	{ COMMAND, "backward-word", WIRED_CMD(BackWord) },
+	{ COMMAND, "begin-kbd-macro", WIRED_CMD(Remember) },
+	{ COMMAND, "beginning-of-file", WIRED_CMD(Bof) },
+	{ COMMAND, "beginning-of-line", WIRED_CMD(Bol) },
+	{ COMMAND, "beginning-of-window", WIRED_CMD(Bow) },
+	{ COMMAND, "bind-keymap-to-key", WIRED_CMD(BindMap) },
+	{ COMMAND, "bind-macro-to-key", WIRED_CMD(BindMac) },
+#ifdef ABBREV
+	{ COMMAND, "bind-macro-to-word-abbrev", WIRED_CMD(BindMtoW) },
 #endif
-	{ FUNCTION, "bind-to-key", WIRED_CMD(BindAKey) },
-	{ FUNCTION, "buffer-position", WIRED_CMD(BufPos) },
+	{ COMMAND, "bind-to-key", WIRED_CMD(BindAKey) },
+	{ COMMAND, "buffer-position", WIRED_CMD(BufPos) },
 	{ DefMajor(CMODE), "c-mode", WIRED_CMD(NULL) },
-	{ MODFUNC, "case-character-capitalize", WIRED_CMD(CapChar) },
-	{ MODFUNC, "case-region-lower", WIRED_CMD(CasRegLower) },
-	{ MODFUNC, "case-region-upper", WIRED_CMD(CasRegUpper) },
-	{ MODFUNC, "case-word-capitalize", WIRED_CMD(CapWord) },
-	{ MODFUNC, "case-word-lower", WIRED_CMD(LowWord) },
-	{ MODFUNC, "case-word-upper", WIRED_CMD(UppWord) },
-	{ FUNCTION, "cd", WIRED_CMD(Chdir) },
-	{ MODFUNC, "character-to-octal-insert", WIRED_CMD(ChrToOct) },
-	{ FUNCTION, "clear-and-redraw", WIRED_CMD(ClAndRedraw) },
-#ifdef	SUBSHELL
-	{ FUNCTION, "compile-it", WIRED_CMD(MakeErrors) },
+	{ MODCMD, "case-character-capitalize", WIRED_CMD(CapChar) },
+	{ MODCMD, "case-region-lower", WIRED_CMD(CasRegLower) },
+	{ MODCMD, "case-region-upper", WIRED_CMD(CasRegUpper) },
+	{ MODCMD, "case-word-capitalize", WIRED_CMD(CapWord) },
+	{ MODCMD, "case-word-lower", WIRED_CMD(LowWord) },
+	{ MODCMD, "case-word-upper", WIRED_CMD(UppWord) },
+	{ COMMAND, "cd", WIRED_CMD(Chdir) },
+	{ MODCMD, "character-to-octal-insert", WIRED_CMD(ChrToOct) },
+	{ COMMAND, "clear-and-redraw", WIRED_CMD(ClAndRedraw) },
+#ifdef SUBSHELL
+	{ COMMAND, "compile-it", WIRED_CMD(MakeErrors) },
 #endif
-#ifdef	PTYPROCS
-	{ FUNCTION, "continue-process", WIRED_CMD(ProcCont) },
+#ifdef PTYPROCS
+	{ COMMAND, "continue-process", WIRED_CMD(ProcCont) },
 #endif
-	{ FUNCTION, "copy-region", WIRED_CMD(CopyRegion) },
-	{ FUNCTION, "current-error", WIRED_CMD(ShowErr) },
-	{ FUNCTION, "date", WIRED_CMD(prCTIME) },
-#ifdef	ABBREV
-	{ FUNCTION, "define-global-word-abbrev", WIRED_CMD(DefGAbbrev) },
+	{ COMMAND, "copy-region", WIRED_CMD(CopyRegion) },
+	{ COMMAND, "current-error", WIRED_CMD(ShowErr) },
+	{ COMMAND, "date", WIRED_CMD(prCTIME) },
+#ifdef ABBREV
+	{ COMMAND, "define-global-word-abbrev", WIRED_CMD(DefGAbbrev) },
 #endif
-	{ FUNCTION, "define-macro", WIRED_CMD(DefKBDMac) },
-#ifdef	ABBREV
-	{ FUNCTION, "define-mode-word-abbrev", WIRED_CMD(DefMAbbrev) },
+	{ COMMAND, "define-macro", WIRED_CMD(DefKBDMac) },
+#ifdef ABBREV
+	{ COMMAND, "define-mode-word-abbrev", WIRED_CMD(DefMAbbrev) },
 #endif
-	{ MODFUNC, "delete-blank-lines", WIRED_CMD(DelBlnkLines) },
-	{ FUNCTION, "delete-buffer", WIRED_CMD(BufKill) },
-	{ FUNCTION, "delete-current-window", WIRED_CMD(DelCurWindow) },
-	{ FUNCTION, "delete-macro", WIRED_CMD(DelMacro) },
-	{ MODFUNC, "delete-next-character", WIRED_CMD(DelNChar) },
-	{ FUNCTION, "delete-other-windows", WIRED_CMD(OneWindow) },
-	{ MODFUNC, "delete-previous-character", WIRED_CMD(DelPChar) },
-	{ MODFUNC, "delete-white-space", WIRED_CMD(DelWtSpace) },
-	{ FUNCTION, "describe-bindings", WIRED_CMD(DescBindings) },
-	{ FUNCTION, "describe-command", WIRED_CMD(DescCom) },
-	{ FUNCTION, "describe-key", WIRED_CMD(KeyDesc) },
-	{ FUNCTION, "describe-variable", WIRED_CMD(DescVar) },
-	{ FUNCTION, "digit-0", WIRED_CMD(Digit0) },
-	{ FUNCTION, "digit-1", WIRED_CMD(Digit1) },
-	{ FUNCTION, "digit-2", WIRED_CMD(Digit2) },
-	{ FUNCTION, "digit-3", WIRED_CMD(Digit3) },
-	{ FUNCTION, "digit-4", WIRED_CMD(Digit4) },
-	{ FUNCTION, "digit-5", WIRED_CMD(Digit5) },
-	{ FUNCTION, "digit-6", WIRED_CMD(Digit6) },
-	{ FUNCTION, "digit-7", WIRED_CMD(Digit7) },
-	{ FUNCTION, "digit-8", WIRED_CMD(Digit8) },
-	{ FUNCTION, "digit-9", WIRED_CMD(Digit9) },
-	{ FUNCTION, "digit-minus", WIRED_CMD(DigitMinus) },
-	{ FUNCTION, "dirs", WIRED_CMD(prDIRS) },
-	{ FUNCTION, "down-list", WIRED_CMD(FDownList) },
-#ifdef	PTYPROCS
-	{ FUNCTION, "dstop-process", WIRED_CMD(ProcDStop) },
+	{ MODCMD, "delete-blank-lines", WIRED_CMD(DelBlnkLines) },
+	{ COMMAND, "delete-buffer", WIRED_CMD(BufKill) },
+	{ COMMAND, "delete-current-window", WIRED_CMD(DelCurWindow) },
+	{ MODCMD, "delete-next-character", WIRED_CMD(DelNChar) },
+	{ COMMAND, "delete-other-windows", WIRED_CMD(OneWindow) },
+	{ MODCMD, "delete-previous-character", WIRED_CMD(DelPChar) },
+	{ MODCMD, "delete-white-space", WIRED_CMD(DelWtSpace) },
+	{ COMMAND, "describe-bindings", WIRED_CMD(DescBindings) },
+	{ COMMAND, "describe-command", WIRED_CMD(DescCom) },
+	{ COMMAND, "describe-key", WIRED_CMD(KeyDesc) },
+	{ COMMAND, "describe-variable", WIRED_CMD(DescVar) },
+	{ COMMAND, "digit", WIRED_CMD(Digit) },
+	{ COMMAND, "digit-0", WIRED_CMD(Digit0) },
+	{ COMMAND, "digit-1", WIRED_CMD(Digit1) },
+	{ COMMAND, "digit-2", WIRED_CMD(Digit2) },
+	{ COMMAND, "digit-3", WIRED_CMD(Digit3) },
+	{ COMMAND, "digit-4", WIRED_CMD(Digit4) },
+	{ COMMAND, "digit-5", WIRED_CMD(Digit5) },
+	{ COMMAND, "digit-6", WIRED_CMD(Digit6) },
+	{ COMMAND, "digit-7", WIRED_CMD(Digit7) },
+	{ COMMAND, "digit-8", WIRED_CMD(Digit8) },
+	{ COMMAND, "digit-9", WIRED_CMD(Digit9) },
+	{ COMMAND, "digit-minus", WIRED_CMD(DigitMinus) },
+	{ COMMAND, "dirs", WIRED_CMD(prDIRS) },
+	{ COMMAND, "down-list", WIRED_CMD(FDownList) },
+#ifdef PTYPROCS
+	{ COMMAND, "dstop-process", WIRED_CMD(ProcDStop) },
 #endif
-#ifdef	ABBREV
-	{ FUNCTION, "edit-word-abbrevs", WIRED_CMD(EditAbbrevs) },
+#ifdef ABBREV
+	{ COMMAND, "edit-word-abbrevs", WIRED_CMD(EditAbbrevs) },
 #endif
-	{ FUNCTION, "end-kbd-macro", WIRED_CMD(Forget) },
-	{ FUNCTION, "end-of-file", WIRED_CMD(Eof) },
-	{ FUNCTION, "end-of-line", WIRED_CMD(Eol) },
-	{ FUNCTION, "end-of-window", WIRED_CMD(Eow) },
-#ifdef	PTYPROCS
-	{ FUNCTION, "eof-process", WIRED_CMD(ProcEof) },
+	{ COMMAND, "end-kbd-macro", WIRED_CMD(Forget) },
+	{ COMMAND, "end-of-file", WIRED_CMD(Eof) },
+	{ COMMAND, "end-of-line", WIRED_CMD(Eol) },
+	{ COMMAND, "end-of-window", WIRED_CMD(Eow) },
+#ifdef PTYPROCS
+	{ COMMAND, "eof-process", WIRED_CMD(ProcEof) },
 #endif
-	{ FUNCTION, "erase-buffer", WIRED_CMD(BufErase) },
-	{ FUNCTION, "exchange-point-and-mark", WIRED_CMD(PtToMark) },
-	{ FUNCTION, "execute-kbd-macro", WIRED_CMD(ExecMacro) },
-	{ FUNCTION, "execute-macro", WIRED_CMD(RunMacro) },
-	{ FUNCTION, "execute-named-command", WIRED_CMD(Extend) },
-	{ FUNCTION, "exit-jove", WIRED_CMD(Leave) },
-#ifdef	CMT_FMT
-	{ MODFUNC, "fill-comment", WIRED_CMD(Comment) },
-#endif	/* CMT_FMT */
-	{ MODFUNC, "fill-paragraph", WIRED_CMD(Justify) },
-	{ MODFUNC, "fill-region", WIRED_CMD(RegJustify) },
-#ifdef	SUBSHELL
-	{ MODFUNC, "filter-region", WIRED_CMD(FilterRegion) },
+	{ COMMAND, "erase-buffer", WIRED_CMD(BufErase) },
+	{ COMMAND, "exchange-point-and-mark", WIRED_CMD(ExchPtMark) },
+	{ COMMAND, "execute-kbd-macro", WIRED_CMD(ExecMacro) },
+	{ COMMAND, "execute-macro", WIRED_CMD(RunMacro) },
+	{ COMMAND, "execute-named-command", WIRED_CMD(Extend) },
+	{ COMMAND, "exit-jove", WIRED_CMD(Leave) },
+#ifdef CMT_FMT
+	{ MODCMD, "fill-comment", WIRED_CMD(Comment) },
+#endif /* CMT_FMT */
+	{ MODCMD, "fill-paragraph", WIRED_CMD(Justify) },
+	{ MODCMD, "fill-region", WIRED_CMD(RegJustify) },
+#ifdef SUBSHELL
+	{ MODCMD, "filter-region", WIRED_CMD(FilterRegion) },
 #endif
-	{ FUNCTION, "find-file", WIRED_CMD(FindFile) },
-	{ FUNCTION, "find-tag", WIRED_CMD(FindTag) },
-	{ FUNCTION, "find-tag-at-point", WIRED_CMD(FDotTag) },
-	{ FUNCTION, "first-non-blank", WIRED_CMD(ToIndent) },
-	{ FUNCTION, "forward-character", WIRED_CMD(ForChar) },
-	{ FUNCTION, "forward-list", WIRED_CMD(FList) },
-	{ FUNCTION, "forward-paragraph", WIRED_CMD(ForPara) },
-	{ FUNCTION, "forward-s-expression", WIRED_CMD(FSexpr) },
-	{ FUNCTION, "forward-sentence", WIRED_CMD(Eos) },
-	{ FUNCTION, "forward-word", WIRED_CMD(ForWord) },
+	{ COMMAND, "find-file", WIRED_CMD(FindFile) },
+	{ COMMAND, "find-tag", WIRED_CMD(FindTag) },
+	{ COMMAND, "find-tag-at-point", WIRED_CMD(FDotTag) },
+	{ COMMAND, "first-non-blank", WIRED_CMD(ToIndent) },
+	{ COMMAND, "forward-character", WIRED_CMD(ForChar) },
+	{ COMMAND, "forward-list", WIRED_CMD(FList) },
+	{ COMMAND, "forward-paragraph", WIRED_CMD(ForPara) },
+	{ COMMAND, "forward-s-expression", WIRED_CMD(FSexpr) },
+	{ COMMAND, "forward-sentence", WIRED_CMD(Eos) },
+	{ COMMAND, "forward-word", WIRED_CMD(ForWord) },
 	{ DefMajor(FUNDAMENTAL), "fundamental-mode", WIRED_CMD(NULL) },
-	{ FUNCTION, "gather-numeric-argument", WIRED_CMD(TimesFour) },
-	{ FUNCTION, "goto-line", WIRED_CMD(GoLine) },
-	{ FUNCTION, "goto-window-with-buffer", WIRED_CMD(GotoWind) },
-#ifdef	LISP
-	{ MODFUNC, "grind-s-expr", WIRED_CMD(GSexpr) },
+	{ COMMAND, "gather-numeric-argument", WIRED_CMD(TimesFour) },
+	{ COMMAND, "goto-line", WIRED_CMD(GoLine) },
+	{ COMMAND, "goto-window-with-buffer", WIRED_CMD(GotoWind) },
+#ifdef LISP
+	{ MODCMD, "grind-s-expr", WIRED_CMD(GSexpr) },
 #endif
-	{ FUNCTION, "grow-window", WIRED_CMD(GrowWindowCmd) },
-	{ MODFUNC, "handle-tab", WIRED_CMD(Tab) },
-	{ FUNCTION, "i-search-forward", WIRED_CMD(IncFSearch) },
-	{ FUNCTION, "i-search-reverse", WIRED_CMD(IncRSearch) },
-#ifdef	IPROCS
-	{ FUNCTION, "i-shell-command", WIRED_CMD(Iprocess) },
+	{ COMMAND, "grow-window", WIRED_CMD(GrowWindowCmd) },
+	{ MODCMD, "handle-tab", WIRED_CMD(Tab) },
+	{ COMMAND, "i-search-forward", WIRED_CMD(IncFSearch) },
+	{ COMMAND, "i-search-reverse", WIRED_CMD(IncRSearch) },
+#ifdef IPROCS
+	{ COMMAND, "i-shell-command", WIRED_CMD(Iprocess) },
 #endif
-	{ MODFUNC, "insert-file", WIRED_CMD(InsFile) },
-#ifdef	IPROCS
-	{ FUNCTION, "interrupt-process", WIRED_CMD(ProcInt) },
+	{ MODCMD, "insert-file", WIRED_CMD(InsFile) },
+#ifdef IPROCS
+	{ COMMAND, "interrupt-process", WIRED_CMD(ProcInt) },
 #endif
-	{ MODFUNC, "kill-next-word", WIRED_CMD(DelNWord) },
-	{ MODFUNC, "kill-previous-word", WIRED_CMD(DelPWord) },
-#ifdef	IPROCS
-	{ FUNCTION, "kill-process", WIRED_CMD(ProcKill) },
+	{ MODCMD, "kill-next-word", WIRED_CMD(DelNWord) },
+	{ MODCMD, "kill-previous-word", WIRED_CMD(DelPWord) },
+#ifdef IPROCS
+	{ COMMAND, "kill-process", WIRED_CMD(ProcKill) },
 #endif
-	{ MODFUNC, "kill-region", WIRED_CMD(DelReg) },
-	{ MODFUNC, "kill-s-expression", WIRED_CMD(KillExpr) },
-	{ FUNCTION, "kill-some-buffers", WIRED_CMD(KillSome) },
-	{ MODFUNC, "kill-to-beginning-of-sentence", WIRED_CMD(KillBos) },
-	{ MODFUNC, "kill-to-end-of-line", WIRED_CMD(KillEOL) },
-	{ MODFUNC, "kill-to-end-of-sentence", WIRED_CMD(KillEos) },
-	{ FUNCTION, "left-margin-here", WIRED_CMD(SetLMargin) },
-#ifdef	LISP
+	{ MODCMD, "kill-region", WIRED_CMD(DelReg) },
+	{ MODCMD, "kill-s-expression", WIRED_CMD(KillExpr) },
+	{ COMMAND, "kill-some-buffers", WIRED_CMD(KillSome) },
+	{ MODCMD, "kill-to-beginning-of-sentence", WIRED_CMD(KillBos) },
+	{ MODCMD, "kill-to-end-of-line", WIRED_CMD(KillEOL) },
+	{ MODCMD, "kill-to-end-of-sentence", WIRED_CMD(KillEos) },
+	{ COMMAND, "left-margin-here", WIRED_CMD(SetLMargin) },
+#ifdef LISP
 	{ DefMajor(LISPMODE), "lisp-mode", WIRED_CMD(NULL) },
 #endif
-	{ FUNCTION, "list-buffers", WIRED_CMD(BufList) },
-#ifdef	IPROCS
-	{ FUNCTION, "list-processes", WIRED_CMD(ProcList) },
+	{ COMMAND, "list-buffers", WIRED_CMD(BufList) },
+#ifdef IPROCS
+	{ COMMAND, "list-processes", WIRED_CMD(ProcList) },
 #endif
-	{ FUNCTION, "make-buffer-unmodified", WIRED_CMD(NotModified) },
-	{ FUNCTION, "make-keymap", WIRED_CMD(MakeKMap) },
-	{ FUNCTION, "make-macro-interactive", WIRED_CMD(MacInter) },
-	{ FUNCTION, "name-kbd-macro", WIRED_CMD(NameMac) },
-	{ MODFUNC, "newline", WIRED_CMD(Newline) },
-	{ MODFUNC, "newline-and-backup", WIRED_CMD(OpenLine) },
-	{ MODFUNC, "newline-and-indent", WIRED_CMD(LineAI) },
-	{ FUNCTION, "next-error", WIRED_CMD(NextError) },
-	{ FUNCTION, "next-line", WIRED_CMD(NextLine) },
-	{ FUNCTION, "next-page", WIRED_CMD(NextPage) },
-	{ FUNCTION, "next-window", WIRED_CMD(NextWindow) },
-	{ FUNCTION, "number-lines-in-window", WIRED_CMD(WNumLines) },
+	{ COMMAND, "local-bind-keymap-to-key", WIRED_CMD(LBindMap) },
+	{ COMMAND, "local-bind-macro-to-key", WIRED_CMD(LBindMac) },
+	{ COMMAND, "local-bind-to-key", WIRED_CMD(LBindAKey) },
+	{ COMMAND, "make-buffer-unmodified", WIRED_CMD(NotModified) },
+	{ COMMAND, "make-macro-interactive", WIRED_CMD(MacInter) },
+	{ COMMAND, "name-kbd-macro", WIRED_CMD(NameMac) },
+	{ MODCMD, "newline", WIRED_CMD(Newline) },
+	{ MODCMD, "newline-and-backup", WIRED_CMD(OpenLine) },
+	{ MODCMD, "newline-and-indent", WIRED_CMD(LineAI) },
+	{ COMMAND, "next-error", WIRED_CMD(NextError) },
+	{ COMMAND, "next-line", WIRED_CMD(NextLine) },
+	{ COMMAND, "next-page", WIRED_CMD(NextPage) },
+	{ COMMAND, "next-window", WIRED_CMD(NextWindow) },
+	{ COMMAND, "number-lines-in-window", WIRED_CMD(WNumLines) },
 	{ DefMinor(OverWrite), "over-write-mode", WIRED_CMD(NULL) },
-	{ FUNCTION, "page-next-window", WIRED_CMD(PageNWind) },
-	{ MODFUNC, "paren-flash", WIRED_CMD(DoParen) },
-	{ FUNCTION, "parse-errors", WIRED_CMD(ErrParse) },
-#ifdef	SPELL
-	{ FUNCTION, "parse-spelling-errors-in-buffer", WIRED_CMD(SpelWords) },
+	{ COMMAND, "page-next-window", WIRED_CMD(PageNWind) },
+	{ MODCMD, "paren-flash", WIRED_CMD(DoParen) },
+	{ COMMAND, "parse-errors", WIRED_CMD(ErrParse) },
+#ifdef SPELL
+	{ COMMAND, "parse-spelling-errors-in-buffer", WIRED_CMD(SpelWords) },
 #endif
-#ifdef	JOB_CONTROL
-	{ FUNCTION, "pause-jove", WIRED_CMD(PauseJove) },
+#ifdef JOB_CONTROL
+	{ COMMAND, "pause-jove", WIRED_CMD(PauseJove) },
 #else
 #	ifndef	MAC
-	{ FUNCTION, "pause-jove", WIRED_CMD(Push) },
+	{ COMMAND, "pause-jove", WIRED_CMD(Push) },
 #	endif
 #endif
-	{ FUNCTION, "pop-mark", WIRED_CMD(PopMark) },
-	{ FUNCTION, "popd", WIRED_CMD(Popd) },
-	{ FUNCTION, "previous-error", WIRED_CMD(PrevError) },
-	{ FUNCTION, "previous-line", WIRED_CMD(PrevLine) },
-	{ FUNCTION, "previous-page", WIRED_CMD(PrevPage) },
-	{ FUNCTION, "previous-window", WIRED_CMD(PrevWindow) },
-	{ FUNCTION, "print", WIRED_CMD(PrVar) },
-#ifdef	IPROCS
-	{ FUNCTION, "process-bind-keymap-to-key", WIRED_CMD(ProcKmBind) },
-	{ FUNCTION, "process-bind-to-key", WIRED_CMD(ProcBind) },
-	{ FUNCTION, "process-dbx-output", WIRED_CMD(DBXpoutput) },
-	{ MODFUNC, "process-newline", WIRED_CMD(ProcNewline) },
-	{ FUNCTION, "process-send-data-no-return", WIRED_CMD(ProcSendData) },
+	{ COMMAND, "pop-mark", WIRED_CMD(PopMark) },
+	{ COMMAND, "popd", WIRED_CMD(Popd) },
+	{ COMMAND, "previous-error", WIRED_CMD(PrevError) },
+	{ COMMAND, "previous-line", WIRED_CMD(PrevLine) },
+	{ COMMAND, "previous-page", WIRED_CMD(PrevPage) },
+	{ COMMAND, "previous-window", WIRED_CMD(PrevWindow) },
+	{ COMMAND, "print", WIRED_CMD(PrVar) },
+#ifdef IPROCS
+	{ COMMAND, "process-bind-keymap-to-key", WIRED_CMD(PBindMac) },
+	{ COMMAND, "process-bind-macro-to-key", WIRED_CMD(PBindMac) },
+	{ COMMAND, "process-bind-to-key", WIRED_CMD(PBindAKey) },
+	{ COMMAND, "process-dbx-output", WIRED_CMD(DBXpoutput) },
+	{ MODCMD, "process-newline", WIRED_CMD(ProcNewline) },
+	{ COMMAND, "process-send-data-no-return", WIRED_CMD(ProcSendData) },
 #endif
-#ifdef	SUBSHELL
-	{ FUNCTION, "push-shell", WIRED_CMD(Push) },
+#ifdef SUBSHELL
+	{ COMMAND, "push-shell", WIRED_CMD(Push) },
 #endif
-	{ FUNCTION, "pushd", WIRED_CMD(Pushd) },
-	{ FUNCTION, "pwd", WIRED_CMD(prCWD) },
-	{ MODFUNC, "query-replace-string", WIRED_CMD(QRepSearch) },
-#ifdef	IPROCS
-	{ FUNCTION, "quit-process", WIRED_CMD(ProcQuit) },
+	{ COMMAND, "pushd", WIRED_CMD(Pushd) },
+	{ COMMAND, "pushlibd", WIRED_CMD(Pushlibd) },
+	{ COMMAND, "pwd", WIRED_CMD(prCWD) },
+	{ MODCMD, "query-replace-string", WIRED_CMD(QRepSearch) },
+#ifdef IPROCS
+	{ COMMAND, "quit-process", WIRED_CMD(ProcQuit) },
 #endif
-	{ MODFUNC, "quoted-insert", WIRED_CMD(QuotChar) },
+	{ MODCMD, "quoted-insert", WIRED_CMD(QuotChar) },
 	{ DefMinor(ReadOnly), "read-only-mode", WIRED_CMD(NULL) },
-#ifdef	ABBREV
-	{ FUNCTION, "read-word-abbrev-file", WIRED_CMD(RestAbbrevs) },
+#ifdef ABBREV
+	{ COMMAND, "read-word-abbrev-file", WIRED_CMD(RestAbbrevs) },
 #endif
-	{ FUNCTION, "recursive-edit", WIRED_CMD(Recur) },
-	{ FUNCTION, "redraw-display", WIRED_CMD(RedrawDisplay) },
-	{ FUNCTION, "rename-buffer", WIRED_CMD(ReNamBuf) },
-	{ MODFUNC, "replace-in-region", WIRED_CMD(RegReplace) },
-	{ MODFUNC, "replace-string", WIRED_CMD(RepSearch) },
-	{ FUNCTION, "right-margin-here", WIRED_CMD(SetRMargin) },
-	{ FUNCTION, "save-file", WIRED_CMD(SaveFile) },
-	{ FUNCTION, "scroll-down", WIRED_CMD(DownScroll) },
-	{ FUNCTION, "scroll-left", WIRED_CMD(ScrollLeft) },
-#ifdef	MSDOS
-	{ FUNCTION, "scroll-next-page", WIRED_CMD(PageScrollUp) },
-	{ FUNCTION, "scroll-previous-page", WIRED_CMD(PageScrollDown) },
-#endif	/* MSDOS */
-	{ FUNCTION, "scroll-right", WIRED_CMD(ScrollRight) },
-	{ FUNCTION, "scroll-up", WIRED_CMD(UpScroll) },
-	{ FUNCTION, "search-forward", WIRED_CMD(ForSearch) },
-	{ FUNCTION, "search-forward-nd", WIRED_CMD(FSrchND) },
-	{ FUNCTION, "search-reverse", WIRED_CMD(RevSearch) },
-	{ FUNCTION, "search-reverse-nd", WIRED_CMD(RSrchND) },
-	{ FUNCTION, "select-buffer", WIRED_CMD(BufSelect) },
-#ifdef	MSDOS
-	{ FUNCTION, "select-buffer-1", WIRED_CMD(Buf1Select) },
-	{ FUNCTION, "select-buffer-10", WIRED_CMD(Buf10Select) },
-	{ FUNCTION, "select-buffer-2", WIRED_CMD(Buf2Select) },
-	{ FUNCTION, "select-buffer-3", WIRED_CMD(Buf3Select) },
-	{ FUNCTION, "select-buffer-4", WIRED_CMD(Buf4Select) },
-	{ FUNCTION, "select-buffer-5", WIRED_CMD(Buf5Select) },
-	{ FUNCTION, "select-buffer-6", WIRED_CMD(Buf6Select) },
-	{ FUNCTION, "select-buffer-7", WIRED_CMD(Buf7Select) },
-	{ FUNCTION, "select-buffer-8", WIRED_CMD(Buf8Select) },
-	{ FUNCTION, "select-buffer-9", WIRED_CMD(Buf9Select) },
-#endif	/* MSDOS */
-	{ MODFUNC, "self-insert", WIRED_CMD(SelfInsert) },
-	{ FUNCTION, "set", WIRED_CMD(SetVar) },
-	{ FUNCTION, "set-mark", WIRED_CMD(SetMark) },
-#ifdef	IPROCS	/* for GNU compatibility */
-	{ FUNCTION, "shell", WIRED_CMD(ShellProc) },
+	{ COMMAND, "recursive-edit", WIRED_CMD(Recur) },
+	{ COMMAND, "redraw-display", WIRED_CMD(RedrawDisplay) },
+	{ COMMAND, "rename-buffer", WIRED_CMD(ReNamBuf) },
+	{ MODCMD, "replace-in-region", WIRED_CMD(RegReplace) },
+	{ MODCMD, "replace-string", WIRED_CMD(RepSearch) },
+	{ COMMAND, "right-margin-here", WIRED_CMD(SetRMargin) },
+	{ COMMAND, "save-file", WIRED_CMD(SaveFile) },
+	{ COMMAND, "scroll-down", WIRED_CMD(DownScroll) },
+	{ COMMAND, "scroll-left", WIRED_CMD(ScrollLeft) },
+	{ COMMAND, "scroll-right", WIRED_CMD(ScrollRight) },
+	{ COMMAND, "scroll-up", WIRED_CMD(UpScroll) },
+	{ COMMAND, "search-forward", WIRED_CMD(ForSearch) },
+	{ COMMAND, "search-forward-nd", WIRED_CMD(FSrchND) },
+	{ COMMAND, "search-reverse", WIRED_CMD(RevSearch) },
+	{ COMMAND, "search-reverse-nd", WIRED_CMD(RSrchND) },
+	{ COMMAND, "select-buffer", WIRED_CMD(BufSelect) },
+	{ COMMAND, "select-buffer-1", WIRED_CMD(Buf1Select) },
+	{ COMMAND, "select-buffer-10", WIRED_CMD(Buf10Select) },
+	{ COMMAND, "select-buffer-2", WIRED_CMD(Buf2Select) },
+	{ COMMAND, "select-buffer-3", WIRED_CMD(Buf3Select) },
+	{ COMMAND, "select-buffer-4", WIRED_CMD(Buf4Select) },
+	{ COMMAND, "select-buffer-5", WIRED_CMD(Buf5Select) },
+	{ COMMAND, "select-buffer-6", WIRED_CMD(Buf6Select) },
+	{ COMMAND, "select-buffer-7", WIRED_CMD(Buf7Select) },
+	{ COMMAND, "select-buffer-8", WIRED_CMD(Buf8Select) },
+	{ COMMAND, "select-buffer-9", WIRED_CMD(Buf9Select) },
+	{ MODCMD, "self-insert", WIRED_CMD(SelfInsert) },
+	{ COMMAND, "set", WIRED_CMD(SetVar) },
+	{ COMMAND, "set-mark", WIRED_CMD(SetMark) },
+#ifdef IPROCS	/* for GNU compatibility */
+	{ COMMAND, "shell", WIRED_CMD(ShellProc) },
 #endif
-#ifdef	SUBSHELL
-	{ FUNCTION, "shell-command", WIRED_CMD(ShellCom) },
-	{ FUNCTION, "shell-command-no-buffer", WIRED_CMD(ShNoBuf) },
-	{ FUNCTION, "shell-command-to-buffer", WIRED_CMD(ShToBuf) },
-	{ FUNCTION, "shell-command-with-typeout", WIRED_CMD(Shtypeout) },
+#ifdef SUBSHELL
+	{ COMMAND, "shell-command", WIRED_CMD(ShellCom) },
+	{ COMMAND, "shell-command-no-buffer", WIRED_CMD(ShNoBuf) },
+	{ COMMAND, "shell-command-to-buffer", WIRED_CMD(ShToBuf) },
+	{ COMMAND, "shell-command-with-typeout", WIRED_CMD(Shtypeout) },
 #endif
-	{ MODFUNC, "shift-region-left", WIRED_CMD(LRShift) },
-	{ MODFUNC, "shift-region-right", WIRED_CMD(RRShift) },
+	{ MODCMD, "shift-region-left", WIRED_CMD(LRShift) },
+	{ MODCMD, "shift-region-right", WIRED_CMD(RRShift) },
 	{ DefMinor(ShowMatch), "show-match-mode", WIRED_CMD(NULL) },
-	{ FUNCTION, "shrink-window", WIRED_CMD(ShrWindow) },
-	{ FUNCTION, "source", WIRED_CMD(Source) },
-#ifdef	SPELL
-	{ FUNCTION, "spell-buffer", WIRED_CMD(SpelBuffer) },
+	{ COMMAND, "shrink-window", WIRED_CMD(ShrWindow) },
+	{ COMMAND, "source", WIRED_CMD(Source) },
+#ifdef SPELL
+	{ COMMAND, "spell-buffer", WIRED_CMD(SpelBuffer) },
 #endif
-	{ FUNCTION, "split-current-window", WIRED_CMD(SplitWind) },
-	{ FUNCTION, "start-remembering", WIRED_CMD(Remember) },
-#ifdef	PTYPROCS
-	{ FUNCTION, "stop-process", WIRED_CMD(ProcStop) },
+	{ COMMAND, "split-current-window", WIRED_CMD(SplitWind) },
+	{ COMMAND, "start-remembering", WIRED_CMD(Remember) },
+#ifdef PTYPROCS
+	{ COMMAND, "stop-process", WIRED_CMD(ProcStop) },
 #endif
-	{ FUNCTION, "stop-remembering", WIRED_CMD(Forget) },
-	{ FUNCTION, "string-length", WIRED_CMD(StrLength) },
-#ifdef	JOB_CONTROL
-	{ FUNCTION, "suspend-jove", WIRED_CMD(PauseJove) },
+	{ COMMAND, "stop-remembering", WIRED_CMD(Forget) },
+	{ COMMAND, "string-length", WIRED_CMD(StrLength) },
+#ifdef JOB_CONTROL
+	{ COMMAND, "suspend-jove", WIRED_CMD(PauseJove) },
 #endif
 	{ DefMajor(TEXT), "text-mode", WIRED_CMD(NULL) },
-	{ MODFUNC, "transpose-characters", WIRED_CMD(TransChar) },
-	{ MODFUNC, "transpose-lines", WIRED_CMD(TransLines) },
-	{ FUNCTION, "unbind-key", WIRED_CMD(UnbindC) },
-	{ FUNCTION, "version", WIRED_CMD(ShowVersion) },
-	{ FUNCTION, "visible-spaces-in-window", WIRED_CMD(WVisSpace) },
-	{ FUNCTION, "visit-file", WIRED_CMD(ReadFile) },
-	{ FUNCTION, "window-find", WIRED_CMD(WindFind) },
-#ifdef	ABBREV
+	{ MODCMD, "transpose-characters", WIRED_CMD(TransChar) },
+	{ MODCMD, "transpose-lines", WIRED_CMD(TransLines) },
+	{ COMMAND, "unbound", WIRED_CMD(Unbound) },
+	{ COMMAND, "version", WIRED_CMD(ShowVersion) },
+	{ COMMAND, "visible-spaces-in-window", WIRED_CMD(WVisSpace) },
+	{ COMMAND, "visit-file", WIRED_CMD(ReadFile) },
+	{ COMMAND, "window-find", WIRED_CMD(WindFind) },
+#ifdef ABBREV
 	{ DefMinor(Abbrev), "word-abbrev-mode", WIRED_CMD(NULL) },
 #endif
-	{ FUNCTION, "write-file", WIRED_CMD(WriteFile) },
-	{ FUNCTION, "write-macros-to-file", WIRED_CMD(WriteMacs) },
-	{ FUNCTION, "write-modified-files", WIRED_CMD(WtModBuf) },
-	{ FUNCTION, "write-region", WIRED_CMD(WrtReg) },
-#ifdef	ABBREV
-	{ FUNCTION, "write-word-abbrev-file", WIRED_CMD(SaveAbbrevs) },
+	{ COMMAND, "write-file", WIRED_CMD(WriteFile) },
+	{ COMMAND, "write-macros-to-file", WIRED_CMD(WriteMacs) },
+	{ COMMAND, "write-modified-files", WIRED_CMD(WtModBuf) },
+	{ COMMAND, "write-region", WIRED_CMD(WrtReg) },
+#ifdef ABBREV
+	{ COMMAND, "write-word-abbrev-file", WIRED_CMD(SaveAbbrevs) },
 #endif
-	{ MODFUNC, "yank", WIRED_CMD(Yank) },
-	{ MODFUNC, "yank-pop", WIRED_CMD(YankPop) },
-	{ FUNCTION, NULL, NULL },
+#ifdef MOUSE
+	{ COMMAND, "xj-mouse-copy-cut", WIRED_CMD(xjMouseCopyCut) },
+	{ COMMAND, "xj-mouse-line", WIRED_CMD(xjMouseLine) },
+	{ COMMAND, "xj-mouse-mark", WIRED_CMD(xjMouseMark) },
+	{ COMMAND, "xj-mouse-point", WIRED_CMD(xjMousePoint) },
+	{ COMMAND, "xj-mouse-word", WIRED_CMD(xjMouseWord) },
+	{ COMMAND, "xj-mouse-yank", WIRED_CMD(xjMouseYank) },
+	{ COMMAND, "xt-mouse-mark", WIRED_CMD(xtMouseMark) },
+	{ COMMAND, "xt-mouse-point", WIRED_CMD(xtMousePoint) },
+	{ COMMAND, "xt-mouse-up", WIRED_CMD(xtMouseUp) },
+#endif
+	{ MODCMD, "yank", WIRED_CMD(Yank) },
+	{ MODCMD, "yank-pop", WIRED_CMD(YankPop) },
+	{ COMMAND, NULL, NULL },
 };

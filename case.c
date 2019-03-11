@@ -1,14 +1,14 @@
-/***************************************************************************
- * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
- * is provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is    *
- * included in all the files.                                              *
- ***************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 #include "jove.h"
 #include "disp.h"
 #include "case.h"
-#include "ctype.h"
+#include "jctype.h"
 #include "marks.h"
 #include "move.h"
 
@@ -27,7 +27,7 @@ private	bool
 
 private void
 	CaseReg proto((bool up)),
-	case_reg proto((struct line *line1,int char1,struct line *line2,int char2,bool up));
+	case_reg proto((LinePtr line1,int char1,LinePtr line2,int char2,bool up));
 
 void
 CapChar()
@@ -75,7 +75,7 @@ CapWord()
 		num = -num;
 	}
 	while (num--) {
-		to_word(1);	/* Go to the beginning of the next word. */
+		to_word(FORWARD);	/* Go to the beginning of the next word. */
 		if (eobp())
 			break;
 		if (upper(&linebuf[curchar])) {
@@ -112,8 +112,8 @@ private bool
 upper(p)
 register char	*p;
 {
-	if (jislower(*p & CHARMASK)) {
-		*p = CharUpcase(*p & CHARMASK);
+	if (jislower(*p)) {
+		*p = CharUpcase(*p);
 		return YES;
 	}
 	return NO;
@@ -125,67 +125,19 @@ private bool
 lower(p)
 char	*p;
 {
-	int c = *p & CHARMASK;
+	char c = *p;
 
 	if (jisupper(c)) {
-#ifdef	ASCII7
-		*p = jtolower(c);
-#else	/* !ASCII7 */
-#ifdef	IBMPC
-		if (c <= 127) {
-		    c += ' ';
-		} else {
-			switch (c) {
-			case 142: c = 132; break;		/* Ae */
-			case 153: c = 148; break;		/* Oe */
-			case 154: c = 129; break;		/* Ue */
-			}
-		}
-#else	/* !IBMPC */
-# ifdef	MAC
-		if (c <= 127) {
-		    c += ' ';
-		} else {
-			int n;
-
-			for(n = 128; ; n++) {
-				if (n > 255)
-					return NO;
-				if ((CharUpcase(n) == c) && jislower(n)) {
-					c = n;
-					break;
-				}
-			}
-		}
-# else	/* !MAC */
-		/* Only deal with 7-bit chars! */
-		if (c <= 127) {
-		    c += ' ';
-		}
-# endif	/* !MAC */
-#endif	/* !IBMPC */
-		*p = c;
-#endif	/* !ASCII7 */
+		*p = CharDowncase(c);
 		return YES;
 	}
 	return NO;
 }
 
-#ifndef	ASCII7
-int
-jtolower(c)
-char	c;
-{
-    if (jislower(c))
-	(void) lower(&c);
-    return c;
-}
-#endif	/*!ASCII7*/
-
 private void
 case_reg(line1, char1, line2, char2, up)
-Line	*line1,
-	*line2;
+LinePtr	line1,
+	line2;
 int	char1,
 	char2;
 bool	up;

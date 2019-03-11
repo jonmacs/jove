@@ -1,9 +1,9 @@
-/***************************************************************************
- * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
- * is provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is    *
- * included in all the files.                                              *
- ***************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 /* This program is invoked by JOVE for two purposes related to PIPEPROCS:
  * - "kbd": gather tty input into lumps and send them to JOVE proper.
@@ -14,7 +14,7 @@
 
 #include "jove.h"
 
-#ifdef	PIPEPROCS	/* the whole file! */
+#ifdef PIPEPROCS	/* almost the whole file! */
 
 #include <signal.h>
 #include <errno.h>
@@ -25,7 +25,7 @@
 
 private struct lump	lump;
 
-#ifdef	BSD_SIGS
+#ifdef BSD_SIGS
 # define pause()	sigpause(0L)
 #endif
 
@@ -137,7 +137,7 @@ char	**argv;
 		(void) close(p[0]);
 		(void) close(p[1]);
 
-		(void) SETPGRP(getpid(), getpid());
+		NEWPG();
 		execv(argv[1], &argv[2]);
 		_exit(-4);
 		/*NOTREACHED*/
@@ -159,20 +159,16 @@ char	**argv;
 		/* read proc's output and send it to jove */
 		read_pipe(p[0]);
 
-		/* received EOF - wait for child to die and then exit
-		   ourself in the same way so that JOVE knows how the
-		   child died.  This is sort of a kludge, but the alternative
-		   is to write the childs status to JOVE, which seems sorta
-		   yucky, too.
+		/* received EOF - wait for child to die and then write the
+		   child's status to JOVE.
 
-		   Actually, 4 or 5 years later I like that idea much better,
-		   so remind me to implement it that way when I get a chance.
-
-		   7-23-89  Gee thanks, whoever implemented this for me! */
+		   Notice that we use a byte count of -1 (an otherwise
+		   impossible value) as a marker.  JOVE "knows" the real
+		   length is sizeof(wait_status_t). */
 
 		(void) close(p[0]);
 		lump.header.pid = getpid();
-		lump.header.nbytes = EOF;	/* tell jove we are finished */
+		lump.header.nbytes = -1;	/* tell jove we are finished */
 		/* try to exit like our child did ... */
 		{
 			wait_status_t	status;
@@ -198,10 +194,10 @@ char	**argv;
 	return 0;
 }
 
-#else	/* !PIPEPROCS */
+#else /* !PIPEPROCS */
 int
 main()
 {
 	return 0;
 }
-#endif	/* !PIPEPROCS */
+#endif /* !PIPEPROCS */

@@ -1,9 +1,9 @@
-/***************************************************************************
- * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
- * is provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is    *
- * included in all the files.                                              *
- ***************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 struct variable {
 	/* Type and Name must match data_obj */
@@ -25,5 +25,6 @@ struct variable {
 #define V_MODELINE	0100	/* update modeline */
 #define V_CLRSCREEN	0200	/* clear and redraw screen */
 #define V_TTY_RESET	0400	/* redo the tty modes */
+#define V_LOCALE	01000	/* locale has changed -- do a setlocale */
 
 extern const struct variable	variables[];

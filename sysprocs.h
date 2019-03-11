@@ -1,9 +1,9 @@
-/***************************************************************************
- * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
- * is provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is    *
- * included in all the files.                                              *
- ***************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 /* The diversity of process management is complicated and difficult to handle.
  * - In some systems (noteably POSIX), a process id has type "pid_t"
@@ -24,51 +24,55 @@
  * - WTERMSIG
  */
 
-#ifdef	POSIX_PROCS
+#ifdef POSIX_PROCS
 
 # include <sys/types.h>	/* defines pid_t */
 # include <sys/wait.h>
   typedef int	wait_status_t;
 # define wait_opt(stat_loc, options)	waitpid(-1, stat_loc, options)
 
-#else	/*!POSIX_PROCS*/
+#else /*!POSIX_PROCS*/
 
  typedef int	pid_t;
 
-#ifdef	BSD_WAIT
+# ifdef BSD_WAIT
 
-# include <sys/wait.h>
+#  include <sys/wait.h>
 
   typedef union wait	wait_status_t;
 
-# ifndef	WEXITSTATUS
-#  define WEXITSTATUS(w)	((w).w_retcode)
-# endif
+#  ifndef WEXITSTATUS
+#   define WEXITSTATUS(w)	((w).w_retcode)
+#  endif
 
-# ifndef	WTERMSIG
-#  define WTERMSIG(w)	((w).w_termsig)
-# endif
+#  ifndef WTERMSIG
+#   define WTERMSIG(w)	((w).w_termsig)
+#  endif
 
-# ifndef	WAIT3
-#  define wait_opt(stat_loc, options)	wait2(stat_loc, options)
-# else
-#  define wait_opt(stat_loc, options)	wait3(stat_loc, options, (struct rusage *)NULL)
-# endif
+#  ifndef WAIT3
+#   define wait_opt(stat_loc, options)	wait2(stat_loc, options)
+#  else
+#   define wait_opt(stat_loc, options)	wait3(stat_loc, options, (struct rusage *)NULL)
+#  endif
 
-#else	/*!BSD_WAIT*/
+# else /*!BSD_WAIT*/
 
   typedef int	wait_status_t;
 
-# define WIFSTOPPED(w)	((w & 0377) == 0177)
-# define WIFEXITED(w)	((w & 0377) == 0)
-# define WIFSIGNALED(w)	(((w >> 8) & 0377) == 0)
-# define WEXITSTATUS(w)	((w >> 8) & 0377)
-# define WTERMSIG(w)	(w & 0177)
+#  ifndef MSDOS
 
-# define wait_opt(stat_loc, options)		wait(stat_loc)
+#   define WIFSTOPPED(w)	((w & 0377) == 0177)
+#   define WIFEXITED(w)	((w & 0377) == 0)
+#   define WIFSIGNALED(w)	(((w >> 8) & 0377) == 0)
+#   define WEXITSTATUS(w)	((w >> 8) & 0377)
+#   define WTERMSIG(w)	(w & 0177)
 
-#endif	/*!BSD_WAIT*/
-#endif	/*!POSIX_PROCS*/
+#   define wait_opt(stat_loc, options)		wait(stat_loc)
+
+#  endif /* !MSDOS */
+
+# endif /*!BSD_WAIT*/
+#endif /*!POSIX_PROCS*/
 
 #ifndef FULL_UNISTD
 # ifndef POSIX_UNISTD
@@ -84,18 +88,31 @@ extern int	getuid proto((void));
 extern int	setuid proto((int));
 # endif /* !POSIX_UNISTD */
 
-# ifdef	USE_VFORK
+# ifdef USE_VFORK
 extern int	UNMACRO(vfork) proto((void));
 # endif
+#endif /* !FULL_UNISTD */
 
-# ifdef	BSD_SETPGRP
-/* ??? pid_t may be changed by default argument promotions.
+/* This nest of #ifdefs is simply to define NEWPG() which makes
+ * the current process a process group leader of a new process group.
+ * ??? pid_t may be changed by default argument promotions.
  * If so, this prototype might be wrong.
  */
+#ifdef POSIX_PROCS
+# ifndef FULL_UNISTD
+   extern int	UNMACRO(setpgid) proto((pid_t /*pid*/, pid_t /*pgid*/));
+# endif
+# define NEWPG()	setpgid(0, getpid())
+#else /* !POSIX_PROCS */
+# ifdef BSD_SETPGRP
+#  ifndef FULL_UNISTD
    extern int	UNMACRO(setpgrp) proto((pid_t /*pid*/, pid_t /*pgrp*/));
-#  define SETPGRP(pid, pgrp)	setpgrp((pid), (pgrp))
-# else /* !BSD_SETPGRP */
+#  endif
+#  define NEWPG()	setpgrp(0, getpid())
+# else /* !(defined(BSD_SETPGRP) || defined(POSIX_PROCS)) */
+#  ifndef FULL_UNISTD
    extern int	UNMACRO(setpgrp) proto((void));
-#  define SETPGRP(pid, pgrp)	setpgrp()
-# endif /* !BSD_SETPGRP */
-#endif /* !FULL_UNISTD */
+#  endif
+#  define NEWPG()	setpgrp()
+# endif /* !(defined(BSD_SETPGRP) || defined(POSIX_PROCS)) */
+#endif /* !POSIX_PROCS */

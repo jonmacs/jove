@@ -1,13 +1,14 @@
-/***************************************************************************
- * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
- * is provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is    *
- * included in all the files.                                              *
- ***************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 #include "jove.h"
 #include "fp.h"
-#include "ctype.h"
+#include "chars.h"
+#include "jctype.h"
 #include "termcap.h"
 #include "disp.h"
 #include "extend.h"
@@ -17,31 +18,32 @@
 #include "pcscr.h"
 #include "screen.h"
 #include "wind.h"
-#include <signal.h>
 
 int	AbortCnt,
-	tabstop = 8;
+	tabstop = 8;	/* VAR: expand tabs to this number of spaces */
 
-#ifdef	TERMCAP
+#ifdef TERMCAP
 private void
 	GENi_lines proto((int, int, int)),
 	GENd_lines proto((int, int, int));
-#endif	/* TERMCAP */
+#endif /* TERMCAP */
 
 struct scrimage
 	*DesiredScreen = NULL,
 	*PhysScreen = NULL;
 
-private struct screenline   *Savelines = NULL;	/* another bunch (LI of them) */
+private struct screenline   *Savelines = NULL;	/* scratch entries (LI of them) */
 
+private void LEclear proto((struct screenline *));	/* free s_effects component */
 
 private char	*cursor;			/* offset into current Line */
 
 char	*cursend;
 
 int	CapCol,
-	CapLine,
+	CapLine;
 
+private int
 	i_line,
 	i_col;
 
@@ -51,18 +53,31 @@ make_scr()
 	register int	i;
 	register struct screenline	*ns;
 	register char	*nsp;
+	static char	*screenchars = NULL;
+	static volatile int	oldLI = 0;
 
 	/* In case we are RESHAPING the window! */
 	if (DesiredScreen != NULL)
 		free((UnivPtr) DesiredScreen);
 	if (PhysScreen != NULL)
 		free((UnivPtr) PhysScreen);
-	if (Savelines != NULL)
+	i = oldLI;
+	oldLI = 0;
+	if (Savelines != NULL) {
+		/* Note: each screenline in Savelines has a null s_effects
+		 * (or is uninitialized).  LEclear must not be applied.
+		 */
 		free((UnivPtr) Savelines);
+	}
 	if (Screen != NULL) {
-		free((UnivPtr) Screen->s_line);	/* free all the screen data */
+#ifdef HIGHLIGHTING
+		for (ns = Screen; ns != &Screen[i]; ns++)
+			LEclear(ns);
+#endif
 		free((UnivPtr) Screen);
 	}
+	if (screenchars != NULL)
+		free((UnivPtr) screenchars);	/* free all the screen data */
 
 	DesiredScreen = (struct scrimage *) malloc((unsigned) LI * sizeof (struct scrimage));
 	PhysScreen = (struct scrimage *) malloc((unsigned) LI * sizeof (struct scrimage));
@@ -72,7 +87,7 @@ make_scr()
 	ns = Screen = (struct screenline *)
 			malloc((unsigned) LI * sizeof(struct screenline));
 
-	nsp = (char *) malloc((unsigned)CO * LI);
+	nsp = screenchars = (char *) malloc((unsigned)CO * LI);
 
 	if (DesiredScreen == NULL
 	|| PhysScreen == NULL
@@ -81,13 +96,14 @@ make_scr()
 	|| nsp == NULL)
 	{
 		writef("\n\rCannot malloc screen!\n");
-		finish(SIGTERM);	/* die! die! die! */
+		finish(-1);	/* die! */
 	}
 
 	for (i = 0; i < LI; i++) {
 		ns->s_line = nsp;
 		/* End of Line (nsp[CO-1] is never used) */
 		ns->s_roof = nsp + CO - 1;
+		ns->s_effects = NOEFFECT;
 		nsp += CO;
 		ns += 1;
 
@@ -115,6 +131,13 @@ make_scr()
 			p->s_window = NULL;
 		}
 	}
+	oldLI = LI;
+#ifndef MAC
+	SO_off();
+# ifdef HIGHLIGHTING
+	US_effect(NO);
+# endif
+#endif
 	cl_scr(NO);
 }
 
@@ -130,7 +153,7 @@ register char	*cp1,
 
 /* Output one character (if necessary) at the current position */
 
-#ifdef	MAC
+#ifdef MAC
 
 /* Character output to bit-mapped screen is very expensive. It makes
    much more sense to write the entire line at once. So, we print all
@@ -158,7 +181,7 @@ sput_end()
 
 private void
 sputc(c)
-register int c;
+register char c;
 {
 	if (sput_len < sizeof(sput_buf)) {
 		*cursor++ = c;
@@ -168,53 +191,96 @@ register int c;
 	}
 }
 
-#else	/* !MAC */
-#ifdef	IBMPC
+#else /* !MAC */
 
-private bool force = NO;
+# ifdef HIGHLIGHTING
+#  define	CharChanged(c)	(*cursor != (char) (c))
+# else /* !HIGHLIGHTING */
+private bool ChangeEffect = NO;
+#  define	CharChanged(c)	(ChangeEffect || *cursor != (char) (c))
+# endif /* !HIGHLIGHTING */
 
-private void
-sputc(c)
-register int	c;
-{
-	if (force || (*cursor != c)) {
-		if (i_line != CapLine || i_col != CapCol)
-			Placur(i_line, i_col);
-		*cursor++ = c;
-		normfun((char) c);
-		AbortCnt -= 1;
-		CapCol += 1;
-	} else {
-		cursor += 1;
-	}
-	i_col += 1;
-}
-
-#else	/* !IBMPC */
-
+# ifdef IBMPC
+#  define	sputc(c)	do_sputc(c)
+# else /* !IBMPC */
 #  define sputc(c)	{ \
-	if (*cursor != (char) (c)) { \
+	if (CharChanged(c)) { \
 		do_sputc(c); \
 	} else { \
-		cursor++; \
-		i_col++; \
+		cursor += 1; \
+		i_col += 1; \
 	} \
 }
+# endif /* !IBMPC */
 
 private void
 do_sputc(c)
-register int	c;
+register char	c;
 {
-	if (*cursor != c) {
-# ifdef	ID_CHAR
+	if (CharChanged(c)) {
+# ifdef ID_CHAR
 		INSmode(NO);
 # endif
 		if (i_line != CapLine || i_col != CapCol)
 			Placur(i_line, i_col);
-		if (UL && (c & CHARMASK) == '_' && (*cursor & CHARMASK) != ' ')
-			putstr(" \b");		/* Erase so '_' looks right. */
 		*cursor++ = c;
-		jputchar(c & CHARMASK);
+# ifdef TERMCAP
+		if (UL && c == '_' && *cursor != ' ')
+			putstr(" \b");		/* Erase so '_' looks right. */
+# endif
+		scr_putchar(c);
+		AbortCnt -= 1;
+		CapCol += 1;
+	} else {
+		cursor += 1;
+	}
+	i_col += 1;
+}
+#endif /* !MAC */
+
+#ifdef HIGHLIGHTING
+
+private void	(*real_effect) ptrproto((bool));
+
+private void
+do_hlsputc(hl, oldhl, c)
+register const struct LErange *hl;	/* desired highlighting */
+register const struct LErange *oldhl;	/* previous highlighting */
+char c;
+{
+	/* assert: hl != NULL && oldhl != NULL
+	 * In other words, hl and oldhl must point to real LErange structs.
+	 */
+
+	/* The following two initializing expressions use the peculiar
+	 * properties of unsigneds to make an efficient range test.
+	 */
+	void
+		(*virtual_effect) ptrproto((bool)) =
+			(unsigned)i_col - hl->start < hl->width? hl->high : hl->norm,
+		(*underlying_effect) ptrproto((bool)) =
+			(unsigned)i_col - oldhl->start < oldhl->width? oldhl->high : oldhl->norm;
+
+	if (*cursor != c || virtual_effect != underlying_effect) {
+# ifdef ID_CHAR
+		INSmode(NO);
+# endif
+		if (i_line != CapLine || i_col != CapCol)
+			Placur(i_line, i_col);
+		if (virtual_effect != real_effect) {
+			if (real_effect != NULL)
+				real_effect(NO);
+			/* instantaneously in neutral state */
+			if (virtual_effect != NULL)
+				virtual_effect(YES);
+			real_effect = virtual_effect;
+		}
+# ifdef TERMCAP
+		if (UL && c == '_' && *cursor != ' ')
+			putstr(" \b");		/* Erase so '_' looks right. */
+# endif
+		*cursor++ = c;
+		scr_putchar(c);
 		AbortCnt -= 1;
 		CapCol += 1;
 	} else {
@@ -223,17 +289,16 @@ register int	c;
 	i_col += 1;
 }
 
-#endif	/* !IBMPC */
-#endif	/* !MAC */
+#endif /* HIGHLIGHTING */
 
 void
 cl_eol()
 {
-	if (cursor > cursend)
-		return;
+	if (cursor == Curline->s_line)
+		LEclear(Curline);	/* in case swrite was not called (hack!) */
 
 	if (cursor < Curline->s_roof) {
-#ifdef	TERMCAP
+#ifdef TERMCAP
 		if (CE) {
 			Placur(i_line, i_col);
 			putpad(CE, 1);
@@ -246,11 +311,11 @@ cl_eol()
 				sputc(' ');
 			cursor = savecp;
 		}
-#else	/* !TERMCAP */
+#else /* !TERMCAP */
 		Placur(i_line, i_col);
 		clr_eoln();	/* MAC and PCSCR define this */
 		clrline(cursor, Curline->s_roof);
-#endif	/* !TERMCAP */
+#endif /* !TERMCAP */
 		Curline->s_roof = cursor;
 	}
 }
@@ -263,190 +328,211 @@ bool doit;
 	register struct screenline	*sp = Screen;
 
 	for (i = 0; i < LI; i++, sp++) {
+		LEclear(sp);
 		clrline(sp->s_line, sp->s_roof);
 		sp->s_roof = sp->s_line;
 		PhysScreen[i].s_id = NULL_DADDR;
 	}
 	if (doit) {
-#ifdef	TERMCAP
+#ifdef TERMCAP
 		putpad(CL, LI);
-#else	/* !TERMCAP */
+#else /* !TERMCAP */
 		clr_page();	/* MAC and PCSCR define this */
-#endif	/* !TERMCAP */
+#endif /* !TERMCAP */
 		CapCol = CapLine = 0;
 		UpdMesg = YES;
 	}
 }
 
-/* Write `line' at the current position of `cursor'.  Stop when we
-   reach the end of the screen.  Aborts if there is a character
-   waiting.  */
+/* routines to manage a pool of LErange structs */
 
+#ifdef HIGHLIGHTING
+
+union LEspace {
+	struct LErange	le;
+	union LEspace	*next;
+};
+
+private union LEspace *LEfreeHead = NULL;
+
+private struct LErange *
+LEnew()
+{
+	struct LErange	*ret;
+
+	if (LEfreeHead == NULL) {
+		LEfreeHead = (union LEspace *) emalloc(sizeof(union LEspace));
+		LEfreeHead->next = NULL;
+	}
+	ret = &LEfreeHead->le;
+	LEfreeHead = LEfreeHead->next;
+	return ret;
+}
+
+#endif /* HIGHLIGHTING */
+
+private void
+LEclear(sl)
+struct screenline *sl;
+{
+#ifdef HIGHLIGHTING
+	if (sl->s_effects != NOEFFECT) {
+		((union LEspace *) sl->s_effects)->next = LEfreeHead;
+		LEfreeHead = (union LEspace *) sl->s_effects;
+	}
+#endif /* HIGHLIGHTING */
+	sl->s_effects = NOEFFECT;
+}
+
+/* Write `line' at the current position of `cursor'.  Stop when we
+ * reach the end of the screen.  Aborts if there is a character
+ * waiting.
+ *
+ * Note: All callers must have "DeTabed" "line", or processed
+ * it equivalently -- it is presumed that line contains only
+ * displayable characters.
+ */
 
 bool
-swrite(line, inversep, abortable)
+swrite(line, hl, abortable)
 register char	*line;
-bool	inversep;
+LineEffects	hl;
 bool	abortable;
 {
 	register int	n = cursend - cursor;
 	bool	aborted = NO;
+	/* Unfortunately, neither of our LineEffects representation
+	 * is suitable for representing the state of a partially
+	 * updated line.  Consequently, this routine unconditionally
+	 * replaces the old hl with the new.  To ensure that the new
+	 * hl is correct, we compute MinCol to indicate how far in
+	 * the line we must get, and will not abort until we have
+	 * reached at least that column.
+	 *
+	 * This is unacceptably ugly.  We really must switch to a better
+	 * representation
+	 */
+	int	MinCol = 0;
+#ifdef HIGHLIGHTING
+	/* If either the old line or the new line has effects,
+	 * we know that some effects processing is necessary.
+	 * If so, we ensure that the old line has an effect
+	 * by adding a no-op effect if necessary: this is needed
+	 * to ensure Placur does not get into trouble.  (UGLY!)
+	 */
+	struct LErange	*oldhl = Curline->s_effects;
+	static const struct LErange	nohl = { 0, 0, NULL, NULL };
+
+	if (oldhl != NOEFFECT) {
+		int	w = Curline->s_roof - Curline->s_line;
+
+		if (oldhl->norm != NULL)
+			MinCol = w;
+		if (oldhl->high != NULL && w > (int)oldhl->start)
+			MinCol = max(MinCol, min(w, (int) (oldhl->start + oldhl->width)));
+	}
+	/* If either the old line or the new line has effects,
+	 * we know that some effects processing is necessary.
+	 * If so, we ensure that the old line has an effect
+	 * by adding a no-op effect if necessary: this is needed
+	 * to ensure Placur does not get into trouble.  (UGLY!)
+	 */
+	if (hl != NOEFFECT) {
+		if (hl->high != NULL)
+			MinCol = max(MinCol, (int) (hl->start + hl->width));
+		if (oldhl == NOEFFECT) {
+			oldhl = Curline->s_effects = LEnew();	/* keep Placur on-track */
+			*oldhl = nohl;
+		}
+	}
+	real_effect = NULL;
+#else /* !HIGHLIGHTING */
+	if (Curline->s_effects != hl)
+		MinCol = Curline->s_roof - Curline->s_line;	/* must obliterate old */
+#endif /* !HIGHLIGHTING */
 
 	if (n > 0) {
-
-		register int	c;
+		register ZXchar	c;
 		int	col = i_col;
 
-#ifdef	MAC
+#ifdef HIGHLIGHTING
+		/* nnhl: non-NULL version of hl (possibly
+		 * a no-op) to reduce the cases handled.
+		 */
+		const struct LErange	*nnhl = hl == NOEFFECT? &nohl : hl;
+#		define	spit(c)	{ if (oldhl != NULL) do_hlsputc(nnhl,oldhl,c); else sputc(c); }
+
+#else /* !HIGHLIGHTING */
+
 #		define	spit(c)	sputc(c)
 
+# ifdef MAC
 		sput_start();	/* Okay, because no interruption possible */
-#else	/* !MAC */
-#ifdef	IBMPC
-#		define	spit(c)	sputc(c)
+# else /* !MAC */
+		if (hl != Curline->s_effects)
+			ChangeEffect = YES;
+# endif /* !MAC */
 
-		force = inversep;  /* to force a redraw of the modeline */
-#else	/* !IBMPC */
-		int	or_byte = inversep ? 0200 : 0;
-#		define	spit(c)	{ int temp = (c) | or_byte; sputc(temp); }
-#endif	/* !IBMPC */
-#endif	/* !MAC */
+		if (hl != NOEFFECT)
+			SO_effect(YES);
+#endif /* !HIGHLIGHTING */
 
-		while ((c = *line++) != '\0') {
-#			define  spot(c) { if (--n <= 0) break; spit(c); col += 1; }
-
-			if (abortable && AbortCnt < 0) {
-				AbortCnt = BufSize;
+		while ((c = ZXC(*line++)) != '\0') {
+			if (abortable && i_col >= MinCol && AbortCnt < 0) {
+				AbortCnt = ScrBufSize;
 				if ((InputPending = charp()) != NO) {
 					aborted = YES;
 					break;
 				}
 			}
-			if (c == '\t') {
-				int	nchars;
-
-				nchars = TABDIST(col);
-				while (--nchars > 0)
-					spot(' ');
-				c = ' ';
-			} else if (jiscntrl(c)) {
-				spot('^');
-				c = (c == '\177') ? '?' : c + '@';
-#ifdef	TERMCAP
-			} else if (Hazeltine && c == '~') {
+#ifdef TERMCAP
+			if (Hazeltine && c == '~') {
 				c = '`';
-#endif
-#ifdef	IBMPC
-			} else if (c == 255) {
-				c = 1;
-			} else if (c == ' ' && inversep) {
-				c = 255;
-#endif	/* IBMPC */
 			}
-			spot(c);
-#			undef	spot
+#endif
+#ifdef IBMPC
+			if (c == 255) {
+				c = 1;
+			} else if (c == ' ' && hl != NOEFFECT) {
+				c = 255;
+			}
+#endif /* IBMPC */
+			if (--n <= 0) {
+				/* We've got one more column -- how will we spend it?
+				 * ??? This is probably redundant -- callers do truncation.
+				 */
+				if (*line != '\0')
+					c = '!';
+				spit(c);
+				break;
+			}
+			spit(c);
+			col += 1;
 		}
-		if (n <= 0)
-			spit(((*line=='\0') && (c!='\t') && !jiscntrl(c))? c : '!');
+#ifdef HIGHLIGHTING
+		if (real_effect != NULL)
+			real_effect(NO);
+#else /* !HIGHLIGHTING */
+		if (hl != NOEFFECT)
+			SO_off();
+		ChangeEffect = NO;
+# ifdef MAC
+		sput_end();
+# endif /* MAC */
+#endif /* !HIGHLIGHTING */
 		if (cursor > Curline->s_roof)
 			Curline->s_roof = cursor;
-#ifdef	MAC
-		sput_end();
-#endif	/* MAC */
-#ifdef	IBMPC
-		force = NO;
-#endif
 #		undef	spit
 	}
+#ifdef HIGHLIGHTING
+	if (hl == NOEFFECT)
+		LEclear(Curline);
+	else
+		*(Curline->s_effects) = *hl;
+#else /* !HIGHLIGHTING */
+	Curline->s_effects = hl;
+#endif /* !HIGHLIGHTING */
 	return !aborted;
-}
-
-/* This is for writing a buffer line to the screen.  This is to
-   minimize the amount of copying from one buffer to another buffer.
-   This gets the info directly from the disk buffers. */
-
-
-bool
-BufSwrite(linenum)
-int linenum;
-{
-	register int	n = cursend - cursor,
-			col = 0,
-			c = -1;
-	register char	*bp;
-	int	StartCol = DesiredScreen[linenum].s_offset,
-		visspace = DesiredScreen[linenum].s_window->w_flags & W_VISSPACE;
-	bool	aborted = NO;
-
-	bp = lcontents(DesiredScreen[linenum].s_lp);
-	if (*bp) {
-		for (;;) {
-			if (col >= StartCol) {
-				DesiredScreen[linenum].s_offset = col;
-				break;
-			}
-
-			c = *bp++ & CHARMASK;
-			if (c == '\0')
-				break;
-			if (c == '\t')
-				col += TABDIST(col);
-			else if (jiscntrl(c))
-				col += 2;
-			else
-				col += 1;
-		}
-	}
-#ifdef	MAC
-	sput_start();	/* Okay because we can't be interrupted */
-#endif
-	if (c != '\0') {
-		while ((c = *bp++) != '\0') {
-#			define spot(c)  { if (--n <= 0) break; sputc(c); col += 1; }
-
-			if (AbortCnt < 0) {
-				AbortCnt = BufSize;
-				if ((InputPending = charp()) != NO) {
-					aborted = YES;
-					break;
-				}
-			}
-			if (c == '\t') {
-				int	nchars = TABDIST(col);
-
-				if (visspace) {
-					spot('>');
-					nchars -= 1;
-				}
-				while (--nchars > 0)
-					spot(' ');
-				c = ' ';
-			} else if (jiscntrl(c)) {
-				spot('^');
-				c = (c == '\177') ? '?' : c + '@';
-			} else if (c == ' ' && visspace) {
-				c = '_';
-#ifdef	TERMCAP
-			} else if (Hazeltine && c == '~') {
-				c = '`';
-#endif
-#ifdef	IBMPC
-			} else if (c == 255) {
-				   c = 1;
-#endif	/* IBMPC */
-			}
-			spot(c);
-#			undef	spot
-		}
-	}
-	if (n <= 0)
-		sputc(((*bp == '\0') && (c != '\t') && !jiscntrl(c))? c : '!');
-	if (cursor > Curline->s_roof)
-		Curline->s_roof = cursor;
-#ifdef	MAC
-	sput_end();
-#endif
-	return !aborted;		/* Didn't abort */
 }
 
 void
@@ -461,9 +547,17 @@ register int	nline,
 	i_col = ncol;
 }
 
-#ifdef	TERMCAP
 void
-SO_on()
+SO_off()
+{
+	SO_effect(NO);
+}
+
+#ifdef TERMCAP
+
+void
+SO_effect(on)
+bool	on;
 {
 	/* If there are magic cookies, then WHERE the SO string is
 	   printed decides where the SO actually starts on the screen.
@@ -475,24 +569,22 @@ SO_on()
 		CapCol += SG;
 		cursor += SG;
 	}
-	putpad(SO, 1);
+	putpad(on? SO : SE, 1);
 }
 
+# ifdef HIGHLIGHTING
 void
-SO_off()
+US_effect(on)
+bool	on;
 {
-	/* see comment in SO_on() */
-	if (SG != 0) {
-		Placur(i_line, i_col);
-		i_col += SG;
-		CapCol += SG;
-		cursor += SG;
-	}
-	putpad(SE, 1);
+	if (UG == 0)	/* not used if magic cookies */
+		putpad(on? US : UE, 1);
 }
-#endif	/* TERMCAP */
+# endif /* HIGHLIGHTING */
 
-/* Insert `num' lines a top, but leave all the lines BELOW `bottom'
+#endif /* TERMCAP */
+
+/* Insert `num' lines at top, but leave all the lines BELOW `bottom'
    alone (at least they won't look any different when we are done).
    This changes the screen array AND does the physical changes. */
 
@@ -504,34 +596,39 @@ int num,
 {
 	register int	i;
 
-	/* Save the screen pointers. */
+	/* assert(num <= bottom-top+1) */
 
-	for(i = 0; i < num && top + i <= bottom; i++)
-		Savelines[i] = Screen[bottom - i];
+	/* Blank and save the screen pointers that will fall off the end. */
+
+	for(i = 0; i < num; i++) {
+		struct screenline	*sp = &Screen[bottom - i];
+
+		clrline(sp->s_line, sp->s_roof);
+		sp->s_roof = sp->s_line;
+		LEclear(sp);
+		Savelines[i] = *sp;
+	}
 
 	/* Num number of bottom lines will be lost.
 	   Copy everything down num number of times. */
 
-	for (i = bottom; i > top && i-num >= 0; i--)
-		Screen[i] = Screen[i - num];
+	for (i = bottom-num; i >= top; i--)
+		Screen[i + num] = Screen[i];
 
-	/* Restore the saved ones, making them blank. */
+	/* Insert the now-blank saved ones at the top. */
 
-	for (i = 0; i < num; i++) {
+	for (i = 0; i < num; i++)
 		Screen[top + i] = Savelines[i];
-		clrline(Screen[top + i].s_line, Screen[top + i].s_roof);
-		Screen[top + i].s_roof = Screen[top + i].s_line;
-	}
 
-#ifdef	IBMPC
-	scr_win((int) -num, (unsigned char) top, 0, (unsigned char) bottom, CHPL-1);
-#else	/* !IBMPC */
-# ifdef	MAC
+#ifdef IBMPC
+	scr_win(-num, top, 0, bottom, CO-1);
+#else /* !IBMPC */
+# ifdef MAC
 	i_lines(top, bottom, num);
-# else	/* !MAC */
+# else /* !MAC */
 	GENi_lines(top, bottom, num);
-# endif	/* !MAC */
-#endif	/* !IBMPC */
+# endif /* !MAC */
+#endif /* !IBMPC */
 }
 
 /* Delete `num' lines starting at `top' leaving the lines below `bottom'
@@ -543,42 +640,43 @@ int num,
     top,
     bottom;
 {
-	register int	i,
-			bot;
+	register int	i;
 
-	bot = bottom;
+	/* assert(num <= bottom-top+1) */
 
-	/* Save the lost lines. */
+	/* Blank and save the lines to be deleted from the top. */
 
-	for (i = 0; i < num && top + i <= bottom; i++)
-		Savelines[i] = Screen[top + i];
+	for (i = 0; i < num; i++) {
+		struct screenline	*sp = &Screen[top + i];
+
+		clrline(sp->s_line, sp->s_roof);
+		sp->s_roof = sp->s_line;
+		LEclear(sp);
+		Savelines[i] = *sp;
+	}
 
 	/* Copy everything up num number of lines. */
 
-	for (i = top; num + i <= bottom; i++)
+	for (i = top; i + num <= bottom; i++)
 		Screen[i] = Screen[i + num];
 
-	/* Restore the lost ones, clearing them. */
+	/* Restore the now-blank lost lines */
 
-	for (i = 0; i < num; i++) {
+	for (i = 0; i < num; i++)
 		Screen[bottom - i] = Savelines[i];
-		clrline(Screen[bot].s_line, Screen[bot].s_roof);
-		Screen[bot].s_roof = Screen[bot].s_line;
-		bot -= 1;
-	}
 
-#ifdef	IBMPC
-	scr_win(num, (unsigned char) top, 0, (unsigned char) bottom, CHPL-1);
-#else	/* !IBMPC */
-# ifdef	MAC
+#ifdef IBMPC
+	scr_win(num, top, 0, bottom, CO-1);
+#else /* !IBMPC */
+# ifdef MAC
 	d_lines(top, bottom, num);
-# else	/* !MAC */
+# else /* !MAC */
 	GENd_lines(top, bottom, num);
-# endif	/* !MAC */
-#endif	/* !IBMPC */
+# endif /* !MAC */
+#endif /* !IBMPC */
 }
 
-#ifdef	TERMCAP	/* remainder of this file */
+#ifdef TERMCAP	/* remainder of this file */
 
 /* The cursor optimization happens here.  You may decide that this
    is going too far with cursor optimization, or perhaps it should
@@ -589,8 +687,6 @@ struct cursaddr {
 	int	cm_numchars;
 	void	(*cm_proc) ();
 };
-
-#define	INFINITY	1000	/* cost too high to afford */
 
 private char	*Cmstr;
 private struct cursaddr	*HorMin,
@@ -625,24 +721,22 @@ private struct cursaddr	WarpDirect[] = {
 	{ 0,	BottomUp }
 };
 
-#define FORTAB		0	/* Forward using tabs */
-#define RETFORTAB	1	/* Beginning of line and then tabs */
-#define NUMHOR		2
+# define FORTAB		0	/* Forward using tabs */
+# define RETFORTAB	1	/* Beginning of line and then tabs */
+# define NUMHOR		2
 
-#define DOWN		0	/* Move down */
-#define UPMOVE		1	/* Move up */
-#define NUMVERT		2
+# define DOWN		0	/* Move down */
+# define UPMOVE		1	/* Move up */
+# define NUMVERT		2
 
-#define DIRECT		0	/* Using CM */
-#define HOME		1	/* HOME	*/
-#define LOWER		2	/* Lower Line */
-#define NUMDIRECT	3
+# define DIRECT		0	/* Using CM */
+# define HOME		1	/* HOME	*/
+# define LOWER		2	/* Lower Line */
+# define NUMDIRECT	3
 
-#define	home()		Placur(0, 0)
-#define LowLine()	{ putpad(LL, 1); CapLine = ILI; CapCol = 0; }
-#define PrintHo()	{ putpad(HO, 1); CapLine = CapCol = 0; }
-
-int	phystab = 8;
+# define	home()		Placur(0, 0)
+# define LowLine()	{ putpad(LL, 1); CapLine = ILI; CapCol = 0; }
+# define PrintHo()	{ putpad(HO, 1); CapLine = CapCol = 0; }
 
 private void
 GoDirect(line, col)
@@ -658,7 +752,7 @@ private void
 RetTab(col)
 register int	col;
 {
-	jputchar('\r');
+	scr_putchar('\r');
 	CapCol = 0;
 	ForTab(col);
 }
@@ -714,7 +808,7 @@ int	to;
 		if (tabgoal > to && tabgoal-to >= to-CapCol)
 			ntabs = 0;
 		while (--ntabs >= 0) {
-			jputchar('\t');
+			scr_putchar('\t');
 			CapCol = tabgoal;	/* idempotent */
 		}
 	}
@@ -722,8 +816,11 @@ int	to;
 	if (to > CapCol) {
 		register char	*cp = &Screen[CapLine].s_line[CapCol];
 
+# ifdef ID_CHAR
+		INSmode(NO);	/* we're not just a motion */
+# endif
 		while (to > CapCol) {
-			jputchar(*cp++ & CHARMASK);
+			scr_putchar(*cp++);
 			CapCol++;
 		}
 	}
@@ -758,22 +855,6 @@ register int	destline;
 	}
 }
 
-#ifdef	ID_CHAR
-static int	EIlen;
-#endif
-
-void
-InitCM()
-{
-	HOlen = HO ? strlen(HO) : INFINITY;
-	LLlen = LL ? strlen(LL) : INFINITY;
-	UPlen = UP ? strlen(UP) : INFINITY;
-#ifdef	ID_CHAR
-	if (EI)
-		EIlen = strlen(EI);
-#endif
-}
-
 private int ForNum proto((int from, int to));
 
 void
@@ -788,7 +869,7 @@ int line,
 	register struct cursaddr	*cp;
 	int	xtracost = 0;	/* Misc addition to cost. */
 
-#define CursMin(which,addrs,max)	{ \
+# define CursMin(which,addrs,max)	{ \
 	for (best = 0, cp = &(addrs)[1], i = 1; i < (max); i++, cp++) \
 		if (cp->cm_numchars < (addrs)[best].cm_numchars) \
 			best = i; \
@@ -800,12 +881,12 @@ int line,
 
 	dline = line - CapLine;
 	dcol = col - CapCol;
-#ifdef	ID_CHAR
+# ifdef ID_CHAR
 	if (IN_INSmode && MI)
 		xtracost = EIlen + IMlen;
 	/* If we're already in insert mode, it is likely that we will
 	   want to be in insert mode again, after the insert. */
-#endif
+# endif
 
 	/* Number of characters to move horizontally for each case.
 	   1: Try tabbing to the correct place.
@@ -836,7 +917,13 @@ int line,
 	   Homing first's total is the sum of the cost of homing
 	   and the sum of tabbing (if possible) to the right. */
 
-	if (VertMin->cm_numchars + HorMin->cm_numchars <= 3) {
+	if (Screen[line].s_effects != NOEFFECT) {
+		/* We are going to a line with inversion or underlining;
+		   Don't try any clever stuff */
+		DirectMin = &WarpDirect[DIRECT];
+		DirectMin->cm_numchars = 0;
+		Cmstr = targ2(CM, col, line);
+	} else if (VertMin->cm_numchars + HorMin->cm_numchars <= 3) {
 		/* Since no direct method is ever shorter than 3 chars, don't try it. */
 		DirectMin = &WarpDirect[DIRECT];	/* A dummy ... */
 		DirectMin->cm_numchars = 100;
@@ -854,16 +941,16 @@ int line,
 		if (line != CapLine)
 			(*(void (*)ptrproto((int)))VertMin->cm_proc)(line);
 		if (col != CapCol) {
-#ifdef	ID_CHAR
+# ifdef ID_CHAR
 			INSmode(NO);	/* We may use real characters ... */
-#endif
+# endif
 			(*(void (*)ptrproto((int)))HorMin->cm_proc)(col);
 		}
 	} else {
-#ifdef	ID_CHAR
+# ifdef ID_CHAR
 		if (IN_INSmode && !MI)
 			INSmode(NO);
-#endif
+# endif
 		(*(void (*)ptrproto((int, int)))DirectMin->cm_proc)(line, col);
 	}
 }
@@ -871,7 +958,9 @@ int line,
 
 /* Figures out how many characters ForTab() would use to move forward
    using tabs (if possible).
-   Note: changes to this routine must be matched by changes in ForTab. */
+   Note: changes to this routine must be matched by changes in ForTab.
+   An exception is that any cost for leaving insert mode has been
+   accounted for by our caller. */
 
 private int
 ForNum(from, to)
@@ -902,7 +991,7 @@ int to;
 	return ntabs + (from>to? from-to : to-from);
 }
 
-#ifdef	WIRED_TERMS
+# ifdef WIRED_TERMS
 
 private void
 BGi_lines(top, bottom, num)
@@ -945,7 +1034,7 @@ int top,
 	CapLine = CapCol = 0;
 }
 
-#endif	/* WIRED_TERMS */
+# endif /* WIRED_TERMS */
 
 private void
 GENi_lines(top, bottom, num)
@@ -989,4 +1078,4 @@ int top,
 	}
 }
 
-#endif	/* TERMCAP */
+#endif /* TERMCAP */

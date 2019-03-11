@@ -1,9 +1,9 @@
-/***************************************************************************
- * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
- * is provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is    *
- * included in all the files.                                              *
- ***************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 /* This creates/deletes/divides/grows/shrinks windows.  */
 
@@ -12,15 +12,23 @@
 #include "chars.h"
 #include "disp.h"
 #include "ask.h"
+#include "extend.h"
 #include "commands.h"	/* for FindCmd and ExecCmd */
 #include "mac.h"
 #include "reapp.h"
 #include "wind.h"
+#include "screen.h"
 
-private char	onlyone[] = "You only have one window!",
-		toosmall[] = "Resulting window would be too small.";
+private const char
+	onlyone[] = "You only have one window!",
+	toosmall[] = "Resulting window would be too small.";
 
-Window	*curwind,
+#ifdef HIGHLIGHTING
+bool	ScrollBar = NO;	/* VAR: whether the scrollbar is used */
+#endif
+
+Window
+	*curwind,
 	*fwind = NULL;
 
 /* First line in a Window */
@@ -70,7 +78,7 @@ register Window	*wp;
 		if (curwind == wp)
 			SetWind(prev);
 	}
-#ifdef	MAC
+#ifdef MAC
 	RemoveScrollBar(wp);
 	Windchange = YES;
 #endif
@@ -107,18 +115,18 @@ int	n;
 		new->w_line = wp->w_line;
 		new->w_char = wp->w_char;
 		new->w_bufp = wp->w_bufp;
-		new->w_top = prev_line(new->w_line, HALF(new));
+		new->w_top = prev_line(new->w_line, WSIZE(new)/2);
 
 		/* Link the new window into the list */
 		new->w_prev = wp;
 		new->w_next = wp->w_next;
 		new->w_next->w_prev = new;
 		wp->w_next = new;
-#ifdef	MAC
+#ifdef MAC
 		new->w_control = NULL;
 #endif
 	} while (--n > 0);
-#ifdef	MAC
+#ifdef MAC
 	Windchange = YES;
 #endif
 	return new;
@@ -141,7 +149,7 @@ winit()
 	w->w_next = w->w_prev = fwind;
 	w->w_height = ILI;
 	w->w_bufp = NULL;
-#ifdef	MAC
+#ifdef MAC
 	w->w_control = NULL;
 	Windchange = YES;
 #endif
@@ -216,10 +224,10 @@ void
 CentWind(w)
 register Window	*w;
 {
-	SetTop(w, prev_line(w->w_line, HALF(w)));
+	SetTop(w, prev_line(w->w_line, WSIZE(w)/2));
 }
 
-int	ScrollStep = 0;		/* full scrolling */
+int	ScrollStep = 0;	/* VAR: how should we scroll (full scrolling) */
 
 /* Calculate the new topline of the window.  If ScrollStep == 0
    it means we should center the current line in the window. */
@@ -230,7 +238,7 @@ register Window	*w;
 {
 	register int	up;
 	int	scr_step;
-	Line	*newtop;
+	LinePtr	newtop;
 
 	if (ScrollStep == 0) {	/* Means just center it */
 		CentWind(w);
@@ -240,19 +248,19 @@ register Window	*w;
 			CentWind(w);
 			return;
 		}
-		scr_step = (ScrollStep < 0) ? SIZE(w) + ScrollStep :
+		scr_step = (ScrollStep < 0) ? WSIZE(w) + ScrollStep :
 			   ScrollStep - 1;
 		/* up: point is above the screen */
 		newtop = prev_line(w->w_line, up?
-			scr_step : (SIZE(w) - 1 - scr_step));
-		if (LineDist(newtop, w->w_top) >= SIZE(w) - 1)
+			scr_step : (WSIZE(w) - 1 - scr_step));
+		if (LineDist(newtop, w->w_top) >= WSIZE(w) - 1)
 			CentWind(w);
 		else
 			SetTop(w, newtop);
 	}
 }
 
-/* This is bound to C-X 4 [BTF].  To make the screen stay the
+/* This is bound to ^X 4 [BTF].  To make the screen stay the
    same we have to remember various things, like the current
    top line in the current window.  It's sorta gross, but it's
    necessary because of the way this is implemented (i.e., in
@@ -264,15 +272,15 @@ WindFind()
 	register Buffer
 		*obuf = curbuf,
 		*nbuf;
-	Line	*ltop = curwind->w_top;
+	LinePtr	ltop = curwind->w_top;
 	Bufpos
 		odot,
 		ndot;
-	void	(*cmd) proto((void));
+	void	(*cmd) ptrproto((void));
 
 	DOTsave(&odot);
 
-	switch (waitchar((int *)NULL)) {
+	switch (waitchar((bool *)NULL)) {
 	case 't':
 	case 'T':
 		cmd = FindTag;
@@ -375,10 +383,12 @@ int	type;
 
 	b = buf_exists(name);
 	w = fwind;
-	if (b) do {
-		if (w->w_bufp == b)
-			return w;
-	} while ((w = w->w_next) != fwind);
+	if (b != NULL) {
+		do {
+			if (w->w_bufp == b)
+				return w;
+		} while ((w = w->w_next) != fwind);
+	}
 
 	w = fwind;
 	do {
@@ -395,7 +405,7 @@ int	type;
 void
 pop_wind(name, clobber, btype)
 register char	*name;
-int	clobber;
+bool	clobber;
 int	btype;
 {
 	register Window	*wp;
@@ -463,7 +473,7 @@ register int	inc;
 		w->w_height += inc;
 		w->w_prev->w_height -= inc;
 	}
-#ifdef	MAC
+#ifdef MAC
 	Windchange = YES;
 #endif
 }
@@ -474,21 +484,15 @@ register int	inc;
 void
 SetTop(w, line)
 Window	*w;
-register Line	*line;
+register LinePtr	line;
 {
-	register Line	*lp = w->w_bufp->b_first;
-	register int	num = 0;
-
+#ifdef HIGHLIGHTING
+	if (ScrollBar)
+		UpdModLine = YES;
+#endif
 	w->w_top = line;
-	if (w->w_flags & W_NUMLINES) {
-		while (lp) {
-			num += 1;
-			if (line == lp)
-				break;
-			lp = lp->l_next;
-		}
-		w->w_topnum = num;
-	}
+	if (w->w_flags & W_NUMLINES)
+		w->w_topnum = LinesTo(w->w_bufp->b_first, line) + 1;
 }
 
 void
@@ -505,18 +509,19 @@ WVisSpace()
 	ClAndRedraw();
 }
 
-/* Return the line number that `line' occupies in `windes' */
+/* If `line' is in `windes', return its screen line number;
+   otherwise return -1. */
 
 int
 in_window(windes, line)
 register Window	*windes;
-register Line	*line;
+register LinePtr	line;
 {
 	register int	i;
-	register Line	*top = windes->w_top;
+	register LinePtr	lp = windes->w_top;
 
-	for (i = 0; top && i < windes->w_height - 1; i++, top = top->l_next)
-		if (top == line)
+	for (i = 0; lp != NULL && i < windes->w_height - 1; i++, lp = lp->l_next)
+		if (lp == line)
 			return FLine(windes) + i;
 	return -1;
 }
@@ -524,7 +529,7 @@ register Line	*line;
 void
 SplitWind()
 {
-	SetWind(div_wind(curwind, is_an_arg() ? (arg_value() - 1) : 1));
+	SetWind(div_wind(curwind, arg_or_default(2) - 1));
 }
 
 /* Goto the window with the named buffer.  If no such window
@@ -532,10 +537,9 @@ SplitWind()
 void
 GotoWind()
 {
-	char	*bname;
+	char	*bname = ask_buf(lastbuf, ALLOW_OLD | ALLOW_INDEX | ALLOW_NEW);
 	Window	*w;
 
-	bname = ask_buf(lastbuf);
 	w = curwind->w_next;
 	do {
 		if (w->w_bufp->b_name == bname) {
@@ -552,7 +556,7 @@ GotoWind()
 void
 ScrollRight()
 {
-	int	amt = (is_an_arg() ? arg_value() : 10);
+	int	amt = arg_or_default(10);
 
 	if (curwind->w_LRscroll - amt < 0)
 		curwind->w_LRscroll = 0;
@@ -564,8 +568,65 @@ ScrollRight()
 void
 ScrollLeft()
 {
-	int	amt = (is_an_arg() ? arg_value() : 10);
+	int	amt = arg_or_default(10);
 
 	curwind->w_LRscroll += amt;
 	UpdModLine = YES;
+}
+
+LineEffects
+WindowRange(w)
+Window *w;
+{
+#ifdef HIGHLIGHTING
+	static struct LErange range = {0-0, 0-0, SO_effect, US_effect};
+
+	range.start = range.width = 0;	/* default: no highlighting */
+	if (ScrollBar) {
+		register int	/* line counts of various portions -- slow! */
+			above = LinesTo(w->w_bufp->b_first, w->w_top),
+			below = LinesTo(w->w_top, (LinePtr)NULL),
+			total = above + below,
+			in = min(below, WSIZE(w));
+
+		if (above == -1 || below == -1)
+			return &range;	/* something fishy */
+		below -= in;	/* correction */
+		if (in != total) {
+			/* Window shows only part of the buffer: highlight "thumb".
+			 *
+			 * Required properties:
+			 * - proportionality of "below", "in", and "above" segments
+			 * - monotonicity and smoothness of representation
+			 * - a segment vanishes iff it is empty (but "in" is never empty)
+			 * - extreme L & R ends of modeline must indicate presence/absence
+			 *   of first/last line of buffer; hence some non-linearity
+			 *   thereabouts.
+			 *
+			 * Implementation:
+			 * - Use unsigned long to prevent overflow.
+			 * - Allocate space to "above" and "below", rounding to nearest
+			 *   for best proportionality.
+			 * - Allocate the rest to "in".
+			 * - Ensure "in" not empty by ensuring total space allocated
+			 *   to above and below must leave at least one col.  This
+			 *   is done fiddling the rounding term when "in" is small.
+			 */
+			int
+				totalcols_2 = CO - 1 - (4 * SG) - 2,
+				total_2 = total - 2,
+				rounding = (in < total_2/totalcols_2) ? (totalcols_2*in)/2 : total_2/2,
+				abovecols = (above == 0) ? 0 :
+					1 + ((long)(above-1)*totalcols_2 + rounding) / total_2,
+				belowcols = (below == 0) ? 0 :
+					1 + ((long)(below-1)*totalcols_2 + rounding) / total_2;
+
+			range.start = abovecols;
+			range.width = totalcols_2 + 2 - abovecols - belowcols;
+		}
+	}
+	return &range;
+#else /* !HIGHLIGHTING */
+	return YES;	/*  modeline always stands out */
+#endif /* !HIGHLIGHTING */
 }

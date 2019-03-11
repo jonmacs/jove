@@ -1,49 +1,29 @@
-/***************************************************************************
- * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
- * is provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is    *
- * included in all the files.                                              *
- ***************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 #include "jove.h"
-#include "ctype.h"
+#include "jctype.h"
 #include "termcap.h"
 #include "disp.h"
 #include "fp.h"
 #include <signal.h>
 #include <errno.h>
 #include "ask.h"
+#include "chars.h"
 #include "fmt.h"
 #include "insert.h"
 #include "macros.h"
 #include "marks.h"
 #include "move.h"
+#include "rec.h"
 
-#ifdef	MAC
+#ifdef MAC
 # include "mac.h"
 #endif
-
-char *
-StrIndex(dir, buf, charpos, what)
-int	dir;	/* FORWARD or BACKWARD */
-register char	*buf;
-int	charpos;
-register int	what;
-{
-	register char	*cp = &buf[charpos];
-	register int	c;
-
-	if (dir > 0) {
-		while ((c = *cp++) != '\0')
-			if ((c == what) != '\0')
-				return (cp - 1);
-	} else {
-		while (cp >= buf && (c = *cp--)!='\0')
-			if (c == what)
-				return (cp + 1);
-	}
-	return NULL;
-}
 
 bool
 blnkp(buf)
@@ -51,24 +31,29 @@ register char	*buf;
 {
 	register char	c;
 
-	do ; while ((c = *buf++)!='\0' && (c == ' ' || c == '\t'));
-	return c == 0;	/* It's zero if we got to the end of the Line */
+	do {
+		c = *buf++;
+	} while (jiswhite(c));
+	return c == '\0';	/* It's zero if we got to the end of the Line */
 }
 
 bool
 within_indent()
 {
-	register char	c;
 	register int	i;
 
 	i = curchar;
-	do ; while (--i >= 0 && ((c = linebuf[i]) == ' ' || c == '\t'));
-	return i < 0;		/* it's < 0 if we got to the beginning */
+	for (;;) {
+		if (--i < 0)
+			return YES;
+		if (!jiswhite(linebuf[i]))
+			return NO;
+	}
 }
 
 void
 DotTo(line, col)
-Line	*line;
+LinePtr	line;
 int	col;
 {
 	Bufpos	bp;
@@ -85,7 +70,7 @@ void
 SetDot(bp)
 register Bufpos	*bp;
 {
-	register int	notequal;
+	register bool	notequal;
 
 	if (bp == NULL)
 		return;
@@ -109,26 +94,18 @@ ToLast()
 	Eol();
 }
 
-int	MarkThresh = 22;	/* average screen size ... */
-static int	line_diff;
+int	MarkThresh = 22;	/* VAR: moves greater than MarkThresh will SetMark (avg screen size) */
 
-int
-LineDist(nextp, endp)
-register Line	*nextp,
-		*endp;
-{
-	(void) inorder(nextp, 0, endp, 0);
-	return line_diff;
-}
+private int	line_diff;
 
 int
 inorder(nextp, char1, endp, char2)
-register Line	*nextp,
-		*endp;
+register LinePtr	nextp,
+		endp;
 int	char1,
 	char2;
 {
-	register Line	*prevp = nextp;
+	register LinePtr	prevp = nextp;
 
 	line_diff = 0;
 	if (nextp == endp)
@@ -155,9 +132,41 @@ int	char1,
 	return nextp==prevp? -1 : nextp==endp;
 }
 
+/* Number of lines (forward OR back) from nextp to endp.
+ * Note: if they are not related, returns 0.
+ */
+int
+LineDist(nextp, endp)
+LinePtr	nextp,
+		endp;
+{
+	return inorder(nextp, 0, endp, 0) == -1? 0 : line_diff;
+}
+
+/* Number of lines forward from "from" to "to"; -1 if not found.
+ * Note: if "to" is (LinePtr)NULL, returns number of lines to end + 1
+ */
+int
+LinesTo(from, to)
+register LinePtr
+	from,
+	to;
+{
+	int	n = 0;
+
+	for (;;) {
+		if (from == to)
+			return n;
+		if (from == NULL)
+			return -1;
+		n += 1;
+		from = from->l_next;
+	}
+}
+
 void
 PushPntp(line)
-register Line	*line;
+register LinePtr	line;
 {
 	if (LineDist(curline, line) >= MarkThresh)
 		set_mark();
@@ -171,7 +180,7 @@ ToFirst()
 
 int
 length(line)
-Line	*line;
+LinePtr	line;
 {
 	return strlen(lcontents(line));
 }
@@ -182,26 +191,30 @@ register int	dir;
 {
 	if (dir == FORWARD) {
 		for(;;) {
-			register char	c;
+			register ZXchar	c = ZXC(linebuf[curchar]);
 
-			while ((c = linebuf[curchar]) != '\0' && !jisword(c))
-				curchar += 1;
-			if (c != '\0')
+			if (c == '\0') {
+				if (curline->l_next == NULL)
+					break;	/* failure: out of buffer */
+				SetLine(curline->l_next);
+			} else if (jisword(c)) {
 				break;	/* success */
-			if (curline->l_next == NULL)
-				break;	/* failure: out of buffer */
-			SetLine(curline->l_next);
+			} else {
+				curchar += 1;
+			}
 		}
 	} else {
 		for (;;) {
-			while (!bolp() && !jisword(linebuf[curchar - 1]))
-				curchar -= 1;
-			if (!bolp())
+			if (bolp()) {
+				if (curline->l_prev == NULL)
+					break;	/* failure: out of buffer */
+				SetLine(curline->l_prev);
+				Eol();
+			} else if (jisword(linebuf[curchar - 1])) {
 				break;	/* success */
-			if (curline->l_prev == NULL)
-				break;	/* failure: out of buffer */
-			SetLine(curline->l_prev);
-			Eol();
+			} else {
+				curchar -= 1;
+			}
 		}
 	}
 }
@@ -230,16 +243,6 @@ register Buffer	*b;
 	return b->b_fname ? pr_name(b->b_fname, YES) : "[No file]";
 }
 
-char *
-itoa(num)
-register int	num;
-{
-	static char	line[15];
-
-	swritef(line, sizeof(line), "%d", num);
-	return line;
-}
-
 int
 min(a, b)
 register int	a,
@@ -258,7 +261,7 @@ register int	a,
 
 char *
 lcontents(line)
-register Line	*line;
+register LinePtr	line;
 {
 	if (line == curline)
 		return linebuf;
@@ -268,7 +271,7 @@ register Line	*line;
 
 char *
 ltobuf(line, buf)
-Line	*line;
+LinePtr	line;
 char	*buf;
 {
 	if (line == curline) {
@@ -292,12 +295,12 @@ Bufpos *buf;
 
 bool
 fixorder(line1, char1, line2, char2)
-register Line	**line1,
-		**line2;
+register LinePtr	*line1,
+		*line2;
 register int	*char1,
 		*char2;
 {
-	Line	*tline;
+	LinePtr	tline;
 	int	tchar;
 
 	if (inorder(*line1, *char1, *line2, *char2))
@@ -315,21 +318,14 @@ register int	*char1,
 
 bool
 inlist(first, what)
-register Line	*first,
-		*what;
+LinePtr	first,
+		what;
 {
-	while (first) {
-		if (first == what)
-			return YES;
-		first = first->l_next;
-	}
-	return NO;
+	return LinesTo(first, what) != -1;
 }
 
 /* Make `buf' (un)modified and tell the redisplay code to update the modeline
    if it will need to be changed. */
-
-int	ModCount = 0;
 
 void
 modify()
@@ -339,8 +335,10 @@ modify()
 		curbuf->b_modified = YES;
 	}
 	DOLsave = YES;
-	if (!Asking)
+#ifdef RECOVER
+	if (curbuf->b_type != B_SCRATCH)
 		ModCount += 1;
+#endif
 }
 
 void
@@ -378,7 +376,7 @@ char	*str;
 	return val;
 }
 
-#ifndef	byte_copy
+#ifndef byte_copy
 void
 byte_copy(from, to, count)
 UnivConstPtr	*from;
@@ -398,7 +396,7 @@ void
 len_error(flag)
 int	flag;
 {
-	char	*mesg = "[line too long]";
+	static const char	mesg[] = "[line too long]";
 
 	if (flag == COMPLAIN)
 		complain(mesg);
@@ -406,39 +404,39 @@ int	flag;
 		error(mesg);
 }
 
-/* Insert num number of c's at offset atchar in a linebuf of LBSIZE */
+/* Insert num copies of character c at offset atchar in buffer buf of size max */
 
 void
 ins_c(c, buf, atchar, num, max)
-int	c;
+char	c;
 char	*buf;
 int	atchar,
 	num,
 	max;
 {
-	register char	*pp, *pp1;
-	register int	len;
-	int	numchars;	/* number of characters to copy forward */
+	/* hint to reader: all copying and filling is done right to left */
+	register char	*from, *to;
+	int taillen;
 
 	if (num <= 0)
 		return;
-	len = atchar + strlen(&buf[atchar]);
-	if (len + num >= max)
+	from = &buf[atchar];
+	taillen = *from == '\0'?  1 : strlen(from) + 1;	/* include NUL */
+	if (atchar + taillen + num > max)
 		len_error(COMPLAIN);
-	pp = &buf[len + 1];		/* + 1 so we can --pp (not pp--) */
-	pp1 = &buf[len + num + 1];
-	numchars = len - atchar;
-	while (numchars-- >= 0)
-		*--pp1 = *--pp;
-	pp = &buf[atchar];
-	while (--num >= 0)
-		*pp++ = c;
+	from += taillen;
+	to = from + num;
+	do {
+		*--to = *--from;
+	} while (--taillen != 0);
+	while (to != from)
+		*--to = c;
 }
 
-int
+bool
 TwoBlank()
 {
-	register Line	*next = curline->l_next;
+	register LinePtr	next = curline->l_next;
 
 	return (next != NULL
 		&& *(lcontents(next)) == '\0'
@@ -469,7 +467,7 @@ char	*err, *file;
 	return sprint("Couldn't %s \"%s\".", err, file);
 }
 
-#ifdef	UNIX
+#ifdef UNIX
 void
 dopipe(p)
 int	*p;
@@ -485,7 +483,7 @@ int	*p;
 	(void) close(p[0]);
 	(void) close(p[1]);
 }
-#endif	/* UNIX */
+#endif /* UNIX */
 
 /* NOSTRICT */
 
@@ -500,7 +498,7 @@ size_t	size;
 		GCchunks();
 		if ((ptr = malloc(size)) == NULL) {
 			/* Uh ... Oh screw it! */
-			error("[Out of memory] ");
+			error("[Out of memory]");
 			/* NOTREACHED */
 		}
 	}
@@ -512,7 +510,9 @@ erealloc(ptr, size)
 UnivPtr	ptr;
 size_t	size;
 {
-	if ((ptr = realloc(ptr, size)) == NULL) {
+	if (ptr == NULL) {
+		ptr = emalloc(size);
+	} else if ((ptr = realloc(ptr, size)) == NULL) {
 		/* no second chance for realloc! */
 		error("[out of memory]");
 		/* NOTREACHED */
@@ -528,12 +528,12 @@ register char	*f;
 {
 	register char	*cp;
 
-#ifdef	MSDOS
+#ifdef MSDOS
 	if (f[0] != '\0'  && f[1] == ':')
 		f += 2;
 	if ((cp = strrchr(f, '\\')) != NULL)
 		f = cp + 1;
-#endif	/* MSDOS */
+#endif /* MSDOS */
 	if ((cp = strrchr(f, '/')) != NULL)
 		f = cp + 1;
 	return f;
@@ -569,11 +569,11 @@ int	from,
 	else
 		(void) time(&now);
 	cp = ctime(&now) + from;
-#ifndef	MSDOS
+#ifndef MSDOS
 	if (to == -1)
-#else	/* MSDOS */
+#else /* MSDOS */
 	if ((to == -1) && (cp[strlen(cp)-1] == '\n'))
-#endif	/* MSDOS */
+#endif /* MSDOS */
 		cp[strlen(cp) - 1] = '\0';		/* Get rid of \n */
 	else
 		cp[to - from] = '\0';
@@ -585,35 +585,37 @@ int	from,
 	}
 }
 
-int
-casecmp(s1, s2)
+bool
+caseeq(s1, s2)
 register const char	*s1,
 		*s2;
 {
-	if (s1==NULL || s2==NULL)
-		return 1;	/* which is not zero ... */
-	while (CharUpcase(*s1) == CharUpcase(*s2++))
-		if (*s1++ == '\0')
-			return 0;
-	return (*s1 - *--s2);
+	if (s1!=NULL && s2!=NULL) {
+		while (cind_eq(*s1, *s2++))
+			if (*s1++ == '\0')
+				return YES;
+	}
+	return NO;
 }
 
-int
-casencmp(s1, s2, n)
+/* Are s1 and s2 equal, at least for the first n chars, ignoring case? */
+
+bool
+caseeqn(s1, s2, n)
 register const char	*s1,
 		*s2;
 register size_t	n;
 {
 	if (s1==NULL || s2==NULL)
-		return 1;	/* which is not zero ... */
+		return NO;
 	for (;;) {
 		if (n == 0)
-			return 0;
+			return YES;
 		n--;
-		if (CharUpcase(*s1) != CharUpcase(*s2++))
-			return *s1 - *--s2;
+		if (!cind_eq(*s1, *s2++))
+			return NO;
 		if (*s1++ == '\0')
-			return 0;
+			return YES;
 	}
 }
 
@@ -634,42 +636,14 @@ register char	*pattern,
 {
 	register size_t	len = strlen(pattern);
 
+	if (len == 0)
+		return YES;
 	while (*string != '\0') {
 		if (*pattern == *string && strncmp(pattern, string, len) == 0)
 			return YES;
 		string += 1;
 	}
 	return NO;
-}
-
-#ifdef	ZORTECH
-/* ZORTECH only accepts va_list in a prototype */
-void
-make_argv(register char *argv[], va_list ap)
-#else
-void
-make_argv(argv, ap)
-register char	*argv[];
-va_list	ap;
-#endif
-{
-	register int	i = 0;
-
-	argv[i++] = va_arg(ap, char *);
-	argv[i++] = basename(argv[0]);
-	do ; while ((argv[i++] = va_arg(ap, char *)) != NULL);
-}
-
-int
-pnt_line()
-{
-	register Line	*lp = curbuf->b_first;
-	register int	i;
-
-	for (i = 0; lp != NULL; i++, lp = lp->l_next)
-		if (lp == curline)
-			break;
-	return i + 1;
 }
 
 /* Free, then allocate a block.
@@ -681,13 +655,19 @@ freealloc(obj, size)
 register UnivPtr	obj;
 size_t	size;
 {
-	register UnivPtr	new = NULL;
+	if (obj != NULL)
+		obj = realloc(obj, size);
+	if (obj == NULL)
+		obj = emalloc(size);
+	return obj;
+}
 
-	if (obj)
-		new = realloc(obj, size);
-	if (new == NULL)
-		new = emalloc(size);
-	return new;
+int
+alphacomp(a, b)
+UnivConstPtr	a,
+	b;
+{
+	return strcmp(*(const char **)a, *(const char **)b);
 }
 
 #ifdef NO_STRERROR
@@ -706,4 +686,26 @@ int errnum;
 		return(sys_errlist[errnum]);
 	return sprint("Error number %d", errnum);
 }
-#endif
+#endif /* NO_STRERROR */
+
+/* decode a pair of characters representing \x or ^x */
+
+ZXchar
+DecodePair(first, second)
+ZXchar	first, second;
+{
+	if (second == EOF || second == '\n')
+		complain("unexpected end of file after %p", first);
+	if (first == '^') {
+		if (second == '?') {
+			second = DEL;
+		} else {
+			ZXchar	us = CharUpcase(second);
+
+			if (us < '@' || '_' < us)
+				complain("unknown control character %p", second);
+			second = CTL(us);
+		}
+	}
+	return second;
+}
