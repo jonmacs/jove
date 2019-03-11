@@ -909,13 +909,7 @@ proc_strt(bufname, clobber, procname, va_alist)
 	 */
 # ifndef GRANTPT_BUG
 	if (access(ttybuf, W_OK) != 0) {
-		int	ugh = errno;
-
-		message("[Couldn't access ");
-		message(ttybuf);
-		message(": ");
-		message(strerror(ugh));
-		message("]");
+		s_mess("[Couldn't access %s: %s]", ttybuf, strerror(errno));
 		goto fail;
 	}
 # endif /* !GRANTPT_BUG */
@@ -940,15 +934,8 @@ proc_strt(bufname, clobber, procname, va_alist)
 	switch (pid = fork()) {
 	case -1:
 		/* fork failed */
-
-		{
-		int	ugh = errno;	/* hold across library calls */
-
-		message("[Fork failed! ");
-		message(strerror(ugh));
-		message("]");
+		s_mess("[Fork failed! %s]", strerror(errno));
 		goto fail;
-		}
 
 	case 0:
 		/* child process */
