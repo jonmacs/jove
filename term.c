@@ -20,6 +20,9 @@
 #   include <signal.h>
 #endif
 
+#define _TERM
+#include "termcap.h"
+
 /* Termcap definitions */
 
 #ifndef IBMPC
@@ -142,6 +145,8 @@ getTERM()
 
 	if ((CO = tgetnum("co")) == -1)
 		TermError("columns?");
+	else if (CO > MAXCOLS)
+		CO = MAXCOLS;
 
 	if ((LI = tgetnum("li")) == -1)
 		TermError("lines?");

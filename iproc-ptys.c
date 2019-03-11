@@ -14,10 +14,10 @@
 #include <sgtty.h>
 #include <errno.h>
 
-#define DEAD	1	/* Dead but haven't informed user yet */
-#define STOPPED	2	/* Job stopped */
-#define RUNNING	3	/* Just running */
-#define NEW	4	/* This process is brand new */
+#define DEAD	1	/* dead but haven't informed user yet */
+#define STOPPED	2	/* job stopped */
+#define RUNNING	3	/* just running */
+#define NEW	4	/* brand new, never been ... received no input */
 
 /* If process is dead, flags says how. */
 #define EXITED	1
@@ -66,6 +66,9 @@ Process	*p;
 		}
 		return sprint("Killed %d", p->p_reason);
 
+	case NEW:
+		return "New";
+
 	default:
 		return "Unknown state";
 	}
@@ -101,9 +104,13 @@ register int	fd;
 
 	n = read(fd, ibuf, sizeof(ibuf) - 1);
 	if (n == -1 && errno == EIO) {
+		if (proc_state(p) == NEW)
+			return;
 		proc_close(p);
 		makedead(p);
-	}
+		return;
+	} else
+		proc_state(p) = RUNNING;
 	if (n <= 0) {
 		if (n == 0)
 			strcpy(ibuf, "[Process EOF]");
@@ -185,12 +192,16 @@ private
 proc_close(p)
 Process *p;
 {
+	sighold(SIGCHLD);	/* be mutually exclusive */
+
 	if (p->p_fd >= 0) {
 		(void) close(p->p_fd);
 		global_fd &= ~(1L << p->p_fd);
 		NumProcs -= 1;
 		p->p_fd = -1;
 	}
+
+	sigrelse(SIGCHLD);
 }
 
 do_rtp(mp)
@@ -302,7 +313,8 @@ out:	if (s == 0 && t == 0)
 	switch (pid = fork()) {
 	case -1:
 		(void) close(ptyfd);
-		complain("[Fork failed!]");
+		message("[Fork failed!]");
+		goto fail;
 
 	case 0:
 		sigrelse(SIGCHLD);
@@ -367,14 +379,6 @@ out:	if (s == 0 && t == 0)
 	newp = (Process *) emalloc(sizeof *newp);
 
 	newp->p_fd = ptyfd;
-/*	{
-		extern int	errno;
-		int	on = YES;
-
-		if (ioctl(ptyfd, TIOCREMOTE, &on) < 0)
-			s_mess("[ioctl: TIOCREMOTE -- errno %d]", errno);
-	} */
-
 	newp->p_pid = pid;
 
 	newbuf = do_select((Window *) 0, bufname);
@@ -396,7 +400,7 @@ out:	if (s == 0 && t == 0)
 	va_end(ap);
 
 	newp->p_name = copystr(cmdbuf);
-	newp->p_state = RUNNING;
+	newp->p_state = NEW;
 	newp->p_reason = 0;
 	newp->p_mark = MakeMark(curline, curchar, M_FLOATER);
 
@@ -406,7 +410,7 @@ out:	if (s == 0 && t == 0)
 	global_fd |= 1L << newp->p_fd;
 	SetWind(owind);
 
-	sigrelse(SIGCHLD);
+fail:	sigrelse(SIGCHLD);
 #ifdef SIGWINCH
 	sigrelse(SIGWINCH);
 #endif

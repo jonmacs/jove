@@ -422,7 +422,7 @@ buf_exists(name)
 register char	*name;
 {
 	register Buffer	*bp;
-	register int	n;
+	int	n;
 
 	if (name == 0)
 		return 0;
@@ -433,7 +433,7 @@ register char	*name;
 
 	/* Doesn't match any names.  Try for a buffer number... */
 
-	if ((n = chr_to_int(name, 10, 1)) > 0) {
+	if (chr_to_int(name, 10, YES, &n) != INT_BAD) {
 		for (bp = world; n > 1; bp = bp->b_next) {
 			if (bp == 0)
 				break;

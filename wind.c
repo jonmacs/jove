@@ -126,6 +126,8 @@ PrevWindow()
 {
 	register Window	*new = curwind->w_prev;
 
+	if (Asking)
+		complain((char *) 0);
 	if (one_windp())
 		complain(onlyone);
 	SetWind(new);
@@ -136,7 +138,7 @@ PrevWindow()
 SetWind(new)
 register Window	*new;
 {
-	if (!Asking){		/* can you say kludge? */
+	if (!Asking) {		/* can you say kludge? */
 		curwind->w_line = curline;
 		curwind->w_char = curchar;
 		curwind->w_bufp = curbuf;
@@ -179,6 +181,7 @@ CalcWind(w)
 register Window	*w;
 {
 	register int	up;
+	int	scr_step;
 	Line	*newtop;
 
 	if (ScrollStep == 0)	/* Means just center it */
@@ -189,11 +192,12 @@ register Window	*w;
 			CentWind(w);
 			return;
 		}
-		if (up)		/* Dot is above the screen */
-			newtop = prev_line(w->w_line, min(ScrollStep - 1, HALF(w)));
+		scr_step = (ScrollStep < 0) ? SIZE(w) + ScrollStep :
+			   ScrollStep - 1;
+		if (up)		/* point is above the screen */
+			newtop = prev_line(w->w_line, scr_step);
 		else
-			newtop = prev_line(w->w_line, (SIZE(w) - 1) -
-						min(ScrollStep - 1, HALF(w)));
+			newtop = prev_line(w->w_line, (SIZE(w) - 1 - scr_step));
 		if (LineDist(newtop, w->w_top) >= SIZE(w) - 1)
 			CentWind(w);
 		else
@@ -282,6 +286,8 @@ NextWindow()
 {
 	register Window	*new = curwind->w_next;
 
+	if (Asking)
+		complain((char *) 0);
 	if (one_windp())
 		complain(onlyone);
 	SetWind(new);

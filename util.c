@@ -878,11 +878,12 @@ unsigned int	delay;
 #endif
 #else /* MSDOS */
 	long	start,
-		end;
+		end,
+		curtenths();
 
 	redisplay();
 	start = curtenths();
-	end = (start + delay) % 864000;	/* in case it wraps past midnight */
+	end = (start + (long) delay) % 864000L;	/* it might wrap past midnight */
 	do
 		if (InputPending = charp())
 			break;
@@ -896,15 +897,16 @@ unsigned int	delay;
 /*
  * Return the number of 10ths of seconds since the beginning of the day.
  */
-private
+private long
 curtenths()
 {
 	union REGS	regs;
 
 	regs.h.ah = 0x2C;
 	int86(0x21, &regs, &regs);
-	return (regs.h.ch * 36000) + (regs.h.cl * 600) + (regs.h.dh * 10) +
-						(regs.h.dl / 10);
+	return (long) ((long) regs.h.ch * 36000L) + ((long) regs.h.cl * 600L) +
+					((long) regs.h.dh * 10L) +
+					((long) regs.h.dl / 10L);
 }
 #endif /* MSDOS */
 

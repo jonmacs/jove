@@ -69,3 +69,4 @@
 #define forward_block(daddr)	(daddr + CH_PBLOCK)
 #define daddr_to_bno(daddr)	((daddr >> BNO_SHIFT) & BNO_MASK)
 #define daddr_to_off(daddr)	((daddr << CH_BITS) & OFF_MASK)
+#define daddr_too_huge(daddr)	((daddr >> BNO_SHIFT) >= MAX_BLOCKS)

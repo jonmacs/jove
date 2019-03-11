@@ -29,6 +29,7 @@ typedef struct {
 #define F_LOCKED	0100	/* don't close this file upon error */
 #define F_MYBUF		0200	/* f_alloc allocated the buffer, so
 				   f_close knows to free it up */
+#define F_TELLALL	0400	/* whether to display info upon close */
 
 extern long	io_chars;
 extern int	io_lines;

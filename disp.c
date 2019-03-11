@@ -355,7 +355,7 @@ AddLines(at, num)
 register int	at,
 		num;
 {
-	register  int	i;
+	register int	i;
 	int	bottom = UntilEqual(at + num);
 
 	if (num == 0 || num >= ((bottom - 1) - at))
@@ -416,7 +416,7 @@ register int	linenum;
 
 #ifdef ID_CHAR
 		if (UseIC) {
-			char	outbuf[256],
+			char	outbuf[MAXCOLS],
 				*lptr;
 			int	fromcol = (w->w_flags & W_NUMLINES) ? 8 : 0;
 
@@ -747,22 +747,28 @@ chkmail(force)
 	static off_t	last_size = 0;
 	struct stat	stbuf;
 	int	last_val;
-	extern time_t	time0;
+	static time_t	last_time = 0;
 
 	time(&now);
 	if (!force && (now < last_chk + MailInt))
 		return value;
-	if (stat(Mailbox, &stbuf) < 0)
+	last_chk = now;
+	if (force)
+		last_time = now;
+	if (stat(Mailbox, &stbuf) < 0) {
+		value = FALSE;
 		return FALSE;
+	}
 	last_val = value;
-	value = ((stbuf.st_mtime > time0) &&
+	value = ((stbuf.st_mtime > last_time) &&
 		 (stbuf.st_size > 0) &&
 		 (stbuf.st_size >= last_size) &&
 		 (stbuf.st_mtime + 5 > stbuf.st_atime));
-	last_chk = now;
-	if ((value == TRUE) &&
-	    ((value != last_val) || (stbuf.st_size != last_size)))
+	if (value == TRUE &&
+		      ((value != last_val) || (stbuf.st_size != last_size)))
 		dobell(3);
+	if (stbuf.st_size < last_size)
+		last_time = now;
 	last_size = stbuf.st_size;
 	return value;
 }
@@ -795,7 +801,7 @@ register Window	*w;
 	extern int	i_line;
 	int	n,
 		ign_some = NO;
-	char	line[132],
+	char	line[MAXCOLS],
 		*fmt = ModeFmt,
 		fillc,
 		c;
@@ -977,7 +983,7 @@ register Window	*w;
 
 #ifdef IPROCS
 		case 'p':
-		    if (thisbuf->b_type != B_PROCESS) {
+		    if (thisbuf->b_type == B_PROCESS) {
 			char	tmp[40];
 
 			sprintf(tmp, "(%s)", (thisbuf->b_process == 0) ?
@@ -1248,7 +1254,7 @@ va_dcl
 	}
 	if (!UseBuffers) {
 		PhysScreen[LineNo].s_id = -1;
-		if (fmt == 0 || DoAutoNL != 0) {
+		if (fmt == 0 || DoAutoNL == YES) {
 			cl_eol();
 			flusho();
 			LineNo += 1;

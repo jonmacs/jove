@@ -268,23 +268,27 @@ ToIndent()
 	curchar = cp - linebuf;
 }
 
+/* GoLine -- go to a line, usually wired to goto-line, ESC g or ESC G.
+   If no argument is specified it asks for a line number. */
 GoLine()
 {
-	Line	*newline;
+  	Line	*newline;
 
 #ifndef ANSICODES
-	if (!is_an_arg())
-		return;
-#else
-	if (!is_an_arg() || arg_value() <= 0) {
-		if (SP)
-			putpad(SP, 1);	/* Ask for cursor position */
-		return;
-	}
-#endif
-	newline = next_line(curbuf->b_first, arg_value() - 1);
-	PushPntp(newline);
-	SetLine(newline);
+ 	if (!is_an_arg())
+ 		set_arg_value(ask_int("Line: ",10));
+#else /* not ANSICODES */
+ 	if (!is_an_arg() || arg_value() <= 0) {
+  		if (SP) {
+  			putpad(SP, 1);	/* Ask for cursor position */
+			return;
+		}
+ 		set_arg_value(ask_int("Line: ", 10));
+  	}
+#endif /* ANSICODES */
+ 	newline = next_line(curbuf->b_first, arg_value() - 1);
+  	PushPntp(newline);
+  	SetLine(newline);
 }
 
 #ifdef ANSICODES

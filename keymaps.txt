@@ -284,7 +284,7 @@ struct data_obj *pref1map[0200] = {
 #else /* IBMPC */
 struct data_obj *pref1map[256] = {
 #endif /* IBMPC */
-	"unbound",			/* ^@ */
+	"set-mark",			/* ^@ */
 	"unbound",			/* ^A */
 	"backward-s-expression",	/* ^B */
 	"unbound",			/* ^C */

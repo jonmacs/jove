@@ -28,7 +28,6 @@
 
 long	io_chars;		/* number of chars in this open_file */
 int	io_lines;		/* number of lines in this open_file */
-private int	tellall;	/* display file io info? */
 
 #if defined(VMUNIX)||defined(MSDOS)
 char	iobuff[LBSIZE],
@@ -48,11 +47,11 @@ close_file(fp)
 File	*fp;
 {
 	if (fp) {
-		f_close(fp);
-		if (tellall != QUIET)
+		if (fp->f_flags & F_TELLALL)
 			add_mess(" %d lines, %D characters.",
 				 io_lines,
 				 io_chars);
+		f_close(fp);
 	}
 }
 
@@ -588,7 +587,6 @@ register int	how;
 
 	io_chars = 0;
 	io_lines = 0;
-	tellall = loudness;
 
 	fp = f_open(pr_name(fname, NO), how, buf, LBSIZE);
 	if (fp == NIL) {
@@ -601,9 +599,11 @@ register int	how;
 		if (access(pr_name(fname, NO), W_OK) == -1 && errno != ENOENT)
 			readonly = TRUE;
 							 
-		if (loudness != QUIET)
+		if (loudness != QUIET) {
+			fp->f_flags |= F_TELLALL;
 			f_mess("\"%s\"%s", pr_name(fname, YES),
 				   readonly ? " [Read only]" : NullStr);
+		}
 	}
 	return fp;
 }
@@ -1062,7 +1062,7 @@ disk_line	atl;
 
 	bno = daddr_to_bno(atl);
 	off = daddr_to_off(atl);
-	if (bno >= MAX_BLOCKS)
+	if (daddr_too_huge(atl))
 		error("Tmp file too large.  Get help!");
 	nleft = BUFSIZ - off;
 	if (lastb != 0 && lastb->b_bno == bno) {
@@ -1155,6 +1155,8 @@ char *fname;
 		fd2;
 	char	tmp1[BUFSIZ],
 		tmp2[BUFSIZ];
+ 	struct stat buf;
+ 	int	mode;
 
 	strcpy(tmp1, fname);
 	if ((s = rindex(tmp1, '/')) == NULL)
@@ -1167,7 +1169,13 @@ char *fname;
 	if ((fd1 = open(fname, 0)) < 0)
 		return;
 
-	if ((fd2 = creat(tmp2, CreatMode)) < 0) {
+	/* create backup file with same mode as input file */
+	if (fstat(fd1, &buf) != 0)
+		mode = CreatMode;
+	else
+		mode = buf.st_mode;
+		
+	if ((fd2 = creat(tmp2, mode)) < 0) {
 		(void) close(fd1);
 		return;
 	}

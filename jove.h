@@ -147,6 +147,9 @@ extern char	CaseEquiv[256];
 #define OFF		0
 #define YES_NODIGIT	2
 
+#define INT_OKAY	0
+#define INT_BAD		-1
+
 extern char	*Mainbuf,
 		*HomeDir,	/* home directory */
 		key_strokes[],	/* strokes that make up current command */
@@ -426,11 +429,14 @@ extern int
 	Fgcolor,
 	Bgcolor,
 #endif /* MSDOS */
+#ifdef F_COMPLETION
+	DispBadFs,		/* display filenames with bad extensions? */
+#endif
 	EWSize;			/* size to make the error window */
 
 extern char
 #ifdef IPROCS
-	proc_prompt[80],	/* process prompt */
+	proc_prompt[128],	/* process prompt */
 #endif
 #ifdef F_COMPLETION
 	BadExtensions[128],	/* extensions (e.g., ".o" to ignore) */
@@ -512,7 +518,7 @@ extern int
 
 extern int
 	read(),
-	write();
+	write(),
 	getch();
 
 extern time_t	time();

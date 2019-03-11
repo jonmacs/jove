@@ -30,6 +30,9 @@ struct variable	variables[] = {
 #ifdef BIFF
 	VARIABLE, "disable-biff", &BiffChk, V_BOOL,
 #endif
+#ifdef F_COMPLETION
+	VARIABLE, "display-bad-filenames", &DispBadFs, V_BOOL,
+#endif
 	VARIABLE, "error-window-size", &EWSize, V_BASE10,
 	VARIABLE, "expand-environment-variables", &DoEVexpand, V_BOOL,
 	VARIABLE, "file-creation-mode", &CreatMode, V_BASE8,

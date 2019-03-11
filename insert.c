@@ -103,14 +103,21 @@ register int	goal;
 		insert_c(' ', (goal - dotcol));
 }
 
-SelfInsert()
-{
 #ifdef ABBREV
+MaybeAbbrevExpand()
+{
 	if (MinorMode(Abbrev) && !ismword(LastKeyStruck) &&
 	    !bolp() && ismword(linebuf[curchar - 1]))
 		AbbrevExpand();
+}
 #endif
-	if (MinorMode(OverWrite)) {
+
+SelfInsert()
+{
+#ifdef ABBREV
+	MaybeAbbrevExpand();
+#endif
+	if (LastKeyStruck != CTL('J') && MinorMode(OverWrite)) {
 		register int	num,
 				i;
 
@@ -130,14 +137,28 @@ SelfInsert()
 		Insert(LastKeyStruck);
 
 	if (MinorMode(Fill) && (curchar >= RMargin ||
-			       (calc_pos(linebuf, curchar) >= RMargin)))
+			       (calc_pos(linebuf, curchar) >= RMargin))) {
+		int margin;
+		Bufpos save;
+
+		if (MinorMode(Indent)) {
+			DOTsave(&save);
+			ToIndent();
+			margin = calc_pos(linebuf, curchar);
+			SetDot(&save);
+		} else
+			margin = LMargin;
 		DoJustify(curline, 0, curline,
-			  curchar + strlen(&linebuf[curchar]), 1, LMargin);
+			  curchar + strlen(&linebuf[curchar]), 1, margin);
+	}
 }
 
 Insert(c)
 {
-	insert_c(c, arg_value());
+	if (c == CTL('J'))
+		LineInsert(arg_value());
+	else
+		insert_c(c, arg_value());
 }
 
 /* insert character C N times at point */
@@ -187,9 +208,7 @@ QuotChar()
 	c = waitchar(&slow);
 	if (slow)
 		message(key_strokes);
-	if (c == CTL('J'))
-		LineInsert(arg_value());
-	else if (c != CTL('@'))
+	if (c != CTL('@'))
 		Insert(c);
 }
 
@@ -265,16 +284,14 @@ DoNewline(indentp)
 	SetDot(&save);
 
 #ifdef ABBREV
-	if (MinorMode(Abbrev) && !ismword(LastKeyStruck) &&
-	    !bolp() && ismword(linebuf[curchar - 1]))
-		AbbrevExpand();
+	MaybeAbbrevExpand();
 #endif
 #ifdef LISP
 	if (MajorMode(LISPMODE))
 		DelWtSpace();
 	else
 #endif
-	    if (blnkp(linebuf))
+	    if (indentp || blnkp(linebuf))
 		DelWtSpace();
 		
 	/* If there is more than 2 blank lines in a row then don't make

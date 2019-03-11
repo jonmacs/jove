@@ -16,10 +16,10 @@ a part of tune.c that isn't a directory name, you should edit
 tune.template.)  Next you must edit "tune.h" selecting the compile time
 options you care about.  See below for a description of all the compile
 time options.  You can type "make" to compile XJOVE, PORTSRV (this is
-compiled but not used on 4.2+ systems), RECOVER and TEACHJOVE.  NOTE:
-make won't work if it fires up /bin/csh for the shell commands.  Test
-them out to see if they work.  If they do, type "make install" to install
-everything where it belongs.
+compiled but not used on 4.2+ systems), RECOVER TEACHJOVE, and
+MACVERT.  NOTE:  make won't work if it fires up /bin/csh for the shell
+commands.  Test them out to see if they work.  If they do, type "make
+install" to install everything where it belongs.
 
 Here are some things to consider for deciding where to put the tmp files.
 TMPDIR is where the tmp files get stored, usually /tmp or /tmp/jove.  If
@@ -129,15 +129,13 @@ WIRED_TERMS - Include compiled-in hard-wired code for certain terminals,
 	     you probably don't need this (but no point in taking it
 	     out unless you're low on space).
 
-To make macro files compatible between machines with different byte order I
-use the ntohl() and htonl() calls that are supplied with (as far as I know)
-4.2 systems.  If you're not running 4.2 a bunch of macros will be defined
-automatically in macros.c.  From Dave Curry:
-	The "#if" gets all the identifiers of backwards (left-endian)
-	machines, the "#else" handles normal (right-endian)
-	machines....  Just add some remark in the READ_ME for people
-	porting to machines other than the Vax or PDP-11 which are
-	left-endian.
+The macros have been rewritten from scratch.  The most noteable change is
+that they are no longer stored in binary files.  The write-macros-to-file
+command writes a file which is suitable for use with the source command.
+So you can have actual macro definitions in your .joverc if you want.  If
+you have lots of macros defined in the old format, you can use the
+macvert program to convert them to the new style.  You say
+	macvert old-style-macros-file > new-style-macro-file
 
 "doc/system.rc" and "doc/example.rc" are jove initialization files.
 "system.rc" is the "system" rc file here at UoR, and it gets ready every
@@ -151,20 +149,24 @@ permission from Richard Stallman to use his manual for the original EMACS,
 modifying it where necessary for JOVE.  Lots of work was done by Brian
 Harvey on this manual.
 
-There are man pages for jove and teachjove.  Teachjove is for
-people who have never used EMACS style editors.  It is an interactive
-tutorial, THE tutorial written by Stallman for the original EMACS, only
-slightly modified for JOVE in the appropriate places.  The man pages are
+There are man pages for jove and teachjove.  Teachjove is for people who
+have never used EMACS style editors.  It is an interactive tutorial, THE
+tutorial written by Stallman for the original EMACS, only slightly
+modified for JOVE in the appropriate places.  The man pages are
 completely up to date, thanks to me.
 
-Thanks to Jay Fenlason at Berkeley for writing the original pty code.
+Thanks to Jay (hack) Fenlason for writing the original pty code.
 
 Thanks to Dave Curry at Purdue for putting in tons of time and effort
 into getting JOVE ready.  It just wouldn't be working without his help.
 
-Thanks to Jeff Mc Carrell at Berkeley for finding bugs and adding features.
+Thanks to Jeff Mc Carrell at Berkeley for finding bugs and adding
+features, in particular, the comment formatter.
+
+Thanks to Karl Gegenfurtner for making the PC version.
 
 (Thanks to Brian Harvey for teaching me about linked lists ...)
 
 Good luck, have fun.
-	Jonathan Payne (jpayne@rochester until '88)
+
+	Jonathan Payne (jpayne@cs.rochester.edu until '88)
