@@ -125,7 +125,7 @@ AbbrevExpand()
 			if (isupper(c)) {
 				UC_count += 1;
 #if (defined(IBMPC) || defined(MAC))
-				lower(&c);
+				lower((char *) &c);
 #else
 				c = tolower(c);
 #endif
@@ -210,13 +210,13 @@ char	*file;
 		if (eof || genbuf[0] == '\0')
 			break;
 		lnum += 1;
-		if (strncmp(genbuf, "------", 6) == 0) {
+		if (strncmp(genbuf, "------", (size_t)6) == 0) {
 			mode += 1;
 			continue;
 		}
 		if (mode == -1)
 fmterr:			complain("Abbrev. format error, line %d.", file, lnum);
-		phrase_p = index(genbuf, ':');
+		phrase_p = strchr(genbuf, ':');
 		if (phrase_p == 0)
 			goto fmterr;
 		*phrase_p++ = '\0';	/* Null terminate the abbrev. */

@@ -7,4 +7,4 @@
 
 #include "jove.h"
 
-char	*version = "4.12";
+char	*version = "4.14";

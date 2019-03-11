@@ -9,13 +9,14 @@
 #include "ctype.h"
 #include "termcap.h"
 #include "disp.h"
+#include "fp.h"
 #include <signal.h>
 
 #ifdef MAC
 # include "mac.h"
 #else
 # ifdef	STDARGS
-#  include <stdargs.h>
+#  include <stdarg.h>
 # else
 #  include <varargs.h>
 # endif
@@ -27,7 +28,7 @@
 
 const struct cmd *
 FindCmd(proc)
-register void 	(*proc)();
+register void	(*proc) proto((void));
 {
 	register const struct cmd	*cp;
 
@@ -46,11 +47,11 @@ ExecCmd(cp)
 register data_obj	*cp;
 {
 	LastCmd = cp;
-	if (cp->Type & MAJOR_MODE)
+	if (cp->Type & MAJOR_MODE) {
 		SetMajor((cp->Type >> 8));
-	else if (cp->Type & MINOR_MODE)
+	} else if (cp->Type & MINOR_MODE) {
 		TogMinor((cp->Type >> 8));
-	else	switch (cp->Type&TYPEMASK) {
+	} else	switch (cp->Type&TYPEMASK) {
 		case MACRO:
 			do_macro((struct macro *) cp);
 			break;
@@ -105,8 +106,9 @@ size_t	size;
 
 private int	*slowp = 0;	/* for waitchar() */
 
-private void
-slowpoke()
+private SIGRESULT
+slowpoke(junk)
+int	junk;
 {
 	char	buffer[100];
 
@@ -114,6 +116,7 @@ slowpoke()
 		*slowp = YES;
 	pp_key_strokes(buffer, sizeof (buffer));
 	f_mess(buffer);
+	SIGRETURN;
 }
 
 #ifdef UNIX
@@ -134,7 +137,7 @@ int	*slow;
 	int	c;
 #ifdef UNIX
 	unsigned int	old_time;
-	int	(*oldproc)();
+	SIGRESULT	(*oldproc) proto((int));
 #else /* MSDOS or MAC */
 	long sw, time();
 #endif /* UNIX */
@@ -149,7 +152,7 @@ int	*slow;
 	   so we just wait for the character and then echo it. */
 	if (slow != 0 && *slow == YES) {
 		c = getch();
-		slowpoke();
+		slowpoke(0);
 		return c;
 	}
 #ifdef UNIX
@@ -162,7 +165,7 @@ int	*slow;
 	(void) signal(SIGALRM, oldproc);
 
 	if (slow != 0 && *slow == YES)
-		slowpoke();
+		slowpoke(0);
 	return c;
 
 #else /* MSDOS or MAC */
@@ -593,9 +596,9 @@ void
 byte_copy(from, to, count)
 register char	*from,
 		*to;
-register int	count;
+register size_t	count;
 {
-	while (--count >= 0)
+	while (count-- > 0)
 		*to++ = *from++;
 }
 #endif
@@ -684,7 +687,7 @@ int	*p;
 }
 
 void
-pclose(p)
+pipeclose(p)
 int	*p;
 {
 	(void) close(p[0]);
@@ -719,14 +722,14 @@ register char	*f;
 {
 	register char	*cp;
 
-	if ((cp = rindex(f, '/')) != NULL)
+	if ((cp = strrchr(f, '/')) != NULL)
 		return cp + 1;
 	else
 #ifdef MSDOS
-		if (cp = rindex(f, '\\'))
+		if (cp = strrchr(f, '\\'))
 			return cp + 1;
 	else
-		if (cp = rindex(f, ':'))
+		if (cp = strrchr(f, ':'))
 			return cp + 1;
 #endif /* MSDOS */
 		return f;
@@ -850,20 +853,6 @@ int	from,
 		return cp;
 }
 
-char *
-index(s, c)
-register char	*s;
-register int	c;
-{
-	register int	c1;
-
-	if (c != 0)
-		while ((c1 = *s++) != '\0')
-			if (c == c1)
-				return s - 1;
-	return 0;
-}
-
 int
 casecmp(s1, s2)
 register char	*s1,
@@ -881,14 +870,19 @@ int
 casencmp(s1, s2, n)
 register char	*s1,
 		*s2;
-register int	n;
+register size_t	n;
 {
 	if (!s1 || !s2)
 		return 1;	/* which is not zero ... */
-	while (--n >= 0  && (CharUpcase(*s1) == CharUpcase(*s2++)))
+	for (;;) {
+		if (n == 0)
+			return 0;
+		n--;
+		if (CharUpcase(*s1) != CharUpcase(*s2++))
+			return *s1 - *--s2;
 		if (*s1++ == '\0')
 			return 0;
-	return ((n < 0) ? 0 : *s1 - *--s2);
+	}
 }
 
 void
@@ -914,7 +908,7 @@ int	delay;
 	long	start,
 		end;
 
-#define Ticks (long *) 0x16A	/* 1/60 sec */
+#define Ticks ((long *) 0x16A)	/* 1/60 sec */
 	Keyonly = 1;
 	redisplay();
 	start = *Ticks;
@@ -924,8 +918,15 @@ int	delay;
 		if (InputPending = charp())
 			break;
 	while (*Ticks < end);
+#undef	Ticks
 }
 #else	/* not MAC */
+
+#ifndef MSDOS
+#if defined(BSD4_2) && !defined(BSD2_10)
+#include <sys/time.h>
+#endif
+#endif
 
 void
 SitFor(delay)
@@ -933,8 +934,6 @@ int	delay;
 {
 #ifndef MSDOS
 #if defined(BSD4_2) && !defined(BSD2_10)
-#include <sys/time.h>
-
 	struct timeval	timer;
 	long	readfds = 1;
 
@@ -978,7 +977,7 @@ int	delay;
 	check_cnt = BufSize;
 	redisplay();
 	while ((--nchars > 0) && !InputPending) {
-		putchar(0);
+		jputchar(0);
 		if (--check_cnt == 0) {
 			check_cnt = BufSize;
 			InputPending = charp();
@@ -1025,7 +1024,7 @@ sindex(pattern, string)
 register char	*pattern,
 		*string;
 {
-	register int	len = strlen(pattern);
+	register size_t	len = strlen(pattern);
 
 	while (*string != '\0') {
 		if (*pattern == *string && strncmp(pattern, string, len) == 0)
@@ -1033,6 +1032,20 @@ register char	*pattern,
 		string += 1;
 	}
 	return FALSE;
+}
+
+/* Just like strchr or index but doesn't match the string-ending null. */
+char *
+jstrchr(sp, c)
+register char *sp, c;
+{
+	while (*sp) {
+		if (*sp == c)
+			return sp;
+		sp++;
+	}
+
+	return NULL;
 }
 
 void
@@ -1065,14 +1078,13 @@ pnt_line()
 char *
 ralloc(obj, size)
 register char	*obj;
-int	size;
+size_t	size;
 {
 	register char	*new;
 
 	if (obj)
-		new = realloc(obj, (size_t) size);
+		new = realloc(obj, size);
 	if (new == 0 || !obj)
-		new = emalloc((size_t) size);
+		new = emalloc(size);
 	return new;
 }
-

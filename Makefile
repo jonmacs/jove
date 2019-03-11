@@ -9,21 +9,30 @@
 # your system does not remove subdirectories of /tmp on reboot (lots do
 # remove them these days) then it makes sense to make TMPDIR be /tmp/jove.
 # But if you want to recover buffers on system crashes, you should create a
-# directory that doesn't get clearned upon reboot, and use that instead.
+# directory that doesn't get cleaned upon reboot, and use that instead.
 # You would probably want to clean out that directory periodically with
-# /etc/cron.  LIBDIR is for online documentation, the PORTSRV process,
-# RECOVER, and the system-wide .joverc file.  BINDIR is where to put the
-# executables JOVE and TEACHJOVE.  MANDIR is where the manual pages go for
-# JOVE, RECOVER and TEACHJOVE.  MANEXT is the extension for the man pages,
-# e.g., jove.1 or jove.l or jove.m.
+# /etc/cron.  
+#
+# SHAREDIR is for online documentation, and the system-wide .joverc file.  
+# LIBDIR is for the PORTSRV and KBD processes and RECOVER. 
+# BINDIR is where to put the executables JOVE and TEACHJOVE.  
+# MANDIR is where the manual pages go for JOVE, RECOVER and TEACHJOVE.  
+# MANEXT is the extension for the man pages, e.g., jove.1 or jove.l or jove.m.
 
 DESTDIR =
+HOME = /local
+
 TMPDIR = /tmp
-LIBDIR = /home/chacha/jpayne/lib/jove
-BINDIR = /home/chacha/jpayne/bin
-MANDIR = /home/chacha/jpayne/lib/manl
-MANEXT = l
+RECDIR = /tmp
+SHAREDIR = $(HOME)/share/jove
+LIBDIR = $(HOME)/lib/jove
+BINDIR = $(HOME)/bin
+MANDIR = $(HOME)/man/man$(MANEXT)
+MANEXT = 1
 JSHELL = /bin/csh
+
+PROG = jove
+VERSION = 4.14
 
 # These should all just be right if the above ones are.
 JOVE = $(DESTDIR)$(BINDIR)/jove
@@ -31,9 +40,9 @@ TEACHJOVE = $(DESTDIR)$(BINDIR)/teachjove
 RECOVER = $(DESTDIR)$(LIBDIR)/recover
 PORTSRV = $(DESTDIR)$(LIBDIR)/portsrv
 KBD = $(DESTDIR)$(LIBDIR)/kbd
-JOVERC = $(DESTDIR)$(LIBDIR)/jove.rc
-CMDS.DOC = $(DESTDIR)$(LIBDIR)/cmds.doc
-TEACH-JOVE = $(DESTDIR)$(LIBDIR)/teach-jove
+JOVERC = $(DESTDIR)$(SHAREDIR)/jove.rc
+CMDS.DOC = $(DESTDIR)$(SHAREDIR)/cmds.doc
+TEACH-JOVE = $(DESTDIR)$(SHAREDIR)/teach-jove
 JOVEM = $(DESTDIR)$(MANDIR)/jove.$(MANEXT)
 TEACHJOVEM = $(DESTDIR)$(MANDIR)/teachjove.$(MANEXT)
 
@@ -45,11 +54,10 @@ TEACHJOVEM = $(DESTDIR)$(MANDIR)/teachjove.$(MANEXT)
 #	4.3BSD:	LIBS = -ltermcap
 #	SysV Rel. 2: LIBS = -lcurses
 #	SCO Xenix: LIBS = -ltermcap -lx
+#	MIPS: -lbsd
 
 LIBS = -ltermcap
 
-# If you are not VMUNIX (vax running Berkeley Version 4), you must specify
-# the -i flags (split I/D space) and maybe the -x option (for adb to work).
 #	2.10BSD:LDFLAGS =
 #	v7:	LDFLAGS =
 #	4.1BSD:	LDFLAGS =
@@ -68,15 +76,39 @@ LDFLAGS =
 
 SEPFLAG =
 
+# define a symbol for your OS if it hasn't got one. sysdep.h tries to
+# use cpp predefined symbols to decide on the appropriate behaviour
+# in most cases. Exceptions are
+# 	Apple A/UX on macIIs 		SYSDEFS=-DA_UX
+#	SunOS4.0			SYSDEFS=-DSUNOS4
+#	A system V system that doesn't
+#	define one of SVR2,SVR3,SYSV	SYSDEFS=-DSYSV
+#
+# You can just say 'make SYSDEFS=-Dwhatever' on these systems.
+# 
+SYSDEFS = 
+
 # for SCO Xenix, set
 #	MEMFLAGS = -Mle
 #	CFLAGS = -LARGE -O -F 3000 -K -Mle  (say -Mle2 for an 80286)
+# for MIPS, set
+#	CFLAGS = -O -I/usr/include/bsd
 
-CFLAGS = -O
+CFLAGS = -O $(SYSDEFS)
+
+# For cross compiling Jove, set CC to the cross compiler, and LOCALCC
+# to the local C compiler. LOCALCC will be used for compiling setmaps,
+# which is run as part of the compilation to generate the keymaps.
+# Set LOCALCFLAGS and LOCALLDFLAGS appropriately too. For Xenix, note
+# that LOCALCFLAGS must be set to $(MEMFLAGS)
+
+LOCALCC = $(CC)
+LOCALCFLAGS = $(CFLAGS)	# $(MEMFLAGS)
+LOCALLDFLAGS = $(LDFLAGS)
 
 BASESEG = funcdefs.o keys.o argcount.o ask.o buf.o ctype.o delete.o \
-	  disp.o insert.o io.o jove.o malloc.o marks.o misc.o re.o \
-	  screen.o tune.o util.o vars.o version.o list.o keymaps.o
+	  disp.o insert.o io.o jove.o marks.o misc.o re.o screen.o \
+	  tune.o util.o vars.o version.o list.o keymaps.o
 OVLAY1 = abbrev.o rec.o paragraph.o fmt.o
 OVLAY2 = c.o wind.o fp.o move.o
 OVLAY3 = extend.o macros.o
@@ -87,7 +119,7 @@ OBJECTS = $(BASESEG) $(OVLAY1) $(OVLAY2) $(OVLAY3) $(OVLAY4) $(OVLAY5)
 
 C_SRC = funcdefs.c abbrev.c argcount.c ask.c buf.c c.c case.c ctype.c \
 	delete.c disp.c extend.c fp.c fmt.c insert.c io.c iproc.c \
-	jove.c list.c macros.c malloc.c marks.c misc.c move.c paragraph.c \
+	jove.c list.c macros.c marks.c misc.c move.c paragraph.c \
 	proc.c re.c re1.c rec.c scandir.c screen.c term.c util.c \
 	vars.c version.c wind.c getch.c mac.c keymaps.c pcscr.c
 
@@ -96,7 +128,7 @@ SOURCES = $(C_SRC) portsrv.c recover.c setmaps.c teachjove.c kbd.c
 HEADERS = argcount.h buf.h chars.h ctype.h dataobj.h disp.h \
 	externs.h fp.h io.h iproc.h jove.h keymaps.h list.h mac.h \
 	re.h rec.h scandir.h screen.h style.h sysdep.h temp.h termcap.h \
-	tune.h util.h vars.h wait.h wind.h
+	ttystate.h tune.h util.h vars.h wait.h wind.h
 
 
 DOCS1 =	doc/example.rc doc/jove.1 doc/jove.2 doc/jove.3 \
@@ -147,22 +179,22 @@ portsrv:	portsrv.o
 kbd:	kbd.o
 	$(CC) $(LDFLAGS) -o kbd $(SEPFLAG) kbd.o $(LIBS)
 
-recover:	recover.o tune.o rec.h temp.h
+recover:	rectune.h recover.o tune.o rec.h temp.h
 	$(CC) $(LDFLAGS) -o recover $(SEPFLAG) recover.o tune.o $(LIBS)
 
 teachjove:	teachjove.o
 	$(CC) $(LDFLAGS) -o teachjove $(SEPFLAG) teachjove.o $(LIBS)
 
 setmaps:	setmaps.o funcdefs.c
-	$(CC) $(LDFLAGS) -o setmaps setmaps.o
+	$(LOCALCC) $(LOCALLDFLAGS) -o setmaps setmaps.o
 
 teachjove.o:	teachjove.c /usr/include/sys/types.h /usr/include/sys/file.h
-	cc -c $(CFLAGS) -DTEACHJOVE=\"$(TEACH-JOVE)\" teachjove.c
+	$(CC) -c $(CFLAGS) -DTEACHJOVE=\"$(TEACH-JOVE)\" teachjove.c
 
 # don't optimize setmaps.c because it produces bad code in some places
 # for some reason
 setmaps.o:	funcdefs.c keys.txt
-	$(CC) $(MEMFLAGS) -c setmaps.c
+	$(LOCALCC) $(LOCALCFLAGS) -c setmaps.c
 
 # ignore error messages from setmaps
 # it doesn't understand ifdefs
@@ -173,12 +205,22 @@ keys.c:	setmaps keys.txt
 keys.o:	keys.c jove.h
 
 tune.c: Makefile tune.template
+	-rm -f tune.c
 	@echo "/* Changes should be made in Makefile, not to this file! */" > tune.c
 	@echo "" >> tune.c
 	@sed -e 's;TMPDIR;$(TMPDIR);' \
 	     -e 's;LIBDIR;$(LIBDIR);' \
+	     -e 's;SHAREDIR;$(SHAREDIR);' \
 	     -e 's;BINDIR;$(BINDIR);' \
-	     -e 's;SHELL;$(JSHELL);' tune.template >> tune.c
+	     -e 's;SHELL;$(DFLTSHELL);' tune.template >> tune.c
+
+rectune.h: Makefile
+	-rm -f nrectune.h
+	@echo "/* Changes should be made in Makefile, not to this file! */" > nrectune.h
+	@echo "" >> nrectune.h
+	@echo \#define TMP_DIR \"$(TMPDIR)\" >> nrectune.h
+	@echo \#define REC_DIR \"$(RECDIR)\" >> nrectune.h
+	-cmp -s nrectune.h rectune.h || (rm -f rectune.h; cp nrectune.h rectune.h)
 
 iproc.o: iproc-ptys.c iproc-pipes.c iproc.c
 	$(CC) -c $(CFLAGS) iproc.c
@@ -188,12 +230,18 @@ macvert:	macvert.c
 
 # install doesn't work for Xenix (no install program)
 
-install: $(DESTDIR)$(LIBDIR) $(TEACH-JOVE) $(CMDS.DOC) $(JOVERC) \
+install: $(LIBDIR) $(SHAREDIR) \
+	 $(TEACH-JOVE) $(CMDS.DOC) $(JOVERC) \
 	 $(PORTSRV) $(KBD) $(RECOVER) $(JOVE) $(TEACHJOVE) $(JOVEM) \
 	 $(RECOVERM) $(TEACHJOVEM)
+	@echo See the README about changes to /etc/rc or /etc/rc.local
+	@echo so that the system recovers jove files on reboot after a crash
 
-$(DESTDIR)$(LIBDIR):
+$(DESTDIR)$(LIBDIR)::
 	-mkdir $(DESTDIR)$(LIBDIR)
+
+$(DESTDIR)$(SHAREDIR)::
+	-mkdir $(DESTDIR)$(SHAREDIR)
 
 $(TEACH-JOVE): doc/teach-jove
 	install -c -m 644 doc/teach-jove $(TEACH-JOVE)
@@ -225,13 +273,13 @@ $(TEACHJOVE): teachjove
 $(JOVEM): doc/jove.nr
 	@sed -e 's;TMPDIR;$(TMPDIR);' \
 	     -e 's;LIBDIR;$(LIBDIR);' \
-	     -e 's;SHELL;$(JSHELL);' doc/jove.nr > /tmp/jove.nr
+	     -e 's;SHELL;$(DFLTSHELL);' doc/jove.nr > /tmp/jove.nr
 	install -m 644 /tmp/jove.nr $(JOVEM)
 
 $(TEACHJOVEM): doc/teachjove.nr
 	@sed -e 's;TMPDIR;$(TMPDIR);' \
 	     -e 's;LIBDIR;$(LIBDIR);' \
-	     -e 's;SHELL;$(JSHELL);' doc/teachjove.nr > /tmp/teachjove.nr
+	     -e 's;SHELL;$(DFLTSHELL);' doc/teachjove.nr > /tmp/teachjove.nr
 	install -m 644 /tmp/teachjove.nr $(TEACHJOVEM)
 
 echo:
@@ -253,11 +301,19 @@ coall:
 jove.shar:
 	shar $(BACKUPS) > jove.shar
 
+tar:
+	cd ..; ls -d `cat $(PROG)$(VERSION)/Exclude | \
+		sed 's,^,$(PROG)$(VERSION)/,'` > /tmp/tar$$$$.exclude ; \
+	rm -f /tmp/$(PROG)$(VERSION).tar.Z ; \
+	tar cvfX - /tmp/tar$$$$.exclude $(PROG)$(VERSION) | \
+		compress > /tmp/$(PROG)$(VERSION).tar.Z ; \
+	rm -f /tmp/tar$$$$.exclude
+
 backup: $(BACKUPS)
-	tar chf backup $(BACKUPS)
+	tar cf backup $(BACKUPS)
 
 tape-backup:
-	tar c $(BACKUPS)
+	tar cf /dev/rst8 $(BACKUPS)
 
 srcdownload:
 	kermit -s $(SUPPORT) $(MISC) $(HEADERS) $(C_SRC)
@@ -271,11 +327,13 @@ touch:
 
 clean:
 	rm -f a.out core *.o keys.c tune.c xjove portsrv kbd recover setmaps \
-	teachjove macvert
+	teachjove macvert nrectune.h rectune.h
 
 # This version only works under 4.3BSD
-# To enable, remove single # from start of following lines
 depend:
+	@echo '"make depend" only works under 4.3BSD'
+	sed -e '/^# DO NOT DELETE THIS LINE/q' Makefile >Makefile.new
+	echo '# DO NOT DELETE THIS LINE -- "make depend" uses it' >>Makefile.new
 	for i in ${SOURCES} ; do \
 		cc -M ${CFLAGS} $$i | \
 		awk ' /[/]usr[/]include/ { next } \
@@ -283,22 +341,14 @@ depend:
 		    { if (rec != "") print rec; rec = $$0; prev = $$1; } \
 		    else { if (length(rec $$2) > 78) { print rec; rec = $$0; } \
 		    else rec = rec " " $$2 } } \
-		    END { print rec } ' >> makedep; \
+		    END { print rec } ' >>Makefile.new; \
 	done
-	echo '$$a' >eddep
-	echo '' >>eddep
-	echo '.' >>eddep
-	echo '/^# DO NOT DELETE THIS LINE/+1,$$d' >>eddep
-	echo '$$r makedep' >>eddep
-	echo 'w' >>eddep
-	cp Makefile Makefile.bak
-	ed - Makefile < eddep
-	rm eddep makedep
-	echo '# DEPENDENCIES MUST END AT END OF FILE' >> Makefile
-	echo '# IF YOU PUT STUFF HERE IT WILL GO AWAY' >> Makefile
-	echo '# see make depend above' >> Makefile
+	echo '# DEPENDENCIES MUST END AT END OF FILE' >>Makefile.new
+	echo '# IF YOU PUT STUFF HERE IT WILL GO AWAY' >>Makefile.new
+	echo '# see "make depend" above' >>Makefile.new
+	@echo 'New makefile is in "Makefile.new".  Move it to "Makefile".'
 
-# DO NOT DELETE THIS LINE -- make depend uses it
+# DO NOT DELETE THIS LINE -- "make depend" uses it
 funcdefs.o: funcdefs.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h
 funcdefs.o: ./iproc.h ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h
 funcdefs.o: ./screen.h ./style.h ./externs.h ./ctype.h
@@ -350,15 +400,15 @@ io.o: ./io.h ./temp.h
 iproc.o: iproc.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
 iproc.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
 iproc.o: ./style.h ./externs.h ./re.h ./ctype.h ./disp.h ./iproc-ptys.c
-iproc.o: ./wait.h
+iproc.o: ./wait.h ./ttystate.h
 jove.o: jove.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
 jove.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
 jove.o: ./style.h ./externs.h ./fp.h ./termcap.h ./ctype.h ./chars.h ./disp.h
+jove.o: ./ttystate.h
 list.o: list.c ./list.h ./tune.h ./sysdep.h
 macros.o: macros.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h
 macros.o: ./iproc.h ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h
 macros.o: ./screen.h ./style.h ./externs.h ./ctype.h ./fp.h ./chars.h ./disp.h
-malloc.o: malloc.c ./tune.h ./sysdep.h
 marks.o: marks.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
 marks.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
 marks.o: ./style.h ./externs.h

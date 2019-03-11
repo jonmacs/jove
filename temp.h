@@ -34,7 +34,7 @@
 
 #ifdef SMALL
 # define CH_BITS		4
-# if BUFSIZ == 512
+# if JBUFSIZ == 512
 #  define MAX_BLOCKS		1024
 # else
 #  define MAX_BLOCKS		512
@@ -44,7 +44,7 @@
 # define MAX_BLOCKS		4096	/* basically unlimited */
 #endif /* SMALL */
 
-#if BUFSIZ == 512
+#if JBUFSIZ == 512
 # define BNO_SHIFT		(9 - CH_BITS)
 #else
 # define BNO_SHIFT		(10 - CH_BITS)
@@ -61,12 +61,12 @@
 	  2.  Be careful if you change things. */
 
 #define CH_SIZE			((daddr) 1 << CH_BITS)
-#define CH_PBLOCK		((daddr) BUFSIZ / CH_SIZE)
+#define CH_PBLOCK		((daddr) JBUFSIZ / CH_SIZE)
 #define RND_MASK		((daddr) CH_PBLOCK - 1)
-#define OFF_MASK		((daddr) BUFSIZ - 1)
+#define OFF_MASK		((daddr) JBUFSIZ - 1)
 #define BNO_MASK		((daddr) MAX_BLOCKS - 1)
-#define blk_round(addr)		((daddr) addr & ~RND_MASK)
-#define forward_block(addr)	((daddr) addr + CH_PBLOCK)
-#define da_to_bno(addr)		((daddr) (addr >> BNO_SHIFT) & BNO_MASK)
-#define da_to_off(addr)		((daddr) (addr << CH_BITS) & OFF_MASK)
-#define da_too_huge(addr)	((daddr) (addr >> BNO_SHIFT) >= MAX_BLOCKS)
+#define blk_round(addr)		((daddr) (addr) & ~RND_MASK)
+#define forward_block(addr)	((daddr) (addr) + CH_PBLOCK)
+#define da_to_bno(addr)		((daddr) ((addr) >> BNO_SHIFT) & BNO_MASK)
+#define da_to_off(addr)		((daddr) ((addr) << CH_BITS) & OFF_MASK)
+#define da_too_huge(addr)	((daddr) ((addr) >> BNO_SHIFT) >= MAX_BLOCKS)

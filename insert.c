@@ -157,7 +157,7 @@ SelfInsert()
 		} else
 			margin = LMargin;
 		DoJustify(curline, 0, curline,
-			  curchar + strlen(&linebuf[curchar]), 1, margin);
+			  curchar + (int)strlen(&linebuf[curchar]), 1, margin);
 	}
 }
 
@@ -347,9 +347,10 @@ int	indentp;
 }
 
 void
-ins_str(str, ok_nl)
+ins_str(str, ok_nl, max_off)
 register char	*str;
 int	ok_nl;
+register int	max_off;
 {
 	register char	c;
 	Bufpos	save;
@@ -357,10 +358,12 @@ int	ok_nl;
 
 	if (*str == 0)
 		return;		/* ain't nothing to insert! */
+	if (max_off == -1)
+	    max_off = LBSIZE;
 	DOTsave(&save);
 	llen = strlen(linebuf);
 	while ((c = *str++) != '\0') {
-		if (c == '\n' || (ok_nl && llen >= LBSIZE - 2)) {
+		if (c == '\n' || (ok_nl && llen >= max_off - 2)) {
 			IFixMarks(save.p_line, save.p_char, curline, curchar);
 			modify();
 			makedirty(curline);

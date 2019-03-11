@@ -12,21 +12,22 @@ extern char	key_strokes[100],
 
 extern int	ModCount;
 
-#define init_strokes()		(keys_p = key_strokes, *keys_p = '\0')
-#define add_stroke(c)		\
+#define init_strokes()	{ keys_p = key_strokes; *keys_p = '\0'; }
+#define add_stroke(c)	{ \
 	if (keys_p < &key_strokes[sizeof (key_strokes) - 1]) \
-		(*keys_p++ = c, *keys_p = 0)
+		(*keys_p++ = (c), *keys_p = 0); \
+}
 
-#define IsModified(b)	(b->b_modified)
-#define SavLine(a, b)	(a->l_dline = putline(b))
-#define SetLine(line)	DotTo(line, 0)
+#define IsModified(b)	((b)->b_modified)
+#define SavLine(a, b)	((a)->l_dline = putline((b)))
+#define SetLine(line)	DotTo((line), 0)
 #define bobp()		(firstp(curline) && bolp())
 #define bolp()		(curchar == 0)
 #define eobp()		(lastp(curline) && eolp())
 #define eolp()		(linebuf[curchar] == '\0')
-#define firstp(line)	(line == curbuf->b_first)
+#define firstp(line)	((line) == curbuf->b_first)
 #define getDOT()	getline(curline->l_dline, linebuf)
-#define lastp(line)	(line == curbuf->b_last)
+#define lastp(line)	((line) == curbuf->b_last)
 
 extern char
 	*IOerr proto((char *err, char *file)),
@@ -35,10 +36,11 @@ extern char
 	*copystr proto((char *str)),
 	*emalloc proto((size_t size)),
 	*filename proto((struct buffer *b)),
-	*get_time(),	/* proto((time_t *timep,char *buf,int from,int to)) */
+	*get_time proto((time_t *timep,char *buf,int from,int to)),
 	*itoa proto((int num)),
 	*lcontents proto((struct line *line)),
-	*ltobuf proto((struct line *line,char *buf));
+	*ltobuf proto((struct line *line,char *buf)),
+	*jstrchr proto((char *sp, char c));
 
 extern int
 	LineDist proto((struct line *nextp,struct line *endp)),
@@ -47,7 +49,7 @@ extern int
 	blnkp proto((char *buf)),
 	within_indent proto((void)),
 	casecmp proto((char *s1,char *s2)),
-	casencmp proto((char *s1,char *s2,int n)),
+	casencmp proto((char *s1,char *s2, size_t n)),
 	fixorder proto((struct line * *line1,int *char1,struct line * *line2,int *char2)),
 	inlist proto((struct line *first,struct line *what)),
 	inorder proto((struct line *nextp,int char1,struct line *endp,int char2)),
@@ -76,7 +78,7 @@ extern void
 	null_ncpy proto((char *to, char *from, size_t n)),
 #ifdef	UNIX
 	dopipe proto((int *p)),
-	pclose proto((int *p)),
+	pipeclose proto((int *p)),
 #endif
 	pop_env proto((jmp_buf)),
 	push_env proto((jmp_buf)),

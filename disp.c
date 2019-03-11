@@ -11,12 +11,15 @@
 #include "chars.h"
 #include "fp.h"
 #include "disp.h"
+#if defined(IPROCS)
+# include "iproc.h"
+#endif
 
 #ifdef MAC
 # include "mac.h"
 #else
 # ifdef	STDARGS
-#  include <stdargs.h>
+#  include <stdarg.h>
 # else
 #  include <varargs.h>
 # endif
@@ -34,10 +37,15 @@ private void
 	DoIDline proto((int)),
 	do_cl_eol proto((int)),
 	ModeLine proto((Window *)),
-	dobell proto((int x)),
 	GotoDot proto((void)),
 	UpdLine proto((int)),
 	UpdWindow proto((Window *, int));
+
+#ifdef MSDOS
+extern void	dobell proto((int x));
+#else
+private void	dobell proto((int x));
+#endif
 
 private int
 #ifdef ID_CHAR
@@ -140,7 +148,6 @@ redisplay()
 		if (InputPending)
 			goto ret;
 	}
-
 
 	if (Asking) {
 		Placur(LI - 1, min(CO - 2, calc_pos(mesgbuf, Asking)));
@@ -599,9 +606,10 @@ int	visspace;
 	register int	pos = 0;
 	char		*limitp = &outbuf[limit];
 
-#define OkayOut(ch)	if ((pos++ >= s_offset) && (phys_p < limitp))\
-				*phys_p++ = ch;\
-			else
+#define OkayOut(ch)	{ \
+	if ((pos++ >= s_offset) && (phys_p < limitp)) \
+		*phys_p++ = (ch); \
+}
 
 	while ((c = *buf++) != '\0') {
 		if (c == '\t') {
@@ -629,6 +637,8 @@ int	visspace;
 		}
 	}
 	*phys_p = 0;
+
+#undef	OkayOut
 }
 
 /* ID character routines full of special cases and other fun stuff like that.
@@ -659,7 +669,7 @@ int	lineno,
 	for (j = i + 1; j < oldlen && new[j]; j++) {
 		if (new[j] == sline->s_line[i]) {
 			NumSaved = IDcomp(new + j, sline->s_line + i,
-					strlen(new)) + NumSimilar(new + i,
+					(int)strlen(new)) + NumSimilar(new + i,
 						sline->s_line + i, j - i);
 			if (OkayInsert(NumSaved, j - i)) {
 				InsChar(lineno, i, j - i, new);
@@ -773,7 +783,7 @@ int	lineno,
 	to = sp->s_line + col;
 	from = to + num;
 
-	byte_copy(from, to, sp->s_length - from + 1);
+	byte_copy(from, to, (size_t) (sp->s_length - from + 1));
 	clrline(sp->s_length - num, sp->s_length);
 	sp->s_length -= num;
 }
@@ -806,7 +816,7 @@ char	*new;
 		*sp2-- = *sp1--;
 
 	new += col;
-	byte_copy(new, sp3, num);
+	byte_copy(new, sp3, (size_t) num);
 	/* The internal screen is correct, and now we have to do
 	   the physical stuff. */
 
@@ -821,7 +831,7 @@ char	*new;
 			putpad(IC, 1);
 	}
 	for (i = 0; i < num; i++) {
-		putchar(new[i]);
+		jputchar(new[i]);
 		if (IN_INSmode)
 			putpad(IP, 1);
 	}
@@ -848,7 +858,7 @@ int	force;
 	time_t	now;
 	static int	state = NO;	/* assume unknown */
 	static time_t	last_chk = 0,
-			mbox_time;
+			mbox_time = 0;
 	struct stat	stbuf;
 
 	if (MailInt == 0)
@@ -867,9 +877,10 @@ int	force;
 		mbox_time = stbuf.st_atime;
 		state = NO;
 	} else if (stbuf.st_mtime > mbox_time) {
+		if (mbox_time > 0)
+			dobell(2);		/* announce the change */
 		mbox_time = stbuf.st_mtime;
 		state = YES;
-		dobell(3);		/* announce the change */
 	}
 	return state;
 }
@@ -1383,7 +1394,7 @@ Typeout(fmt, va_alist)
 		LineNo = 0;
 		last_col = 0;
 		f_mess("--more--");
-		if ((c = getchar()) != ' ') {
+		if ((c = jgetchar()) != ' ') {
 			TOabort = YES;
 			if (c != AbortChar && c != RUBOUT)
 				Ungetc(c);
@@ -1401,7 +1412,7 @@ Typeout(fmt, va_alist)
 		format(string, sizeof string, fmt, ap);
 		va_end(ap);
 		if (UseBuffers)
-			ins_str(string, NO);
+			ins_str(string, NO, -1);
 		else {
 			i_set(LineNo, last_col);
 			(void) swrite(string, NO, YES);
@@ -1417,7 +1428,7 @@ Typeout(fmt, va_alist)
 			last_col = 0;
 		}
 	} else if (fmt == 0 || DoAutoNL != 0)
-		ins_str("\n", NO);
+		ins_str("\n", NO, -1);
 }
 
 void
@@ -1438,7 +1449,7 @@ TOstop()
 		Typeout("----------");
 		cl_eol();
 		flusho();
-		c = getchar();
+		c = jgetchar();
 		if (c != ' ')
 			Ungetc(c);
 		DisabledRedisplay = NO;

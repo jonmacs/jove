@@ -15,7 +15,7 @@ char	*d_tempfile = "joveXXXXXX",	/* buffer lines go here */
 
 	*Joverc = "LIBDIR/jove.rc",
 
-#ifdef PIPEPROCS
+#if defined(IPROCS) && defined(PIPEPROCS)
 	*Portsrv = "LIBDIR/portsrv",
 	*Kbd_Proc = "LIBDIR/kbd",
 #endif

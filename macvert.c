@@ -11,8 +11,9 @@
 
 #include <stdio.h>
 
-extern int	read(),
-		write();
+extern int
+	read(),
+	write();
 
 static void
 	output_new_definition();
@@ -42,6 +43,7 @@ static int	int_how = NEWWAY;
 /* Formatting int's the old way or the new "improved" way? */
 
 #if defined(vax) || defined(pdp11)
+
 static long
 ntohl(x)
 register long x;
@@ -52,26 +54,11 @@ register long x;
 		(((x >> 24) & 0377) <<  0) );
 }
 
-static short
-ntohs(x)
-register short x;
-{
-	return(	(((x >>  0) & 0377) << 8) |
-		(((x >>  8) & 0377) << 0) );
-}
-
 #else
 
 static long
 ntohl(x)
 register long x;
-{
-	return(x);
-}
-
-static short
-ntohs(x)
-register short x;
 {
 	return(x);
 }

@@ -33,8 +33,8 @@ extern Window	*fwind,		/* first window in list */
 		*curwind;	/* current window */
 
 #define one_windp()	(fwind->w_next == fwind)
-#define HALF(wp)	((wp->w_height - 1) / 2)
-#define SIZE(wp)	(wp->w_height - 1)
+#define HALF(wp)	(((wp)->w_height - 1) / 2)
+#define SIZE(wp)	((wp)->w_height - 1)
 
 extern int
 	FLine proto((struct window *w)),

@@ -16,7 +16,6 @@
 
 private void waitfun proto((void));
 
-extern int UpdModLine;
 #ifdef IBMPC
 static char last = 0;
 extern int specialkey;
@@ -116,12 +115,12 @@ waitfun()
 	if (_bios_timeofday(_TIME_GETCLOCK, &timecount) ||  /* after midnight */
 	    (timecount > lastcount + 0x444) ) {
 		lastcount = timecount;
-		UpdModLine = 1;
+		UpdModLine = YES;
 	}
 #else
 	_dos_gettime(&tc);
 	if (tc.minute != lastmin) {
-		UpdModLine = 1;
+		UpdModLine = YES;
 		lastmin = tc.minute;
 	}
 #endif

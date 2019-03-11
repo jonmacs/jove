@@ -8,67 +8,72 @@
 /* This is a server for jove sub processes.  By the time we get here, our
    standard output goes to jove's process input. */
 
-#include "tune.h"
+#include "jove.h"
 
-#ifdef PIPEPROCS	/* the whole file! */
-
-#define EOF	-1
+#if defined(IPROCS) && defined(PIPEPROCS)	/* the whole file! */
 
 #include <signal.h>
 #include <sys/ioctl.h>
 #include "wait.h"
 
-struct header {
+private struct header {
 	int	pid;
 	int	nbytes;
 	char	buf[512];
 } header;
 
-int	tty_fd;
+private int	tty_fd;
 
 #define HEADSIZE	((sizeof header.pid) + sizeof (header.nbytes))
 
-error(str)
+private void
+proc_write(ptr, n)
+UnivConstPtr	ptr;
+size_t	n;
+{
+	(void) write(1, ptr, n);
+}
+
+private void
+read_pipe(fd)
+int	fd;
+{
+	register size_t	n;
+
+	while ((header.nbytes = read(fd, header.buf, sizeof header.buf)) > 0) {
+		n = HEADSIZE + header.nbytes;
+		proc_write((UnivConstPtr) &header, n);
+	}
+}
+
+private void
+proc_error(str)
 char	*str;
 {
 	header.pid = getpid();
 	header.nbytes = strlen(str);
 	strcpy(header.buf, str);
-	proc_write(&header, header.nbytes + HEADSIZE);
+	proc_write((UnivConstPtr) &header, header.nbytes + HEADSIZE);
 	write(tty_fd, str, strlen(str));
 	exit(-2);
 }
 
-proc_write(ptr, n)
-char	*ptr;
-{
-	(void) write(1, ptr, n);
-}
-
-read_pipe(fd)
-{
-	register int	n;
-
-	while ((header.nbytes = read(fd, header.buf, sizeof header.buf)) > 0) {
-		n = HEADSIZE + header.nbytes;
-		proc_write(&header, n);
-	}
-}
-
 /* ARGSUSED */
+int
 main(argc, argv)
+int	argc;
 char	*argv[];
 {
 	int	p[2];
 	int	pid;
-	int	i;
 
 	if (pipe(p) == -1)
-		error("Cannot pipe jove portsrv.\n");
+		proc_error("Cannot pipe jove portsrv.\n");
 
 	switch (pid = fork()) {
 	case -1:
-		error("portsrv: cannot fork.\n");
+		proc_error("portsrv: cannot fork.\n");
+		/*NOTREACHED*/
 
 	case 0:
 		/* We'll intercept childs output in p[0] */
@@ -78,20 +83,24 @@ char	*argv[];
 		(void) close(p[1]);
 
 		(void) setpgrp(getpid(), getpid());
-		execv(argv[1], &argv[2]);
+		execv(argv[1], (const char **) &argv[2]);
 		_exit(-4);
+		/*NOTREACHED*/
 
 	default:
 		(void) close(0);
 		tty_fd = open("/dev/tty", 1);
 
-		/*
-		for (i = 0; i < argc; i++) {
-			write(tty_fd, "*argv++ = ", 10);
-			write(tty_fd, argv[i], strlen(argv[i]));
-			write(tty_fd, "\n", 1);
+#ifdef	NEVER
+		{
+			int	i;
+			for (i = 0; i < argc; i++) {
+				write(tty_fd, "*argv++ = ", 10);
+				write(tty_fd, argv[i], strlen(argv[i]));
+				write(tty_fd, "\n", 1);
+			}
 		}
-		*/
+#endif	/* NEVER */
 
 		(void) signal(SIGINT, SIG_IGN);
 		(void) signal(SIGQUIT, SIG_IGN);
@@ -113,26 +122,30 @@ char	*argv[];
 		   yucky, too.
 
 		   Actually, 4 or 5 years later I like that idea much better,
-		   so remind me to implement it that way when I get a chance. */
+		   so remind me to implement it that way when I get a chance.
+
+		   7-23-89  Gee thanks, whoever implemented this for me! */
 
 		(void) close(p[0]);
 		header.pid = getpid();
 		header.nbytes = EOF;	/* tell jove we are finished */
 		/* try to exit like our child did ... */
 		{
-			int	status;
+			union wait	status;
 
 			while (wait(&status) != pid)
 				;
-			*(int *) header.buf = status;
+			*(int *) header.buf = status.w_status;
 		}
-		(void) write(1, (char *) &header, HEADSIZE + sizeof (int));
+		(void) write(1, (UnivConstPtr) &header, HEADSIZE + sizeof (int));
 	}
+	return 0;
 }
 
-#else /* PIPEPROCS */
-void
+#else /* IPROCS && PIPEPROCS */
+int
 main()
 {
+	return 0;
 }
 #endif

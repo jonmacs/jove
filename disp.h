@@ -9,8 +9,8 @@
 #define MODELINE	02		/* this is a modeline */
 #define L_MOD		04		/* line has been modified internally */
 
-#define makedirty(line)	line->l_dline |= DIRTY
-#define isdirty(line)	(line->l_dline & DIRTY)
+#define makedirty(line)	{ (line)->l_dline |= DIRTY; }
+#define isdirty(line)	((line)->l_dline & DIRTY)
 
 struct scrimage {
 	int	s_offset,	/* offset to start printing at */
@@ -41,7 +41,6 @@ extern void
 	TOstart proto((char *name,int auto_newline)),
 	TOstop proto((void)),
 	Typeout proto((char *, ...)),
-	message proto((char *str)),
 	rbell proto((void)),
 	redisplay proto((void));
 

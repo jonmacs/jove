@@ -12,8 +12,8 @@ extern int	arg_supplied_p,
 
 #define arg_type()		arg_supplied_p
 #define arg_value()		arg_count
-#define set_is_an_arg(there_is)	(arg_supplied_p = there_is)
-#define set_arg_value(n)	(arg_supplied_p = YES, arg_count = n)
-#define negate_arg_value()	(arg_count = -arg_count)
-#define clr_arg_value()		(arg_supplied_p = NO, arg_count = 1)
+#define set_is_an_arg(there_is)	{ arg_supplied_p = (there_is); }
+#define set_arg_value(n)	{ arg_supplied_p = YES; arg_count = (n); }
+#define negate_arg_value()	{ arg_count = -arg_count; }
+#define clr_arg_value()		{ arg_supplied_p = NO; arg_count = 1; }
 #define is_an_arg()		(arg_supplied_p != NO)

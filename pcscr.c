@@ -37,11 +37,14 @@ private void
 	near cur_right proto((void)),
 	near cur_up proto((void)),
 	near line_feed proto((void)),
-	near normfun proto((char)),
-	near scr_win proto((int, BYTE, BYTE, BYTE, BYTE)),
 	near set_cur proto((WORD)),
 	near set_mode proto((BYTE)),
 	near wherexy proto((BYTE *, BYTE *));
+
+void	near normfun proto((char)),
+	near scr_win proto((int, BYTE, BYTE, BYTE, BYTE)),
+	near clr_page(),
+	near clr_eoln();
 
 #ifdef MAC
 # undef private
@@ -50,7 +53,7 @@ private void
 
 #define VIDEO   0x10
 
-#define intr(n, r)	int86(n, r, r);
+#define intr(n, r)	int86((n), (r), (r));
 
 BYTE CHPL=80,
      LPP=25,
@@ -134,7 +137,7 @@ BYTE n;
 }
 
 #define gotoxy(x,y)	set_cur((x)<<8|((y)&0xff))
-#define cur_mov(x,y)	set_cur((C_X=x)<<8|((C_Y=y)&0xff))
+#define cur_mov(x,y)	set_cur((C_X=(x))<<8|((C_Y=(y))&0xff))
 
 private
 void near wherexy( x, y)
@@ -150,7 +153,6 @@ BYTE *x, *y;
 #define wherex()	C_X
 #define wherey()	C_Y
 
-private
 void near scr_win(no, ulr, ulc, lrr, lrc)
 int no;
 BYTE ulr, ulc, lrr, lrc;
@@ -179,8 +181,12 @@ BYTE chpl()
   return(vr.h.ah);
 }
 
-#define clr_page()	scr_win(0, 0, 0, LPP-1, CHPL-1), \
-			gotoxy(C_X = 0, C_Y = 0)
+void near
+clr_page()
+{
+	scr_win(0, 0, 0, LPP-1, CHPL-1);
+	gotoxy(C_X = 0, C_Y = 0);
+}
 
 private
 void near cur_right()
@@ -232,7 +238,11 @@ BYTE c, n;
 
 #define home_cur()	gotoxy(C_X = 0, C_Y = 0)
 
-#define clr_eoln()	ch_out(' ', CHPL-wherey())
+void near
+clr_eoln()
+{
+	ch_out(' ', CHPL-wherey());
+}
 
 private
 void near clr_eop()
@@ -356,7 +366,6 @@ void init_term()
    wherexy(&C_X, &C_Y);
 }
 
-private
 void near normfun();
 
 void write_em(s)
@@ -381,7 +390,6 @@ int n;
 	 normfun(*s++);
 }
 
-private
 void near normfun(c)
 char c;
 {
@@ -435,6 +443,8 @@ void
 UnsetTerm(foo)
 char *foo;
 {
+  extern int ILI;
+
   Placur(ILI, 0);
   clr_eoln();
   if (EGA)

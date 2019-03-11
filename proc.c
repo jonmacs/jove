@@ -14,7 +14,7 @@
 
 #include <signal.h>
 #ifdef	STDARGS
-# include <stdargs.h>
+# include <stdarg.h>
 #else
 # include <varargs.h>
 #endif
@@ -69,6 +69,7 @@ private struct error	*cur_error = NULL,
 Buffer		*perr_buf = NULL;	/* Buffer with error messages */
 
 int	WtOnMk = 1;		/* Write the modified files when we make */
+int	WrapProcessLines = 1;
 
 /* Add an error to the end of the list of errors.  This is used for
    parse-{C,LINT}-errors and for the spell-buffer command */
@@ -429,7 +430,7 @@ void
 ShToBuf()
 {
 	char	bnm[128],
-		cmd[128];
+		cmd[LBSIZE];
 
 	strcpy(bnm, ask((char *) 0, "Buffer: "));
 	strcpy(cmd, ask(ShcomBuf, "Command: "));
@@ -480,9 +481,14 @@ char	*bnm,
 {
 	Window	*savewp = curwind;
 	int	status;
+	char	*fn = pr_name(curbuf->b_fname, NO);
 
+	/* Two copies of the file name are passed to the shell:
+	 * The Cshell uses the first as a definition of $1
+	 * Most version of the Bourne shell use the second as a definition of $1.
+	 */
 	status = UnixToBuf(bnm, YES, 0, !is_an_arg(), Shell, ShFlags,
-		command, curbuf->b_fname, curbuf->b_fname, (char *) 0);
+		command, fn, fn, (char *)NULL);
 	com_finish(status, command);
 	SetWind(savewp);
 }
@@ -520,12 +526,14 @@ int	pid,
 	int	rpid;
 
 	for (;;) {
-#  ifndef BSD4_2
+#  ifndef WAIT3
 		rpid = wait2(&w.w_status, 0);
 #  else
 		rpid = wait3(&w, 0, (struct rusage *) 0);
 #  endif
-		if (rpid == pid) {
+		if (rpid == -1)
+			break;
+		else if (rpid == pid) {
 			if (status)
 				*status = w.w_status;
 			break;
@@ -570,7 +578,7 @@ UnixToBuf(bnm, disp, wsize, clobber, va_alist)
 	char	*argv[32],
 		*mess;
 	File	*fp;
-	int	(*old_int)();
+	SIGRESULT	(*old_int) proto((int));
 
 	va_init(ap, clobber);
 	make_argv(argv, ap);
@@ -619,11 +627,11 @@ UnixToBuf(bnm, disp, wsize, clobber, va_alist)
 	dopipe(p);
 	pid = vfork();
 	if (pid == -1) {
-		pclose(p);
+		pipeclose(p);
 		complain("[Fork failed]");
 	}
 	if (pid == 0) {
-# ifdef BSD4_2
+# ifdef BSD_SIGS
 		/*
 		 * We want to release SIGCHLD and SIGINT in the child, but
 		 * we can't use SigRelse because that would change Jove's
@@ -635,7 +643,7 @@ UnixToBuf(bnm, disp, wsize, clobber, va_alist)
 		 */
 		(void) signal(SIGINT, SIG_DFL);
 		(void) sigsetmask(SigMask & ~(sigmask(SIGCHLD)|sigmask(SIGINT)));
-# else /* BSD4_2 */
+# else /* BSD_SIGS */
 # ifdef IPROCS
 		SigRelse(SIGCHLD);   /* don't know if this matters */
 # endif /* IPROCS */
@@ -643,16 +651,16 @@ UnixToBuf(bnm, disp, wsize, clobber, va_alist)
 # ifdef JOB_CONTROL
 		SigRelse(SIGINT);
 # endif
-# endif /* BSD4_2 */
+# endif /* BSD_SIGS */
 		(void) close(0);
 		(void) open("/dev/null", 0);
 		(void) close(1);
 		(void) close(2);
 		(void) dup(p[1]);
 		(void) dup(p[1]);
-		pclose(p);
-		execv(argv[0], &argv[1]);
-		(void) write(1, "Execl failed.\n", 14);
+		pipeclose(p);
+		execv(argv[0], (const char **) &argv[1]);
+		(void) write(1, "Execl failed.\n", (size_t) 14);
 		_exit(1);
 	}
 # ifdef JOB_CONTROL
@@ -686,6 +694,8 @@ UnixToBuf(bnm, disp, wsize, clobber, va_alist)
 	fp = fd_open(argv[1], F_READ, p0, iobuff, LBSIZE);
 #endif /* MSDOS */
 	do {
+	    int	wrap_col = WrapProcessLines ? CO : -1;
+
 #ifndef MSDOS
 		inIOread = 1;
 #endif
@@ -694,7 +704,7 @@ UnixToBuf(bnm, disp, wsize, clobber, va_alist)
 		inIOread = 0;
 #endif
 		if (bnm != 0) {
-			ins_str(genbuf, YES);
+			ins_str(genbuf, YES, wrap_col);
 			if (!eof)
 				LineInsert(1);
 		} else if (disp == YES)
@@ -756,7 +766,7 @@ char	*cmd;
 #ifndef MSDOS
 	static char     tnambuf[20];
 	char    *tname,
-		combuf[128];
+		combuf[LBSIZE];
 #endif /* MSDOS */
 	Window	*save_wind = curwind;
 	int	status,

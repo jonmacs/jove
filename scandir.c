@@ -26,10 +26,14 @@
 
 #ifdef UNIX
 
-#if defined(BSD4_2) || defined(M_XENIX)
-# define DIRSIZE(entry)	DIRSIZ(entry)
+#ifdef mips
+# undef scandir
+#endif
+
+#ifdef BSD_DIR
+# define DIRSIZE(entry)	DIRSIZ((entry))
 #else
-# define DIRSIZE(entry)	(entry->d_name[DIRSIZ-1]=='\0' ? strlen(entry->d_name) : DIRSIZ)
+# define DIRSIZE(entry)	((entry)->d_name[DIRSIZ-1]=='\0' ? strlen((entry)->d_name) : DIRSIZ)
 
 typedef struct {
 	int	d_fd;		/* File descriptor for this directory */
@@ -80,7 +84,7 @@ DIR	*dp;
 	return &dir;
 }
 
-#endif /* BSD4_2 */
+#endif /* BSD_DIR */
 
 /* Scandir returns the number of entries or -1 if the directory cannoot
    be opened or malloc fails. */
@@ -89,8 +93,8 @@ int
 scandir(dir, nmptr, qualify, sorter)
 char	*dir;
 char	***nmptr;
-int	(*qualify)();
-int	(*sorter)();
+int	(*qualify) proto((char *));
+int	(*sorter) proto((UnivConstPtr, UnivConstPtr));
 {
 	DIR	*dirp;
 	struct direct	*entry;
@@ -130,7 +134,7 @@ memfail:	complain("[Malloc failed: cannot scandir]");
 
 #ifdef MSDOS
 # define DIRSIZ	13
-# define DIRSIZE(entry)	strlen(entry.name)
+# define DIRSIZE(entry)	strlen((entry).name)
 
 /* Scandir returns the number of entries or -1 if the directory cannot
    be opened or malloc fails. */
@@ -141,8 +145,8 @@ int
 scandir(dir, nmptr, qualify, sorter)
 char	*dir;
 char	***nmptr;
-int	(*qualify)();
-int	(*sorter)();
+int	(*qualify) proto((char *));
+int	(*sorter) proto((UnivConstPtr, UnivConstPtr));
 {
 	char dirname[FILESIZE];
 	struct find_t entry;
@@ -208,9 +212,9 @@ int	nentries;
 
 int
 alphacomp(a, b)
-char	**a,
-	**b;
+UnivConstPtr	a,
+	b;
 {
-	return strcmp(*a, *b);
+	return strcmp(*(const char **)a, *(const char **)b);
 }
 #endif

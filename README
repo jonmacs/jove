@@ -25,10 +25,14 @@ Here are some things to consider for deciding where to put the tmp files.
 TMPDIR is where the tmp files get stored, usually /tmp or /tmp/jove.  If
 your system does not remove subdirectories of /tmp on reboot (lots do
 remove them these days) then it makes sense to make TMPDIR be /tmp/jove.
-But if you want to recover buffers on system crashes, you should create a
-directory that doesn't get cleared upon reboot, and use that instead.
-You would probably want to clean out that directory periodically with
-/etc/cron.
+But if you want to recover buffers on system crashes, you should put the 
+lines
+				(echo preserving Jove files) 	>/dev/console
+(cd /tmp; /usr/local/lib/jovelib/recover -syscrash) >/dev/console
+
+in the /etc/rc file BEFORE /tmp is cleared, so that you can recover
+files after reboots. There shoudl be a crontab entry to clear out
+old files in /usr/preserve.
 
 For the pdp11 version there is the Ovmakefile.  This has only been tested
 on 2.9bsd.  It works pretty well, actually, and it is possible to turn on

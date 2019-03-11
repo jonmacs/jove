@@ -7,7 +7,7 @@
 
 extern char	*HomeDir;
 
-extern int	HomeLen;
+extern size_t	HomeLen;
 
 extern int	DOLsave;	/* Do Lsave flag.  If lines aren't being saved
 				   when you think they should have been, this
@@ -21,9 +21,10 @@ extern int	Jr_Len;		/* length of Just Read Line */
 extern char
 	*lbptr proto((struct line *line)),
 	*pr_name proto((char *fname,int okay_home)),
+	*pwd proto((void)),
 	*sprint proto((char *, ...));
 
-extern struct file
+extern struct _file
 	*open_file proto((char *fname,char *buf,int how,int complainifbad,int loudness));
 
 extern void
@@ -31,13 +32,13 @@ extern void
 	getCWD proto((void)),
 	PathParse proto((char *name,char *intobuf)),
 	SyncTmp proto((void)),
-	close_file proto((struct file *fp)),
+	close_file proto((struct _file *fp)),
 	d_cache_init proto((void)),
 	file_write proto((char *fname,int app)),
 	filemunge proto((char *newname)),
 	getline proto((daddr addr,char *buf)),
 	lsave proto((void)),
-	putreg proto((struct file *fp,struct line *line1,int char1,struct line *line2,int char2,int makesure)),
+	putreg proto((struct _file *fp,struct line *line1,int char1,struct line *line2,int char2,int makesure)),
 	read_file proto((char *file,int is_insert)),
 	tmpclose proto((void)),
 	tmpinit proto((void)),
@@ -48,7 +49,7 @@ extern int
 	chkCWD proto((char *dn));
 
 extern daddr
-	f_getputl proto((struct line *line,struct file *fp)),
+	f_getputl proto((struct line *line,struct _file *fp)),
 	putline proto((char *buf));
 
 #if !(defined(MSDOS) || defined(MAC))

@@ -171,7 +171,7 @@ int	c;
 int
 in_macro()
 {
-	return (mac_stack != 0);
+	return (mac_stack != NULL);
 }
 
 int
@@ -180,8 +180,8 @@ mac_getc()
 	struct m_thread	*mthread;
 	struct macro	*m;
 
-	if ((mthread = mac_stack) == 0)
-		return -1;
+	if ((mthread = mac_stack) == NULL)
+		return EOF;
 	m = mthread->mt_mp;
 	if (mthread->mt_offset == m->m_len) {
 		mthread->mt_offset = 0;
@@ -215,7 +215,7 @@ NameMac()
 	m->m_len = KeyMacro.m_len;
 	m->m_buflen = KeyMacro.m_buflen;
 	m->m_body = emalloc((size_t) m->m_buflen);
-	byte_copy(KeyMacro.m_body, m->m_body, m->m_len);
+	byte_copy(KeyMacro.m_body, m->m_body, (size_t) m->m_len);
 	m->m_flags = SAVE;
 	m->Name = name;
 	add_mac(m);
@@ -236,12 +236,12 @@ int	c;
 File	*fp;
 {
 	if (c == '\\' || c == '^')
-		putc('\\', fp);
+		jputc('\\', fp);
 	 else if (isctrl(c)) {
-		putc('^', fp);
+		jputc('^', fp);
 		c = (c == RUBOUT) ? '?' : (c + '@');
 	}
-	putc(c, fp);
+	jputc(c, fp);
 }
 
 void
@@ -261,7 +261,7 @@ WriteMacs()
 		fwritef(fp, "define-macro %s ", m->Name);
 		for (i = 0; i < m->m_len; i++)
 			pr_putc(m->m_body[i], fp);
-		putc('\n', fp);
+		jputc('\n', fp);
 		m->m_flags &= ~SAVE;
 	}
 	close_file(fp);
@@ -278,7 +278,8 @@ DefKBDMac()
 	int	i;
 	struct macro	*m;
 
-	macro_name = do_ask(" \r\n", (int (*)()) 0, (char *) 0, ProcFmt);
+	macro_name = do_ask(" \r\n", (int (*) proto((int))) 0, (char *) 0,
+		ProcFmt);
 	if (macro_name == 0)
 		complain("[No default]");
 	macro_name = copystr(macro_name);
@@ -294,7 +295,7 @@ DefKBDMac()
 		} else if (c == '^') {
 			if ((nextc = *macro_body++) == '?')
 				c = RUBOUT;
-			else if (isalpha(nextc) || index("@[\\]^_", nextc))
+			else if (isalpha(nextc) || strchr("@[\\]^_", nextc))
 				c = CTL(nextc);
 			else
 				complain("Bad control-character: '%c'", nextc);
@@ -306,7 +307,7 @@ DefKBDMac()
 	m->m_len = m->m_buflen = i;
 	m->m_body = emalloc((size_t) i);
 	m->m_flags = InJoverc ? 0 : SAVE;
-	byte_copy(macro_buffer, m->m_body, i);
+	byte_copy(macro_buffer, m->m_body, (size_t) i);
 	add_mac(m);
 }
 

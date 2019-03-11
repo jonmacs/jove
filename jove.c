@@ -16,12 +16,15 @@
 #include "disp.h"
 #include "re.h"	/* for find_tag() */
 #include "rec.h"
+#if defined(IPROCS)
+# include "iproc.h"
+#endif
 
 #ifdef MAC
 # include "mac.h"
 #else
 # ifdef	STDARGS
-#  include <stdargs.h>
+#  include <stdarg.h>
 # else
 #  include <varargs.h>
 # endif
@@ -48,38 +51,51 @@
 #endif
 
 #ifdef MSDOS
-extern	time_t	time proto((time_t *));
 private	void	break_off proto((void)),
 		break_rst proto((void));
 #endif
 
 private void
 	DoKeys proto((int firsttime)),
-	UNIX_cmdline proto((int argc,char * *argv)),
-	UnsetTerm proto((char *));
+	UNIX_cmdline proto((int argc,char * *argv));
 
+#ifdef MSDOS
+extern
+#else
+private
+#endif
+void
+	UnsetTerm proto((char *)),
+	do_sgtty proto((void));
+
+/* Various tty state structures.
+ * Each is an array, subscripted by one of "OFF" or "ON".
+ */
+
+#ifndef MAC
 #include "ttystate.h"
+#endif
 
 #ifdef UNIX
 # ifdef TIOCSLTC
-struct ltchars	ls1, ls2;
+struct ltchars	ls[2];
 # endif /* TIOCSLTC */
 
-# ifdef TIOCGETC
-struct tchars	tc1, tc2;
+# if defined(TIOCGETC) && !defined(SYSV)
+struct tchars	tc[2];
 # endif
 
 # ifdef PASS8			/* use pass8 instead of raw for meta-key */
-int	lmword1, lmword2;	/* local mode word */
+private int	lmword[2];		/* local mode word */
 # endif
 
 # ifdef BRLUNIX
-struct sg_brl	sg1, sg2;
+struct sg_brl	sg[2];
 # else
 #  ifdef SYSV
-struct termio	sg1, sg2;
+struct termio	sg[2];
 #  else /* SYSV */
-struct sgttyb	sg1, sg2;
+struct sgttyb	sg[2];
 #  endif /* SYSV */
 # endif /* BRLUNIX */
 
@@ -102,7 +118,12 @@ jmp_buf	mainjmp;
 # define SIGHUP	99
 #endif /* MSDOS */
 
-void
+/* finish() does not return, so it is funny that it returns a non-void
+ * result.  This is because most systems claim that signal(2) deals
+ * with functions of type int ().  ANSI changes this: the function
+ * type must be void (int).  This bridge must soon be crossed.
+ */
+SIGRESULT
 finish(code)
 int	code;
 {
@@ -111,7 +132,7 @@ int	code;
 
 	if (code == SIGINT) {
 		char	c;
-#ifdef PIPEPROCS
+#if defined(IPROCS) && defined(PIPEPROCS)
 		int	started;
 #endif
 #ifndef MENLO_JCL
@@ -119,11 +140,14 @@ int	code;
 #endif
 		f_mess("Abort (Type 'n' if you're not sure)? ");
 #ifndef MSDOS
-# ifdef PIPEPROCS
+# if defined(IPROCS) && defined(PIPEPROCS)
 		started = kbd_stop();
 # endif
-		(void) read(0, &c, 1);
-# ifdef PIPEPROCS
+#ifdef SYSV
+		if (read(0, &c, (size_t) 1) != 1)
+#endif
+			(void) read(0, &c, (size_t) 1);
+# if defined(IPROCS) && defined(PIPEPROCS)
 		if (started)
 			(void) kbd_strt();
 # endif
@@ -133,14 +157,14 @@ int	code;
 		message(NullStr);
 		if ((c & 0377) != 'y') {
 			redisplay();
-			return;
+			SIGRETURN;
 		}
 	}
 	DisabledRedisplay = YES;
 #ifndef MAC
 	UnsetTerm(NullStr);
 #endif
-#ifdef PIPEPROCS
+#if defined(IPROCS) && defined(PIPEPROCS)
 	kbd_kill();		/* kill the keyboard process */
 #endif
 #ifndef MSDOS
@@ -184,6 +208,7 @@ int	code;
 #endif
 	exit(0);
 #endif /* UNIX */
+	/*NOTREACHED*/
 }
 
 private char	smbuf[20],
@@ -220,7 +245,7 @@ Peekc()
 	int	c;
 
 	if (peekp == peekbuf)
-		c = -1;
+		c = EOF;
 	else
 		c = *--peekp & 0377;
 	return c;
@@ -241,7 +266,7 @@ char	*Inputp = 0;
 
 #if (defined(IPROCS) && !defined(PIPEPROCS))	/* that is, if ptys */
 int
-getchar()
+jgetchar()
 {
 	long		reads;
 	register int	tmp,
@@ -291,7 +316,7 @@ getchar()
 
 #else
 
-getchar()
+jgetchar()
 {
 	register int	c;
 	struct header {
@@ -300,7 +325,8 @@ getchar()
 	} header;
 	int	n;
 
-normal:	if (nchars <= 0) {
+normal:
+	if (nchars <= 0) {
 		bp = smbuf;
 #ifdef MSDOS
 		*bp = getrawinchar();
@@ -321,7 +347,8 @@ normal:	if (nchars <= 0) {
 				finish(SIGHUP);
 # ifdef IPROCS
 		} else for (;;) {
-			n = f_readn(ProcInput, &header, sizeof (header));
+			n = f_readn(ProcInput, (char *) &header,
+				    sizeof(header));
 			if (n == EOF) {
 				printf("\rError reading kbd process.\n");
 				finish(1);
@@ -360,9 +387,7 @@ normal:	if (nchars <= 0) {
 int
 charp()
 {
-#ifndef MSDOS
 	int	some = 0;
-#endif /* MSDOS */
 
 	if (InJoverc != 0 || nchars > 0 || Inputp != 0)
 		return 1;
@@ -379,7 +404,7 @@ charp()
 	{
 		long c;
 
-		if (ioctl(0, FIONREAD, (struct sgttyb *) &c) == -1)
+		if (ioctl(0, FIONREAD, (UnivPtr) &c) == -1)
 			c = 0;
 		some = (c > 0);
 	}
@@ -404,7 +429,6 @@ charp()
 	return some;
 }
 
-private void	do_sgtty();
 #ifdef BIFF
 private void	biff_init proto((void));
 #endif
@@ -439,12 +463,21 @@ char	*mesg;
 #ifdef ID_CHAR
 	INSmode(0);
 #endif
-	Placur(ILI, 0);
-	writef("%s", mesg);
-	putpad(CE, 1);
 	putpad(KE, 1);
 	putpad(VE, 1);
-	putpad(TE, 1);
+	/*
+	 *  For terminals without an alternate page, go the bottom of the
+	 *  screen. Alternate page - just return to the original place on
+	 *  the screen
+	 */
+	if (!TE) {
+		Placur(ILI, 0);
+		putpad(CE, 1);
+	} else {
+		putpad(TE, 1);
+	}
+	if (mesg[0] != '\0')
+		writef("%s\n", mesg);
 	flusho();
 }
 #endif /* TERMCAP */
@@ -460,17 +493,18 @@ PauseJove()
 }
 #endif
 
-
 #ifndef MAC
 void
 Push()
 {
-	int
 #ifndef MSDOS
-		pid,
-		(*old_quit)() = signal(SIGQUIT, SIG_IGN),
+	int	pid;
+	SIGRESULT	(*old_quit) proto((int)) = signal(SIGQUIT, SIG_IGN);
 #endif /* MSDOS */
-		(*old_int)() = signal(SIGINT, SIG_IGN);
+	SIGRESULT	(*old_int) proto((int)) = signal(SIGINT, SIG_IGN);
+# if defined(IPROCS) && defined(PIPEPROCS)
+	int	started;
+# endif
 
 #ifndef MSDOS
 #ifdef IPROCS
@@ -479,13 +513,21 @@ Push()
 #if defined(TIOCGWINSZ) && defined(SIGWINCH) && defined(SigRelse)
 	SigHold(SIGWINCH);
 #endif
+	alarm(0);
+# if defined(IPROCS) && defined(PIPEPROCS)
+	started = kbd_stop();
+# endif
 	switch (pid = fork()) {
 	case -1:
+# if defined(IPROCS) && defined(PIPEPROCS)
+		if (started)
+			(void) kbd_strt();
+# endif
 		complain("[Fork failed]");
 		/*NOTREACHED*/
 
 	case 0:
-		UnsetTerm(NullStr);
+		UnsetTerm(ModBufs(0) ? "[There are modified buffers]" : NullStr);
 #if defined(TIOCGWINSZ) && defined(SIGWINCH) && defined(SigRelse)
 		SigRelse(SIGWINCH);
 #endif
@@ -494,20 +536,21 @@ Push()
 #endif
 		(void) signal(SIGTERM, SIG_DFL);
 #else /* MSDOS */
-	UnsetTerm(NullStr);
+	UnsetTerm(ModBufs(0) ? "[There are modified buffers]" : NullStr);
 #endif /* MSDOS */
 		(void) signal(SIGINT, SIG_DFL);
 #ifdef UNIX
 		(void) signal(SIGQUIT, SIG_DFL);
 		/* note that curbuf->bfname may be NULL */
-		execl(Shell, basename(Shell), "-s", curbuf->b_fname, (char *)0);
+		execl(Shell, basename(Shell), "-is", pr_name(curbuf->b_fname, NO),
+			(char *)NULL);
 		message("[Execl failed]");
 		_exit(1);
 	}
-	dowait(pid, (int *) 0);
 #ifdef IPROCS
 	SigRelse(SIGCHLD);
 #endif
+	dowait(pid, (int *) 0);
 #endif /* UNIX */
 #ifdef MSDOS
 	break_rst();
@@ -528,6 +571,12 @@ Push()
 	getCWD();
 #endif /* MSDOS */
 	(void) signal(SIGINT, old_int);
+	if (UpdFreq != 0)
+	    (void) alarm((unsigned) (UpdFreq - (time((time_t *) 0) % UpdFreq)));
+# if defined(IPROCS) && defined(PIPEPROCS)
+	if (started)
+		(void) kbd_strt();
+# endif
 }
 #endif /* MAC */
 
@@ -541,7 +590,7 @@ ttsize()
 #   ifdef TIOCGWINSZ
 	struct winsize win;
 
-	if (ioctl (0, TIOCGWINSZ, &win) == 0) {
+	if (ioctl (0, TIOCGWINSZ, (UnivPtr) &win) == 0) {
 		if (win.ws_col)
 			CO = win.ws_col;
 		if (win.ws_row)
@@ -609,23 +658,23 @@ ttinit()
 	biff_init();
 #endif
 #ifdef TIOCSLTC
-	(void) ioctl(0, TIOCGLTC, (struct sgttyb *) &ls1);
-	ls2 = ls1;
-	ls2.t_suspc = (char) -1;
-	ls2.t_dsuspc = (char) -1;
-	ls2.t_flushc = (char) -1;
-	ls2.t_lnextc = (char) -1;
+	(void) ioctl(0, TIOCGLTC, (UnivPtr) &ls[OFF]);
+	ls[ON] = ls[OFF];
+	ls[ON].t_suspc = (char) -1;
+	ls[ON].t_dsuspc = (char) -1;
+	ls[ON].t_flushc = (char) -1;
+	ls[ON].t_lnextc = (char) -1;
 #endif
 
-#ifdef TIOCGETC
+#if defined(TIOCGETC) && !defined(SYSV)
 	/* Change interupt and quit. */
-	(void) ioctl(0, TIOCGETC, (struct sgttyb *) &tc1);
-	tc2 = tc1;
-	tc2.t_intrc = IntChar;
-	tc2.t_quitc = (char) -1;
+	(void) ioctl(0, TIOCGETC, (UnivPtr) &tc[OFF]);
+	tc[ON] = tc[OFF];
+	tc[ON].t_intrc = IntChar;
+	tc[ON].t_quitc = (char) -1;
 	if (OKXonXoff) {
-		tc2.t_stopc = (char) -1;
-		tc2.t_startc = (char) -1;
+		tc[ON].t_stopc = (char) -1;
+		tc[ON].t_startc = (char) -1;
 	}
 #endif /* TIOCGETC */
 	do_sgtty();
@@ -633,55 +682,60 @@ ttinit()
 
 private int	done_ttinit = 0;
 
-private void
+#ifndef	MSDOS
+private
+#endif
+void
 do_sgtty()
 {
 #ifdef UNIX
 # ifdef SYSV
-	(void) ioctl(0, TCGETA, (char *) &sg1);
+	(void) ioctl(0, TCGETA, (char *) &sg[OFF]);
 # else
-	(void) gtty(0, &sg1);
+	(void) gtty(0, &sg[OFF]);
 # endif /* SYSV */
-	sg2 = sg1;
+	sg[ON] = sg[OFF];
 
 # ifdef LPASS8
-	(void) ioctl(0, TIOCLGET, &lmword1);
-	lmword2 = lmword1;
+	(void) ioctl(0, TIOCLGET, (UnivPtr) &lmword[OFF]);
+	lmword[ON] = lmword[OFF];
 	if (MetaKey == YES)
-		lmword2 |= LPASS8;
+		lmword[ON] |= LPASS8;
 	if (HZ)
-		lmword2 &= ~LTILDE;
+		lmword[ON] &= ~LTILDE;
 # endif
 
 # ifdef SYSV
-	TABS = !((sg1.c_oflag & TAB3) == TAB3);
-	ospeed = sg1.c_cflag & CBAUD;
+	TABS = !((sg[OFF].c_oflag & TAB3) == TAB3);
+	ospeed = sg[OFF].c_cflag & CBAUD;
 
 	if (OKXonXoff)
-		sg2.c_iflag &= ~(IXON | IXOFF);
-	sg2.c_iflag &= ~(INLCR|ICRNL|IGNCR);
-	sg2.c_lflag &= ~(ISIG|ICANON|ECHO);
-	sg2.c_oflag &= ~(OCRNL|ONLCR);
-	sg2.c_cc[VMIN] = sizeof smbuf;
-	sg2.c_cc[VTIME] = 1;
+		sg[ON].c_iflag &= ~(IXON | IXOFF);
+	sg[ON].c_iflag &= ~(INLCR|ICRNL|IGNCR);
+	sg[ON].c_lflag &= ~(ICANON|ECHO);
+	sg[ON].c_oflag &= ~(OCRNL|ONLCR);
+	sg[ON].c_cc[VINTR] = IntChar;
+	sg[ON].c_cc[VQUIT] = (char) -1;
+	sg[ON].c_cc[VMIN] = sizeof smbuf;
+	sg[ON].c_cc[VTIME] = 1;
 # else
-	TABS = !(sg1.sg_flags & XTABS);
-	sg2.sg_flags &= ~XTABS;
-	ospeed = sg1.sg_ospeed;
+	TABS = !(sg[OFF].sg_flags & XTABS);
+	sg[ON].sg_flags &= ~XTABS;
+	ospeed = sg[OFF].sg_ospeed;
 #  ifdef BRLUNIX
-	sg2.sg_flags &= ~(ECHO | CRMOD);
-	sg2.sg_flags |= CBREAK;
+	sg[ON].sg_flags &= ~(ECHO | CRMOD);
+	sg[ON].sg_flags |= CBREAK;
 
 	/* VT100 Kludge: leave STALL on for flow control if DC3DC1 (Yuck.) */
-	sg2.sg_xflags &= ~((sg2.sg_xflags&DC3DC1 ? 0 : STALL) | PAGE);
+	sg[ON].sg_xflags &= ~((sg[ON].sg_xflags&DC3DC1 ? 0 : STALL) | PAGE);
 #  else
-	sg2.sg_flags &= ~(ECHO | CRMOD);
+	sg[ON].sg_flags &= ~(ECHO | CRMOD);
 #  endif /* BRLUNIX */
 
 #  ifdef LPASS8
-	sg2.sg_flags |= CBREAK;
+	sg[ON].sg_flags |= CBREAK;
 #  else
-	sg2.sg_flags |= (MetaKey ? RAW : CBREAK);
+	sg[ON].sg_flags |= (MetaKey ? RAW : CBREAK);
 #  endif
 # endif /* SYSV */
 #endif /* UNIX */
@@ -714,23 +768,23 @@ int	n;
 		return;
 #ifdef UNIX
 # ifdef SYSV
-	(void) ioctl(0, TCSETAW, n == 0 ? (struct sgttyb *) &sg1 : (struct sgttyb *) &sg2);
+	(void) ioctl(0, TCSETAW, (UnivPtr) &sg[n]);
 # else
 #  ifdef BRLUNIX
-	(void) stty(0, n == 0 ? (struct sgttyb *) &sg1 : (struct sgttyb *) &sg2);
+	(void) stty(0, &sg[n]);
 #  else
-	(void) ioctl(0, TIOCSETN, n == 0 ? (struct sgttyb *) &sg1 : (struct sgttyb *) &sg2);
+	(void) ioctl(0, TIOCSETN, (UnivPtr) &sg[n]);
 #  endif /* BRLUNIX */
 # endif /* SYSV */
 
-# ifdef TIOCSETC
-	(void) ioctl(0, TIOCSETC, n == 0 ? (struct sgttyb *) &tc1 : (struct sgttyb *) &tc2);
+# if defined(TIOCSETC) && !defined(SYSV)
+	(void) ioctl(0, TIOCSETC, (UnivPtr) &tc[n]);
 # endif /* TIOCSETC */
 # ifdef TIOCSLTC
-	(void) ioctl(0, TIOCSLTC, n == 0 ? (struct sgttyb *) &ls1 : (struct sgttyb *) &ls2);
+	(void) ioctl(0, TIOCSLTC, (UnivPtr) &ls[n]);
 # endif /* TIOCSLTC */
 # ifdef LPASS8
-	(void) ioctl(0, TIOCLSET, n == 0 ? &lmword1 : &lmword2);
+	(void) ioctl(0, TIOCLSET, (UnivPtr) &lmword[n]);
 # endif
 #endif /* UNIX */
 
@@ -757,9 +811,9 @@ getch()
 			peekc;
 
 	if (Inputp) {
-		if ((c = *Inputp++) != 0)
+		if ((c = *Inputp++) != '\0')
 			return LastKeyStruck = c;
-		Inputp = 0;
+		Inputp = NULL;
 	}
 
 	if (InJoverc)
@@ -777,43 +831,26 @@ getch()
 	   AND there are no ungetc'd characters, we read from the
 	   terminal (i.e., getch()).  And characters only get put
 	   in macros from inside this if. */
-	if (((peekc = c = Peekc()) == -1) && (Interactive || ((c = mac_getc()) == -1))) {
+	if (((peekc = c = Peekc()) == EOF) &&
+	    (Interactive || ((c = mac_getc()) == EOF))) {
 		/* So messages that aren't error messages don't
 		   hang around forever. */
-		if (!UpdMesg && !Asking) {	/* Don't erase if we are asking */
-			if (mesgbuf[0] && !errormsg)
-				message(NullStr);
-		}
+		if (!UpdMesg && !Asking && mesgbuf[0] != '\0' && !errormsg)
+			message(NullStr);
 		redisplay();
-/*
-#if defined(IPROCS) && defined(PIPEPROCS)
-		if (NumProcs > 0) {
-			SigRelse(INPUT_SIG);
-			SigRelse(SIGCHLD);
-		}
-#endif
-*/
 #ifdef UNIX
 		inIOread = 1;
 #endif
-		if ((c = getchar()) == EOF)
+		if ((c = jgetchar()) == EOF)
 			finish(SIGHUP);
 #ifdef UNIX
 		inIOread = 0;
 #endif
 
-/*
-#if defined(IPROCS) && defined(PIPEPROCS)
-		if (NumProcs > 0) {
-			SigHold(INPUT_SIG);
-			SigHold(SIGCHLD);
-		}
-#endif
-*/
 		if (!Interactive && InMacDefine)
 			mac_putc(c);
 	}
-	if (peekc == -1)	/* don't add_stroke peekc's */
+	if (peekc == EOF)	/* don't add_stroke peekc's */
 		add_stroke(c);
 	return LastKeyStruck = c;
 }
@@ -822,7 +859,12 @@ getch()
 private void
 dorecover()
 {
-	execl(Recover, "recover", "-d", TmpFilePath, (char *) 0);
+	/* Since recover is a normal cooked mode program, reset the terminal */
+	UnsetTerm(NullStr);
+#if defined(IPROCS) && defined(PIPEPROCS)
+	kbd_kill();		/* kill the keyboard process */
+#endif
+	execl(Recover, "recover", "-d", TmpFilePath, (char *) NULL);
 	writef("%s: execl failed!\n", Recover);
 	flusho();
 	_exit(-1);
@@ -853,8 +895,8 @@ char	*argv[];
 #ifdef MSDOS
 			strlwr(argv[1]);
 #endif
-			minib_add(argv[1], force ? YES : NO);
-			b = do_find(nwinds > 0 ? curwind : (Window *) 0,
+			minib_add(argv[1], force);
+			b = do_find(nwinds > 0 ? curwind : (Window *) NULL,
 				    argv[1], force);
 			if (force) {
 				SetABuf(curbuf);
@@ -881,8 +923,8 @@ char	*argv[];
 			case 'p':
 				argv += 1;
 				argc -= 1;
-				if (argv[1] != 0) {
-					SetBuf(do_find(curwind, argv[1], 0));
+				if (argv[1] != NULL) {
+					SetBuf(do_find(curwind, argv[1], NO));
 					ErrParse();
 					nwinds = 0;
 				}
@@ -890,12 +932,12 @@ char	*argv[];
 #endif
 			case 't':
 				/* check if syntax is -tTag or -t Tag */
-				if (argv[1][2] != 0) {
+				if (argv[1][2] != '\0') {
 					find_tag(&(argv[1][2]), YES);
 				} else {
 					argv += 1;
 					argc -= 1;
-					if (argv[1] != 0)
+					if (argv[1] != NULL)
 						find_tag(argv[1], YES);
 				}
 				break;
@@ -1097,7 +1139,7 @@ int	firsttime;
 		menus_on();
 #endif
 		c = getch();
-		if (c == -1)
+		if (c == EOF)
 			continue;
 		dispatch(c);
 	}
@@ -1122,8 +1164,9 @@ register char	**args,
 int	UpdFreq = 30,
 	inIOread = 0;
 
-private void
-updmode()
+private SIGRESULT
+updmode(junk)
+int	junk;	/* passed in on signal; of no interest */
 {
 	UpdModLine = YES;
 	if (inIOread)
@@ -1131,13 +1174,15 @@ updmode()
 #ifndef JOB_CONTROL
 	(void) signal(SIGALRM, updmode);
 #endif
-	(void) alarm((unsigned) UpdFreq);
+	if (UpdFreq != 0)
+		(void) alarm((unsigned) (UpdFreq - (time((time_t *) 0) % UpdFreq)));
+	SIGRETURN;
 }
 #endif /* UNIX */
 
 #ifdef MSDOS
 # ifndef IBMPC
-char	ttbuf[BUFSIZ];
+char	ttbuf[JBUFSIZ];
 # endif	/* IBMPC */
 #endif /* MSDOS */
 
@@ -1145,8 +1190,9 @@ char	ttbuf[BUFSIZ];
 #ifndef	MAC
 private
 #endif
-int
-win_reshape()
+SIGRESULT
+win_reshape(junk)
+int	junk;	/* passed in when invoked by a signal; of no interest */
 {
 	register int	oldLI;
 	register int newsize, total;
@@ -1205,7 +1251,7 @@ win_reshape()
 #ifdef UNIX
 	(void) signal(SIGWINCH, win_reshape);
 #endif
-	return 0;	/* gotta return some int */
+	SIGRETURN;
 }
 #endif
 
@@ -1223,8 +1269,8 @@ char	*argv[];
 {
 #endif /* MAC */
 	char	*cp;
-#ifndef MSDOS
 	char	ttbuf[MAXTTYBUF];
+#ifndef MSDOS
 # ifndef VMUNIX
 	char	s_iobuff[LBSIZE],
 		s_genbuf[LBSIZE],
@@ -1308,14 +1354,18 @@ char	*argv[];
 	{
 		char	**argp;
 
-		if ((argp = scanvec(argv, "-d"))!=NULL && chkCWD(argp[1]))
+		if ((argp = scanvec(argv, "-d"))!=NULL
+#ifdef UNIX
+		    && chkCWD(argp[1])
+#endif
+		    )
 			setCWD(argp[1]);
 		else
 			getCWD();	/* After we setup curbuf in case we have to getwd() */
 	}
 
 	HomeDir = getenv("HOME");
-	if (HomeDir == 0)
+	if (HomeDir == NULL)
 		HomeDir = "/";
 	HomeLen = strlen(HomeDir);
 
@@ -1329,25 +1379,32 @@ char	*argv[];
 
 	InitKeymaps();
 
-#ifdef MSDOS
-	if ((cp = getenv("JOVERC")) && (*cp != '\0'))
+	ttinit();	/* initialize terminal (before ~/.joverc) */
+	settout(ttbuf);	/* not until we know baudrate */
+#ifndef MAC
+	ResetTerm();
+#endif
+
+	(void) joverc(Joverc);			/* system wide .joverc */
+	cp = 0;
+#if defined(MSDOS) || defined(UNIX)
+	/* If a JOVERC environment variable is set, then use that instead */
+	if ((cp = getenv("JOVERC"))!=NULL && (*cp != '\0'))
 	   (void) joverc(cp);
-#endif /* MSDOS */
-	(void) joverc(Joverc);
-	if (!scanvec(argv, "-j")) {
+#endif /* MSDOS || UNIX */
+	if (!scanvec(argv, "-j") && (!cp || *cp == '\0')) {
 		char	tmpbuf[100];
+
 		swritef(tmpbuf, "%s/.joverc", HomeDir);
-		(void) joverc(tmpbuf);
+		(void) joverc(tmpbuf);		/* .joverc in home directory */
 	}
+
 #ifndef MSDOS
 	if (scanvec(argv, "-r"))
 		dorecover();
 	if (scanvec(argv, "-rc"))
 		FullRecover();
-#endif 	/* MSDOS */
-	ttinit();	/* initialize terminal (after ~/.joverc) */
-
-	settout(ttbuf);
+#endif	/* MSDOS */
 
 #ifdef MSDOS
 	(void) signal(SIGINT, SIG_IGN);
@@ -1365,11 +1422,9 @@ char	*argv[];
 # endif
 	/* set things up to update the modeline every UpdFreq seconds */
 	(void) signal(SIGALRM, updmode);
-	(void) alarm((unsigned) (60 - (time((time_t *) 0) % 60)));
+	if (UpdFreq != 0)
+		(void) alarm((unsigned) (UpdFreq - (time((time_t *) 0) % UpdFreq)));
 #endif /* UNIX */
-#ifndef MAC
-	ResetTerm();
-#endif
 	cl_scr(1);
 	flusho();
 	RedrawDisplay();	/* start the redisplay process. */

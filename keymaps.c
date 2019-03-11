@@ -54,7 +54,7 @@ data_obj	**keys;
 		km->k_alloc_p = NO;
 	} else {
 		km->k_keys = (data_obj **) emalloc(NCHARS * sizeof (data_obj *));
-		bzero((char *) km->k_keys, NCHARS * sizeof (data_obj *));
+		byte_zero((char *) km->k_keys, NCHARS * sizeof (data_obj *));
 		km->k_alloc_p = YES;
 	}
 	return km;
@@ -94,7 +94,7 @@ char	*name;
 
 /* given a map and a key, return the object bound to that key */
 
-#define km_getkey(m, c)	(m->k_keys[c & CHARMASK])
+#define km_getkey(m, c)	((m)->k_keys[(c) & CHARMASK])
 
 #ifndef km_getkey
 data_obj *
@@ -205,7 +205,7 @@ data_obj 	*cmd;
 
 void
 BindSomething(proc, map)
-#if defined(MAC)
+#if defined(MAC) || defined(IBMPC)
 data_obj	*(*proc)();
 #else
 data_obj	*(*proc) proto((char *));
@@ -400,7 +400,7 @@ DescCom()
 			}
 			Typeout("");
 			while (f_gets(fp, genbuf, (size_t)LBSIZE) != EOF
-			&& strncmp(genbuf, ":entry", 6) != 0) {
+			&& strncmp(genbuf, ":entry", (size_t)6) != 0) {
 				Typeout("%s", genbuf);
 			}
 			break;

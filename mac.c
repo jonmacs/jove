@@ -132,12 +132,13 @@ void MacInit()
 
 int dummy(){}
 
-int (*signal(sig,func))()
+SIGRESULT (*signal(sig,func)) proto((int))
 int sig;
-int (*func)();
+SIGRESULT (*func) proto((int));
 {
 	return(&dummy);
 }
+
 dorecover() {}
 
 
@@ -147,10 +148,15 @@ dorecover() {}
 
 #include <io.h>
 #define NFILES 10
-/*
-#define fsetup(p) {p.ioCompletion = 0; p.ioVRefNum = cur_vol; p.ioDirID = cur_dir;p.ioFVersNum = 0;}
-#define isetup(p) {p.ioCompletion = 0; p.ioVRefNum = cur_vol;}
-*/
+
+/* #define fsetup(p) { \
+ *	(p).ioCompletion = 0; \
+ *	(p).ioVRefNum = cur_vol; \
+ *	(p).ioDirID = cur_dir; \
+ *	(p).ioFVersNum = 0; \
+ * }
+ * #define isetup(p) {(p).ioCompletion = 0; (p).ioVRefNum = cur_vol;}
+ */
 
 static int cur_vol;	/* Disk or volume number */
 static long cur_dir;	/* Directory number */
@@ -164,7 +170,7 @@ struct ftab {
 fsetup(p)
 HParmBlkPtr p;
 {
-	bzero(p,sizeof(HParamBlockRec));
+	byte_zero(p,sizeof(HParamBlockRec));
 	p->fileParam.ioVRefNum = cur_vol;
 	p->fileParam.ioDirID = cur_dir;
 	p->fileParam.ioFVersNum = 0;
@@ -173,7 +179,7 @@ HParmBlkPtr p;
 isetup(p)
 HIOParam *p;
 {
-	bzero(p,sizeof(HIOParam));
+	byte_zero(p,sizeof(HIOParam));
 	p->ioVRefNum = cur_vol;
 }
 
@@ -226,7 +232,7 @@ char *file;
 
 	if(*file == '/') strcpy(nm,file + 1); /* full path */
 	else {
-		if(index(file + 1, '/') != NULL)
+		if(strchr(file + 1, '/') != NULL)
 			strcpy(nm,"/");	/* make a partial pathname */
 		else *nm = '\0';
 		strcat(nm,file);
@@ -557,7 +563,7 @@ struct stat *buf;
 
 	nm = cvt_fnm(fname);
 	CtoPstr(nm);
-	bzero(&p,sizeof(CInfoPBRec));
+	byte_zero(&p,sizeof(CInfoPBRec));
 	p.hFileInfo.ioCompletion = 0;
 	p.hFileInfo.ioNamePtr = (StringPtr) nm;
 	p.hFileInfo.ioFVersNum = 0;
@@ -567,16 +573,16 @@ struct stat *buf;
 
 	switch (PBGetCatInfo(&p,0)) {
 
-		case noErr : 	errno = 0;
-						break;
+		case noErr:	errno = 0;
+					break;
 		case nsvErr:
 		case paramErr:
-		case bdNamErr :
+		case bdNamErr:
 		case fnfErr:	errno = ENOENT;
 						break;
 		case ioErr:		errno = EIO;
 						break;
-		default :		errno = ENOENT;
+		default:		errno = ENOENT;
 						break;
 	}
 	buf->st_dev = p.hFileInfo.ioVRefNum + 1;	/* don't want 0 */
@@ -672,8 +678,8 @@ char *dir;
 int scandir(dir, nmptr, qualify, sorter) /* this function has NOT been debugged */
 char	*dir;
 char	***nmptr;
-int	(*qualify)();
-int	(*sorter)();
+int	(*qualify) proto((char *));
+int	(*sorter) proto((UnivConstPtr, UnivConstPtr));
 {
 	CInfoPBRec d;
 	Str255 buf;
@@ -699,7 +705,7 @@ int	(*sorter)();
 	strcat(nm,":");
 	CtoPstr(t);
 
-	bzero(&d,sizeof(CInfoPBRec));
+	byte_zero(&d,sizeof(CInfoPBRec));
 	d.dirInfo.ioCompletion = 0;			/* get the directory number */
 	d.dirInfo.ioNamePtr = (StringPtr) t;
 	d.dirInfo.ioVRefNum = cur_vol;
@@ -713,7 +719,7 @@ int	(*sorter)();
 	if ((ourarray = (char **) malloc(nalloc * sizeof (char *))) == 0)
 memfail:	complain("[Malloc failed: cannot scandir]");
 	while (1) {
-		bzero(&d,sizeof(CInfoPBRec));
+		byte_zero(&d,sizeof(CInfoPBRec));
 		d.dirInfo.ioCompletion = (long) 0;
 		d.dirInfo.ioVRefNum = cur_vol;
 		d.dirInfo.ioFVersNum = 0;
@@ -753,12 +759,15 @@ int nentries;
 	while(nentries--) free(*ptr++);
 }
 
+int
 alphacomp(a, b)
-char **a, **b;
+UnivConstPtr	a,
+	b;
 {
-	return strcmp(*a, *b);
+	return strcmp(*(const char **)a, *(const char **)b);
 }
 
+int
 chkCWD(name)	/* eventually, may check validity of cwd */
 char *name;
 {
@@ -1034,11 +1043,10 @@ void do_events()
 
 
 #define MINC 0
-#define MAXC (int)100
+#define MAXC ((int)100)
 #define INITC 0
 #define EVENTLIST (mDownMask | keyDownMask )
 
-extern int UpdModLine;
 extern long GetCRefCon();	/* omitted in ControlMgr.h */
 
 static Point p;
@@ -1239,17 +1247,16 @@ WindowPtr window;
 	}
 }
 
-#define std_state(w) (*((WStateData **)((WindowPeek)w)->dataHandle))->stdState
-#define user_state(w) (*((WStateData **)((WindowPeek)w)->dataHandle))->userState
+#define std_state(w) (*((WStateData **)((WindowPeek)((w)))->dataHandle))->stdState
+#define user_state(w) (*((WStateData **)((WindowPeek)((w)))->dataHandle))->userState
 
 static void doDrag(event,window)
 EventRecord *event;
 WindowPtr window;
 {
 	Rect old_std;
-	
+
 	old_std = std_state(window);
-		
 
 	DragWindow(window, event->where, &LimitRect);
 	if(wc == &wc_std) {
@@ -1293,7 +1300,7 @@ WindowPtr window;
 			ZoomWindow(window,7,1);
 			wc = &wc_user;
 			win_reshape();	/* we do our own toggle, not ZoomWindow() */
-		}	
+		}
 }
 static void doZoomOut(event,window)
 EventRecord *event;
@@ -1304,7 +1311,7 @@ WindowPtr window;
 			ZoomWindow(window,8,1);
 			wc = &wc_std;
 			win_reshape();	/* we do our own toggle, not ZoomWindow() */
-		}	
+		}
 }
 
 static void doGoAway(event,window)
@@ -1345,7 +1352,7 @@ static int findtext()		/* locate and move the point to match the mouse */
 	EventRecord event;
 	Window *w;
 	Line *l;
-	
+
 	ticks = Ticks;
 	ptoxy(p,&row,&col);
 	if((w = rtowind(row)) == 0) return(0);
@@ -1390,7 +1397,7 @@ int *row,*col;
 
 
 #define SYS_ID 100
-#define NOFUNC (void (*)()) 0
+#define NOFUNC ((void (*)()) 0)
 #define NEVENTS 16
 
 extern void doMouse(),dokeyDown(),doUpdate(),doActivate();
@@ -1673,7 +1680,7 @@ int rawchkc()
 int CurrentVol;			/* see tfile.c */
 
 
-#define TYPES  -1
+#define TYPES  (-1)
 
 static Point px = {100,100};
 static char pmess[] = "\pSave file as: ";
@@ -1929,8 +1936,9 @@ int menu;
 void menus_off()
 {
 	int i;
-	if(Keyonly || EventCmd) return;
-	
+	if(Keyonly || EventCmd)
+		return;
+
 #ifdef MENU_DISABLE		/* NOBODY likes this, but it's here if you want it... */
 	DisableItem(SysMenu,0);
 	for(i = 0; i < NMENUS; i++)
@@ -2044,7 +2052,8 @@ int mnu,itm;
 		char	*str;
 
 		/* Do_ask() so you can set string to "" if you so desire. */
-		str = do_ask("\r\n", (int (*)()) 0, (char *) vp->v_value, prompt);
+		str = do_ask("\r\n", (int (*) proto((int))) 0, (char *) vp->v_value,
+			prompt);
 		if (str == 0)
 			str = NullStr;
 		strcpy((char *) vp->v_value, str);
@@ -2185,9 +2194,9 @@ static Rect  vRect;
 static WindowRecord myWindowRec;
 
 #define active() SetPort(theScreen)
-#define maxadjust(r) OffsetRect(r,0,2);
+#define maxadjust(r) OffsetRect((r),0,2);
 
-char *conv_p_curs(row,col) 
+char *conv_p_curs(row,col)
 {
 	return(p_scr + (row * (CO)) + col);
 }
@@ -2416,7 +2425,7 @@ static void init_slate()
 	/* initialize char array for updates */
 	p_scr = emalloc(p_size = wc_std.w_cols * wc_std.w_rows);	/* only once */
 	p_curs = p_scr;
-	
+
 	Title = sprint("%s%s",Name,version);
 	theScreen = NewWindow(&myWindowRec, &myBoundsRect,CtoPstr(Title),
 		1,8,(WindowPtr) -1, 1, (long) 0);
@@ -2480,7 +2489,7 @@ struct wind_config *wcf;
 		LIMIT_C = (w - SCROLLWIDTH - 1) / WIDTH + 1;
 	}
 	if((w < WIDTH * 40) ||(h < HEIGHT * 10)	/* too small */
-		|| ((rows = (h - 4) / HEIGHT) > LIMIT_R)	/* too big */	
+		|| ((rows = (h - 4) / HEIGHT) > LIMIT_R)	/* too big */
 		|| ((cols = (w - SCROLLWIDTH - 1) / WIDTH + 1) > LIMIT_C)) return(0);
 
 	wcf->w_rows = rows;
@@ -2505,13 +2514,13 @@ static SetBounds()
 	SetRect(&myBoundsRect,
 		screenBits.bounds.left + 3,
 		screenBits.bounds.top + 40,
-		screenBits.bounds.left + 3 + wc_std.w_width,	
+		screenBits.bounds.left + 3 + wc_std.w_width,
 		screenBits.bounds.top + 40 + wc_std.w_height);
 }
 
 static Set_std()
 {
-	wc_adjust(screenBits.bounds.right - screenBits.bounds.left - 6,	
+	wc_adjust(screenBits.bounds.right - screenBits.bounds.left - 6,
 		screenBits.bounds.bottom - screenBits.bounds.top - 42,
 		&wc_std,1);
 }

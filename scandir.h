@@ -6,9 +6,14 @@
  ***************************************************************************/
 
 extern int
-	alphacomp proto((char **a, char **b)),
-	scandir proto((char *dir, char ***nmptr, int (*qualify)(), int (*sorter)()));
+	alphacomp proto((UnivConstPtr, UnivConstPtr)),
+	scandir proto((char *dir, char ***nmptr,
+		int (*qualify) proto((char *)),
+		int (*sorter)(UnivConstPtr, UnivConstPtr)));
 
 extern void
 	freedir proto((char * * *nmptr,int nentries));
 
+#ifdef MSDOS
+extern unsigned int	fmask;
+#endif

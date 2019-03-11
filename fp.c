@@ -145,20 +145,22 @@ File	*fp;
 #ifndef MSDOS
 	do
 #endif /* MSDOS */
-		fp->f_cnt = read(fp->f_fd, fp->f_base, fp->f_bufsize);
+		fp->f_cnt = read(fp->f_fd, fp->f_base, (size_t) fp->f_bufsize);
 #ifndef MSDOS
 	while (fp->f_cnt == -1 && errno == EINTR);
 #endif /* MSDOS */
 	if (fp->f_cnt == -1) {
+		/* I/O error -- treat as EOF */
 		writef("[Read error %d]", errno);
-		fp->f_flags |= F_ERR;
+		fp->f_flags |= F_ERR | F_EOF;
+		return EOF;
 	}
 	if (fp->f_cnt == 0) {
 		fp->f_flags |= F_EOF;
 		return EOF;
 	}
 	io_chars += fp->f_cnt;
-	return getc(fp);
+	return jgetc(fp);
 }
 
 void
@@ -169,7 +171,7 @@ register char	*s;
 	register int	c;
 
 	while ((c = *s++) != '\0')
-		putchar(c);
+		jputchar(c);
 #else /* IBMPC */
 	write_emif(s);
 #endif /* IBMPC */
@@ -182,7 +184,7 @@ register int	n;
 register File	*fp;
 {
 	while (--n >= 0)
-		putc(*s++, fp);
+		jputc(*s++, fp);
 }
 
 void
@@ -223,7 +225,7 @@ register File	*fp;
 		return EOF;
 	if (((n = (fp->f_ptr - fp->f_base)) > 0) &&
 #ifndef RAINBOW
-	    (write(fp->f_fd, fp->f_base, n) != n) &&
+	    (write(fp->f_fd, fp->f_base, (size_t)n) != n) &&
 #else
 	    (rbwrite(fp->f_fd, fp->f_base, n) != n) &&
 #endif
@@ -236,7 +238,7 @@ register File	*fp;
 	fp->f_cnt = fp->f_bufsize;
 	fp->f_ptr = fp->f_base;
 	if (c != EOF)
-		return putc(c, fp);
+		return jputc(c, fp);
 	return EOF;
 }
 
@@ -252,12 +254,17 @@ size_t	max;
 
 	if (fp->f_flags & F_EOF)
 		return EOF;
-	while (((c = getc(fp)) != EOF) && (c != '\n')) {
-		if (c == '\0')  /* possibly different from NULL */
-			break;		/* sorry we don't read nulls */
+	while (((c = jgetc(fp)) != EOF) && (c != '\n')) {
+		if (c == '\0') {
+			/* We can't store NUL in our buffer, so ignore it.
+			 * Of course, with a little ingenuity we could:
+			 * NUL could be represented by \n!
+			 */
+			continue;
+		}
 #ifdef MSDOS
 		if (c == '\r') {
-			if ((c = getc(fp)) == '\n')
+			if ((c = jgetc(fp)) == '\n')
 			   break;
 			else
 			   *cp++ = '\r';
@@ -274,7 +281,6 @@ size_t	max;
 	if (c == EOF) {
 		if (cp != buf)
 			add_mess(" [Incomplete last line]");
-		fp->f_flags |= F_EOF;
 		return EOF;
 	}
 	io_lines += 1;
@@ -292,7 +298,7 @@ register File	*fp;
 
 	if (fp->f_flags & F_EOF)
 		return;
-	while (((c = getc(fp)) != EOF) && (c != '\n'))
+	while (((c = jgetc(fp)) != EOF) && (c != '\n'))
 		;
 	if (c == EOF)
 		fp->f_flags |= F_EOF;
@@ -308,7 +314,7 @@ register int	n;
 		nbytes = n;
 
 	while (--n >= 0) {
-		c = getc(fp);
+		c = jgetc(fp);
 		if (f_eof(fp))
 			break;
 		*addr++ = c;
@@ -323,7 +329,7 @@ File	*fp;
 	int	n = 0,
 		c;
 
-	while (isdigit(c = getc(fp)))
+	while (isdigit(c = jgetc(fp)))
 		n = (n * 10) + c;
 	return n;
 }
@@ -339,13 +345,13 @@ int	BufSize = 1;
 private File	_stdout = {1, 1, 1, F_WRITE, &one_buf, &one_buf, (char *) NIL};
 File	*stdout = &_stdout;
 
-#undef putchar		/* for files which forget to include fp.h,
-			   here's a real putchar procedure. */
+#undef jputchar		/* for files which forget to include fp.h,
+			   here's a real jputchar procedure. */
 void
-putchar(c)
+jputchar(c)
 int	c;
 {
-	putc(c, stdout);
+	jputc(c, stdout);
 }
 
 #ifdef RAINBOW

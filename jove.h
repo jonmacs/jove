@@ -19,16 +19,61 @@
 # include <types.h>
 #endif
 
+/* proto: macro to allow us to prototype any function declaration
+ * without upsetting old compilers.
+ */
+
 #if defined(__STDC__) || defined(USE_PROTOTYPES)
 # define proto(x)        x
-#define	STDARGS	1
-#define	va_init(ap, parmN)	va_start(ap, parmN)
 #else
-# define proto(x)        ()
-#define	va_init(ap, parmN)	va_start(ap)
+# define proto(x)		()
 #endif
 
-#define EOF	-1
+/* There are two ways to handle functions with a variable number of args.
+ * The old portable way uses varargs.h.  The way sanctioned by ANSI X3J11
+ * uses stdarg.h.
+ */
+#if defined(__STDC__)
+#define	STDARGS	1
+# define	va_init(ap, parmN)	{ va_start((ap), (parmN)); }
+#else
+# define	va_init(ap, parmN)	{ va_start((ap)); }
+#endif
+
+/* const: readonly type qualifier */
+#ifndef	__STDC__
+#define	const	/* Only in ANSI C.  Pity */
+#endif	/* !__STDC__ */
+
+/* UnivPtr: universal pointer type */
+#ifdef	__STDC__
+typedef void	*UnivPtr;
+typedef const void	*UnivConstPtr;
+#else	/* !__STDC__ */
+typedef char	*UnivPtr;
+typedef const char	*UnivConstPtr;
+#endif	/* !__STDC__ */
+
+/* According to the ANSI standard for C, any library routine may
+ * be defined as a macro with parameters.  In order to prevent
+ * the expansion of this macro in a declaration of the routine,
+ * ANSI suggests parenthesizing the identifier.  This is a reasonable
+ * and legal approach, even for K&R C.
+ *
+ * A bug in the MIPS compiler used on MIPS, IRIS, and probably other
+ * MIPS R[23]000 based systems, causes the compiler to reject
+ * these declarations (at least at the current time, 1989 August).
+ * To avoid this bug, we conditionally define and use UNMACRO.
+ */
+#if defined(mips)
+# define UNMACRO(proc)	proc
+#else
+# define UNMACRO(proc)	(proc)
+#endif
+
+#ifndef	EOF
+#define EOF	(-1)
+#endif
 
 /* typedef structure definitions */
 #ifdef IPROCS
@@ -44,9 +89,6 @@ typedef struct iobuf	IOBUF;
 #include "buf.h"
 #include "wind.h"
 #include "io.h"
-#if defined(IPROCS)
-# include "iproc.h"
-#endif
 #include "dataobj.h"
 #include "keymaps.h"
 #include "argcount.h"
@@ -58,10 +100,10 @@ typedef struct iobuf	IOBUF;
 /* return codes for command completion (all < 0 because >= 0 are
    legitimate offsets into array of strings */
 
-#define AMBIGUOUS	-2	/* matches more than one at this point */
-#define UNIQUE		-3	/* matches only one string */
-#define ORIGINAL	-4	/* matches no strings at all! */
-#define NULLSTRING	-5	/* just hit return without typing anything */
+#define AMBIGUOUS	(-2)	/* matches more than one at this point */
+#define UNIQUE		(-3)	/* matches only one string */
+#define ORIGINAL	(-4)	/* matches no strings at all! */
+#define NULLSTRING	(-5)	/* just hit return without typing anything */
 
 /* values for the `flags' argument to complete */
 #define NOTHING		0	/* opposite of RET_STATE */
@@ -70,7 +112,7 @@ typedef struct iobuf	IOBUF;
 #define CASEIND		4	/* map all to lower case */
 
 #define FORWARD		1
-#define BACKWARD	-1
+#define BACKWARD	(-1)
 
 #define ARG_CMD		1
 #define LINECMD		2
@@ -88,7 +130,7 @@ extern jmp_buf	mainjmp;
 #define YES_NODIGIT	2
 
 #define INT_OKAY	0
-#define INT_BAD		-1
+#define INT_BAD		(-1)
 
 extern char	NullStr[];
 extern char	*ProcFmt;

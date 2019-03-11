@@ -84,6 +84,10 @@ extern int
 	AbortChar,		/* cancels command input */
 	IntChar,		/* ttysets this to generate QUIT */
 	DoEVexpand,		/* treat $foo as environment variable */
+#ifdef IPROCS
+	WrapProcessLines,	/* whether or not to wrap lines from processes
+				   at 80 (window width) columns */
+#endif
 #ifdef F_COMPLETION
 	DispBadFs,		/* display filenames with bad extensions? */
 #endif

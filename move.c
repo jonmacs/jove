@@ -88,7 +88,8 @@ int	dir,
 	n,
 	line_cmd;
 {
-	Line	*(*proc)() = (dir == FORWARD) ? next_line : prev_line;
+	Line	*(*proc) proto((Line *, int)) =
+		(dir == FORWARD) ? next_line : prev_line;
 	Line	*line;
 
 	line = (*proc)(curline, n);

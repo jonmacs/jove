@@ -16,8 +16,9 @@ int	AbortCnt,
 	tabstop = 8;
 
 #if !(defined(IBMPC) || defined(MAC))
-private void	(*TTins_line)(),
-	(*TTdel_line)();
+private void
+	(*TTins_line) proto((int, int, int)),
+	(*TTdel_line) proto((int, int, int));
 #endif /* (defined(IBMPC) || defined(MAC)) */
 
 struct scrimage
@@ -40,6 +41,15 @@ int	CapCol,
 	i_line,
 	i_col;
 
+#ifdef IBMPC
+extern unsigned char	CHPL;
+extern void		near normfun(),
+			near scr_win(),
+			near clr_page(),
+			near clr_eoln();
+
+#endif
+
 void
 make_scr()
 {
@@ -47,7 +57,6 @@ make_scr()
 	register struct screenline	*ns;
 	register char	*nsp;
 
-#ifdef RESHAPING
 	/* In case we are RESHAPING the window! */
 	if (DesiredScreen)
 		free((char *) DesiredScreen);
@@ -59,7 +68,6 @@ make_scr()
 		free(Screen->s_line);	/* free all the screen data */
 		free((char *) Screen);
 	}
-#endif /* RESHAPING */
 
 	DesiredScreen = (struct scrimage *) malloc((unsigned) LI * sizeof (struct scrimage));
 	PhysScreen = (struct scrimage *) malloc((unsigned) LI * sizeof (struct scrimage));
@@ -94,19 +102,19 @@ register char	*cp1,
 }
 
 #if !(defined(IBMPC) || defined(MAC))
-# define sputc(c)	((*cursor != (char) (c)) ? dosputc(c) : (cursor++, i_col++))
+# define sputc(c)	((*cursor != (char) (c)) ? dosputc((c)) : (cursor++, i_col++))
 #endif /* (defined(IBMPC) || defined(MAC)) */
 
 #ifdef IBMPC
 int force = 0;
-# define sputc(c)	dosputc(c)
+# define sputc(c)	dosputc((c))
 #endif /* IBMPC */
 
 #ifdef MAC
-# define sputc(c)	bufputc(c)	/* line buffered for mac display */
+# define sputc(c)	bufputc((c))	/* line buffered for mac display */
 #endif /* MAC */
 
-#define soutputc(c)	if (--n <= 0) break; else sputc(c)
+#define soutputc(c)	{ if (--n <= 0) break; else sputc((c)); }
 
 void
 cl_eol()
@@ -186,9 +194,9 @@ register int	c;
 #endif /* IBMPC */
 		*cursor++ = c;
 #ifndef IBMPC
-		putchar(c & CHARMASK);
+		jputchar(c & CHARMASK);
 #else /* IBMPC */
-		normfun(c);
+		normfun((char) c);
 #endif /* IBMPC */
 		AbortCnt -= 1;
 		CapCol += 1;
@@ -398,6 +406,7 @@ register int	abortable;
 	return !aborted;
 }
 #endif /* MAC */
+
 /* This is for writing a buffer line to the screen.  This is to
    minimize the amount of copying from one buffer to another buffer.
    This gets the info directly from the disk buffers. */
@@ -501,7 +510,7 @@ register int	nline,
 	i_col = ncol;
 }
 
-#if !(defined(MAC))
+#if !(defined(MAC) || defined(IBMPC))
 void
 SO_on()
 {
@@ -570,7 +579,7 @@ int num,
 #endif
 
 #ifdef IBMPC
-	scr_win(-num, top, 0, bottom, CHPL-1);
+	scr_win((int) -num, (unsigned char) top, 0, (unsigned char) bottom, CHPL-1);
 #endif
 }
 
@@ -616,12 +625,12 @@ int num,
 #endif
 
 #ifdef IBMPC
-	scr_win(num, top, 0, bottom, CHPL-1);
+	scr_win(num, (unsigned char) top, 0, (unsigned char) bottom, CHPL-1);
 #endif
 
 }
 
-#ifndef MAC	/* remainder of this file */
+#if !(defined(MAC) || defined(IBMPC))	/* remainder of this file */
 
 /* The cursor optimization happens here.  You may decide that this
    is going too far with cursor optimization, or perhaps it should
@@ -630,7 +639,7 @@ int num,
 
 struct cursaddr {
 	int	cm_numchars;
-	void	(*cm_proc)();
+	void	(*cm_proc) ();
 };
 
 private char	*Cmstr;
@@ -639,17 +648,17 @@ private struct cursaddr	*HorMin,
 			*DirectMin;
 
 private void
-	GENi_lines(),
-	GENd_lines(),
-	ForMotion(),
-	ForTab(),
-	BackMotion(),
-	RetTab(),
-	DownMotion(),
-	UpMotion(),
-	GoDirect(),
-	HomeGo(),
-	BottomUp();
+	GENi_lines proto((int, int, int)),
+	GENd_lines proto((int, int, int)),
+	ForMotion proto((int)),
+	ForTab proto((int)),
+	BackMotion proto((int)),
+	RetTab proto((int)),
+	DownMotion proto((int)),
+	UpMotion proto((int)),
+	GoDirect proto((int, int)),
+	HomeGo proto((int, int)),
+	BottomUp proto((int, int));
 
 
 private struct cursaddr	WarpHor[] = {
@@ -688,8 +697,8 @@ private struct cursaddr	WarpDirect[] = {
 #define NUMDIRECT	3
 
 #define	home()		Placur(0, 0)
-#define LowLine()	putpad(LL, 1), CapLine = ILI, CapCol = 0
-#define PrintHo()	putpad(HO, 1), CapLine = CapCol = 0
+#define LowLine()	{ putpad(LL, 1); CapLine = ILI; CapCol = 0; }
+#define PrintHo()	{ putpad(HO, 1); CapLine = CapCol = 0; }
 
 int	phystab = 8;
 
@@ -707,7 +716,7 @@ private void
 RetTab(col)
 register int	col;
 {
-	putchar('\r');
+	jputchar('\r');
 	CapCol = 0;
 	ForTab(col);
 }
@@ -754,7 +763,7 @@ int	destcol;
 
 		ntabs = (tabgoal / tabstp) - (CapCol / tabstp);
 		while (--ntabs >= 0)
-			putchar('\t');
+			jputchar('\t');
 		CapCol = tabgoal;
 	}
 	if (CapCol > destcol)
@@ -771,7 +780,7 @@ register int	destcol;
 	register char	*cp = &Screen[CapLine].s_line[CapCol];
 
 	while (--nchars >= 0)
-		putchar(*cp++ & CHARMASK);
+		jputchar(*cp++ & CHARMASK);
 	CapCol = destcol;
 }
 
@@ -786,7 +795,7 @@ register int	destcol;
 			putpad(BC, 1);
 	else
 		while (--nchars >= 0)
-			putchar('\b');
+			jputchar('\b');
 	CapCol = destcol;
 }
 
@@ -816,6 +825,8 @@ register int	destline;
 static int	EIlen;
 #endif
 
+#ifndef IBMPC
+
 void
 InitCM()
 {
@@ -842,11 +853,12 @@ int line,
 	register struct cursaddr	*cp;
 	int	xtracost = 0;	/* Misc addition to cost. */
 
-#define CursMin(which,addrs,max) \
-	for (best = 0, cp = &addrs[1], i = 1; i < max; i++, cp++) \
-		if (cp->cm_numchars < addrs[best].cm_numchars) \
+#define CursMin(which,addrs,max)	{ \
+	for (best = 0, cp = &(addrs)[1], i = 1; i < (max); i++, cp++) \
+		if (cp->cm_numchars < (addrs)[best].cm_numchars) \
 			best = i; \
-	which = &addrs[best];
+	(which) = &(addrs)[best]; \
+}
 
 	if (line == CapLine && col == CapCol)
 		return;		/* We are already there. */
@@ -925,6 +937,8 @@ int line,
 		(*DirectMin->cm_proc)(line, col);
 	}
 }
+
+#endif /* IBMPC */
 
 #define abs(x)	((x) >= 0 ? (x) : -(x))
 
@@ -1110,8 +1124,8 @@ int top,
 
 private const struct ID_lookup {
 	char	*ID_name;
-	void	(*I_proc)();	/* proc to insert lines */
-	void	(*D_proc)();	/* proc to delete lines */
+	void	(*I_proc) proto((int, int, int));	/* proc to insert lines */
+	void	(*D_proc) proto((int, int, int));	/* proc to delete lines */
 } ID_trms[] = {
 	"generic",	GENi_lines,	GENd_lines,	/* This should stay here */
 #ifdef WIRED_TERMS
@@ -1133,8 +1147,10 @@ char	*tname;
 			break;
 	if (idp->ID_name == 0)
 		idp = &ID_trms[0];
+#ifndef IBMPC
 	TTins_line = idp->I_proc;
 	TTdel_line = idp->D_proc;
+#endif
 }
 
 #endif /* MAC */

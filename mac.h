@@ -32,9 +32,9 @@ struct stat {
 
 typedef char *va_list;
 #define va_dcl va_list va_alist;
-#define va_start(l) l = (va_list)&va_alist
-#define va_arg(l,m) ((m*)(l += sizeof(m)))[-1]
-#define va_end(l) l = NULL
+#define va_start(l) { (l) = (va_list)&va_alist; }
+#define va_arg(l,m) (((m*)((l) += sizeof(m)))[-1])
+#define va_end(l) { (l) = NULL; }
 
 #ifdef _mac
 extern struct menu Menus[NMENUS];
@@ -47,7 +47,7 @@ keypad keys. these can be deciphered by the corresponding character
 codes, which are different. this table simply translates a keycode
 into a character code that is appropriate. */
 
-#define NOKEY -1
+#define NOKEY (-1)
 #define RET 0x0D
 #define TAB 0x09
 #define BACKSP 0x08
@@ -136,15 +136,15 @@ static char sh_keycodes[] = {
 /* window specs */
 
 #define SCROLLWIDTH 16 /* width of scroll bar control in pixels */
-#define WINDWIDTH wc->w_width - SCROLLWIDTH + 1/* local coordinates */
-#define WINDHEIGHT wc->w_height	/* local coordinates */
+#define WINDWIDTH (wc->w_width - SCROLLWIDTH + 1)	/* local coordinates */
+#define WINDHEIGHT (wc->w_height)	/* local coordinates */
 #define MAXROW (LI - 1)
 #define MAXCOL (CO - 1)
 		
 
 /* for keyboard routines */
 #define MCHARS 32	/* must be power of two */
-#define NMASK MCHARS -1	/* circular buffer */
+#define NMASK MCHARS (-1)	/* circular buffer */
 
 #endif /* _mac */
 

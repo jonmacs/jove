@@ -8,7 +8,6 @@
 #include "jove.h"
 #include "fp.h"
 #include "rec.h"
-#include "io.h"
 
 #ifndef MAC
 #	include <sys/file.h>
@@ -71,7 +70,7 @@ register File	*p;
 	register int	nchars = sizeof (daddr);
 
 	while (--nchars >= 0)
-		putc(*cp++ & 0377, p);
+		jputc(*cp++ & 0377, p);
 }
 
 private void
@@ -80,7 +79,7 @@ register char	*cp;
 register size_t	nbytes;
 {
 	while (nbytes-- > 0)
-		putc(*cp++ & 0377, rec_out);
+		jputc(*cp++ & 0377, rec_out);
 }
 
 /* Write out the line pointers for buffer B. */
@@ -122,7 +121,6 @@ int	SyncFreq = 50;
 void
 SyncRec()
 {
-	extern long	lseek proto((int, long, int));
 	register Buffer	*b;
 	static int	beenhere = NO;
 

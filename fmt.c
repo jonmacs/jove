@@ -15,7 +15,7 @@
 # include  "mac.h"
 #else
 # ifdef	STDARGS
-#  include <stdargs.h>
+#  include <stdarg.h>
 # else
 #  include <varargs.h>
 # endif
@@ -43,12 +43,13 @@ va_list	ap;
 
 	sp->f_ptr = sp->f_base = buf;
 	sp->f_fd = -1;		/* Not legit for files */
-	sp->f_cnt = len;
+	sp->f_cnt = len - 1;
 	sp->f_flags = F_STRING;
 	sp->f_bufsize = len;
 
 	doformat(sp, fmt, ap);
-	putc('\0', sp);
+	sp->f_cnt += 1;	    /* make room for null, if there isn't room */
+	jputc('\0', sp);
 }
 
 #ifdef IBMPC
@@ -58,23 +59,25 @@ int	specialmap = 0,
 #define Empty ""
 
 const char *const altseq[133] = {
-Empty, Empty, Empty, "Ctrl-@", Empty, Empty, Empty, Empty,
-Empty, Empty, Empty, Empty, Empty, Empty, Empty, "Left",
-"Alt-Q", "Alt-W", "Alt-E", "Alt-R", "Alt-T", "Alt-Y", "Alt-U", "Alt-I",
-"Alt-O", "Alt-P", Empty, Empty, Empty, Empty, "Alt-A", "Alt-S",
-"Alt-D", "Alt-F", "Alt-G", "Alt-H", "Alt-J", "Alt-K", "Alt-L", Empty,
-Empty, Empty, Empty, Empty, "Alt-Z", "Alt-X", "Alt-C", "Alt-V",
-"Alt-B", "Alt-N", "Alt-M", Empty, Empty, Empty, Empty, Empty,
-Empty, Empty, Empty, "F1", "F2", "F3", "F4", "F5",
-"F6", "F7", "F8", "F9", "F10", Empty, Empty, "Home",
-"Up", "PageUp", Empty, "Left", Empty, "Right", Empty, "End",
-"Down", "PageDown", "Ins", "Del", "Shift F1", "Shift F2", "Shift F3", "Shift F4",
-"Shift F5", "Shift F6", "Shift F7", "Shift F8", "Shift F9", "Shift F10", "Ctrl F1", "Ctrl F2",
-"Ctrl F3", "Ctrl F4", "Ctrl F5", "Ctrl F6", "Ctrl F7", "Ctrl F8", "Ctrl F9", "Ctrl F10",
-"Alt F1", "Alt F2", "Alt F3", "Alt F4", "Alt F5", "Alt F6", "Alt F7", "Alt F8",
-"Alt F9", "Alt F10", "Ctrl PrtSc", "Ctrl Left", "Ctrl Right", "Ctrl End", "Ctrl PageDown", "Ctrl Home",
-"Alt 1", "Alt 2", "Alt 3", "Alt 4", "Alt 5", "Alt 6", "Alt 7", "Alt 8",
-"Alt 9", "Alt 0", "Alt Minus", "Alt Equals", "Ctrl PageUp"
+	Empty, Empty, Empty, "Ctrl-@", Empty, Empty, Empty, Empty, Empty,
+	Empty, Empty, Empty, Empty, Empty, Empty, "Left", "Alt-Q",
+	"Alt-W", "Alt-E", "Alt-R", "Alt-T", "Alt-Y", "Alt-U", "Alt-I",
+	"Alt-O", "Alt-P", Empty, Empty, Empty, Empty, "Alt-A", "Alt-S",
+	"Alt-D", "Alt-F", "Alt-G", "Alt-H", "Alt-J", "Alt-K", "Alt-L",
+	Empty, Empty, Empty, Empty, Empty, "Alt-Z", "Alt-X", "Alt-C",
+	"Alt-V", "Alt-B", "Alt-N", "Alt-M", Empty, Empty, Empty, Empty,
+	Empty, Empty, Empty, Empty, "F1", "F2", "F3", "F4", "F5", "F6",
+	"F7", "F8", "F9", "F10", Empty, Empty, "Home", "Up", "PageUp",
+	Empty, "Left", Empty, "Right", Empty, "End", "Down", "PageDown",
+	"Ins", "Del", "Shift F1", "Shift F2", "Shift F3", "Shift F4",
+	"Shift F5", "Shift F6", "Shift F7", "Shift F8", "Shift F9",
+	"Shift F10", "Ctrl F1", "Ctrl F2", "Ctrl F3", "Ctrl F4", "Ctrl
+	F5", "Ctrl F6", "Ctrl F7", "Ctrl F8", "Ctrl F9", "Ctrl F10", "Alt
+	F1", "Alt F2", "Alt F3", "Alt F4", "Alt F5", "Alt F6", "Alt F7",
+	"Alt F8", "Alt F9", "Alt F10", "Ctrl PrtSc", "Ctrl Left", "Ctrl
+	Right", "Ctrl End", "Ctrl PageDown", "Ctrl Home", "Alt 1", "Alt
+	2", "Alt 3", "Alt 4", "Alt 5", "Alt 6", "Alt 7", "Alt 8", "Alt
+	9", "Alt 0", "Alt Minus", "Alt Equals", "Ctrl PageUp"
 };
 #endif
 
@@ -135,7 +138,7 @@ int	base;
 	if (!current_fmt.leftadj)
 		pad(current_fmt.padc, current_fmt.width - len);
 	if (d < 0) {
-		putc('-', current_fmt.iop);
+		jputc('-', current_fmt.iop);
 		d = -d;
 	}
 	outld(d, base);
@@ -155,7 +158,7 @@ int	base;
 
 	if ((n = (d / base)) != 0)
 		outld(n, base);
-	putc((int) (chars[(int) (d % base)]), current_fmt.iop);
+	jputc((int) (chars[(int) (d % base)]), current_fmt.iop);
 }
 
 private void
@@ -180,7 +183,7 @@ char	*str;
 	if (!current_fmt.leftadj)
 		pad(' ', current_fmt.width - len);
 	while (--current_fmt.precision >= 0)
-		putc(*cp++, current_fmt.iop);
+		jputc(*cp++, current_fmt.iop);
 	if (current_fmt.leftadj)
 		pad(' ', current_fmt.width - len);
 }
@@ -191,7 +194,7 @@ register int	c,
 		amount;
 {
 	while (--amount >= 0)
-		putc(c, current_fmt.iop);
+		jputc(c, current_fmt.iop);
 }
 
 private void
@@ -208,7 +211,7 @@ va_list	ap;
 
 	while ((c = *fmt++) != '\0') {
 		if (c != '%') {
-			putc(c, current_fmt.iop);
+			jputc(c, current_fmt.iop);
 			continue;
 		}
 
@@ -246,7 +249,7 @@ va_list	ap;
 		/* At this point, fmt points at one past the format letter. */
 		switch (c) {
 		case '%':
-			putc('%', current_fmt.iop);
+			jputc('%', current_fmt.iop);
 			break;
 
 		case 'O':
@@ -265,7 +268,7 @@ va_list	ap;
 		    }
 
 		case 'c':
-			putc(va_arg(ap, int), current_fmt.iop);
+			jputc(va_arg(ap, int), current_fmt.iop);
 			break;
 
 		case 'o':
@@ -381,7 +384,7 @@ swritef(str, fmt, va_alist)
 	va_list	ap;
 
 	va_init(ap, fmt);
-	format(str, (size_t)130, fmt, ap);
+	format(str, (size_t) 128, fmt, ap);
 	va_end(ap);
 }
 
