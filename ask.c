@@ -475,6 +475,7 @@ int	n;
 					len_error(JMP_COMPLAIN);
 				the_same = NO;
 				null_ncpy(fc_filebase, dir_vec[lastmatch], (size_t) minmatch);
+				modify();
 				makedirty(curline);
 			}
 			Eol();
@@ -594,16 +595,32 @@ ZXchar	c;
 
 #endif /* F_COMPLETION */
 
+/* ask for file or directory
+ *
+ * These are only different under MSFILESYSTEM.
+ * Note: def and buf may be equal.
+ */
+
+#ifdef MSFILESYSTEM
+private
+#endif
 char *
-ask_file(prmt, def, buf)
+ask_ford(prmt, def, buf)
 const char	*prmt;
 char
 	*def,
 	*buf;
 {
-	char	*ans,
-		prompt[128],
-		*pretty_name = pr_name(def, YES);
+	/* Note: pr_name yields a pointer into its static buffer so
+	 * pretty_name will not be a pointer into def.  This allows
+	 * us to accept *def and *buf being aliases.  Otherwise we
+	 * could end up calling PathParse with aliases.  (Yes, you
+	 * are looking at a battle scar.)
+	 */
+	char
+		*pretty_name = pr_name(def, YES),
+		*ans,
+		prompt[128];
 
 	if (prmt == NULL)
 		swritef(prompt, sizeof(prompt), ProcFmt);
@@ -618,7 +635,8 @@ char
 	}
 #ifdef F_COMPLETION
 	ans = real_ask("\r\n \t?", f_complete, pretty_name, prompt);
-	if (ans == NULL && (ans = pretty_name) == NULL)
+	/* note: *pretty_name may have been overwritten -- we can't use it */
+	if (ans == NULL && (ans = pr_name(def, YES)) == NULL)
 		complain("[No default file name]");
 #else
 	ans = ask(pretty_name, prompt);
@@ -627,3 +645,27 @@ char
 
 	return buf;
 }
+
+#ifdef MSFILESYSTEM
+char *
+ask_file(prmt, def, buf)
+const char	*prmt;
+char
+	*def,
+	*buf;
+{
+	MatchDir = NO;
+	return ask_ford(prmt, def, buf);
+}
+
+char *
+ask_dir(prmt, def, buf)
+const char	*prmt;
+char
+	*def,
+	*buf;
+{
+	MatchDir = YES;
+	return ask_ford(prmt, def, buf);
+}
+#endif

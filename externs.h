@@ -91,6 +91,11 @@ extern int	chdir proto((const char */*path*/));
 extern char	*getcwd proto((char *, size_t));
 # endif /* USE_GETCWD */
 
+# ifdef HAS_SYMLINKS
+/* bufsiz might be of type int in old systems */
+extern int readlink proto((const char */*path*/, void */*buf*/, size_t /*bufsiz*/));
+# endif
+
 extern int	access proto((const char */*path*/, int /*mode*/));
 # ifndef W_OK
 #  define W_OK	2

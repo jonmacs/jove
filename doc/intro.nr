@@ -219,6 +219,7 @@ The words which indicate which minor modes are turned on are:
 \fBFill\fP meaning that \fIAuto Fill\fP mode is on;
 \fBOvrWt\fP meaning that \fIOver Write\fP mode is on;
 \fBRO\fP meaning that \fIRead Only\fP mode is on.
+\fBDBX\fP meaning that \fIDBX\fP mode is on.
 \fBDef\fP meaning that you are in the process of defining a keyboard macro.
 This is not really a mode, but it's useful to be reminded about it.
 .DE
@@ -2321,7 +2322,6 @@ T}
 	continue-process	Send SIGCONT to the process.
 	kill-process	Send SIGKILL to the process in a specified buffer.
 ^C\ ^D	eof-process	Send EOF to the process.
-	process-dbx-output	Toggle the processing of output from \fIdbx\fP.
 .TE
 Although Return is automatically bound to \fIprocess-newline\fP, the various
 ^C\ ... must be explicitly bound in your (or your system administrator's)
@@ -2336,10 +2336,10 @@ assuming the customary bindings as set up by \fIstty\fP.  Observe that
 If the debugging program \fIdbx\fP is provided with your
 .UX
 system, you may of course run it in an interactive window.  Before doing
-this, you should type ESC\ X \fIprocess-dbx-output\fP.  The effect of this is
+this, you should turn on the dbx minor mode.  The effect of this is
 that, every time \fIdbx\fP halts with a message line specifying a filename and
 linenumber (at every breakpoint, for example), \fIfind-file\fP will
-automatically be called on that filename, it will appear in a new window,
+automatically be called on that filename, it will appear in another window,
 and point will be moved to that line.  Thus you may easily follow the
 progress of the program being debugged.
 .HH 2 "Non-interactive Processes"
@@ -2681,6 +2681,7 @@ following commands:
 L2w(10)fR L2w(20)fI Lw(\n(Ww)fR .
 	auto-indent-mode
 	auto-fill-mode
+	dbx-mode
 	over-write-mode
 	read-only-mode
 	show-match-mode
@@ -2703,6 +2704,10 @@ a newline is automatically inserted when the line length
 exceeds the right margin.
 This way,
 you can type a whole paragraph without having to use the Return key.
+.HH 3 "DBX"
+.LP
+This mode is useful if dbx is being run in an interactive window.
+It is described in the section on interactive windows.
 .HH 3 "Over Write"
 .LP
 In this mode,

@@ -46,7 +46,6 @@ extern Window
 #define WSIZE(wp)	((wp)->w_height - 1)	/* window lines, without modeline */
 
 extern int
-	FLine proto((Window *w)),
 	in_window proto((Window *windes,LinePtr line));
 
 extern Window

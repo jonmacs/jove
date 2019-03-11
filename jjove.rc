@@ -9,6 +9,8 @@
 //
 #include "afxres.h"
 
+#include "version.h"
+
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
 
@@ -62,9 +64,10 @@ END
 // Version
 //
 
+
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 4,16,0,62
- PRODUCTVERSION 4,16,0,62
+ FILEVERSION jversion_lnum
+ PRODUCTVERSION jversion_lnum
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -81,12 +84,17 @@ BEGIN
         BEGIN
             VALUE "Comments", "Originally authored by Jonathan Payne\0"
             VALUE "CompanyName", "jovehacks@cs.toronto.edu\0"
+            VALUE "LegalCopyright", "Copyright (C) 1986-1996 by Jonathan Payne."
+            VALUE "Copyright",  "This program is Copyright (C) 1986-1996 by Jonathan Payne.  JOVE is "
+                  "provided to you without charge, and with no warranty.  You may give "
+                  "away copies of JOVE, including sources, provided that this notice is "
+                  "included in all the files.\0"
             VALUE "FileDescription", "Jonathan's Own Version of Emacs\0"
-            VALUE "FileVersion", "4, 16, 0, 62\0"
+            VALUE "FileVersion", jversion "\0"
             VALUE "InternalName", "Jove\0"
-            VALUE "OriginalFilename", "jjove.EXE\0"
-            VALUE "ProductName", "Jove for Win32\0"
-            VALUE "ProductVersion", "4.16Beta.62\0"
+            VALUE "OriginalFilename", "JOVE.EXE\0"
+            VALUE "ProductName", "Jove for Win32" "\0"
+            VALUE "ProductVersion", jversion "\0"
         END
     END
     BLOCK "VarFileInfo"

@@ -27,7 +27,7 @@ extern UnivPtr
 
 extern char
 	*IOerr proto((char *err, char *file)),
-	*basename proto((char *f)),
+	*jbasename proto((char *f)),
 	*copystr proto((const char *str)),
 	*filename proto((Buffer *b)),
 	*get_time proto((time_t *timep,char *buf,int from,int to)),

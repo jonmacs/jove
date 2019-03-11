@@ -34,6 +34,7 @@
 # define USE_FSYNC	1
 # define USE_FSTAT	1
 # define USE_FCHMOD	1
+# define HAS_SYMLINKS	1
 # define USE_CTYPE	1
 #endif
 
@@ -72,6 +73,7 @@
 # define USE_FSYNC	1
 # define USE_FSTAT	1
 # define USE_FCHMOD	1
+# define HAS_SYMLINKS	1
 # define USE_MEMORY_H	1
 #endif
 
@@ -98,6 +100,7 @@
 # define USE_FSYNC	1
 # define USE_FSTAT	1
 # define USE_FCHMOD	1
+# define HAS_SYMLINKS	1
 /* # define USE_BCOPY	1 */
 /* # define USE_INDEX	1 */
 #endif
@@ -122,7 +125,15 @@
 # define USE_FSYNC	1
 # define USE_FSTAT	1
 # define USE_FCHMOD	1
+# define HAS_SYMLINKS	1
 # define USE_CTYPE	1
+#endif
+
+#ifdef __convex__	/* System: ConvexOS (versions 10.x - 11.x) */
+/* Note: this must be placed before BSDPOSIX ifdef (we define BSDPOSIX). */
+# define BSDPOSIX	1	/* mostly like BSDPOSIX */
+# define STICKY_TTYSTATE	1	/* fudge: many progs stupidly set ISTRIP */
+# define ISO_8859_1	1	/* fudge: <ctype.h> doesn't work for 8-bit chars, but X does */
 #endif
 
 #ifdef __QNX__	/* System: QNX OS for x86 family */
@@ -154,6 +165,7 @@
 # define USE_FSYNC	1
 # define USE_FSTAT	1
 # define USE_FCHMOD	1
+# define HAS_SYMLINKS	1
 #endif
 
 #ifdef IRIX
@@ -187,6 +199,7 @@
 # define USE_GETPWNAM	1
 # define USE_KILLPG	1
 # define USE_GETHOSTNAME	1
+# define HAS_SYMLINKS	1
 # define USE_CTYPE	1
 #endif
 
@@ -194,6 +207,7 @@
 /* System: Consensys V4 -- use SYSVR4 and GRANTPT_BUG */
 /* System: DEC OSF/1 V2.0 or later -- use SYSVR4 */
 /* System: DEC OSF R1.3MK -- use SYSVR4 */
+/* System: Digital UNIX V4.0 and later -- use SYSVR4 and GRANTPT_BUG */
 /* System: Solaris 2.0, SunOS 5.0 -- use SYSVR4 and GRANTPT_BUG */
 /* System: Solaris 2.x, SunOS 5.x -- use SYSVR4 */
 /* Note: some versions of System V Release 4 have a bug in that affects
@@ -215,6 +229,7 @@
 # define USE_FSYNC	1
 # define USE_FSTAT	1
 # define USE_FCHMOD	1
+# define HAS_SYMLINKS	1
 # define REALSTDC	1
 # define USE_CTYPE	1
 #endif
@@ -233,6 +248,7 @@
 # define JOB_CONTROL	1
 # define USE_UNAME	1
 # define DEFINE_PC_BC_UP_OSPEED	1	/* May be needed for all SYSVR2 */
+# define HAS_SYMLINKS	1
 #endif
 
 #ifdef BSD4	/* System: Berkeley BSD4.x, 2.9, 2.10, MIPS RiscOS 4.x */
@@ -252,6 +268,7 @@
 # define BSD_SETPGRP	1
 # define USE_KILLPG	1
 # define BSD_DIR	1
+# define HAS_SYMLINKS	1
 # define SIGRESTYPE	int
 # define SIGRESVALUE	0
 # define USE_GETHOSTNAME	1
@@ -279,6 +296,7 @@
  * release.  JOVE's IPROCS code no longer triggers this bug.
  */
 # define PTYPROCS	1
+# define HAS_SYMLINKS	1
 # define USE_CTYPE	1
 #endif
 

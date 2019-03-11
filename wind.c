@@ -32,7 +32,7 @@ Window
 
 /* First line in a Window */
 
-int
+private int
 FLine(w)
 register Window	*w;
 {

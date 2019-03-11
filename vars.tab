@@ -56,7 +56,7 @@ const struct variable	variables[] = {
 # endif
 	{ VARIABLE, "highlight-mark", VAR(&MarkHighlighting), V_BOOL|V_CLRSCREEN },
 #endif	/* HIGHLIGHTING */
-	{ VARIABLE, "internal-tabstop", VAR(&tabstop), V_NAT|V_CLRSCREEN },	/* obsolete */
+	{ VARIABLE, "internal-tabstop", VAR(&tabstop), V_WHOLE|V_CLRSCREEN },	/* obsolete */
 #ifdef UNIX
 	{ VARIABLE, "interrupt-character", VAR(&IntChar), V_CHAR|V_TTY_RESET },
 #endif

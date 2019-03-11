@@ -1208,31 +1208,40 @@ int	linenum;
 
 		case 'M':
 		    {
-			static const char	*const mmodes[] = {
-				"Fundamental ",
-				"Text ",
-				"C ",
+			static const char	*const majname[NMAJORS] = {
+				"Fundamental",
+				"Text",
+				"C",
 #ifdef LISP
-				"Lisp ",
+				"Lisp",
 #endif
-				NULL
 			};
 
-			mode_app(mmodes[thisbuf->b_major]);
+			static const char   *const minname[] = {
+			    " Fill",
+			    " Abbrev",
+			    " OvrWt",
+			    " Indent",
+			    " RO",
+			    "",	    /* not worth reporting ShowMatch */
+#ifdef IPROCS
+			    " DBX",
+#endif
+			};
+			
+			int minors = thisbuf->b_minor;
+			const char  *const *p;
 
-			if (BufMinorMode(thisbuf, Fill))
-				mode_app("Fill ");
-			if (BufMinorMode(thisbuf, Abbrev))
-				mode_app("Abbrev ");
-			if (BufMinorMode(thisbuf, OverWrite))
-				mode_app("OvrWt ");
-			if (BufMinorMode(thisbuf, Indent))
-				mode_app("Indent ");
-			if (BufMinorMode(thisbuf, ReadOnly))
-				mode_app("RO ");
+			mode_app(majname[thisbuf->b_major]);
+
+			for (p = minname; minors != 0; p++) {
+			    if (minors & 01)
+				mode_app(*p);
+			    minors >>= 1;
+			}
+
 			if (InMacDefine)
-				mode_app("Def ");
-			mode_p -= 1;	/* Back over the extra space. */
+				mode_app(" Def");
 			break;
 		    }
 
@@ -1262,7 +1271,7 @@ int	linenum;
 				if (c == 'f')
 					mode_app(pr_name(thisbuf->b_fname, YES));
 				else
-					mode_app(basename(thisbuf->b_fname));
+					mode_app(jbasename(thisbuf->b_fname));
 			}
 			break;
 
@@ -1301,10 +1310,8 @@ int	linenum;
 		case 'p':
 			if (thisbuf->b_type == B_PROCESS) {
 				char	tmp[40];
-				Process	p = thisbuf->b_process;
 
-				swritef(tmp, sizeof(tmp), "(%s%s)",
-					dbxness(p), pstate(p));
+				swritef(tmp, sizeof(tmp), "(%s)", pstate(thisbuf->b_process));
 				mode_app(tmp);
 			}
 			break;

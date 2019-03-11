@@ -77,7 +77,8 @@ JOVETOOLM = $(MANDIR)/jovetool.$(MANEXT)
 # On most systems, -g for debugging, -O for optimization.
 # On the official Sun ANSI C compiler and the standard System V Release 4
 # compiler, adding -Xa -v will increase compiler checking.
-# On DEC OSF/1, -std1 -O
+# On DEC OSF/1 and Digital UNIX VV4.0 add -std1 to enable ANSI C features
+# and perhaps -g3 for more debugging info with optimization.
 
 OPTFLAGS = -O
 
@@ -130,6 +131,7 @@ LDFLAGS =
 #	DEC OSF/1 V2.0 and later	SYSDEFS=-DSYSVR4
 #	DEC Ultrix 4.2			SYSDEFS=-DBSDPOSIX
 #	DEC Ultrix 4.3			SYSDEFS=-DBSDPOSIX -DJVDISABLE=255
+#	Digital UNIX V4.0 and later	SYSDEFS=-DSYSVR4 -DGRANTPT_BUG
 #	DG AViiON 5.3R4			SYSDEFS=-DSYSVR4 -DBSD_SIGS
 #	HP/UX 8 or 9			SYSDEFS=-DHPUX -Ac
 #	IBM RS6000s			SYSDEFS=-DAIX3_2
@@ -281,13 +283,13 @@ ovjove:	$(OBJECTS)
 PORTSRVINST=$(PORTSRV)
 
 portsrv:	portsrv.o
-	$(CC) $(LDFLAGS) $(OPTFLAGS) -o portsrv portsrv.o $(LIBS)
+	$(LDCC) $(LDFLAGS) $(OPTFLAGS) -o portsrv portsrv.o $(LIBS)
 
 recover:	recover.o
-	$(CC) $(LDFLAGS) $(OPTFLAGS) -o recover recover.o $(LIBS)
+	$(LDCC) $(LDFLAGS) $(OPTFLAGS) -o recover recover.o $(LIBS)
 
 teachjove:	teachjove.o
-	$(CC) $(LDFLAGS) $(OPTFLAGS) -o teachjove teachjove.o $(LIBS)
+	$(LDCC) $(LDFLAGS) $(OPTFLAGS) -o teachjove teachjove.o $(LIBS)
 
 # don't optimize setmaps.c because it produces bad code in some places
 # for some reason
@@ -407,8 +409,15 @@ $(JOVETOOLM): doc/jovetool.nr
 echo:
 	@echo $(C-FILES) $(HEADERS)
 
-lint:
-	lint -n $(C_SRC) keys.c
+# note: $(C_SRC) contains commands.tab and vars.tab
+# These should not be linted, but they will probably be ignored.
+
+lint: keys.c
+	lint $(SYSDEFS) $(C_SRC) keys.c
+	lint $(SYSDEFS) portsrv.c
+	lint $(SYSDEFS) recover.c
+	lint $(SYSDEFS) setmaps.c
+	lint $(SYSDEFS) teachjove.c
 	@echo Done
 
 tags:	$(C_SRC) $(HEADERS)
@@ -565,7 +574,7 @@ extend.o: $(JOVE_H) fp.h jctype.h chars.h commands.h disp.h re.h ask.h extend.h 
 fp.o: $(JOVE_H) fp.h jctype.h disp.h fmt.h mac.h
 fmt.o: $(JOVE_H) chars.h fp.h jctype.h disp.h extend.h fmt.h mac.h
 insert.o: $(JOVE_H) jctype.h list.h chars.h disp.h abbrev.h ask.h c.h delete.h insert.h fmt.h macros.h marks.h misc.h move.h paragraph.h screen.h sysprocs.h proc.h wind.h re.h
-io.o: $(JOVE_H) list.h fp.h jctype.h disp.h scandir.h ask.h fmt.h insert.h marks.h sysprocs.h proc.h wind.h rec.h mac.h re.h temp.h
+io.o: $(JOVE_H) list.h fp.h jctype.h disp.h ask.h fmt.h insert.h marks.h sysprocs.h proc.h wind.h rec.h mac.h re.h temp.h
 iproc.o: $(JOVE_H) re.h jctype.h disp.h fp.h sysprocs.h iproc.h ask.h extend.h fmt.h insert.h marks.h move.h proc.h wind.h select.h ttystate.h
 jove.o: $(JOVE_H) fp.h jctype.h chars.h disp.h re.h reapp.h sysprocs.h rec.h ask.h extend.h fmt.h macros.h marks.h mouse.h paths.h proc.h screen.h term.h version.h wind.h iproc.h select.h mac.h
 list.o: $(JOVE_H) list.h

@@ -341,7 +341,7 @@ char	*command;
 		c = *command++;
 	}
 	*cp = '\0';
-	strcpy(bnm, basename(bnm));
+	strcpy(bnm, jbasename(bnm));
 
 	return bnm;
 }
@@ -652,6 +652,7 @@ UnixToBuf(flags, bnm, InFName, cmd)
 	int	p[2];
 	wait_status_t	status;
 	SIGHANDLERTYPE	old_int;
+	char	bfn[FILESIZE];	/* buffer file name */
 #else /* MSDOS_PROCS */
 	char	cmdbuf[129];
 	int	status;
@@ -671,7 +672,7 @@ UnixToBuf(flags, bnm, InFName, cmd)
 	SlowCmd += 1;;
 	if (flags & UTB_SH) {
 			*ap++ = Shell;
-			*ap++ = basename(Shell);
+			*ap++ = jbasename(Shell);
 			*ap++ = ShFlags;
 			*ap++ = cmd;
 #ifdef MSDOS_PROCS
@@ -707,16 +708,15 @@ UnixToBuf(flags, bnm, InFName, cmd)
 			 * of the Bourne shell take the first as their own name
 			 * for error reporting.)
 			 */
-			if (flags & UTB_FILEARG) {
-				char	*fn = pr_name(curbuf->b_fname, NO);
-
-				*ap++ = fn;	/* NOTE: NULL simply terminates argv */
-				*ap++ = fn;
+			if ((flags & UTB_FILEARG) && curbuf->b_fname != NULL) {
+				strcpy(bfn, pr_name(curbuf->b_fname, NO));
+				*ap++ = bfn;
+				*ap++ = bfn;
 			}
 #endif /* !MSDOS_PROCS */
 	} else {
 		*ap++ = cmd;
-		*ap++ = basename(cmd);
+		*ap++ = jbasename(cmd);
 	}
 	*ap++ = NULL;
 
@@ -826,7 +826,7 @@ UnixToBuf(flags, bnm, InFName, cmd)
 		bool	InFailure;
 		int	ph;
 
-		swritef(pnbuf, sizeof(pnbuf), "%s/%s", TmpDir, "jpXXXXXX");
+		PathCat(pnbuf, sizeof(pnbuf), TmpDir, "jpXXXXXX");
 		pipename = mktemp(pnbuf);
 		if ((ph = creat(pipename, S_IWRITE|S_IREAD)) < 0)
 			complain("cannot make pipe for filter: %s", strerror(errno));
@@ -922,7 +922,7 @@ bool	wrap;
 	File	*volatile fp;
 	jmp_buf	sav_jmp;
 
-	swritef(tnambuf, sizeof(tnambuf), "%s/%s", TmpDir, "jfXXXXXX");
+	PathCat(tnambuf, sizeof(tnambuf), TmpDir, "jfXXXXXX");
 	tname = mktemp(tnambuf);
 	fp = open_file(tname, iobuff, F_WRITE, YES);
 	push_env(sav_jmp);

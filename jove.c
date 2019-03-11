@@ -976,7 +976,7 @@ Push()
 # ifdef MSDOS_PROCS
 #  ifdef MSDOS
 	UnsetTerm(YES);
-	if (spawnl(0, Shell, basename(Shell), (char *)NULL) == -1)
+	if (spawnl(0, Shell, jbasename(Shell), (char *)NULL) == -1)
 		s_mess("[Spawn failed %d]", errno);
 	SetTerm();
 #   ifdef WINRESIZE
@@ -1023,7 +1023,7 @@ Push()
 		(void) setsighandler(SIGINT, SIG_DFL);
 		jcloseall();
 		/* note that curbuf->bfname may be NULL */
-		execl(Shell, basename(Shell), "-is", pr_name(curbuf->b_fname, NO),
+		execl(Shell, jbasename(Shell), "-is", pr_name(curbuf->b_fname, NO),
 			(char *)NULL);
 		raw_complain("[Execl failed: %s]", strerror(errno));
 		_exit(1);
@@ -1134,7 +1134,7 @@ dorecover()
 # ifdef PIPEPROCS
 	kbd_kill();		/* kill the keyboard process */
 # endif
-	swritef(Recover, sizeof(Recover), "%s/recover", LibDir);
+	PathCat(Recover, sizeof(Recover), LibDir, "recover");
 	execl(Recover, "recover", "-d", TmpDir, (char *) NULL);
 	writef("%s: execl failed! %s\n", Recover, strerror(errno));
 	flushscreen();
@@ -1157,7 +1157,6 @@ char	*argv[];
 	int	lineno = 0,
 		nwinds = 1;
 	char	*pattern = NULL;
-	Buffer	*b;
 
 	while (argc > 1) {
 		switch (argv[1][0]) {
@@ -1236,14 +1235,18 @@ char	*argv[];
 			}
 			break;
 		default:
-			{
-			bool	force = (nwinds > 0 || lineno != 0 || pattern != NULL);
+			/* Process a file argument.
+			 * We arrange that the last file that has a window
+			 * becomes the current buffer and that the last file
+			 * without a window (if any) becomes the alternate buffer.
+			 */
+			minib_add(argv[1], nwinds > 0);
+			if (nwinds > 0 || lineno != 0 || pattern != NULL) {
+				Buffer
+					*prevbuf = curbuf,
+					*b = do_find(curwind, argv[1], YES, YES);
 
-			minib_add(argv[1], force);
-			b = do_find(nwinds > 0 ? curwind : (Window *) NULL,
-				    argv[1], force, YES);
-			if (force) {
-				SetABuf(curbuf);
+				SetABuf(prevbuf);
 				SetBuf(b);
 				if (lineno > 0)
 					SetLine(next_line(curbuf->b_first, lineno - 1));
@@ -1258,14 +1261,28 @@ char	*argv[];
 					else
 						complain("Couldn't match pattern in file.");
 				}
-				if (nwinds > 1)
-					NextWindow();
-				if (nwinds > 0)
+				if (nwinds > 0) {
 					nwinds -= 1;
+					if (nwinds > 0)
+						NextWindow();
+				} else {
+					/* We only borrowed the window:
+					 * let's restore the rightful tennant.
+					 * As a consolation, make this buffer the alternate.
+					 */
+					SetABuf(b);
+					SetBuf(prevbuf);
+					tiewind(curwind, prevbuf);
+				}
+			} else {
+				/* There is no need to actually read the file.
+				 * find the file, but don't force it, or select the buffer.
+				 * As a consolation, make this buffer the alternate.
+				 */
+				SetABuf(do_find((Window *)NULL, argv[1], NO, YES));
 			}
 			lineno = 0;
 			pattern = NULL;
-			}
 			break;
 		}
 		argv += 1;
@@ -1531,7 +1548,7 @@ bool	dousr;
 	char	Joverc[FILESIZE];
 
 	if (dosys) {
-		swritef(Joverc, sizeof(Joverc), "%s/jove.rc", ShareDir);
+		PathCat(Joverc, sizeof(Joverc), ShareDir, "jove.rc");
 		(void) joverc(Joverc);	/* system wide jove.rc */
 	}
 
@@ -1539,11 +1556,11 @@ bool	dousr;
 #ifdef MSFILESYSTEM
 		/* We don't want to run the same rc file twice */
 		if (!dosys || strcmp(HomeDir, ShareDir) != 0) {
-			swritef(Joverc, sizeof(Joverc), "%s/jove.rc", HomeDir);
+			PathCat(Joverc, sizeof(Joverc), HomeDir, "jove.rc");
 			(void) joverc(Joverc);	/* jove.rc in home directory */
 		}
 #else
-		swritef(Joverc, sizeof(Joverc), "%s/.joverc", HomeDir);
+		PathCat(Joverc, sizeof(Joverc), HomeDir, ".joverc");
 		(void) joverc(Joverc);	/* .joverc in home directory */
 #endif
 	}
@@ -1700,7 +1717,7 @@ char	*argv[];
 			if (!carefulcpy(LibDir, lo, sizeof(LibDir)-9, "LibDir", YES))
 				finish(0);
 #  ifdef PIPEPROCS
-		swritef(Portsrv, sizeof(Portsrv), "%s/portsrv", LibDir);
+		PathCat(Portsrv, sizeof(Portsrv), LibDir, "portsrv");
 #  endif
 # endif /* NEED_LIBDIR */
 	}

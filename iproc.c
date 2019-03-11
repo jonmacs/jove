@@ -62,8 +62,6 @@ struct process {
 	int	p_reason;	/* If killed, p_reason is the signal;
 				   if exited, it is the the exit code */
 	Mark	*p_mark;	/* where output left us */
-	bool	p_dbx_mode;	/* whether to parse output for file/lineno
-				   pairs */
 };
 
 private void
@@ -127,7 +125,7 @@ va_list	ap;
 	register int	i = 0;
 
 	argv[i++] = va_arg(ap, char *);
-	argv[i++] = basename(argv[0]);
+	argv[i++] = jbasename(argv[0]);
 	do ; while ((argv[i++] = va_arg(ap, char *)) != NULL);
 }
 
@@ -330,7 +328,6 @@ proc_strt(bufname, clobber, procname, va_alist)
 	   Bindings won't work right unless newbuf->b_process is already
 	   set up BEFORE NEWBUF is first SetBuf()'d. */
 	newp->p_mark = MakeMark(curline, curchar);
-	newp->p_dbx_mode = NO;
 
 	newp->p_toproc = toproc[1];
 	(void) close(toproc[0]);
@@ -773,8 +770,7 @@ proc_strt(bufname, clobber, procname, va_alist)
 	pid_t	pid;
 	Process	newp;
 	Buffer	*newbuf;
-	int	i,
-		ptyfd = -1;
+	int	ptyfd = -1;
 
 # if !defined(TERMIO) && !defined(TERMIOS)
 #  ifdef TIOCSETD
@@ -784,8 +780,6 @@ proc_strt(bufname, clobber, procname, va_alist)
 	int	lmode;	/* tty local flags */
 #  endif
 # endif
-	register char	*s,
-			*t;
 	char	ttybuf[32];
 # ifdef TERMIO
 	struct termio sgt;
@@ -818,19 +812,21 @@ proc_strt(bufname, clobber, procname, va_alist)
 	}
 
 # ifdef IRIX_PTYS
-	/*
-	 * _getpty may fork off a child to execute mkpts to make a slave pty
+	/* _getpty may fork off a child to execute mkpts to make a slave pty
 	 * in /dev (if we need more) and set the correct ownership and
 	 * modes on the slave pty.  Since _getpty uses waitpid this works
 	 * fine with regard to our other children, but we do have to be
 	 * prepared to catch a SIGCHLD for an unknown child and ignore it ...
 	 */
-	s = _getpty(&ptyfd, O_RDWR|O_NDELAY, 0600, 0);
-	if (s == NULL) {
-		message("[No ptys!]");
-		goto fail;
+	{
+		register char	*s = _getpty(&ptyfd, O_RDWR|O_NDELAY, 0600, 0);
+
+		if (s == NULL) {
+			message("[No ptys!]");
+			goto fail;
+		}
+		(void)strcpy(ttybuf, s);
 	}
-	(void)strcpy(ttybuf, s);
 # endif /* IRIX_PTYS */
 # ifdef SVR4_PTYS
 	if ((ptyfd = open("/dev/ptmx", O_RDWR)) < 0) {
@@ -854,41 +850,55 @@ proc_strt(bufname, clobber, procname, va_alist)
 		goto fail;
 	}
 #  endif /* !GRANTPT_BUG */
-	if ((s = ptsname(ptyfd)) == NULL) {
-		message("[ptsname failed]");
-		goto fail;
+	{
+		register char	*s = ptsname(ptyfd);
+
+		if (s == NULL) {
+			message("[ptsname failed]");
+			goto fail;
+		}
+		strcpy(ttybuf, s);
 	}
-	strcpy(ttybuf, s);
 	(void) ioctl(ptyfd, TIOCFLUSH, (UnivPtr) NULL);	/* ??? why? */
 # endif /* SVR4_PTYS */
 # ifdef BSD_PTYS
-	for (s = "pqrs"; ptyfd<0; s++) {
-		if (*s == '\0') {
-			message("[Out of ptys!]");
-			goto fail;
-		}
-		for (t = "0123456789abcdef"; *t; t++) {
-			swritef(ttybuf, sizeof(ttybuf), "/dev/pty%c%c", *s, *t);
-			if ((ptyfd = open(ttybuf, 2)) >= 0) {
-				ttybuf[5] = 't';	/* pty => tty */
+	{
+		register char	*s;
+
+		for (s = "pqrs"; ptyfd<0; s++) {
+			register char	*t;
+
+			if (*s == '\0') {
+				message("[Out of ptys!]");
+				goto fail;
+			}
+			for (t = "0123456789abcdef"; *t; t++) {
+				swritef(ttybuf, sizeof(ttybuf), "/dev/pty%c%c", *s, *t);
+				if ((ptyfd = open(ttybuf, 2)) >= 0) {
+					ttybuf[5] = 't';	/* pty => tty */
 #  ifdef NEVER
-				/* Make sure both ends are available.
-				 * ??? This code seems to confuse BSDI's BSD/386 v1.[01]
-				 * so we have eliminated it.  We leave this scar
-				 * in case the checking was in fact useful on other
-				 * systems.  Part of this checking will still be
-				 * done by the "access" below, but with no recovery.
-				 */
-				if ((i = open(ttybuf, 2)) < 0) {
-					(void) close(ptyfd);
-					ptyfd = -1;
-				} else {
-					(void) close(i);
-					break;
-				}
+					/* Make sure both ends are available.
+					 * ??? This code seems to confuse BSDI's BSD/386 v1.[01]
+					 * so we have eliminated it.  We leave this scar
+					 * in case the checking was in fact useful on other
+					 * systems.  Part of this checking will still be
+					 * done by the "access" below, but with no recovery.
+					 */
+					{
+						int	i = open(ttybuf, 2);
+
+						if (i < 0) {
+							(void) close(ptyfd);
+							ptyfd = -1;
+						} else {
+							(void) close(i);
+							break;
+						}
+					}
 #  else
-				break;
+					break;
 #  endif
+				}
 			}
 		}
 	}
@@ -993,9 +1003,13 @@ proc_strt(bufname, clobber, procname, va_alist)
 # else /* !TERMIOS */
 #  ifdef TIOCNOTTY
 		/* get rid of controlling tty */
-		if ((i = open("/dev/tty", 2)) >= 0) {
-			(void) ioctl(i, TIOCNOTTY, (UnivPtr)NULL);
-			(void) close(i);
+		{
+			int	i = open("/dev/tty", 2);
+
+			if (i >= 0) {
+				(void) ioctl(i, TIOCNOTTY, (UnivPtr)NULL);
+				(void) close(i);
+			}
 		}
 #  endif /* TIOCNOTTY */
 # endif /* !TERMIOS */
@@ -1086,8 +1100,11 @@ proc_strt(bufname, clobber, procname, va_alist)
 # ifdef POSIX_PROCS
 		tcsetpgrp(0, getpid());
 # else /* !POSIX_PROCS */
-		i = getpid();
-		(void) ioctl(0, TIOCSPGRP, (UnivPtr) &i);
+		{
+			int	i = getpid();
+
+			(void) ioctl(0, TIOCSPGRP, (UnivPtr) &i);
+		}
 # endif /* POSIX_PROCS */
 
 		jputenv("EMACS=t");
@@ -1126,7 +1143,6 @@ proc_strt(bufname, clobber, procname, va_alist)
 	newp->p_io_state = IO_NEW;
 	newp->p_child_state = C_LIVE;
 	newp->p_mark = MakeMark(curline, curchar);
-	newp->p_dbx_mode = NO;
 
 	newp->p_next = procs;
 	procs = newp;
@@ -1240,13 +1256,6 @@ char *def;	/* Note: caller must ensure string persists */
 char	proc_prompt[128] = "% ";	/* VAR: process prompt */
 
 const char *
-dbxness(p)
-Process p;
-{
-	return (p == NULL || !p->p_dbx_mode)? NullStr : "DBX ";
-}
-
-const char *
 pstate(p)
 Process	p;
 {
@@ -1296,15 +1305,6 @@ KillProcs()
 
 /* VAR: dbx-mode parse string */
 char	dbx_parse_fmt[128] = "line \\([0-9]*\\) in \\{file\\|\\} *\"\\([^\"]*\\)\"";
-
-void
-DBXpoutput()
-{
-	if (curbuf->b_process == NULL)
-		complain("[Must be in a process buffer to enable dbx mode]");
-	curbuf->b_process->p_dbx_mode = !curbuf->b_process->p_dbx_mode;
-	UpdModLine = YES;
-}
 
 private void
 watch_input(m)
@@ -1371,7 +1371,7 @@ size_t	len;
 		}
 	}
 
-	if (do_disp && p->p_dbx_mode)
+	if (do_disp && BufMinorMode(p->p_buffer, DbxMode))
 		watch_input(p->p_mark);
 	MarkSet(p->p_mark, curline, curchar);
 	if (!sameplace)
@@ -1615,9 +1615,13 @@ ShellProc()
 
 	swritef(shbuf, sizeof(shbuf), "*shell-%d*", arg_value());
 	b = buf_exists(shbuf);
-	if (b == NULL || dead(b->b_process))
-		proc_strt(shbuf, NO, "i-shell", Shell, "-is", pr_name(curbuf->b_fname, NO),
+	if (b == NULL || dead(b->b_process)) {
+		char	cbnspace[FILESIZE];
+
+		proc_strt(shbuf, NO, "i-shell", Shell, "-is",
+			curbuf->b_fname == NULL? (char *)NULL : strcpy(cbnspace, pr_name(curbuf->b_fname, NO)),
 			(char *)NULL);
+	}
 	pop_wind(shbuf, NO, -1);
 }
 
@@ -1628,7 +1632,9 @@ Iprocess()
 		*bnm;
 	int	cnt = 1;
 	Buffer	*bp;
-	char	*fn = pr_name(curbuf->b_fname, NO);
+	char	fnspace[FILESIZE];
+	char	*fn = curbuf->b_fname == NULL
+		? NULL : strcpy(fnspace, pr_name(curbuf->b_fname, NO));
 
 	null_ncpy(ShcomBuf, ask(ShcomBuf, ProcFmt), (sizeof ShcomBuf) - 1);
 	bnm = MakeName(ShcomBuf);

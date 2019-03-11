@@ -526,8 +526,7 @@ int	mproto;
 				return NO;
 			if (curwind == oldwind->w_next) {
 				wind_pos -= curwind->w_height;
-				curwind = oldwind;
-				SetBuf(curwind->w_bufp);
+				SetWind(oldwind);
 			}
 			if (curwind == oldwind && curwind->w_next != fwind)
 				WindSize(curwind->w_next, wind_pos);

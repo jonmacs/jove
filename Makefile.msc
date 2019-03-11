@@ -37,7 +37,7 @@ SYSCFLAGS =	-DWIN32
 SYSLDFLAGS	=	/SUBSYSTEM:Console
 SYSOBJS		=	win32.obj
 LIBS		= /DEFAULTLIB:USER32 /DEFAULTLIB:KERNEL32 /DEFAULTLIB:COMDLG32
-OS	=	W32
+OS	=	w32
 !if "$(DEBUG)" != ""
 DEBLDFLAGS= /DEBUG
 !else
@@ -50,7 +50,7 @@ DEBLDFLAGS=
 ARCH	=	0		# Default to 8086
 !ENDIF
 
-OS	=	DOS
+OS	=	dos
 MEM = L				# M for medium or L for large
 
 SYSCFLAGS = -A$(MEM) -J -Zp -G$(ARCH)
@@ -137,7 +137,7 @@ jjove.exe
 
 # Jove users note: don't confuse jjove.rc with jove.rc, which
 # is the Jove setup script.
-jjove.res:	jjove.rc jjove.ico resource.h
+jjove.res:	jjove.rc jjove.ico resource.h version.h
 	$(RC) $(RCDEFINES) -r jjove.rc
 
 jjove.bsc: $(OBJECTS:.obj=.sbr)

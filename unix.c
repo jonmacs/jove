@@ -55,6 +55,13 @@ int	lmword[2];		/* local mode word */
 /* Set tty to original (if !n) or JOVE (if n) modes.
  * This is designed to be idempotent: it can be called
  * several times with the same argument without damage.
+ *
+ * If STICKY_TTYSTATE is defined, the "original" state is sampled only once.
+ * Normally, this is also sampled each time ttysetattr re-enters JOVE mode.
+ * STICKY_TTYSTATE is useful if processes run while JOVE is suspended
+ * cannot be trusted to leave the tty in a good state.
+ * ConvexOS is currently an example: some of its programs turn on ISTRIP
+ * without provocation.
  */
 
 bool	OKXonXoff = NO;	/* VAR: XON/XOFF can be used as ordinary chars */
@@ -68,13 +75,13 @@ void
 ttysetattr(n)
 bool	n;	/* also used as subscript! */
 {
-	static bool	prev_n = NO;
+	static bool	keep_saved = NO;
 
-	if (!prev_n) {
-		/* Previously, the tty was not in JOVE mode.
-		 * Find out the current settings:
+	if (!keep_saved) {
+		/* Save the current tty settings:
 		 * do the ioctls or whatever to fill in NO half
 		 * of each appropriate tty state pair.
+		 * NOTE: previously, the tty was not in JOVE mode.
 		 * NOTE: the nested tangle of ifdefs is intended to follow
 		 * the structure of the definitions in ttystate.c.
 		 */
@@ -127,7 +134,18 @@ bool	n;	/* also used as subscript! */
 		TABS = !(sg[NO].sg_flags & XTABS);
 		ospeed = sg[NO].sg_ospeed;
 #endif /* SGTTY */
+#ifdef STICKY_TTYSTATE
+		/* keep saved copy of ttystate until JOVE quits */
+		keep_saved = YES;
+#endif
 	}
+#ifndef STICKY_TTYSTATE
+	/* Keep saved copy of ttystate next time iff we are switching to JOVE mode.
+	 * In other words, don't replace saved copy next time if we will
+	 * be in JOVE mode -- the wrong mode to save.
+	 */
+	keep_saved = n;
+#endif
 
 	/* Fill in YES half of each appropriate tty state pair.
 	 * They are filled in as late as possible so that each will
@@ -367,7 +385,6 @@ bool	n;	/* also used as subscript! */
 	}
 
 #endif /* BIFF */
-	prev_n = n;
 }
 
 /* Determine the number of characters to buffer at each baud rate.  The

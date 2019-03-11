@@ -5,15 +5,23 @@
 # included in all the files.                                           #
 ########################################################################
 
-[Last updated: February, 1996]
+[Updated in May 1996]
 
 Jove for WIN32
 ==============
 
-Jove has been ported to the WIN32 environment (which is supported by
-Windows/NT and Windows/95) using the Microsoft Visual C 2.0 compiler.
-Following are some notes on how the WIN32 product behaves and development
-information.
+The support for WIN32 (that is, Windows/95 and Windows/NT) is integrated
+into the generic JOVE source.  The source can be found in the generic JOVE
+source distribution, or in the MSDOS source distribution.  The latter is
+more useful because it includes pre-built documentation files which must be
+created on a UNIX system, but excludes some things only of use on UNIX (for
+example, X Window System support).  The filename of the MSDOS source
+distribution is jovedoss.zip, or a name that includes the version number
+(for example, jove416s.zip).
+
+A pre-compiled and ready-to-run copie of JOVE for WIN32 is distributed in
+archives with the name jovew32x.zip or a name that includes the version
+number (for example, jove416w.zip).
 
 Jove for WIN32 has been tested on both the Windows/NT and the Windows/95
 platforms, and provides much the same advantages under Windows/95 as it does
@@ -33,7 +41,7 @@ The original port of Jove to WIN32 was performed by Jim Patterson
 (Gary.Puckering@Cognos.COM).
 
 Advantages of WIN32 version
-================================
+===========================
 
 Since Windows/NT and Windows/95 support native DOS applications like Jove,
 using the 16-bit version of JOVE is a perfectly acceptable alternative to
@@ -50,7 +58,7 @@ via an associated drive letter.
 2.  Window sizing.  WIN32 consoles can be dynamically resized.  When running
 a 16-bit application like JOVE, resizing is disabled.  However, Jove for
 WIN32 responds to resizing events and reconfigures its display, just like it
-does under Unix when it receives a SIGWINCH signal.
+does under UNIX when it receives a SIGWINCH signal.
 
 3.  32-bit limits.  Jove for WIN32 is a 32-bit application, and so is less
 prone to size constraints than its 16-bit DOS cousin (though through clever
@@ -107,12 +115,6 @@ the describe-command and describe-variable commands) and (2) the
 system-wide jove.rc (the first file that is sourced (executed) by JOVE
 when it starts up).  The default is c:/jove (set by SHAREDIR in the
 makefile when JOVE was compiled).
-
-JOVELIB
-This variable specifies the path to the JOVE library directory.  If it
-isn't specified, it defaults to c:/jove (set by LIBDIR in the makefile
-when JOVE was compiled).  JOVE uses this to locate the recovery
-program (but it hasn't been ported to MSDOS yet).
 
 HOME
 The directory which is to be considered the user's home (as in UNIX).
@@ -179,17 +181,17 @@ Building Jove for WIN32
 
 In order to build JOVE for WIN32, you need a Windows/95 or Windows/NT system
 with Visual C++ 2.0 or later installed.  If you don't already have a DOS
-source archive, you'll need a Unix system to build this on as well.
+source archive, you'll need a UNIX system to build this on as well.
 
-If you don't have the aforementioned source archive (which will be called
-jovedoss.zoo or jovedoss.zip), then the first step is to create a source
-archive containing the JOVE sources and related documentation.  This needs
-to be done from a Unix system, because it depends on several unix tools
-(e.g. nroff and uudecode).  If you don't have a Unix system, get a friend to
-do this.  This step also requires either zoo or pkzip, which are available
-elsewhere.  To extract the source from the archive on the PC side, you'll
-need the corresponding DOS or WIN32 version of zoo, pkunzip or unzip.  Use the
-following command on the Unix system to create the archive:
+If you don't have the aforementioned source archive, then the first step is
+to create a source archive containing the JOVE sources and related
+documentation.  This needs to be done from a UNIX system, because it depends
+on several unix tools (e.g. nroff and uudecode).  If you don't have a UNIX
+system, get a friend to do this.  This step also requires either zoo or
+pkzip, which are available elsewhere.  To extract the source from the
+archive on the PC side, you'll need the corresponding DOS or WIN32 version
+of zoo, pkunzip or unzip.  Use the following command on the UNIX system to
+create the archive:
 
     make jovedoss.zip
 
@@ -241,7 +243,7 @@ useable and functional.
 
 1.  Add IPROC support.  WIN32 supports pipes, which mean that it's
 conceptually possible to support IPROCs using methods similar to that of the
-Unix PIPEPROC support.  In fact, WIN32 IPROC should be somewhat cleaner than
+UNIX PIPEPROC support.  In fact, WIN32 IPROC should be somewhat cleaner than
 PIPEPROCs because the API avoids the need for a third process.  However, the
 reality of WIN32 pipes seems to be somewhat different, and my own attempts
 to get them to work have so far failed (though the single direction pipes
@@ -271,8 +273,3 @@ Known Bugs:
   anything until a key is pressed.  We haven't tracked down what
   circumstances cause this; it seems to happen more often with certain
   machine configurations.
-
-- On one Windows 95 system we know of, running a shell-command from Jove
-  causes a system failure.  The exact cause of this error has not been
-  tracked down; true to Murphy's Law, it doesn't happen on the system Jove
-  for Win32 is being developed on.

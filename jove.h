@@ -52,7 +52,7 @@
 
 #ifdef STDARGS
 # include <stdarg.h>
-# define	va_init(ap, parmN)	{ va_start((ap), (parmN)); }
+# define	va_init(ap, parmN)	{ va_start((ap), parmN); }
 #else
 # include <varargs.h>
 # define	va_init(ap, parmN)	{ va_start((ap)); }

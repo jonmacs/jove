@@ -451,9 +451,23 @@ parse output from
 running in a shell process (see the
 .IQ process-dbx-output
 command).  You shouldn't have to change
-this unless you are using
-.IQ gdb
-or some other symbolic debugger.
+this unless you are using something other than
+.IQ DBX .
+.dc "dbx-mode" "Not Bound"
+This turns on or off the DBX minor mode in the selected
+buffer.  Without a numeric argument, the command toggles the mode;
+with a zero argument, the mode is turned off; with a non-zero
+argument, the mode is turned on.
+This mode only makes sense in a buffer running an interactive shell
+process.  If you are running
+.IQ dbx
+in a window and and the buffer is in DBX minor mode, \s-2JOVE\s0 will
+automatically track the source location in another window.
+Whenever you type \*Qwhere\*U or while you're stepping through a
+program, or when you reach a breakpoint, \s-2JOVE\s0 will present the
+source file in another window and move to the line that is being referenced.
+See also the variable
+.IQ dbx-format-string .
 .dc "define-global-word-abbrev" "Not Bound"
 This defines a global abbreviation.
 See the
@@ -1557,16 +1571,8 @@ and
 .IQ describe-bindings
 commands.
 .dc "process-dbx-output" "Not Bound"
-This command only makes sense in a buffer running an interactive shell
-process.  If you are running
-.IQ dbx
-in a window, \s-2JOVE\s0 will automatically
-find the file you are currently stepping through and display it in another
-window whenever you type \*Qwhere\*U or while you're stepping through a
-program, or when you reach a breakpoint.  The string DBX will appear in the
-mode line along with the process status when this feature is enabled.  See
-also the variable
-.IQ dbx-format-string .
+This is the obsolete name for
+.IQ dbx-mode .
 .dc "process-newline" "Proc: Return"
 This command is normally bound to Return as if by a
 .IQ process-bind-to-key
