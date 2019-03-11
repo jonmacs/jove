@@ -1,18 +1,15 @@
-/***************************************************************************
- * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
- * is provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is    *
- * included in all the files.                                              *
- ***************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 struct macro {
 	/* Type and Name must match data_obj */
 	int	Type;		/* in this case a macro */
 	char	*Name;		/* name is always second ... */
-	int
-		m_len,		/* length of macro so we can use ^@ */
-		m_buflen,	/* memory allocated for it */
-		m_flags;
+	int	m_len;		/* length of macro so we can use ^@ */
 	char	*m_body;	/* actual body of the macro */
 	struct macro	*m_nextm;
 };
@@ -26,19 +23,19 @@ extern bool
 	in_macro proto((void)),
 	ModMacs proto((void));
 
-extern int
+extern ZXchar
 	mac_getc proto((void));
 
 extern void
 	mac_init proto((void)),
 	do_macro proto((struct macro *mac)),
 	unwind_macro_stack proto((void)),
-	mac_putc proto((int c));
+	mac_putc proto((DAPchar c)),
+	note_dispatch proto((void));
 
 /* Commands: */
 extern void
 	DefKBDMac proto((void)),
-	DelMacro proto((void)),
 	ExecMacro proto((void)),
 	Forget proto((void)),
 	MacInter proto((void)),

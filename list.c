@@ -1,9 +1,9 @@
-/***************************************************************************
- * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
- * is provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is    *
- * included in all the files.                                              *
- ***************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 #include "jove.h"
 #include "list.h"
@@ -38,15 +38,13 @@ UnivPtr
 list_pop(list)
 List	**list;
 {
-	List	*cell;
+	List	*cell = *list;
 	UnivPtr	element;
 
-	if (*list == NULL)
+	if (cell == NULL)
 		return NULL;
-	cell = *list;
 	element = cell->car;
+	*list = cell->cdr;
 	free((UnivPtr) cell);
-	*list = (*list)->cdr;
-
 	return element;
 }

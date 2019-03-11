@@ -1,12 +1,13 @@
-/***************************************************************************
- * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
- * is provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is    *
- * included in all the files.                                              *
- ***************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 #include <stdio.h>
 #include "jove.h"
+#include "chars.h"
 #include "commands.h"
 #include "vars.h"
 
@@ -34,7 +35,7 @@ register char	*what;
 	return -1;
 }
 
-#ifdef	MAC
+#ifdef MAC
 matchvar(choices, what)
 register struct variable choices[];
 register char	*what;
@@ -52,7 +53,7 @@ register char	*what;
 }
 #endif
 
-static int
+private int
 StartsWith(s, pre)
 const char *s, *pre;
 {
@@ -71,11 +72,11 @@ int	c;
 		strcpy(cp, "M-");
 		cp += 2;
 	}
-	if (c == '\033')
+	if (c == ESC)
 		strcpy(cp, "ESC");
 	else if (c < ' ')
-		(void) sprintf(cp, "C-%c", c + '@');
-	else if (c == '\177')
+		(void) sprintf(cp, "^%c", c + '@');
+	else if (c == DEL)
 		strcpy(cp, "^?");
 	else
 		(void) sprintf(cp, "%c", c);
@@ -95,7 +96,7 @@ char	*into,
 
 
 int
-#ifdef	MAC
+#ifdef MAC
 _main()		/* for Mac, so we can use redirection */
 #else
 main()
@@ -118,7 +119,7 @@ main()
 	}
 		stackspace[STACKLIMIT],	/* first entry not used */
 		*sp = stackspace;
-#ifdef	MAC
+#ifdef MAC
 	char	*which;
 	bool	inmenu = NO;
 #endif
@@ -178,7 +179,7 @@ main()
 			}
 			sp -= 1;
 			fprintf(of, line);
-#ifdef	MAC
+#ifdef MAC
 		} else if (StartsWith(line, "#MENU")) {
 			inmenu = YES;
 #endif
@@ -188,7 +189,7 @@ main()
 				comnum = -1;
 			} else {
 				comnum = matchcmd(commands, comname);
-#ifdef	MAC
+#ifdef MAC
 				which = "commands";
 				if (comnum < 0 && inmenu) {
 					comnum = matchvar(variables, comname);
@@ -209,7 +210,7 @@ main()
 					}
 				}
 			}
-#ifdef	MAC
+#ifdef MAC
 			if (inmenu) {
 				if (comnum < 0)
 					fprintf(of, "\t(data_obj *) NULL,\n");

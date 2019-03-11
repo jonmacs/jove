@@ -1,12 +1,12 @@
-/***************************************************************************
- * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
- * is provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is    *
- * included in all the files.                                              *
- ***************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 #include "jove.h"
-#include "ctype.h"
+#include "jctype.h"
 #include "list.h"
 #include "chars.h"
 #include "disp.h"
@@ -25,22 +25,28 @@
 #include "sysprocs.h"
 #include "proc.h"
 #include "wind.h"
+  
+#ifdef IBMPC
+# include "msgetch.h"	/* for PCNONASCII */
+#endif
 
 private void
 	DoNewline proto((bool indentp));
 
+#ifdef LISP
 private Bufpos
 	*lisp_indent proto((void));
+#endif
 
 /* Make a new line after "after" in buffer "buf", unless "after" is NULL,
    in which case we insert the new line before first line. */
 
-Line *
+LinePtr
 listput(buf, after)
 register Buffer	*buf;
-register Line	*after;
+register LinePtr	after;
 {
-	register Line	*newline = nbufline();
+	register LinePtr	newline = nbufline();
 
 	newline->l_prev = after;
 	if (after == NULL) {	/* Before the first line */
@@ -66,8 +72,8 @@ LineInsert(num)
 register int	num;
 {
 	char	newline[LBSIZE];
-	register Line	*newdot,
-			*olddot;
+	register LinePtr	newdot,
+			olddot;
 	int	oldchar;
 
 	olddot = curline;
@@ -122,7 +128,7 @@ register int	goal;
 		insert_c(' ', (goal - dotcol));
 }
 
-#ifdef	ABBREV
+#ifdef ABBREV
 void
 MaybeAbbrevExpand()
 {
@@ -134,7 +140,7 @@ MaybeAbbrevExpand()
 
 private void
 Insert(c)
-int	c;
+char	c;
 {
 	if (c == CTL('J'))
 		LineInsert(arg_value());
@@ -144,8 +150,8 @@ int	c;
 
 void
 overwrite(c, n)
-int	c,
-	n;
+char	c;
+int	n;
 {
 	register int	i;
 
@@ -165,7 +171,7 @@ int	c,
 void
 SelfInsert()
 {
-#ifdef	ABBREV
+#ifdef ABBREV
 	MaybeAbbrevExpand();
 #endif
 	if (LastKeyStruck != CTL('J') && MinorMode(OverWrite))
@@ -193,8 +199,8 @@ SelfInsert()
 /* insert character C N times at point */
 void
 insert_c(c, n)
-int	c,
-	n;
+char	c;
+int	n;
 {
 	if (n > 0) {
 		modify();
@@ -210,20 +216,21 @@ int	c,
 void
 Tab()
 {
-#ifdef	LISP
+#ifdef LISP
 	if (MajorMode(LISPMODE) && (bolp() || !eolp())) {
 		int	dotchar = curchar;
-		Mark	*m = NULL;
 
 		ToIndent();
-		if (dotchar > curchar)
-			m = MakeMark(curline, dotchar, M_FLOATER);
-		(void) lisp_indent();
-		if (m) {
+		if (dotchar > curchar) {
+			Mark	*m = MakeMark(curline, dotchar);
+
+			(void) lisp_indent();
 			ToMark(m);
 			DelMark(m);
-		} else
+		} else {
+			(void) lisp_indent();
 			ToIndent();
+		}
 		return;
 	}
 #endif
@@ -246,28 +253,45 @@ Tab()
 void
 QuotChar()
 {
-	int	c,
-		slow = NO;
+	bool	slow = NO;
+	ZXchar	c = waitchar(&slow);
 
-	c = waitchar(&slow);
-	if (c != CTL('@'))
+	if (c == '\0') {
+		int	n = arg_value();
+
+		while (n-- > 0)
+			ins_str("^@");
+	} else {
 		Insert(c);
+#ifdef IBMPC
+		if (c == PCNONASCII) {
+			c = waitchar(&slow);
+			if (c == '\0') {
+				int	n = arg_value();
+
+				while (n-- > 0)
+					ins_str("^@");
+			} else {
+				Insert(c);
+			}
+		}
+#endif
+	}
 }
 
 /* Insert the paren.  If in C mode and c is a '}' then insert the
    '}' in the "right" place for C indentation; that is indented
    the same amount as the matching '{' is indented. */
 
-int	PDelay = 5,	/* 1/2 a second */
-	CIndIncrmt = 8;
+int	PDelay = 5,		/* VAR: paren flash delay in tenths of a second */
+	CIndIncrmt = 8;	/* VAR: how much each indentation level pushes over in C mode */
 
 void
 DoParen()
 {
 	Bufpos	*bp = NULL;	/* avoid uninitialized complaint from gcc -W */
-	int	tried = NO,
-		nx,
-		c = LastKeyStruck;
+	ZXchar	c = LastKeyStruck;
+	bool	tried = NO;
 
 	if (!jisclosep(c)) {
 		SelfInsert();
@@ -278,7 +302,7 @@ DoParen()
 		bp = c_indent(YES);
 		tried = YES;
 	}
-#ifdef	LISP
+#ifdef LISP
 	if (MajorMode(LISPMODE) && c == ')' && blnkp(linebuf)) {
 		bp = lisp_indent();
 		tried = YES;
@@ -287,7 +311,7 @@ DoParen()
 	SelfInsert();
 
 	if (MinorMode(ShowMatch)
-#ifndef	MAC
+#ifndef MAC
 	&& !charp()
 #endif
 	&& !in_macro())
@@ -297,7 +321,8 @@ DoParen()
 			bp = m_paren(c, BACKWARD, NO, YES);
 		f_char(1);
 		if (bp != NULL) {
-			nx = in_window(curwind, bp->p_line);
+			int	nx = in_window(curwind, bp->p_line);
+
 			if (nx != -1) {		/* is visible */
 				Bufpos	b;
 
@@ -337,14 +362,14 @@ bool	indentp;
 	indent = calc_pos(linebuf, curchar);
 	SetDot(&save);
 
-#ifdef	ABBREV
+#ifdef ABBREV
 	MaybeAbbrevExpand();
 #endif
 	if (
-#ifdef	LISP
+#ifdef LISP
 	    MajorMode(LISPMODE) ||
 #endif
-	    indentp || blnkp(linebuf))
+	    indentp)
 	{
 		DelWtSpace();
 	}
@@ -357,7 +382,7 @@ bool	indentp;
 		LineInsert(arg_value());
 
 	if (indentp) {
-#ifdef	LISP
+#ifdef LISP
 	    if (MajorMode(LISPMODE))
 		(void) lisp_indent();
 	    else
@@ -370,20 +395,30 @@ bool	indentp;
 }
 
 void
-ins_str(str, ok_nl)
-register char	*str;
-int	ok_nl;
+ins_str(str)
+const char *str;
 {
-	register char	c;
-	Bufpos	save;
-	int	llen;
+	ins_str_wrap(str, NO, LBSIZE-1);
+}
+
+void
+ins_str_wrap(str, ok_nl, wrap_off)
+const char *str;
+bool ok_nl;
+int wrap_off;
+{
+	register char c;
+	Bufpos save;
+	int llen;
 
 	if (*str == '\0')
 		return;		/* ain't nothing to insert! */
+	if (wrap_off > LBSIZE-1)
+		wrap_off = LBSIZE-1;
 	DOTsave(&save);
 	llen = strlen(linebuf);
 	while ((c = *str++) != '\0') {
-		if (c == '\n' || (ok_nl && llen >= LBSIZE - 2)) {
+		if (c == '\n' || (ok_nl && llen >= wrap_off)) {
 			IFixMarks(save.p_line, save.p_char, curline, curchar);
 			modify();
 			makedirty(curline);
@@ -423,19 +458,19 @@ OpenLine()
 
 Bufpos *
 DoYank(fline, fchar, tline, tchar, atline, atchar, whatbuf)
-Line	*fline,
-	*tline,
-	*atline;
+LinePtr	fline,
+	tline,
+	atline;
 int	fchar,
 	tchar,
 	atchar;
 Buffer	*whatbuf;
 {
-	register Line	*newline;
+	register LinePtr	newline;
 	static Bufpos	bp;
 	char	save[LBSIZE],
 		buf[LBSIZE];
-	Line	*startline = atline;
+	LinePtr	startline = atline;
 	int	startchar = atchar;
 
 	lsave();
@@ -478,40 +513,37 @@ Buffer	*whatbuf;
 void
 YankPop()
 {
-	Line	*line,
-		*last;
 	Mark	*mp = CurMark();
+	LinePtr	line,
+		last;
 	Bufpos	*dot;
-	int	dir = -1;	/* Direction to rotate the ring */
 
-	if (last_cmd != YANKCMD)
+	switch (last_cmd) {
+	case YANKCMD:
+		{
+			/* Direction to rotate the ring */
+			int	dir = arg_value() < 0? 1 : NUMKILLS - 1;
+
+			/* Now must find a recently killed region. */
+			do {
+				killptr = (killptr+dir) % NUMKILLS;
+			} while (killbuf[killptr] == NULL);
+		}
+		break;
+	case UNDOABLECMD:
+		break;
+	default:
 		complain("Yank something first!");
-
-	lfreelist(reg_delete(mp->m_line, mp->m_char, curline, curchar));
-
-	/* Now must find a recently killed region. */
-
-	if (arg_value() < 0)
-		dir = 1;
-
-	killptr += dir;
-	for (;;) {
-		if (killptr < 0)
-			killptr = NUMKILLS - 1;
-		else if (killptr >= NUMKILLS)
-			killptr = 0;
-		if (killbuf[killptr])
-			break;
-		killptr += dir;
+		/*NOTREACHED*/
 	}
-
-	this_cmd = YANKCMD;
-
+	lfreelist(reg_delete(mp->m_line, mp->m_char, curline, curchar));
 	line = killbuf[killptr];
 	last = lastline(line);
 	dot = DoYank(line, 0, last, length(last), curline, curchar, curbuf);
 	MarkSet(CurMark(), curline, curchar);
 	SetDot(dot);
+	if (last_cmd == UNDOABLECMD)
+		this_cmd = OTHER_CMD;
 }
 
 /* This is an attempt to reduce the amount of memory taken up by each line.
@@ -523,20 +555,41 @@ YankPop()
 
 #define CHUNKSIZE	300
 
+#ifdef FAR_LINES
+# ifdef __BORLANDC__
+#  include <alloc.h>	/* Borland farmalloc() */
+# else
+#  ifdef __WATCOMC__
+#   include <malloc.h>
+#   define farmalloc(sz)	_fmalloc(sz)
+#   define farfree(x)	_ffree(x)
+#  else
+#   include <dos.h>	/* Zortech farmalloc(), MSC (?) */
+#  endif
+# endif
+typedef struct chunk _far	*ChunkPtr;
+# define CHUNKMALLOC(s)	((ChunkPtr) farmalloc(s))
+# define CHUNKFREE(c)	farfree((void _far *) (c))
+#else
+typedef struct chunk	*ChunkPtr;
+# define CHUNKMALLOC(s)	((ChunkPtr) malloc(s))
+# define CHUNKFREE(c)	free((UnivPtr) (c))
+#endif
+
 struct chunk {
-	struct chunk	*c_nextchunk;	/* Next chunk of lines */
+	ChunkPtr	c_nextchunk;	/* Next chunk of lines */
 	int	c_nlines;	/* Number of lines in this chunk (so they
 				   don't all have to be CHUNKSIZE long). */
 	Line	c_block[1 /* or larger */];	/* Chunk of memory */
 };
 
-private struct chunk	*fchunk = NULL;	/* first chunk */
-private Line	*ffline = NULL;	/* First free line */
-private Line	*faline = NULL;	/* First available line */
+private ChunkPtr	fchunk = NULL;	/* first chunk */
+private LinePtr	ffline = NULL;	/* First free line */
+private LinePtr	faline = NULL;	/* First available line */
 
 private void
 freeline(line)
-register Line	*line;
+register LinePtr	line;
 {
 	line->l_dline = NULL_DADDR;
 	line->l_next = ffline;
@@ -563,7 +616,7 @@ RecycleLines()
 	if (faline == NULL) {
 		faline = ffline;
 	} else {
-		Line	*laline = lastline(faline);
+		LinePtr	laline = lastline(faline);
 
 		laline->l_next = ffline;
 		ffline->l_prev = laline;
@@ -573,7 +626,7 @@ RecycleLines()
 
 void
 lfreelist(first)
-register Line	*first;
+register LinePtr	first;
 {
 	if (first != NULL)
 		lfreereg(first, lastline(first));
@@ -583,11 +636,11 @@ register Line	*first;
 
 void
 lfreereg(line1, line2)
-register Line	*line1,
-		*line2;
+register LinePtr	line1,
+		line2;
 {
-	register Line	*next,
-			*last = line2->l_next;
+	register LinePtr	next,
+			last = line2->l_next;
 
 	while (line1 != last) {
 		next = line1->l_next;
@@ -599,16 +652,14 @@ register Line	*line1,
 private bool
 newchunk()
 {
-	register Line	*newline;
+	register LinePtr	newline;
 	register int	i;
-	struct chunk	*f;
+	ChunkPtr	f;
 	int	nlines = CHUNKSIZE;
 	bool	done_gc = NO;
 
 	for (;;) {
-		f = (struct chunk *) malloc(
-			(sizeof(struct chunk) - sizeof(Line))
-			+ (sizeof(Line) * nlines));
+		f = CHUNKMALLOC(sizeof(struct chunk) + sizeof(Line) * (nlines-1));
 		if (f != NULL)
 			break;
 		if (!done_gc) {
@@ -637,10 +688,10 @@ newchunk()
 
 /* New BUFfer LINE */
 
-Line *
+LinePtr
 nbufline()
 {
-	register Line	*newline;
+	register LinePtr	newline;
 
 	if (faline == NULL) {
 		RecycleLines();
@@ -661,9 +712,9 @@ nbufline()
 
 private void
 remfreelines(c)
-register struct chunk	*c;
+register ChunkPtr	c;
 {
-	register Line	*lp;
+	register LinePtr	lp;
 	register int	i;
 
 	for (lp = c->c_block, i = c->c_nlines; i != 0 ; lp++, i--) {
@@ -688,11 +739,11 @@ register struct chunk	*c;
 void
 GCchunks()
 {
-	register struct chunk	*cp;
-	struct chunk	*prev = NULL,
-			*next;
+	register ChunkPtr	cp;
+	ChunkPtr	prev = NULL,
+			next;
 	register int	i;
-	register Line	*newline;
+	register LinePtr	newline;
 
 	RecycleLines();
 	for (cp = fchunk; cp != NULL; cp = next) {
@@ -705,7 +756,7 @@ GCchunks()
 				else
 					prev->c_nextchunk = cp->c_nextchunk;
 				remfreelines(cp);
-				free((UnivPtr) cp);
+				CHUNKFREE(cp);
 				break;
 			}
 			if (newline->l_dline != NULL_DADDR) {
@@ -717,7 +768,7 @@ GCchunks()
 	}
 }
 
-#ifdef	LISP
+#ifdef LISP
 
 #include "re.h"
 
@@ -816,9 +867,9 @@ lisp_indent()
 		if (specials == NULL)
 			init_specials();
 		for (lp = specials; lp != NULL; lp = list_next(lp))
-			if (casencmp((char *) list_data(lp),
+			if (caseeqn((char *) list_data(lp),
 				     &linebuf[curchar],
-				     strlen((char *) list_data(lp))) == 0)
+				     strlen((char *) list_data(lp))))
 				break;
 		if (lp == NULL) {	/* not special */
 			int	c_char = curchar;
@@ -842,4 +893,4 @@ lisp_indent()
 
 	return bp;
 }
-#endif	/* LISP */
+#endif /* LISP */

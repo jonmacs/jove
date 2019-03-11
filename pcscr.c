@@ -1,332 +1,325 @@
-/***************************************************************************
- * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
- * is provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is    *
- * included in all the files.                                              *
- ***************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 #include "jove.h"
 
-#ifdef	IBMPC
+#ifdef IBMPC	/* the body is the rest of this file */
 
+#include "fp.h"	/* scr_putchar */
 #include "pcscr.h"
 #include "chars.h"
 #include "screen.h"
+#include "termcap.h"	/* CO, LI */
 
-/* here come the actual emulation routines	*/
+/* here come the actual emulation routines */
 
 #include <dos.h>
 #include <conio.h>
 
-private BYTE near get_mode proto((void));
+#define VideoBIOS(r)	int86(0x10, (r), (r));
 
-private WORD
-	near cur_page proto((void)),
-	near get_cur proto((void));
+private BYTE
+	c_attr = 0x07,	/* current attribute white on black */
+	c_row = 0,	/* current row */
+	c_col = 0;	/* current column */
+
+int
+	Txattr = 0x07,	/* VAR: text-attribute (white on black) */
+	Mlattr = 0x70,	/* VAR: mode-line-attribute (black on white) */
+	Hlattr = 0x10;	/* VAR: highlight-attribute */
 
 private void
-	near ch_out proto((BYTE, BYTE)),
-	near clr_eop proto((void)),
-	near cur_advance proto((void)),
-	near cur_down proto((void)),
-	near cur_left proto((void)),
-	near cur_right proto((void)),
-	near cur_up proto((void)),
-	near line_feed proto((void)),
-	near set_cur proto((WORD)),
-	near set_mode proto((BYTE)),
-	near wherexy proto((BYTE *, BYTE *));
-
-#define VIDEO   0x10
-
-#define intr(n, r)	int86((n), (r), (r));
-
-BYTE CHPL=80,
-     LPP=25,
-     CUR_PAGE=0,
-     C_ATTR = 0x07,
-     C_X=0,
-     C_Y=0;
-
-int Fgcolor = 7,
-    Bgcolor = 0,
-	Mdcolor = 0;
-
-void setcolor(fg, bg)
-BYTE fg, bg;
+setcolor(attr)
+BYTE attr;
 {
-   C_ATTR = ((bg&0xf)<<4)|(fg&0xf);
+	c_attr = attr;
 }
 
-private
-WORD near cur_page()
+private void
+set_cur()
 {
-   union REGS vr;
+	union REGS vr;
 
-   vr.h.ah = 0x0f;
-   intr(VIDEO, &vr);
-   return vr.h.bh;
+	vr.h.ah = 0x02;	/* set cursor position */
+	vr.h.bh = 0;	/* video page 0 */
+	vr.h.dl = c_col;
+	vr.h.dh = c_row;
+	VideoBIOS(&vr);
 }
 
-private
-void near set_cur(xy)
-WORD xy;
+private void
+get_cur()
 {
-   union REGS vr;
+	union REGS vr;
 
-   vr.h.bh = CUR_PAGE;
-   vr.h.ah = 0x02;
-   vr.x.dx = xy;
-   intr(VIDEO, &vr);
+	vr.h.ah = 0x03;	/* read cursor position and size */
+	vr.h.bh = 0;	/* video page 0 */
+	VideoBIOS(&vr);
+	c_col = vr.h.dl;
+	c_row = vr.h.dh;
 }
 
-private
-WORD near get_cur()
+private BYTE
+chpl()
 {
-   union REGS vr;
+	union REGS vr;
 
-   vr.h.bh = CUR_PAGE;
-   vr.h.ah = 0x03;
-   intr(VIDEO, &vr);
-   return (vr.x.dx);
+	vr.h.ah = 0x0f;	/* get current video state */
+	VideoBIOS(&vr);
+	return vr.h.ah;
 }
 
-private BYTE near
-get_mode()
-{
-  union REGS vr;
+#define cur_mov(r, c)	{ c_row = (r); c_col = (c); set_cur(); }
 
-  vr.h.ah = 0x0f;
-  intr(VIDEO, &vr);
-  return vr.h.al;
-}
-
-BYTE
-lpp()
-{
-   int far *regen = (int far *) 0x44C;
-   BYTE chpl();
-
-   return (*regen&0xff00)/2/chpl();
-}
-
-#ifdef	USE_PROTOTYPES
+#ifdef USE_PROTOTYPES
 /* BYTE is subject to default argument promotions */
-private void near
-set_mode(BYTE n)
-#else
-private void near
-set_mode(n)
-BYTE n;
-#endif
-{
-  union REGS vr;
-
-  vr.h.ah = 0x00;
-  vr.h.al = n;
-  intr(VIDEO, &vr);
-}
-
-#define gotoxy(x,y)	set_cur((x)<<8|((y)&0xff))
-#define cur_mov(x,y)	set_cur((C_X=(x))<<8|((C_Y=(y))&0xff))
-
-private
-void near
-wherexy( x, y)
-BYTE *x, *y;
-{
-  register WORD xy;
-
-  xy = get_cur();
-  *x = xy>>8;
-  *y = xy&0xff;
-}
-
-#define wherex()	C_X
-#define wherey()	C_Y
-
-#ifdef	USE_PROTOTYPES
-/* BYTE is subject to default argument promotions */
-void /*near*/
+void
 scr_win(int no, BYTE ulr, BYTE ulc, BYTE lrr, BYTE lrc)
 #else
-void /*near*/
+void
 scr_win(no, ulr, ulc, lrr, lrc)
 int no;
 BYTE ulr, ulc, lrr, lrc;
 #endif
 {
-  union REGS vr;
+	union REGS vr;
 
-  if (no >= 0)
-     vr.h.ah = 0x06;
-  else {
-     vr.h.ah = 0x07;
-     no = - no;
-  }
-  vr.h.al = no;
-  vr.x.cx = ulr<<8 | ulc;
-  vr.x.dx = lrr<<8 | lrc;
-  vr.h.bh = C_ATTR;
-  intr(VIDEO, &vr);
+	if (no >= 0) {
+		vr.h.ah = 0x06;	/* scroll window up */
+	} else {
+		vr.h.ah = 0x07;	/* scroll window down */
+		no = -no;
+	}
+	vr.h.al = no;
+
+	vr.h.ch = ulr;
+	vr.h.cl = ulc;
+	vr.h.dh = lrr;
+	vr.h.dl = lrc;
+
+	vr.h.bh = c_attr;
+	VideoBIOS(&vr);
 }
 
-BYTE
-chpl()
-{
-  union REGS vr;
-
-  vr.h.ah = 0x0f;
-  intr(VIDEO, &vr);
-  return vr.h.ah;
-}
-
-void /*near*/
+void
 clr_page()
 {
-	scr_win(0, 0, 0, LPP-1, CHPL-1);
-	gotoxy(C_X = 0, C_Y = 0);
+	SO_off();
+	scr_win(0, 0, 0, ILI, CO-1);
+	cur_mov(0, 0);
 }
 
-private void near
-cur_right()
-{
-   if (C_Y < CHPL-1)
-      C_Y++;
-   gotoxy(C_X, C_Y);
-}
-
-private void near
-cur_up()
-{
-   if (C_X)
-      C_X--;
-   gotoxy(C_X, C_Y);
-}
-
-private void near
-cur_left()
-{
-   if (C_Y)
-      C_Y--;
-   gotoxy(C_X, C_Y);
-}
-
-private void near
-cur_down()
-{
-   if (C_X < LPP-1)
-      C_X++;
-   gotoxy(C_X, C_Y);
-}
-
-#ifdef	USE_PROTOTYPES
-/* BYTE is subject to default argument promotions */
-private void near
-ch_out(BYTE c, BYTE n)
-#else
-private void near
+private void
 ch_out(c, n)
 BYTE c, n;
-#endif
 {
-  union REGS vr;
+	union REGS vr;
 
-  vr.h.ah = 0x09;
-  vr.h.al = c;
-  vr.h.bl = C_ATTR;
-  vr.h.bh = CUR_PAGE;
-  vr.x.cx = n;
-  intr(VIDEO, &vr);
+	vr.h.ah = 0x09;	/* write character and attribute */
+	vr.h.al = c;
+	vr.h.bl = c_attr;
+	vr.h.bh = 0;	/* video page 0 */
+	vr.x.cx = n;
+	VideoBIOS(&vr);
 }
 
-#define wrch(c)		ch_out((c), 1), cur_advance()
-
-#define home_cur()	gotoxy(C_X = 0, C_Y = 0)
-
-void /*near*/
+void
 clr_eoln()
 {
-	ch_out(' ', CHPL-wherey());
+	ch_out(' ', CO-c_col);
 }
 
-private void near
-clr_eop()
+/* Video mode setting derived from code posted to comp.os.msdos.programmer
+ * by Joe Huffman 1990 August 15 (found on SIMTEL in msdos/screen/vidmode.zip)
+ */
+
+private BYTE
+lpp()
 {
-  clr_eoln();
-  scr_win(LPP-1-wherex(), wherex()+1, 0, LPP-1, CHPL-1);
+	union REGS vr;
+	int	lines;
+
+	vr.x.ax = 0x1130;	/* get font information */
+	vr.h.bh = 0;	/* we don't care which pointer we get back */
+	vr.h.dl = 0;	/* default, if BIOS doesn't know how to this */
+	VideoBIOS(&vr);
+	lines = vr.h.dl;	/* number of last line on screen */
+	switch (lines) {
+	default:
+		return lines + 1;
+	case 25:
+	case 28:
+	case 43:
+	case 50:
+		return lines;	/* IBM EGA BUG!*/
+	case 0:
+		return 25;	/* Who knows?  Just a guess. */
+	}
+}
+
+/* discover current video attribute */
+
+private void
+get_c_attr()
+{
+	union REGS vr;
+
+	vr.h.dl = ' ';	/* write out a SPace, using DOS */
+	vr.h.ah = 0x02;
+	int86(0x21, &vr, &vr);
+
+	vr.h.ah = 0x0e;	/* backspace over it, using BIOS */
+	vr.h.al = BS;
+	vr.h.bh = 0;	/* page number 0 */
+	VideoBIOS(&vr);
+
+	vr.h.ah = 0x08;	/* read character and attribute back */
+	VideoBIOS(&vr);
+	c_attr = vr.h.ah;
+}
+
+/* codes for selecting scan lines for alpha mode (service 0x12, function 0x30) */
+
+#define EGA200	0
+#define EGA350	1
+#define EGA400	2
+
+/* codes for selecting ROM font (function code for service 0x11)
+ * Notes from Ralf Brown's Interrupt List:
+ *	  The routines called with AL=1xh are designed to be called only
+ *	  immediately after a mode set and are similar to the routines called
+ *	  with AL=0xh, except that:
+ *	      Page 0 must be active.
+ *	      Bytes/character is recalculated.
+ *	      Max character rows is recalculated.
+ *	      CRT buffer length is recalculated.
+ *	      CRTC registers are reprogrammed as follows:
+ *		     R09 = bytes/char-1 ; max scan line (mode 7 only)
+ *		     R0A = bytes/char-2 ; cursor start
+ *		     R0B = 0		; cursor end
+ *		     R12 = ((rows+1)*(bytes/char))-1 ; vertical display end
+ *		     R14 = bytes/char	; underline loc
+ *			   (*** BUG: should be 1 less ***)
+ *	the current block specifiers may be determined with INT 10/AH=1Bh,
+ *	  looking at offsets 2Bh and 2Ch of the returned data (VGA only)
+ */
+
+#define	EGA8x8	0x12	/* not 0x02 or 0x23 */
+#define	EGA8x14	0x11	/* not 0x01 or 0x22 */
+#define	EGA8x16	0x14	/* not 0x04 or 0x24 */
+
+private void
+EGAsetup(scanlines, font)
+BYTE	scanlines;
+BYTE	font;
+{
+	union REGS vr;
+
+	vr.x.ax = 0x0500;	/* set the active page to 0 */
+	VideoBIOS(&vr);
+
+	vr.x.ax = 0x1200;	/* request EGA information */
+	vr.h.bl = 0x10;
+	vr.x.cx = 0x0000;
+	VideoBIOS(&vr);
+
+	if (vr.x.cx != 0) {
+		vr.h.ah = 0x12;	/* select scan lines for alpha mode */
+		vr.h.al = scanlines;
+		vr.h.bl = 0x30;
+		VideoBIOS(&vr);
+
+		if (vr.h.bh == 0)
+			vr.x.ax = 0x0003;	/* monochrome */
+		else
+			vr.x.ax = 0x0007;	/* 80x25 color text */
+		VideoBIOS(&vr);
+
+		vr.h.ah = 0x11;	/* load ROM font */
+		vr.h.al = font;
+		vr.h.bl = 0;	/* into block 0 */
+		VideoBIOS(&vr);
+	}
+	get_c_attr();
+}
+
+private bool
+set_lines(lines)
+int	lines;
+{
+	switch (lines) {
+	case 25:
+		EGAsetup(EGA400, EGA8x16);
+		break;
+	case 28:
+		EGAsetup(EGA400, EGA8x14);
+		break;
+	case 43:
+		EGAsetup(EGA350, EGA8x8);
+		break;
+	case 50:
+		EGAsetup(EGA400, EGA8x8);
+		break;
+	default:
+		return NO;
+	}
+	return YES;
+}
+
+private bool	pc_set = NO;
+private int	unsetLI;
+
+void
+pcSetTerm()
+{
+	char	*t = getenv("TERM");
+
+	if (!pc_set) {
+		int	lines = lpp();
+
+		unsetLI = lines;
+		if (t != NULL) {
+			if (stricmp(t, "ega25") == 0)
+				lines = 25;
+			else if (stricmp(t, "ega28") == 0)
+				lines = 28;
+			else if (stricmp(t, "ega43") == 0)
+				lines = 43;
+			else if (stricmp(t, "ega50") == 0)
+				lines = 50;
+		}
+		if (lines != unsetLI && set_lines(lines))
+			pc_set = YES;
+	}
+	CO = chpl();
+	if (CO > MAXCOLS)
+		CO = MAXCOLS;
+	LI = lpp();
+	ILI = LI - 1;
+	get_cur();
 }
 
 void
-init_43()
+pcUnsetTerm()
 {
-   BYTE far *info = (BYTE far *) 0x487;
-   WORD far *CRTC = (WORD far *) 0x463;
-   union REGS vr;
-   WORD cur;
-
-   CUR_PAGE = cur_page();
-   CHPL = chpl();
-   LPP = lpp();
-
-   if (get_mode()!=3)
-      set_mode(3);
-   cur = get_cur();
-
-   vr.x.ax = 0x1112;
-   vr.h.bl = 0;
-   intr(VIDEO, &vr);
-
-   *info |= 1;
-   vr.x.ax = 0x0100;
-   vr.h.bh = 0;
-   vr.x.cx = 0x0600;
-   intr(VIDEO, &vr);
-
-   outp(*CRTC, 0x14);
-   outp(*CRTC+1, 0x07);
-
-   vr.x.ax = 0x1200;
-   vr.h.bl = 0x20;
-   intr(VIDEO, &vr);
-
-   LPP = lpp();
-
-   set_cur(cur);
-   wherexy(&C_X, &C_Y);
+	if (pc_set) {
+		pc_set = NO;
+		(void) set_lines(unsetLI);
+	}
 }
 
-void
-reset_43()
-{
-   BYTE far *info = (BYTE far *) 0x487;
-   WORD far *CRTC = (WORD far *) 0x463;
-   union REGS vr;
-
-   set_mode(3);
-
-   *info &= 128;
-   vr.x.ax = 0x0100;
-   vr.h.bh = 0x0607;
-   vr.x.cx = 0x0607;
-   intr(VIDEO, &vr);
-
-   outp(*CRTC, 0x14);
-   outp(*CRTC+1, 13);
-
-}
-
-#define scr_up()		scr_win(1, 0, 0, LPP-1, CHPL-1)
-#define back_space()	cur_left()
-
-private void near
+private void
 line_feed()
 {
-   if (++C_X > LPP-1) {
-      C_X = LPP-1;
-      scr_up();
-   }
-   gotoxy(C_X, C_Y);
+	if (++c_row > ILI) {
+		c_row = ILI;
+		scr_win(1, 0, 0, ILI, CO-1);
+	}
+	set_cur();
 }
 
 #define BELL_P 0x61			/* speaker */
@@ -335,138 +328,98 @@ line_feed()
 #define TINI   182			/* 10110110b timer initialization */
 
 void
-dobell(x)
+dobell(n)
+int	n;
 {
-   unsigned int n = 0x8888;
-   int orgval;
+	unsigned int i = 0x8888;
+	int orgval;
 
-   outp(TIME_P+3, TINI);
-   outp(TIME_P+2, BELL_D&0xff);
-   outp(TIME_P+2, BELL_D>>8);
-   orgval = inp(BELL_P);
-   outp(BELL_P, orgval|3);		/* turn speaker on  */
-   do ; while (--n > 0);
-   outp(BELL_P, orgval);
+	outp(TIME_P+3, TINI);
+	outp(TIME_P+2, BELL_D&0xff);
+	outp(TIME_P+2, BELL_D>>8);
+	orgval = inp(BELL_P);
+	outp(BELL_P, orgval|3);		/* turn speaker on  */
+	do ; while (--i > 0);
+	outp(BELL_P, orgval);
 }
 
-#define carriage_return()	gotoxy(wherex(), C_Y = 0)
+/* scr_putchar: put char on screen.  Declared in fp.h */
 
-private void near
-cur_advance()
-{
-   if (++C_Y > CHPL-1) {
-      C_Y = 0;
-      if (++C_X > LPP-1) {
-	 scr_up();
-	 C_X = LPP-1;
-      }
-   }
-   gotoxy(C_X, C_Y);
-}
-
-void
-init_term()
-{
-   if (lpp() == 43)
-      reset_43();
-   CUR_PAGE = cur_page();
-   CHPL = chpl();
-   LPP = lpp();
-   wherexy(&C_X, &C_Y);
-}
-
-void
-write_em(s)
-char *s;
-{
-  while (*s)
-	normfun(*s++);
-}
-
-void
-write_emif(s)
-char *s;
-{
-  if (s)
-	 write_em(s);
-}
-
-void
-write_emc(s, n)
-char *s;
-int n;
-{
-   while (n--)
-	 normfun(*s++);
-}
-
-#ifdef	USE_PROTOTYPES
+#ifdef USE_PROTOTYPES
 /* char is subject to default argument promotions */
-void /*near*/
-normfun(char c)
+void
+scr_putchar(char c)
 #else
-void near
-normfun(c)
+void
+scr_putchar(c)
 char c;
 #endif
 {
 	switch (c) {
-	case LF: line_feed(); break;
-	case CR: carriage_return(); break;
-	case BS: back_space(); break;
-	case CTL('G'): dobell(0); break;
-	case '\0': break;
-	default: wrch(c);
+	case LF:
+		line_feed();
+		break;
+	case CR:
+		c_col = 0;
+		set_cur();
+		break;
+	case BS:
+		if (c_col > 0)
+			c_col--;
+		set_cur();
+		break;
+	case CTL('G'):
+		dobell(0);
+		break;
+	default:
+		ch_out((c), 1);
+		if (++c_col > CO-1) {
+			c_col = 0;
+			line_feed();
+		}
+		set_cur();
+		break;
 	}
 }
 
-
 /* No cursor optimization on an IBMPC, this simplifies things a lot.
-   Think about it: it would be silly!
+ * Think about it: it would be silly!
  */
-
-int	phystab = 8;
 
 void
 Placur(line, col)
+int line,
+    col;
 {
 	cur_mov(line, col);
 	CapCol = col;
 	CapLine = line;
 }
 
-void
-SO_on()
+private bool
+	doing_so = NO,
+	doing_us = NO;
+
+private void
+doattr()
 {
-	if (Mdcolor)
-		setcolor(Mdcolor&0xf, Mdcolor>>4);
-	else
-		setcolor(Bgcolor, Fgcolor);
+	setcolor((doing_so? Mlattr : Txattr) ^ (doing_us? Hlattr : 0));
 }
 
 void
-SO_off()
+SO_effect(f)
+bool f;
 {
-   setcolor(Fgcolor, Bgcolor);
+	doing_so = f;
+	doattr();
 }
-
-extern bool EGA;
 
 void
-pcUnsetTerm()
+US_effect(f)
+bool	f;
 {
-  if (EGA)
-	 reset_43();
+	doing_us = f;
+	doattr();
 }
 
-
-void
-pcResetTerm()
-{
-	if (EGA)
-	   init_43();
-	else
-	   init_term();
-}
-
-#endif	IBMPC
+#endif /* IBMPC */

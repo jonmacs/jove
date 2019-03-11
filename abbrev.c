@@ -1,16 +1,16 @@
-/***************************************************************************
- * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
- * is provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is    *
- * included in all the files.                                              *
- ***************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 #include "jove.h"
 
-#ifdef	ABBREV
+#ifdef ABBREV	/* the body is the rest of this file */
 
 #include "fp.h"
-#include "ctype.h"
+#include "jctype.h"
 #include "abbrev.h"
 #include "ask.h"
 #include "commands.h"	/* for ExecCmd() */
@@ -21,7 +21,7 @@
 #include "move.h"
 #include "wind.h"
 
-#ifdef	MSDOS
+#ifdef MSDOS
 # include <io.h>
 #endif
 #define HASHSIZE	20
@@ -40,14 +40,14 @@ private	void
 #define GLOBAL	NMAJORS
 private struct abbrev	*A_tables[NMAJORS + 1][HASHSIZE];	/* Must be zeroed! */
 
-bool AutoCaseAbbrev = YES;
+bool AutoCaseAbbrev = YES;	/* VAR: automatically do case on abbreviations */
 
 private unsigned int
 hash(a)
 register char	*a;
 {
 	register unsigned int	hashval = 0;
-	register int	c;
+	register char	c;
 
 	while ((c = *a++) != '\0')
 		hashval = (hashval << 2) + c;
@@ -115,7 +115,7 @@ AbbrevExpand()
 		*wp = wordbuf,
 		*cp;
 	int	col;
-	register int	c;
+	register char	c;
 	int	UC_count = 0;
 	struct abbrev	*ap;
 
@@ -129,7 +129,7 @@ AbbrevExpand()
 		c = linebuf[col];
 		if (AutoCaseAbbrev && jisupper(c)) {
 			UC_count += 1;
-			c = jtolower(c);
+			c = CharDowncase(c);
 		}
 		*wp++ = c;
 		col += 1;
@@ -143,7 +143,8 @@ AbbrevExpand()
 
 		for (cp = ap->a_phrase; (c = *cp) != '\0'; ) {
 			if (UC_count > 0 && jislower(c)
-			&& (cp == ap->a_phrase || (UC_count > 1 && cp[-1] == ' ')))
+			&& (cp == ap->a_phrase
+			   || (UC_count > 1 && (jiswhite(cp[-1]) || cp[-1] == '-'))))
 				c = CharUpcase(c);
 			insert_c(c, 1);
 			cp += 1;
@@ -157,7 +158,7 @@ private char	*mode_names[NMAJORS + 1] = {
 	"Fundamental Mode",
 	"Text Mode",
 	"C Mode",
-#ifdef	LISP
+#ifdef LISP
 	"Lisp Mode",
 #endif
 	"Global"
@@ -174,7 +175,7 @@ char	*file;
 	int	i,
 		count = 0;
 
-	fp = open_file(file, buf, F_WRITE, YES, YES);
+	fp = open_file(file, buf, F_WRITE, YES);
 	for (i = 0; i <= GLOBAL; i++) {
 		fwritef(fp, "------%s abbrevs------\n", mode_names[i]);
 		for (tp = A_tables[i]; tp < &A_tables[i][HASHSIZE]; tp++)
@@ -200,7 +201,7 @@ char	*file;
 	File	*fp;
 	char	buf[LBSIZE];
 
-	fp = open_file(file, buf, F_READ, YES, YES);
+	fp = open_file(file, buf, F_READ, YES);
 	while (mode<=GLOBAL && !f_gets(fp, genbuf, (size_t) LBSIZE)
 		&& !genbuf[0] == '\0')
 	{
@@ -266,11 +267,17 @@ EditAbbrevs()
 	initlist(ebuf);
 	/* Empty buffer.  Save the definitions to a tmp file
 	   and read them into this buffer so we can edit them. */
-	swritef(tname, sizeof(tname), "%s/%s", TmpFilePath, a_tempfile);
+	swritef(tname, sizeof(tname), "%s/%s", TmpDir,
+#ifdef MAC
+		".jabbXXX"
+#else
+		"jabbXXXXXX"
+#endif
+		);
 	(void) mktemp(tname);
 	save_abbrevs(tname);
 	read_file(tname, NO);
-	message("[Edit definitions and then type C-X C-C]");
+	message("[Edit definitions and then type ^X ^C]");
 	Recur();		/* We edit them ... now */
 	if (IsModified(ebuf)) {
 		file_write(tname, NO);
@@ -285,19 +292,13 @@ void
 BindMtoW()
 {
 	struct abbrev	*ap;
-	char	*word;
-	data_obj	*hook;
-
-	word = ask((char *)NULL, "Word: ");
+	char	*word = ask((char *)NULL, "Word: ");
 
 	if ((ap = lookup_abbrev(A_tables[curbuf->b_major], word)) == NULL
 	&& (ap = lookup_abbrev(A_tables[GLOBAL], word)) == NULL)
 		complain("%s: unknown abbrev.", word);
 
-	hook = findmac("Macro: ");
-	if (hook == NULL)
-		complain("[Undefined macro]");
-	ap->a_cmdhook = hook;
+	ap->a_cmdhook = findmac("Macro: ");
 }
 
-#endif	/* ABBREV */
+#endif /* ABBREV */

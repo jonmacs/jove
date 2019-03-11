@@ -1,12 +1,12 @@
-/***************************************************************************
- * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
- * is provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is    *
- * included in all the files.                                              *
- ***************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 #include "jove.h"
-#include "ctype.h"
+#include "jctype.h"
 #include "disp.h"
 #include "ask.h"
 #include "c.h"
@@ -19,7 +19,9 @@
 #include "move.h"
 #include "paragraph.h"
 
-#include <signal.h>
+#ifdef IBMPC
+# include "msgetch.h"	/* for PCNONASCII */
+#endif
 
 void
 prCTIME()
@@ -30,43 +32,59 @@ prCTIME()
 void
 ChrToOct()
 {
-	int	c,
-		slow = NO;
+	ZXchar	c;
+	bool	slow = NO;
 
 	c = waitchar(&slow);
-	ins_str(sprint("\\%03o", c), NO);
+	ins_str(sprint("\\%03o", c));
+#ifdef IBMPC
+	if (c == PCNONASCII) {
+		c = waitchar(&slow);
+		ins_str(sprint("\\%03o", c));
+	}
+#endif
 }
 
 void
 StrLength()
 {
 	static const char	inquotes[] = "Where are the quotes?";
-	char	*first = StrIndex(BACKWARD, linebuf, curchar, '"'),
-		*last = StrIndex(FORWARD, linebuf, curchar + 1, '"'),
-		c;
+	char	*cp;
 	int	numchars = 0;
 
-	if (first == NULL || last == NULL)
-		complain(inquotes);
-	first += 1;
-	while (first < last) {
-		c = *first++;
-		if (c == '\\') {
-			int	num;
+	for (cp = linebuf+curchar; ; cp--) {
+		if (*cp == '"' && (cp == linebuf || cp[-1] != '\\'))
+			break;
+		if (cp == linebuf)
+			complain(inquotes);
+	}
 
-			if (!jisdigit(*first)) {
-				first += 1;
+	cp += 1;	/* skip opening quote */
+	for (;;) {
+		switch (*cp++) {
+		case '\0':
+			complain(inquotes);
+			/*NOTREACHED*/
+		case '"':
+			s_mess("%d characters", numchars);
+			return;
+		case '\\':
+			if (!jisdigit(*cp)) {
+				if (*cp == '\0')
+					complain(inquotes);
+				cp += 1;
 			} else {
-				num = 3;
-				do ; while (num-- && jisdigit(*first++) && first < last);
+				int	num = 3;
+
+				do cp += 1; while (--num != 0 && jisdigit(*cp));
 			}
+			break;
 		}
 		numchars += 1;
 	}
-	s_mess("%d characters", numchars);
 }
 
-/* Transpos cur_char with cur_char - 1 */
+/* Transpose cur_char with cur_char - 1 */
 
 void
 TransChar()
@@ -94,15 +112,20 @@ TransLines()
 		return;
 	lsave();
 	/* Exchange l_dline values.
-	 * This somewhat breaks the buffer abstraction.
+	 * CHEAT: this breaks the buffer abstraction.
+	 * The getDOT unfools a few caching mechanisms.
 	 */
 	old_prev = curline->l_prev->l_dline;
 	curline->l_prev->l_dline = curline->l_dline;
 	curline->l_dline = old_prev;
+	getDOT();
+
 	if (!lastp(curline))
 		line_move(FORWARD, 1, NO);
+	else
+		Eol();	/* can't move to next line, so we do the next best thing */
 	modify();
-	DOLsave = NO;	/* contents of linebuf need not override l_dline. */
+	DOLsave = NO;	/* CHEAT: contents of linebuf need not override l_dline. */
 }
 
 void
@@ -119,7 +142,7 @@ Leave()
 void
 KillEOL()
 {
-	Line	*line2;
+	LinePtr	line2;
 	int	char2;
 	int	num = arg_value();
 
@@ -161,7 +184,7 @@ KillBos()
 void
 KillEos()
 {
-	Line	*line1;
+	LinePtr	line1;
 	int	char1;
 
 	line1 = curline;
@@ -173,7 +196,7 @@ KillEos()
 void
 KillExpr()
 {
-	Line	*line1;
+	LinePtr	line1;
 	int	char1;
 
 	line1 = curline;
@@ -185,14 +208,13 @@ KillExpr()
 void
 Yank()
 {
-	Line	*line,
-		*lp;
+	LinePtr	line,
+		lp;
 	Bufpos	*dot;
 
 	if (killbuf[killptr] == NULL)
 		complain("[Nothing to yank!]");
 	lsave();
-	this_cmd = YANKCMD;
 	line = killbuf[killptr];
 	lp = lastline(line);
 	dot = DoYank(line, 0, lp, length(lp), curline, curchar, curbuf);
@@ -210,12 +232,10 @@ ToIndent()
 void
 skip_wht_space()
 {
-	register char	*cp,
-			c;
+	register char	*cp = linebuf + curchar;
 
-	for (cp = linebuf + curchar; (c = *cp)!='\0'; cp++)
-		if (c != ' ' && c != '\t')
-			break;
+	while (jiswhite(*cp))
+		cp += 1;
 	curchar = cp - linebuf;
 }
 
@@ -224,11 +244,14 @@ skip_wht_space()
 void
 GoLine()
 {
-	Line	*newline;
+	LinePtr	newline;
 
 	if (!is_an_arg())
-		set_arg_value(ask_int("Line: ",10));
-	newline = next_line(curbuf->b_first, arg_value() - 1);
+		set_arg_value(ask_int("1", "Line: ", 10));
+	if (arg_value() < 0)
+		newline = prev_line(curbuf->b_last, -1 - arg_value());
+	else
+		newline = next_line(curbuf->b_first, arg_value() - 1);
 	PushPntp(newline);
 	SetLine(newline);
 }

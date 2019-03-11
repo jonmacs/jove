@@ -1,36 +1,36 @@
-/***************************************************************************
- * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
- * is provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is    *
- * included in all the files.                                              *
- ***************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 #include "jove.h"
 #include "fp.h"
-#include "ctype.h"
+#include "jctype.h"
 #include "termcap.h"
 #include "disp.h"
 #include "fmt.h"
 
-#ifdef	MAC
+#ifdef MAC
 #	include "mac.h"
-#else	/* !MAC */
+#else /* !MAC */
 #	include <sys/stat.h>
-#	ifndef	MSDOS
+#	ifndef MSDOS
 #		include <sys/file.h>
-#	else	/* MSDOS */
+#	else /* MSDOS */
 #		include <fcntl.h>
 #		include <io.h>
-#	endif	/* MSDOS */
-#endif	/* !MAC */
+#	endif /* MSDOS */
+#endif /* !MAC */
 
 #include <errno.h>
 
-#ifdef	RAINBOW
+#ifdef RAINBOW
 private int rbwrite proto((int, char *, int));
 #endif
 
-#ifndef	L_SET
+#ifndef L_SET
 # define L_SET 0
 #endif
 
@@ -89,18 +89,30 @@ int	flags,
 
 	switch (F_MODE(flags)) {
 	case F_READ:
+#ifdef MSDOS
+		fd = open(name, O_RDONLY|O_BINARY);
+#else
 		fd = open(name, 0);
+#endif
 		break;
 
 	case F_APPEND:
+#ifdef MSDOS
+		fd = open(name, O_WRONLY|O_BINARY);
+#else
 		fd = open(name, 1);
+#endif
 		if (fd != -1) {
 			(void) lseek(fd, 0L, 2);
 			break;
 		}
 		/* FALLTHROUGH */
 	case F_WRITE:
+#ifdef MSDOS
+		fd = open(name, O_CREAT|O_TRUNC|O_BINARY|O_RDWR, S_IWRITE|S_IREAD);
+#else
 		fd = creat(name, CreatMode);
+#endif
 		break;
 
 	default:
@@ -110,9 +122,6 @@ int	flags,
 	}
 	if (fd == -1)
 		return NULL;
-#ifdef	MSDOS
-	setmode(fd, 0x8000);
-#endif	/* MSDOS */
 	return fd_open(name, flags, fd, buffer, buf_size);
 }
 
@@ -120,7 +129,9 @@ void
 f_close(fp)
 File	*fp;
 {
-	if (fp->f_flags & (F_WRITE|F_APPEND)) {
+	if ((fp->f_flags & (F_WRITE|F_APPEND))
+	&& (fp->f_flags & F_ERR) == 0)
+	{
 		flushout(fp);
 #ifdef USE_FSYNC
 		(void) fsync(fp->f_fd);
@@ -133,20 +144,20 @@ File	*fp;
 	fp->f_flags = 0;	/* indicates that we're available */
 }
 
-int
-filbuf(fp)
+ZXchar
+f_filbuf(fp)
 File	*fp;
 {
 	if (fp->f_flags & (F_EOF|F_ERR))
 		return EOF;
 	fp->f_ptr = fp->f_base;
-#ifndef	MSDOS
+#ifndef MSDOS
 	do {
-#endif	/* MSDOS */
+#endif /* MSDOS */
 		fp->f_cnt = read(fp->f_fd, (UnivPtr) fp->f_base, (size_t) fp->f_bufsize);
-#ifndef	MSDOS
+#ifndef MSDOS
 	} while (fp->f_cnt == -1 && errno == EINTR);
-#endif	/* MSDOS */
+#endif /* MSDOS */
 	if (fp->f_cnt == -1) {
 		/* I/O error -- treat as EOF */
 		writef("[Read error: %s]", strerror(errno));
@@ -158,21 +169,17 @@ File	*fp;
 		return EOF;
 	}
 	io_chars += fp->f_cnt;
-	return jgetc(fp);
+	return f_getc(fp);
 }
 
 void
 putstr(s)
-register char	*s;
+register const char	*s;
 {
-#ifndef	IBMPC
-	register int	c;
+	register char	c;
 
 	while ((c = *s++) != '\0')
-		jputchar(c);
-#else	/* IBMPC */
-	write_emif(s);
-#endif	/* IBMPC */
+		scr_putchar(c);
 }
 
 void
@@ -182,16 +189,16 @@ register int	n;
 register File	*fp;
 {
 	while (--n >= 0)
-		jputc(*s++, fp);
+		f_putc(*s++, fp);
 }
 
+#ifndef IBMPC
 void
 flushscreen()
 {
-#ifndef	IBMPC
-	flushout(stdout);
-#endif	/* IBMPC */
+	flushout(jstdout);
 }
+#endif /* IBMPC */
 
 void
 f_seek(fp, offset)
@@ -200,7 +207,7 @@ off_t	offset;
 {
 	if (fp->f_flags & (F_WRITE|F_APPEND))
 		flushout(fp);
-	fp->f_cnt = 0;		/* next read will filbuf(), next write
+	fp->f_cnt = 0;		/* next read will f_filbuf(), next write
 				   will flush() with no bad effects */
 	lseek(fp->f_fd, (long) offset, L_SET);
 }
@@ -213,7 +220,7 @@ register File	*fp;
 
 	if (fp->f_flags & (F_READ | F_STRING | F_ERR)) {
 		if (fp->f_flags != F_STRING)
-			abort();    /* IMPOSSIBLE */
+			abort();	/* IMPOSSIBLE */
 		/* We just banged into the end of a string.
 		 * In the interests of continuing, we will cause
 		 * the rest of the output to be be heaped in the
@@ -224,12 +231,15 @@ register File	*fp;
 		return;
 	}
 	if ((n = (fp->f_ptr - fp->f_base)) > 0
-#ifndef	RAINBOW
+#ifndef RAINBOW
 	&& write(fp->f_fd, (UnivPtr) fp->f_base, (size_t)n) != n
 #else
 	&& rbwrite(fp->f_fd, fp->f_base, n) != n
 #endif
-	&& fp != stdout)
+#ifndef IBMPC
+	&& fp != jstdout
+#endif
+	)
 	{
 		fp->f_flags |= F_ERR;
 		error("[I/O error(%s); file = %s, fd = %d]",
@@ -247,19 +257,24 @@ char	*buf;
 size_t	max;
 {
 	register char	*cp = buf;
-	register int	c;
+	register ZXchar	c;
 	char	*endp = buf + max - 1;
 
 	if (fp->f_flags & F_EOF)
 		return YES;
-	while (((c = jgetc(fp)) != EOF) && (c != '\n')) {
-		if (c == '\0') {
-			/* We can't store NUL in our buffer, so ignore it.
-			 * Of course, with a little ingenuity we could:
-			 * NUL could be represented by \n!
-			 */
+	while ((c = f_getc(fp)) != EOF && c != '\n') {
+		/* We can't store NUL in our buffer, so ignore it.
+		 * Similarly, we can only store characters less than NCHARS.
+		 * Of course, with a little ingenuity we could store NUL:
+		 * NUL could be represented by \n.
+		 */
+		if (c == '\0'
+#if NCHARS != UCHAR_ROOF
+		|| c >= NCHARS
+#endif
+		)
 			continue;
-		}
+
 		if (cp >= endp) {
 			add_mess(" [Line too long]");
 			rbell();
@@ -273,13 +288,13 @@ size_t	max;
 			add_mess(" [Incomplete last line]");
 		return YES;
 	}
-#ifdef	MSDOS
+#ifdef MSDOS
 	/* a CR followed by a LF is treated as a NL.
 	 * Bug: the line-buffer is effectively shortened by one character.
 	 */
 	if (cp != buf && cp[-1] == '\r')
 		*--cp = '\0';
-#endif	/* MSDOS */
+#endif /* MSDOS */
 	io_lines += 1;
 	return NO;	/* this means okay */
 }
@@ -291,16 +306,20 @@ void
 f_toNL(fp)
 register File	*fp;
 {
-	register int	c;
-
 	if (fp->f_flags & F_EOF)
 		return;
-	do ; while (((c = jgetc(fp)) != EOF) && (c != '\n'));
-	if (c == EOF)
-		fp->f_flags |= F_EOF;
+	for (;;) {
+		switch (f_getc(fp)) {
+		case EOF:
+			fp->f_flags |= F_EOF;
+			/*FALLTHROUGH*/
+		case '\n':
+			return;
+		}
+	}
 }
 
-#if	defined(IPROCS) && defined(PIPEPROCS)
+#ifdef PIPEPROCS
 size_t
 f_readn(fp, addr, n)
 register File	*fp;
@@ -310,7 +329,7 @@ size_t	n;
 	register size_t	nleft;
 
 	for (nleft = n; nleft > 0; nleft--) {
-		int	c = jgetc(fp);
+		ZXchar	c = f_getc(fp);
 
 		if (f_eof(fp))
 			break;
@@ -318,20 +337,22 @@ size_t	n;
 	}
 	return n - nleft;
 }
-#endif
+#endif /* PIPEPROCS */
 
 /* Deals with output to the terminal, setting up the amount of characters
    to be buffered depending on the output baud rate.  Why it's in a
    separate file I don't know ... */
 
+int	ScrBufSize = 1;
+
+#ifndef IBMPC
 private char	one_buf;
 
-int	BufSize = 1;
-
 private File	stdout_File = {1, 1, 1, F_WRITE, &one_buf, &one_buf, (char *)NULL};
-File	*stdout = &stdout_File;
+File	*jstdout = &stdout_File;
+#endif
 
-#ifdef	RAINBOW
+#ifdef RAINBOW
 
 /*
  * use the Rainbow's video output function
@@ -341,7 +362,9 @@ File	*stdout = &stdout_File;
 
 private int
 rbwrite(fd, buf, cnt)
+int fd;
 char *buf;
+int cnt;
 {
 	union REGS vr;
 
@@ -355,4 +378,4 @@ char *buf;
 		}
 	}
 }
-#endif	/* RAINBOW */
+#endif /* RAINBOW */

@@ -1,27 +1,37 @@
-/***************************************************************************
- * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
- * is provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is    *
- * included in all the files.                                              *
- ***************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 #include "jove.h"
 #include "fmt.h"
 #include "marks.h"
+#include "disp.h"
 
-bool	MarksShouldFloat = YES;
+private Mark	*FreeMarksList = NULL;
+
+#define RecycleMark(m)	{ \
+	(m)->m_next = FreeMarksList; \
+	FreeMarksList = (m); \
+	(m)->m_line = NULL; /* DEBUG */ \
+}
 
 Mark *
-MakeMark(line, column, type)
-register Line	*line;
-int	column,
-	type;
+MakeMark(line, column)
+register LinePtr	line;
+int	column;
 {
-	register Mark	*newmark = (Mark *) emalloc(sizeof *newmark);
+	register Mark	*newmark;
 
+	if ((newmark = FreeMarksList) != NULL)
+		FreeMarksList = newmark->m_next;
+	else
+		newmark = (Mark *) emalloc(sizeof *newmark);
 	MarkSet(newmark, line, column);
+	newmark->m_big_delete = NO;
 	newmark->m_next = curbuf->b_marks;
-	newmark->m_flags = type;
 	curbuf->b_marks = newmark;
 	return newmark;
 }
@@ -33,22 +43,23 @@ Buffer	*b;
 	register Mark	*m,
 			*next;
 
-	m = b->b_marks;
-	while (m != NULL) {
+	for (m = b->b_marks; m != NULL; m = next) {
 		next = m->m_next;
-		free((UnivPtr) m);
-		m = next;
+		RecycleMark(m)
 	}
 }
 
-void
-DelMark(m)
+private void
+DelBufMark(b, m)
+Buffer	*b;
 register Mark	*m;
 {
-	register Mark	*mp = curbuf->b_marks;
+	register Mark	*mp = b->b_marks;
 
+	if (MarkHighlighting)
+		makedirty(m->m_line);
 	if (m == mp)
-		curbuf->b_marks = m->m_next;
+		b->b_marks = m->m_next;
 	else {
 		while (mp != NULL && mp->m_next != m)
 			mp = mp->m_next;
@@ -56,29 +67,57 @@ register Mark	*m;
 			complain("Unknown mark!");
 		mp->m_next = m->m_next;
 	}
-	free((UnivPtr) m);
+	RecycleMark(m);
 }
 
 void
-AllMarkSet(b, line, col)
-Buffer	*b;
-register Line	*line;
-int	col;
+DelMark(m)
+register Mark	*m;
 {
-	register Mark	*mp;
+	DelBufMark(curbuf, m);
+}
 
-	for (mp = b->b_marks; mp != NULL; mp = mp->m_next)
-		MarkSet(mp, line, col);
+/* AllMarkReset is used when a buffer is completely replaced.
+   We delete the marks in the mark ring, but we cannot find
+   the references to other marks, so those we make point
+   to the start of the buffer. */
+
+void
+AllMarkReset(b, line)
+Buffer	*b;
+register LinePtr	line;
+{
+	{
+		register Mark	**mpp;
+
+		for (mpp = &b->b_markring[0]; mpp != &b->b_markring[NMARKS]; mpp++) {
+			if (*mpp != NULL) {
+				DelBufMark(b, *mpp);
+				*mpp = NULL;
+			}
+		}
+		b->b_themark = 0;
+	}
+
+	{
+		register Mark	*mp;
+
+		for (mp = b->b_marks; mp != NULL; mp = mp->m_next)
+			MarkSet(mp, line, 0);
+	}
 }
 
 void
 MarkSet(m, line, column)
 Mark	*m;
-Line	*line;
+LinePtr	line;
 int	column;
 {
 	m->m_line = line;
 	m->m_char = column;
+	m->m_big_delete = NO;
+	if (MarkHighlighting)
+		makedirty(line);
 }
 
 void
@@ -88,25 +127,15 @@ PopMark()
 
 	if (curmark == NULL)
 		return;
-	if (curbuf->b_markring[(curbuf->b_themark + 1) % NMARKS] == NULL) {
-		pmark = curbuf->b_themark;
-		do {
-			if (--pmark < 0)
-				pmark = NMARKS - 1;
-		} while (curbuf->b_markring[pmark] != NULL);
-
-		curbuf->b_markring[pmark] = MakeMark(curline,
-			curchar, MarksShouldFloat ? M_FLOATER : M_FIXED);
-		ToMark(curmark);
-		DelMark(curmark);
-		curmark = NULL;
-	} else
-		PtToMark();
-
-	pmark = curbuf->b_themark - 1;
-	if (pmark < 0)
-		pmark = NMARKS - 1;
+	ExchPtMark();
+	pmark = curbuf->b_themark;
+	do {
+		if (--pmark < 0)
+			pmark = NMARKS - 1;
+	} while (curbuf->b_markring[pmark] == NULL);
 	curbuf->b_themark = pmark;
+	if (MarkHighlighting)
+		makedirty(curmark->m_line);
 }
 
 void
@@ -126,15 +155,29 @@ set_mark()
 
 void
 do_set_mark(l, c)
-Line	*l;
+LinePtr	l;
 int	c;
 {
-	curbuf->b_themark = (curbuf->b_themark + 1) % NMARKS;
-	if (curmark == NULL)
-		curmark = MakeMark(l, c,
-			MarksShouldFloat ? M_FLOATER : M_FIXED);
+	Mark	**mr = curbuf->b_markring;
+	int	tm = curbuf->b_themark;
+
+	if (mr[tm] != NULL) {
+		if (MarkHighlighting)
+			makedirty(mr[tm]->m_line);
+		curbuf->b_themark = tm = (tm + 1) % NMARKS;
+		if (mr[NMARKS-1] == NULL) {
+			/* there is an empty slot: make sure one is here */
+			int	i;
+
+			for (i = NMARKS-1; i != tm; i--)
+				mr[i] = mr[i-1];
+			mr[i] = NULL;
+		}
+	}
+	if (mr[tm] == NULL)
+		mr[tm] = MakeMark(l, c);
 	else
-		MarkSet(curmark, l, c);
+		MarkSet(mr[tm], l, c);
 	s_mess("[Point pushed]");
 }
 
@@ -162,9 +205,9 @@ CurMark()
 }
 
 void
-PtToMark()
+ExchPtMark()
 {
-	Line	*mline;
+	LinePtr	mline;
 	int	mchar;
 	Mark	*m = CurMark();
 
@@ -172,22 +215,22 @@ PtToMark()
 	mchar = curchar;
 
 	ToMark(m);
+	if (MarkHighlighting)
+		makedirty(m->m_line);
 	MarkSet(m, mline, mchar);
 }
 
-/* Fix marks for after a deletion.  For now, even marks that don't
-   float will actually float, because we can't allow marks to point
-   to non-existant lines. */
+/* Fix marks after a deletion. */
 
 void
 DFixMarks(line1, char1, line2, char2)
-register Line	*line1,
-		*line2;
+register LinePtr	line1,
+		line2;
 int	char1,
 	char2;
 {
 	register Mark	*m;
-	Line	*lp;
+	LinePtr	lp;
 
 	if (curbuf->b_marks == NULL)
 		return;
@@ -196,35 +239,32 @@ int	char1,
 			if (m->m_line == lp
 			&& (lp != line1 || m->m_char > char1))
 			{
-				if (lp == line2 && m->m_char >= char2)
+				if (lp == line2 && m->m_char > char2) {
 					m->m_char -= char2-char1;
-				else
+				} else {
 					m->m_char = char1;
+					if (line1 != line2)
+						m->m_big_delete = YES;
+				}
 				m->m_line = line1;
-				if (line1 != line2)
-					m->m_flags |= M_BIG_DELETE;
 			}
 		}
 	}
 }
 
-/* Fix marks after an insertion.  Marks that don't float are ignored
-   on insertion, which means PtToMark has to be careful ... */
+/* Fix marks after an insertion. */
 
 void
 IFixMarks(line1, char1, line2, char2)
-register Line	*line1,
-		*line2;
+register LinePtr	line1,
+		line2;
 int	char1,
 	char2;
 {
 	register Mark	*m;
 
 	for (m = curbuf->b_marks; m != NULL; m = m->m_next) {
-		if ((m->m_flags & M_FLOATER)
-		&& m->m_line == line1
-		&& m->m_char > char1)
-		{
+		if (m->m_line == line1 && m->m_char > char1) {
 			m->m_line = line2;
 			m->m_char += char2 - char1;
 		}

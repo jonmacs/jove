@@ -1,9 +1,9 @@
-/***************************************************************************
- * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
- * is provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is    *
- * included in all the files.                                              *
- ***************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 extern char	*HomeDir;
 
@@ -14,7 +14,7 @@ extern bool	DOLsave;	/* Do Lsave flag.  If lines aren't being saved
 				   flag is probably not being set, or is being
 				   cleared before lsave() was called. */
 
-extern daddr	DFree;  /* pointer to end of tmp file */
+extern daddr	DFree;	/* pointer to end of tmp file */
 
 extern int	Jr_Len;		/* length of Just Read Line */
 
@@ -22,24 +22,24 @@ extern long	io_chars;
 extern int	io_lines;
 
 extern char
-	*lbptr proto((struct line *line)),
-	*pr_name proto((char *fname,int okay_home)),
+	*lbptr proto((LinePtr line)),
+	*pr_name proto((char *fname,bool okay_home)),
 	*pwd proto((void));
 
-extern struct FileStruct
-	*open_file proto((char *fname,char *buf,int how,int complainifbad,int loudness));
+extern File
+	*open_file proto((char *fname,char *buf,int how,bool complainifbad));
 
 extern void
 	setCWD proto((char *d)),
 	getCWD proto((void)),
 	PathParse proto((char *name,char *intobuf)),
 	SyncTmp proto((void)),
-	close_file proto((struct FileStruct *fp)),
+	close_file proto((File *fp)),
 	d_cache_init proto((void)),
 	file_write proto((char *fname, bool app)),
 	getline proto((daddr addr,char *buf)),
 	lsave proto((void)),
-	putreg proto((struct FileStruct *fp,struct line *line1,int char1,struct line *line2,int char2,bool makesure)),
+	putreg proto((File *fp,LinePtr line1,int char1,LinePtr line2,int char2,bool makesure)),
 	read_file proto((char *file, bool is_insert)),
 	put_bufs proto((bool askp)),
 	tmpclose proto((void)),
@@ -59,6 +59,7 @@ extern void
 	InsFile proto((void)),
 	Popd proto((void)),
 	Pushd proto((void)),
+	Pushlibd proto((void)),
 	ReadFile proto((void)),
 	SaveFile proto((void)),
 	WriteFile proto((void)),
@@ -69,9 +70,11 @@ extern void
 
 /* Variables: */
 
-#ifdef	BACKUPFILES
-extern bool	BkupOnWrite;		/* make backup files when writing */
+#ifdef BACKUPFILES
+extern bool	BkupOnWrite;		/* VAR: make backup files when writing */
 #endif
-extern int	CreatMode;		/* default mode for creat'ing files */
-extern bool	EndWNewline;		/* end files with a blank line */
-extern bool	OkayBadChars;		/* allow bad characters in files created by JOVE */
+#ifndef MSDOS
+extern int	CreatMode;		/* VAR: default mode for creat'ing files */
+#endif
+extern bool	EndWNewline;		/* VAR: end files with a blank line */
+extern bool	OkayBadChars;		/* VAR: allow bad characters in files created by JOVE */

@@ -1,36 +1,52 @@
-/***************************************************************************
- * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
- * is provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is    *
- * included in all the files.                                              *
- ***************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 #include "jove.h"
+#include "chars.h"
 #include "fp.h"
 #include "termcap.h"
-#include "ctype.h"
+#include "jctype.h"
 #include "disp.h"
 #include "extend.h"
 #include "fmt.h"
-#include "getch.h"
+#include "msgetch.h"
 
-#ifdef	MAC
+#ifdef MAC
 # include  "mac.h"
 #endif
 
-#ifdef	IBMPC
+#ifdef IBMPC
 # include "pcscr.h"
 #endif
 
 private void
 	doformat proto((File *, const char *, va_list)),
 	outld proto((long, int)),
-	pad proto((int, int));
+	pad proto((DAPchar, int));
 
 char	mesgbuf[MESG_SIZE];
 
-#ifdef	ZORTECH
-/* ZORTECH only accepts va_list in a prototype */
+/* Formatting codes supported:
+ *
+ * %%: => '%'
+ * %O, %D, %X: long => octal, decimal, or hex
+ * %lo, %ld, %lx: long => octal, decimal, or hex
+ * %o, %d, %x: int => octal, decimal, or hex
+ * %c: char => character
+ * %s: char* => string
+ *
+ * %b: buffer pointer => buffer's name
+ * %f: void => current command's name
+ * %n: int => int == 1? "" : "s"
+ * %p: char => visible rep
+ */
+
+#ifdef ZTCDOS
+/* ZTCDOS only accepts va_list in a prototype */
 void
 format(char *buf, size_t len, const char *fmt, va_list ap)
 #else
@@ -50,64 +66,37 @@ va_list	ap;
 	strbuf.f_flags = F_STRING;
 
 	doformat(&strbuf, fmt, ap);
-	jputc('\0', &strbuf);	/* jputc will place this, even if overflow */
+	f_putc('\0', &strbuf);	/* f_putc will place this, even if overflow */
 }
 
-#ifdef	IBMPC
-private const char *const altseq[133] = {
-NullStr, NullStr, NullStr, "Ctrl-@", NullStr, NullStr, NullStr, NullStr,
-NullStr, NullStr, NullStr, NullStr, NullStr, NullStr, NullStr, "Left",
-"Alt-Q", "Alt-W", "Alt-E", "Alt-R", "Alt-T", "Alt-Y", "Alt-U", "Alt-I",
-"Alt-O", "Alt-P", NullStr, NullStr, NullStr, NullStr, "Alt-A", "Alt-S",
-"Alt-D", "Alt-F", "Alt-G", "Alt-H", "Alt-J", "Alt-K", "Alt-L", NullStr,
-NullStr, NullStr, NullStr, NullStr, "Alt-Z", "Alt-X", "Alt-C", "Alt-V",
-"Alt-B", "Alt-N", "Alt-M", NullStr, NullStr, NullStr, NullStr, NullStr,
-NullStr, NullStr, NullStr, "F1", "F2", "F3", "F4", "F5",
-"F6", "F7", "F8", "F9", "F10", NullStr, NullStr, "Home",
-"Up", "PageUp", NullStr, "Left", NullStr, "Right", NullStr, "End",
-"Down", "PageDown", "Ins", "Del", "Shift F1", "Shift F2", "Shift F3", "Shift F4",
-"Shift F5", "Shift F6", "Shift F7", "Shift F8", "Shift F9", "Shift F10", "Ctrl F1", "Ctrl F2",
-"Ctrl F3", "Ctrl F4", "Ctrl F5", "Ctrl F6", "Ctrl F7", "Ctrl F8", "Ctrl F9", "Ctrl F10",
-"Alt F1", "Alt F2", "Alt F3", "Alt F4", "Alt F5", "Alt F6", "Alt F7", "Alt F8",
-"Alt F9", "Alt F10", "Ctrl PrtSc", "Ctrl Left", "Ctrl Right", "Ctrl End", "Ctrl PageDown", "Ctrl Home",
-"Alt 1", "Alt 2", "Alt 3", "Alt 4", "Alt 5", "Alt 6", "Alt 7", "Alt 8",
-"Alt 9", "Alt 0", "Alt Minus", "Alt Equals", "Ctrl PageUp"
-};
-#endif
+/* pretty-print character c into buffer cp (up to PPWIDTH bytes) */
 
-
-private void
-PPchar(c, str, size)
-int	c;
-char	*str;
-size_t	size;
+void
+PPchar(c, cp)
+ZXchar	c;
+char	*cp;
 {
-	char	*cp = str;
-
-#ifdef	IBMPC
-	if (specialkey) {
-		if (c < 0 || c > 132)
-			c = 0;
-		strcpy(cp, altseq[c]);
-	} else if (c == '\377') {
-		*cp = '\0';	/* this character was invisible */
-	} else
-#endif
-	if (c == '\033') {
-		strcpy(cp, "ESC");
-	} else if (c < ' ') {
-		swritef(cp, size, "C-%c", c + '@');
-	} else if (c == '\177') {
+	if (jisprint(c)) {
+		cp[0] = c;
+		cp[1] = '\0';
+	} else if (c < DEL) {
+		strcpy(cp, "^?");
+		cp[1] = c +'@';
+	} else if (c == DEL) {
 		strcpy(cp, "^?");
 	} else {
-		swritef(cp, size, "%c", c);
+		cp[0] = '\\';
+		cp[1] = '0'+(c >> 6);
+		cp[2] = '0'+((c >> 3) & 07);
+		cp[3] = '0'+(c & 07);
+		cp[4] = '\0';
 	}
 }
 
 private struct fmt_state {
 	int	precision,
-		width,
-		leftadj;
+		width;
+	bool	leftadj;
 	char	padc;
 	File	*iop;
 } current_fmt;
@@ -131,7 +120,7 @@ int	base;
 	if (!current_fmt.leftadj)
 		pad(current_fmt.padc, current_fmt.width - len);
 	if (d < 0) {
-		jputc('-', current_fmt.iop);
+		f_putc('-', current_fmt.iop);
 		d = -d;
 	}
 	outld(d, base);
@@ -151,11 +140,11 @@ int	base;
 
 	if ((n = (d / base)) != 0)
 		outld(n, base);
-	jputc((int) (chars[(int) (d % base)]), current_fmt.iop);
+	f_putc((int) (chars[(int) (d % base)]), current_fmt.iop);
 }
 
 private void
-jputs(str)
+fmt_puts(str)
 char	*str;
 {
 	int	len;
@@ -172,22 +161,22 @@ char	*str;
 	if (!current_fmt.leftadj)
 		pad(' ', current_fmt.width - len);
 	while (--current_fmt.precision >= 0)
-		jputc(*cp++, current_fmt.iop);
+		f_putc(*cp++, current_fmt.iop);
 	if (current_fmt.leftadj)
 		pad(' ', current_fmt.width - len);
 }
 
 private void
 pad(c, amount)
-register int	c,
-		amount;
+register char	c;
+register int	amount;
 {
 	while (--amount >= 0)
-		jputc(c, current_fmt.iop);
+		f_putc(c, current_fmt.iop);
 }
 
-#ifdef	ZORTECH
-/* ZORTECH only accepts va_list in a prototype */
+#ifdef ZTCDOS
+/* ZTCDOS only accepts va_list in a prototype */
 private void
 doformat(register File *sp, register const char *fmt, va_list ap)
 #else
@@ -206,12 +195,13 @@ va_list	ap;
 
 	while ((c = *fmt++) != '\0') {
 		if (c != '%') {
-			jputc(c, current_fmt.iop);
+			f_putc(c, current_fmt.iop);
 			continue;
 		}
 
 		current_fmt.padc = ' ';
-		current_fmt.precision = current_fmt.leftadj = current_fmt.width = 0;
+		current_fmt.precision = current_fmt.width = 0;
+		current_fmt.leftadj = NO;
 		c = *fmt++;
 		if (c == '-') {
 			current_fmt.leftadj = YES;
@@ -244,7 +234,7 @@ va_list	ap;
 		/* At this point, fmt points at one past the format letter. */
 		switch (c) {
 		case '%':
-			jputc('%', current_fmt.iop);
+			f_putc('%', current_fmt.iop);
 			break;
 
 		case 'O':
@@ -258,12 +248,12 @@ va_list	ap;
 		    {
 			Buffer	*b = va_arg(ap, Buffer *);
 
-			jputs(b->b_name);
+			fmt_puts(b->b_name);
 			break;
 		    }
 
 		case 'c':
-			jputc(va_arg(ap, int), current_fmt.iop);
+			f_putc(va_arg(ap, DAPchar), current_fmt.iop);
 			break;
 
 		case 'o':
@@ -274,7 +264,7 @@ va_list	ap;
 			break;
 
 		case 'f':	/* current command name gets inserted here! */
-			jputs(LastCmd->Name);
+			fmt_puts(LastCmd->Name);
 			break;
 
 		case 'l':
@@ -283,20 +273,26 @@ va_list	ap;
 
 		case 'n':
 			if (va_arg(ap, int) != 1)
-				jputs("s");
+				fmt_puts("s");
 			break;
 
 		case 'p':
 		    {
-			char	cbuf[20];
+			ZXchar	cc = ZXC(va_arg(ap, DAPchar));
 
-			PPchar(va_arg(ap, int), cbuf, sizeof(cbuf));
-			jputs(cbuf);
-			break;
+			if (cc == ESC) {
+				fmt_puts("ESC");
+			} else {
+				char	cbuf[PPWIDTH];
+
+				PPchar(cc, cbuf);
+				fmt_puts(cbuf);
+			}
 		    }
+			break;
 
 		case 's':
-			jputs(va_arg(ap, char *));
+			fmt_puts(va_arg(ap, char *));
 			break;
 
 		default:
@@ -306,7 +302,7 @@ va_list	ap;
 	current_fmt = prev_fmt;
 }
 
-#ifdef	STDARGS
+#ifdef STDARGS
 char *
 sprint(const char *fmt, ...)
 #else
@@ -317,7 +313,7 @@ sprint(fmt, va_alist)
 #endif
 {
 	va_list	ap;
-	static char	line[100];
+	static char	line[LBSIZE];
 
 	va_init(ap, fmt);
 	format(line, sizeof line, fmt, ap);
@@ -325,7 +321,7 @@ sprint(fmt, va_alist)
 	return line;
 }
 
-#ifdef	STDARGS
+#ifdef STDARGS
 void
 writef(const char *fmt, ...)
 #else
@@ -338,9 +334,9 @@ writef(fmt, va_alist)
 	va_list	ap;
 
 	va_init(ap, fmt);
-#ifndef	IBMPC
-	doformat(stdout, fmt, ap);
-#else	/* IBMPC */
+#ifndef IBMPC
+	doformat(jstdout, fmt, ap);
+#else /* IBMPC */
 	/* Can't use sprint because caller might have
 	 * passed the result of sprint as an arg.
 	 */
@@ -348,13 +344,13 @@ writef(fmt, va_alist)
 		char	line[100];
 
 		format(line, sizeof(line), fmt, ap);
-		write_em(line);
+		putstr(line);
 	}
-#endif	/* IBMPC */
+#endif /* IBMPC */
 	va_end(ap);
 }
 
-#ifdef	STDARGS
+#ifdef STDARGS
 void
 fwritef(File *fp, const char *fmt, ...)
 #else
@@ -372,7 +368,7 @@ fwritef(fp, fmt, va_alist)
 	va_end(ap);
 }
 
-#ifdef	STDARGS
+#ifdef STDARGS
 void
 swritef(char *str, size_t size, const char *fmt, ...)
 #else
@@ -391,7 +387,7 @@ swritef(str, size, fmt, va_alist)
 	va_end(ap);
 }
 
-#ifdef	STDARGS
+#ifdef STDARGS
 void
 s_mess(const char *fmt, ...)
 #else
@@ -411,7 +407,7 @@ s_mess(fmt, va_alist)
 	message(mesgbuf);
 }
 
-#ifdef	STDARGS
+#ifdef STDARGS
 void
 f_mess(const char *fmt, ...)
 #else
@@ -431,7 +427,7 @@ f_mess(fmt, va_alist)
 	UpdMesg = YES;	/* still needs updating (for convenience) */
 }
 
-#ifdef	STDARGS
+#ifdef STDARGS
 void
 add_mess(const char *fmt, ...)
 #else

@@ -1,22 +1,24 @@
-/***************************************************************************
- * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
- * is provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is    *
- * included in all the files.                                              *
- ***************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 /* UNIX Library/System Routine Emulations for Macintosh (mac.c) */
 
-#ifdef	MAC
+#ifdef MAC
 
 extern int
 	creat proto((const char *, int)),
 	open proto((const char *, int)),
 	close proto((int)),
-	read proto((int, const char *, unsigned)),
-	write proto((int, const char *, unsigned)),
 	unlink proto((const char *)),
 	chdir proto((const char *));
+
+extern SSIZE_T
+	read proto((int, const char *, unsigned)),
+	write proto((int, const char *, unsigned));
 
 extern long	lseek proto((int, long, unsigned));
 extern time_t	time proto((time_t *));
@@ -24,11 +26,13 @@ extern time_t	time proto((time_t *));
 extern void
 	menus_off proto((void));	/* called by real_ask, findcom, waitchar */
 
-#endif	/* MAC */
+#endif /* MAC */
 
 /*==== Declarations of Library/System Routines ====*/
 
+#ifndef REALSTDC
 extern int	errno;	/* Redundant if declared in <errno.h> -- DHR */
+#endif
 extern char *strerror proto((int));	/* errno.h or string.h? */
 
 /* General Utilities: <stdlib.h> */
@@ -61,54 +65,62 @@ extern char	*ctime proto((const time_t *));
 
 /* UNIX */
 
-#ifdef	MSC51
+#ifdef MSC51
 #define const	/* the const's in the following defs conflict with MSC 5.1 */
 #endif
 
-#ifdef	POSIX_UNISTD
+#ifdef POSIX_UNISTD
 # include <unistd.h>
+# if _POSIX_VERSION < 199009L	/* defined in <unistd.h>: can't test earlier */
+typedef int	ssize_t;	/* not defined in original POSIX.1 */
+# endif
 # include <fcntl.h>
-#else	/* !POSIX_UNISTD */
+#else /* !POSIX_UNISTD */
 
 extern int	chdir proto((const char */*path*/));
 
 /* POSIX, System Vr4, MSDOS, and our Mac code specify getcwd.
  * System Vr4 (sometimes?) types the second argument "int"!!
  */
-#ifdef	USE_GETCWD
+# ifdef USE_GETCWD
 extern char	*getcwd proto((char *, size_t));
-#endif	/* USE_GETCWD */
+# endif /* USE_GETCWD */
 
 extern int	access proto((const char */*path*/, int /*mode*/));
-#ifndef	W_OK
-# define W_OK	2
-# define X_OK	1
-# define F_OK	0
-#endif
+# ifndef W_OK
+#  define W_OK	2
+#  define X_OK	1
+#  define F_OK	0
+# endif
 
 extern int	creat proto((const char */*path*/, int /*mode*/));
 	/* Open may have an optional third argument, int mode */
 extern int	open proto((const char */*path*/, int /*flags*/, ...));
 
 
-#if	defined(IBMPC) && !defined(ZORTECH)
-extern int	read proto((int /*fd*/, char * /*buf*/, size_t /*nbytes*/));
-extern int	write proto((int /*fd*/, const char * /*buf*/, size_t /*nbytes*/));
-#else
-extern int	read proto((int /*fd*/, UnivPtr /*buf*/, size_t /*nbytes*/));
-extern int	write proto((int /*fd*/, UnivConstPtr /*buf*/, size_t /*nbytes*/));
-#endif
+# ifdef MSC51
+extern SSIZE_T	read proto((int /*fd*/, char * /*buf*/, size_t /*nbytes*/));
+extern SSIZE_T	write proto((int /*fd*/, const char * /*buf*/, size_t /*nbytes*/));
+# else
+extern SSIZE_T	read proto((int /*fd*/, UnivPtr /*buf*/, size_t /*nbytes*/));
+extern SSIZE_T	write proto((int /*fd*/, UnivConstPtr /*buf*/, size_t /*nbytes*/));
+# endif
 
-#ifndef	ZORTECH	/* Zortech defines these (slightly incorrectly) */
+# if !defined(ZTCDOS) && !defined(__BORLANDC__)
+/* Zortech incorrectly defines argv as const char **.
+ * Borland incorrectly defines argv as char *[] and omits some consts
+ * on execl and execlp parameters.
+ * On the other hand, each supplies declarations for these functions.
+ */
 extern int	execl proto((const char */*path*/, const char */*arg*/, ...));
 extern int	execlp proto((const char */*file*/, const char */*arg*/, ...));
 extern int	execv proto((const char */*path*/, char *const /*argv*/[]));
 extern int	execvp proto((const char */*file*/, char *const /*argv*/[]));
-#endif
+# endif
 
-#ifdef	MSC51
-#undef const
-#endif
+# ifdef MSC51
+#  undef const
+# endif
 
 extern void	_exit proto((int));	/* exit(), without flush, etc. */
 
@@ -124,7 +136,7 @@ extern int	chown proto((const char *, int, int));
 
 extern int	unlink proto((const char */*path*/));
 
-#endif	/* !POSIX_UNISTD */
+#endif /* !POSIX_UNISTD */
 
 
 #ifndef FULL_UNISTD
@@ -139,26 +151,18 @@ extern int	fsync proto((int));
  * prototype are not declared, the compiler gets upset.
  */
 
-#ifdef	USE_PROTOTYPES
-struct timeval;	/* forward declaration preventing prototype scoping */
-#endif
-
-#ifdef	UNIX
-extern int	UNMACRO(select) proto((int /*width*/,
-	fd_set * /*readfds*/, fd_set * /*writefds*/, fd_set * /*exceptfds*/,
-	struct timeval * /*timeout*/));
-#endif
-
+# ifdef USE_BCOPY
 extern void	UNMACRO(bcopy) proto((UnivConstPtr, UnivPtr, size_t));
 extern void	UNMACRO(bzero) proto((UnivPtr, size_t));
+# endif
 
-#endif	/* !FULL_UNISTD */
+#endif /* !FULL_UNISTD */
 
 extern char	*mktemp proto((char *));
 
 /* termcap */
-#ifdef	TERMCAP
-# ifdef	TERMINFO
+#ifdef TERMCAP
+# ifdef TERMINFO
 extern char	*UNMACRO(tparm) proto((const char *, ...));
 #  define	targ1(s, i)	tparm(s, i)
 #  define	targ2(s, c, l)	tparm(s, c, l)

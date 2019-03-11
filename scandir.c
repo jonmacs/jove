@@ -1,9 +1,9 @@
-/***************************************************************************
- * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
- * is provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is    *
- * included in all the files.                                              *
- ***************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 /*
  * This file is used as a compiled module by Jove and also included as
@@ -14,13 +14,14 @@
 #endif
 #include "scandir.h"
 
-#ifdef	F_COMPLETION
+#ifdef F_COMPLETION	/* the body is the rest of this file */
 
-#ifdef	UNIX
+#ifdef UNIX
 
 # include <sys/stat.h>
 
-# ifdef	M_XENIX
+# if defined(M_XENIX) && !defined(M_UNIX)
+   /* XENIX, but not SCO UNIX, which pretends to be XENIX! */
 #  include <sys/ndir.h>
 #  ifndef dirent
 #   define dirent direct
@@ -51,7 +52,7 @@ DIR	*dp;
 {
 	(void) close(dp->d_fd);
 	free((UnivPtr) dp);
-	return 0;   /* don't know how to fail */
+	return 0;	/* don't know how to fail */
 }
 
 private DIR *
@@ -87,7 +88,7 @@ DIR	*dp;
 	return &dir;
 }
 
-#endif	/* DIRENT_EMULATE */
+#endif /* DIRENT_EMULATE */
 
 /* jscandir returns the number of entries or -1 if the directory cannot
    be opened or malloc fails. */
@@ -96,8 +97,8 @@ int
 jscandir(dir, nmptr, qualify, sorter)
 char	*dir;
 char	***nmptr;
-bool	(*qualify) proto((char *));
-int	(*sorter) proto((UnivConstPtr, UnivConstPtr));
+bool	(*qualify) ptrproto((char *));
+int	(*sorter) ptrproto((UnivConstPtr, UnivConstPtr));
 {
 	DIR	*dirp;
 	struct  dirent	*entry;
@@ -126,12 +127,12 @@ int	(*sorter) proto((UnivConstPtr, UnivConstPtr));
 	return nentries;
 }
 
-#endif	/* UNIX */
+#endif /* UNIX */
 
-#ifdef	MSDOS
+#ifdef MSDOS
 # include <dos.h>
 
-# ifndef ZORTECH
+# ifndef ZTCDOS
 #  include <search.h>
 # endif
 
@@ -144,8 +145,8 @@ int
 jscandir(dir, nmptr, qualify, sorter)
 char	*dir;
 char	***nmptr;
-bool	(*qualify) proto((char *));
-int	(*sorter) proto((UnivConstPtr, UnivConstPtr));
+bool	(*qualify) ptrproto((char *));
+int	(*sorter) ptrproto((UnivConstPtr, UnivConstPtr));
 {
 	struct find_t entry;
 	char	**ourarray;
@@ -191,7 +192,7 @@ int	(*sorter) proto((UnivConstPtr, UnivConstPtr));
 	return nentries;
 }
 
-#endif	/* MSDOS */
+#endif /* MSDOS */
 
 void
 freedir(nmptr, nentries)
@@ -204,13 +205,5 @@ int	nentries;
 		free((UnivPtr) *ourarray++);
 	free((UnivPtr) *nmptr);
 	*nmptr = NULL;
-}
-
-int
-alphacomp(a, b)
-UnivConstPtr	a,
-	b;
-{
-	return strcmp(*(const char **)a, *(const char **)b);
 }
 #endif /* F_COMPLETION */

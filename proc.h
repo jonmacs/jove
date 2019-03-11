@@ -1,9 +1,9 @@
-/***************************************************************************
- * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
- * is provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is    *
- * included in all the files.                                              *
- ***************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 /* note: sysprocs.h must be included first */
 
@@ -17,15 +17,23 @@ extern void
 	ChkErrorLines proto((void)),
 	ErrFree proto((void));
 
-extern wait_status_t	UnixToBuf proto((char *, char *, bool, int, bool, ...));
+extern wait_status_t	UnixToBuf proto((int, char *, char *, char *));
 
-#ifndef	MSDOS
-extern void	dowait proto((pid_t pid, wait_status_t *status));
+/* flags for UnixToBuf: */
+#define UTB_DISP	1	/* Display output? */
+#define UTB_CLOBBER	2	/* (if UTB_DISP)  clear buffer at start? */
+#define UTB_ERRWIN	4	/* (if UTB_DISP) make window size error-window-size? */
+#define UTB_SH	8	/* shell command? */
+#define UTB_FILEARG	16	/* pass curbuf->b_fname as $0? */
+
+#ifndef MSDOS
+extern pid_t	ChildPid;	/* pid of any outstanding non-iproc process */
+extern void	dowait proto((wait_status_t *status));
 #endif
 
 /* Commands: */
 
-#ifdef	SUBSHELL
+#ifdef SUBSHELL
 extern void
 	MakeErrors proto((void)),
 	FilterRegion proto((void)),
@@ -44,7 +52,7 @@ extern void
 	NextError proto((void)),
 	PrevError proto((void));
 
-#ifdef	SPELL
+#ifdef SPELL
 extern void
 	SpelBuffer proto((void)),
 	SpelWords proto((void));
@@ -52,10 +60,11 @@ extern void
 
 /* Variables: */
 
-extern int	EWSize;			/* size to make the error window */
-extern char	ErrFmtStr[256];		/* format string for parse errors */
-#ifdef	SUBSHELL
-extern bool	WtOnMk;			/* write files on compile-it command */
+extern int	EWSize;			/* VAR: percentage of screen to make the error window */
+extern char	ErrFmtStr[256];		/* VAR: format string for parse errors */
+#ifdef SUBSHELL
+extern bool	WtOnMk;			/* VAR: write files on compile-it command */
+extern bool	WrapProcessLines;	/* VAR: wrap process lines at CO-1 chars */
 #endif
 
 /* sysdep.h:

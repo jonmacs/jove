@@ -1,17 +1,23 @@
-/***************************************************************************
- * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
- * is provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is    *
- * included in all the files.                                              *
- ***************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
-extern void	jputchar proto((int c));	/* hidden by macro */
+#ifdef IBMPC
+extern void	scr_putchar proto((char c));	/* defined in pcscr.c */
+#define flushscreen()	{ }
+#else
+extern File	*jstdout;
+#define scr_putchar(c)	f_putc((c), jstdout)
+extern void		flushscreen proto((void));
+#endif
 
-#define jputchar(c)	jputc((c), stdout)
-#define jputc(c, fp)	{ while (--(fp)->f_cnt < 0) flushout(fp); *(fp)->f_ptr++ = (c); }
-#define jgetc(fp)	\
-	(((--(fp)->f_cnt < 0) ? filbuf(fp) : (unsigned char) *(fp)->f_ptr++))
-#define f_eof(fp)	((fp)->f_flags & F_EOF)
+#define f_putc(c, fp)	{ while (--(fp)->f_cnt < 0) flushout(fp); *(fp)->f_ptr++ = (c); }
+#define f_getc(fp)	\
+	((--(fp)->f_cnt < 0) ? f_filbuf(fp) : ZXRC(*(fp)->f_ptr++))
+#define f_eof(fp)	(((fp)->f_flags & F_EOF) != 0)
 
 /* typedef struct FileStruct File in jove.h */
 
@@ -38,30 +44,30 @@ struct FileStruct {
 #define F_TELLALL	0400	/* whether to display info upon close */
 #define F_READONLY	01000	/* file is read only */
 
-extern File
-	*stdout;
-
-#ifndef	SMALL
+#ifndef SMALL
 # define MAXTTYBUF	2048
 #else
 # define MAXTTYBUF	512
 #endif
 
-extern int	BufSize;
+extern int	ScrBufSize;
 
 extern File
 	*f_open proto((char *name,int flags,char *buffer,int buf_size)),
 	*fd_open proto((char *name,int flags,int fd,char *buffer,int bsize));
 
 extern int
-	filbuf proto((File *fp));
+	f_filbuf proto((File *fp));
 
-#if	defined(IPROCS) && defined(PIPEPROCS)
+#ifdef PIPEPROCS
 extern size_t
 	f_readn proto((File *fp,char *addr,size_t n));
 #endif
 
-#ifdef	ZORTECH
+#if defined(ZTCDOS) || defined(__BORLANDC__)
+/* POSIX <sys/types.h> defines this as some signed arithmetic type
+ * suitable for holding file sizes.
+ */
 typedef long	off_t;
 #endif
 
@@ -70,10 +76,9 @@ extern void
 	f_seek proto((File *fp, off_t offset)),
 	f_toNL proto((File *fp)),
 	flushout proto((File *fp)),
-	flushscreen proto((void)),
 	fputnchar proto((char *s,int n,File *fp)),
 	gc_openfiles proto((void)),
-	putstr proto((char *s));
+	putstr proto((const char *s));
 
 extern bool
 	f_gets proto((File *fp,char *buf,size_t max));

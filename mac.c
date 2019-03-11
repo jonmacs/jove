@@ -1,15 +1,15 @@
-/***************************************************************************
- * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
- * is provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is    *
- * included in all the files.                                              *
- ***************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 
 /* (C) 1986, 1987, 1988 Ken Mitchum. This code is intended only for use with Jove. */
 
 #include "tune.h"
-#ifdef	MAC
+#ifdef MAC	/* the body is the rest of this file */
 #include <MacTypes.h>
 #include "jove.h"
 #include <QuickDraw.h>
@@ -37,6 +37,8 @@
 #include "move.h"
 #include "version.h"
 
+extern char *getwd proto((void));	/* ??? how does this relate to getcwd? */
+
 extern struct menu Menus[NMENUS];
 
 private	EventRecord the_Event;
@@ -46,6 +48,8 @@ private void Set_std proto((void));
 private void Reset_std proto((void));
 private bool is_dir proto((char *));
 private bool findtext proto((void));
+private char *gethome proto((void));
+
 
 /* keycodes (from Inside MacIntosh I-251). because of changes with
 the MacPlus, there are some duplicate codes between cursor keys and
@@ -58,7 +62,7 @@ into a character code that is appropriate. */
 #define TAB 0x09
 #define BACKSP 0x08
 #define ENTERL NOKEY	/* left enter key absent on MacPlus */
-#define COMMAND NOKEY	/* will be no translation anyway for these */
+#define CMDKEY NOKEY	/* will be no translation anyway for these */
 #define SHIFT NOKEY
 #define CAPSLOCK NOKEY
 #define OPTION NOKEY
@@ -93,7 +97,7 @@ private char nsh_keycodes[] = {
 	'k',';','\\',',','/',					/* 40 - 44 */
 	'n','m','.',TAB,NOKEY,					/* 45 - 49 */
 	'`',BACKSP,ENTERL,NOKEY,NOKEY,			/* 50 - 54 */
-	COMMAND,SHIFT,CAPSLOCK,OPTION, NOKEY,	/* 55 - 59 */
+	CMDKEY,SHIFT,CAPSLOCK,OPTION, NOKEY,	/* 55 - 59 */
 	NOKEY,NOKEY,NOKEY,NOKEY,NOKEY,			/* 60 - 64 */
 	PADDOT,RIGHTCURS,NOKEY,NOKEY,NOKEY,		/* 65 - 69 */
 	LEFTCURS,CLEAR,DOWNCURS,NOKEY,NOKEY,	/* 70 - 74 */
@@ -115,7 +119,7 @@ private char sh_keycodes[] = {
 	'K',';','|','<','?',					/* 40 - 44 */
 	'N','M','>',TAB,NOKEY,					/* 45 - 49 */
 	'~',BACKSP,ENTERL,NOKEY,NOKEY,			/* 50 - 54 */
-	COMMAND,SHIFT,CAPSLOCK,OPTION, NOKEY,	/* 55 - 59 */
+	CMDKEY,SHIFT,CAPSLOCK,OPTION, NOKEY,	/* 55 - 59 */
 	NOKEY,NOKEY,NOKEY,NOKEY,NOKEY,			/* 60 - 64 */
 	PADDOT,RIGHTCURS,NOKEY,NOKEY,NOKEY,		/* 65 - 69 */
 	LEFTCURS,CLEAR,DOWNCURS,NOKEY,NOKEY,	/* 70 - 74 */
@@ -144,7 +148,7 @@ private char sh_keycodes[] = {
 #define SCROLLWIDTH 16	/* width of scroll bar control in pixels */
 #define WINDWIDTH (wc->w_width - SCROLLWIDTH + 1)	/* local coordinates */
 #define WINDHEIGHT (wc->w_height)	/* local coordinates */
-#define MAXROW (LI - 1)
+#define MAXROW ILI
 #define MAXCOL (CO - 1)
 
 
@@ -154,18 +158,6 @@ private char sh_keycodes[] = {
 
 
 /***************************************************/
-
-/* these normally reside in "tune.c" which we don't use */
-
-char *CmdDb;	/* see InitMac() */
-char *p_tempfile = ".jrecXXX";
-char *d_tempfile = ".joveXXX";
-#ifdef	ABBREV
-char *a_tempfile = ".jabbXXX";
-#endif
-char *Joverc = ".joverc";
-
-char	TmpFilePath[FILESIZE];
 
 private void
 	putcurs proto((unsigned row, unsigned col, bool vis)),
@@ -193,41 +185,36 @@ bool
 	EventCmd,
 	Keyonly,
 	Bufchange,
-	Modechange,
-	Macmode = NO;
+	Modechange;
+
+bool
+	Macmode = NO;	/* VAR: use Mac file selector */
 
 /* Initialization Routines. */
 
 private void
+InitMapBinds(km, kmc)
+data_obj	*km;
+char	kmc;
+{
+	ZXchar i;
+
+	for (i = 0; i < NCHARS; i++) {
+		if (*km != NULL && obj_type(*km) == COMMAND) {
+			struct cmd	*c = (struct cmd *) *km;
+
+			c->c_map = kmc;
+			c->c_key = i;
+		}
+	}
+}
+
+private void
 InitBinds()
 {
-	struct cmd *c;
-	data_obj **p;
-	int i;
-
-	p = MainKeys;
-	for (i= 0; i < NCHARS; i++) {
-		c = (struct cmd *) *p;
-		c->c_map = F_MAINMAP;
-		c->c_key = i;
-		p++;
-	}
-
-	p = EscKeys;
-	for (i= 0; i < NCHARS; i++) {
-		c = (struct cmd *) *p;
-		c->c_map = F_PREF1MAP;
-		c->c_key = i;
-		p++;
-	}
-	p = CtlxKeys;
-	for (i= 0; i < NCHARS; i++) {
-		c = (struct cmd *) *p;
-		c->c_map = F_PREF2MAP;
-		c->c_key = i;
-		p++;
-	}
-
+	InitMapBinds(MainKeys, F_MAINMAP);
+	InitMapBinds(EscKeys, F_PREF1MAP);
+	InitMapBinds(CtlxKeys, F_PREF2MAP);
 }
 
 private	WindowPtr window;
@@ -253,33 +240,32 @@ private void	tn_init proto((void));
 void
 MacInit()
 {
-	char *gethome();
 	static const char	cmdfile[] = "/cmds.doc"
 
 	tn_init();
 	getdir();
-	strcpy(TmpFilePath, gethome());
-	CmdDb = malloc(strlen(gethome()) + sizeof(cmdfile));
-	/* ??? better check for CmdDb == NULL -- DHR */
-	strcpy(CmdDb, gethome());
-	strcat(CmdDb, cmdfile);
+	strcpy(TmpDir, gethome());
+	strcpy(ShareDir, TmpDir);
 	InitBinds();
 }
 
 
 /* dummy routines. */
 
-int dummy() {}
+private SIGRESTYPE
+dummy(n)
+int n;
+{
+	return SIGRESVALUE;
+}
 
-SIGRESTYPE
-(*signal(sig,func)) proto((int))
+SIGRESTYPE *
+signal(sig,func)
 int sig;
-SIGRESTYPE (*func) proto((int));
+SIGRESTYPE (*func) ptrproto((int));
 {
 	return &dummy;
 }
-
-void dorecover() {}
 
 
 /* Surrogate unix-style file i/o routines for Jove. These replace the
@@ -534,7 +520,7 @@ int	fd;
 	fsetup(&p);
 	p.ioParam.ioRefNum = ft[--fd].refnum;
 	ft[fd].inuse = 0;
-#ifdef	NEVER
+#ifdef NEVER
 	if (cvt_err(PBFlushFile(&p,0)) < 0)
 		return -1;
 	fsetup(&p);
@@ -593,7 +579,7 @@ int	fd;
 const char	*buf;
 unsigned	n;
 {
-#ifdef	NEVER
+#ifdef NEVER
 	int err;
 	IOParam p;
 	char *obuf, *s;
@@ -707,7 +693,7 @@ unsigned	type;
 		p.ioMisc = (Ptr) new_mark;
 		if ((err = PBSetEOF(&p,0)) != noErr)
 			return cvt_err(err);
-#ifdef	NEVER
+#ifdef NEVER
 		if ((err = PBAllocContig(&p,0)) != noErr)
 			return cvt_err(err);
 #endif
@@ -725,7 +711,8 @@ unsigned	type;
 int
 unlink(name)
 char *name;
-{	int fd, err;
+{
+	int fd, err;
 	char *nm;
 	HParamBlockRec p;
 
@@ -756,13 +743,13 @@ char *buf;
 unsigned size;
 {
 	unsigned n;
-	int p;
+	ZXchar p;
 
 
 	n = 0;
 	do {
 		p = rawgetc();
-#ifdef	O_META
+#ifdef O_META
 		if (p & 0x7f)
 			p &= 0x7f;		/* was normal ascii char */
 #endif
@@ -850,12 +837,12 @@ getdir()	/* call this only once, during startup. */
 	p.ioCompletion = 0;
 	p.ioNamePtr = NULL;
 	if (PBHGetVol(&p,0) != noErr)
-		return -1;	/* BIG trouble */
+		return -1;	/* BIG trouble (but caller never checks returned value!) */
 	cur_vol = p.ioWDVRefNum;
 	cur_dir = p.ioWDDirID;
 	SFSaveDisk = 0 - cur_vol;	/* these are for SF dialogs */
 	CurDirStore = cur_dir;
-	return 0;	/* ??? added by DHR */
+	return 0;
 }
 
 private int
@@ -928,8 +915,8 @@ int
 jscandir(dir, nmptr, qualify, sorter) /* this function has NOT been debugged */
 char	*dir;
 char	***nmptr;
-bool	(*qualify) proto((char *));
-int	(*sorter) proto((UnivConstPtr, UnivConstPtr));
+bool	(*qualify) ptrproto((char *));
+int	(*sorter) ptrproto((UnivConstPtr, UnivConstPtr));
 {
 	CInfoPBRec d;
 	Str255 buf;
@@ -938,7 +925,6 @@ int	(*sorter) proto((UnivConstPtr, UnivConstPtr));
 	unsigned int	nalloc = 10,
 			nentries = 0,
 			index = 1;
-	char *getwd();
 
 	if (strcmp(dir,"/") == 0)
 		return -1;	/* There is no root... */
@@ -987,7 +973,7 @@ int	(*sorter) proto((UnivConstPtr, UnivConstPtr));
 		if (PBGetCatInfo(&d,0) != noErr)
 			break;	/* we are done, then */
 		PtoCstr((char *) buf);
-#ifdef	NEVER
+#ifdef NEVER
 		if (d.dirInfo.ioFlAttrib & 0x10)
 			strcat(buf,"/");
 #endif
@@ -1015,14 +1001,6 @@ int nentries;
 	char **ptr = *dir;
 	while (nentries--)
 		free(*ptr++);
-}
-
-int
-alphacomp(a, b)
-UnivConstPtr	a,
-	b;
-{
-	return strcmp(*(const char **)a, *(const char **)b);
 }
 
 bool
@@ -1468,27 +1446,17 @@ private long npos;	/* number of lines in buffer */
 private int
 ltoc()	/* calculate ctlvalue for line position */
 {
-	register long ipos;
-	register Line	*lp = curbuf->b_first;
+	long ipos = LinesTo(curbuf->b_first, curline) + 1;
 
-	for (npos = 1; lp ; npos++, lp = lp->l_next)  {
-		if (lp == curline)
-			ipos = npos;
-	}
+	npos = ipos + LinesTo(curline, (LinePtr)NULL) - 1;
 	return (int) ((ipos * MAXC) / npos);
 }
 
-private Line *
+private LinePtr
 ctol(ctlv)	/* find buffer line for ctlvalue */
 int ctlv;
 {
-	register long ipos;
-	register Line	*lp = curbuf->b_first;
-
-	ipos = (npos * ctlv)/MAXC;
-	while (ipos-- && lp->l_next)
-		lp = lp->l_next;
-	return lp;
+	return next_line(curbuf->b_first, (int) ((npos * ctlv)/MAXC));
 }
 
 private void
@@ -1649,16 +1617,15 @@ int row;
 	return NULL;
 }
 
-private Line *
+private LinePtr
 windtol(w,row)		/* return line for row in window */
 Window *w;
 int row;
 {
-	Line *l = w->w_top;
+	LinePtr l = w->w_top;
 
-	while (row--)
-		if ((l = l->l_next) == NULL)
-			return NULL;
+	while (row-- && l != NULL)
+		l = l->l_next;
 	return l;
 }
 
@@ -1670,7 +1637,7 @@ findtext()		/* locate and move the point to match the mouse */
 	long ticks;
 	EventRecord event;
 	Window *w;
-	Line *l;
+	LinePtr l;
 
 	ticks = Ticks;
 	ptoxy(p,&row,&col);
@@ -1687,8 +1654,7 @@ findtext()		/* locate and move the point to match the mouse */
 		return NO;
 	this_cmd = LINECMD;
 	SetLine(l);		/* Curline is in linebuf now */
-	if (w->w_flags & W_NUMLINES)
-		col -= 8;	/* adjust for line numbers */
+	col -= W_NUMWIDTH(w);	/* adjust for line numbers */
 	if (col < 0)
 		col = 0;
 	curchar = how_far(curline, col);
@@ -1725,7 +1691,7 @@ int *row,*col;
 
 
 #define SYS_ID 100
-#define NOFUNC ((void (*) proto((EventRecord *event)))NULL)
+#define NOFUNC ((void (*) ptrproto((EventRecord *event)))NULL)
 #define NEVENTS 16
 
 private void
@@ -1738,7 +1704,7 @@ private void p_refresh proto((void));
 
 private MenuHandle SysMenu;
 
-private void (*eventlist[]) proto((EventRecord *event)) =
+private void (*eventlist[]) ptrproto((EventRecord *event)) =
 {
 	NOFUNC, /* nullEvent */
 	doMouse,/* mouseDown */
@@ -1770,7 +1736,7 @@ CheckEvents()
 	static Point Mousep;
 	static long time = 0;
 
-	static void (*fptr) proto((EventRecord *event));
+	static void (*fptr) ptrproto((EventRecord *event));
 
 
 	if (FrontWindow() == window) {
@@ -1826,9 +1792,9 @@ private void
 
 #define NMEVENTS 9
 
-private void (*mouselist[]) proto((EventRecord *event, WindowPtr window)) =
+private void (*mouselist[]) ptrproto((EventRecord *event, WindowPtr window)) =
 {
-	(void (*) proto((EventRecord *event, WindowPtr window)))NULL, /* inDesk */
+	(void (*) ptrproto((EventRecord *event, WindowPtr window)))NULL, /* inDesk */
 	doSysMenu, /* inMenuBar */
 	doSysClick, /* inSysWindow */
 	doWind, /* inContent */
@@ -1846,7 +1812,7 @@ EventRecord *event;
 {
 	WindowPtr theWindow;
 	int wpart;
-	void (*fptr) proto((EventRecord *event, WindowPtr window));
+	void (*fptr) ptrproto((EventRecord *event, WindowPtr window));
 
 	if (Keyonly) {
 		if (event->what == mouseDown)
@@ -1932,7 +1898,8 @@ EventRecord *event;
 	SetPort(theWindow);
 	hilite = (event->modifiers & activeFlag)? 0 : 255;
 	for (control = (ControlHandle) (((WindowPeek) theWindow)->controlList)
-	; (control != 0); control = (*control)->nextControl) {
+	; (control != 0); control = (*control)->nextControl)
+	{
 			HiliteControl(control,hilite);
 	}
 }
@@ -1944,7 +1911,7 @@ EventRecord *event;
 /* (ORIGINALLY IN) tkey.c
    keyboard routines for Macintosh. K Mitchum 12/86 */
 
-extern jmp_buf auxjmp;
+jmp_buf auxjmp;
 
 private nchars = 0;
 private char charbuf[MCHARS];
@@ -1970,18 +1937,18 @@ EventRecord *event;
 
 	mods = event->modifiers;
 
-#ifdef	O_META
+#ifdef O_META
 	if (mods & (optionKey | cmdKey | controlKey)) {
 #else
 	if (mods & (cmdKey | controlKey)) {
 #endif
-#ifdef	NEVER
+#ifdef NEVER
 		if (mods & shiftKey)
 			c  = sh_keycodes[(((event->message)&(keyCodeMask))>>8)];
 		else
 			c  = nsh_keycodes[(((event->message)&(keyCodeMask))>>8)];
 #endif
-#ifdef	O_META
+#ifdef O_META
 		if (mods & optionKey) {		/* make escape sequence */
 			if (mods & cmdKey)
 				c &= 0x1f;
@@ -2008,11 +1975,11 @@ EventRecord *event;
 	nchars++;
 }
 
-private int
+private ZXchar
 rawgetc()
 {
 	static int cptr = 0;
-	register int c;
+	register ZXchar c;
 
 	if (EventCmd)
 		longjmp(auxjmp,1);
@@ -2023,7 +1990,7 @@ rawgetc()
 		CheckEvents();	/* ugh! WAIT for a character */
 	}
 	nchars--;
-	c = charbuf[cptr++];
+	c = ZXRC(charbuf[cptr++]);
 	cptr &= NMASK;		/* zero if necessary */
 	return c;
 }
@@ -2058,15 +2025,20 @@ private pascal Boolean
 Ffilter(p)
 FileParam *p;
 {
+	Boolean r;
+
 	if (p->ioFlFndrInfo.fdType == 'APPL')
 		return YES;
+	/* ??? This test seems pretty fishy: it seems to be checking whether
+	 * the file is JOVE's tempfile, but:
+	 * - it doesn't check for the pointer tempfile
+	 * - it doesn't check to see if the directories (folders) match
+	 * What is the purpose of this test?
+	 */
 	PtoCstr((char *) p->ioNamePtr);
-	if (strcmp(p->ioNamePtr,d_tempfile) == 0) {
-		CtoPstr((char *) p->ioNamePtr);
-		return YES;
-	}
+	r = strcmp(p->ioNamePtr,".joveXXX") == 0;
 	CtoPstr((char *) p->ioNamePtr);
-	return NO;
+	return r;
 }
 
 private void
@@ -2198,17 +2170,20 @@ char *
 getenv(item)
 char *item;
 {
-	char *ret = NULL, *str = NULL;
+	if (strcmp(item,"CWD") == 0) {
+		static char *oldwd = NULL;
+		char *wd = getwd();
 
-	if (strcmp(item,"CWD") == 0)
-		str = getwd();
-	if (strcmp(item,"HOME") == 0)
-		str = gethome();
-	if (str) {
-		ret = emalloc(strlen(str) + 1);
-		strcpy(ret,str);
+		if (oldwd != NULL) {
+			if (strcmp(wd, oldwd) == 0)
+				return oldwd;
+			free(oldwd);
+		}
+		return oldwd = copystr(ret);
 	}
-	return ret;
+	if (strcmp(item,"HOME") == 0)
+		return gethome();
+	return NULL;
 }
 
 char *
@@ -2264,7 +2239,7 @@ struct menu *M;
 		case (VARIABLE):
 			SetItemMark(M->Mn,i + 1, 0x12);
 			/* ??? fall through? */
-		case (FUNCTION):
+		case (COMMAND):
 			CtoPstr(name = ((data_obj *) d)->Name);
 			AppendMenu(M->Mn,name);
 			PtoCstr(name);
@@ -2274,7 +2249,7 @@ struct menu *M;
 	InsertMenu(M->Mn,0);
 }
 
-private void	MacSetVar proto((struct variable *vp; int mnu, int itm));
+private void	MacSetVar proto((struct variable *vp, int mnu, int itm));
 
 private void
 ProcMenu(menuno,itemno)
@@ -2289,7 +2264,7 @@ int menuno,itemno;
 		itemno--;
 		d = Menus[i].m[itemno];
 		switch(d->Type & TYPEMASK) {
-		case FUNCTION:
+		case COMMAND:
 			ExecCmd((data_obj *) d);
 			break;
 		case BUFFER:
@@ -2329,7 +2304,7 @@ menus_off()
 	if (Keyonly || EventCmd)
 		return;
 
-#ifdef	MENU_DISABLE		/* NOBODY likes this, but it's here if you want it... */
+#ifdef MENU_DISABLE		/* NOBODY likes this, but it's here if you want it... */
 	DisableItem(SysMenu,0);
 	for (i = 0; i < NMENUS; i++)
 		if (Menus[i].Mn)
@@ -2346,7 +2321,7 @@ menus_on()
 
 	if (!Keyonly)
 		return;
-#ifdef	MENU_DISABLE
+#ifdef MENU_DISABLE
 	EnableItem(SysMenu,0);
 	for (i = 0; i < NMENUS; i++)
 		if (Menus[i].Mn)
@@ -2426,53 +2401,19 @@ SetBufMenu()
 
 private void
 MacSetVar(vp,mnu,itm)	/* Set a variable from the menu */
-struct variable *vp;	/* Liberally taken from SetVar() in extend.c */
+struct variable *vp;
 int mnu,itm;
 {
-	char *prompt;
-
-	prompt = sprint("Set %s: ", vp->Name);
-	switch (vp->v_flags & V_TYPEMASK) {
-	case V_BASE10:
-	case V_BASE8:
-	    {
-		int	value;
-
-		value = ask_int(prompt, ((vp->v_flags & V_TYPEMASK) == V_BASE10)
-					  ? 10 : 8);
-		*(vp->v_value) = value;
-		break;
-	    }
-	case V_BOOL:	/* toggle the value */
-		*(vp->v_value) = (*vp->v_value == YES ? NO : YES);
+	if ((vp->v_flags & V_TYPEMASK) == V_BOOL) {
+		/* toggle the value */
+		*((bool *) vp->v_value) = !*((bool *) vp->v_value);
 		MarkVar(vp,mnu,itm);
-		break;
-	case V_FILENAME:
-	case V_STRING:
-	    {
-		char	*str;
+	} else {
+		char	prompt[128];
 
-		/* Do_ask() so you can set string to "" if you so desire. */
-		str = do_ask("\r\n", (bool (*) ptrproto((int))) NULL, (char *) vp->v_value,
-			prompt);
-		if (str == NULL)
-			str = NullStr;
-		strcpy((char *) vp->v_value, str);
-		/* ... and hope there is enough room. */
-		break;
-	    }
-	case V_CHAR:
-		f_mess(prompt);
-		*(vp->v_value) = addgetc();
-		break;
+		swritef(prompt, sizeof(prompt), "Set %s: ", vp->Name);
+		vset_aux(vp, prompt);
 	}
-
-	if (vp->v_flags & V_MODELINE)
-		UpdModLine = YES;
-	if (vp->v_flags & V_CLRSCREEN)
-		ClAndRedraw();
-	if (vp->v_flags & V_TTY_RESET)
-		tty_reset();	/* probably none on a Mac */
 }
 
 private void
@@ -2512,7 +2453,7 @@ int mnu,itm;
 			for (itm = 0; (itm < NMENUITEMS); itm++) {
 				if ((struct variable *) (Menus[mnu].m[itm]) == vp) {
 					CheckItem(Menus[mnu].Mn, itm + 1,
-						*(vp->v_value) == YES);
+						*vp->v_value);
 					return;
 				}
 			}
@@ -2585,7 +2526,7 @@ int top, bottom, num;
 
 
 /*#define VARFONT*/
-#ifdef	VARFONT
+#ifdef VARFONT
 private height,width,theight,twidth,descent;
 #else
 #define height HEIGHT
@@ -2622,23 +2563,11 @@ bool new;
 	insert = new;
 }
 
-private void
-HLmode(new)
+void
+SO_effect(new)
 bool new;
 {
 	tattr = new;
-}
-
-void
-SO_on()
-{
-	HLmode(YES);
-}
-
-void
-SO_off()
-{
-	HLmode(NO);
 }
 
 
@@ -2707,7 +2636,7 @@ bool	desired;
 
 void
 putp(p)			/* put one character, advance cursor */
-int p;
+char p;
 {
 	static Rect r;
 	static RgnHandle updateRgn;
@@ -2726,7 +2655,7 @@ int p;
 		p = 0xAF;	/* slashed zero */
 	if (insert)
 		BlockMove(p_curs, p_curs + 1, (long) (MAXCOL - tcol));
-	*p_curs = (char) p;
+	*p_curs = p;
 	DrawChar(p);
 	if (tcol >= MAXCOL)
 		putcurs(trow,MAXCOL, YES);	/* ??? "YES" guess by DHR */
@@ -2883,7 +2812,7 @@ init_slate()
 	(theScreen)->txFont = FONT;
 	(theScreen)->txSize = TEXTSIZE;
 
-#ifdef	VARFONT
+#ifdef VARFONT
 	GetFontInfo(&f);
 		height = f.ascent+f.descent+f.leading;
 		width = f.widMax;
@@ -2981,4 +2910,4 @@ Reset_std()
 	Set_std();
 	std_state(theScreen) = myBoundsRect;
 }
-#endif	/* MAC */
+#endif /* MAC */

@@ -1,13 +1,14 @@
-/***************************************************************************
- * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
- * is provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is    *
- * included in all the files.                                              *
- ***************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 #include "jove.h"
 #include "re.h"
-#include "ctype.h"
+#include "chars.h"
+#include "jctype.h"
 #include "disp.h"
 #include "move.h"
 #include "screen.h"	/* for tabstop */
@@ -89,9 +90,9 @@ int	dir,
 	n;
 bool	line_cmd;
 {
-	Line	*(*proc) ptrproto((Line *, int)) =
+	LinePtr	(*proc) ptrproto((LinePtr, int)) =
 		(dir == FORWARD) ? next_line : prev_line;
-	Line	*line;
+	LinePtr	line;
 
 	line = (*proc)(curline, n);
 	if (line == curline) {
@@ -112,28 +113,37 @@ bool	line_cmd;
 		curchar = how_far(curline, line_pos);
 }
 
-/* returns what cur_char should be for that position col */
+/* how_far returns what cur_char should be to be at or beyond col
+ * screen columns in to the line.
+ *
+ * Note: the calc_pos, how_far, and DeTab must be in synch --
+ * each thinks it knows how characters are displayed.
+ */
 
 int
 how_far(line, col)
-Line	*line;
+LinePtr	line;
 int	col;
 {
 	register char	*lp;
-	register int	pos,
-			c;
+	register int	pos;
+	register ZXchar	c;
 	char	*base;
 
 	base = lp = lcontents(line);
 	pos = 0;
 
-	while (pos < col && (c = (*lp & CHARMASK)) != '\0') {
-		if (c == '\t')
+	while (pos < col && (c = ZXC(*lp)) != '\0') {
+		if (c == '\t') {
 			pos += TABDIST(pos);
-		else if (jiscntrl(c))
-			pos += 2;
-		else
+		} else if (jisprint(c)) {
 			pos += 1;
+		} else {
+			if (c <= DEL)
+				pos += 2;
+			else
+				pos += 4;
+		}
 		lp += 1;
 	}
 
@@ -174,44 +184,45 @@ private void
 to_sent(dir)
 int	dir;
 {
-	Bufpos	*new,
-		old;
+	for (;;) {
+		Bufpos
+			old,	/* where we started */
+			*new;	/* where dosearch stopped */
 
-	DOTsave(&old);
+		DOTsave(&old);
 
-	new = dosearch("^[ \t]*$\\|[?.!]", dir, YES);
-	if (new == NULL) {
-		if (dir == BACKWARD)
-			ToFirst();
-		else
-			ToLast();
-		return;
-	}
-	SetDot(new);
-	if (dir < 0) {
-		to_word(1);
-		if ((old.p_line == curline && old.p_char <= curchar)
-		|| (inorder(new->p_line, new->p_char, old.p_line, old.p_char)
-		  && inorder(old.p_line, old.p_char, curline, curchar)))
-		{
+		new = dosearch(
+			"^[ \t]*$\\|[?.!]\\{''\\|[\"')\\]]\\|\\}\\{$\\|[ \t]\\}",
+			dir, YES);
+		if (new == NULL) {
+			if (dir == BACKWARD)
+				ToFirst();
+			else
+				ToLast();
+			break;
+		}
+		SetDot(new);
+		if (dir < 0) {
+			to_word(FORWARD);
+			if ((old.p_line != curline || old.p_char > curchar)
+			&& (!inorder(new->p_line, new->p_char, old.p_line, old.p_char)
+			  || !inorder(old.p_line, old.p_char, curline, curchar)))
+				break;
 			SetDot(new);
-			to_sent(dir);
+		} else {
+			if (blnkp(linebuf)) {
+				Bol();
+				b_char(1);
+				if (old.p_line != curline || old.p_char < curchar)
+					break;
+				to_word(FORWARD);	/* Oh brother this is painful */
+			} else {
+				curchar = REbom + 1;	/* Just after the [?.!] */
+				if (LookingAt("''\\|[\"')\\]]", linebuf, curchar))
+					curchar = REeom;
+				break;
+			}
 		}
-		return;		/* We're there? */
-	}
-	if (blnkp(linebuf)) {
-		Bol();
-		b_char(1);
-		if (old.p_line == curline && old.p_char >= curchar) {
-			to_word(1);	/* Oh brother this is painful */
-			to_sent(1);
-		}
-	} else {
-		curchar = REbom + 1;	/* Just after the [?.!] */
-		if (LookingAt("[\")]  *\\|[\")]$", linebuf, curchar))
-			curchar += 1;
-		else if (!eolp() && !LookingAt("  *", linebuf, curchar))
-			to_sent(dir);
 	}
 }
 
@@ -225,7 +236,7 @@ Bos()
 		Eos();
 	} else {
 		while (--num >= 0) {
-			to_sent(-1);
+			to_sent(BACKWARD);
 			if (bobp())
 				break;
 		}
@@ -242,7 +253,7 @@ Eos()
 		Bos();
 	} else {
 		while (--num >= 0) {
-			to_sent(1);
+			to_sent(FORWARD);
 			if (eobp())
 				break;
 		}
@@ -255,10 +266,8 @@ register int	num;
 {
 	if (num < 0) {
 		while (++num <= 0) {
-			register char	c;
-
 			to_word(BACKWARD);
-			while (!bolp() && (c = linebuf[curchar - 1], jisword(c)))
+			while (!bolp() && jisword(linebuf[curchar - 1]))
 				curchar -= 1;
 			if (bobp())
 				break;
@@ -274,6 +283,7 @@ register int	num;
 				break;
 		}
 	}
+	/* ??? why is the following necessary? -- DHR */
 	this_cmd = OTHER_CMD;	/* Semi kludge to stop some unfavorable behavior */
 }
 

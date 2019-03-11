@@ -1,22 +1,24 @@
-/***************************************************************************
- * This program is Copyright (C) 1986, 1987, 1988 by Jonathan Payne.  JOVE *
- * is provided to you without charge, and with no warranty.  You may give  *
- * away copies of JOVE, including sources, provided that this notice is    *
- * included in all the files.                                              *
- ***************************************************************************/
+/************************************************************************
+ * This program is Copyright (C) 1986-1994 by Jonathan Payne.  JOVE is  *
+ * provided to you without charge, and with no warranty.  You may give  *
+ * away copies of JOVE, including sources, provided that this notice is *
+ * included in all the files.                                           *
+ ************************************************************************/
 
 extern void
-	del_char proto((int dir,int num,int OK_kill)),
-	reg_kill proto((struct line *line2, int char2, bool dot_moved));
+	del_char proto((int dir,int num,bool OK_kill)),
+	reg_kill proto((LinePtr line2, int char2, bool dot_moved));
 
-extern  struct line
-	*reg_delete proto((struct line *line1,int char1,struct line *line2,int char2));
+extern LinePtr
+	reg_delete proto((LinePtr line1,int char1,LinePtr line2,int char2));
 
 /* kill buffer */
-#define NUMKILLS	10	/* number of kills saved in the kill ring */
-extern Line	*killbuf[NUMKILLS];
 
-extern int	killptr;	/* index into killbuf */
+#define NUMKILLS	16	/* number of kills saved in the kill ring */
+extern LinePtr	killbuf[NUMKILLS];
+extern int	killptr;	/* index of newest entry (if any) */
+
+extern void DelKillRing proto((void));	/* delete newest entry */
 
 /* Commands: */
 
