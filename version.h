@@ -7,11 +7,17 @@
 
 /* Note: jove.spec must be updated when version number changes */
 
-#define	jversion     "4.16.0.54" /* 2001 December 20 */
-#define	jversion_lnum 4,16,0,54  /* list-of-numbers form for Win32 jjove.rc */
+#define	jversion     "4.16.0.55" /* 2001 December 20 */
+#define	jversion_lnum 4,16,0,55  /* list-of-numbers form for Win32 jjove.rc */
 
 /*
  * $Log: version.h,v $
+ * Revision 1.405  2002/02/12 20:14:08  hugh
+ * - add style.doc to describe some coding conventions
+ * - add a Makefile target to support Exuberant Ctags more conveniently
+ * - add a note about overflow in calculating percentage in buffer-position
+ * - change TERM and TERMCAP environment variables in iproc
+ *
  * Revision 1.404  2001/12/20 21:07:25  hugh
  * - fix Makefile problems with openpty configuration
  * - factor LIBS into TERMCAPLIB and EXTRALIBS
