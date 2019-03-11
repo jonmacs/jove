@@ -10,8 +10,16 @@
 #include "ctype.h"
 #include "termcap.h"
 #include <sys/stat.h>
+#ifndef MSDOS
 #include <sys/file.h>
+#else /* MSDOS */
+#include <fcntl.h>
+#endif /* MSDOS */
 #include <errno.h>
+
+#ifndef L_SET
+#	define L_SET 0
+#endif
 
 #define MAXFILES	20	/* good enough for my purposes */
 
@@ -82,6 +90,10 @@ char	*name,
 		fd = creat(name, CreatMode);
 	if (fd == -1)
 		return NIL;
+#ifdef MSDOS
+	else
+		setmode(fd, 0x8000);
+#endif /* MSDOS */
 	return f_alloc(name, flags, fd, buffer, buf_size);
 }
 
@@ -106,9 +118,13 @@ File	*fp;
 	if (fp->f_flags & (F_EOF|F_ERR))
 		return EOF;
 	fp->f_ptr = fp->f_base;
-	fp->f_cnt = read(fp->f_fd, fp->f_base, fp->f_bufsize);
-	while (fp->f_cnt == -1 && errno == EINTR)
+#ifndef MSDOS
+	do
+#endif /* MSDOS */
 		fp->f_cnt = read(fp->f_fd, fp->f_base, fp->f_bufsize);
+#ifndef MSDOS
+	while (fp->f_cnt == -1 && errno == EINTR);
+#endif /* MSDOS */
 	if (fp->f_cnt == -1) {
 		printf("[Read error %d]", errno);
 		fp->f_flags |= F_ERR;
@@ -124,10 +140,14 @@ File	*fp;
 putstr(s)
 register char	*s;
 {
+#ifndef IBMPC
 	register int	c;
 
 	while (c = *s++)
 		putchar(c);
+#else /* IBMPC */
+	write_emif(s);
+#endif /* IBMPC */
 }
 
 fputnchar(s, n, fp)
@@ -141,7 +161,9 @@ register File	*fp;
 
 flusho()
 {
+#ifndef IBMPC
 	_flush(EOF, stdout);
+#endif /* IBMPC */
 }
 
 flush(fp)
@@ -169,15 +191,21 @@ register File	*fp;
 	if (fp->f_flags & (F_READ | F_STRING | F_ERR))
 		return;
 	if (((n = (fp->f_ptr - fp->f_base)) > 0) &&
+#ifndef IBMPC
 	    (write(fp->f_fd, fp->f_base, n) != n) &&
 	    (fp != stdout)) {
+#else /* IBMPC */
+	    (write(fp->f_fd, fp->f_base, n) != n)) {
+#endif /* IBMPC */
 	    	fp->f_flags |= F_ERR;
 		error("[I/O error(%d); file = %s, fd = %d]",
 			errno, fp->f_name, fp->f_fd);
 	}
 
+#ifndef IBMPC
 	if (fp == stdout)
 		OkayAbort = YES;
+#endif /* IBMPC */
 	fp->f_cnt = fp->f_bufsize;
 	fp->f_ptr = fp->f_base;
 	if (c != EOF)
@@ -197,6 +225,14 @@ char	*buf;
 	while (((c = getc(fp)) != EOF) && (c != '\n')) {
 		if (c == NULL)
 			break;		/* sorry we don't read nulls */
+#ifdef MSDOS
+		if (c == '\r') {
+			if ((c = getc(fp)) == '\n')
+			   break;
+			else
+			   *cp++ = '\r';
+		}
+#endif /* MSDOS */
 		if (cp >= endp) {
 			add_mess(" [Line too long]");
 			rbell();
@@ -211,7 +247,7 @@ char	*buf;
 		fp->f_flags |= F_EOF;
 		return EOF;
 	}
-	io_lines++;
+	io_lines += 1;
 	return NIL;	/* this means okay */
 }
 
@@ -263,6 +299,7 @@ File	*stdout = &_stdout;
 
 /* put a string with padding */
 
+#ifndef IBMPC
 tputc(c)
 {
 	putchar(c);
@@ -275,11 +312,16 @@ putchar(c)
 	putc(c, stdout);
 }
 
+#endif /* IBMPC */
 putpad(str, lines)
 char	*str;
 {
+#ifndef IBMPC
 	if (str)
 		tputs(str, lines, tputc);
+#else /* IBMPC */
+	write_emif(str);
+#endif /* IBMPC */
 }
 
 /* Determine the number of characters to buffer at each baud rate.  The
@@ -291,6 +333,7 @@ char	*str;
 settout(ttbuf)
 char	*ttbuf;
 {
+#ifndef MSDOS
 	static int speeds[] = {
 		1,	/* 0	*/
 		1,	/* 50	*/
@@ -307,9 +350,13 @@ char	*ttbuf;
 		128,	/* 4800	*/
 		256,	/* 9600	*/
 		512,	/* EXTA	*/
-		512	/* EXT	*/
+		1024	/* EXT	*/
 	};
-	BufSize = min(512, (speeds[ospeed] * max(LI / 24, 1)));
+	BufSize = min(MAXTTYBUF, speeds[ospeed] * max(LI / 24, 1));
 	stdout = fd_open("/dev/tty", F_WRITE|F_LOCKED, 1, ttbuf, BufSize);
+#else /* MSDOS */
+	BufSize = TTBUFSIZ; 
+	stdout = fd_open("con", F_WRITE|F_LOCKED, 1, ttbuf, BufSize);
+#endif /* MSDOS */
 }
 

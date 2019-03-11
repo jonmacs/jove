@@ -7,7 +7,7 @@
 
 /* Recovers JOVE files after a system/editor crash.
    Usage: recover [-d directory] [-syscrash]
-   The -syscrash option is specified in /etc/rc and what it does it
+   The -syscrash option is specified in /etc/rc and what it does is
    move all the jove tmp files from TMP_DIR to REC_DIR.
 
    The -d option lets you specify the directory to search for tmp files when
@@ -92,12 +92,20 @@ DIR	*dp;
 	do
 		if (read(dp->d_fd, &dir, sizeof dir) != sizeof dir)
 			return NULL;
+#if defined(elxsi) && defined(SYSV)
+	/*
+	 * Elxsi has a BSD4.2 implementation which may or may not use
+	 * `twisted inodes' ...  Anyone able to check?
+	 */
+	while (*(unsigned short *)&dir.d_ino == 0);
+#else
 	while (dir.d_ino == 0);
+#endif
 
 	return &dir;
 }
 
-#endif BSD4_2
+#endif /* BSD4_2 */
 
 /* Get a line at `tl' in the tmp file into `buf' which should be LBSIZE
    long. */
@@ -185,7 +193,7 @@ struct direct	*(*sorter)();
 		}
 		ourarray[nentries] = (struct direct *) malloc(sizeof *entry);
 		*ourarray[nentries] = *entry;
-		nentries++;
+		nentries += 1;
 	}
 	closedir(dirp);
 	if (nentries != nalloc)
@@ -386,7 +394,7 @@ tryagain:
 			goto tryagain;
 		}
 		get(&buflist[i], tofile);
-		nrecovered++;
+		nrecovered += 1;
 	}
 	printf("Recovered %d buffers.\n", nrecovered);
 }
@@ -424,7 +432,7 @@ register char	**args,
 	while (*args) {
 		if (strcmp(*args, str) == 0)
 			return args;
-		args++;
+		args += 1;
 	}
 	return 0;
 }
@@ -461,7 +469,7 @@ makblist()
 	while (buflist[i]) {
 		free((char *) buflist[i]);
 		buflist[i] = 0;
-		i++;
+		i += 1;
 	}
 }
 
@@ -492,7 +500,7 @@ FILE	*out;
 	while (--nlines >= 0) {
 		daddr = getaddr(ptrs_fp);
 		getline(daddr, buf);
-		Nlines++;
+		Nlines += 1;
 		Nchars += 1 + strlen(buf);
 		fputs(buf, out);
 		if (nlines > 0)
@@ -536,7 +544,7 @@ struct file_pair	*fp;
 #ifdef KILL0
 	if (kill(Header.Pid, 0) == 0)
 		return 0;
-#endif KILL0
+#endif /* KILL0 */
 
 	if (Header.Nbuffers == 0) {
 		printf("There are no modified buffers in %s; should I delete the tmp file?", pntrfile);
@@ -701,7 +709,7 @@ char	*argv[];
 		exit(0);
 	}
 	if (scanvec(argv, "-v"))
-		Verbose++;
+		Verbose = YES;
 /*	if (scanvec(argv, "-syscrash")) {
 		printf("Recovering jove files ... ");
 		savetmps();

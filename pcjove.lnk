@@ -1,0 +1,11 @@
+keymaps.obj funcdefs.obj abbrev.obj ask.obj buf.obj+
+c.obj case.obj ctype.obj delete.obj extend.obj+
+argcount.obj insert.obj io.obj jove.obj macros.obj+
+marks.obj misc.obj move.obj paragrap.obj proc.obj+
+re.obj re1.obj scandir.obj table.obj tune.obj+
+util.obj vars.obj wind.obj fmt.obj disp.obj+
+break.obj term.obj version.obj fp.obj screen.obj+
+getch.obj \c\msetargv
+jove /noi /stack:0x2000
+
+

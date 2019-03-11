@@ -396,7 +396,7 @@ register Line	*line;
 	w->w_top = line;
 	if (w->w_flags & W_NUMLINES) {
 		while (lp) {
-			num++;
+			num += 1;
 			if (line == lp)
 				break;
 			lp = lp->l_next;

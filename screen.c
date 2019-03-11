@@ -10,13 +10,375 @@
 #include "ctype.h"
 #include "termcap.h"
 
+#ifdef IBMPC
+
+/* here come the actual emulation routines	*/
+
+#include <dos.h>
+
+#define BYTE	unsigned char
+#define WORD	unsigned int
+#define VIDEO   0x10
+
+#define intr(n, r)	int86(n, r, r);
+
+BYTE CHPL=80, 
+     LPP=25, 
+     CUR_PAGE=0, 
+     C_ATTR = 0x07,
+     C_X=0, 
+     C_Y=0;
+
+int Fgcolor = 7,
+    Bgcolor = 0;
+    
+void setcolor(fg, bg)
+BYTE fg, bg;
+{
+   C_ATTR = (C_ATTR&0x88)|((bg&7)<<4)|(fg&7);
+}   
+
+WORD near cur_page()
+{
+   union REGS vr;
+
+   vr.h.ah = 0x0f;
+   intr(VIDEO, &vr);
+   return(vr.h.bh);
+}
+   
+void near set_cur(xy)
+WORD xy;
+{
+   union REGS vr;
+   
+   vr.h.bh = CUR_PAGE;
+   vr.h.ah = 0x02;
+   vr.x.dx = xy;
+   intr(VIDEO, &vr);
+}
+
+WORD near get_cur()
+{
+   union REGS vr;
+
+   vr.h.bh = CUR_PAGE;
+   vr.h.ah = 0x03;
+   intr(VIDEO, &vr);
+   return (vr.x.dx);
+}		    
+ 
+BYTE near get_mode()
+{
+  union REGS vr;
+
+  vr.h.ah = 0x0f;
+  intr(VIDEO, &vr);
+  return(vr.h.al);
+}
+
+BYTE lpp()
+{
+   int far *regen;		 
+   int what;
+   BYTE chpl();
+   
+   FP_SEG(regen) = 0;
+   FP_OFF(regen) = 0x44C;			     
+   what = (*regen&0xff00)/2/chpl();
+   return (what > 43 ? 25 : what);
+}    
+	  
+void near set_mode(n)
+BYTE n;
+{
+  union REGS vr;
+
+  vr.h.ah = 0x00;
+  vr.h.al = n;
+  intr(VIDEO, &vr);
+} 
+
+#define gotoxy(x,y)	set_cur((x)<<8|((y)&0xff))
+#define cur_mov(x,y)	set_cur((C_X=x)<<8|((C_Y=y)&0xff))
+
+void near wherexy( x, y)
+BYTE *x, *y;
+{
+  register WORD xy;
+
+  xy = get_cur();
+  *x = xy>>8;
+  *y = xy&0xff;
+}
+    
+#define wherex()	C_X
+#define wherey()	C_Y
+
+void near scr_win(no, ulr, ulc, lrr, lrc)
+int no;
+BYTE ulr, ulc, lrr, lrc;
+{
+  union REGS vr;
+
+  if (no >= 0)
+     vr.h.ah = 0x06;
+  else {
+     vr.h.ah = 0x07;
+     no = - no;
+  }
+  vr.h.al = no;
+  vr.x.cx = ulr<<8 | ulc;
+  vr.x.dx = lrr<<8 | lrc;
+  vr.h.bh = C_ATTR;
+  intr(VIDEO, &vr);
+}    
+
+BYTE chpl()
+{
+  union REGS vr;
+
+  vr.h.ah = 0x0f;
+  intr(VIDEO, &vr);
+  return(vr.h.ah);
+}
+   
+#define clr_page()	scr_win(0, 0, 0, LPP-1, CHPL-1), \
+			gotoxy(C_X = 0, C_Y = 0)
+		
+void near cur_right()
+{
+   if (C_Y < CHPL-1) 
+      C_Y++;
+   gotoxy(C_X, C_Y);
+}	     
+
+void near cur_up()
+{
+   if (C_X)
+      C_X--;
+   gotoxy(C_X, C_Y);
+}
+
+void near cur_left()
+{
+   if (C_Y)
+      C_Y--;
+   gotoxy(C_X, C_Y);
+}
+
+void near cur_down()
+{
+   if (C_X < LPP-1)
+      C_X++;
+   gotoxy(C_X, C_Y);
+}
+ 			  
+void near rev_attr()
+{	   
+  BYTE fg, bg, ib;
+  		       
+  fg = (C_ATTR & 0x07)<<4;
+  bg = (C_ATTR & 0x70)>>4;
+  ib = C_ATTR & 0x88;
+  C_ATTR = fg|bg|ib;
+}
+
+void near ch_out(c, n)
+BYTE c, n;
+{
+  union REGS vr;
+
+  vr.h.ah = 0x09;
+  vr.h.al = c;
+  vr.h.bl = C_ATTR;
+  vr.h.bh = CUR_PAGE;
+  vr.x.cx = n;
+  intr(VIDEO, &vr);
+}
+
+#define wrch(c)		ch_out((c), 1), cur_advance()
+
+#define home_cur()	gotoxy(C_X = 0, C_Y = 0)
+
+#define clr_eoln()	ch_out(' ', CHPL-wherey())
+
+void near clr_eop()
+{
+  clr_eoln();
+  scr_win(LPP-1-wherex(), wherex()+1, 0, LPP-1, CHPL-1);
+}
+
+void init_43()
+{
+   BYTE far *info;
+   WORD far *CRTC;
+   union REGS vr;
+   WORD cur;
+         
+   FP_SEG(info) = FP_SEG(CRTC) = 0x40;
+   FP_OFF(info) = 0x87;
+   FP_OFF(CRTC) = 0x63;
+   
+   CUR_PAGE = cur_page();
+   CHPL = chpl();
+   LPP = lpp();
+
+   if (get_mode()!=3)
+      set_mode(3);
+   cur = get_cur();
+   
+   vr.x.ax = 0x1112;
+   vr.h.bl = 0;
+   intr(VIDEO, &vr);
+
+   *info |= 1;
+   vr.x.ax = 0x0100;
+   vr.h.bh = 0;
+   vr.x.cx = 0x0600;
+   intr(VIDEO, &vr);
+
+   outp(*CRTC, 0x14);
+   outp(*CRTC+1, 0x07);
+
+   vr.x.ax = 0x1200;
+   vr.h.bl = 0x20;
+   intr(VIDEO, &vr);
+   
+   LPP = lpp();
+
+   set_cur(cur);
+   wherexy(C_X, C_Y);
+}
+
+void reset_43()
+{
+   BYTE far *info;
+   WORD far *CRTC;
+   union REGS vr;
+      
+   FP_SEG(info) = FP_SEG(CRTC) = 0x40;
+   FP_OFF(info) = 0x87;
+   FP_OFF(CRTC) = 0x63;
+   
+   set_mode(3);
+
+   *info &= 128;
+   vr.x.ax = 0x0100;
+   vr.h.bh = 0x0607;
+   vr.x.cx = 0x0607;
+   intr(VIDEO, &vr);             
+
+   outp(*CRTC, 0x14);
+   outp(*CRTC+1, 13);
+
+}
+
+#define scr_up()		scr_win(1, 0, 0, LPP-1, CHPL-1)
+#define back_space()	cur_left()
+
+void near line_feed()
+{
+   if (++C_X > LPP-1) {
+      C_X = LPP-1;
+      scr_up();
+   }   
+   gotoxy(C_X, C_Y);
+}
+
+#define BELL_P 0x61			/* speaker */
+#define BELL_D 0x2dc			/* 550 hz  */
+#define TIME_P 0x40			/* timer   */
+#define TINI   182			/* 10110110b timer initialization */
+
+void dobell(x)
+{
+   unsigned int n = 0x8888;
+   int orgval;
+
+   outp(TIME_P+3, TINI);
+   outp(TIME_P+2, BELL_D&0xff);
+   outp(TIME_P+2, BELL_D>>8);
+   orgval = inp(BELL_P);
+   outp(BELL_P, orgval|3);		/* turn speaker on  */
+   while (--n > 0)
+	 ;
+   outp(BELL_P, orgval);
+}
+
+#define carriage_return()	gotoxy(wherex(), C_Y = 0)
+   
+void near cur_advance()
+{
+   if (++C_Y > CHPL-1) {
+      C_Y = 0;
+      if (++C_X > LPP-1) {
+         scr_up();   	
+         C_X = LPP-1;
+      }   
+   }
+   gotoxy(C_X, C_Y);
+}	     
+
+void init_term()
+{
+   if (lpp() == 43)
+      reset_43();   
+   CUR_PAGE = cur_page();
+   CHPL = chpl();
+   LPP = lpp();
+   wherexy(&C_X, &C_Y); 
+}
+
+void near normfun();
+
+void write_em(s)
+char *s;
+{
+  while (*s)
+        normfun(*s++);
+}          
+
+void write_emif(s)
+char *s;
+{
+  if (s)
+	 write_em(s);
+}
+
+void write_emc(s, n)
+char *s;
+int n;
+{
+   while (n--)
+         normfun(*s++);
+}           
+
+void near normfun(c)
+int c;
+{
+      switch (c) {
+        case 10: line_feed(); break;
+        case 13: carriage_return(); break;
+        case  8: back_space(); break;
+        case  7: dobell(0); break;
+		case  0: break;
+        default: wrch(c);
+      }  
+}
+
+#endif	/* IBMPC */
+
+
 extern int	BufSize;
 
 int	OkayAbort,
 	tabstop = 8;
 
+#ifndef IBMPC
 int	(*TTins_line)(),
 	(*TTdel_line)();
+#endif /* IBMPC */
 
 struct scrimage
 	*DesiredScreen = 0,
@@ -52,7 +414,7 @@ make_scr()
 		free(Screen->s_line);	/* free all the screen data */
 		free((char *) Screen);
 	}
-#endif RESHAPING
+#endif /* RESHAPING */
 
 	DesiredScreen = (struct scrimage *) malloc((unsigned) LI * sizeof (struct scrimage));
 	PhysScreen = (struct scrimage *) malloc((unsigned) LI * sizeof (struct scrimage));
@@ -72,7 +434,7 @@ make_scr()
 		ns->s_line = nsp;
 		nsp += CO;
 		ns->s_length = nsp - 1;		/* End of Line */
-		ns++;
+		ns += 1;
 	}
 	cl_scr(0);
 }
@@ -85,7 +447,12 @@ register char	*cp1,
 		*cp1++ = ' ';
 }
 
+#ifndef IBMPC
 #define sputc(c)	((*cursor != (char) (c)) ? dosputc(c) : (cursor++, i_col++))
+#else /* IBMPC */
+int force = 0;
+#define sputc(c)	dosputc(c)
+#endif /* IBMPC */
 #define soutputc(c)	if (--n <= 0) break; else sputc(c)
 
 cl_eol()
@@ -94,10 +461,17 @@ cl_eol()
 		return;
 
 	if (cursor < Curline->s_length) {
+#ifndef IBMPC
 		if (CE) {
+#endif /* IBMPC */
 			Placur(i_line, i_col);
+#ifndef IBMPC
 			putpad(CE, 1);
+#else /* IBMPC */
+		clr_eoln();
+#endif /* IBMPC */
 			clrline(cursor, Curline->s_length);
+#ifndef IBMPC
 		} else {
 		/* Ugh.  The slow way for dumb terminals. */
 			register char *savecp = cursor;
@@ -106,6 +480,7 @@ cl_eol()
 				sputc(' ');
 			cursor = savecp;
 		}
+#endif /* IBMPC */
 		Curline->s_length = cursor;
 	}
 }
@@ -121,9 +496,13 @@ cl_scr(doit)
 		PhysScreen[i].s_id = 0;
 	}
 	if (doit) {
+#ifndef IBMPC
 		putpad(CL, LI);
+#else /* IBMPC */
+		clr_page();
+#endif /* IBMPC */
 		CapCol = CapLine = 0;
-		UpdMesg++;
+		UpdMesg = YES;
 	}
 }
 
@@ -136,22 +515,32 @@ extern int	IN_INSmode;
 dosputc(c)
 register char	c;
 {
+#ifndef IBMPC
 	if (*cursor != c) {
 #ifdef ID_CHAR
 		if (IN_INSmode)
 			INSmode(0);
 #endif
+#else /* IBMPC */
+	if ((force) || (*cursor != c)) {
+#endif /* IBMPC */
 		if (i_line != CapLine || i_col != CapCol)
 			Placur(i_line, i_col);
+#ifndef IBMPC
 		if (UL && (c & 0177) == '_' && (*cursor & 0177) != ' ')
 			putstr(" \b");		/* Erase so '_' looks right. */
+#endif /* IBMPC */
 		*cursor++ = c;
+#ifndef IBMPC
 		putchar(c & 0177);
-		CapCol++;
-		i_col++;
+#else /* IBMPC */
+		normfun(c);
+#endif /* IBMPC */
+		CapCol += 1;
+		i_col += 1;
 	} else {
-		cursor++;
-		i_col++;
+		cursor += 1;
+		i_col += 1;
 	}
 }
 
@@ -167,14 +556,23 @@ register int	abortable;
 	int	col = i_col,
 		aborted = 0;
 	register int	n = cursend - cursor;
+#ifndef IBMPC
 	int	or_byte = inversep ? 0200 : 0,
 		thebyte;
+#else /* IBMPC */
+	int	thebyte;
+#endif /* IBMPC */
+
+#ifdef IBMPC
+        force = inversep? 1: 0;  /* to force a redraw of the modeline */
+#endif /* IBMPC */
 
 	if (n <= 0)
 		return 1;
 
 	OkayAbort = 0;
 	while (c = *line++) {
+#if !(defined(IBMPC)||defined(MSDOS))	/* don't check after every character */
 		if (abortable && OkayAbort) {
 			OkayAbort = NO;
 			if (InputPending = charp()) {
@@ -182,38 +580,72 @@ register int	abortable;
 				break;
 			}
 		}
+#endif /* IBMPC */
 		if (c == '\t') {
 			int	nchars;
 
 			nchars = (tabstop - (col % tabstop));
 			col += nchars;
 
+#ifndef IBMPC
 			thebyte = (' ' | or_byte);
+#endif /* IBMPC */
 			while (nchars--)
+#ifndef IBMPC
 				soutputc(thebyte);
+#else /* IBMPC */
+				soutputc(' ');
+#endif /* IBMPC */
 			if (n <= 0)
 				break;
 		} else if (isctrl(c)) {
+#ifndef IBMPC
 			thebyte = ('^' | or_byte);
 			soutputc(thebyte);
 			thebyte = (((c == '\177') ? '?' : c + '@') | or_byte);
 			soutputc(thebyte);
+#else /* IBMPC */
+			soutputc('^');
+			c = ((c == '\177') ? '?' : c + '@');
+			soutputc(c);
+#endif /* IBMPC */
 			col += 2;
 		} else {
+#ifndef IBMPC
 			thebyte = (c | or_byte);
 			soutputc(thebyte);
-			col++;
+#else /* IBMPC */
+ 		    if (c == 255) c = 1;
+			if (c == ' ' && inversep) c = 255;
+			soutputc(c);
+#endif /* IBMPC */
+			col += 1;
 		}
 	}
 	if (n <= 0) {
 		if ((*line == '\0') && (c != '\t') && !isctrl(c))
+#ifndef IBMPC
 			sputc(c|or_byte);
+#else /* IBMPC */
+			sputc(c);
+#endif /* IBMPC */
 		else
+#ifndef IBMPC
 			sputc('!'|or_byte);
+#else /* IBMPC */
+			sputc('!');
+#endif /* IBMPC */
 	}
 	if (cursor > Curline->s_length)
 		Curline->s_length = cursor;
+#if !(defined(IBMPC)||defined(MSDOS))	/* don't check after every character */
 	return !aborted;
+#else /* IBMPC */
+#ifndef IBMPC
+	force = 0;
+#endif
+	return 1;
+#endif /* IBMPC */
 }
 
 /* This is for writing a buffer line to the screen.  This is to
@@ -237,17 +669,26 @@ BufSwrite(linenum)
 			break;
 		}
 
+#ifndef IBMPC
 		c = *bp++ & 0177;
+#else /* IBMPC */
+		c = *bp++;
+#endif /* IBMPC */
 		if (c == '\t')
 			col += (tabstop - (col % tabstop));
 		else if (isctrl(c))
 			col += 2;
 		else
-			col++;
+			col += 1;
 	}
 
 	OkayAbort = 0;
+#ifndef IBMPC
 	while (c = (*bp++ & 0177)) {
+#else /* IBMPC */
+	while (c = (*bp++)) {
+#endif /* IBMPC */
+#if !(defined(IBMPC)||defined(MSDOS))	/* don't check after every character */
 		if (OkayAbort) {
 			OkayAbort = NO;
 			if (InputPending = charp()) {
@@ -255,13 +696,14 @@ BufSwrite(linenum)
 				break;
 			}
 		}
+#endif
 		if (c == '\t') {
 			int	nchars = (tabstop - (col % tabstop));
 
 			col += nchars;
 			if (visspace) {
 				soutputc('>');
-				nchars--;
+				nchars -= 1;
 			}
 			while (--nchars >= 0)
 				soutputc(' ');
@@ -274,8 +716,12 @@ BufSwrite(linenum)
 		} else {
 			if (c == ' ' && visspace)
 				c = '_';
+#ifdef IBMPC
+			if (c == 255)
+			   c = 1;
+#endif /* IBMPC */
 			soutputc(c);
-			col++;
+			col += 1;
 		}
 	}
 	if (n <= 0) {
@@ -286,7 +732,11 @@ BufSwrite(linenum)
 	}
 	if (cursor > Curline->s_length)
 		Curline->s_length = cursor;
+#if !(defined(IBMPC)||defined(MSDOS))	/* don't check after every character */
 	return !aborted;		/* Didn't abort */
+#else /* IBMPC */
+	return 1;
+#endif /* IBMPC */
 }
 
 i_set(nline, ncol)
@@ -327,7 +777,11 @@ v_ins_line(num, top, bottom)
 		Screen[top + i].s_length = Screen[top + i].s_line;
 	}
 
+#ifndef IBMPC
 	(*TTins_line)(top, bottom, num);
+#else /* IBMPC */
+	scr_win(-num, top, 0, bottom, CHPL-1);
+#endif /* IBMPC */
 }
 
 /* Delete `num' lines starting at `top' leaving the lines below `bottom'
@@ -356,12 +810,64 @@ v_del_line(num, top, bottom)
 		Screen[bottom - i] = Savelines[i];
 		clrline(Screen[bot].s_line, Screen[bot].s_length);
 		Screen[bot].s_length = Screen[bot].s_line;
-		bot--;
+		bot -= 1;
 	}
 
+#ifndef IBMPC
 	(*TTdel_line)(top, bottom, num);
+#else /* IBMPC */
+	scr_win(num, top, 0, bottom, CHPL-1);
+#endif /* IBMPC */
+}
+#ifdef IBMPC
+
+/* No cursor optimization on an IBMPC, this simplifies things a lot.
+   Think about it: it would be silly!
+ */
+
+int	phystab = 8;
+
+Placur(line, col)
+{
+	cur_mov(line, col);
+	CapCol = col;
+	CapLine = line;
 }
 
+SO_on()
+{
+   rev_attr();
+}
+
+SO_off()
+{
+   rev_attr();
+}
+
+extern int EGA;
+
+UnsetTerm()
+{
+  Placur(ILI, 0);
+  clr_eoln();
+  if (EGA)
+	 reset_43();
+}
+
+
+ResetTerm()
+{
+	if (EGA)
+	   init_43();
+	else
+   	   init_term();
+	   
+	do_sgtty();		/* this is so if you change baudrate or stuff
+				   like that, JOVE will notice. */
+	ttyset(ON);
+}
+
+#else /* IBMPC */ 
 
 /* The cursor optimization happens here.  You may decide that this
    is going too far with cursor optimization, or perhaps it should
@@ -709,7 +1215,7 @@ C100i_lines(top, bottom, num)
 	CapLine = CapCol = 0;
 }
 
-#endif WIRED_TERMS
+#endif /* WIRED_TERMS */
 
 GENi_lines(top, bottom, num)
 {
@@ -778,7 +1284,7 @@ C100d_lines(top, bottom, num)
 	CapLine = CapCol = 0;
 }
 
-#endif WIRED_TERMS
+#endif /* WIRED_TERMS */
 
 GENd_lines(top, bottom, num)
 {
@@ -826,7 +1332,7 @@ struct ID_lookup {
 	"sun",		SUNi_lines,	SUNd_lines,
 	"bg",		BGi_lines,	BGd_lines,
 	"c1",		C100i_lines,	C100d_lines,
-#endif WIRED_TERMS
+#endif /* WIRED_TERMS */
 	0,		0,		0
 };
 
@@ -843,3 +1349,5 @@ char	*tname;
 	TTins_line = idp->I_proc;
 	TTdel_line = idp->D_proc;
 }
+
+#endif /* IBMPC */

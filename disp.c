@@ -41,7 +41,7 @@ redisplay()
 {
 	register Window	*w = fwind;
 	int	lineno,
-		done_ID = 0,
+		done_ID = NO,
 		i;
 	register struct scrimage	*des_p,
 					*phys_p;
@@ -73,7 +73,7 @@ redisplay()
 	for (i = 0; i < ILI; i++, des_p++, phys_p++) {
 		if (!done_ID && (des_p->s_id != phys_p->s_id)) {
 			DoIDline(i);
-			done_ID++;
+			done_ID = YES;
 		}
 		if ((des_p->s_flags & (DIRTY | L_MOD)) ||
 		    (des_p->s_id != phys_p->s_id) ||
@@ -102,6 +102,8 @@ ret:
 
 }
 
+#ifndef IBMPC
+private
 dobell(n)
 {
 	while (--n >= 0) {
@@ -112,9 +114,10 @@ dobell(n)
 	}
 	flusho();
 }
+#endif /* IBMPC */
 
-/* find_pos() returns the position on the line, that c_char represents
-   in line. */
+/* find_pos() returns the position on the line, that C_CHAR represents
+   in LINE */
 
 find_pos(line, c_char)
 Line	*line;
@@ -129,13 +132,17 @@ register int	c_char;
 	register int	pos = 0;
 	register int	c;
 
+#ifndef IBMPC
 	while ((--c_char >= 0) && ((c = *lp++) & 0177) != 0) {
+#else /* IBMPC */		/* allow for 8 bits */
+	while ((--c_char >= 0) && ((c = *lp++)) != 0) {
+#endif /* IBMPC */
 		if (c == '\t')
 			pos += (tabstop - (pos % tabstop));
 		else if (isctrl(c))
 			pos += 2;
 		else
-			pos++;
+			pos += 1;
  	}
 	return pos;
 }
@@ -144,6 +151,7 @@ int	UpdModLine = 0,
 	UpdMesg = 0,
 	CanScroll = 0;
 
+private
 DoIDline(start)
 {
 	register struct scrimage	*des_p = &DesiredScreen[start];
@@ -198,12 +206,12 @@ DoIDline(start)
    with the redisplay.  This deals with horizontal scrolling.  Also makes
    sure the current line of the Window is in the window. */
 
+private
 UpdWindow(w, start)
 register Window	*w;
 {
 	Line	*lp;
 	int	i,
-		DotIsHere = 0,
 		upper,		/* Top of window */
 		lower,		/* Bottom of window */
 		ntries = 0;	/* # of tries at updating window. */
@@ -218,12 +226,12 @@ retry:
 	}
 	if (w->w_flags & W_TOPGONE)
 		CentWind(w);	/* Reset topline of screen */
-	w->w_flags &= ~(W_CURGONE|W_TOPGONE);
+	w->w_flags &= ~(W_CURGONE | W_TOPGONE);
 	for (i = w->w_height, lp = w->w_top; --i > 0 && lp != 0; lp = lp->l_next)
 		if (lp == w->w_line)
 			break;
 	if (i == 0 || lp == 0) {	/* current line not in window */
-		ntries++;
+		ntries += 1;
 		if (ntries == 1) {
 			CalcWind(w);
 			goto retry;
@@ -239,7 +247,7 @@ retry:
 	}
 
 	upper = start;
-	lower = upper + w->w_height - 1;	/* Don't include modeline */
+	lower = upper + w->w_height - 1;	/* don't include modeline */
 	des_p = &DesiredScreen[upper];
 	phys_p = &PhysScreen[upper];
 	for (i = upper, lp = w->w_top; lp != 0 && i < lower; i++, des_p++, phys_p++, lp = lp->l_next) {
@@ -259,7 +267,7 @@ retry:
 
 			/* Right now we are displaying from strt_col to
 			   end_col of the buffer line.  These are PRINT
-			   colums, not actual characters. */
+			   columns, not actual characters. */
 			w->w_dotline = i;
 			w->w_dotcol = find_pos(lp, w->w_char);
 			/* if the new dotcol is out of range, reselect
@@ -272,13 +280,8 @@ retry:
 			}
 			w->w_dotcol += diff;
 			des_p->s_offset = strt_col;
-			DotIsHere++;
 		} else
 			des_p->s_offset = 0;
-	}
-	if (!DotIsHere) {
-		f_mess("DotNotHere is impossible!");
-		finish(1);
 	}
 
 	/* Is structure assignment faster than copy each field seperately */
@@ -318,6 +321,7 @@ DrawMesg(abortable)
    has already been called, and curwind->{w_dotline,w_dotcol} have been set
    correctly. */
 
+private
 GotoDot()
 {
 	if (InputPending)
@@ -335,9 +339,9 @@ register int	start;
 					*phys_p = &PhysScreen[start];
 
 	while ((start < ILI) && (des_p->s_id != phys_p->s_id)) {
-		des_p++;
-		phys_p++;
-		start++;
+		des_p += 1;
+		phys_p += 1;
+		start += 1;
 	}
 
 	return start;
@@ -346,6 +350,7 @@ register int	start;
 /* Calls the routine to do the physical changes, and changes PhysScreen to
    reflect those changes. */
 
+private
 AddLines(at, num)
 register int	at,
 		num;
@@ -354,7 +359,7 @@ register int	at,
 	int	bottom = UntilEqual(at + num);
 
 	if (num == 0 || num >= ((bottom - 1) - at))
-		return 0;	/* We did nothing */
+		return NO;				/* we did nothing */
 	v_ins_line(num, at, bottom - 1);
 
 	/* Now change PhysScreen to account for the physical change. */
@@ -363,9 +368,10 @@ register int	at,
 		PhysScreen[i] = PhysScreen[i - num];
 	for (i = 0; i < num; i++)
 		PhysScreen[at + i].s_id = 0;
-	return 1;	/* We did something. */
+	return YES;					/* we did something */
 }
 
+private
 DelLines(at, num)
 register int	at,
 		num;
@@ -374,20 +380,21 @@ register int	at,
 	int	bottom = UntilEqual(at + num);
 
 	if (num == 0 || num >= ((bottom - 1) - at))
-		return 0;
+		return NO;
 	v_del_line(num, at, bottom - 1);
 
 	for (i = at; num + i < bottom; i++)
 		PhysScreen[i] = PhysScreen[num + i];
 	for (i = bottom - num; i < bottom; i++)
 		PhysScreen[i].s_id = 0;
-	return 1;
+	return YES;
 }
 
 /* Update line linenum in window w.  Only set PhysScreen to DesiredScreen
    if the swrite or cl_eol works, that is nothing is interupted by 
    characters typed. */ 
 
+private
 UpdLine(linenum)
 register int	linenum;
 {
@@ -426,15 +433,16 @@ register int	linenum;
 			else
 				PhysScreen[linenum].s_id = -1;
 		} else
-#endif ID_CHAR
+#endif /* ID_CHAR */
 		    if (BufSwrite(linenum))
 			do_cl_eol(linenum);
 		else
 			PhysScreen[linenum].s_id = -1;
-	} else if (PhysScreen[linenum].s_id)	/* Not the same ... make sure */
+	} else if (PhysScreen[linenum].s_id)	/* not the same ... make sure */
 		do_cl_eol(linenum);
 }
 
+private
 do_cl_eol(linenum)
 register int	linenum;
 {
@@ -477,10 +485,10 @@ INSmode(on)
 {
 	if (on && !IN_INSmode) {
 		putpad(IM, 1);
-		IN_INSmode++;
+		IN_INSmode = YES;
 	} else if (!on && IN_INSmode) {
 		putpad(EI, 1);
-		IN_INSmode = 0;
+		IN_INSmode = NO;
 	}
 }
 
@@ -504,7 +512,7 @@ char	*outbuf;
 
 			if (visspace) {
 				OkayOut('>');
-				--nchars;
+				nchars -= 1;
 			}
 			while (--nchars >= 0)
 				OkayOut(' ');
@@ -583,7 +591,7 @@ register char	*s,
 
 	while (n--)
 		if (*s++ == *t++)
-			num++;
+			num += 1;
 	return num;
 }
 
@@ -603,7 +611,7 @@ register char	*s,
 		if (c != ' ')
 			nonspace++;
 		if (nonspace)
-			num++;
+			num += 1;
 	}
 
 	return num;
@@ -718,7 +726,9 @@ char	*new;
 	CapCol += num;
 }
 
-#endif ID_CHAR
+#endif /* ID_CHAR */
+
+#ifndef MSDOS		/* obviously ... no mail today */
 
 /* chkmail() returns nonzero if there is new mail since the
    last time we checked. */
@@ -747,14 +757,17 @@ chkmail(force)
 	last_val = value;
 	value = ((stbuf.st_mtime > time0) &&
 		 (stbuf.st_size > 0) &&
-		 (stbuf.st_size > last_size) &&
+		 (stbuf.st_size >= last_size) &&
 		 (stbuf.st_mtime + 5 > stbuf.st_atime));
 	last_chk = now;
-	last_size = stbuf.st_size;
-	if (value == TRUE && value != last_val)
+	if ((value == TRUE) &&
+	    ((value != last_val) || (stbuf.st_size != last_size)))
 		dobell(3);
+	last_size = stbuf.st_size;
 	return value;
 }
+
+#endif /* MSDOS */
 
 /* Print the mode line. */
 
@@ -770,17 +783,18 @@ register char	*str;
 		return;
 	while ((mode_p < mend_p) && (*mode_p++ = *str++))
 		;
-	mode_p--;	/* back over the null */
+	mode_p -= 1;	/* back over the null */
 }
 
 char	ModeFmt[120] = "%3c %[%sJOVE (%M)   Buffer: %b  \"%f\" %]%s%m*- %((%t)%s%)%e";
 
+private
 ModeLine(w)
 register Window	*w;
 {
 	extern int	i_line;
 	int	n,
-		ign_some = 0;
+		ign_some = NO;
 	char	line[132],
 		*fmt = ModeFmt,
 		fillc,
@@ -791,9 +805,13 @@ register Window	*w;
 	mode_p = line;
 	mend_p = &line[(sizeof line) - 1];
 
+#ifndef IBMPC
 	if (BriteMode != 0 && SO == 0)
 		BriteMode = 0;
 	fillc = BriteMode ? ' ' : '-';
+#else /* IBMPC */		/* very subtle - don't mess up attributes too much */
+	fillc = '-'; /*BriteMode ? ' ' : '-';*/
+#endif /* IBMPC */
 
 	while (c = *fmt++) {
 		if (c != '%') {
@@ -819,11 +837,11 @@ register Window	*w;
 		switch (c) {
 		case '(':
 			if (w->w_next != fwind)	/* Not bottom window. */
-				ign_some++;
+				ign_some = YES;
 			break;
 
 		case ')':
-			ign_some = 0;
+			ign_some = NO;
 			break;
 
 		case 'c':
@@ -868,9 +886,9 @@ register Window	*w;
 				mode_app("OvrWt ");
 			if (BufMinorMode(thisbuf, Indent))
 				mode_app("AI ");
-			if (KeyMacro.m_flags & DEFINE)
+			if (InMacDefine)
 				mode_app("Def ");
-			mode_p--;	/* Back over the extra space. */
+			mode_p -= 1;	/* Back over the extra space. */
 			break;
 		    }
 
@@ -893,7 +911,6 @@ register Window	*w;
 		case 'n':
 		    {
 			char	tmp[16];
-
 			for (bp = world, n = 1; bp != 0; bp = bp->b_next, n++)
 				if (bp == thisbuf)
 					break;
@@ -934,12 +951,13 @@ register Window	*w;
 			break;
 		    }
 #endif
-
+#ifndef MSDOS
 		case 'C':	/* check mail here */
 			if (chkmail(NO))
 				mode_app("[New mail]");
 			break;
 
+#endif /* MSDOS */
 #ifdef CHDIR
 		case 'd':	/* print working directory */
 			mode_app(pr_name(pwd(), YES));
@@ -982,12 +1000,20 @@ outahere:
 		if (IN_INSmode)
 			INSmode(0);
 #endif
+#ifndef IBMPC
 		putpad(SO, 1);
+#else /* IBMPC */
+		SO_on();
+#endif /* IBMPC */
 	}
 	if (swrite(line, BriteMode, YES))
 		do_cl_eol(i_line);
 	if (BriteMode)
+#ifndef IBMPC
 		putpad(SE, 1);
+#else /* IBMPC */
+		SO_off();
+#endif /* IBMPC */
 }
 
 RedrawDisplay()
@@ -1010,16 +1036,18 @@ register int	line1;
 	des_p = &DesiredScreen[line1];
 
 	while (line1 <= line2) {
-		i_set(line1++, 0);
+		i_set(line1, 0);
 		cl_eol();
 		phys_p->s_id = des_p->s_id = 0;
-		phys_p++, des_p++;
+		phys_p += 1;
+ 		des_p += 1;
+		line1 += 1;
 	}
 }
 
 ClAndRedraw()
 {
-	cl_scr(1);
+	cl_scr(YES);
 }
 
 NextPage()
@@ -1046,6 +1074,31 @@ NextPage()
 			SetLine(newline);
 	}
 }
+
+#ifdef MSDOS		/* kg */
+
+PageScrollUp()
+{
+	int i, n;
+
+    n = max(1, SIZE(curwind) - 1);
+	for (i=0; i<n; i++) {
+	    UpScroll();
+	    redisplay();
+	}
+}
+
+PageScrollDown()
+{
+   	int i, n;
+
+	n = max(1, SIZE(curwind) - 1);
+	for (i=0; i<n; i++) {
+	    DownScroll();
+	    redisplay();
+	}
+}
+#endif /* MSDOS */
 
 PrevPage()
 {
@@ -1084,12 +1137,12 @@ DownScroll()
 		SetLine(curwind->w_top);
 }
 
-int	VisBell = 0,
-	RingBell = 0;	/* So if we have a lot of errors ...
+int	VisBell = NO,
+	RingBell = NO;	/* So if we have a lot of errors ...
 			   ring the bell only ONCE */
 rbell()
 {
-	RingBell++;
+	RingBell = YES;
 }
 
 /* Message prints the null terminated string onto the bottom line of the
@@ -1100,8 +1153,8 @@ char	*str;
 {
 	if (InJoverc)
 		return;
-	UpdMesg++;
-	errormsg = 0;
+	UpdMesg = YES;
+	errormsg = NO;
 	if (str != mesgbuf)
 		null_ncpy(mesgbuf, str, (sizeof mesgbuf) - 1);
 }
@@ -1169,8 +1222,8 @@ va_dcl
 		last_col = 0;
 		f_mess("--more--");
 		if ((c = getchar()) != ' ') {
-			TOabort++;
-			if (c != CTL('G') && c != RUBOUT)
+			TOabort = YES;
+			if (c != AbortChar && c != RUBOUT)
 				Ungetc(c);
 			return;
 		}
@@ -1198,7 +1251,7 @@ va_dcl
 		if (fmt == 0 || DoAutoNL != 0) {
 			cl_eol();
 			flusho();
-			LineNo++;
+			LineNo += 1;
 			last_col = 0;
 		}
 	} else if (fmt == 0 || DoAutoNL != 0)

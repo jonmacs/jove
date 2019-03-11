@@ -11,18 +11,17 @@
 CapChar()
 {
 	register int	num,
-			restore = 0;
+			restore = NO;
 	Bufpos	b;
 
 	DOTsave(&b);
 
 	num = arg_value();
 	if (num < 0) {
-		restore++;
+		restore = YES;
 		num = -num;
 		b_char(num);	/* Cap previous EXP chars */
 	}
-		
 	while (num--) {
 		if (upper(&linebuf[curchar])) {
 			modify();
@@ -33,7 +32,7 @@ CapChar()
 				break;
 			SetLine(curline->l_next);
 		} else
-			curchar++;
+			curchar += 1;
 	}
 	if (restore)
 		SetDot(&b);
@@ -42,18 +41,16 @@ CapChar()
 CapWord()
 {
 	register int	num,
-			restore = 0;
+			restore = NO;
 	Bufpos	b;
 
 	DOTsave(&b);
-
 	num = arg_value();
 	if (num < 0) {
-		restore++;
+		restore = YES;
 		num = -num;
 		b_word(num);		/* Cap previous EXP words */
 	}
-
 	while (num--) {
 		to_word(1);	/* Go to the beginning of the next word. */
 		if (eobp())
@@ -62,13 +59,13 @@ CapWord()
 			modify();
 			makedirty(curline);
 		}
-		curchar++;
+		curchar += 1;
 		while (!eolp() && isword(linebuf[curchar])) {
 			if (lower(&linebuf[curchar])) {
 				modify();
 				makedirty(curline);
 			}
-			curchar++;
+			curchar += 1;
 		}
 	}
 	if (restore)
@@ -89,18 +86,42 @@ upper(c)
 register char	*c;
 {
 	if (islower(*c)) {
+#ifdef IBMPC			/* check for IBM extended character set */
+		if (*c <= 127)
+#endif /* IBMPC */
 		*c -= ' ';
+#ifdef IBMPC			/* ... and change Umlaute	*/
+		else 
+		   switch (*c) {
+		     case 129: *c = 154; break;		/* ue */
+		     case 132: *c = 142; break;		/* ae */
+		     case 148: *c = 153; break;		/* oe */
+		   }
+#endif /* IBMPC */
 		return 1;
 	}
 	return 0;
 }
 
+#ifndef IBMPC
 static
+#endif
 lower(c)
 register char	*c;
 {
 	if (isupper(*c)) {
+#ifdef IBMPC
+		if (*c <= 127) 
+#endif /* IBMPC */
 		*c += ' ';
+#ifdef IBMPC
+		else
+   		   switch (*c) {
+		     case 142: *c = 132; break;		/* Ae */
+		     case 153: *c = 148; break;		/* Oe */
+		     case 154: *c = 129; break;		/* Ue */
+		   }
+#endif /* IBMPC */
 		return 1;
 	}
 	return 0;

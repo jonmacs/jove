@@ -12,9 +12,10 @@
 #include <varargs.h>
 
 #ifdef F_COMPLETION
-#	include <sys/stat.h>
+#   include <sys/stat.h>
 #endif
 
+int	AbortChar = CTL('G');
 int	DoEVexpand = NO;	/* should we expand evironment variables? */
 
 int	Asking = NO;
@@ -117,11 +118,10 @@ int	(*d_proc)();
 	data_obj	*push_cmd = LastCmd;
 	int	o_a_v = arg_value(),
 		o_i_an_a = is_an_arg();
-
 	if (InAsk)
 		complain((char *) 0);
 	push_env(savejmp);
-	InAsk++;
+	InAsk += 1;
 	SetBuf(get_minibuf());
 	if (!inlist(AskBuffer->b_first, CurAskPtr))
 		CurAskPtr = curline;
@@ -133,7 +133,7 @@ int	(*d_proc)();
 
 	if (setjmp(mainjmp))
 		if (InJoverc) {		/* this is a kludge */
-			abort++;
+			abort = YES;
 			goto cleanup;
 		}
 
@@ -147,19 +147,17 @@ cont:		s_mess("%s%s", prompt, linebuf);
 		if ((c == EOF) || index(delim, c)) {
 			if (DoEVexpand)
 				EVexpand();
-			if (d_proc == 0 || (*d_proc)(c) == 0)
+			if (d_proc == (int(*)())0 || (*d_proc)(c) == 0)
 				goto cleanup;
-		} else switch (c) {
-		case CTL('G'):
+		} else if (c == AbortChar) {
 			message("[Aborted]");
-			abort++;
+			abort = YES;
 			goto cleanup;
-
+		} else switch (c) {
 		case CTL('N'):
 		case CTL('P'):
 			if (CurAskPtr != 0) {
 				int	n = (c == CTL('P') ? -arg_value() : arg_value());
-
 				CurAskPtr = next_line(CurAskPtr, n);
 				if (CurAskPtr == curbuf->b_first && CurAskPtr->l_next != 0)
 					CurAskPtr = CurAskPtr->l_next;
@@ -274,15 +272,14 @@ va_dcl
 		Asking = strlen(prompt);	/* so redisplay works */
 		c = getch();
 		Asking = NO;
+		if (c == AbortChar)
+			complain("[Aborted]");
 		switch (CharUpcase(c)) {
 		case 'Y':
 			return YES;
 
 		case 'N':
 			return NO;
-
-		case CTL('G'):
-			complain("[Aborted]");
 
 		default:
 			add_mess("[Type Y or N]");
@@ -294,7 +291,11 @@ va_dcl
 
 #ifdef F_COMPLETION
 static char	*fc_filebase;
+#ifndef MSDOS
 char	BadExtensions[128] = ".o";
+#else /* MSDOS */
+char	BadExtensions[128] = ".obj .exe .com .bak";
+#endif /* MSDOS */
 
 static
 bad_extension(name, bads)
@@ -311,7 +312,7 @@ char	*name,
 			*ip = 0;
 		else {
 			ip = bads + strlen(bads);
-			stop++;
+			stop = YES;
 		}
 		if ((ext_len = ip - bads) == 0)
 			continue;
@@ -327,8 +328,13 @@ char	*file;
 {
 	int	len = strlen(fc_filebase);
 
+#ifdef MSDOS
+	return ((len == 0) ||
+		(casencmp(file, fc_filebase, strlen(fc_filebase)) == 0));
+#else
 	return ((len == 0) ||
 		(strncmp(file, fc_filebase, strlen(fc_filebase)) == 0));
+#endif
 }
 
 static
@@ -367,7 +373,7 @@ register char	**dir_vec;
 		else
 			minmatch = strlen(dir_vec[i]);
 		lastmatch = i;
-		numfound++;
+		numfound += 1;
 	}
 	/* Ugh.  Beware--this is hard to get right in a reasonable
 	   manner.  Please excuse this code--it's past my bedtime. */
@@ -409,10 +415,20 @@ f_complete(c)
 
 	if (c == CR || c == LF)
 		return 0;	/* tells ask to return now */
+#ifndef MSDOS		/* kg */
 	if ((fc_filebase = rindex(linebuf, '/')) != 0) {
+#else /* MSDOS */
+	fc_filebase = rindex(linebuf, '/');
+	if (fc_filebase == (char *) 0)
+		fc_filebase = rindex(linebuf, '\\');
+	if (fc_filebase == (char *) 0)
+		fc_filebase = rindex(linebuf, ':');
+	if (fc_filebase != (char *) 0) {
+#endif /* MSDOS */
 		char	tmp[FILESIZE];
 
-		null_ncpy(tmp, linebuf, (++fc_filebase - linebuf));
+		fc_filebase += 1;
+		null_ncpy(tmp, linebuf, (fc_filebase - linebuf));
 		if (tmp[0] == '\0')
 			strcpy(tmp, "/");
 		PathParse(tmp, dir);
@@ -483,7 +499,6 @@ char	*prmt,
 	char	*ans,
 		prompt[128],
 		*pretty_name = pr_name(def, YES);
-
 	if (prmt)
 		sprintf(prompt, prmt);
 	else {

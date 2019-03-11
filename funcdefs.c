@@ -35,6 +35,18 @@ extern int
 	BindAKey(),
 	BindMac(),
 	BufPos(),
+#ifdef MSDOS
+	Buf1Select(),
+	Buf2Select(),
+	Buf3Select(),
+	Buf4Select(),
+	Buf5Select(),
+	Buf6Select(),
+	Buf7Select(),
+	Buf8Select(),
+	Buf9Select(),
+	Buf10Select(),
+#endif /* MSDOS */
 	CasRegLower(),
 	CasRegUpper(),
 	CapChar(),
@@ -122,6 +134,10 @@ extern int
 	LineAI(),
 	ShowErr(),
 	NextError(),
+#ifdef MSDOS
+	PageScrollUp(),
+	PageScrollDown(),
+#endif /* MSDOS */
 	PrevError(),
 	NextLine(),
 	NextPage(),
@@ -147,7 +163,7 @@ extern int
 	QRepSearch(),
 	QuotChar(),
 	ReadFile(),
-	ReadMacs(),
+	DefKBDMac(),
 	RedrawDisplay(),
 	ReNamBuf(),
 	RepSearch(),
@@ -184,7 +200,6 @@ extern int
 	PrVar(),
 	FilterRegion(),
 	WNumLines(),
-
 #ifdef IPROCS
 	ShellProc(),
 	ProcInt(),
@@ -226,11 +241,11 @@ extern int
 
 #	define WIRED_CMD(c)	c
 
-#else TXT_TO_C
+#else /* TXT_TO_C */
 
 #	define WIRED_CMD(c)	0
 
-#endif TXT_TO_C
+#endif /* TXT_TO_C */
 
 struct cmd	commands[] = {
 #ifdef LISP
@@ -252,6 +267,7 @@ struct cmd	commands[] = {
 	FUNCTION, "backward-sentence", WIRED_CMD(Bos),
 	FUNCTION, "backward-up-list", WIRED_CMD(BUpList),
 	FUNCTION, "backward-word", WIRED_CMD(BackWord),
+	FUNCTION, "begin-kbd-macro", WIRED_CMD(Remember),
 	FUNCTION, "beginning-of-file", WIRED_CMD(Bof),
 	FUNCTION, "beginning-of-line", WIRED_CMD(Bol),
 	FUNCTION, "beginning-of-window", WIRED_CMD(Bow),
@@ -285,9 +301,10 @@ struct cmd	commands[] = {
 	FUNCTION, "current-error", WIRED_CMD(ShowErr),
 	FUNCTION, "date", WIRED_CMD(prCTIME),
 #ifdef ABBREV
-	FUNCTION, "define-mode-word-abbrev", WIRED_CMD(DefMAbbrev),
 	FUNCTION, "define-global-word-abbrev", WIRED_CMD(DefGAbbrev),
+	FUNCTION, "define-mode-word-abbrev", WIRED_CMD(DefMAbbrev),
 #endif
+	FUNCTION, "define-macro", WIRED_CMD(DefKBDMac),
 	FUNCTION, "delete-blank-lines", WIRED_CMD(DelBlnkLines),
 	FUNCTION, "delete-buffer", WIRED_CMD(BufKill),
 	FUNCTION, "delete-macro", WIRED_CMD(DelMacro),
@@ -325,6 +342,7 @@ struct cmd	commands[] = {
 #ifdef ABBREV
 	FUNCTION, "edit-word-abbrevs", WIRED_CMD(EditAbbrevs),
 #endif
+	FUNCTION, "end-kbd-macro", WIRED_CMD(Forget),
 	FUNCTION, "end-of-file", WIRED_CMD(Eof),
 	FUNCTION, "end-of-line", WIRED_CMD(Eol),
 	FUNCTION, "end-of-window", WIRED_CMD(Eow),
@@ -336,12 +354,12 @@ struct cmd	commands[] = {
 	FUNCTION, "erase-buffer", WIRED_CMD(BufErase),
 	FUNCTION, "exchange-point-and-mark", WIRED_CMD(PtToMark),
 	FUNCTION, "execute-named-command", WIRED_CMD(Extend),
-	FUNCTION, "execute-keyboard-macro", WIRED_CMD(ExecMacro),
+	FUNCTION, "execute-kbd-macro", WIRED_CMD(ExecMacro),
 	FUNCTION, "execute-macro", WIRED_CMD(RunMacro),
 	FUNCTION, "exit-jove", WIRED_CMD(Leave),
 #ifdef CMT_FMT
  	FUNCTION, "fill-comment", WIRED_CMD(Comment),
-#endif CMT_FMT
+#endif /* CMT_FMT */
 	FUNCTION, "fill-paragraph", WIRED_CMD(Justify),
 	FUNCTION, "fill-region", WIRED_CMD(RegJustify),
 	FUNCTION, "filter-region", WIRED_CMD(FilterRegion),
@@ -392,7 +410,7 @@ struct cmd	commands[] = {
 #endif
 	FUNCTION, "make-buffer-unmodified", WIRED_CMD(NotModified),
 	FUNCTION, "make-macro-interactive", WIRED_CMD(MacInter),
-	FUNCTION, "name-keyboard-macro", WIRED_CMD(NameMac),
+	FUNCTION, "name-kbd-macro", WIRED_CMD(NameMac),
 	FUNCTION, "newline", WIRED_CMD(Newline),
 	FUNCTION, "newline-and-backup", WIRED_CMD(OpenLine),
 	FUNCTION, "newline-and-indent", WIRED_CMD(LineAI),
@@ -444,7 +462,6 @@ struct cmd	commands[] = {
 #ifdef ABBREV
 	FUNCTION, "read-word-abbrev-file", WIRED_CMD(RestAbbrevs),
 #endif
-	FUNCTION, "read-macros-from-file", WIRED_CMD(ReadMacs),
 	FUNCTION, "redraw-display", WIRED_CMD(RedrawDisplay),
 	FUNCTION, "recursive-edit", WIRED_CMD(Recur),
 	FUNCTION, "rename-buffer", WIRED_CMD(ReNamBuf),
@@ -453,12 +470,28 @@ struct cmd	commands[] = {
 	FUNCTION, "right-margin-here", WIRED_CMD(SetRMargin),
 	FUNCTION, "save-file", WIRED_CMD(SaveFile),
 	FUNCTION, "scroll-down", WIRED_CMD(DownScroll),
+#ifdef MSDOS
+	FUNCTION, "scroll-next-page", WIRED_CMD(PageScrollUp),
+	FUNCTION, "scroll-previous-page", WIRED_CMD(PageScrollDown),
+#endif /* MSDOS */
 	FUNCTION, "scroll-up", WIRED_CMD(UpScroll),
 	FUNCTION, "search-forward", WIRED_CMD(ForSearch),
 	FUNCTION, "search-forward-nd", WIRED_CMD(FSrchND),
 	FUNCTION, "search-reverse", WIRED_CMD(RevSearch),
 	FUNCTION, "search-reverse-nd", WIRED_CMD(RSrchND),
 	FUNCTION, "select-buffer", WIRED_CMD(BufSelect),
+#ifdef MSDOS
+	FUNCTION, "select-buffer-1", WIRED_CMD(Buf1Select),
+	FUNCTION, "select-buffer-2", WIRED_CMD(Buf2Select),
+	FUNCTION, "select-buffer-3", WIRED_CMD(Buf3Select),
+	FUNCTION, "select-buffer-4", WIRED_CMD(Buf4Select),
+	FUNCTION, "select-buffer-5", WIRED_CMD(Buf5Select),
+	FUNCTION, "select-buffer-6", WIRED_CMD(Buf6Select),
+	FUNCTION, "select-buffer-7", WIRED_CMD(Buf7Select),
+	FUNCTION, "select-buffer-8", WIRED_CMD(Buf8Select),
+	FUNCTION, "select-buffer-9", WIRED_CMD(Buf9Select),
+	FUNCTION, "select-buffer-10", WIRED_CMD(Buf10Select),
+#endif /* MSDOS */
 	FUNCTION, "self-insert", WIRED_CMD(SelfInsert),
 	FUNCTION, "set", WIRED_CMD(SetVar),
 	FUNCTION, "set-mark", WIRED_CMD(SetMark),
@@ -519,7 +552,11 @@ char	*prompt;
 		char	cmdbuf[128];
 		register struct cmd	*cmd;
 		register char	*cp = cmdbuf;
+#ifndef IBMPC
 		register int	c;
+#else
+		int c;
+#endif		
 		struct cmd	*which;
 		int	cmdlen,
 			found = 0;
@@ -543,8 +580,12 @@ char	*prompt;
 
 		/* gather the cmd name */
 		while (((c = getch()) != EOF) && !index(" \t\r\n", c)) {
+#ifdef IBMPC
+			lower(&c);
+#else			
 			if (isupper(c))
 				c = tolower(c);
+#endif
 			*cp++ = c;
 		}
 		if (c == EOF)
@@ -560,7 +601,7 @@ char	*prompt;
 			if (strncmp(cmd->Name, cmdbuf, cmdlen) == 0) {
 				if (strcmp(cmd->Name, cmdbuf) == 0)
 					return (data_obj *) cmd;
-				found++;
+				found += 1;
 				which = cmd;
 			}
 		    }

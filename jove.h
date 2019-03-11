@@ -21,7 +21,7 @@
 #	ifndef EUNICE
 #		define signal	sigset
 #	endif
-#   endif MENLO_JCL
+#   endif /* MENLO_JCL */
 #endif
 
 #define EOF	-1
@@ -47,12 +47,14 @@
 #define RCOMMAND	2	/* we are reading a joverc file */
 #define CASEIND		4	/* map all to lower case */
 
-#define DEFINE		01	/* defining this macro */
-#define EXECUTE		02	/* executing this macro */
-#define SAVE		04	/* this macro needs saving to a file */
+#define SAVE		01	/* this macro needs saving to a file */
 
 #define	LBSIZE		BUFSIZ	/* same as a logical disk block */
+#ifndef MSDOS
 #define FILESIZE	256
+#else /* MSDOS */
+#define FILESIZE	64
+#endif /* MSDOS */
 
 #define FORWARD		1
 #define BACKWARD	-1
@@ -80,6 +82,7 @@
 #define lastp(line)	(line == curbuf->b_last)
 #define makedirty(line)	line->l_dline |= DIRTY
 #define one_windp()	(fwind->w_next == fwind)
+
 #define CharUpcase(c)	(CaseEquiv[c])
 
 extern int	OkayAbort,	/* okay to abort redisplay */
@@ -118,10 +121,15 @@ extern int	OkayAbort,	/* okay to abort redisplay */
 
 #define MinorMode(x)	BufMinorMode(curbuf, x)
 #define MajorMode(x)	(curbuf->b_major == x)
-#define SetMajor(x)	((curbuf->b_major = x), UpdModLine++)
+#define SetMajor(x)	((curbuf->b_major = x), UpdModLine = YES)
 
+#ifndef IBMPC
 extern char	CharTable[NMAJORS][128];
 extern char	CaseEquiv[128];
+#else /* IBMPC */
+extern char	CharTable[NMAJORS][256];
+extern char	CaseEquiv[256];
+#endif /* IBMPC */
 
 /* setjmp/longjmp args for DoKeys() mainjmp */
 #define FIRSTCALL	0
@@ -148,7 +156,7 @@ extern int	HomeLen;	/* length of home directory */
 
 extern char	NullStr[];
 
-#ifdef VMUNIX
+#if defined(VMUNIX)||defined(MSDOS)
 extern char	genbuf[LBSIZE],
 		linebuf[LBSIZE],
 		iobuff[LBSIZE];
@@ -180,7 +188,11 @@ typedef struct data_obj {
 	int	Type;
 	char	*Name;
 } data_obj;	/* points to cmd, macro, or variable */
+#ifndef IBMPC
 typedef data_obj	*keymap[0200];
+#else /* IBMPC */
+typedef data_obj	*keymap[256];
+#endif /* IBMPC */
 
 struct line {
 	Line	*l_prev,		/* pointer to prev */
@@ -209,7 +221,7 @@ struct process {
 	data_obj
 		*p_cmd;		/* command to call when process dies */
 };
-#endif IPROCS
+#endif /* IPROCS */
 
 struct window {
 	Window	*w_prev,	/* circular list */
@@ -252,6 +264,7 @@ struct buffer {
 	Buffer	*b_next;		/* next buffer in chain */
 	char	*b_name,		/* buffer name */
 		*b_fname;		/* file name associated with buffer */
+	dev_t	b_dev;			/* device of file name. */
 	ino_t	b_ino;			/* inode of file name */
 	time_t	b_mtime;		/* last modify time ...
 					   to detect two people writing
@@ -283,9 +296,7 @@ struct macro {
 	char	*Name;		/* name is always second ... */
 	int	m_len,		/* length of macro so we can use ^@ */
 		m_buflen,	/* memory allocated for it */
-		m_offset,	/* index into body for defining and running */
-		m_flags,	/* defining/running this macro? */
-		m_ntimes;	/* number of times to run this macro */
+		m_flags;
 	char	*m_body;	/* actual body of the macro */
 	struct macro
 		*m_nextm;
@@ -406,10 +417,15 @@ extern int
 #ifdef ID_CHAR
 	UseIC,			/* whether or not to use i/d char
 				   processesing */
-	SExitChar,		/* type this to stop i-search */
 #endif
+	SExitChar,		/* type this to stop i-search */
+	AbortChar,		/* cancels command input */
 	IntChar,		/* ttysets this to generate QUIT */
 	DoEVexpand,		/* treat $foo as environment variable */
+#ifdef MSDOS
+	Fgcolor,
+	Bgcolor,
+#endif /* MSDOS */
 	EWSize;			/* size to make the error window */
 
 extern char
@@ -423,10 +439,16 @@ extern char
 	CmtFmt[80],
 #endif
 	ModeFmt[120],		/* mode line format string */
+#ifndef MSDOS
 	Mailbox[128],		/* mailbox name */
 	TmpFilePath[128],	/* directory/device to store tmp files */
 	TagFile[128],		/* default tag file */
 	Shell[128];		/* shell to use */
+#else /* MSDOS */
+	TmpFilePath[64],	/* directory/device to store tmp files */
+	TagFile[64],		/* default tag file */
+	Shell[64];		/* shell to use */
+#endif /* MSDOS */
 
 extern int
 	TOabort,	/* flag set by Typeout() */
@@ -465,7 +487,7 @@ extern int
 	LastKeyStruck;
 
 extern int
-	stackp,
+	InMacDefine,	/* are we defining a macro right now? */
 
 	CapLine,	/* cursor line and cursor column */
 	CapCol,

@@ -40,18 +40,27 @@ char *
 PPchar(c)
 int	c;
 {
-	static char	str[10];
+	static char	str[16];
 	char	*cp = str;
 
+	if (c & 0200) {
+		c &= ~0200;
+		strcpy(cp, "M-");
+		cp += 2;
+	}
 	if (c == '\033')
 		strcpy(cp, "ESC");
+#ifdef IBMPC
+	else if (c == '\377')
+	        strcpy(cp, "M");
+#endif /* IBMPC */
 	else if (c < ' ')
 		(void) sprintf(cp, "C-%c", c + '@');
 	else if (c == '\177')
 		strcpy(cp, "^?");
 	else
 		(void) sprintf(cp, "%c", c);
-	return cp;
+	return str;
 }
 
 extract(into, from)
@@ -60,7 +69,7 @@ char	*into,
 {
 	from += 2;	/* Past tab and first double quote. */
 	while ((*into = *from++) != '"')
-		into++;
+		into += 1;
 	*into = 0;
 }
 
@@ -71,7 +80,9 @@ main()
 	char	line[100],
 		comname[70];
 	int	comnum,
-		ch;
+		ch,
+		savech = -1,
+		errors = 0;
 
 	ifile = stdin;
 	of = stdout;
@@ -80,7 +91,22 @@ main()
 		exit(1);
 	}
 	while (fgets(line, sizeof line, ifile) != NULL) {
-		if (strncmp(line, "\t\"", 2) != 0) {
+		if (strncmp(line, "#if", 3) == 0) {
+			savech = ch;
+			fprintf(of, line);
+			continue;
+		} else if (strncmp(line, "#else", 5) == 0) {
+			if (savech == -1)
+				fprintf(stderr, "WARNING: ifdef/endif mismatch!\n");
+			else
+				ch = savech;
+			fprintf(of, line);
+			continue;
+		} else if (strncmp(line, "#endif", 6) == 0) {
+			savech = -1;
+			fprintf(of, line);
+			continue;
+		} else if (strncmp(line, "\t\"", 2) != 0) {
 			fprintf(of, line);
 			ch = 0;
 			continue;
@@ -91,8 +117,9 @@ main()
 		else {
 			comnum = match(commands, comname);
 			if (comnum < 0) {
-				fprintf(stderr, "Cannot find command \"%s\".\n", comname);
-				exit(1);
+				fprintf(stderr, "Warning: cannot find command \"%s\".\n", comname);
+				errors += 1;
+				comnum = 12345;
 			}
 		}
 		if (comnum == 12345)
@@ -102,5 +129,5 @@ main()
 	}
 	fclose(of);
 	fclose(ifile);
-	exit(0);
+	exit(errors);
 }

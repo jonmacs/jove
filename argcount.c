@@ -122,7 +122,7 @@ gather_numeric_argument(c)
 			message(key_strokes);
 		if (isdigit(c)) {
 			arg_count = (arg_count * 10) + (c - '0');
-			digited++;
+			digited = YES;
 		} else {
 			if (digited)
 				arg_supplied_p = YES;

@@ -10,7 +10,7 @@
 #include "rec.h"
 #include <sys/file.h>
 
-private int	rec_fd = 0;
+private int	rec_fd = -1;
 private char	*recfname;
 private File	*rec_out;
 
@@ -32,7 +32,7 @@ recinit()
 		complain("Cannot create \"%s\"; recovery disabled.", recfname);
 		return;
 	}
-	/* Initialize the record IO. */
+	/* initialize the record IO */
 	rec_out = fd_open(recfname, F_WRITE|F_LOCKED, rec_fd, iobuff, LBSIZE);
 
 	/* Initialize the record header. */
@@ -48,6 +48,7 @@ recclose()
 	if (rec_fd == -1)
 		return;
 	(void) close(rec_fd);
+	rec_fd = -1;
 	(void) unlink(recfname);
 }
 
@@ -110,11 +111,14 @@ int	SyncFreq = 50;
 
 SyncRec()
 {
-	register Buffer	*b;
 	extern disk_line	DFree;
+	register Buffer	*b;
+	static int	beenhere = NO;
 
-	if (rec_fd == 0)
+	if (beenhere == NO) {
 		recinit();	/* Init recover file. */
+		beenhere = YES;
+	}
 	if (rec_fd == -1)
 		return;
 	lseek(rec_fd, 0L, L_SET);
@@ -124,10 +128,11 @@ SyncRec()
 		if (b->b_type == B_SCRATCH || !IsModified(b))
 			continue;
 		else
-			Header.Nbuffers++;
+			Header.Nbuffers += 1;
 	Header.FreePtr = DFree;
 	putn((char *) &Header, sizeof Header);
 	if (Header.Nbuffers != 0) {
+		lsave();	/* this makes things really right */
 		SyncTmp();
 		for (b = world; b != 0; b = b->b_next)
 			if (b->b_type == B_SCRATCH || !IsModified(b))
@@ -142,6 +147,15 @@ SyncRec()
 	}
 	flush(rec_out);
 }
+
+/* Full Recover.  What we have to do is go find the name of the tmp
+   file data/rec pair and use those instead of the ones we would have
+   created eventually.  The rec file has a list of buffers, and then
+   the actual pointers.  Stored for each buffer is the buffer name,
+   the file name, the number of lines, the current line, the current
+   character.  The current modes do not need saving as they will be
+   saved when the file name is set.  If a process was running in a
+   buffer, it will be lost. */
 
 FullRecover()
 {

@@ -23,11 +23,11 @@ struct abbrev {
 };
 
 #define GLOBAL	NMAJORS
-static struct abbrev	*A_tables[NMAJORS + 1][HASHSIZE] = {0};
+private struct abbrev	*A_tables[NMAJORS + 1][HASHSIZE] = {0};
 
 int AutoCaseAbbrev = 1;
 
-static unsigned int
+private unsigned int
 hash(a)
 register char	*a;
 {
@@ -40,7 +40,7 @@ register char	*a;
 	return hashval;
 }
 
-static
+private
 def_abbrev(table)
 struct abbrev	*table[HASHSIZE];
 {
@@ -52,7 +52,7 @@ struct abbrev	*table[HASHSIZE];
 	define(table, abbrev, phrase);
 }
 
-static struct abbrev *
+private struct abbrev *
 lookup(table, abbrev)
 register struct abbrev	*table[HASHSIZE];
 register char	*abbrev;
@@ -67,7 +67,7 @@ register char	*abbrev;
 	return ap;
 }
 
-static
+private
 define(table, abbrev, phrase)
 register struct abbrev	*table[HASHSIZE];
 char	*abbrev,
@@ -97,7 +97,11 @@ AbbrevExpand()
 	char	wordbuf[100];
 	register char	*wp = wordbuf,
 			*cp;
+#ifndef IBMPC
 	register int	c;
+#else
+	int c;
+#endif	
 	int	UC_count = 0;
 	struct abbrev	*ap;
 
@@ -107,12 +111,16 @@ AbbrevExpand()
 	while (curchar < point.p_char && ismword(c = linebuf[curchar])) {
 		if (AutoCaseAbbrev) {
 			if (isupper(c)) {
-				UC_count++;
+				UC_count += 1;
+#ifdef IBMPC
+				lower(&c);
+#else
 				c = tolower(c);
+#endif				
 			}
 		}
 		*wp++ = c;
-		curchar++;
+		curchar += 1;
 	}
 	*wp = '\0';
     END_TABLE();
@@ -133,13 +141,12 @@ AbbrevExpand()
 			insert_c(c, 1);
 		cp += 1;
 	}
-
 	if (ap->a_cmdhook != 0)
 		ExecCmd(ap->a_cmdhook);
 }
 
-static char	*mode_names[NMAJORS + 1] = {
-	"Fundamental",
+private char	*mode_names[NMAJORS + 1] = {
+	"Fundamental Mode",
 	"Text Mode",
 	"C Mode",
 #ifdef LISP
@@ -148,7 +155,7 @@ static char	*mode_names[NMAJORS + 1] = {
 	"Global"
 };
 
-static
+private
 save_abbrevs(file)
 char	*file;
 {
@@ -167,14 +174,14 @@ char	*file;
 				fprintf(fp, "%s:%s\n",
 					ap->a_abbrev,
 					ap->a_phrase);
-				count++;
+				count += 1;
 			}
 	}
 	f_close(fp);
 	add_mess(" %d written.", count);
 }
 
-static
+private
 rest_abbrevs(file)
 char	*file;
 {
@@ -190,9 +197,9 @@ char	*file;
 		eof = f_gets(fp, genbuf, LBSIZE);
 		if (eof || genbuf[0] == '\0')
 			break;
-		lnum++;
+		lnum += 1;
 		if (strncmp(genbuf, "------", 6) == 0) {
-			mode++;
+			mode += 1;
 			continue;
 		}
 		if (mode == -1)
@@ -281,4 +288,4 @@ BindMtoW()
 	ap->a_cmdhook = hook;
 }
 
-#endif ABBREV
+#endif /* ABBREV */

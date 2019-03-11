@@ -38,21 +38,21 @@ StrLength()
 
 	if (first == 0 || last == 0)
 		complain(inquotes);
-	first++;
+	first += 1;
 	while (first < last) {
 		c = *first++;
 		if (c == '\\') {
 			int	num;
 
 			if (!isdigit(*first))
-				++first;
+				first += 1;
 			else {
 				num = 3;
 				while (num-- && isdigit(*first++) && first < last)
 					;
 			}
 		}
-		numchars++;
+		numchars += 1;
 	}
 	s_mess("%d characters", numchars);
 }
@@ -186,7 +186,7 @@ data_obj	**map;
 	int	slow;
 
 	c = waitchar(&slow);
-	if (c == CTL('G')) {
+	if (c == AbortChar) {
 		message("[Aborted]");
 		rbell();
 		return;
@@ -248,7 +248,9 @@ put_bufs(askp)
 		if (askp && (yes_or_no_p("Write %s? ", curbuf->b_fname) == NO))
 			continue;
 		filemunge(curbuf->b_fname);
+#ifndef MSDOS
 		chk_mtime(curbuf, curbuf->b_fname, "save");
+#endif /* MSDOS */
 		file_write(curbuf->b_fname, 0);
 		unmodify();
 	}
@@ -320,7 +322,8 @@ AnsiCodes()
 			MoveToCursor(--num1, --num2);
 			break;
 		case 'H':
-			Eow(); Bol();
+			Eow();
+			Bol();
 			break;
 		default:
 			complain(unsupported);
@@ -346,8 +349,74 @@ AnsiCodes()
 			ClAndRedraw();
 			break;
 		}
-		/* FALL THROUGH */
-
+	case 'z':	/* Sun function keys send <esc>[Nz */
+		switch(num1) {
+			case 193:	/* L2 */
+				SetMark();
+				break;
+			case 194:	/* L3 */
+				PopMark();
+				break;
+			case 195:	/* L4 */
+				DelReg();
+				break;
+			case 208:	/* R1 */
+				QRepSearch();
+				break;
+			case 209:	/* R2 */
+				IncFSearch();
+				break;
+			case 210:	/* R3 */
+				WtModBuf();
+				break;
+			case 211:	/* R4 */
+				RepSearch();
+				break;
+			case 212:	/* R5 */
+				IncRSearch();
+				break;
+			case 213:	/* R6 */
+				Leave();
+				break;
+			case 214:	/* R7 */
+				BackWord();
+				break;
+			case 215:	/* R8 == UpArrow */
+				break;
+			case 216:	/* R9 */
+				ForWord();
+				break;
+			case 217:	/* R10 == LeftArrow */
+				break;
+			case 218:	/* R11 */
+				NextWindow();
+				break;
+			case 219:	/* R12 == RightArrow */
+				break;
+			case 220:	/* R13 */
+			case 221:	/* R14 == DownArrow */
+				break;
+			case 222:	/* R15 */
+			case 225:	/* F2 */
+			case 226:	/* F3 */
+			case 227:	/* F4 */
+				break;
+			case 228:	/* F5 */
+				break;
+			case 229:	/* F6 */
+				break;
+			case 230:	/* F7 */
+				break;
+			case 231:	/* F8 */
+				break;
+			case 232:	/* F9 */
+				break;
+			default:
+				num1 = -1;	/* Hack flags failure */
+				break;
+		}
+		if (num1 >= 0)
+			break;
 	case 'P':
 		PrevPage();
 		break;
@@ -363,12 +432,11 @@ AnsiCodes()
 	case 'S':
 		DownScroll();
 		break;
-
 	default:
 		complain(unsupported);
 	}
 }
-#endif ANSICODES
+#endif /* ANSICODES */
 
 NotModified()
 {

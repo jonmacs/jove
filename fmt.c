@@ -42,6 +42,10 @@ char	*str;
 
 	if (c == '\033')
 		strcpy(cp, "ESC");
+#ifdef IBMPC				/* this character is invisible */
+	else if (c == '\377')
+	        strcpy(cp, "M");
+#endif /* IBMPC */
 	else if (c < ' ')
 		sprintf(cp, "C-%c", c + '@');
 	else if (c == '\177')
@@ -70,9 +74,9 @@ long	d;
 		current_fmt.padc = '0';
 	}
 	while (tmpd = (tmpd / base))
-		length++;
+		length += 1;
 	if (d < 0)
-		length++;
+		length += 1;
 	if (!current_fmt.leftadj)
 		pad(current_fmt.padc, current_fmt.width - length);
 	if (d < 0) {
@@ -89,10 +93,13 @@ outld(d, base)
 long	d;
 {
 	register long	n;
+	static char	chars[] = {'0', '1', '2', '3', '4', '5', '6',
+				    '7', '8', '9', 'a', 'b', 'c', 'd',
+				    'e', 'f'};
 
 	if (n = (d / base))
 		outld(n, base);
-	putc((int) ('0' + (int) (d % base)), current_fmt.iop);
+	putc((int) (chars[(int) (d % base)]), current_fmt.iop);
 }
 
 private
@@ -186,8 +193,11 @@ va_list	ap;
 			putc('%', current_fmt.iop);
 			break;
 	
+		case 'O':
 		case 'D':
-			putld(va_arg(ap, long), 10);
+		case 'X':
+			putld(va_arg(ap, long), (c == 'O') ? 8 :
+						(c == 'D') ? 10 : 16);
 			break;
 	
 		case 'b':
@@ -202,8 +212,11 @@ va_list	ap;
 			putc(va_arg(ap, int), current_fmt.iop);
 			break;
 	
+		case 'o':
 		case 'd':
-			putld((long) va_arg(ap, int), 10);
+		case 'x':
+			putld((long) va_arg(ap, int), (c == 'o') ? 8 :
+						(c == 'd') ? 10 : 16);
 			break;
 	
 		case 'f':	/* current command name gets inserted here! */
@@ -219,10 +232,6 @@ va_list	ap;
 				puts("s");
 			break;
 
-		case 'o':
-			putld((long) va_arg(ap, int), 8);
-			break;
-	
 		case 'p':
 		    {
 		    	char	cbuf[20];
@@ -268,7 +277,12 @@ va_dcl
 	va_list	ap;
 
 	va_start(ap);
+#ifndef IBMPC
 	doformat(stdout, fmt, ap);
+#else /* IBMPC */
+	write_em(sprint(fmt, ap));
+	/* doformat(stdout, fmt, ap); */
+#endif /* IBMPC */
 	va_end(ap);
 }
 
@@ -328,7 +342,7 @@ va_dcl
 	format(mesgbuf, sizeof mesgbuf, fmt, ap);
 	va_end(ap);
 	DrawMesg(NO);
-	UpdMesg++;	/* Still needs updating (for convenience) */
+	UpdMesg = YES;	/* still needs updating (for convenience) */
 }
 
 /* VARARGS1 */

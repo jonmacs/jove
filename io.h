@@ -39,3 +39,9 @@ extern File
 	*open_file(),
 	*fd_open(),
 	*f_open();
+
+#ifdef VMUNIX
+#   define MAXTTYBUF	2048
+#else
+#   define MAXTTYBUF	512
+#endif

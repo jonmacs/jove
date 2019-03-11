@@ -16,17 +16,20 @@
 #include <sys/stat.h>
 #include <signal.h>
 #include <errno.h>
-#ifndef SYSV
-#include <sgtty.h>
-#else
-#include <termio.h>
+#ifndef MSDOS
+#   ifndef SYSV
+#	include <sgtty.h>
+#   else
+#	include <termio.h>
+#   endif /* SYSV */
+#endif /* MSDOS */
 #include <fcntl.h>
-#endif SYSV
 
+#ifndef MSDOS
 #ifdef TIOCSLTC
 struct ltchars	ls1,
 		ls2;
-#endif TIOCSLTC
+#endif /* TIOCSLTC */
 
 #ifdef TIOCGETC
 struct tchars	tc1,
@@ -38,10 +41,10 @@ struct sg_brl	sg1, sg2;
 #else
 #ifdef SYSV
 struct termio	sg1, sg2;
-#else SYSV
+#else /* SYSV */
 struct sgttyb	sg1, sg2;
-#endif SYSV
-#endif BRLUNIX
+#endif /* SYSV */
+#endif /* BRLUNIX */
 
 #ifdef BIFF
 private struct stat	tt_stat;	/* for biff */
@@ -51,11 +54,16 @@ extern char	*ttyname();		/* for systems w/o fchmod ... */
 #endif
 private int	dw_biff = NO;		/* whether or not to fotz at all */
 #endif
+#endif /* MSDOS */
 
 time_t	time0;			/* when jove started up */
 int	errormsg;
 extern char	*tfname;
 char	NullStr[] = "";
+
+#ifdef MSDOS
+#define SIGHUP	99
+#endif /* MSDOS */
 
 finish(code)
 {
@@ -69,7 +77,11 @@ finish(code)
 		(void) signal(code, finish);
 #endif
 		f_mess("Abort (Type 'n' if you're not sure)? ");
+#ifndef MSDOS
 		(void) read(0, &c, 1);
+#else /* MSDOS */
+		c = getrawinchar();
+#endif /* MSDOS */
 		message(NullStr);
 		if ((c & 0377) != 'y') {
 			redisplay();
@@ -77,28 +89,36 @@ finish(code)
 		}
 	}
 	ttyset(OFF);
+#ifndef IBMPC
 	UnsetTerm(NullStr);
+#ifndef MSDOS
 	if (code != 0) {
 		if (!Crashing) {
-			Crashing++;
+			Crashing = YES;
 			lsave();
 			SyncRec();
 			printf("JOVE CRASH!! (code %d)\n", code);
 			if (ModBufs(1)) {
 				printf("Your buffers have been saved.\n");
-				printf("Use \"jove_recover\" or \"jove -r\"\n");
-				printf("to have a look at them.\n");
+				printf("Use \"jove -r\" to have a look at them.\n");
 				DelTmps = 0;	/* Don't delete anymore. */
 			} else
 				printf("You didn't lose any work.\n");
 		} else
 			printf("\r\nYou may have lost your work!\n");
 	}
+#endif /* MSDOS */
+#else /* IBMPC */
+	UnsetTerm();
+#endif /* MSDOS */
 	flusho();
 	if (DelTmps) {
 		tmpclose();
+#ifndef MSDOS
 		recclose();
+#endif /* MSDOS */
 	}
+#ifndef MSDOS
 	if (CoreDump)
 		abort();
 #ifdef PROFILING
@@ -106,6 +126,10 @@ finish(code)
 #else
 	_exit(0);
 #endif
+#else /* MSDOS */
+	break_rst();	/* restore previous ctrl-c handling */
+	exit(0);
+#endif /* MSDOS */
 }
 
 private char	smbuf[20],
@@ -134,7 +158,7 @@ register int	fd, on;
     if (fcntl(fd, F_SETFL, on ? blockf : nonblockf) == -1)
 	finish(SIGHUP);
 }
-#endif SYSV
+#endif /* SYSV */
 
 Peekc()
 {
@@ -172,7 +196,7 @@ getchar()
 #else
 		while (nchars < 0 && errno == EINTR);
 		if (nchars <= 0)
-#endif SYSV
+#endif /* SYSV */
 			finish(SIGHUP);
 		bp = smbuf;
 		InputPending = nchars > 1;
@@ -181,19 +205,19 @@ getchar()
 		*bp = (c & 0177);
 		return '\033';
 	}
-	nchars--;
+	nchars -= 1;
 	return (*bp++ & 0177);
 }
-#else PIPEPROCS
+#else /* PIPEPROCS */
 getchar()
 {
-	extern int	global_fd,
-			NumProcs,
+	extern long	global_fd;
+	long		reads;
+	extern int	NumProcs,
 			errno;
 	register int	tmp,
 			nfds;
-	int	reads,
-		c;
+	int		c;
 
 	if (nchars <= 0) {
 		/* Get a character from the keyboard, first checking for
@@ -203,25 +227,25 @@ getchar()
 			do {
 				do {
 					reads = global_fd;
-					nfds = select(32, &reads, (int *) 0, (int *) 0, (struct timeval *) 0);
+					nfds = select(32, &reads, (long *)0, (long *)0, (struct timeval *)0);
 				} while (nfds < 0 && errno == EINTR);
 
 				switch (nfds) {
 				case -1:
-					printf("\rerror %d in select %d", errno, global_fd);
+					printf("\rerror %d in select %ld", errno, global_fd);
 					global_fd = 1;
 					break;
 				default:
 					if (reads & 01) {
 						nchars = read(0, smbuf, sizeof(smbuf));
 						reads &= ~01;
-						--nfds;
+						nfds -= 1;
 					}
 
 					while (nfds--) {
 						tmp = ffs(reads) - 1;
 						read_proc(tmp);
-						reads &= ~tmp;
+						reads &= ~(1 << tmp);
 					}
 
 					break;
@@ -244,20 +268,30 @@ getchar()
 		*bp = (c & 0177);
 		return '\033';
 	}
-	nchars--;
+	nchars -= 1;
 	return *bp++ & 0377;
 }
-#endif PIPEPROCS
-#else IPROCS
+#endif /* PIPEPROCS */
+#else /* IPROCS */
 getchar()
 {
 	extern int	errno;
 	register int	c;
 
 	if (nchars <= 0) {
-		do
+		do {
+#ifdef MSDOS
+			*smbuf = getrawinchar();
+			nchars = 1;
+#else
 			nchars = read(0, smbuf, sizeof smbuf);
-		while (nchars < 0 && errno == EINTR);
+#endif
+		}
+		while (nchars < 0
+#ifndef MSDOS
+							&& errno == EINTR
+#endif
+												);
 
 		if (nchars <= 0)
 			finish(SIGHUP);
@@ -268,10 +302,11 @@ getchar()
 		*bp = (c & 0177);
 		return '\033';
 	}
-	nchars--;
+	nchars -= 1;
 	return *bp++ & 0377;
 }
-#endif IPROCS
+
+#endif /* IPROCS */
 
 int	InputPending = 0;
 
@@ -279,7 +314,9 @@ int	InputPending = 0;
 
 charp()
 {
+#ifndef MSDOS
 	int	some = 0;
+#endif /* MSDOS */
 
 	if (InJoverc != 0 || nchars > 0 || Inputp != 0)
 		return 1;
@@ -289,7 +326,7 @@ charp()
 
 		gtty(0, (char *) &gttyBuf);
 		if (gttyBuf.sg_xflags & INWAIT)
-			some++;
+			some += 1;
 	}
 #endif
 #ifdef FIONREAD
@@ -300,7 +337,7 @@ charp()
 			c = 0;
 		some = (c > 0);
 	}
-#endif FIONREAD
+#endif /* FIONREAD */
 #ifdef SYSV
 	setblock(0, 0);		/* turn blocking off */
 	nchars = read(0, smbuf, sizeof smbuf);	/* Is anything there? */
@@ -308,13 +345,18 @@ charp()
 	if (nchars > 0)		/* something was there */
 	    bp = smbuf;		/* make sure bp points to it */
 	some = (nchars > 0);	/* just say we found something */
-#endif SYSV
+#endif /* SYSV */
 #ifdef c70
 	some = !empty(0);
 #endif
+#ifdef MSDOS
+    return rawkey_ready();
+#else
 	return some;
+#endif /* MSDOS */
 }
 
+#ifndef IBMPC
 ResetTerm()
 {
 	putpad(TI, 1);
@@ -326,7 +368,9 @@ ResetTerm()
 	/* just in case we changed our minds about whether to deal with
 	   biff */
 #endif
+#ifndef MSDOS
 	(void) chkmail(YES);	/* force it to check to we can be accurate */
+#endif
 	do_sgtty();		/* this is so if you change baudrate or stuff
 				   like that, JOVE will notice. */
 	ttyset(ON);
@@ -357,13 +401,20 @@ PauseJove()
 	ClAndRedraw();
 }
 #endif
+#endif /* IBMPC */
 
 Push()
 {
 	int	pid,
-    		(*old_int)() = signal(SIGINT, SIG_IGN),
-		(*old_quit)() = signal(SIGQUIT, SIG_IGN);
 
+#ifdef MSDOS
+   		(*old_int)() = signal(SIGINT, SIG_IGN);
+#else /* MSDOS */
+   		(*old_int)() = signal(SIGINT, SIG_IGN),
+		(*old_quit)() = signal(SIGQUIT, SIG_IGN);
+#endif /* MSDOS */
+
+#ifndef MSDOS
 #ifdef IPROCS
 	sighold(SIGCHLD);
 #endif
@@ -377,7 +428,11 @@ Push()
 		sigrelse(SIGCHLD);
 #endif
 		(void) signal(SIGTERM, SIG_DFL);
+#else /* MSDOS */
+	UnsetTerm();
+#endif /* MSDOS */
 		(void) signal(SIGINT, SIG_DFL);
+#ifndef MSDOS
 		(void) signal(SIGQUIT, SIG_DFL);
 		execl(Shell, basename(Shell), (char *)0);
 		message("[Execl failed]");
@@ -387,9 +442,18 @@ Push()
 #ifdef IPROCS
 	sigrelse(SIGCHLD);
 #endif
+#else /* MSDOS */
+	break_rst();
+	if (spawnl(0, Shell, basename(Shell), (char *)0) == -1)
+		message("[Spawn failed]"); 
+#endif /* MSDOS */
     	ResetTerm();
     	ClAndRedraw();
+#ifndef MSDOS
 	(void) signal(SIGQUIT, old_quit);
+#else /* MSDOS */
+	break_off();
+#endif /* MSDOS */
     	(void) signal(SIGINT, old_int);
 }
 
@@ -398,6 +462,7 @@ int	OKXonXoff = 0,		/* ^S and ^Q initially DON'T work */
 
 ttsize()
 {
+#ifndef MSDOS
 #ifdef TIOCGWINSZ
 	struct winsize win;
 
@@ -407,7 +472,7 @@ ttsize()
 		if (win.ws_row)
 			LI = win.ws_row;
 	}
-#else TIOCGWINSZ
+#else /* TIOCGWINSZ */
 #ifdef BTL_BLIT
 #include <sys/jioctl.h>
 	struct jwinsize jwin;
@@ -418,8 +483,9 @@ ttsize()
 		if (jwin.bytesy)
 			LI = jwin.bytesy;
 	}
-#endif BTL_BLIT
-#endif TIOCGWINSZ
+#endif /* BTL_BLIT */
+#endif /* TIOCGWINSZ */
+#endif /* MSDOS */
 	ILI = LI - 1;
 }
 
@@ -476,7 +542,7 @@ ttinit()
 		tc2.t_stopc = (char) -1;
 		tc2.t_startc = (char) -1;
 	}
-#endif TIOCGETC
+#endif /* TIOCGETC */
 	do_sgtty();
 }
 
@@ -484,11 +550,12 @@ private int	done_ttinit = 0;
 
 do_sgtty()
 {
+#ifndef MSDOS
 #ifdef SYSV
 	(void) ioctl(0, TCGETA, (char *) &sg1);
 #else
 	(void) gtty(0, &sg1);
-#endif SYSV
+#endif /* SYSV */
 	sg2 = sg1;
 
 #ifdef SYSV
@@ -513,7 +580,7 @@ do_sgtty()
 	sg2.sg_xflags &= ~((sg2.sg_xflags&DC3DC1 ? 0 : STALL) | PAGE);
 #else
 	sg2.sg_flags &= ~(ECHO | CRMOD);
-#endif BRLUNIX
+#endif /* BRLUNIX */
 
 #ifdef EUNICE
 	sg2.sg_flags |= RAW;	/* Eunice needs RAW mode last I heard. */
@@ -526,9 +593,12 @@ do_sgtty()
 #   endif
 #else
 	sg2.sg_flags |= (MetaKey ? RAW : CBREAK);
-#endif PURDUE_EE
-#endif EUNICE
-#endif SYSV
+#endif /* PURDUE_EE */
+#endif /* EUNICE */
+#endif /* SYSV */
+#else /* MSDOS */
+	TABS = 0;
+#endif /* MSDOS */
 }
 
 tty_reset()
@@ -546,6 +616,7 @@ ttyset(n)
 {
 	if (!done_ttinit && n == 0)	/* Try to reset before we've set! */
 		return;
+#ifndef MSDOS
 #ifdef SYSV
 	(void) ioctl(0, TCSETAW, n == 0 ? (struct sgttyb *) &sg1 : (struct sgttyb *) &sg2);
 #else
@@ -553,15 +624,16 @@ ttyset(n)
 	(void) stty(0, n == 0 ? (struct sgttyb *) &sg1 : (struct sgttyb *) &sg2);
 #else
 	(void) ioctl(0, TIOCSETN, n == 0 ? (struct sgttyb *) &sg1 : (struct sgttyb *) &sg2);
-#endif BRLUNIX
-#endif SYSV
+#endif /* BRLUNIX */
+#endif /* SYSV */
 
 #ifdef TIOCSETC
 	(void) ioctl(0, TIOCSETC, n == 0 ? (struct sgttyb *) &tc1 : (struct sgttyb *) &tc2);
-#endif TIOCSETC
+#endif /* TIOCSETC */
 #ifdef TIOCSLTC
 	(void) ioctl(0, TIOCSLTC, n == 0 ? (struct sgttyb *) &ls1 : (struct sgttyb *) &ls2);
-#endif TIOCSLTC
+#endif /* TIOCSLTC */
+#endif /* MSDOS */
 	done_ttinit = 1;
 #ifdef BIFF
 	biff(!n);
@@ -577,7 +649,11 @@ register int	c;
 	data_obj	*cp;
 
 	this_cmd = 0;
+#ifndef IBMPC
 	cp = mainmap[c & 0177];
+#else /* IBMPC */
+	cp = mainmap[c];
+#endif /* IBMPC */
 
 	if (cp == 0) {
 		rbell();
@@ -611,11 +687,13 @@ getch()
 		return EOF;	/* somethings wrong if Inputp runs out while
 				   we're reading a .joverc file. */
 
+#ifndef MSDOS
 	if (ModCount >= SyncFreq) {
 		ModCount = 0;
 		SyncRec();
 	}
 
+#endif /* MSDOS */
 	/* If we're not interactive and we're not executing a macro,
 	   AND there are no ungetc'd characters, we read from the
 	   terminal (i.e., getch()).  And characters only get put
@@ -649,21 +727,23 @@ getch()
 		}
 #  endif
 #endif
-		if (!Interactive && (KeyMacro.m_flags & DEFINE))
+		if (!Interactive && InMacDefine)
 			mac_putc(c);
 	}
-	if (peekc == -1)	/* Don't add_stroke peekc's */
+	if (peekc == -1)	/* don't add_stroke peekc's */
 		add_stroke(c);
 	return LastKeyStruck = c;
 }
 
+#ifndef MSDOS
 dorecover()
 {
-	execl(Recover, "jove_recover", "-d", TmpFilePath, (char *) 0);
+	execl(Recover, "recover", "-d", TmpFilePath, (char *) 0);
 	printf("%s: execl failed!\n", Recover);
 	flusho();
 	_exit(-1);
 }
+#endif /* MSDOS */
 		
 
 ShowVersion()
@@ -685,6 +765,9 @@ char	*argv[];
 		if (argv[1][0] != '-' && argv[1][0] != '+') {
 			int	force = (nwinds > 0 || lineno != 0);
 
+#ifdef MSDOS
+			strlwr(argv[1]);
+#endif /* MSDOS */
 			minib_add(argv[1], force ? YES : NO);
 			b = do_find(nwinds > 0 ? curwind : (Window *) 0,
 				    argv[1], force);
@@ -695,35 +778,35 @@ char	*argv[];
 				if (nwinds > 1)
 					NextWindow();
 				if (nwinds)
-					nwinds--;
+					nwinds -= 1;
 			}
 			lineno = 0;
 		} else	switch (argv[1][1]) {
 			case 'd':
-				++argv;
-				--argc;
+				argv += 1;
+				argc -= 1;
 				break;
 
 			case 'j':	/* Ignore .joverc in HOME */
 				break;
 
 			case 'p':
-				++argv;
-				--argc;
+				argv += 1;
+				argc -= 1;
 				SetBuf(do_find(curwind, argv[1], 0));
 				ParseAll();
 				nwinds = 0;
 				break;
 
 			case 't':
-				++argv;
-				--argc;
+				argv += 1;
+				argc -= 1;
 				find_tag(argv[1], YES);
 				break;
 
 			case 'w':
 				if (argv[1][2] == '\0')
-					nwinds++;
+					nwinds += 1;
 				else
 					nwinds += -1 + chr_to_int(&argv[1][2], 10, NIL);
 				(void) div_wind(curwind, nwinds - 1);
@@ -742,8 +825,8 @@ char	*argv[];
 				lineno = chr_to_int(&argv[1][1], 10, 0) - 1;
 				break;
 		}
-		++argv;
-		--argc;
+		argv += 1;
+		argc -= 1;
 	}
 }
 
@@ -759,7 +842,7 @@ va_dcl
 		va_start(ap);
 		format(mesgbuf, sizeof mesgbuf, fmt, ap);
 		va_end(ap);
-		UpdMesg++;
+		UpdMesg = YES;
 	}
 	rbell();
 	(void) longjmp(mainjmp, ERROR);
@@ -777,7 +860,7 @@ va_dcl
 		va_start(ap);
 		format(mesgbuf, sizeof mesgbuf, fmt, ap);
 		va_end(ap);
-		UpdMesg++;
+		UpdMesg = YES;
 	}
 	rbell();
 	(void) longjmp(mainjmp, COMPLAIN);
@@ -810,11 +893,11 @@ Recur()
 	sprintf(bname, "%s", curbuf->b_name);
 	m = MakeMark(curline, curchar, M_FLOATER);
 
-	RecDepth++;
-	UpdModLine++;
+	RecDepth += 1;
+	UpdModLine = YES;
 	DoKeys(1);	/* 1 means not first time */
-	UpdModLine++;
-	RecDepth--;
+	UpdModLine = YES;
+	RecDepth -= 1;
 	SetBuf(do_select(curwind, bname));
 	if (!is_an_arg())
 		ToMark(m);
@@ -864,8 +947,8 @@ DoKeys(nocmdline)
 
 	case COMPLAIN:
 		gc_openfiles();	/* close any files we left open */
-		errormsg++;
-		fix_macros();
+		errormsg = YES;
+		unwind_macro_stack();
 		Asking = 0;
 		curwind->w_bufp = curbuf;
 		redisplay();
@@ -897,30 +980,40 @@ register char	**args,
 	while (*args) {
 		if (strcmp(*args, str) == 0)
 			return args;
-		args++;
+		args += 1;
 	}
 	return 0;
 }
 
+#ifndef MSDOS
 int	UpdFreq = 30,
 	inIOread = 0;
+#else /* MSDOS */
+int	inIOread = 0;
+#endif /* MSDOS */
 
 updmode()
 {
-	UpdModLine++;
+	UpdModLine = YES;
 	if (inIOread)
 		redisplay();
+#ifndef MSDOS
 #ifndef JOB_CONTROL
 	(void) signal(SIGALRM, updmode);
 #endif
 	(void) alarm((unsigned) UpdFreq);
+#endif /* MSDOS */
 }
 
+#ifndef MSDOS
 #ifdef TIOCGWINSZ
 #ifdef SIGWINCH
 extern win_reshape();
 #endif
 #endif
+#else /* MSDOS */
+char	ttbuf[TTBUFSIZ];
+#endif /* MSDOS */
 
 #ifdef TIOCGWINSZ
 #ifdef SIGWINCH
@@ -968,7 +1061,8 @@ win_reshape()
 main(argc, argv)
 char	*argv[];
 {
-	char	ttbuf[512],
+#ifndef MSDOS
+	char	ttbuf[MAXTTYBUF],
 #ifndef VMUNIX
 		s_iobuff[LBSIZE],
 		s_genbuf[LBSIZE],
@@ -989,6 +1083,11 @@ char	*argv[];
 	linebuf = s_linebuf;
 #endif
 
+#else /* MSDOS */
+   char	*cp,
+		*x,
+		*getenv();
+#endif /* MSDOS */
 	errormsg = 0;
 
 	iniargc = argc;
@@ -999,6 +1098,22 @@ char	*argv[];
 		finish(0);
 	}
 
+#ifdef MSDOS
+	/* import the temporary file path from the environment and
+	   fix the string, so that we can append a slash safely	*/
+
+	if ((x = getenv("TMP")) && *x) {
+	   cp = TmpFilePath;
+	   while (*x) {
+			 *cp++ = *x++;
+	   }
+	   if ((cp[-1] == '/') || (cp[-1] == '\\'))
+		  cp--;
+	   *cp = 0;
+	}
+	ShFlags[0] = switchar();
+			
+#endif /* MSDOS */
 	getTERM();	/* Get terminal. */
 	if (getenv("METAKEY"))
 		MetaKey = 1;
@@ -1007,8 +1122,17 @@ char	*argv[];
 
 	d_cache_init();		/* initialize the disk buffer cache */
 
+#ifndef MSDOS
 	if (cp = getenv("SHELL"))
+#else /* MSDOS */
+	if ((cp = getenv("COMSPEC")) && *cp) {
+#endif /* MSDOS */
 		strcpy(Shell, cp);
+#ifdef MSDOS
+	}
+	if ((x = getenv("DESCRIBE")) && *x)
+	   strcpy(CmdDb, x);
+#endif /* MSDOS */
 
 	make_scr();
 	mac_init();	/* Initialize Macros */
@@ -1032,15 +1156,18 @@ char	*argv[];
 	if (HomeDir == 0)
 		HomeDir = "/";
 	HomeLen = strlen(HomeDir);
+#ifndef MSDOS
 #ifdef SYSV
 	sprintf(Mailbox, "/usr/mail/%s", getenv("LOGNAME"));
 #else
 	sprintf(Mailbox, "/usr/spool/mail/%s", getenv("USER"));
-#endif SYSV
+#endif /* SYSV */
 	(void) joverc(Joverc);
 	if (!scanvec(argv, "-j")) {
 		char	tmpbuf[100];
+#endif /* MSDOS */
 
+#ifndef MSDOS
 		sprintf(tmpbuf, "%s/.joverc", HomeDir);
 		(void) joverc(tmpbuf);
 	}
@@ -1048,12 +1175,28 @@ char	*argv[];
 		dorecover();
 	if (scanvec(argv, "-rc"))
 		FullRecover();
+#else /* MSDOS */
+	if (x = getenv("JOVERC"))
+	   (void) joverc(x);
+	(void) joverc(Joverc);	/* same in current directory	*/
+#endif /* MSDOS */
 
+#ifdef MSDOS
+	(void) time(&time0);
+#endif /* MSDOS */
 	ttinit();	/* initialize terminal (after ~/.joverc) */
 	settout(ttbuf);	/* not until we know baudrate */
+#ifdef MSDOS
+	ResetTerm();
+#endif /* MSDOS */
 
+#ifndef MSDOS
 	(void) signal(SIGHUP, finish);
+#else /* MSDOS */
+	break_off();	/* disable ctrl-c checking */
+#endif /* MSDOS */
 	(void) signal(SIGINT, finish);
+#ifndef MSDOS
 	(void) signal(SIGBUS, finish);
 	(void) signal(SIGSEGV, finish);
 	(void) signal(SIGPIPE, finish);
@@ -1063,13 +1206,18 @@ char	*argv[];
 	(void) signal(SIGWINCH, win_reshape);
 #endif
 #endif
+#endif /* MSDOS */
 
 	/* set things up to update the modeline every UpdFreq seconds */
+#ifndef MSDOS
 	(void) signal(SIGALRM, updmode);
 	(void) time(&time0);
 	(void) alarm((unsigned) (60 - (time0 % 60)));
+#endif /* MSDOS */
 
+#ifndef MSDOS
 	ResetTerm();
+#endif /* MSDOS */
 	cl_scr(1);
 	flusho();
 	RedrawDisplay();	/* start the redisplay process. */

@@ -42,7 +42,7 @@
 #else
 #   define CH_BITS		0
 #   define MAX_BLOCKS		4096	/* basically unlimited */
-#endif SMALL
+#endif /* SMALL */
 
 #if BUFSIZ == 512
 #   define BNO_SHIFT		(9 - CH_BITS)

@@ -37,7 +37,7 @@ char	*str;
 	header.pid = getpid();
 	header.nbytes = strlen(str);
 	strcpy(header.buf, str);
-	proc_write(&header, header.nbytes + 8);
+	proc_write(&header, header.nbytes + HEADSIZE);
 	exit(-2);
 }
 
@@ -136,7 +136,7 @@ char	*argv[];
 		{
 			union wait	w;
 
-#ifndef VMUNIX
+#ifndef BSD4_2
 			while (wait2(&w.w_status, 0) != pid)
 #else
 			while (wait3(&w.w_status, 0, 0) != pid)
@@ -150,7 +150,7 @@ char	*argv[];
 	}
 }
 
-#else PIPEPROCS
+#else /* PIPEPROCS */
 main()
 {
 }

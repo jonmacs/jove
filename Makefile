@@ -19,9 +19,9 @@
 
 DESTDIR =
 TMPDIR = /tmp
-LIBDIR = /nfs/socrates/usr/jpayne/jovelib
-BINDIR = /nfs/socrates/usr/jpayne/bin
-MANDIR = /nfs/socrates/usr/jpayne/manl
+LIBDIR = /u/jpayne/lib/jove
+BINDIR = /u/jpayne/bin
+MANDIR = /u/jpayne/lib/manl
 MANEXT = l
 SHELL = /bin/csh
 
@@ -60,15 +60,15 @@ LIBS = -ltermcap
 #	PDP-11 with separate I&D:	SEPFLAG = -i
 #	PDP-11 without separate I&D:	SEPFLAG = -n
 
-LDFLAGS = -g
+LDFLAGS = 
 SEPFLAG =
 
-CFLAGS = -g
+CFLAGS = -O
 
 BASESEG = funcdefs.o keymaps.o argcount.o ask.o buf.o ctype.o delete.o \
-	  disp.o fmt.o insert.o io.o jove.o malloc.o marks.o misc.o re.o \
+	  disp.o insert.o io.o jove.o malloc.o marks.o misc.o re.o \
 	  screen.o table.o tune.o util.o vars.o version.o
-OVLAY1 = abbrev.o rec.o paragraph.o
+OVLAY1 = abbrev.o rec.o paragraph.o fmt.o
 OVLAY2 = c.o wind.o fp.o move.o
 OVLAY3 = extend.o macros.o
 OVLAY4 = iproc.o re1.o
@@ -76,13 +76,15 @@ OVLAY5 = proc.o scandir.o term.o case.o
 
 OBJECTS = $(BASESEG) $(OVLAY1) $(OVLAY2) $(OVLAY3) $(OVLAY4) $(OVLAY5)
 
-JOVESRC = funcdefs.c abbrev.c argcount.c ask.c buf.c c.c case.c ctype.c \
+C_SRC = funcdefs.c abbrev.c argcount.c ask.c buf.c c.c case.c ctype.c \
 	delete.c disp.c extend.c fp.c fmt.c insert.c io.c iproc.c \
 	jove.c macros.c malloc.c marks.c misc.c move.c paragraph.c \
 	proc.c re.c re1.c rec.c scandir.c screen.c table.c term.c util.c \
 	vars.c version.c wind.c
 
-SOURCES = $(JOVESRC) portsrv.c recover.c setmaps.c teachjove.c
+ASM_SRC = break.asm getch.asm
+
+SOURCES = $(C_SRC) portsrv.c recover.c setmaps.c teachjove.c
 
 HEADERS = ctype.h io.h jove.h re.h rec.h table.h temp.h termcap.h tune.h
 
@@ -90,17 +92,39 @@ DOCS =	doc/cmds.doc.nr doc/example.rc doc/jove.1 doc/jove.2 doc/jove.3 \
 	doc/jove.4 doc/jove.5 doc/jove.nr doc/system.rc \
 	doc/teach-jove doc/teachjove.nr doc/README
 
-BACKUPS = $(HEADERS) $(JOVESRC) iproc-pipes.c iproc-ptys.c \
-	teachjove.c recover.c setmaps.c portsrv.c tune.template \
-	Makefile Ovmakefile keymaps.txt README $(DOCS)
+MISC = Makefile Ovmakefile Makefile.dos pcjove.lnk tune.dos tune.template \
+	README Readme.dos iproc-pipes.c iproc-ptys.c
 
+SUPPORT = teachjove.c recover.c setmaps.c portsrv.c keymaps.txt
 
-all:	xjove recover teachjove portsrv
+BACKUPS = $(HEADERS) $(C_SRC) $(ASM_SRC) $(DOCS) $(SUPPORT) $(MISC)
+
+all:	sdate xjove recover teachjove portsrv edate
+
+sdate:
+	@echo "**** make started at `date` ****"
+
+edate:
+	@echo "**** make completed at `date` ****"
 
 xjove:	$(OBJECTS)
-	$(CC) $(LDFLAGS) -o xjove $(OBJECTS) $(LIBS);
+	$(CC) $(LDFLAGS) -o xjove $(OBJECTS) $(LIBS)
 	@-size xjove
-	@-date
+
+gjove:	$(OBJECTS)
+	ld -X /lib/gcrt0.o -o gjove $(OBJECTS) -lc $(LIBS)
+	@-size gjove
+
+ovjove:	$(OBJECTS)
+	ld $(SEPFLAG) $(LDFLAGS) -X /lib/crt0.o \
+		-Z $(OVLAY1) \
+		-Z $(OVLAY2) \
+		-Z $(OVLAY3) \
+		-Z $(OVLAY4) \
+		-Z $(OVLAY5) \
+		-Y $(BASESEG) \
+		-o xjove $(LIBS) -lc; \
+	@-size xjove
 
 portsrv:	portsrv.o
 	cc -o portsrv -n portsrv.o $(LIBS)
@@ -117,10 +141,16 @@ setmaps:	setmaps.o funcdefs.c
 teachjove.o:	teachjove.c /usr/include/sys/types.h /usr/include/sys/file.h
 	cc -c $(CFLAGS) -DTEACHJOVE=\"$(TEACH-JOVE)\" teachjove.c
 
+# don't optimize setmaps.c because it produces bad code on the sun2
+#
 setmaps.o:	funcdefs.c keymaps.txt
+	cc -c setmaps.c
+
+# ignore error messages from setmaps
+# it doesn't understand ifdefs
 
 keymaps.c:	setmaps keymaps.txt
-	setmaps < keymaps.txt > keymaps.c
+	-setmaps < keymaps.txt > keymaps.c
 
 keymaps.o:	keymaps.c jove.h
 
@@ -179,11 +209,11 @@ echo:
 	@echo $(C-FILES) $(HEADERS)
 
 lint:
-	lint -n $(JOVESRC) tune.c keymaps.c
+	lint -n $(C_SRC) tune.c keymaps.c
 	@echo Done
 
 tags:
-	ctags -w $(JOVESRC) $(HEADERS) iproc-ptys.c
+	ctags -w $(C_SRC) $(HEADERS) iproc-ptys.c
 
 ciall:
 	ci $(BACKUPS)

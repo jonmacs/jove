@@ -8,11 +8,13 @@
 #include "jove.h"
 #include <ctype.h>
 #include <errno.h>
+#ifndef MSDOS
 #ifdef SYSV
 #   include <termio.h>
 #else
 #   include <sgtty.h>
-#endif SYSV
+#endif /* SYSV */
+#endif /* MSDOS */
 
 #ifdef IPROCS
 #   include <signal.h>
@@ -20,8 +22,8 @@
 
 /* Termcap definitions */
 
-char	*UP,
-	*CS,
+#ifndef IBMPC
+char	*CS,
 	*SO,
 	*SE,
 	*CM,
@@ -41,7 +43,6 @@ char	*UP,
 	*IM,
 	*EI,
 	*LL,
-	*BC,
 	*M_IC,	/* Insert char with arg */
 	*M_DC,	/* Delete char with arg */
 	*M_AL,	/* Insert line with arg */
@@ -54,6 +55,7 @@ char	*UP,
 	*IP,	/* insert pad after character inserted */
 	*lPC,
 	*NL;
+#endif
 
 int	LI,
 	ILI,	/* Internal lines, i.e., 23 of LI is 24. */
@@ -69,12 +71,24 @@ int	LI,
 	HOlen,
 	LLlen;
 
+extern char	PC,
+		*BC,
+		*UP;
+
+#ifdef notdef
+	/*
+	 * Are you sure about this one Jon?  On the SYSV system I tried this
+	 * on I got a multiple definition of PC because it was already
+	 * defined in -ltermcap.  Similarly for BC and UP ...
+	 */
 #ifdef SYSVR2 /* release 2, at least */
 char	PC;
 #else
 extern char	PC;
-#endif SYSVR2
+#endif /* SYSVR2 */
+#endif
 
+#ifndef IBMPC
 static char	tspace[256];
 
 /* The ordering of ts and meas must agree !! */
@@ -164,9 +178,9 @@ getTERM()
 		NL = "\n";
 	else {			/* strip stupid padding information */
 		while (isdigit(*NL))
-			NL++;
+			NL += 1;
 		if (*NL == '*')
-			NL++;
+			NL += 1;
 	}
 
 	if (BL == 0)
@@ -178,4 +192,41 @@ getTERM()
 	if (CanScroll = ((AL && DL) || CS))
 		IDline_setup(termname);
 }
+
+#else
+
+InitCM()
+{
+}
+
+int EGA;
+
+getTERM()
+{
+	char	*getenv(), *tgetstr() ;
+	char	*termname;
+    void	init_43(), init_term();
+	unsigned char lpp(), chpl();
+
+	if (getenv("EGA") || (!stricmp(getenv("TERM"), "EGA"))) {
+	   termname = "ega";
+	   init_43();
+	   EGA = 1;
+	}
+	else {
+	   termname = "ibmpc";
+	   init_term();
+	   EGA = 0;
+	}
+
+	CO = chpl();
+	LI = lpp();
+
+	SG = 0;			/* Used for mode line only */
+	XS = 0;			/* Used for mode line only */
+
+	CanScroll = 1;
+}
+
+#endif /* IBMPC */
 
