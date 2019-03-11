@@ -7,11 +7,14 @@
 
 /* Note: jove.spec must be updated when version number changes */
 
-#define	jversion     "4.16.0.51" /* 2001 March 22 */
-#define	jversion_lnum 4,16,0,51  /* list-of-numbers form for Win32 jjove.rc */
+#define	jversion     "4.16.0.52" /* 2001 April 25 */
+#define	jversion_lnum 4,16,0,52  /* list-of-numbers form for Win32 jjove.rc */
 
 /*
  * $Log: version.h,v $
+ * Revision 1.402  2001/07/15 19:14:23  hugh
+ * improve jove.spec (for Redhat Package Manager)
+ *
  * Revision 1.401  2001/03/22 07:17:26  hugh
  * 4.16.0.51: improve portability; use openpty on *BSD
  *
