@@ -26,18 +26,11 @@
 # include <process.h>
 #endif
 
-#ifdef MAC
-# undef private
-# define private
-#endif
-
 private void
 	DefAutoExec proto((struct data_obj *(*proc)()));
 
-#if defined(MAC)
-# undef private
-# define private static
-#endif
+private int
+	match proto((char **, char *));
 
 int	InJoverc = 0;
 
@@ -461,6 +454,10 @@ complete(possible, prompt, flags)
 register char	*possible[];
 char	*prompt;
 {
+	/* protect static "Possible" from being overwritten due to recursion */
+	if (InRealAsk)
+		complain((char *) NULL);
+
 	Possible = possible;
 	comp_flags = flags;
 	(void) do_ask("\r\n \t?", aux_complete, NullStr, prompt);

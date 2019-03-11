@@ -52,18 +52,18 @@ extern File
 	*fd_open proto((char *name,int flags,int fd,char *buffer,int bsize));
 
 extern int
-	f_getint proto((struct File *fp)),
-	f_gets proto((struct File *fp,char *buf,int max)),
-	filbuf proto((struct File *fp)),
-	_flush proto((int c,struct File *fp)),
-	f_readn proto((struct File *fp,char *addr,int n));
+	f_getint proto((File *fp)),
+	f_gets proto((File *fp,char *buf,int max)),
+	filbuf proto((File *fp)),
+	_flush proto((int c,File *fp)),
+	f_readn proto((File *fp,char *addr,int n));
 
 extern void
-	f_close proto((struct File *fp)),
-	f_seek proto((struct File *fp,long offset)),
-	f_toNL proto((struct File *fp)),
-	flush proto((struct File *fp)),
+	f_close proto((File *fp)),
+	f_seek proto((File *fp,long offset)),
+	f_toNL proto((File *fp)),
+	flush proto((File *fp)),
 	flusho proto((void)),
-	fputnchar proto((char *s,int n,struct File *fp)),
+	fputnchar proto((char *s,int n,File *fp)),
 	gc_openfiles proto((void)),
 	putstr proto((char *s));

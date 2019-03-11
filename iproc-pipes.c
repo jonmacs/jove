@@ -192,6 +192,7 @@ va_dcl
 	   Bindings won't work right unless newbuf->b_process is already
 	   set up BEFORE NEWBUF is first SetBuf()'d. */
 	newp->p_mark = MakeMark(curline, curchar, M_FLOATER);
+	newp->p_dbx_mode = NO;
 
 	newp->p_toproc = toproc[1];
 	newp->p_reason = 0;

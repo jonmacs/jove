@@ -10,6 +10,8 @@
 #include "fp.h"
 #include "termcap.h"
 #include "chars.h"
+#include "disp.h"
+#include "re.h"
 
 /* Up until now a keymap was an array of pointers to
    data_obj's.  A data_obj was either a pointer to a built-in
@@ -23,31 +25,23 @@
    have a series of keymaps built automatically for those
    sequences. */
 
-#ifdef MAC
-# undef private
-# define private
-#endif
-
 private	void
-	fb_aux proto((data_obj *, data_obj **, char *, char *)),
-	find_binds proto((data_obj *, char *)),
+	fb_aux proto((data_obj *, struct keymap *, char *, char *)),
+	find_binds proto((data_obj *, char *));
+
+extern void
 	vpr_aux proto((struct variable *, char *));
 
-#ifdef MAC
-# undef private
-# define private static
-#endif
-
 private List	*keymaps;		/* list of all keymaps */
-struct keymap	*mainmap;
+private struct keymap	*mainmap;
 #if defined(IPROCS)
-struct keymap	*procsmap;
+private struct keymap	*procsmap;
 #endif
 
 /* make a new keymap, give it name NAME, initialize the keys array
    to keys, if nonzero, or make an empty one, otherwise */
 
-struct keymap *
+private struct keymap *
 km_new(name, keys)
 char	*name;
 data_obj	**keys;
@@ -69,8 +63,11 @@ data_obj	**keys;
 	return km;
 }
 
+#ifdef	NEVER_USED
+
 /* free up a keymap */
 
+private void
 km_destroy(km)
 struct keymap	*km;
 {
@@ -82,7 +79,7 @@ struct keymap	*km;
 
 /* lookup a keymap by name */
 
-struct keymap *
+private struct keymap *
 km_lookup(name)
 char	*name;
 {
@@ -95,6 +92,8 @@ char	*name;
 		return 0;
 	return (struct keymap *) list_data(lp);
 }
+
+#endif
 
 /* given a map and a key, return the object bound to that key */
 
@@ -110,6 +109,7 @@ int	c;
 }
 #endif
 
+private void
 km_setkey(m, c, d)
 struct keymap	*m;
 int	c;
@@ -120,7 +120,7 @@ data_obj	*d;
 
 /* get the currently active keymaps into km_buf */
 
-int
+private int
 get_keymaps(km_buf)
 struct keymap	**km_buf;
 {
@@ -137,7 +137,7 @@ struct keymap	**km_buf;
 	return nmaps;
 }
 
-struct keymap *
+private struct keymap *
 IsPrefix(cp)
 data_obj	*cp;
 {
@@ -148,7 +148,9 @@ data_obj	*cp;
 
 /* Is `c' a prefix character */
 
+int
 PrefChar(c)
+int	c;
 {
 	return (int) IsPrefix(km_getkey(mainmap, c));
 }
@@ -175,6 +177,7 @@ UnbindC()
 void
 BindWMap(map, lastkey, cmd)
 struct keymap	*map;
+int	lastkey;
 data_obj 	*cmd;
 {
 	struct keymap	*nextmap;
@@ -186,7 +189,7 @@ data_obj 	*cmd;
 			complain("[Empty key sequence]");
 		complain("[Premature end of key sequence]");
 	} else {
-		if (nextmap = IsPrefix(km_getkey(map, c)))
+		if ((nextmap = IsPrefix(km_getkey(map, c))) != NULL)
 			BindWMap(nextmap, c, cmd);
 		else {
 			km_setkey(map, c, cmd);
@@ -196,14 +199,12 @@ data_obj 	*cmd;
 				((struct cmd *) cmd)->c_map = F_MAINMAP;
 			else if (map->k_keys == EscKeys)
 				((struct cmd *) cmd)->c_map = F_PREF1MAP;
-			else if (map == CtlxKeys)
+			else if (map == (struct keymap *) CtlxKeys)
 				((struct cmd *) cmd)->c_map = F_PREF2MAP;
 #endif
 		}
 	}
 }
-
-/* VARARGS0 */
 
 void
 BindSomething(proc, map)
@@ -237,13 +238,14 @@ BindMac()
 void
 DescWMap(map, key)
 struct keymap	*map;
+int	key;
 {
 	data_obj	*cp = km_getkey(map, key);
 	struct keymap	*prefp;
 
 	if (cp == 0)
 		add_mess("is unbound.");
-	else if (prefp = IsPrefix(cp))
+	else if ((prefp = IsPrefix(cp)) != NULL)
 		DescWMap(prefp, addgetc());
 	else
 		add_mess("is bound to %s.", cp->Name);
@@ -291,7 +293,7 @@ char	*pref;
 			swritef(keydescbuf, "%s %p", pref, c1);
 		else
 			swritef(keydescbuf, "%s [%p-%p]", pref, c1, c2);
-		if ((prefp = IsPrefix(km_getkey(map, c1))) && (prefp != map))
+		if ((prefp = IsPrefix(km_getkey(map, c1)))!=NULL && (prefp != map))
 			DescMap(prefp, keydescbuf);
 		else
 			Typeout("%-18s%s", keydescbuf, km_getkey(map, c1)->Name);
@@ -348,7 +350,7 @@ char	*buf,
 				break;
 			}
 		}
-		if ((prefp = IsPrefix(km_getkey(map, c1))) && (prefp != map))  {
+		if ((prefp = IsPrefix(km_getkey(map, c1)))!=NULL && (prefp != map))  {
 			swritef(prefbuf, "%p", c1);
 			fb_aux(cp, prefp, prefbuf, bufp);
 		}
@@ -471,7 +473,8 @@ Apropos()
 	TOstop();
 }
 
-char *
+#ifdef	NEVER_USED
+private char *
 km_newname()
 {
 	char	buffer[128];
@@ -480,7 +483,9 @@ km_newname()
 	swritef(buffer, "keymap-%d", km_count++);
 	return copystr(buffer);
 }
+#endif
 
+void
 InitKeymaps()
 {
 	struct keymap	*km;
@@ -496,6 +501,7 @@ InitKeymaps()
 	km_setkey(mainmap, CTL('X'), (data_obj *) km);
 }
 
+void
 MakeKMap()
 {
 	char	*name;
@@ -504,8 +510,9 @@ MakeKMap()
 	(void) km_new(copystr(name), (data_obj **) 0);
 }
 
-data_obj *
+private data_obj *
 findmap(fmt)
+char	*fmt;
 {
 	List	*lp;
 	char	*strings[128];
@@ -525,11 +532,13 @@ findmap(fmt)
 }
 
 #ifdef IPROCS
+private void
 mk_proc_km()
 {
 	procsmap = km_new("process-keymap", (data_obj **) 0);
 }
 
+void
 ProcBind()
 {
 	data_obj	*d;
@@ -543,6 +552,7 @@ ProcBind()
 	BindWMap(procsmap, EOF, d);
 }
 
+void
 ProcKmBind()
 {
 	data_obj	*d;
@@ -557,9 +567,10 @@ ProcKmBind()
 
 #endif
 
+void
 KmBind()
 {
-	BindSomething(findmap);
+	BindSomething(findmap, mainmap);
 }
 
 void
@@ -593,10 +604,10 @@ register int	c;
 			maps[i] = (struct keymap *) cp;
 		}
 		if (nvalid == 0) {
-			char	key_strokes[128];
+			char	strokes[128];
 
-			pp_key_strokes(key_strokes, sizeof (key_strokes));
-			s_mess("[%sunbound]", key_strokes);
+			pp_key_strokes(strokes, sizeof (strokes));
+			s_mess("[%sunbound]", strokes);
 			rbell();
 			clr_arg_value();
 			errormsg = NO;

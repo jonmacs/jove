@@ -11,22 +11,12 @@
 #include "chars.h"
 #include "disp.h"
 
-#ifdef MAC
-# undef private
-# define private
-#endif
-
 private int
 	newchunk proto((void));
 private void
 	DoNewline proto((int indentp)),
 	init_specials proto((void)),
-	remfreelines proto((struct chunk *));
-
-#ifdef MAC
-# undef private
-# define private static
-#endif
+	remfreelines proto((struct chunk *c));
 
 /* Make a newline after AFTER in buffer BUF, UNLESS after is 0,
    in which case we insert the newline before after. */
@@ -95,9 +85,9 @@ register int	num;
 	IFixMarks(olddot, oldchar, curline, curchar);
 }
 
-/* Makes the indent of the current line == goal.  If the current indent
-   is greater than GOAL it deletes.  If more indent is needed, it uses
-   tabs and spaces to get to where it's going. */
+/* Inserts tabs and spaces to move the cursor to column GOAL.  It
+   Uses the most optimal number of tabs and spaces no matter what
+   was there before hand. */
 
 void
 n_indent(goal)
@@ -106,12 +96,8 @@ register int	goal;
 	int	dotcol,
 		incrmt;
 
-	ToIndent();
+	DelWtSpace();
 	dotcol = calc_pos(linebuf, curchar);
-	if (goal < dotcol) {
-		DelWtSpace();
-		dotcol = 0;
-	}
 
 	for (;;) {
 		incrmt = (tabstop - (dotcol % tabstop));
@@ -220,9 +206,19 @@ Tab()
 		return;
 	}
 #endif
-	if (MajorMode(CMODE) && strlen(linebuf) == 0)
-		(void) c_indent(CIndIncrmt);
-	else
+	if (MajorMode(CMODE)) {
+		if (within_indent())
+			(void) c_indent(NO);
+		else {
+			int	curpos,
+				tabbed_pos;
+
+			skip_wht_space();
+			curpos = calc_pos(linebuf, curchar);
+			tabbed_pos = curpos + (CIndIncrmt - (curpos % CIndIncrmt));
+			n_indent(tabbed_pos);
+		}
+	} else
 		SelfInsert();
 }
 
@@ -256,8 +252,8 @@ DoParen()
 		return;
 	}
 
-	if (MajorMode(CMODE) && c == '}' && blnkp(linebuf))
-		bp = c_indent(0);
+	if (MajorMode(CMODE) && c == '}' && within_indent())
+		bp = c_indent(YES);
 #ifdef LISP
 	if (MajorMode(LISPMODE) && c == ')' && blnkp(linebuf))
 		bp = lisp_indent();
@@ -336,7 +332,10 @@ DoNewline(indentp)
 		(void) lisp_indent();
 	    else
 #endif
+	    {
+		Bol();
 		n_indent((LMargin == 0) ? indent : LMargin);
+	    }
 }
 
 void
@@ -754,6 +753,7 @@ lisp_indent()
 	}
 	goal = calc_pos(linebuf, curchar);
 	SetDot(&savedot);
+	Bol();
 	n_indent(goal);
 
 	return bp;

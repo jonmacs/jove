@@ -38,15 +38,17 @@ extern int
 extern void
 	minib_add proto((char *str,int movedown));
 
+extern void
+	isprocbuf proto((char *bufname)),
+	DoAutoExec proto((char *new,char *old)),
+	RegToUnix proto((struct buffer *outbuf,char *cmd));
+
 extern int
 /* ctype.h */
 	ismword proto((int c)),
 
 /* proc.c */
 	UnixToBuf proto((char *,int ,int ,int , ...)),
-	RegToUnix proto((struct buffer *outbuf,char *cmd)),
-	ToError proto((int forward)),
-	isprocbuf proto((char *bufname)),
 
 /* extend.c */
 	addgetc proto((void)),
@@ -55,14 +57,12 @@ extern int
 	chr_to_int proto((char *cp,int base,int allints, int *result)),
 	complete proto((char * *possible,char *prompt,int flags)),
 	joverc proto((char *file)),
-	DoAutoExec proto((char *new,char *old)),
 
 /* jove.c */
 	charp proto((void)),
 	getch proto((void)),
 	getchar proto((void)),
-	getrawinchar proto((void)),
-	Ungetc proto((int c));
+	getrawinchar proto((void));
 
 extern void
 	error proto((char *, ...)),
@@ -70,11 +70,16 @@ extern void
 	confirm proto((char *, ...)),
 	finish proto((int code)),
 	ttyset proto((int n)),
-	tty_reset proto ((void));
+	tty_reset proto ((void)),
+	ToError proto((int forward)),
+	Ungetc proto((int c));
+
 
 #ifdef IBMPC
+extern int
 	lower proto((char *c)),
-	rawkey_ready proto((void)),
+	rawkey_ready proto((void));
+extern char
 	switchar proto((void));
 #endif
 
@@ -89,8 +94,8 @@ extern void
 
 /* c.c */
 extern Bufpos
-	*c_indent proto((int incrmt)),
-	*m_paren proto((char p_type,int dir,int can_mismatch,int can_stop));
+	*c_indent proto((int brace)),
+	*m_paren proto((int p_type,int dir,int can_mismatch,int can_stop));
 
 extern void
 	mp_error proto((void));
@@ -109,10 +114,13 @@ extern void
 	add_mess proto((char *, ...)),
 	f_mess proto((char *, ...)),
 	format proto((char *buf,int len,char *fmt,char *ap)),
-	fwritef proto((struct File *,char *, ...)),
+	fwritef proto((struct file *,char *, ...)),
 	writef proto((char *, ...)),
 	s_mess proto((char *, ...)),
 	swritef proto((char *,char *, ...)),
+
+	/* keymaps.c */
+	InitKeymaps proto((void)),
 
 	/* paragraph.c */
 	do_rfill proto((int ulm)),
@@ -144,16 +152,16 @@ extern int
 	close proto((int)),
 	read proto((int,char *,unsigned)),
 	write proto((int,char *,unsigned)),
-	free proto((char *));
 	unlink proto((char *)),
 	chdir proto((char *)),
 	rawchkc proto((void)),
 	getArgs proto((char ***));
 
 extern long
-	lseek proto((int,long,unsigned));
+	lseek proto((int,long,unsigned)),
+ 	time(long *);	
 
-#endif MAC
+#endif /* MAC */
 
 extern char
 	*pwd proto((void)),

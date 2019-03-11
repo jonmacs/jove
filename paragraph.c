@@ -7,19 +7,9 @@
 
 #include "jove.h"
 
-#ifdef MAC
-# undef private
-# define private
-#endif
-
 private int	get_indent proto((Line *));
 private Line	*tailrule proto((Line *));
 private void	DoPara proto((int dir));
-
-#ifdef MAC
-# undef private
-# define private static
-#endif
 
 /* Thanks to Brian Harvey for this paragraph boundery finding algorithm.
    It's really quite hairy figuring it out.  This deals with paragraphs that
@@ -137,19 +127,19 @@ static int	bslash;		/* Nonzero if get_indent finds line starting
 				   with backslash */
 
 private int
+i_blank(lp)
+Line	*lp;
+{
+	return (get_indent(lp) < 0);
+}
+
+private int
 i_bsblank(lp)
 Line	*lp;
 {
 	if (i_blank(lp))
 		return 1;
 	return bslash;
-}
-
-private int
-i_blank(lp)
-Line	*lp;
-{
-	return (get_indent(lp) < 0);
 }
 
 private int
@@ -449,6 +439,7 @@ Line	*l1,
 	DotTo(l1, c1);
 	if (get_indent(l1) >= c1) {
 		if (use_lmargin) {
+			Bol();
 			n_indent(indent + (head_indent - body_indent));
 			use_lmargin = 0;	/* turn this off now */
 		}

@@ -28,6 +28,7 @@ recinit()
 	char	buf[128];
 
 #ifdef MAC
+	extern char *HomeDir;
 	swritef(buf, "%s/%s", HomeDir, p_tempfile);
 #else
 	swritef(buf, "%s/%s", TmpFilePath, p_tempfile);

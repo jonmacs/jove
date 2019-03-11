@@ -10,17 +10,8 @@
 #include "sysdep.h"
 
 #ifdef UNIX
-# define VFORK		/* if you have vfork(2) */
-# define JOB_CONTROL	/* if you have job stopping */
-#
-# ifdef JOB_CONTROL
-#  define MENLO_JCL
-# endif
-#
 # define SUBPROCS	/* only on UNIX systems (NOT INCORPORATED YET) */
 # define IPROCS		/* interactive processes */
-#
-# define KILL0		/* kill(pid, 0) returns 0 if proc exists */
 #endif /* UNIX */
 
 #ifndef VFORK
@@ -31,7 +22,6 @@
 #define F_COMPLETION	/* filename completion */
 #define ABBREV		/* word abbreviation mode */
 #if !(defined(IBMPC) || defined(MAC))
-# define ANSICODES	/* extra commands that process ANSI codes */
 # define ID_CHAR	/* include code to IDchar */
 # define WIRED_TERMS	/* include code for wired terminals */
 #endif
@@ -60,7 +50,6 @@
 # define BUFSIZ 1024
 # undef LISP
 # define LISP 1
-# define ANSICODES 0
 # undef ABBREV
 # define ABBREV 1
 # undef CMT_FMT

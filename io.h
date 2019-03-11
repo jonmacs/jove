@@ -16,17 +16,19 @@ extern struct file
 extern void
 	PathParse proto((char *name,char *intobuf)),
 	SyncTmp proto((void)),
-	close_file proto((struct File *fp)),
+	close_file proto((struct file *fp)),
 	d_cache_init proto((void)),
 	file_write proto((char *fname,int app)),
 	filemunge proto((char *newname)),
 	getline proto((daddr addr,char *buf)),
 	lsave proto((void)),
-	putreg proto((struct File *fp,struct line *line1,int char1,struct line *line2,int char2,int makesure)),
+	putreg proto((struct file *fp,struct line *line1,int char1,struct line *line2,int char2,int makesure)),
 	read_file proto((char *file,int is_insert)),
 	tmpclose proto((void)),
-	tmpinit proto((void));
+	tmpinit proto((void)),
+
+	WriteFile proto((void));
 
 extern daddr
-	f_getputl proto((struct line *line,struct File *fp)),
+	f_getputl proto((struct line *line,struct file *fp)),
 	putline proto((char *buf));

@@ -7,12 +7,11 @@
 
 #include "jove.h"
 #include "ctype.h"
-#if defined(ANSICODES)
-# include "termcap.h"
-# include "disp.h"
-#endif
 
 #include <signal.h>
+
+extern void	KillEos proto((void));
+void skip_wht_space proto((void));
 
 void
 prCTIME()
@@ -232,10 +231,17 @@ put_bufs(askp)
 void
 ToIndent()
 {
+	Bol();
+	skip_wht_space();
+}
+
+void
+skip_wht_space()
+{
 	register char	*cp,
 			c;
 
-	for (cp = linebuf; c = *cp; cp++)
+	for (cp = linebuf + curchar; c = *cp; cp++)
 		if (c != ' ' && c != '\t')
 			break;
 	curchar = cp - linebuf;

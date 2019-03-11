@@ -22,4 +22,6 @@ struct process {
 		p_reason;	/* If signaled, p_reason is the signal; else
 				   it is the the exit code */
 	Mark	*p_mark;	/* where output left us */
+	char	p_dbx_mode;	/* whether to parse output for file/lineno
+				   pairs */
 };

@@ -22,11 +22,6 @@
 # endif
 #endif /* MAC */
 
-#if defined(MAC)
-# undef private
-# define private
-#endif
-
 private Buffer * get_minibuf proto((void));
 private char * real_ask proto((char *, int (*)(), char *, char *));
 
@@ -38,11 +33,6 @@ private int
 private void
 	fill_in proto((char **, int)),
 	EVexpand proto((void));
-
-#if defined(MAC)
-# undef private
-# define private static
-#endif
 
 int	AbortChar = CTL('G'),
 	DoEVexpand = NO;	/* should we expand evironment variables? */
@@ -131,6 +121,8 @@ EVexpand()
 	DelMark(m);
 }
 
+int	InRealAsk = 0;
+
 private char *
 real_ask(delim, d_proc, def, prompt)
 char	*delim,
@@ -138,7 +130,6 @@ char	*delim,
 	*prompt;
 int	(*d_proc)();
 {
-	static int	InAsk = 0;
 	jmp_buf	savejmp;
 	int	c,
 		prompt_len;
@@ -148,14 +139,14 @@ int	(*d_proc)();
 	data_obj	*push_cmd = LastCmd;
 	int	o_a_v = arg_value(),
 		o_i_an_a = is_an_arg();
-#if defined(MAC)
+#ifdef MAC
 		menus_off();
 #endif
 
-	if (InAsk)
+	if (InRealAsk)
 		complain((char *) 0);
 	push_env(savejmp);
-	InAsk += 1;
+	InRealAsk += 1;
 	SetBuf(get_minibuf());
 	if (!inlist(AskBuffer->b_first, CurAskPtr))
 		CurAskPtr = curline;
@@ -232,7 +223,7 @@ cleanup:
 	no_typed = (linebuf[0] == '\0');
 	strcpy(Minibuf, linebuf);
 	SetBuf(saveb);
-	InAsk = Asking = Interactive = NO;
+	InRealAsk = Asking = Interactive = NO;
 	if (!abort) {
 		if (!charp()) {
 			Placur(ILI, 0);

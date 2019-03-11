@@ -12,9 +12,6 @@
 #define NMENUITEMS 40	/* This has GOT to be enough! */
 
 typedef data_obj *menumap[NMENUITEMS];
-#ifndef _mac
-	typedef char **MenuHandle;
-#endif
 struct menu {
 	char *Name;
 	int menu_id;
@@ -126,24 +123,24 @@ static char sh_keycodes[] = {
 
 /* tn.h Modified for variable screen size 11/21/87. K. Mitchum */
 
-static int tn_rows, tn_cols, tn_top, tn_left, tn_bottom, tn_right;
-int MAXROW, MAXCOL;
-
-#define SCREENSIZE (tn_rows * ROWSIZE)
+#define SCREENSIZE (wc->w_rows * ROWSIZE)
 #define FONT monaco
 #define TEXTSIZE 9
 
 #define HEIGHT 11
 #define WIDTH 6
 #define DESCENT 2
-#define TWIDTH tn_cols * WIDTH
-#define THEIGHT tn_rows * HEIGHT
+#define TWIDTH CO * WIDTH
+#define THEIGHT LI * HEIGHT
 
 /* window specs */
 
 #define SCROLLWIDTH 16 /* width of scroll bar control in pixels */
-#define WINDWIDTH tn_right - tn_left - SCROLLWIDTH - 1/* local coordinates */
-#define WINDHEIGHT tn_bottom - tn_top	/* local coordinates */
+#define WINDWIDTH wc->w_width - SCROLLWIDTH + 1/* local coordinates */
+#define WINDHEIGHT wc->w_height	/* local coordinates */
+#define MAXROW (LI - 1)
+#define MAXCOL (CO - 1)
+		
 
 /* for keyboard routines */
 #define MCHARS 32	/* must be power of two */

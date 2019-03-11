@@ -5,15 +5,15 @@
  * included in all the files.                                              *
  ***************************************************************************/
 
-#if !(defined(MSDOS) || defined(MAC))
-# define void int
-#endif
-
-#ifdef MAC
+#ifdef THINK_C
+# define MAC 1
 # define defined(x) (x)	/* take this out and you're in trouble... */
 #endif
 
-/*#define MAC 1		/* alas, there is no command line for this */
+#if !(defined(MSDOS) || defined(MAC) || defined(__STDC__))
+# define void int
+#endif
+
 
 /* The operating system (MSDOS or MAC) must be defined by this point.
    IBMPC is defined in the Makefile. All MAC defines should be
@@ -24,18 +24,27 @@
 #endif
 
 #ifdef UNIX
-# if sun
-#  define YP_PASSWD		/* if you're running yellow pages */
+# if !sun
+    extern int	errno;
 # endif
-#
-# if pdp11
+# define YP_PASSWD	/* if you are a sun running the yellow pages */
+# define VFORK		/* if you have vfork(2) */
+# define JOB_CONTROL	/* if you have job stopping */
+# ifdef JOB_CONTROL
+#  define MENLO_JCL
+# endif
+# define KILL0		/* kill(pid, 0) returns 0 if proc exists */
+#endif UNIX
+
+#ifdef UNIX
+# ifdef pdp11
 #  define SMALL
 #  define BUFSIZ	512	/* or 1024 */
 #  define NBUF		3
 # else
 #  define VMUNIX		/* Virtual Memory UNIX */
 #  define BUFSIZ	1024
-#  if iAPX286
+#  ifdef iAPX286
 #   define NBUF		48	/* NBUF*BUFSIZ must be less than 64 kB */
 #  else
 #   define NBUF	64	/* number of disk buffers */
@@ -92,7 +101,7 @@
 # define MY_MALLOC	/* use more memory efficient malloc (not on suns) */
 #endif
 
-#ifdef BSD4_3
+#if (defined(BSD4_3) || defined(MAC))
 # define RESHAPING	/* enable windows to handle reshaping */
 #endif
 

@@ -21,11 +21,6 @@
 
 #include <signal.h>
 
-#ifdef MAC
-# undef private
-# define private
-#endif
-
 private void
 #ifdef ID_CHAR
 	DeTab proto((int, char *, char *, int, int)),
@@ -41,6 +36,11 @@ private void
 	UpdLine proto((int)),
 	UpdWindow proto((Window *, int));
 
+extern void
+	PrevPage proto((void)),
+	UpScroll proto((void)),
+	DownScroll proto((void));
+
 private int
 #ifdef ID_CHAR
 	IDchar proto ((char *, int, int)),
@@ -53,10 +53,7 @@ private int
 	DelLines proto((int, int)),
 	UntilEqual proto((int));
 
-#ifdef MAC
-# undef private
-# define private static
-#endif
+
 
 int	DisabledRedisplay = NO;
 
@@ -1056,16 +1053,19 @@ register Window	*w;
 
 #ifdef IPROCS
 		case 'p':
-		    if (thisbuf->b_type == B_PROCESS) {
-			char	tmp[40];
-			extern char	*pstate();
+			if (thisbuf->b_type == B_PROCESS) {
+				char	tmp[40];
+				extern char	*pstate();
+				Process	*p = thisbuf->b_process;
 
-			swritef(tmp, "(%s)", (thisbuf->b_process == 0) ?
-					     "No process" :
-					     pstate(thisbuf->b_process));
-			mode_app(tmp);
+				swritef(tmp, "(%s%s)",
+					((p == 0 || p->p_dbx_mode == NO)
+					 ? "" : "DBX "),
+					((p == 0) ? "No process" :
+					 pstate(thisbuf->b_process)));
+				mode_app(tmp);
+			}
 			break;
-		    }
 #endif
 
 		case 's':

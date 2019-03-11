@@ -18,11 +18,6 @@
 # include <sys/stat.h>
 #endif
 
-#if defined(MAC)
-# undef private
-# define private
-#endif
-
 private Buffer
 	*buf_alloc proto((void)),
 	*mak_buf proto((void));
@@ -34,11 +29,6 @@ private void
 	defb_wind proto((Buffer *)),
 	kill_buf proto((Buffer *)),
 	mkbuflist proto((char **));
-
-#if defined(MAC)
-# undef private
-# define private static
-#endif
 
 char	*Mainbuf = "Main",
 	*NoName = "Sans un nom!";
@@ -312,6 +302,20 @@ register Buffer	*delbuf;
 	else
 		world = delbuf->b_next;
 
+	if (curbuf == delbuf)
+		curbuf = NULL;
+	if (delbuf == lastbuf)
+		lastbuf = curbuf;	/* even if NULL */
+#if !defined(MAC)
+	if (perr_buf == delbuf) {
+		ErrFree();
+		perr_buf = 0;
+	}
+#endif
+	defb_wind(delbuf);
+	if (curbuf == NULL)
+		SetBuf(curwind->w_bufp);
+
 #define okay_free(ptr)	if (ptr) free(ptr)
 
 	lfreelist(delbuf->b_first);
@@ -320,17 +324,6 @@ register Buffer	*delbuf;
 	flush_marks(delbuf);
 	free((char *) delbuf);
 
-	if (delbuf == lastbuf)
-		SetABuf(curbuf);
-#if !defined(MAC)
-	if (perr_buf == delbuf) {
-		ErrFree();
-		perr_buf = 0;
-	}
-#endif
-	defb_wind(delbuf);
-	if (curbuf == delbuf)
-		SetBuf(curwind->w_bufp);
 #if defined(MAC)
 	Bufchange = 1;
 #endif
@@ -599,8 +592,6 @@ register Buffer	*b;
 }
 
 /* Find the file `fname' into buf and put in in window `w' */
-
-int	DefReadOnly = NO;	/* find files read-only by default */
 
 Buffer *
 do_find(w, fname, force)

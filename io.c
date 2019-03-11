@@ -11,7 +11,7 @@
 #include "termcap.h"
 #include "ctype.h"
 #include "disp.h"
-#include "io.h"
+
 
 #ifdef IPROCS
 # include <signal.h>
@@ -19,15 +19,13 @@
 
 #ifdef MAC
 # include "mac.h"
+  extern int errno;
 #else
 # include <sys/stat.h>
 #endif
 
 #ifdef UNIX
 # include <sys/file.h>
-# ifdef YP_PASSWD
-#  include <rpcsvc/ypclnt.h>
-# endif
 #endif
 
 #ifdef MSDOS
@@ -38,17 +36,12 @@
 #endif /* MSDOS */
 #include <errno.h>
 
-#ifdef MAC
-# undef private
-# define private
-#endif
-
 private struct block
 	*b_unlink proto((struct block *)),
 	*lookup proto((short));
 
 private char
-	*dbackup proto((char *, char *, char)),
+	*dbackup proto((char *, char *, int)),
 #if defined(MSDOS)
 	*fixpath proto((char *)),
 #endif
@@ -69,11 +62,6 @@ private int
 	Dchdir proto((char *)),
 #endif
 	dfollow proto((char *, char *));
-
-#ifdef MAC
-# undef private
-# define private static
-#endif
 
 #ifndef W_OK
 # define W_OK	2
@@ -182,10 +170,8 @@ char	*file;
 	Bufpos	save;
 	File	*fp;
 
-	if (!is_insert) {
-		curbuf->b_ntbf = 0;
-		set_ino(curbuf);
-	}
+	if (is_insert == NO)
+		curbuf->b_ntbf = NO;
 	fp = open_file(file, iobuff, F_READ, !COMPLAIN, !QUIET);
 	if (fp == NIL) {
 		if (!is_insert && errno == ENOENT)
@@ -194,8 +180,9 @@ char	*file;
 			s_mess(IOerr("open", file));
 		return;
 	}
-	if (!is_insert) {
-		if (DefReadOnly || fp->f_flags & F_READONLY)
+	if (is_insert == NO) {
+		set_ino(curbuf);
+		if (fp->f_flags & F_READONLY)
 			set_arg_value(1);
 		else
 			set_arg_value(0);
@@ -449,8 +436,8 @@ Popd()
 private char *
 dbackup(base, offset, c)
 register char	*base,
-		*offset,
-		c;
+		*offset;
+register int	c;
 {
 	while (offset > base && *--offset != c)
 		;
@@ -505,32 +492,28 @@ char	*file,
 	} while (sp != 0);
 }
 
-#ifdef UNIX
+#if defined(UNIX)
 
-#ifdef YP_PASSWD
+# if defined(YP_PASSWD)
+
+#include <pwd.h>
+
 private
 get_hdir(user, buf)
 register char	*user,
 		*buf;
 {
-	char *ypbuf, *domain,
-		pattern[100];
-	int ypbuflen;
+	struct passwd	*p;
 
-	swritef(pattern, "%s:[^:]*:[^:]*:[^:]*:[^:]*:\\([^:]*\\):", user);
-	if ((yp_get_default_domain(&domain) == 0) &&
-	    (yp_match(domain, "passwd.byname", user, strlen(user), &ypbuf, &ypbuflen) == 0)) {
-		free(domain);
-		if (LookingAt(pattern, ypbuf, 0)) {
-			putmatch(1, buf, FILESIZE);
-			free(ypbuf);
-			return;
-		}
-		free(ypbuf);
+	p = getpwnam(user);
+	endpwent();
+	if (p == NULL) {
+		add_mess(" [unknown user: %s]", user);
+		SitFor(7);
+		complain((char *) 0);
+		/* NOTREACHED */
 	}
-	add_mess(" [unknown user: %s]", user);
-	SitFor(7);
-	complain((char *) 0);
+	strcpy(buf, p->pw_dir);
 }
 
 #else
@@ -832,10 +815,6 @@ char	*fname;
 	close_file(fp);
 	set_ino(curbuf);
 	unmodify();
-	if (DefReadOnly) {		/* turn read-only back on */
-		set_is_an_arg(YES);
-		TogMinor(ReadOnly);
-	}
 }
 
 void
@@ -1110,7 +1089,7 @@ private int	max_bno = -1,
 #ifdef MAC
 void (*blkio)();
 #else
-private int	(*blkio) proto((Block *, int (*)()));
+private void	(*blkio) proto((Block *, int (*)()));
 #endif /* MAC */
 
 #ifdef MAC

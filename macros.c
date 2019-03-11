@@ -11,11 +11,6 @@
 #include "chars.h"
 #include "disp.h"
 
-#ifdef MAC
-# undef private
-# define private
-#endif
-
 private void
 	add_mac proto((struct macro *)),
 	del_mac proto((struct macro *)),
@@ -23,11 +18,6 @@ private void
 	push_macro_stack proto((struct macro *, int));
 
 private struct macro *mac_exists proto((char *));
-
-#ifdef MAC
-# undef private
-# define private static
-#endif
 
 #define SAVE		01	/* this macro needs saving to a file */
 

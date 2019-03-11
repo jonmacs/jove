@@ -7,7 +7,7 @@
 
 #define private		static
 #if !defined(NULL)
-# define NULL		0
+# define NULL	0
 #endif
 #define NIL		0
 

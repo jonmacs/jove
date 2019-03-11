@@ -9,17 +9,14 @@
 #include "re.h"
 #include "ctype.h"
 
-#ifdef MAC
-# undef private
-# define private
-#endif
-
 private void to_sent proto((int));
 
-#ifdef MAC
-# undef private
-# define private static
-#endif
+extern void
+	Bol(),
+	Eol(),
+	Eos(),
+	Eof(),
+	Bof();
 
 private int	line_pos;
 

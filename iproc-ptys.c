@@ -318,6 +318,12 @@ out:	if (s == 0 && t == 0)
 		sg.sg_flags &= ~(ECHO | CRMOD);
 		(void) stty(0, &sg);
 
+		{
+			int	on = 1;
+
+			(void) ioctl(0, TIOCREMOTE, &on);
+		}
+
 		i = getpid();
 		(void) ioctl(0, TIOCSPGRP, (struct sgttyb *) &i);
 		(void) setpgrp(0, i);
@@ -356,6 +362,7 @@ out:	if (s == 0 && t == 0)
 	newp->p_state = NEW;
 	newp->p_reason = 0;
 	newp->p_mark = MakeMark(curline, curchar, M_FLOATER);
+	newp->p_dbx_mode = NO;
 
 	newp->p_next = procs;
 	procs = newp;
@@ -373,4 +380,3 @@ pinit()
 {
 	(void) signal(SIGCHLD, proc_child);
 }
-

@@ -273,29 +273,154 @@ clean:
 	rm -f a.out core *.o keys.c tune.c xjove portsrv kbd recover setmaps \
 	teachjove macvert
 
-## This version only works under 4.3BSD
-## To enable, remove single # from start of following lines
-#depend:
-#	for i in ${SOURCES} ; do \
-#		cc -M ${CFLAGS} $$i | \
-#		awk ' /[/]usr[/]include/ { next } \
-#			{ if ($$1 != prev) \
-#		    { if (rec != "") print rec; rec = $$0; prev = $$1; } \
-#		    else { if (length(rec $$2) > 78) { print rec; rec = $$0; } \
-#		    else rec = rec " " $$2 } } \
-#		    END { print rec } ' >> makedep; \
-#	done
-#	echo '$$a'
-#	echo ''
-#	echo '.'
-#	echo '/^# DO NOT DELETE THIS LINE/+1,$$d' >eddep
-#	echo '$$r makedep' >>eddep
-#	echo 'w' >>eddep
-#	cp Makefile Makefile.bak
-#	ed - Makefile < eddep
-#	rm eddep makedep
-#	echo '# DEPENDENCIES MUST END AT END OF FILE' >> Makefile
-#	echo '# IF YOU PUT STUFF HERE IT WILL GO AWAY' >> Makefile
-#	echo '# see make depend above' >> Makefile
-#
-## DO NOT DELETE THIS LINE -- make depend uses it
+# This version only works under 4.3BSD
+# To enable, remove single # from start of following lines
+depend:
+	for i in ${SOURCES} ; do \
+		cc -M ${CFLAGS} $$i | \
+		awk ' /[/]usr[/]include/ { next } \
+			{ if ($$1 != prev) \
+		    { if (rec != "") print rec; rec = $$0; prev = $$1; } \
+		    else { if (length(rec $$2) > 78) { print rec; rec = $$0; } \
+		    else rec = rec " " $$2 } } \
+		    END { print rec } ' >> makedep; \
+	done
+	echo '$$a' >eddep
+	echo '' >>eddep
+	echo '.' >>eddep
+	echo '/^# DO NOT DELETE THIS LINE/+1,$$d' >>eddep
+	echo '$$r makedep' >>eddep
+	echo 'w' >>eddep
+	cp Makefile Makefile.bak
+	ed - Makefile < eddep
+	rm eddep makedep
+	echo '# DEPENDENCIES MUST END AT END OF FILE' >> Makefile
+	echo '# IF YOU PUT STUFF HERE IT WILL GO AWAY' >> Makefile
+	echo '# see make depend above' >> Makefile
+
+# DO NOT DELETE THIS LINE -- make depend uses it
+funcdefs.o: funcdefs.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h
+funcdefs.o: ./iproc.h ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h
+funcdefs.o: ./screen.h ./style.h ./externs.h ./ctype.h
+abbrev.o: abbrev.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h
+abbrev.o: ./iproc.h ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h
+abbrev.o: ./screen.h ./style.h ./externs.h ./fp.h ./ctype.h
+argcount.o: argcount.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h
+argcount.o: ./iproc.h ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h
+argcount.o: ./screen.h ./style.h ./externs.h
+ask.o: ask.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
+ask.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
+ask.o: ./style.h ./externs.h ./termcap.h ./ctype.h ./chars.h ./disp.h
+buf.o: buf.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
+buf.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
+buf.o: ./style.h ./externs.h ./ctype.h ./disp.h
+c.o: c.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
+c.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
+c.o: ./style.h ./externs.h ./re.h ./ctype.h
+case.o: case.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
+case.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
+case.o: ./style.h ./externs.h ./disp.h ./ctype.h
+ctype.o: ctype.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
+ctype.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
+ctype.o: ./style.h ./externs.h ./ctype.h
+delete.o: delete.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h
+delete.o: ./iproc.h ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h
+delete.o: ./screen.h ./style.h ./externs.h ./disp.h
+disp.o: disp.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
+disp.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
+disp.o: ./style.h ./externs.h ./ctype.h ./termcap.h ./chars.h ./fp.h ./disp.h
+extend.o: extend.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h
+extend.o: ./iproc.h ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h
+extend.o: ./screen.h ./style.h ./externs.h ./fp.h ./termcap.h ./ctype.h
+extend.o: ./chars.h ./disp.h
+fp.o: fp.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
+fp.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
+fp.o: ./style.h ./externs.h ./fp.h ./ctype.h ./termcap.h
+fmt.o: fmt.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
+fmt.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
+fmt.o: ./style.h ./externs.h ./fp.h ./termcap.h ./ctype.h ./disp.h
+insert.o: insert.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h
+insert.o: ./iproc.h ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h
+insert.o: ./screen.h ./style.h ./externs.h ./ctype.h ./list.h ./chars.h
+insert.o: ./disp.h
+io.o: io.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
+io.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
+io.o: ./style.h ./externs.h ./list.h ./fp.h ./termcap.h ./ctype.h ./disp.h
+io.o: ./io.h ./temp.h
+iproc.o: iproc.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
+iproc.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
+iproc.o: ./style.h ./externs.h ./re.h ./ctype.h ./disp.h ./iproc-ptys.c
+iproc.o: ./wait.h
+jove.o: jove.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
+jove.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
+jove.o: ./style.h ./externs.h ./fp.h ./termcap.h ./ctype.h ./chars.h ./disp.h
+list.o: list.c ./list.h ./tune.h ./sysdep.h
+macros.o: macros.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h
+macros.o: ./iproc.h ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h
+macros.o: ./screen.h ./style.h ./externs.h ./ctype.h ./fp.h ./chars.h ./disp.h
+malloc.o: malloc.c ./tune.h ./sysdep.h
+marks.o: marks.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
+marks.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
+marks.o: ./style.h ./externs.h
+misc.o: misc.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
+misc.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
+misc.o: ./style.h ./externs.h ./ctype.h
+move.o: move.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
+move.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
+move.o: ./style.h ./externs.h ./re.h ./ctype.h
+paragraph.o: paragraph.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h
+paragraph.o: ./iproc.h ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h
+paragraph.o: ./screen.h ./style.h ./externs.h
+proc.o: proc.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
+proc.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
+proc.o: ./style.h ./externs.h ./ctype.h ./fp.h ./re.h ./termcap.h ./wait.h
+re.o: re.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
+re.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
+re.o: ./style.h ./externs.h ./re.h ./ctype.h
+re1.o: re1.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
+re1.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
+re1.o: ./style.h ./externs.h ./fp.h ./re.h ./ctype.h ./chars.h ./disp.h
+rec.o: rec.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
+rec.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
+rec.o: ./style.h ./externs.h ./fp.h ./rec.h
+scandir.o: scandir.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h
+scandir.o: ./iproc.h ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h
+scandir.o: ./screen.h ./style.h ./externs.h
+screen.o: screen.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h
+screen.o: ./iproc.h ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h
+screen.o: ./screen.h ./style.h ./externs.h ./fp.h ./ctype.h ./termcap.h
+screen.o: ./disp.h
+term.o: term.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
+term.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
+term.o: ./style.h ./externs.h ./fp.h ./termcap.h
+util.o: util.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
+util.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
+util.o: ./style.h ./externs.h ./ctype.h ./termcap.h ./disp.h
+vars.o: vars.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
+vars.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
+vars.o: ./style.h ./externs.h
+version.o: version.c
+wind.o: wind.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
+wind.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
+wind.o: ./style.h ./externs.h ./termcap.h ./chars.h ./disp.h
+getch.o: getch.c ./tune.h ./sysdep.h
+mac.o: mac.c ./tune.h ./sysdep.h
+keymaps.o: keymaps.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h
+keymaps.o: ./iproc.h ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h
+keymaps.o: ./screen.h ./style.h ./externs.h ./list.h ./fp.h ./termcap.h
+keymaps.o: ./chars.h
+pcscr.o: pcscr.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h ./iproc.h
+pcscr.o: ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h ./screen.h
+pcscr.o: ./style.h ./externs.h
+portsrv.o: portsrv.c ./tune.h ./sysdep.h
+recover.o: recover.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h ./io.h
+recover.o: ./iproc.h ./dataobj.h ./keymaps.h ./argcount.h ./util.h ./vars.h
+recover.o: ./screen.h ./style.h ./externs.h ./temp.h ./rec.h ./ctype.h
+setmaps.o: setmaps.c ./funcdefs.c ./jove.h ./tune.h ./sysdep.h ./buf.h ./wind.h
+setmaps.o: ./io.h ./iproc.h ./dataobj.h ./keymaps.h ./argcount.h ./util.h
+setmaps.o: ./vars.h ./screen.h ./style.h ./externs.h ./ctype.h
+teachjove.o: teachjove.c
+kbd.o: kbd.c ./tune.h ./sysdep.h
+# DEPENDENCIES MUST END AT END OF FILE
+# IF YOU PUT STUFF HERE IT WILL GO AWAY
+# see make depend above

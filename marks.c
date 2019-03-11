@@ -9,6 +9,8 @@ int	MarksShouldFloat = 1;
 
 #include "jove.h"
 
+extern void	PtToMark proto((void));
+
 Mark *
 MakeMark(line, column, type)
 register Line	*line;

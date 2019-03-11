@@ -5,6 +5,28 @@
  * included in all the files.                                              *
  ***************************************************************************/
 
+Changes between 4.9 and 4.10:
+
+  New features:
+    1) Reshapeable windows with zoom boxes.
+    2) Filename/directory name completion with macify OFF.
+    3) Double click mouse to set the mark.
+    4) Control-space and control-@ correctly send NUL on MacII/SE.
+    5) Control-` fixed to send backquote char.
+    6) Display update code fixed.
+    
+  Sources:
+    1) Compiles under LSC 3.0. (Probably under 2.13 as well, but
+       not tested with that version).
+    2) Include files redone, with fewer total lines of code.
+    3) No need to modify include files, unless NBUF changed.
+    4) "keymaps.txt" is now "keys.txt".
+    
+  Planned:
+    1) Recover command as separate application.
+    2) Support for MPW compiler vers 2.02.
+    
+   
 Introduction
 
 This file contains a brief description of MacJove, along with
@@ -254,17 +276,6 @@ and add the following files to it:
      --------
      MacTraps          (segment 2)
 
-7) EDIT THE FILE "TUNE.H". The only thing you should have to do with this
-file is to make certain that MAC is defined. Uncomment the following line,
-near the beginning of the file
-
-Change:
-
-  /*#define MAC 1                /* alas, there is no command line for this */
-
-to:
-
-  #define MAC 1	        /* alas, there is no command line for this */
 
 You should not change anything else at this point - unless you want to
 reduce memory requirements (see "Running MacJove", above). If it is
@@ -272,31 +283,37 @@ necessary to reduce the memory requirements, then reduce the number of cache
 buffers, NBUF, which is defined near the end of the file (each buffer takes
 up 1K of space while MacJove is running).
 
-     #ifdef MAC
-     #  undef F_COMPLETION        /* can't do it with spaces in filenames */
-     #  undef CHDIR
-     #  define CHDIR 1
-     #  define rindex strrchr
-     #  define index strchr
-     #  define bzero(s,n) setmem(s,n,0)
-     #  define LINT_ARGS
-     #  define NBUF 64 <----------reduce this if necessary.
-     #  define BUFSIZ 1024
-     #endif
+#ifdef MAC
+# undef F_COMPLETION
+# define F_COMPLETION 1
+# define rindex strrchr
+# define bzero(s,n) setmem(s,n,0)
+# define swritef sprintf
+# define LINT_ARGS 1
+# define NBUF 64 <---- here
+# define BUFSIZ 1024
+# undef LISP
+# define LISP 1
+# define ANSICODES 0
+# undef ABBREV
+# define ABBREV 1
+# undef CMT_FMT
+# define CMT_FMT 1
+#endif
 
-8) MAKE THE "MSETMAPS" PROJECT. Then choose "Build Application",and name it
+7) MAKE THE "MSETMAPS" PROJECT. Then choose "Build Application",and name it
 "setmaps". 
 
-9) RUN "SETMAPS" ON THE KEYMAPS.TXT FILE. You can either run "setmaps" from
+8) RUN "SETMAPS" ON THE KEYMAPS.TXT FILE. You can either run "setmaps" from
 LightspeedC, before closing the project, or as the standalone application.
 When prompted for the "Unix command line", enter:
 
-     < keymaps.txt > keymaps.c
+     < keys.txt > keys.c
 
 You will get a few messages from setmaps that it can't find certain
 commands. You can ignore these.
 
-10) RUN "SETMAPS" ON THE MENUMAPS.TXT FILE. Just as before, run "setmaps"
+9) RUN "SETMAPS" ON THE MENUMAPS.TXT FILE. Just as before, run "setmaps"
 and enter the following command line:
 
      < menumaps.txt > menumaps.c
@@ -304,7 +321,7 @@ and enter the following command line:
 You should not get any messages from setmaps. If the "msetmaps" project is
 still open, close it.
 
-11) CREATE THE "MJOVE" PROJECT. Create a new project, name it "MJOVE" and
+10) CREATE THE "MJOVE" PROJECT. Create a new project, name it "MJOVE" and
 set the Creator (signature) to 'JV01'. Add the following files in the
 following segments:
 
@@ -318,6 +335,7 @@ following segments:
      delete.c
      disp.c
      extend.c
+     keys.c
      --------
      fmt.c
      fp.c
@@ -352,13 +370,13 @@ following segments:
      storage
      strings
 
-12) MAKE THE MJOVE PROJECT. If you experience any errors, it will most
+11) MAKE THE MJOVE PROJECT. If you experience any errors, it will most
 likely be from #include files not being in the default path - see the
 LightspeedC manual on setting up your directories. When you are done,
 run the program from the compiler to verify that it is okay, then save it as
 "MacJove" using the "Build Application" command.
 
-13) (Optional) CREATE THE HELP FILE, "CMDS.DOC". If you do not have a copy
+12) (Optional) CREATE THE HELP FILE, "CMDS.DOC". If you do not have a copy
 of "cmds.doc", it must be created using nroff. Assuming you have the Jove
 sources on a Unix machine, run "Make doc/cmds.doc" to create this file in
 the "doc" subdirectory, then move the file to the Mac. If you obtained the
@@ -367,15 +385,20 @@ file in the same directory that MacJove will be in.
 
                       COMMENTS AND QUESTIONS, BUGS
 
-This is the first version of MacJove to receive widespread use, and problems
-are anticipated. All comments and suggestions are appreciated. Before asking
-for help in making MacJove, make sure you understand the above directions,
-have followed them closely, and have a good copy of the sources. I will try
-to reply to everyone, but have a busy schedule, and cannot guarantee any
-time frame of response. I can promise you, however, that questions received
-via the net or mail will be answered more promptly than those from via US
-Mail. PLEASE DO NOT SEND ME DISKS!
+Although Jove appears to work well on the Mac, I know there are some
+problems. Since Jove cannot effectively use the TextEdit routines, it
+does not comply with some aspects of the Macintosh User Interface
+Guidelines. As has recently been brought to my attention, Jove accesses
+files by pathname only, so that if you have two disks in your machine
+with the same volume (disk) name, it will become confused. This has not
+been fixed. Support for variant keyboards is not good at present.
 
+I try to reply to all inquiries about MacJove, but my schedule is busy,
+and it may be several days before you hear from me on the net. Please
+reply via email to me, or through usenet if possible: the chances that
+I will respond quickly to a written question or suggestion are very
+small, and I am difficult to reach by phone. Please do NOT send disks
+unless I ask you to.
 
     Ken Mitchum
     Decision Systems Laboratory

@@ -43,6 +43,14 @@ char *Joverc = ".joverc";
 
 void putcurs(),curset(),putp(),dellines(),inslines();
 
+static Rect LimitRect;	/* bounds we can't move past */
+
+struct wind_config {
+	int w_width;	/* pixel width of the Mac window */
+	int	w_height;
+	int	w_rows;	/* rows of characters which fit the window */
+	int	w_cols;
+} wc_std, wc_user, *wc;
 
 static WindowPtr theScreen;
 
@@ -54,9 +62,6 @@ int
 	Bufchange,
 	Modechange,
 	Windchange;
-
-
-
 
 /* Initialization Routines. */
 
@@ -124,19 +129,6 @@ void MacInit()
 
 
 /* dummy routines. */
-
-void InitCM()
-{
-}
-
-void ResetTerm(){}
-
-void UnsetTerm(s)
-char *s;
-{
-}
-
-
 
 int dummy(){}
 
@@ -674,7 +666,7 @@ char *dir;
 	return(0);
 }
 
-/* Scandir returns the number of entries or -1 if the directory cannoot
+/* Scandir returns the number of entries or -1 if the directory cannot
    be opened or malloc fails. */
 
 int scandir(dir, nmptr, qualify, sorter) /* this function has NOT been debugged */
@@ -730,7 +722,7 @@ memfail:	complain("[Malloc failed: cannot scandir]");
 		d.dirInfo.ioVRefNum = cur_vol;
 		d.dirInfo.ioDrDirID = DirID;
 		if(PBGetCatInfo(&d,0) != noErr) break;	/* we are done, then */
-		PtoCstr(buf);
+		PtoCstr((char *) buf);
 /*		if(d.dirInfo.ioFlAttrib & 0x10) strcat(buf,"/");*/
 		if (qualify != 0 && (*qualify)((char *) buf) == 0)
 			continue;
@@ -1046,6 +1038,7 @@ void do_events()
 #define INITC 0
 #define EVENTLIST (mDownMask | keyDownMask )
 
+extern int UpdModLine;
 extern long GetCRefCon();	/* omitted in ControlMgr.h */
 
 static Point p;
@@ -1090,9 +1083,9 @@ Window *w;
 	wheight = w->w_height;
 	wtop = w->w_topline;
 	SetRect(&BarRect,window->portRect.right - SCROLLWIDTH + 1,
-		window->portRect.top -1 + wtop * HEIGHT,
+		window->portRect.top -2 + wtop * HEIGHT,
 		window->portRect.right +1,
-		window->portRect.top + ((wheight + wtop) * HEIGHT));
+		window->portRect.top + ((wheight + wtop) * HEIGHT + 1));
 		w->w_control = ((char **) NewControl(window,&BarRect,"/psbar",1,INITC,
 		MINC,MAXC,scrollBarProc,w));
 }
@@ -1111,10 +1104,11 @@ Window *w;
 
 	if(handle == 0) return;
 
-	SizeControl(handle,SCROLLWIDTH,wheight * HEIGHT +1);
+	SizeControl(handle,SCROLLWIDTH,wheight * HEIGHT + 1);
 
 	MoveControl(handle,window->portRect.right - SCROLLWIDTH + 1,
 		window->portRect.top -1 + wtop * HEIGHT);
+
 }
 
 void SetScrollBar(handle)	/* set value of the bar */
@@ -1124,39 +1118,18 @@ ControlHandle handle;
 	SetCtlValue(handle,ltoc());
 }
 
-
-
-static void dodivider()	/* originally to divide windows, but not enough */
-			/* room in between lines, so just put line at bottom */
-{
-	WindowPtr window;
-	PenState pnState;
-
-	window = theScreen;
-	GetPenState(&pnState);
-	MoveTo(0,((MAXROW) * HEIGHT));
-	PenSize(1,1);
-	LineTo(window->portRect.right,(MAXROW) * HEIGHT);
-	SetPenState(&pnState);
-	return;
-}
-
 static void drawfluff()		/* draw controls and dividers */
 {
-	WindowPtr window;
 	Window *w = fwind;
 
-	window = theScreen;
-	DrawControls(window);
-
-	dodivider();
+	DrawControls(theScreen);
+	DrawGrowIcon(theScreen);
 }
 
 void RemoveScrollBar(w)
 Window *w;
 {
 	if(w->w_control) DisposeControl(w->w_control);
-	dodivider();		/* erase the divider */
 	w->w_control = 0;
 
 }
@@ -1266,12 +1239,79 @@ WindowPtr window;
 	}
 }
 
+#define std_state(w) (*((WStateData **)((WindowPeek)w)->dataHandle))->stdState
+#define user_state(w) (*((WStateData **)((WindowPeek)w)->dataHandle))->userState
+
+static void doDrag(event,window)
+EventRecord *event;
+WindowPtr window;
+{
+	Rect old_std;
+	
+	old_std = std_state(window);
+		
+
+	DragWindow(window, event->where, &LimitRect);
+	if(wc == &wc_std) {
+		wc_user = wc_std;
+		user_state(theScreen) = std_state(theScreen);
+		ZoomWindow(window,7,1);
+		wc = &wc_user;
+		Reset_std();
+	}
+}
+
+static void doGrow(event,window)
+EventRecord *event;
+WindowPtr window;
+{
+	long size;
+
+	/* zero means user didn't change anything */
+	if(size = GrowWindow(window, event->where, &LimitRect)) {
+		if(wc == &wc_std) {
+			wc_user = wc_std;
+			user_state(theScreen) = std_state(theScreen);
+			ZoomWindow(window,7,1);
+			wc = &wc_user;
+			Reset_std();
+		}
+		if(wc_adjust(LoWord(size),HiWord(size),wc,0)) {
+			EraseRect(&window->portRect);
+			SizeWindow(window,wc->w_width,wc->w_height,TRUE);
+			win_reshape();	/* no signals here... */
+		}
+	}
+}
+
+static void doZoomIn(event,window)
+EventRecord *event;
+WindowPtr window;
+{
+	if(TrackBox(window, event->where, 7) == TRUE){
+			EraseRect(&window->portRect);
+			ZoomWindow(window,7,1);
+			wc = &wc_user;
+			win_reshape();	/* we do our own toggle, not ZoomWindow() */
+		}	
+}
+static void doZoomOut(event,window)
+EventRecord *event;
+WindowPtr window;
+{
+	if(TrackBox(window, event->where, 8) == TRUE) {
+			EraseRect(&window->portRect);
+			ZoomWindow(window,8,1);
+			wc = &wc_std;
+			win_reshape();	/* we do our own toggle, not ZoomWindow() */
+		}	
+}
 
 static void doGoAway(event,window)
 EventRecord *event;
 WindowPtr window;
 {
-	if(TrackGoAway(window,&event->where) == TRUE) Leave();
+	if(TrackGoAway(window, event->where) == TRUE) Leave();
 }
 
 static Window *rtowind(row)	/* return jove window row is in */
@@ -1301,8 +1341,12 @@ int row;
 static int findtext()		/* locate and move the point to match the mouse */
 {
 	int row,col;
+	long ticks;
+	EventRecord event;
 	Window *w;
 	Line *l;
+	
+	ticks = Ticks;
 	ptoxy(p,&row,&col);
 	if((w = rtowind(row)) == 0) return(0);
 	if(w != curwind) SetWind(w);
@@ -1315,6 +1359,12 @@ static int findtext()		/* locate and move the point to match the mouse */
 	if(w->w_flags & W_NUMLINES) col -= 8;	/* adjust for line numbers */
 	if(col < 0) col = 0;
 	curchar = how_far(curline, col);
+	do {
+		if(GetNextEvent(mUpMask,&event) && (event.when < ticks + DoubleTime)) {
+			set_mark();
+			break;
+		}
+	} while ((Ticks - ticks) < DoubleTime);
 	return(1);
 }
 
@@ -1342,7 +1392,7 @@ int *row,*col;
 #define SYS_ID 100
 #define NOFUNC (void (*)()) 0
 #define NEVENTS 16
-static int firsttime = 0;
+
 extern void doMouse(),dokeyDown(),doUpdate(),doActivate();
 static MenuHandle SysMenu;
 static void (*eventlist[])() =
@@ -1369,8 +1419,6 @@ static void (*eventlist[])() =
 
 static void CheckEvents()
 {
-#define Ticks (long *) 0x16A
-
 	void SetBufMenu(),
 		MarkModes();
 
@@ -1399,8 +1447,8 @@ static void CheckEvents()
 		}
 		SystemTask();
 	}
-	if((*Ticks - time) > 3600) {
-		time = *Ticks;
+	if((Ticks - time) > 3600) {
+		time = Ticks;
 		UpdModLine = YES;
 		redisplay();
 	}
@@ -1418,17 +1466,20 @@ static void InitSysMenu()
 	DrawMenuBar();
 }
 
-extern void doWind(),doGoAway(),doSysMenu(),doSysClick();
-#define NMEVENTS 7
+extern void doWind(),doGoAway(),doSysMenu(),doSysClick(),
+	 doDrag(), doGrow(), doZoomIn(), doZoomOut();
+#define NMEVENTS 9
 static void (*mouselist[])() =
 {
 	NOFUNC, /* inDesk */
 	doSysMenu, /* inMenuBar */
 	doSysClick, /* inSysWindow */
 	doWind, /* inContent */
-	NOFUNC, /* inDrag */
-	NOFUNC, /* inGrow */
-	doGoAway /* inGoAwa */
+	doDrag, /* inDrag */
+	doGrow, /* inGrow */
+	doGoAway, /* inGoAway */
+	doZoomIn,	/* inZoomIn */
+	doZoomOut	/* inZoomOut */
 };
 
 
@@ -1477,7 +1528,6 @@ WindowPtr window;
 	else ProcMenu(Menu,Item);
 	HiliteMenu(0);
 	EventCmd = 1;
-
 	menus_on();
 	return;
 
@@ -1491,7 +1541,6 @@ WindowPtr window;
 }
 
 
-
 static void doUpdate(event)
 EventRecord *event;
 {
@@ -1499,26 +1548,12 @@ EventRecord *event;
 
 	theWindow = (WindowPtr) event->message;
 
-	if(firsttime == 0) {
-		firsttime++;
-		BeginUpdate(theWindow);
-		EndUpdate(theWindow);
-		return;
-	}
-
-/*	redisplay(); */
 	GetPort(&oldPort);
 	SetPort(theWindow);
 	BeginUpdate(theWindow);
-	if(theWindow == theScreen && Windchange == 0
-		&& Keyonly == 0) {
-		Placur(0,0);
-		drawfluff();
-		cl_scr(1);
-		redisplay();
-	}
+	p_refresh();
+	drawfluff();
 	EndUpdate(theWindow);
-
 	SetPort(oldPort);
 }
 
@@ -1569,14 +1604,12 @@ EventRecord *event;
 
 	c  = (char)((event->message)&(charCodeMask));
 
-	if(c == '`') c = '\033';	/* for those used to escapes */
-
 	mods = event->modifiers;
 
 #ifdef O_META
-	if (mods & (optionKey | cmdKey)) {
+	if (mods & (optionKey | cmdKey | controlKey)) {
 #else
-	if (mods & (cmdKey)) {
+	if (mods & (cmdKey | controlKey)) {
 #endif
 /*		if(mods & shiftKey)
 			c  = sh_keycodes[(((event->message)&(keyCodeMask))>>8)];
@@ -1592,10 +1625,14 @@ EventRecord *event;
 		else
 #endif
 		{	/* command key (control key) */
-			if((c == '2') || (c == '\\')) c = 0;	/* so we have a null char */
+			if((c == '2') || (c == '\\') || (c == ' ')) c = 0;	/* so we have a null char */
 			if(c != '`') c &= 0x1f;		/* make a control char */
 		}
 	}
+	else {
+		if(c == '`') c = '\033';	/* for those used to escapes */
+	}
+
 	charbuf[cptr++] = c;
 	cptr &= NMASK;
 	nchars++;
@@ -1892,13 +1929,15 @@ int menu;
 void menus_off()
 {
 	int i;
-
 	if(Keyonly || EventCmd) return;
+	
+#ifdef MENU_DISABLE		/* NOBODY likes this, but it's here if you want it... */
 	DisableItem(SysMenu,0);
 	for(i = 0; i < NMENUS; i++)
 		if(Menus[i].Mn) DisableItem(Menus[i].Mn,0);
-	Keyonly = 1;
 	DrawMenuBar();
+#endif
+	Keyonly = 1;
 }
 
 void menus_on()
@@ -1906,11 +1945,13 @@ void menus_on()
 	int i;
 
 	if(Keyonly == 0) return;
+#ifdef MENU_DISABLE
 	EnableItem(SysMenu,0);
 	for(i = 0; i < NMENUS; i++)
 		if(Menus[i].Mn) EnableItem(Menus[i].Mn,0);
-	Keyonly = 0;
 	DrawMenuBar();
+#endif
+	Keyonly = 0;
 }
 
 static char *BufMPrint(b,i)
@@ -2119,40 +2160,9 @@ int top, bottom, num;
 	inslines(num,bottom);
 }
 
-
-void clr_page()
-{
-	void wipescreen();
-
-	wipescreen();
-}
-
-void clr_eoln()
-{
-	void wipeline();
-
-	wipeline();
-}
-
-void SO_on()
-{
-	void HLmode();
-
-	HLmode(1);
-}
-
-void SO_off()
-{
-	void HLmode();
-
-	HLmode(0);
-}
-
-
 /* (ORIGINALLY IN) tn.c   */
 /* window driver for MacIntosh using windows. */
 /* K. Mitchum 9/86 */
-
 
 
 /*#define VARFONT*/
@@ -2168,20 +2178,47 @@ static height,width,theight,twidth,descent;
 
 static trow,tcol, insert, tattr, cursor;
 static Rect cursor_rect;
-
+static char *p_scr, *p_curs;	/* physical screen and cursor */
+static int p_size;
 
 static Rect  vRect;
 static WindowRecord myWindowRec;
-static Rect myBoundsRect;
-
 
 #define active() SetPort(theScreen)
-/*#define active()*/
 #define maxadjust(r) OffsetRect(r,0,2);
+
+char *conv_p_curs(row,col) 
+{
+	return(p_scr + (row * (CO)) + col);
+}
+
+static void INSmode(new)
+int new;
+{
+	insert = new;
+}
+
+static void HLmode(new)
+int new;
+{
+	if(new) tattr = 1;
+	else tattr = 0;
+}
+void SO_on()
+{
+	HLmode(1);
+}
+
+void SO_off()
+{
+	HLmode(0);
+}
+
+
 static void tn_init()
 {
 	void INSmode(),
-		init_slate();
+	init_slate();
 
 	HLmode(0);
 	INSmode(0);
@@ -2189,10 +2226,11 @@ static void tn_init()
 	ShowPen();
 }
 
-static void wipescreen()	/* clear and home function */
+void clr_page()	/* clear and home function */
 {
 	Rect r;
 
+	setmem(p_scr,p_size,' ');
 	active();
 	SetRect(&r, 0,0,WINDWIDTH,WINDHEIGHT);
 	EraseRect(&r);
@@ -2204,28 +2242,32 @@ static void wipescreen()	/* clear and home function */
 static void putcurs(row,col,vis)
 unsigned row, col, vis;
 {
-/*	if(row > MAXROW || col > MAXCOL) return(ERROR);*/
-/*	if(row != trow || col != tcol) */{
-		active();
-		curset(OFF);
-		if(row == MAXROW)
-			MoveTo(col * width, (row  +1) * height + 2 -descent );
-		else
-			MoveTo(col * width, (row  +1) * height - descent);
-		trow = row;
-		tcol = col;
-		curset(vis);
-	}
+	active();
+	curset(OFF);
+	trow = row;
+	tcol = col;
+	curset(vis);
 }
 
 static void curset(desired)
 {
-	if(cursor != desired) {
+	p_curs = conv_p_curs(trow,tcol);
+	if(trow == MAXROW)
+		MoveTo(tcol * width, (trow  +1) * height + 2 -descent );
+	else
+		MoveTo(tcol * width, (trow  +1) * height - descent);
+
+	DrawChar(*p_curs);
+
+	if(desired == ON) {
 		SetRect(&cursor_rect, tcol * width, (trow) * height , (tcol + 1) * width - 1, (trow +1) * height -1);
 		if(trow == MAXROW) maxadjust(&cursor_rect);
 		InvertRect(&cursor_rect);
-		cursor = desired;
 	}
+	if(trow == MAXROW)
+		MoveTo(tcol * width, (trow  +1) * height + 2 -descent );
+	else
+		MoveTo(tcol * width, (trow  +1) * height - descent);
 }
 
 
@@ -2245,12 +2287,14 @@ int p;
 		DisposeRgn(updateRgn);
 	}
 	if(p == '0') p = 0xAF;	/* slashed zero */
+	if(insert) BlockMove(p_curs, p_curs + 1, (long) (MAXCOL - tcol));
+	*p_curs = (char) p;
 	DrawChar(p);
 	if(tcol >= MAXCOL) putcurs(trow,MAXCOL);
 	else putcurs(trow,tcol +1);
 }
 
-static void wipeline()
+void clr_eoln()
 {
 		static Rect r;
 
@@ -2259,6 +2303,7 @@ static void wipeline()
 		SetRect(&r, tcol * width, trow * height, WINDWIDTH, (trow +1) * height);
 		if(trow == MAXROW) maxadjust(&r);
 		EraseRect(&r);
+		setmem(p_curs,CO - tcol, ' ');
 		curset(ON);
 }
 
@@ -2267,14 +2312,16 @@ static void delchars()
 		static Rect r;
 		static RgnHandle updateRgn;
 
-		active();
-		curset(OFF);
-		updateRgn = NewRgn();
-		SetRect(&r, tcol * width, trow * height, twidth - width, (trow +1) * height);
-		if(trow == MAXROW) maxadjust(&r);
-		ScrollRect(&r, 0 - width, 0, updateRgn);
-		DisposeRgn(updateRgn);
-		curset(ON);
+	active();
+	curset(OFF);
+	updateRgn = NewRgn();
+	SetRect(&r, tcol * width, trow * height, twidth - width, (trow +1) * height);
+	if(trow == MAXROW) maxadjust(&r);
+	ScrollRect(&r, 0 - width, 0, updateRgn);
+	DisposeRgn(updateRgn);
+	BlockMove(p_curs + 1, p_curs, (long) (MAXCOL - tcol));
+	*(conv_p_curs(trow,MAXCOL)) = ' ';
+	curset(ON);
 }
 
 static void dellines(n,bot)
@@ -2282,6 +2329,7 @@ int n,bot;
 {
 	Rect r;
 	RgnHandle updateRgn;
+	long len;
 
 	updateRgn = NewRgn();
 	active();
@@ -2289,8 +2337,10 @@ int n,bot;
 	SetRect(&r, 0, ((trow) * height), WINDWIDTH, ((bot + 1) * height));
 	ScrollRect(&r, 0, 0 - (n * height), updateRgn);
 	DisposeRgn(updateRgn);
+	len = ((bot - trow - n + 1) * CO);
+	BlockMove(conv_p_curs((trow + n),0), conv_p_curs(trow,0), len);
+	setmem(conv_p_curs((bot - n + 1),0),(n * CO),' ');
 	putcurs(trow,0);
-
 }
 
 static void inslines(n,bot)
@@ -2298,6 +2348,7 @@ int n,bot;
 {
 	Rect r;
 	RgnHandle updateRgn;
+	long len;
 
 	updateRgn = NewRgn();
 	active();
@@ -2305,20 +2356,10 @@ int n,bot;
 	SetRect(&r, 0, trow * height, WINDWIDTH, (bot +1) * height);
 	ScrollRect(&r, 0, (n * height), updateRgn);
 	DisposeRgn(updateRgn);
+	len = ((bot - trow - n +1) * CO);
+	BlockMove(conv_p_curs(trow,0), conv_p_curs((trow + n),0), len);
+	setmem(conv_p_curs(trow,0),(n * CO),' ');
 	putcurs(trow,0);
-}
-
-static void INSmode(new)
-int new;
-{
-	insert = new;
-}
-
-static void HLmode(new)
-int new;
-{
-	if(new) tattr = 1;
-	else tattr = 0;
 }
 
 void writechr(start)
@@ -2329,7 +2370,7 @@ char *start;	/* actually, a Str255 type string */
 	register len;
 	register char save;
 
-	len = (int) start[0];		/* adjusted 6/86 K. M. in td.c*/
+	len = (int) start[0] & 0xff;		/* adjusted 6/86 K. M. in td.c*/
 
 	active();
 	curset(OFF);
@@ -2341,24 +2382,19 @@ char *start;	/* actually, a Str255 type string */
 		DisposeRgn(updateRgn);
 	}
 	DrawString(start);
-
+	if(insert) BlockMove(p_curs,p_curs + len, (long) (CO - tcol - len));
+	strncpy(p_curs,start + 1,len);
 	if(tcol >= MAXCOL) putcurs(trow,MAXCOL);
 	else putcurs(trow,tcol +len);
 }
 
-
-
-static void reset(){}
-static void blanks(){}
-static void cleanup() {}
-
-
+static Rect myBoundsRect;
 static void init_slate()
 {
 	FontInfo f;
 
 	extern char *version;
-	char *Name = "MacJove ";
+	char *Name = "Jove ";
 	char *Title;
 
 	InitGraf(&thePort);
@@ -2368,31 +2404,30 @@ static void init_slate()
 	InitMenus ();
 	InitDialogs ((ProcPtr) 0);		/* no restart proc */
 
-	tn_left = screenBits.bounds.left + 3;
-	tn_top =  screenBits.bounds.top + 40;
+	/* figure limiting rectangle for window moves */
+	SetRect(&LimitRect,
+		screenBits.bounds.left + 3,
+		screenBits.bounds.top + 20,
+		screenBits.bounds.right - 3,
+		screenBits.bounds.bottom -3);
 
-	tn_rows = (screenBits.bounds.bottom - 3 - tn_top) / HEIGHT;
-	tn_cols = (screenBits.bounds.right - 3 - tn_left - SCROLLWIDTH) / WIDTH;
-	tn_right = tn_left + tn_cols * WIDTH + SCROLLWIDTH;
-	tn_bottom = tn_top + tn_rows * HEIGHT + 2;
-	tn_cols++;	/* kludge to get jove to use last col */
+	Set_std();
+	SetBounds();
 
-	LI = tn_rows;
-	CO = tn_cols;
-	MAXROW = tn_rows -1;
-	MAXCOL = tn_cols -1;
-
-	SetRect(&myBoundsRect,tn_left,tn_top,tn_right,tn_bottom);
-
+	/* initialize char array for updates */
+	p_scr = emalloc(p_size = wc_std.w_cols * wc_std.w_rows);	/* only once */
+	p_curs = p_scr;
+	
 	Title = sprint("%s%s",Name,version);
 	theScreen = NewWindow(&myWindowRec, &myBoundsRect,CtoPstr(Title),
-		1,noGrowDocProc,(WindowPtr) -1, 1, (long) 0);
+		1,8,(WindowPtr) -1, 1, (long) 0);
 
-
-
+	/* figure an initial window configuration and adjust it */
+	wc = &wc_std;
+	wc_user = wc_std;	/* initially, only one configuration to toggle */
+	user_state(theScreen) = std_state(theScreen);
 	SetPort(theScreen);
 
-/*	SetOrigin(-3,-1);*/
 	(theScreen)->txFont = FONT;
 	(theScreen)->txSize = TEXTSIZE;
 
@@ -2400,18 +2435,91 @@ static void init_slate()
 	GetFontInfo(&f);
 		height = f.ascent+f.descent+f.leading;
 		width = f.widMax;
-		twidth = width * tn_cols;
-		theight = height * tn_rows;
+		twidth = width * wc->w_cols;
+		theight = height * wc->w_rows;
 		descent = f.descent;
 #endif
 
-/*	(theScreen)->lineHeight = height;
-	(theScreen)->fontAscent = ASCENT;*/
 	theScreen->txMode = patCopy;
 	theScreen->pnMode = patCopy;
 	PenNormal();
 	cursor = OFF;
 }
+
+p_refresh()
+{
+	int lineno;
+	char *curs, *buf;
+
+	buf = malloc(CO + 1);
+	for(lineno = 0; lineno < LI; lineno++) {
+		curs = conv_p_curs(lineno,0);
+		if(lineno == MAXROW)
+			MoveTo(0, (lineno  +1) * height + 2 -descent );
+		else
+			MoveTo(0, (lineno  +1) * height - descent);
+		strncpy(buf + 1, curs, CO);
+		buf[0] = (char) CO;
+		DrawString(buf);
+	}
+	putcurs(trow,tcol,0);
+	free(buf);
+}
+
+
+
+
+
+wc_adjust(w,h,wcf,init)		/* adjust window config to look nice */
+struct wind_config *wcf;
+{
+	static int LIMIT_R, LIMIT_C;
+	int rows, cols;
+
+	if(init) {
+		LIMIT_R = (h - 4) / HEIGHT;
+		LIMIT_C = (w - SCROLLWIDTH - 1) / WIDTH + 1;
+	}
+	if((w < WIDTH * 40) ||(h < HEIGHT * 10)	/* too small */
+		|| ((rows = (h - 4) / HEIGHT) > LIMIT_R)	/* too big */	
+		|| ((cols = (w - SCROLLWIDTH - 1) / WIDTH + 1) > LIMIT_C)) return(0);
+
+	wcf->w_rows = rows;
+	wcf->w_cols = cols;
+	wcf->w_width = wcf->w_cols * WIDTH + 1 + SCROLLWIDTH;
+	wcf->w_height = wcf->w_rows * HEIGHT + 4;
+	return(1);
+}
+
+getCO()	/* so that jove knows params */
+{
+	return wc->w_cols;
+}
+
+getLI()
+{
+	return wc->w_rows;
+}
+
+static SetBounds()
+{
+	SetRect(&myBoundsRect,
+		screenBits.bounds.left + 3,
+		screenBits.bounds.top + 40,
+		screenBits.bounds.left + 3 + wc_std.w_width,	
+		screenBits.bounds.top + 40 + wc_std.w_height);
+}
+
+static Set_std()
+{
+	wc_adjust(screenBits.bounds.right - screenBits.bounds.left - 6,	
+		screenBits.bounds.bottom - screenBits.bounds.top - 42,
+		&wc_std,1);
+}
+
+static Reset_std()
+{
+	Set_std();
+	std_state(theScreen) = myBoundsRect;
+}
 #endif /* MAC */
-
-
