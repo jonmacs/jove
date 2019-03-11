@@ -783,17 +783,15 @@ struct rec_head *rec;
 
 	setbuf(mail_pipe, mail_cmd);
 	/* Let's be grammatically correct! */
-	if (rec->Nbuffers == 1)
-		buf_string = "buffer";
-	else
-		buf_string = "buffers";
-	fprintf(mail_pipe, "Subject: System crash\n");
+	buf_string = rec->Nbuffers == 1? "buffer" : "buffers";
+	fprintf(mail_pipe, "Subject: Jove saved %d %s after \"%s\" crashed\n",
+		rec->Nbuffers, buf_string, hname());
 	fprintf(mail_pipe, " \n");
 	fprintf(mail_pipe, "Jove saved %d %s when the system \"%s\"\n",
-	 rec->Nbuffers, buf_string, hname());
+		rec->Nbuffers, buf_string, hname());
 	fprintf(mail_pipe, "crashed on %s\n\n", last_update);
 	fprintf(mail_pipe, "You can retrieve the %s using Jove's -r\n",
-	 buf_string);
+		buf_string);
 	fprintf(mail_pipe, "(recover option) i.e. give the command.\n");
 	fprintf(mail_pipe, "\tjove -r\n");
 	fprintf(mail_pipe, "See the Jove manual for more details\n");

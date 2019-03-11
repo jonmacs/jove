@@ -5,7 +5,7 @@
 # For example, macros are expanded even in comments!
 
 # This version number must be kept in sync with version.h.
-%define jversion 4.16.0.72
+%define jversion 4.16.0.73
 
 # configflags: flags passed to each make to configure for LINUX.
 # The choices are explained in Makefile and sysdep.doc.
@@ -21,12 +21,12 @@
 # description of xterm.  Use libcurses to avoid the bug.
 # See <http://bugs.mandrakelinux.com/query.php?bug=233>
 
-# Older Red Hat (eg. 5.2):
-#define configflags -C jove%{jversion} SYSDEFS="-DBSDPOSIX -DIPROC_TERM='\\"TERM=vanilla\\"'" TROFF=groff TROFFPOST=""
-# Recent Red Hat (eg. 6.0 - Fedora Core 1):
-%define configflags -C jove%{jversion} SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500 -DIPROC_TERM='\\"TERM=vanilla\\"'" TROFF=groff TROFFPOST=""
+# Pre 1999 Red Hat Linux (eg. RHL5.2):
+#define configflags -C jove%{jversion} SYSDEFS="-DBSDPOSIX -DIPROC_TERM='\\"TERM=vanilla\\"'" NROFF="nroff -Tascii" TROFF=groff TROFFPOST=""
+# 1999 or later Red Hat (eg. RHL6.0, Fedora Core 1, RHEL, CentOS):
+%define configflags -C jove%{jversion} SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500 -DIPROC_TERM='\\"TERM=vanilla\\"'" NROFF="nroff -Tascii" TROFF=groff TROFFPOST=""
 # To use libcurses instead of termcap (eg. Mandrake 9.2):
-#define configflags -C jove%{jversion} SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500 -DIPROC_TERM='\\"TERM=vanilla\\"'" TERMCAPLIB="-lncurses" TROFF=groff TROFFPOST=""
+#define configflags -C jove%{jversion} SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500 -DIPROC_TERM='\\"TERM=vanilla\\"'" TERMCAPLIB="-lncurses" NROFF="nroff -Tascii" TROFF=groff TROFFPOST=""
 
 Summary: Jonathan's Own Version of Emacs
 Name: jove
@@ -97,6 +97,12 @@ rm -rf $RPM_BUILD_ROOT
 #make JOVEHOME=$RPM_BUILD_ROOT/usr LIBDIR=$RPM_BUILD_ROOT%{_libdir}/jove SHAREDIR=$RPM_BUILD_ROOT%{_datadir}/jove MANDIR=$RPM_BUILD_ROOT%{_mandir}/man1 OPTFLAGS="%{optflags}" %{configflags} clean
 
 %changelog
+* Sun Jul 11 2010 D. Hugh Redelmeier 4.16.0.73
+- added NROFF="nroff -Tascii" to Makefile and jove.spec to force groff to use ASCII
+- spelling corrections [Cord Beermann]
+- remove -lolgx from xjove link [Cord Beermann]
+- improve recover's email Subject [Cord Beermann]
+
 * Mon May 24 2010 D. Hugh Redelmeier 4.16.0.72
 - eliminate strcpy and byte_copy calls with overlapping source and destination
 - fix setmaps.c misuse of fprintf

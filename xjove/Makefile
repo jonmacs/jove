@@ -85,7 +85,7 @@ jovetool.o:	jovetool.c exts.h mousemsg.h $(ICONS)
 jovewindows.o:	jovewindows.c jovemenu.c exts.h jovewindows.h ../tune.h
 
 xjove:	xjove.o xjovewindows.o
-		$(CC) $(OPTFLAGS) $(LDFLAGS) $(XJLDFLAGS) -o xjove xjove.o xjovewindows.o -lxview -lolgx -lX11
+		$(CC) $(OPTFLAGS) $(LDFLAGS) $(XJLDFLAGS) -o xjove xjove.o xjovewindows.o -lxview -lX11
 
 xjove.o:	xjove.c exts.h mousemsg.h $(ICONS)
 		$(CC) $(CFLAGS) $(XJCFLAGS) -c xjove.c

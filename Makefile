@@ -229,6 +229,7 @@ OBJECTS = $(BASESEG) $(OVLAY1) $(OVLAY2) $(OVLAY3) $(OVLAY4) $(OVLAY5)
 
 # These TROFF and TROFFPOST settings work with ditroff.
 # For groff:
+#	NROFF = nroff -Tascii
 #	TROFF = groff
 #	TROFFPOST =
 NROFF = nroff
