@@ -5,7 +5,7 @@
 # For example, macros are expanded even in comments!
 
 # This version number must be kept in sync with version.h.
-%define jversion 4.16.0.65
+%define jversion 4.16.0.66
 
 # configflags: flags passed to each make to configure for LINUX.
 # The choices are explained in Makefile and sysdep.doc.
@@ -32,7 +32,8 @@ Summary: Jonathan's Own Version of Emacs
 Name: jove
 Version: %{jversion}
 Release: 1
-Copyright: Copyright (C) 1986-2002 by Jonathan Payne, freely redistributable
+# Older RPM uses Copyright tag instead of License tag
+License: Copyright (C) 1986-2002 by Jonathan Payne, freely redistributable
 Packager: jovehacks@cs.toronto.edu
 Group: Applications/Editors/Emacs
 Source: ftp://ftp.cs.toronto.edu/pub/hugh/jove-dev/jove%{jversion}.tgz

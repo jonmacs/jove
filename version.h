@@ -7,11 +7,14 @@
 
 /* Note: jove.spec must be updated when version number changes */
 
-#define	jversion     "4.16.0.65" /* 2004 July 11 */
-#define	jversion_lnum 4,16,0,65  /* list-of-numbers form for Win32 jjove.rc */
+#define	jversion     "4.16.0.66" /* 2005 May 14 */
+#define	jversion_lnum 4,16,0,66  /* list-of-numbers form for Win32 jjove.rc */
 
 /*
  * $Log: version.h,v $
+ * Revision 1.416  2005/05/14 17:46:43  hugh
+ * rpmbuild now requires "License" tag in place of "Copyright" tag in .spec
+ *
  * Revision 1.415  2004/07/11 20:04:32  hugh
  * - dodge yet another xterm bug in hilite mode
  * - set default buffer size to 4kB (ups line length limit to same)

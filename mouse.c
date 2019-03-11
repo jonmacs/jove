@@ -272,7 +272,7 @@ int
  * so we have to refine our work-around: make sure that the
  * character to be ignored has no semantics (DEL).
  *
- * [2004 July 11] XFree86's xtern no longer ignores DEL!
+ * [2004 July 11] XFree86's xterm no longer ignores DEL!
  * This is an xterm bug.  A fix to xterm has been accepted
  * by XFree86 and been submitted to x.org.  Even so,
  * this bug will be in the field for a long time, so we
