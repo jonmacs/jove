@@ -79,6 +79,7 @@ tested on 2.9bsd, and not recently.  It worked pretty well, actually,
 and it was possible to turn on all the compile time options with this
 version.
 
+For LINUX, jove.spec is provided to specify how an RPM should be created.
 
 Some features.
 --------------

@@ -313,26 +313,18 @@ const char	*complaint;
 	 * because they create the tempfile with 0600,
 	 * but old ones use 0666.  Making the umask 0077 should
 	 * solve this.
-	 * Assumption: no other part of JOVE changes umask, so
-	 * we can remember if it was OK from a previous call.
 	 */
+	int/*mode_t*/ saved_umask
 #ifdef S_IRWXG
-#	define SAFE_UMASK (S_IRWXG | S_IRWXO)
+		= umask(S_IRWXG | S_IRWXO);
 #else
-#	define SAFE_UMASK 077
+		= umask(077);
 #endif
-	static int/*mode_t*/ running_umask = 0;
-	int fd;
+	int fd = mkstemp(buf);
+	int saved_errno = errno;
 
-	if (running_umask != SAFE_UMASK)
-		running_umask = umask(SAFE_UMASK);
-	fd = mkstemp(buf);
-	if (running_umask != SAFE_UMASK) {
-		int saved_errno = errno;
-
-		(void) umask(running_umask);
-		errno = saved_errno;
-	}
+	(void) umask(saved_umask);
+	errno = saved_errno;
 	if (fd == -1) {
 		complain(complaint, buf);
 		/*NOTREACHED*/

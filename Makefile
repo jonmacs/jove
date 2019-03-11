@@ -254,7 +254,8 @@ DOCS =	doc/README doc/teach-jove doc/jove.qref \
 	doc/jove.rc doc/example.rc $(DOCTERMS)
 
 MISC =	Makefile Makefile.bcc Makefile.msc Makefile.wat Makefile.zor \
-	README README.dos README.mac README.w32 README.c32 sysdep.doc tune.doc
+	README README.dos README.mac README.w32 README.c32 \
+	sysdep.doc tune.doc jove.spec
 
 SUPPORT = teachjove.c recover.c setmaps.c portsrv.c keys.txt \
 	menumaps.txt mjovers.Hqx jjoveico.uue jjove.rc
