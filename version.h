@@ -7,11 +7,14 @@
 
 /* Note: jove.spec must be updated when version number changes */
 
-#define	jversion     "4.16.0.67" /* 2005 May 14 */
-#define	jversion_lnum 4,16,0,67  /* list-of-numbers form for Win32 jjove.rc */
+#define	jversion     "4.16.0.68" /* 2005 Sept 28 */
+#define	jversion_lnum 4,16,0,68  /* list-of-numbers form for Win32 jjove.rc */
 
 /*
  * $Log: version.h,v $
+ * Revision 1.418  2005/09/28 18:41:49  hugh
+ * Work around an xterm / termcap / terminfo bug involving SR.
+ *
  * Revision 1.417  2005/05/14 20:29:03  hugh
  * Generalize tags code to handle bizarre the mutations of tagfile format.
  * Contributed by Mark Moraes; "improved" by DHR.

@@ -184,8 +184,8 @@ WARNING: On BSD systems, there is a dangerous security hole in the PTY
 system.  Although JOVE (or any other non-privileged program) can
 allocate a PTY, it cannot change the ownership or permissions to
 prevent other processes run by other users from mucking with the same
-PTY.  An example of such mischief is that someone else could arrange
-trick your JOVE to run a shell command for him but as you!  The
+PTY.  An example of such mischief is that someone else could trick
+your JOVE into running a shell command for him but as you!  The
 traditional way to allocate a PTY is to search through search through
 /dev/pty[p-s][0-9a-f] for a free one, and use that.  Modern BSD
 systems have added a new library routine "openpty(3)" which could be
