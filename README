@@ -41,6 +41,8 @@ LINUX:
     make SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500" install
     If this fails because the system doesn't have -ltermcap, try:
     make SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500" TERMCAPLIB=-lncurses install
+    or, if the system has ncursesw instead of ncurses,
+    make SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500" TERMCAPLIB=-lncursesw install
 
 Solaris:
   make SYSDEFS="-DSYSVR4" install
@@ -49,9 +51,14 @@ Other systems:
   Read comments about SYSDEFS settings in Makefile
 
 Some systems have dropped the termcap library.  The curses (or
-ncurses) library is much fatter than termcap, but will do.
+ncurses or ncursesw) library is much fatter than termcap, but will do.
 If ld complains that there is no -ltermcap, add TERMCAPLIB=-lcurses.
 If ld then complains that there is no -lcurses, try TERMCAPLIB=-lncurses.
+If ld then complains that there is no -lncurses, try TERMCAPLIB=-lncursesw.
+You might need to use your package manager to install ncurses or ncursesw
+as well as the terminfo database (e.g. called ncurses-terminfo-base
+or ncurses-base or ncurses-term) to get the relevant terminal
+descriptions.
 
 When in doubt, read the rest of this document.
 
@@ -137,6 +144,18 @@ For LINUX, jove.spec is provided to specify how an RPM should be created.
 On Red Hat LINUX 7.x, 8.0, and 9, "rpmbuild -ta jove*.tgz" will build
 source and binary RPMs -- rpm looks inside the .tgz to find jove.spec.
 
+It is possible to build a widely portable Linux binary using
+static compilation, perhaps using the musl library to keep
+size small.  E.g., using the small Alpine Linux docker image,
+one can use:
+
+docker pull alpine:3.9  # 3.10 does not seem to have static musl
+apk add gcc musl-dev make ncurses-static
+make 'CC=gcc --static' OPTFLAGS=-O3 SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500" TERMCAPLIB=-lncursesw
+To run it, need
+apk add ncurses-terminfo-base
+The resulting jjove can be run standalone pretty-much anywhere,
+though the doc/jove.rc file might also be useful.
 
 Some features.
 --------------
@@ -322,10 +341,13 @@ designed to recognize the mouse events coded by Xterm.  These facilities
 are not nearly as extensive or convenient as those provided via xjove or
 jovetool.
 
-Within SHELL windows, the TERM environment variable is now set to "emacs",
+Within SHELL windows, the TERM environment variable is now set to "dumb",
 mainly to discourage running programs which might have depended on something
-else.  Some shells (tcsh, for example) have specific provisions for the emacs
-terminal type.
+else.  Some shells (tcsh, for example) might prefer the emacs
+terminal type;  JOVE also sets the INSIDE_JOVE variable, which can
+be used to set things up for shells, as well as the proc-env-export,
+and proc-env-unset commands for subshells and corresponding
+iproc-env-export and iproc-env-unset commands for interactive processes.
 
 By default, commands requiring a "y" or "n" response require a Return as
 well.  When variable "one-key-confirmation" is set "on", a single
@@ -419,9 +441,9 @@ overall control, the hassle of day-to-day bug-fixing, sifting of new
 features, and maintenance of general cleanliness is now co-ordinated by Hugh
 Redelmeier (hugh@mimosa.com).
 
-The mailing list jovehacks@cs.toronto.edu forwards mail to the group of
+The mailing list jovedev@cs.toronto.edu forwards mail to the group of
 people who develop and maintain JOVE.  We welcome submissions to
-jovehacks, for example:
+jovedev, for example:
 
 - queries and suggestions about support for additional systems
 
