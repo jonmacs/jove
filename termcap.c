@@ -114,7 +114,8 @@ bool
 
 #  endif /* ID_CHAR */
 
-private char	tspace[256];	/* space for termcap strings */
+/* as of 20200104, xterm-new is 254 bytes and guru-nctxt is 289 bytes! */
+private char	tspace[320];	/* space for termcap strings */
 
 /* The ordering of ts and meas must agree !! */
 private const char	ts[] =
