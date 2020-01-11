@@ -196,13 +196,21 @@ extern void	UNMACRO(bzero) proto((UnivPtr, size_t));
 
 /* termcap */
 #ifdef TERMCAP
-# ifdef TERMINFO
+# ifdef JTC
+#define DEFINE_PC_BC_UP_OSPEED 1 /* curses declares these, jtc does not! should it?*/
+extern char *	UNMACRO(jtcarg1) proto((const char *, int /* parm */));
+extern char *	UNMACRO(jtcarg2) proto((const char *, int /*destcol*/, int /*destline*/));
+#  define	targ1(s, i)	jtcarg1(s, i)
+#  define	targ2(s, c, l)	jtcarg2(s, c, l)
+# else /* !JTC */
+#  ifdef TERMINFO
 extern char	*UNMACRO(tparm) proto((const char *, ...));
-#  define	targ1(s, i)	tparm(s, i)
-#  define	targ2(s, c, l)	tparm(s, c, l)
-# else
+#   define	targ1(s, i)	tparm(s, i)
+#   define	targ2(s, c, l)	tparm(s, c, l)
+#  else /* !TERMINFO */
 extern char	*UNMACRO(tgoto) proto((const char *, int /*destcol*/, int /*destline*/));
-#  define	targ1(s, i)	tgoto(s, 0, i)
-#  define	targ2(s, c, l)	tgoto(s, c, l)
-# endif
-#endif
+#   define	targ1(s, i)	tgoto(s, 0, i)
+#   define	targ2(s, c, l)	tgoto(s, c, l)
+#  endif /* TERMINFO */
+# endif /* JTC */
+#endif /* TERMCAP */

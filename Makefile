@@ -160,6 +160,10 @@ DEPENDFLAG = -M
 #	SCO UNIX: TERMCAPLIB = -lcurses
 #	AIX on the R6000s: TERMCAPLIB = -lcurses -ltermcap -ls
 #	OpenSuSE: TERMCAPLIB = -lncurses
+# Jove comes with a simplified termcap substitute that only supports
+# ANSI X.3/VT[1-5]xx or compatible terminal emulators like xterm, rxvt, etc,
+# which is almost certainly all that is necessary on modern machines.
+# To use it, define -DJTC and leave TERMCAPLIB unset
 
 TERMCAPLIB = -ltermcap
 
@@ -219,7 +223,7 @@ LOCALLDFLAGS = $(LDFLAGS)
 BASESEG = commands.o keys.o argcount.o ask.o buf.o jctype.o delete.o \
 	  disp.o insert.o io.o jove.o marks.o misc.o re.o \
 	  screen.o termcap.o unix.o util.o vars.o list.o keymaps.o \
-	  mouse.o
+	  mouse.o jtc.o
 OVLAY1 = abbrev.o rec.o paragraph.o fmt.o
 OVLAY2 = c.o wind.o fp.o move.o
 OVLAY3 = extend.o macros.o
