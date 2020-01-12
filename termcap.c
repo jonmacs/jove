@@ -351,7 +351,7 @@ int	n;
 {
 	while (--n >= 0) {
 		if (VisBell && VB)
-			putstr(VB);
+			putpad(VB, 1);
 		else
 			putpad(BL, 1);
 	}
