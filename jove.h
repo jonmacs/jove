@@ -267,7 +267,7 @@ extern volatile bool	UpdModLine;	/* Does the mode line need to be updated? */
 
 /* term.c: universal termcap-like declarations */
 
-#define MAXCOLS		256	/* maximum number of columns */
+#define MAXCOLS		512	/* maximum number of columns */
 
 extern int
 	SG,		/* number of magic cookies left by SO and SE */
