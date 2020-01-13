@@ -26,7 +26,8 @@
 #include "marks.h"
 #include "move.h"
 #include "wind.h"
-#include "term.h"	/* for putpad */
+#include "term.h"		/* for M_SR */
+#include "fp.h"		/* for putstr */
 #include "jctype.h"
 #include "mouse.h"
 #include "xjove/mousemsg.h"
@@ -128,7 +129,7 @@ MouseOn()
 			M_SR = NULL;
 		}
 		/* end if KLUDGE */
-		putpad(XtermMouse? xtMouseEnable : xtMouseDisable, 1);
+		putstr(XtermMouse? xtMouseEnable : xtMouseDisable);
 		xtMouseState = XtermMouse;
 	}
 }
@@ -137,7 +138,7 @@ void
 MouseOff()
 {
 	if (xtMouseState) {
-		putpad(xtMouseDisable, 1);
+		putstr(xtMouseDisable);
 		xtMouseState = NO;
 		M_SR = saved_M_SR;	/* KLUDGE for xterm/termcap bug */
 	}
@@ -321,10 +322,6 @@ int
  */
 #define XTERMHLBUG	1	/* always enable: we think that it is safe */
 
-#ifdef XTERMHLBUG
-# include "fp.h"
-#endif
-
 static void
 hl_mode(hl_setting, startx, starty, endx, endy)
 int	hl_setting, startx, starty, endx, endy;
@@ -333,7 +330,7 @@ int	hl_setting, startx, starty, endx, endy;
 	char	buf[sizeof(hl_fmt) + 4*(5-2)];
 	
 	swritef(buf, sizeof(buf), hl_fmt, hl_setting, startx, starty, endx, endy);
-	putpad(buf, 1);
+	putstr(buf);
 #ifdef XTERMHLBUG
 	scr_putchar('\0');
 #endif
