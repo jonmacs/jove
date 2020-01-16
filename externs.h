@@ -206,7 +206,7 @@ extern char *	UNMACRO(jtcarg2) proto((const char *, int /*destcol*/, int /*destl
 #  ifdef TERMINFO
 extern char	*UNMACRO(tparm) proto((const char *, ...));
 #   define	targ1(s, i)	tparm(s, i)
-#   define	targ2(s, c, l)	tparm(s, c, l)
+#   define	targ2(s, c, l)	tparm(s, l, c)
 #  else /* !TERMINFO */
 extern char	*UNMACRO(tgoto) proto((const char *, int /*destcol*/, int /*destline*/));
 #   define	targ1(s, i)	tgoto(s, 0, i)
