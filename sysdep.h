@@ -560,6 +560,7 @@
 # define NCURSES_BUG	1   /* almost certainly safe anyway */
 # define WINRESIZE	1
 # define MOUSE		1
+# define MALLOC_CACHE	1
 # if !(defined(NO_IPROCS) || defined(PIPEPROCS) || defined(PTYPROCS))
 #  define PIPEPROCS	1	/* use pipes */
 # endif
