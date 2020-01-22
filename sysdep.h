@@ -12,6 +12,16 @@
  * that "grep System: sysdep.h" catches the first line of all symbols.
  */
 
+#ifdef XBSD /* System: most modern NetBSD, OpenBSD, Darwin Mac OSX */
+# define BSDPOSIX	1
+# define HAVE_OPENPTY	1
+#endif
+
+#ifdef XLINUX /* System: most modern Linux (post RedHat6). Old Linux are BSDPOSIX */
+# define SYSVR4		1
+# define _XOPEN_SOURCE	500
+#endif
+
 /* System: Solaris 2.0, SunOS 5.0 -- use SYSVR4 and GRANTPT_BUG */
 
 /* System: Solaris 2.x, SunOS 5.x -- use SYSVR4 */

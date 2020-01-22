@@ -7,11 +7,11 @@
 
 /* jove.h header file to be included by EVERYONE */
 
-#include <setjmp.h>
 #ifndef TUNED
-# include "tune.h"
+# include "tune.h"  /* must include first since it controls everything else */
 #endif
 
+#include <setjmp.h>
 #include <string.h>
 
 #ifndef MAC
