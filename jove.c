@@ -29,7 +29,6 @@
 #include "proc.h"
 #include "screen.h"
 #include "term.h"
-#include "version.h"
 #include "wind.h"
 
 #ifdef IPROCS

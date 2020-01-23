@@ -417,7 +417,6 @@ following segments:
      term.c       (segment 4)
      util.c
      vars.c
-     version.c
      wind.c
      --------
      MacTraps
