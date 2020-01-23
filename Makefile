@@ -5,6 +5,9 @@
 # this notice is included in all the source files and documentation.     #
 ##########################################################################
 
+VERSION=4.17.0.0
+DIST=jove-$(VERSION)
+
 # SHELL for this Makefile (csh won't work!)
 SHELL = /bin/sh
 
@@ -42,7 +45,7 @@ TMPDIR = /tmp
 RECDIR = /var/preserve
 
 # DFLTSHELL is the default shell invoked by JOVE and TEACHJOVE.
-DFLTSHELL = /bin/csh
+DFLTSHELL = /bin/sh
 
 # The install commands of BSD and System V differ in unpleasant ways:
 # -c: copy (BSD); -c dir: destination directory (SysV)
@@ -261,7 +264,7 @@ HEADERS = abbrev.h argcount.h ask.h buf.h c.h case.h chars.h commands.h \
 	misc.h mouse.h move.h paragraph.h proc.h \
 	re.h reapp.h rec.h recover.h resource.h scandir.h screen.h \
 	select.h sysdep.h sysprocs.h temp.h term.h ttystate.h \
-	tune.h util.h vars.h version.h wind.h
+	tune.h util.h vars.h wind.h
 
 DOCTERMS =	doc/jove.rc.sun doc/keychart.sun \
 	doc/jove.rc.sun-cmd doc/keychart.sun-cmd \
@@ -281,7 +284,7 @@ DOCS =	doc/README doc/teach-jove doc/jove.qref \
 
 MISC =	Makefile Makefile.bcc Makefile.msc Makefile.wat Makefile.zor \
 	README README.dos README.mac README.w32 README.c32 \
-	sysdep.doc tune.doc style.doc jove.spec
+	sysdep.doc tune.doc style.doc jspec.in
 
 SUPPORT = teachjove.c recover.c setmaps.c portsrv.c keys.txt \
 	menumaps.txt mjovers.Hqx jjoveico.uue jjove.rc
@@ -341,14 +344,27 @@ keys.c:	setmaps keys.txt
 
 keys.o:	keys.c tune.h sysdep.h jove.h keymaps.h dataobj.h commands.h
 
-paths.h: Makefile
-	@echo "/* Changes should be made in Makefile, not to this file! */" > paths.h
-	@echo "" >> paths.h
-	@echo \#define TMPDIR \"$(TMPDIR)\" >> paths.h
-	@echo \#define RECDIR \"$(RECDIR)\" >> paths.h
-	@echo \#define LIBDIR \"$(LIBDIR)\" >> paths.h
-	@echo \#define SHAREDIR \"$(SHAREDIR)\" >> paths.h
-	@echo \#define DFLTSHELL \"$(DFLTSHELL)\" >> paths.h
+.ALWAYS:
+
+paths.h: .ALWAYS
+	@echo "/* Changes should be made in Makefile, not to this file! */" > paths.tmp
+	@echo "" >> paths.tmp
+	@echo \#define TMPDIR \"$(TMPDIR)\" >> paths.tmp
+	@echo \#define RECDIR \"$(RECDIR)\" >> paths.tmp
+	@echo \#define LIBDIR \"$(LIBDIR)\" >> paths.tmp
+	@echo \#define SHAREDIR \"$(SHAREDIR)\" >> paths.tmp
+	@echo \#define DFLTSHELL \"$(DFLTSHELL)\" >> paths.tmp
+	@if test -e .git; then \
+		v=-`git describe --all --long --always | sed 's,.*/,,'`; \
+	else \
+		v=""; \
+	fi; \
+	echo \#define jversion \"$(VERSION)$$v\" >> paths.tmp; \
+	w=`echo $(VERSION) | sed 's/\\./,/g'`; \
+	echo \#define jversion_lnum $$w >> paths.tmp; \
+	sed "s,^Version:.*,Version: $(VERSION)$$v," jspec.in > jspec.tmp; \
+	if ! cmp -s jove.spec jspec.tmp; then mv jspec.tmp jove.spec; else rm jspec.tmp; fi; \
+	if ! cmp -s paths.h paths.tmp; then mv paths.tmp paths.h; else rm paths.tmp; fi
 
 makexjove:
 	( cd xjove ; make CC="$(CC)" OPTFLAGS="$(OPTFLAGS)" SYSDEFS="$(SYSDEFS)" $(TOOLMAKEEXTRAS) xjove )
@@ -513,35 +529,26 @@ backup.tgz: .filelist
 tape-backup:	.filelist
 	tar cf /dev/rst8 `cat .filelist`
 
-# Extract version number from version.h
-# At same time, check that all copies agree.
-.version:	version.h jove.spec
-	sed -n -e '/^#define[ 	]*jversion[ 	]*"\([0-9.]*\)".*/s//\1/p' version.h >.version-tmp
-	sed -n -e '/^#define[ 	]*jversion_lnum[ 	]*\([0-9,]*\).*/s//\1/p' version.h | sed -e 's/,/./g' | diff - .version-tmp
-	sed -n -e '/^Version:[ 	]*\([0-9.]*\)$$/s//\1/p' jove.spec | diff - .version-tmp
-	mv .version-tmp .version
-
 # Build a distribution: a gzipped tar file with a name "jove<version>.tgz"
 # The tar will unpack into a directory with the name jove<version>
 # Beware: old files with these names will be blown away.
-distrib:	.filelist .version
+distrib:	.filelist
 	set -u ; set -e ; \
-	BN=jove`cat .version` ; \
-	rm -rf $$BN $$BN.tgz* ; \
-	mkdir $$BN ; \
-	tar cf - `cat .filelist` | ( cd $$BN ; tar xf - ) ; \
-	tar czf $$BN.tgz $$BN ; \
-	rm -rf $$BN ; \
-	ls -l $$BN.tgz
+	rm -rf $(DIST) $(DIST).tgz* ; \
+	mkdir $(DIST) ; \
+	tar cf - `cat .filelist` | ( cd $(DIST) ; tar xf - ) ; \
+	tar czf $(DIST).tgz $(DIST) ; \
+	rm -rf $(DIST) ; \
+	ls -l $(DIST).tgz
 
 # create a distribution and a separate PGP signature for it
-signeddistrib-pgp:	distrib .version
-	pgp -sba jove`cat .version`.tgz
-	chmod a+r jove`cat .version`.tgz.asc
+signeddistrib-pgp:	distrib
+	pgp -sba $(DIST).tgz
+	chmod a+r $(DIST).tgz.asc
 
-signeddistrib-gpg:	distrib .version
-	gpg -sba jove`cat .version`.tgz
-	chmod a+r jove`cat .version`.tgz.asc
+signeddistrib-gpg:	distrib
+	gpg -sba $(DIST).tgz
+	chmod a+r $(DIST).tgz.asc
 
 # System V sum can be made to match BSD with a -r flag.
 # To get this effect, override with SUM = sum -r
@@ -586,7 +593,7 @@ clean:
 		doc/cmds.doc doc/jove.man doc/jove.doc doc/jove.man.ps \
 		doc/jove.$(MANEXT) doc/teachjove.$(MANEXT) \
 		doc/jovetool.$(MANEXT) \
-		jjove.pure_* tags ID .filelist .version
+		jjove.pure_* tags ID .filelist jove.spec
 
 cleanall: clean
 	( cd xjove ; make clean )
@@ -653,7 +660,7 @@ fmt.o: $(JOVE_H) chars.h fp.h jctype.h disp.h extend.h fmt.h mac.h
 insert.o: $(JOVE_H) jctype.h list.h chars.h disp.h abbrev.h ask.h c.h delete.h insert.h fmt.h macros.h marks.h misc.h move.h paragraph.h screen.h sysprocs.h proc.h wind.h re.h
 io.o: $(JOVE_H) list.h fp.h jctype.h disp.h ask.h fmt.h insert.h marks.h sysprocs.h proc.h wind.h rec.h mac.h re.h temp.h
 iproc.o: $(JOVE_H) re.h jctype.h disp.h fp.h sysprocs.h iproc.h ask.h extend.h fmt.h insert.h marks.h move.h proc.h wind.h select.h ttystate.h
-jove.o: $(JOVE_H) fp.h jctype.h chars.h disp.h re.h reapp.h sysprocs.h rec.h ask.h extend.h fmt.h macros.h marks.h mouse.h paths.h proc.h screen.h term.h version.h wind.h iproc.h select.h mac.h
+jove.o: $(JOVE_H) fp.h jctype.h chars.h disp.h re.h reapp.h sysprocs.h rec.h ask.h extend.h fmt.h macros.h marks.h mouse.h paths.h proc.h screen.h term.h wind.h iproc.h select.h mac.h
 list.o: $(JOVE_H) list.h
 macros.o: $(JOVE_H) jctype.h fp.h chars.h disp.h ask.h commands.h macros.h extend.h fmt.h
 marks.o: $(JOVE_H) fmt.h marks.h disp.h
@@ -673,7 +680,7 @@ util.o: $(JOVE_H) jctype.h disp.h fp.h ask.h chars.h fmt.h insert.h macros.h mar
 vars.o: $(JOVE_H) extend.h vars.h abbrev.h ask.h c.h jctype.h disp.h insert.h sysprocs.h iproc.h mac.h mouse.h paragraph.h proc.h re.h reapp.h rec.h screen.h term.h ttystate.h wind.h vars.tab
 wind.o: $(JOVE_H) chars.h disp.h ask.h extend.h commands.h mac.h reapp.h wind.h screen.h
 msgetch.o: $(JOVE_H) chars.h disp.h
-mac.o: $(TUNE_H) $(JOVE_H) mac.h ask.h chars.h disp.h extend.h fp.h commands.h fmt.h marks.h misc.h move.h screen.h scandir.h term.h vars.h version.h wind.h
+mac.o: $(TUNE_H) $(JOVE_H) mac.h ask.h chars.h disp.h extend.h fp.h commands.h fmt.h marks.h misc.h move.h screen.h scandir.h term.h vars.h wind.h
 keymaps.o: $(JOVE_H) list.h fp.h jctype.h chars.h disp.h re.h ask.h commands.h macros.h extend.h fmt.h screen.h vars.h sysprocs.h iproc.h
 ibmpcdos.o: $(JOVE_H) fp.h chars.h screen.h term.h
 mouse.o: $(JOVE_H) disp.h misc.h ask.h chars.h delete.h fmt.h insert.h marks.h move.h wind.h term.h jctype.h mouse.h xjove/mousemsg.h fp.h
