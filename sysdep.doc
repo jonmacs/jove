@@ -136,17 +136,6 @@ define IPROCS.  Beware: doc/jove.rc (the standard system-wide rc file)
 binds several process commands, so it will need changing if interactive
 process support is not compiled in.
 
-IPROC_TERM specifies what $TERM should be set to for the IPROC
-process.  The simulated terminal has very few properties.  The choice
-that works best depends on the termcap and terminfo databases of the
-system, and other arcane things such as the shell startup scripts.  If
-the IPROC_TERM macro is undefined (the default), JOVE will arrange
-that $TERM to the unset in the interactive process.  If the macro is
-defined, JOVE will use it to set the environment; It must be a string,
-including double quotes, like "TERM=emacs", "TERM=dumb" or
-"TERM=vanilla".
-
-
 To multiplex between different processes and the keyboard (when IPROCS
 is defined), define USE_SELECT.
 USE_SELECT	Have the select() system call.  Almost essential!
@@ -369,6 +358,24 @@ TERMCAP		Support display diversity via termcap database.
 TERMINFO	Support for System V variant of TERMCAP.  TERMCAP
 		must also be defined.  This differentiates between
 		tparm and tgoto.
+
+JTC		Builtin termcap emulation, so no external library needed.
+		TERMCAP must also be defined.
+		Only works on vt[123]NN or compatible terminals, or
+		emulators like xterm/rxvt/st/vte etc. The environment
+		variable JOVEVT can be set to the level of emulation,
+		the number of the DEC terminal (e.g. 100 for vt100,
+		102 for vt102, etc, and 999 or "alt" for xterm-like
+		emulators that support the alternate screen.
+		99 means ordinary minimal ANSI X3.64/ECMA-48 emulation,
+		the minimal cursor movement and screen clearing capabilities
+		needed for a screen editor. Even most ancient vt100-clones
+		and half-hearted emulators should be able to support this.
+		100 and above have visible bell, scrolling region, arrow keys.
+		102 and above have insert and delete chars and lines.
+		125 adds a meta-key.
+		320 adds multi-line scroll or pan forward/backward (SU/SD)
+		999 (aka alt) have alternate screens.
 
 NCURSES_BUG	Work around the non-standard meaning of insert character
 		capabilities in the termcap and terminfo databases

@@ -586,14 +586,13 @@ jjove.ico:	jjoveico.uue
 touch:
 	touch $(OBJECTS)
 
-# Note: does not clean jove<version>*: too dangerous
 clean:
 	rm -f a.out core *.o keys.c jjove$(XEXT) portsrv$(XEXT) recover$(XEXT) setmaps \
 		teachjove$(XEXT) paths.h \#* *~ make.log *.map jjove.ico \
 		doc/cmds.doc doc/jove.man doc/jove.doc doc/jove.man.ps \
 		doc/jove.$(MANEXT) doc/teachjove.$(MANEXT) \
-		doc/jovetool.$(MANEXT) \
-		jjove.pure_* tags ID .filelist jove.spec
+		doc/jovetool.$(MANEXT) $(DIST).tgz \
+		jjove.pure_* tags ID .filelist xjove/.filelist jove.spec
 
 cleanall: clean
 	( cd xjove ; make clean )
