@@ -1,5 +1,8 @@
+extern int avoid_pedantic_complaints_about_empty_translation_unit;
 #ifdef JTC
 /*
+ * NEW, EXPERIMENTAL CODE.  TESTERS WELCOME.
+ *
  * Minimal standalone hardwired terminfo/termcap replacement
  * that only supports the subset of vt[123]xx/ANSI
  * X3.64/ECMA-48/ISO6429 needed by Jove.  Since everyone in
@@ -96,7 +99,7 @@ private JTermcap jtc[] = {
 	{"vb", "\033[?5h$\033[?5l", VT100},	/* $ means 100ms delay, i.e. $<100/>  */
 	{"ks", "\033[?1h\033=", VT100},
 	{"ke", "\033[?1l\033>", VT100},
-	{"ti", "\0337\033[?47h\033[3;8g", VTALT}, /* or \033[?1049h\033[3;8g (clears all tabs and sets tabs every 8 spaces) */
+	{"ti", "\0337\033[?47h", VTALT}, /* or \033[?1049h */
 	{"te", "\033[2J\033[?47l\0338", VTALT}, /* or \033[?1049l */
 	{"bl", "\007", 0},
 	{"AL", "\033[%dL", VT102},

@@ -359,7 +359,8 @@ TERMINFO	Support for System V variant of TERMCAP.  TERMCAP
 		must also be defined.  This differentiates between
 		tparm and tgoto.
 
-JTC		Builtin termcap emulation, so no external library needed.
+JTC		EXPERIMENTAL builtin-termcap emulation, avoids need
+		for external library dependency on termcap/terminfo/*curses*.
 		TERMCAP must also be defined.
 		Only works on vt[123]NN or compatible terminals, or
 		emulators like xterm/rxvt/st/vte etc. The environment

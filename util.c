@@ -808,7 +808,6 @@ jputenv(envp, def)
 Env *envp;
 const char *def;
 {
-	static bool env_malloced = NO;	/* should we free it when replacing? */
 	const char **p, **e;
 	const char *eq;
 

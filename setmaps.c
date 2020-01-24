@@ -72,14 +72,18 @@ int	c;
 		strcpy(cp, "M-");
 		cp += 2;
 	}
-	if (c == ESC)
+	if (c == ESC) {
 		strcpy(cp, "ESC");
-	else if (c < ' ')
-		(void) sprintf(cp, "^%c", c + '@');
-	else if (c == DEL)
+	} else if (c < ' ') {
+		*cp++ = '^';
+		*cp++ = c + '@';
+		*cp = '\0';
+	} else if (c == DEL) {
 		strcpy(cp, "^?");
-	else
-		(void) sprintf(cp, "%c", c);
+	} else {
+		*cp++ = c;
+		*cp = '\0';
+	}
 	return str;
 }
 

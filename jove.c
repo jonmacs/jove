@@ -284,6 +284,7 @@ int	code;
 	/*NOTREACHED*/
 }
 
+#ifndef DEBUGCRASH
 /* SIGINT is caused by the user hitting the INTR key.
  * We give him a choice of death or continuation.
  */
@@ -350,6 +351,7 @@ int	code;
 	errno = save_errno;
 	return SIGRESVALUE;
 }
+#endif /* DEBUGCRASH */
 
 private char	smbuf[20],
 		*bp = smbuf;

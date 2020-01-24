@@ -770,6 +770,7 @@ struct rec_head *rec;
 	const char *buf_string;
 	FILE *mail_pipe;
 	struct passwd *pw;
+	int r;
 
 	if ((pw = getpwuid(rec->Uid))== NULL)
 		return;
@@ -777,7 +778,13 @@ struct rec_head *rec;
 	last_update = ctime(&(rec->UpdTime));
 	/* Start up mail */
 	sprintf(mail_cmd, "/bin/mail %s", pw->pw_name);
-	setuid(getuid());
+	if ((r = setuid(getuid())) < 0) {
+	    perror("WARNING: jove recover: setuid(getuid()) failed");
+	    /*
+	     * used to continue without checking return value,
+	     * so let that behaviour continue, I guess?
+	     */
+	}
 	if ((mail_pipe = popen(mail_cmd, "w")) == NULL)
 		return;
 
