@@ -1,5 +1,8 @@
 *.o
-jjove
+*.tgz
+*.orig
+*.rej
+jjove*
 portsrv
 recover
 setmaps
@@ -8,3 +11,10 @@ keys.c
 paths.h
 doc/cmds.doc
 doc/*.1
+xjove/jovetool
+xjove/xjove
+xjove/*.o
+.filelist
+xjove/.filelist
+jove.spec
+dmk
