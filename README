@@ -5,16 +5,19 @@
 # this notice is included in all the source files and documentation.     #
 ##########################################################################
 
-[Updated in 2004 July]
+[Updated in 2020 January]
 
 JOVE on UNIX Systems
 --------------------
 
 For information about other systems, see the other README files:
   README.c32 for Cygwin32
-  README.dos for MS DOS
-  README.mac for Macintosh
+  README.dos for MS-DOS
+  README.mac for Macintosh pre OS-X
   README.w32 for MS Win32
+
+The MS-DOS, old Macintosh and Win32 ports have not been tested in a very
+long time.
 
 Quick Summary of Installation
 -----------------------------
@@ -27,9 +30,9 @@ Unpack the tar file somewhere convenient and cd into it:
   tar tzf jove*.tgz
   cd jove___
 
-BSD:
+BSD/Darwin/Mac OS X:
   use the first of the following that works:
-  make SYSDEFS="-DBSDPOSIX_STDC -DUSE_OPENPTY" EXTRALIBS=-lutil install
+  make SYSDEFS=-DXBSD install
   make SYSDEFS="-DBSDPOSIX_STDC -DUSE_OPENPTY -DHAS_LIBUTILS_H" EXTRALIBS=-lutil install
   make SYSDEFS="-DBSDPOSIX_STDC" install
   make SYSDEFS="-DBSDPOSIX" install
@@ -38,11 +41,14 @@ LINUX:
   Using RPM (if sufficiently close to Red Hat; no need to have untared):
     rpmbuild -ta jove*.tgz
   Otherwise:
-    make SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500" install
+    make SYSDEFS=-DXLINUX install
     If this fails because the system doesn't have -ltermcap, try:
     make SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500" TERMCAPLIB=-lncurses install
     or, if the system has ncursesw instead of ncurses,
     make SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500" TERMCAPLIB=-lncursesw install
+    or, if you feel that it is ok to assume the entire world has vt[123]xx-compatible
+    terminal emulators (i.e xterm, rxvt, st, vte, konsole, gnome-terminal et al)
+    make SYSDEFS="-DXLINUX -DJTC" TERMCAPLIB= install
 
 Solaris:
   make SYSDEFS="-DSYSVR4" install
@@ -76,7 +82,7 @@ configuring is done by editing definitions in Makefile (in some
 situations it is handier to override definitions by supplying them on
 the make command line).
 
-JOVE has been around for a long time, and a lot of care has been taken
+JOVE has been around for a *long* time, and a lot of care has been taken
 to make it work on many systems, new and old.  For current systems,
 less configuring is require -- hurray for standards!
 
@@ -140,7 +146,7 @@ tested on 2.9bsd, and not recently.  It worked pretty well, actually,
 and it was possible to turn on all the compile time options with this
 version.
 
-For LINUX, jove.spec is provided to specify how an RPM should be created.
+For LINUX, jspec.in is provided to specify how an RPM should be created.
 On Red Hat LINUX 7.x, 8.0, and 9, "rpmbuild -ta jove*.tgz" will build
 source and binary RPMs -- rpm looks inside the .tgz to find jove.spec.
 
@@ -150,10 +156,8 @@ size small.  E.g., using the small Alpine Linux docker image,
 one can use:
 
 docker pull alpine:3.9  # 3.10 does not seem to have static musl
-apk add gcc musl-dev make ncurses-static
-make 'CC=gcc --static' OPTFLAGS=-O3 SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500" TERMCAPLIB=-lncursesw
-To run it, need
-apk add ncurses-terminfo-base
+apk add gcc musl-dev make
+make 'CC=gcc --static' OPTFLAGS=-O3 SYSDEFS=-DXLINUX TERMCAPLIB=
 The resulting jjove can be run standalone pretty-much anywhere,
 though the doc/jove.rc file might also be useful.
 
@@ -201,7 +205,7 @@ fixes, and ... that's it, I guess.
 
 Good luck, have fun.
 
-	Jonathan Payne (jpayne@starwave.com until further notice :-)
+	Jonathan Payne (once jpayne@starwave.com, sun.com, marimba.com :-)
 
 Thanks to Charles Lindsey for the xjove/jovetool and xterm mouse support.
 
@@ -432,17 +436,16 @@ but 512 on some small systems).  Eliminating this limit is not easy.
 JOVE can not handle NUL characters in the buffer.  In most cases,
 they are discarded silently, another dubious feature.
 
+JOVE does not handle Unicode (aka UTF-8), it silently ignores LANG,
+locale etc.  Fixing this limitation is not easy.
 
 Bug Reports and Maintenance.
 ----------------------------
 
-Although Jonathan Payne still takes a fatherly interest in JOVE and retains
-overall control, the hassle of day-to-day bug-fixing, sifting of new
-features, and maintenance of general cleanliness is now co-ordinated by Hugh
-Redelmeier (hugh@mimosa.com).
+Jonathan Payne no longer works on JOVE.
 
 The mailing list jovedev@cs.toronto.edu forwards mail to the group of
-people who develop and maintain JOVE.  We welcome submissions to
+people who care about JOVE.  We welcome submissions to
 jovedev, for example:
 
 - queries and suggestions about support for additional systems
@@ -452,8 +455,4 @@ jovedev, for example:
 - suggestions for and implementations of improvements or additional
   features (we do try to keep JOVE small)
 
-The "official" FTP site and directory for JOVE is:
-	ftp://ftp.cs.toronto.edu/pub/moraes/jove
-Look here for the most recent releases of JOVE.
-Development snapshots appear from time to time in
-	ftp://ftp.cs.toronto.edu/pub/hugh/jove-dev
+See https://github.com/jonmacs/jove for JOVE updates.

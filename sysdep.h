@@ -12,12 +12,14 @@
  * that "grep System: sysdep.h" catches the first line of all symbols.
  */
 
-#ifdef XBSD /* System: most modern NetBSD, OpenBSD, Darwin Mac OSX */
-# define BSDPOSIX	1
+#ifdef XBSD
+/* System: most modern NetBSD, OpenBSD, Darwin Mac OSX */
+# define BSDPOSIX_STDC	1
 # define HAVE_OPENPTY	1
 #endif
 
-#ifdef XLINUX /* System: most modern Linux (post RedHat6). Old Linux are BSDPOSIX */
+#ifdef XLINUX
+/* System: most modern Linux (post RedHat6). Old Linux are BSDPOSIX_STDC */
 # define SYSVR4		1
 # define _XOPEN_SOURCE	500
 #endif
@@ -177,7 +179,7 @@
 #ifdef CYGWIN32 /* System: Cygnus Support Cygwin32 POSIX-like environment
 	on Win95/NT (see README.c32) */
 #define FILENAME_CASEINSENSITIVE	1
-#define BSDPOSIX	1
+#define BSDPOSIX_STDC	1
 #endif
 
 #ifdef __QNX__	/* System: QNX OS for x86 family */
@@ -188,16 +190,15 @@
 #endif
 
 #ifdef BSDPOSIX_STDC	/* Same as BSDPOSIX, but with a Standard enough C */
+/* System: BSDI, 386BSD, BSD4.4, NetBSD -- BSDPOSIX_STDC */
+/* System: Old LINUX (MCC-Interim release) -- BSDPOSIX_STDC */
 # define REALSTDC	1
 # define BSDPOSIX	1
 #endif
 
 #ifdef BSDPOSIX	/* System: Posix system with BSD flavouring for ptys */
-/* System: BSDI, 386BSD, BSD4.4, NetBSD -- BSDPOSIX */
-/* System: DEC Ultrix 4.2 -- BSDPOSIX */
+/* System: SunOS4.1.3, DEC Ultrix 4.2 -- BSDPOSIX */
 /* System: DEC OSF/1 V1.3 -- BSDPOSIX + NO_TIOCREMOTE + NO_TIOCSIGNAL */
-/* System: LINUX (MCC-Interim release) -- BSDPOSIX */
-/* Also seems to work for SunOS4.1.3! */
 # define TERMIOS	1
 # define USE_GETCWD	1
 # define FULL_UNISTD	1
