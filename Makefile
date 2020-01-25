@@ -257,7 +257,7 @@ MANUALS = $(JOVEM) $(TEACHJOVEM)
 
 C_SRC = commands.c commands.tab abbrev.c argcount.c ask.c buf.c c.c case.c jctype.c \
 	delete.c disp.c extend.c fp.c fmt.c insert.c io.c iproc.c \
-	jove.c list.c macros.c marks.c misc.c move.c paragraph.c \
+	jove.c jtc.c list.c macros.c marks.c misc.c move.c paragraph.c \
 	proc.c re.c reapp.c rec.c scandir.c screen.c term.c termcap.c unix.c \
 	util.c vars.c vars.tab wind.c msgetch.c mac.c keymaps.c ibmpcdos.c \
 	mouse.c win32.c
