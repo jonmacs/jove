@@ -5,7 +5,7 @@
 # this notice is included in all the source files and documentation.     #
 ##########################################################################
 
-VERSION=4.17.0.5
+VERSION=4.17.0.6
 DIST=jove-$(VERSION)
 
 # SHELL for this Makefile (csh won't work!)
@@ -13,23 +13,28 @@ SHELL = /bin/sh
 
 # JOVEHOME is the directory in which pieces of JOVE are kept.  It is only used
 #	in the default definitions of SHAREDIR, LIBDIR, BINDIR, and MANDIR.
-# SHAREDIR is for online documentation, and the system-wide jove.rc file.
-# LIBDIR is for the PORTSRV and RECOVER programs.
-# BINDIR is where to put the executables JOVE and TEACHJOVE.
+# JSHAREDIR is for online documentation, and the system-wide jove.rc file.
+# JLIBDIR is for the PORTSRV and RECOVER programs.
+# JBINDIR is where to put the executables JOVE and TEACHJOVE.
 # XEXT is the extension for executables (empty for UNIX; .exe for CYGWIN32)
-# MANDIR is where the manual pages go for JOVE, RECOVER and TEACHJOVE.
+# JMANDIR is where the manual pages go for JOVE, RECOVER and TEACHJOVE.
 # MANEXT is the extension for the man pages, e.g., jove.1 or jove.l or jove.m.
 #	Must not be "nr".
 #
-# If they don't exist, this makefile will try to create the directories
-# LIBDIR and SHAREDIR.  All others must already exist.
+# If they don't exist, this makefile will try to create all *DIR directories
+# (prefixed with $DESTDIR, as most packaging systems desire)
+# All others must already exist.
 
-JOVEHOME = $(DESTDIR)/usr/local
-SHAREDIR = $(JOVEHOME)/lib/jove
-LIBDIR = $(JOVEHOME)/lib/jove
-BINDIR = $(JOVEHOME)/bin
+JOVEHOME = /usr/local
+JSHAREDIR = $(JOVEHOME)/lib/jove
+SHAREDIR = $(DESTDIR)$(JSHAREDIR)
+JLIBDIR = $(JOVEHOME)/lib/jove
+LIBDIR = $(DESTDIR)$(JLIBDIR)
+JBINDIR = $(JOVEHOME)/bin
+BINDIR = $(DESTDIR)$(JBINDIR)
 XEXT=
-MANDIR = $(JOVEHOME)/man/man$(MANEXT)
+JMANDIR = $(JOVEHOME)/man/man$(MANEXT)
+MANDIR = $(DESTDIR)$(JMANDIR)
 MANEXT = 1
 
 # Install permission for SHAREDIR, LIBDIR, BINDIR
@@ -40,15 +45,19 @@ DPERM = 755
 # crash, this needs to be a directory that isn't cleaned out on reboot.
 # You would probably want to clean out that directory periodically with
 # /etc/cron.
-# RECDIR is the directory in which RECOVER looks for JOVE's tempfiles
+# JRECDIR is the directory in which RECOVER looks for JOVE's tempfiles
 # (in case the system startup salvages tempfiles by moving them,
 # which is probably a good idea).
 
 TMPDIR = /var/tmp
-RECDIR = $(DESTDIR)/var/lib/jove/preserve
+JRECDIR = /var/lib/jove/preserve
+RECDIR = $(DESTDIR)$(JRECDIR)
 
 # Install permission for RECDIR
 RECPERM = 1777
+
+# place to copy source tarball for rpmbuild
+RPMHOME = $(HOME)/rpmbuild/SOURCES
 
 # DFLTSHELL is the default shell invoked by JOVE and TEACHJOVE.
 DFLTSHELL = /bin/sh
@@ -291,7 +300,7 @@ DOCS =	doc/README doc/teach-jove doc/jove.qref \
 
 MISC =	Makefile Makefile.bcc Makefile.msc Makefile.wat Makefile.zor \
 	README README.dos README.mac README.w32 README.c32 \
-	sysdep.doc tune.doc style.doc jspec.in
+	sysdep.doc tune.doc style.doc jspec.in jove.spec
 
 SUPPORT = teachjove.c recover.c setmaps.c portsrv.c keys.txt \
 	menumaps.txt mjovers.Hqx jjoveico.uue jjove.rc
@@ -352,25 +361,32 @@ keys.o:	keys.c tune.h sysdep.h jove.h keymaps.h dataobj.h commands.h
 
 .ALWAYS:
 
-paths.h: .ALWAYS
-	@echo "/* Changes should be made in Makefile, not to this file! */" > paths.tmp
-	@echo "" >> paths.tmp
-	@echo \#define TMPDIR \"$(TMPDIR)\" >> paths.tmp
-	@echo \#define RECDIR \"$(RECDIR)\" >> paths.tmp
-	@echo \#define LIBDIR \"$(LIBDIR)\" >> paths.tmp
-	@echo \#define SHAREDIR \"$(SHAREDIR)\" >> paths.tmp
-	@echo \#define DFLTSHELL \"$(DFLTSHELL)\" >> paths.tmp
+.version: .ALWAYS
 	@if test -e .git; then \
-		v=`git describe --all --long --always | sed 's,.*/,,'`; \
-		case "$$v" in [0-9]*) ;; *) v="$(VERSION)-$$v";; esac; \
+		v=`git describe --all --long --always | sed 's,.*/,,;s,-,_,g'`; \
+		case "$$v" in [0-9]*) ;; *) v="$(VERSION)_$$v";; esac; \
 	else \
 		v="$(VERSION)"; \
 	fi; \
+	echo $$v > .version.tmp; \
+	if ! cmp -s .version.tmp .version; then mv .version.tmp .version; else rm .version.tmp; fi
+
+jove.spec: .version .ALWAYS
+	@v=`sed 's/_.*//' .version`; sed "s,__VERSION__,$$v,g" jspec.in > jspec.tmp; \
+	if ! cmp -s jove.spec jspec.tmp; then mv jspec.tmp jove.spec; else rm jspec.tmp; fi
+
+paths.h: .version .ALWAYS
+	@echo "/* Changes should be made in Makefile, not to this file! */" > paths.tmp
+	@echo "" >> paths.tmp
+	@echo \#define TMPDIR \"$(JTMPDIR)\" >> paths.tmp
+	@echo \#define RECDIR \"$(JRECDIR)\" >> paths.tmp
+	@echo \#define LIBDIR \"$(JLIBDIR)\" >> paths.tmp
+	@echo \#define SHAREDIR \"$(JSHAREDIR)\" >> paths.tmp
+	@echo \#define DFLTSHELL \"$(DFLTSHELL)\" >> paths.tmp
+	@v=`cat .version`; \
 	echo \#define jversion \"$$v\" >> paths.tmp; \
 	w=`echo $(VERSION) | sed 's/\\./,/g'`; \
 	echo \#define jversion_lnum $$w >> paths.tmp; \
-	sed "s,^Version:.*,Version: $$v," jspec.in > jspec.tmp; \
-	if ! cmp -s jove.spec jspec.tmp; then mv jspec.tmp jove.spec; else rm jspec.tmp; fi; \
 	if ! cmp -s paths.h paths.tmp; then mv paths.tmp paths.h; else rm paths.tmp; fi
 
 makexjove:
@@ -389,7 +405,7 @@ installjovetool: $(JOVETOOLM)
 # Thus, if "all" is done first, "install" can be invoked with
 # JOVEHOME pointing at a playpen where files are to be marshalled.
 # This property is fragile.
-install: $(LIBDIR) $(SHAREDIR) \
+install: $(LIBDIR) $(SHAREDIR) $(BINDIR) $(MANDIR) $(RECDIR) \
 	 $(TEACH-JOVE) $(CMDS.DOC) $(TERMSDIR)docs \
 	 $(PORTSRVINST) $(RECOVER) $(JOVE) $(TEACHJOVE) $(MANUALS)
 	$(TINSTALL) doc/jove.rc $(JOVERC)
@@ -445,9 +461,9 @@ $(TEACHJOVE): teachjove$(XEXT)
 	$(XINSTALL) teachjove$(XEXT) $(TEACHJOVE)
 
 doc/jove.$(MANEXT): doc/jove.nr
-	sed -e 's;<TMPDIR>;$(TMPDIR);' \
-	     -e 's;<LIBDIR>;$(LIBDIR);' \
-	     -e 's;<SHAREDIR>;$(SHAREDIR);' \
+	sed -e 's;<TMPDIR>;$(JTMPDIR);' \
+	     -e 's;<LIBDIR>;$(JLIBDIR);' \
+	     -e 's;<SHAREDIR>;$(JSHAREDIR);' \
 	     -e 's;<SHELL>;$(DFLTSHELL);' doc/jove.nr > doc/jove.$(MANEXT)
 
 $(JOVEM): $(MANDIR) doc/jove.$(MANEXT)
@@ -462,9 +478,9 @@ doc/jove.doc: doc/jove.nr
 	LANG=C $(NROFF) -man doc/jove.nr >doc/jove.doc
 
 doc/teachjove.$(MANEXT): doc/teachjove.nr
-	sed -e 's;<TMPDIR>;$(TMPDIR);' \
-	     -e 's;<LIBDIR>;$(LIBDIR);' \
-	     -e 's;<SHAREDIR>;$(SHAREDIR);' \
+	sed -e 's;<TMPDIR>;$(JTMPDIR);' \
+	     -e 's;<LIBDIR>;$(JLIBDIR);' \
+	     -e 's;<SHAREDIR>;$(JSHAREDIR);' \
 	     -e 's;<SHELL>;$(DFLTSHELL);' doc/teachjove.nr > doc/teachjove.$(MANEXT)
 
 $(TEACHJOVEM): $(MANDIR) doc/teachjove.$(MANEXT)
@@ -557,6 +573,14 @@ distrib:	.filelist
 	rm -rf $(DIST) ; \
 	ls -l $(DIST).tgz
 
+rpm: distrib
+	# rpmbuild really wants the source tarball to have
+	# the basename of Source0 in the rpm spec, and be
+	# in the rpmbuild SOURCES directory.
+	rpmsrc=`sed -n '/Source0/s,.*/,,p' jove.spec`; \
+	cp $(DIST).tgz $(RPMHOME)/$$rpmsrc; \
+	rpmbuild -ta $(RPMHOME)/$$rpmsrc
+
 # create a distribution and a separate PGP signature for it
 signeddistrib-pgp:	distrib
 	pgp -sba $(DIST).tgz
@@ -603,12 +627,12 @@ touch:
 	touch $(OBJECTS)
 
 clean:
-	rm -f a.out core *.o keys.c jjove$(XEXT) portsrv$(XEXT) recover$(XEXT) setmaps$(XEXT) \
-		teachjove$(XEXT) paths.h \#* *~ make.log *.map jjove.ico \
-		doc/cmds.doc doc/jove.man doc/jove.doc doc/jove.man.ps \
-		doc/jove.$(MANEXT) doc/teachjove.$(MANEXT) \
-		doc/jovetool.$(MANEXT) $(DIST).tgz \
-		jjove.pure_* tags ID .filelist xjove/.filelist jove.spec
+	rm -f a.out core *.o keys.c jjove$(XEXT) portsrv$(XEXT) recover$(XEXT) \
+		setmaps$(XEXT) teachjove$(XEXT) paths.h make.log *.map \#* *~ \
+		jjove.ico doc/cmds.doc doc/jove.man doc/jove.doc \
+		doc/jove.man.ps doc/jove.$(MANEXT) doc/teachjove.$(MANEXT) \
+		doc/jovetool.$(MANEXT) $(DIST).tgz jjove.pure_* tags ID \
+		.filelist xjove/.filelist .version jove.spec
 
 cleanall: clean
 	( cd xjove ; make clean )

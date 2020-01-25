@@ -2,12 +2,12 @@
 # "Version:" filled in by make
 Summary: Jonathan's Own Version of Emacs
 Name: jove
-Version: 
+Version: __VERSION__
 Release: 9%{?dist}
 License: Copyright only
 Group: Applications/Editors
 URL: https://github.com/jonmacs/jove
-Source: https://github.com/jonmacs/jove
+Source0: https://github.com/jonmacs/jove/archive/__VERSION__.tar.gz
 BuildRequires: ncurses-devel groff
 %global configflags SYSDEFS=-DXLINUX
 
@@ -20,29 +20,24 @@ requirements comparable to vi(1).  It is 8-bit clean, but does not support
 Unicode (or UTF-8 etc).
 
 %prep
-%setup -q -n jove%{version}
+%setup -q
 
 %build
-# Keep all three make commands consistent, except for JOVEHOME and targets.
+# Keep both build and install make commands consistent, except for DESTDIR and targets.
 # JOVEHOME must be the ultimate path since it will be compiled into JOVE.
-make JOVEHOME=/usr LIBDIR=%{_libdir}/jove SHAREDIR=%{_datadir}/jove MANDIR=%{_mandir}/man1 OPTFLAGS="%{optflags}" %{configflags} all doc/jove.man doc/jove.man.ps
+make JOVEHOME=/usr JLIBDIR=%{_libdir}/jove JSHAREDIR=%{_datadir}/jove JMANDIR=%{_mandir}/man1 OPTFLAGS="%{optflags}" %{configflags} all doc/jove.man doc/jove.man.ps
 mv doc/jove.man doc/jove.man.txt
 
 %install
-# Keep all three make commands consistent, except for JOVEHOME and targets.
+# Keep both build and install make commands consistent, except for DESTDIR and targets.
 # JOVEHOME is a temporary home under $RPM_BUILD_ROOT/.
 # This can be different from JOVEHOME for the build phase's make.
 mkdir -p $RPM_BUILD_ROOT%{_bindir}
 mkdir -p $RPM_BUILD_ROOT%{_libdir}
 mkdir -p $RPM_BUILD_ROOT%{_datadir}
 mkdir -p $RPM_BUILD_ROOT%{_mandir}/man1
-make JOVEHOME=$RPM_BUILD_ROOT/usr LIBDIR=$RPM_BUILD_ROOT%{_libdir}/jove SHAREDIR=$RPM_BUILD_ROOT%{_datadir}/jove MANDIR=$RPM_BUILD_ROOT%{_mandir}/man1 OPTFLAGS="%{optflags}" %{configflags} install
+make DESTDIR=$RPM_BUILD_ROOT JOVEHOME=/usr JLIBDIR=%{_libdir}/jove JSHAREDIR=%{_datadir}/jove JMANDIR=%{_mandir}/man1 OPTFLAGS="%{optflags}" %{configflags} install
 mv doc/README doc/README.doc
-
-# although we build jovetool.1 and xjove.1, we don't install them
-rm $RPM_BUILD_ROOT%{_mandir}/man1/jovetool.1
-rm $RPM_BUILD_ROOT%{_mandir}/man1/xjove.1
-
 
 %files
 %{_libdir}/jove/

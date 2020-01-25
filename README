@@ -38,9 +38,10 @@ BSD/Darwin/Mac OS X:
   make SYSDEFS="-DBSDPOSIX" install
 
 LINUX:
-  Using RPM (if sufficiently close to Red Hat; no need to have untared):
-    rpmbuild -ta jove*.tgz
-  Otherwise:
+  Using RPM (if sufficiently close to Red Hat; make sure RPMHOME is correct
+  in the Makefile and use:
+    make rpm
+  Otherwise, set JOVEHOME appropriately and use:
     make SYSDEFS=-DXLINUX install
     If this fails because the system doesn't have -ltermcap, try:
     make SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500" TERMCAPLIB=-lncurses install
