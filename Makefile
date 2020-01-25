@@ -5,7 +5,7 @@
 # this notice is included in all the source files and documentation.     #
 ##########################################################################
 
-VERSION=4.17.0.3
+VERSION=4.17.0.4
 DIST=jove-$(VERSION)
 
 # SHELL for this Makefile (csh won't work!)

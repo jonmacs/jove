@@ -44,27 +44,32 @@ int	argc;
 char	*argv[];
 {
 	char
-		cmd[FILESIZE*3],
-		fname[FILESIZE],
+		cmd[(FILESIZE+16)*3+32], /* space for cp, chmod */
+		fname[FILESIZE+16], /* space for /teach-jove */
 		*home,
-		teachjove[FILESIZE];
+		teachjove[FILESIZE+16]; /* space for /teach-jove */
 
 	if (argc == 3 && strcmp(argv[1], "-s") == 0) {
 		if (strlen(argv[2]) >= FILESIZE*sizeof(char)) {
-			printf("teachjove: -s argument too long\n");
-			exit(-1);
+			fprintf(stderr, "teachjove: -s argument too long,"
+				" must be less than %u\n", FILESIZE);
+			exit(2);
 		}
 		ShareDir = argv[2];
 	} else if (argc != 1) {
-		printf("Usage: teachjove [-s sharedir]\n");
-		exit(-1);
+		fprintf(stderr, "Usage: teachjove [-s sharedir]\n");
+		exit(3);
 	}
 	/* ??? "teach-jove" is too long for MSDOS */
 	/* ??? should use snprintf, but not available in old C */
 	(void) sprintf(teachjove, "%s/teach-jove", ShareDir);
 	if ((home = getenv("HOME")) == NULL) {
-		printf("teachjove: cannot find your home!\n");
-		exit(-1);
+		fprintf(stderr, "teachjove: cannot find your home!\n");
+		exit(4);
+	} else if (strlen(home) > FILESIZE*sizeof(char)) {
+		fprintf(stderr, "teachjove: home too long, must be less than %u\n",
+			FILESIZE);
+		exit(5);
 	}
 	/* ??? "teach-jove" is too long for MSDOS */
 	(void) sprintf(fname, "%s/teach-jove", home);
@@ -75,10 +80,10 @@ char	*argv[];
 		r = system(cmd);
 		if (r != 0) {
 			printf("teachjove: cannot execute \"%s\"\n", cmd);
-			exit(-1);
+			exit(6);
 		}
 	}
 	(void) execlp("jove", "teachjove", fname, (char *) NULL);
-	printf("teachjove: cannot execl jove!\n");
+	fprintf(stderr, "teachjove: cannot execl jove!\n");
 	return 1;
 }
