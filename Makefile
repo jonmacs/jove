@@ -5,7 +5,7 @@
 # this notice is included in all the source files and documentation.     #
 ##########################################################################
 
-VERSION=4.17.0.4
+VERSION=4.17.0.5
 DIST=jove-$(VERSION)
 
 # SHELL for this Makefile (csh won't work!)
@@ -361,14 +361,15 @@ paths.h: .ALWAYS
 	@echo \#define SHAREDIR \"$(SHAREDIR)\" >> paths.tmp
 	@echo \#define DFLTSHELL \"$(DFLTSHELL)\" >> paths.tmp
 	@if test -e .git; then \
-		v=-`git describe --all --long --always | sed 's,.*/,,'`; \
+		v=`git describe --all --long --always | sed 's,.*/,,'`; \
+		case "$$v" in [0-9]*) ;; *) v="$(VERSION)-$$v";; esac; \
 	else \
-		v=""; \
+		v="$(VERSION)"; \
 	fi; \
-	echo \#define jversion \"$(VERSION)$$v\" >> paths.tmp; \
+	echo \#define jversion \"$$v\" >> paths.tmp; \
 	w=`echo $(VERSION) | sed 's/\\./,/g'`; \
 	echo \#define jversion_lnum $$w >> paths.tmp; \
-	sed "s,^Version:.*,Version: $(VERSION)$$v," jspec.in > jspec.tmp; \
+	sed "s,^Version:.*,Version: $$v," jspec.in > jspec.tmp; \
 	if ! cmp -s jove.spec jspec.tmp; then mv jspec.tmp jove.spec; else rm jspec.tmp; fi; \
 	if ! cmp -s paths.h paths.tmp; then mv paths.tmp paths.h; else rm paths.tmp; fi
 
