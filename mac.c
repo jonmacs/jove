@@ -63,7 +63,6 @@
 #include <Types.h>
 #include <Windows.h>
 
-#include <errno.h>
 #include <pascal.h>
 
 #include "mac.h"

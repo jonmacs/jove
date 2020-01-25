@@ -5,7 +5,7 @@
  * this notice is included in all the source files and documentation.     *
  **************************************************************************/
 
-#include <stdio.h>
+#define USE_STDIO_H 1
 #include "jove.h"
 #include "chars.h"
 #include "commands.h"

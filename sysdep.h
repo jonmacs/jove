@@ -662,7 +662,7 @@
 #  define NBUF		3
 # endif
 # ifndef JLGBUFSIZ
-#  define JLGBUFSIZ	9	/* 512kB is the traditional UNIX block size */
+#  define JLGBUFSIZ	9	/* 512 bytes is the traditional UNIX block size */
 # endif
 #endif
 
@@ -671,7 +671,7 @@
 #endif
 
 #ifndef JLGBUFSIZ
-# define JLGBUFSIZ 12	/* perhaps a good match for 4kB pages */
+# define JLGBUFSIZ 12	/* perhaps a good match for 4KiB pages */
 #endif
 
 #define JBUFSIZ	(1<<JLGBUFSIZ)

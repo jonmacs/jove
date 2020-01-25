@@ -1,3 +1,254 @@
+commit de380c334a3348f72427d874af12d7a844ddcf30
+Author: Mark Moraes <moraes@computer.org>
+Date:   Fri Jan 24 21:53:05 2020 -0500
+
+    4.17.0.3: use -Wall -pedantic in default OPTFLAGS (clang and
+    gcc support it; time to recognize that those are the
+    dominant two compilers)
+    
+    Added LOCALEXTRALIBS variable and use it for setmaps
+    (so I could specify EXTRALIBS=-lasan -lubsan and test with
+    -fsanitize=address -fsanitize=memory)
+    
+    Added XEXT to setmaps for consistency (how did this ever work
+    on DOS -- did we just ship keys.c?)
+    
+    typo in sysdep.h.  (Note that -DXBSD probably covers all
+    modern *BSD and Darwin, and -DXLINUX should probably cover
+    all modern Linux, no need for the longer -DSYSVR...)
+    
+    fix sprintf buffer sizes so gcc 8.3 -Wall -pedantic
+    (actually -Wformat-overflow) stops complaining (now builds
+    on alpine with musl with clang 5 and gcc 8.3; also tested
+    with clang 8 on CentOS7, and gcc 5 on Ubuntu 16.04)
+    
+    include errno.h (and optionally, stdio.h) in jove.h, to
+    solve an include ordering fiasco in recover and setmaps,
+    need tune.h to come first, so sysdep.h can specify _XOPEN_*
+    or other features, before including any system includes.
+    
+    Adopt many of Cord's proposed changes from Debian package:
+    DESTDIR prefix for all paths
+    xjove/jovetool manuals not installed by default
+    create and set permissions on missing *DIR install dirs
+    switch to /var/tmp, it is not removed on reboot by FHS convention
+    so recover -syscrash is not really needed.
+    switch to groff options by default, who remembers ditroff!
+    typo in doc/jove.nr
+
+commit 06e2a1d91a60d7cb7fcaa5889f7fe04d3545a486
+Author: Mark Moraes <moraes@computer.org>
+Date:   Fri Jan 24 10:51:40 2020 -0500
+
+    4.17.0.2 Back out of the reset-tabs sequence in jtc, does not work well
+    on xterm and st (and konsole, per Paul Vixie)
+    
+    Fix all -Wall -pedantic complaints from gcc 5.5.0 (Ubuntu 16.04)
+    	declare dummy var in jtc so no complaints re: empty translation unit
+    
+    	remove unused env_malloced variable from util.c
+    	(probably leftover, the real flag is in the Env struct)
+    
+    	check setuid return in recover.c
+    
+    	avoid sprintf in setmaps.c for trivial character formatting
+    	(still need to avoid sprintf in recover.c and teachjove.c,
+    	per clang complaints reported by Paul Vixie)
+
+Author: Mark Moraes <moraes@computer.org>
+Date:   Thu Jan 23 23:01:00 2020 -0500
+
+    4.17.0.1: Cursory update for README, tweaked XBSD and XLINUX in sysdep.h
+
+commit aecc4dc618e68a39d9e53da0e68cb1dd15a3170a
+Author: Mark Moraes <moraes@computer.org>
+Date:   Wed Jan 22 21:16:34 2020 -0500
+
+    4.17.0.0 candidate
+    
+    Some automatic version generation machinery in Makefile,
+    uses git --describe.  Remove version.h, only place version
+    is specified is now Makefile, which generates jove.spec from
+    jspec.in, and puts jversion and jversion_lnum in paths.h,
+    which was already auto-generated, and can be used by
+    jjove.rc instead of version.h
+    
+    Added LICENSE for general conformance/convenience (same as
+    boilerplate header for src) and moved version.h history
+    to ChangeLog, also more conventional
+    
+    Updated jove.spec to github
+    
+    make clean removes the xjove/.filelist and distrib created by make distrib
+    
+    Removed bogus reference and docs for non-existent IPROC_TERM
+    
+    jtc.c resets tabs on VTALT, avoids nastiness of some kinds if terminal
+    gets borked (Jove really likes using phystab of 8)
+    
+    Updated .gitignore
+
+5Acommit 41c658c11eedfbf2fc09f6559c03215f1e60aa98
+Author: Mark Moraes <moraes@computer.org>
+Date:   Thu Jan 23 22:25:51 2020 -0500
+
+    Updated jove.spec to github
+    Clean removes the xjove/.filelist and distrib created by make distrib
+    Removed bogus reference and docs for non-existent IPROC_TERM
+    jtc.c resets tabs on VTALT, avoids nastiness of some kinds if terminal
+    gets borked (Jove really likes using phystab of 8)
+
+commit 6d62c645b543bf2b7aebd85c62d001fa3dfba077
+Author: Mark Moraes <moraes@computer.org>
+Date:   Wed Jan 22 21:16:34 2020 -0500
+
+    Some automatic version generation machinery in Makefile,
+    uses git --describe.  Remove version.h, only place version
+    is specified is now Makefile, which generates jove.spec from
+    jspec.in, and puts jversion and jversion_lnum in paths.h,
+    which was already auto-generated, and can be used by
+    jjove.rc instead of version.h
+    
+    Added LICENSE for general conformance/convenience (same as
+    boilerplate header for src) and moved version.h history
+    to ChangeLog, also more conventional
+
+commit 586003424679800d75e78b534ef2bbcb61a705bd
+Author: Mark Moraes <moraes@computer.org>
+Date:   Wed Jan 22 08:32:26 2020 -0500
+
+    ensure tune.h is first (move setjmp.h later) in jove.h
+    (which is first everywhere else) so that system header
+    features don't get defined, so we can now set
+    _XOPEN_SOURCE or other features in sysdep.h or tune.h
+    
+    add XBSD and XLINUX to sysdep.h, for convenience on the two
+    most common platforms around today (Darwin and Linux)
+
+commit 1c6e9a713069e190701307e661d464eb67d1d983
+Author: Mark Moraes <moraes@computer.org>
+Date:   Thu Jan 16 17:38:22 2020 -0500
+
+    tparm argument order seems wrong, needs to be l, c,
+    since the definition for cm is %p1%d;%p2%d. tgoto is
+    opposite and is c, l, presumably historical weirdness.
+
+commit 1de95ea776dd242f5d3acab8a0395388b609350c
+Author: Mark Moraes <moraes@computer.org>
+Date:   Thu Jan 16 17:36:28 2020 -0500
+
+    UNIX may as well have MALLOC_CACHE set to 1, reduces
+    apparent bss size.
+
+commit 5fbadda38f3b85ce71fb1acbc0c877d27e90d2a6
+Author: Mark Moraes <moraes@computer.org>
+Date:   Thu Jan 16 17:16:50 2020 -0500
+
+    fix delay code and add flushscreen for vb to avoid
+    calling SitFor
+
+commit 996592ed7947c985538a187bdba75ab6c19d443e
+Author: Mark Moraes <moraes@computer.org>
+Date:   Mon Jan 13 14:46:12 2020 -0500
+
+    switch from putpad to putstr since it is putting
+    explicit escape sequences with no use of tputs syntax.
+
+commit 91eec94450bcb591ec88de8b4d1d857386debd6b
+Author: Mark Moraes <moraes@computer.org>
+Date:   Sun Jan 12 12:45:08 2020 -0500
+
+    vb contains padding delays like $<100/> on most modern
+    terminals (vt220, xterm) between the switch to reverse
+    video and back, so it needs to be output by putpad (i.e.
+    tputs), not putstr. On gnome-terminal (Ubuntu 16.04),
+    set visible-bell on and hit ^G, and jove will produce
+    $<100/> on the screen rather than a visual bell flash.
+
+commit 972f056a2ddc0d523c12fa2f3b9b585046476ac9
+Author: Mark Moraes <moraes@computer.org>
+Date:   Sun Jan 12 12:41:30 2020 -0500
+
+    Increase MAXCOLS from 256 to 512 (I get 300+ column
+    maximized xterms on my new 4K monitor)
+
+commit 0ed38a00d06e4fb643bdfbcda9b963b291ac4f92
+Author: Mark Moraes <moraes@computer.org>
+Date:   Sat Jan 11 00:21:24 2020 -0500
+
+    added jtc, which provides all the termcap/terminfo
+    functionality that Jove needs but is limited to ANSI
+    X.3/VT[1-5]xx/xterm/rxvt/... (does anyone run anything
+    else now) This avoids the small annoyance of the
+    termcap/terminfo/curses/ncurses/ncursesw external dependency.
+
+commit 2fa2236ea50b22abc63e64b7532e0cc7e82db8a1
+Author: Mark Moraes <moraes@computer.org>
+Date:   Sat Jan 4 22:55:04 2020 -0500
+
+    increase size of tspace, xterm pretty close to edge, and
+    some terms are over.
+
+commit e8390bd82e0305174c53e924a3de99193ff2e04f
+Author: Mark Moraes <moraes@computer.org>
+Date:   Sat Jan 4 14:11:52 2020 -0500
+
+    correct TERM from emacs to dumb in README and mention
+    {,i}proc-env* mention ncursesw and Alpine/docker note
+    Changed jovehacks to jovedev email
+
+commit 3934215398c6cead35d23bc181adf13934bd0886
+Author: Mark Moraes <moraes@computer.org>
+Date:   Wed Nov 18 14:31:30 2015 -0500
+
+    added proc-env-{export,show,unset} to match iproc.
+    changed jenvinit to more meaningful jenvdata. Fixed
+    Makefile to use LANG=C for nroff etc so that it does not
+    try smart hyphens (which break jove search)
+
+commit 88fb4b035946c6c3f141b532181801378e17baa9
+Author: Mark Moraes <moraes@computer.org>
+Date:   Wed Nov 18 02:37:28 2015 -0500
+
+    added iproc-env-{export,show,unset} commands to allow
+    setting or unsetting env vars before interactive
+    processes are started. Moved most code from
+    set_process_env() to doc/jove.rc and added a few from
+    jovedev email thread.
+
+commit f5a5f9122946e9bddd803a7178bfba6b0883e9f4
+Author: Mark Moraes <moraes@computer.org>
+Date:   Wed Nov 18 00:08:47 2015 -0500
+
+    Moved j{put,unsetenv}env from iproc.c to util.c, made
+    them externally visible, declared in util.h, generalized
+    them to take a ptr to an Env struct instead of modifying
+    global state, keep one of those Env structs as iproc_env
+    in iproc.c (preparatory to maintaining a separate one
+    for proc.c)
+
+commit dbd3fe96fad7f3e3b77f763949b725e6930cdd5b
+Author: Paul Vixie <vixie@fsi.io>
+Date:   Sat Mar 2 06:38:36 2019 +0000
+
+    patch from github jonmacs/jove strcpy branch
+	commit 2a6b24db99aa78351335583e133d1a970eeff583
+	very light strcpy audit, mostly to fix casey leedom report
+    [the strcpy in proc.c:344 is also reported by valgrind
+    ==27906== Source and destination overlap in strcpy(0x63e540, 0x63e540)
+    MakeName (proc.c:344)
+    ShellCom (proc.c:490)
+    ExecCmd (commands.c:164)
+    dispatch (keymaps.c:926)
+    DoKeys (jove.c:1465)
+    main (jove.c:1777) - moraes]
+
+commit 7f9e5d2b59ebfff8e4bfd5bb9b187c53465ba6c6
+Author: paul vixie <paul@redbarn.org>
+Date:   Sat Mar 9 12:48:51 2019 -0800
+
+    use "do {}" rather than "do ;", for -pedantic (#5)
+
 commit e2d5e98fbf0b2d303f1f1cb7383e25ccc3ca990b
 Author: Mark Moraes <moraes@cs.toronto.edu>
 Date:   Sun Mar 10 23:25:45 2019 -0400

@@ -9,7 +9,7 @@ Group: Applications/Editors
 URL: https://github.com/jonmacs/jove
 Source: https://github.com/jonmacs/jove
 BuildRequires: ncurses-devel groff
-%global configflags SYSDEFS=-DXLINUX NROFF="nroff -Tascii" TROFF=groff TROFFPOST=""
+%global configflags SYSDEFS=-DXLINUX
 
 %description
 Jove is a compact, powerful Emacs-style text-editor. It provides the common

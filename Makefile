@@ -5,7 +5,7 @@
 # this notice is included in all the source files and documentation.     #
 ##########################################################################
 
-VERSION=4.17.0.2
+VERSION=4.17.0.3
 DIST=jove-$(VERSION)
 
 # SHELL for this Makefile (csh won't work!)
@@ -24,13 +24,16 @@ SHELL = /bin/sh
 # If they don't exist, this makefile will try to create the directories
 # LIBDIR and SHAREDIR.  All others must already exist.
 
-JOVEHOME = /usr/local
+JOVEHOME = $(DESTDIR)/usr/local
 SHAREDIR = $(JOVEHOME)/lib/jove
 LIBDIR = $(JOVEHOME)/lib/jove
 BINDIR = $(JOVEHOME)/bin
 XEXT=
 MANDIR = $(JOVEHOME)/man/man$(MANEXT)
 MANEXT = 1
+
+# Install permission for SHAREDIR, LIBDIR, BINDIR
+DPERM = 755
 
 # TMPDIR is where the tmp files get stored, usually /tmp, /var/tmp, or
 # /usr/tmp.  If you wish to be able to recover buffers after a system
@@ -41,8 +44,11 @@ MANEXT = 1
 # (in case the system startup salvages tempfiles by moving them,
 # which is probably a good idea).
 
-TMPDIR = /tmp
-RECDIR = /var/preserve
+TMPDIR = /var/tmp
+RECDIR = $(DESTDIR)/var/lib/jove/preserve
+
+# Install permission for RECDIR
+RECPERM = 1777
 
 # DFLTSHELL is the default shell invoked by JOVE and TEACHJOVE.
 DFLTSHELL = /bin/sh
@@ -151,7 +157,7 @@ SYSDEFS = -DBSDPOSIX_STDC
 # On DEC OSF/1 and Digital UNIX VV4.0, add -std1 to enable ANSI C features
 # and perhaps -g3 for more debugging info with optimization.
 
-OPTFLAGS = -O
+OPTFLAGS = -O -Wall -pedantic
 
 # For making dependencies under BSD systems
 DEPENDFLAG = -M
@@ -222,6 +228,7 @@ LDCC = $(CC)
 LOCALCC = $(CC)
 LOCALCFLAGS = $(CFLAGS)	# $(MEMFLAGS)
 LOCALLDFLAGS = $(LDFLAGS)
+LOCALEXTRALIBS = $(EXTRALIBS)
 
 # Objects are grouped into overlays for the benefit of (at least) 2.xBSD.
 
@@ -237,16 +244,16 @@ OVLAY5 = proc.o scandir.o term.o case.o
 
 OBJECTS = $(BASESEG) $(OVLAY1) $(OVLAY2) $(OVLAY3) $(OVLAY4) $(OVLAY5)
 
-# These TROFF and TROFFPOST settings work with ditroff.
-# For groff:
-#	NROFF = nroff -Tascii
-#	TROFF = groff
-#	TROFFPOST =
-NROFF = nroff
-TROFF = troff -Tpost
-TROFFPOST = | /usr/lib/lp/postscript/dpost -
+# These NROFF, TROFF and TROFFPOST settings work with groff.
+# Classic Unix and derivatives used to have ditroff for which, use:
+#	NROFF = nroff
+#	TROFF = troff
+#	TROFFPOST = | /usr/lib/lp/postscript/dpost -
+NROFF = nroff -Tascii
+TROFF = groff
+TROFFPOST = 
 
-MANUALS = $(JOVEM) $(TEACHJOVEM) $(XJOVEM) $(JOVETOOLM)
+MANUALS = $(JOVEM) $(TEACHJOVEM)
 
 C_SRC = commands.c commands.tab abbrev.c argcount.c ask.c buf.c c.c case.c jctype.c \
 	delete.c disp.c extend.c fp.c fmt.c insert.c io.c iproc.c \
@@ -294,8 +301,7 @@ BACKUPS = $(HEADERS) $(C_SRC) $(SUPPORT) $(MISC)
 # all: default target.
 # Builds everything that "install" needs.
 all:	jjove$(XEXT) recover$(XEXT) teachjove$(XEXT) portsrv$(XEXT) \
-	doc/cmds.doc doc/jove.$(MANEXT) doc/teachjove.$(MANEXT) \
-	doc/jovetool.$(MANEXT)
+	doc/cmds.doc doc/jove.$(MANEXT) doc/teachjove.$(MANEXT)
 
 jjove$(XEXT):	$(OBJECTS)
 	$(LDCC) $(LDFLAGS) $(OPTFLAGS) -o jjove$(XEXT) $(OBJECTS) $(TERMCAPLIB) $(EXTRALIBS)
@@ -333,14 +339,14 @@ teachjove$(XEXT):	teachjove.o
 # don't optimize setmaps.c because it produces bad code in some places
 # for some reason
 
-setmaps:	setmaps.o
-	$(LOCALCC) $(LOCALLDFLAGS) -o setmaps setmaps.o
+setmaps$(XEXT):	setmaps.o
+	$(LOCALCC) $(LOCALLDFLAGS) -o setmaps$(XEXT) setmaps.o $(LOCALEXTRALIBS)
 
 setmaps.o:	setmaps.c
 	$(LOCALCC) $(LOCALCFLAGS) -c setmaps.c
 
-keys.c:	setmaps keys.txt
-	./setmaps < keys.txt > keys.c
+keys.c:	setmaps$(XEXT) keys.txt
+	./setmaps$(XEXT) < keys.txt > keys.c
 
 keys.o:	keys.c tune.h sysdep.h jove.h keymaps.h dataobj.h commands.h
 
@@ -369,13 +375,13 @@ paths.h: .ALWAYS
 makexjove:
 	( cd xjove ; make CC="$(CC)" OPTFLAGS="$(OPTFLAGS)" SYSDEFS="$(SYSDEFS)" $(TOOLMAKEEXTRAS) xjove )
 
-installxjove:
+installxjove:  $(XJOVEM)
 	( cd xjove ; make CC="$(CC)" OPTFLAGS="$(OPTFLAGS)" SYSDEFS="$(SYSDEFS)" XINSTALL="$(XINSTALL)" BINDIR="$(BINDIR)" INSTALLFLAGS="$(INSTALLFLAGS)" $(TOOLMAKEEXTRAS) installxjove )
 
 makejovetool:
 	( cd xjove ; make CC="$(CC)" OPTFLAGS="$(OPTFLAGS)" SYSDEFS="$(SYSDEFS)" DEFINES=-DSUNVIEW $(TOOLMAKEEXTRAS) jovetool )
 
-installjovetool:
+installjovetool: $(JOVETOOLM)
 	( cd xjove ; make CC="$(CC)" OPTFLAGS="$(OPTFLAGS)" SYSDEFS="$(SYSDEFS)" DEFINES=-DSUNVIEW XINSTALL="$(XINSTALL)" BINDIR="$(BINDIR)" INSTALLFLAGS="$(INSTALLFLAGS)" $(TOOLMAKEEXTRAS) installjovetool )
 
 # Note: everything needed by "install" should be built by "all".
@@ -389,11 +395,20 @@ install: $(LIBDIR) $(SHAREDIR) \
 	@echo See the README about changes to /etc/rc or /etc/rc.local
 	@echo so that the system recovers jove files on reboot after a crash
 
+$(BINDIR)::
+	if test ! -e $(BINDIR); then mkdir -p $(BINDIR) && chmod $(DPERM) $(BINDIR); fi
+
 $(LIBDIR)::
-	test -d $(LIBDIR) || mkdir -p $(LIBDIR)
+	if test ! -e $(LIBDIR); then mkdir -p $(LIBDIR) && chmod $(DPERM) $(LIBDIR); fi
 
 $(SHAREDIR)::
-	test -d $(SHAREDIR) || mkdir -p $(SHAREDIR)
+	if test ! -e $(SHAREDIR); then mkdir -p $(SHAREDIR) && chmod $(DPERM) $(SHAREDIR); fi
+
+$(MANDIR)::
+	if test ! -e $(MANDIR); then mkdir -p $(MANDIR) && chmod $(DPERM) $(MANDIR); fi
+
+$(RECDIR)::
+	if test ! -e $(RECDIR); then mkdir -p $(RECDIR) && chmod $(RECPERM) $(RECDIR); fi
 
 $(TEACH-JOVE): doc/teach-jove
 	$(TINSTALL) doc/teach-jove $(TEACH-JOVE)
@@ -434,7 +449,7 @@ doc/jove.$(MANEXT): doc/jove.nr
 	     -e 's;<SHAREDIR>;$(SHAREDIR);' \
 	     -e 's;<SHELL>;$(DFLTSHELL);' doc/jove.nr > doc/jove.$(MANEXT)
 
-$(JOVEM): doc/jove.$(MANEXT)
+$(JOVEM): $(MANDIR) doc/jove.$(MANEXT)
 	$(TINSTALL) doc/jove.$(MANEXT) $(JOVEM)
 
 # doc/jove.doc is the formatted manpage (only needed by DOS)
@@ -451,17 +466,17 @@ doc/teachjove.$(MANEXT): doc/teachjove.nr
 	     -e 's;<SHAREDIR>;$(SHAREDIR);' \
 	     -e 's;<SHELL>;$(DFLTSHELL);' doc/teachjove.nr > doc/teachjove.$(MANEXT)
 
-$(TEACHJOVEM): doc/teachjove.$(MANEXT)
+$(TEACHJOVEM): $(MANDIR) doc/teachjove.$(MANEXT)
 	$(TINSTALL) doc/teachjove.$(MANEXT) $(TEACHJOVEM)
 
-$(XJOVEM): doc/xjove.nr
+$(XJOVEM): $(MANDIR) doc/xjove.nr
 	$(TINSTALL) doc/xjove.nr $(XJOVEM)
 
 doc/jovetool.$(MANEXT): doc/jovetool.nr
 	sed -e 's;<MANDIR>;$(MANDIR);' \
 	     -e 's;<MANEXT>;$(MANEXT);' doc/jovetool.nr > doc/jovetool.$(MANEXT)
 
-$(JOVETOOLM): doc/jovetool.$(MANEXT)
+$(JOVETOOLM): $(MANDIR) doc/jovetool.$(MANEXT)
 	$(TINSTALL) doc/jovetool.$(MANEXT) $(JOVETOOLM)
 
 echo:
@@ -587,7 +602,7 @@ touch:
 	touch $(OBJECTS)
 
 clean:
-	rm -f a.out core *.o keys.c jjove$(XEXT) portsrv$(XEXT) recover$(XEXT) setmaps \
+	rm -f a.out core *.o keys.c jjove$(XEXT) portsrv$(XEXT) recover$(XEXT) setmaps$(XEXT) \
 		teachjove$(XEXT) paths.h \#* *~ make.log *.map jjove.ico \
 		doc/cmds.doc doc/jove.man doc/jove.doc doc/jove.man.ps \
 		doc/jove.$(MANEXT) doc/teachjove.$(MANEXT) \

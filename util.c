@@ -6,7 +6,6 @@
  **************************************************************************/
 
 #include "jove.h"
-#include <errno.h>
 #include "jctype.h"
 #include "disp.h"
 #include "fp.h"

@@ -5,8 +5,6 @@
  * this notice is included in all the source files and documentation.     *
  **************************************************************************/
 
-#include <errno.h>
-
 #include "jove.h"
 
 #ifdef UNIX /* the body is the rest of the file */

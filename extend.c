@@ -22,10 +22,6 @@
 /* #include "util.h" */
 #include "vars.h"
 
-#ifdef SUBSHELL
-# include <errno.h>
-#endif
-
 #ifdef MAC
 # include "mac.h"
 #endif

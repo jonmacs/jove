@@ -17,7 +17,6 @@
 #ifdef PIPEPROCS	/* almost the whole file! */
 
 #include <signal.h>
-#include <errno.h>
 
 #include "sysprocs.h"
 #include "iproc.h"

@@ -22,8 +22,6 @@
 #	endif /* !MSFILESYSTEM */
 #endif /* !MAC */
 
-#include <errno.h>
-
 #ifdef RAINBOW
 private int rbwrite proto((int, char *, int));
 #endif

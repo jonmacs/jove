@@ -34,8 +34,6 @@ extern int	UNMACRO(killpg) proto((int /*pgrp*/, int /*sig*/));
 #define killpg(pid, sig)	kill(-(pid), (sig))
 #endif /* USE_KILLPG */
 
-#include <errno.h>
-
 struct process {
 	Process	p_next;
 #ifdef PIPEPROCS

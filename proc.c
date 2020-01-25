@@ -27,7 +27,6 @@
 #include "wind.h"
 
 #include <signal.h>
-#include <errno.h>
 
 #ifdef MSDOS_PROCS
 # include <io.h>

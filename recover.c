@@ -18,9 +18,7 @@
  * Look in Makefile to change the default directories.
  */
 
-#include <errno.h>
-#include <stdio.h>	/* Do stdio first so it doesn't override OUR
-			   definitions. */
+#define USE_STDIO_H 1
 #include "jove.h"
 
 #define SMALLSTRSIZE	30	/* used for small buffers */
@@ -273,8 +271,8 @@ private bool
 add_name(fname)
 char *fname;
 {
-	char	dfile[FILESIZE],
-		rfile[FILESIZE];
+	char	dfile[FILESIZE*2+2], /* CurDir/filename */
+		rfile[FILESIZE*2+2];
 	struct file_pair	*fp;
 	struct rec_head		header;
 	int	fd;
@@ -449,7 +447,7 @@ private void
 restore()
 {
 	register int	i;
-	char	tofile[FILESIZE],
+	char	tofile[FILESIZE+1], /* leading # */
 		answer[SMALLSTRSIZE];
 	int	nrecovered = 0;
 

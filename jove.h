@@ -13,6 +13,11 @@
 
 #include <setjmp.h>
 #include <string.h>
+#include <errno.h>
+
+#ifdef USE_STDIO_H
+# include <stdio.h> /* for recover, setmaps */
+#endif
 
 #ifndef MAC
 # include <sys/types.h>

@@ -46,8 +46,6 @@ extern int UNMACRO(rename)(const char *old, const char *new);	/* <stdin.h> */
 # endif
 #endif /* MSFILESYSTEM */
 
-#include <errno.h>
-
 private void
 	filemunge proto((char *newname)),
 	chk_divergence proto((Buffer *thisbuf, const char *fname, const char *how));

@@ -164,7 +164,7 @@ Subsequent files in the list are read in and displayed in succeeding windows.
 The
 .B \-r
 option of jove runs the JOVE recover program.  Use this when the system
-crashes, or JOVE crashes, or you accidently get logged out while in JOVE.
+crashes, or JOVE crashes, or you accidentally get logged out while in JOVE.
 If there are any buffers to be recovered, this will find them.
 .LP
 Recover looks for JOVE buffers that are left around and are

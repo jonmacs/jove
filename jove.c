@@ -46,7 +46,6 @@
 #endif
 
 #include <signal.h>
-#include <errno.h>
 
 #ifdef MAC
 # include "mac.h"
