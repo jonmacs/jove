@@ -1,0 +1,25 @@
+language: c
+addons:
+  apt_packages:
+    - make
+    - git
+    - ncurses-dev
+  homebrew:
+    update: true
+    packages:
+      - make
+      - git
+      - ncurses
+branches:
+ - moraes
+os:
+ - linux
+ - osx
+compiler:
+ - gcc
+ - clang
+arch:
+ - amd64
+ - arm64
+ - ppc64le
+ - s390x
