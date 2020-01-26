@@ -23,3 +23,5 @@ arch:
  - arm64
  - ppc64le
  - s390x
+script:
+ - u=$(uname); case $u in Linux) make SYSDEFS=-DXLINUX TERMCAPLIB=-lncurses;; Darwin) make SYSDEFS=-DXBSD TERMCAPLIB=-lncurses;; *) echo "Unknown uname \"$u\"";; esac
