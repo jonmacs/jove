@@ -6,7 +6,6 @@ addons:
     - groff
     - ncurses-dev
   homebrew:
-    update: true
     packages:
       - make
       - git
