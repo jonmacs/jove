@@ -3,12 +3,14 @@ addons:
   apt_packages:
     - make
     - git
+    - groff
     - ncurses-dev
   homebrew:
     update: true
     packages:
       - make
       - git
+      - groff
       - ncurses
 branches:
  - moraes
