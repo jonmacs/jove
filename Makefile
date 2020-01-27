@@ -5,7 +5,7 @@
 # this notice is included in all the source files and documentation.     #
 ##########################################################################
 
-VERSION=4.17.0.6
+VERSION=4.17.0.7
 DIST=jove-$(VERSION)
 
 # SHELL for this Makefile (csh won't work!)
@@ -40,7 +40,7 @@ MANEXT = 1
 # Install permission for SHAREDIR, LIBDIR, BINDIR
 DPERM = 755
 
-# TMPDIR is where the tmp files get stored, usually /tmp, /var/tmp, or
+# JTMPDIR is where the tmp files get stored, usually /tmp, /var/tmp, or
 # /usr/tmp.  If you wish to be able to recover buffers after a system
 # crash, this needs to be a directory that isn't cleaned out on reboot.
 # You would probably want to clean out that directory periodically with
@@ -49,7 +49,7 @@ DPERM = 755
 # (in case the system startup salvages tempfiles by moving them,
 # which is probably a good idea).
 
-TMPDIR = /var/tmp
+JTMPDIR = /var/tmp
 JRECDIR = /var/lib/jove/preserve
 RECDIR = $(DESTDIR)$(JRECDIR)
 
@@ -471,7 +471,7 @@ $(JOVEM): $(MANDIR) doc/jove.$(MANEXT)
 
 # doc/jove.doc is the formatted manpage (only needed by DOS)
 # Building it should be like building $(JOVEM) except that we
-# don't know what to substitue for <TMPDIR> etc. because they
+# don't know what to substitute for <TMPDIR> etc. because they
 # are not fixed yet, and because we must do the formatting.
 
 doc/jove.doc: doc/jove.nr
