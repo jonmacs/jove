@@ -336,17 +336,22 @@ char	*command;
 	do {
 		c = *command++;
 	} while (jiswhite(c));
+	*cp++ = '*'; /* same convention as minibuf for output window names */
 	while (cp < &bnm[sizeof(bnm) - 1] && c != '\0' && !jiswhite(c)) {
 		*cp++ = c;
 		c = *command++;
 	}
 	*cp = '\0';
-	if ((bp = jbasename(bnm)) != bnm) {
+	if ((bp = jbasename(&bnm[1])) != &bnm[1]) {
 		/* bp overlaps bnm, cannot use strcpy */
-		cp = bnm;
+		cp = &bnm[1];
 		do ; while ((*cp++ = *bp++) != '\0');
+		cp--; /* make sure cp points at '\0' */
 	}
-
+	if (cp > &bnm[1] && cp < &bnm[sizeof(bnm)-1]) {
+		*cp++ = '*';
+		*cp = '\0';
+	}
 	return bnm;
 }
 
