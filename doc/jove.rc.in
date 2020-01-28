@@ -102,6 +102,13 @@ set disable-biff on
 1 source jove.rc.$TERM
 
 # source local custom rc file, if present
+# This might be convenient for system admins 
+# making customizations across their entire domain
 1 source jove-local.rc
+
+# source local host rc file, if present
+# This might be convenient for customizations for a specific
+# machine.
+1 source __ETCDIR__/jove.rc
 
 popd

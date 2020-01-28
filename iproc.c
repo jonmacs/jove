@@ -476,7 +476,7 @@ kbd_kill()
 #  include <stdlib.h>	/* for grantpt and unlockpt, at least in Solaris 2.3 */
 #  if _XOPEN_SOURCE >= 500
     /* Linux/glibc no longer pretends to support STREAMS (XSR) (2008) */
-#   if _XOPEN_STREAMS != -1
+#   if defined(_XOPEN_STREAMS) && _XOPEN_STREAMS != -1
 #    include <stropts.h>
 #   endif
 #  else
