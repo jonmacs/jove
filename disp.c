@@ -262,7 +262,7 @@ redisplay()
 		}
 
 		if (Asking) {
-			Placur(ILI, min(CO - 2, calc_pos(mesgbuf, AskingWidth)));
+			Placur(ILI, jmin(CO - 2, calc_pos(mesgbuf, AskingWidth)));
 				/* Nice kludge */
 			flushscreen();
 		} else {
@@ -465,13 +465,13 @@ int	start;
 			 * appearance of an ! on the left, we scroll an extra column.
 			 */
 			int
-				step = min(ScrollWidth, end_col - strt_col);
+				step = jmin(ScrollWidth, end_col - strt_col);
 
 			strt_col =
 				strt_col > dot_col && strt_col - step <= dot_col
-					? max(strt_col - step, 0)
+					? jmax(strt_col - step, 0)
 				: dot_col >= end_col && dot_col < end_col + step
-					? min(strt_col + step
+					? jmin(strt_col + step
 					  + (strt_col == 0 && dot_col == end_col + step - 1? 1 : 0)
 					  , dot_col)
 				: dot_col < ((CO - 1) - nw)
@@ -880,7 +880,7 @@ int	lineno;
 				 * could have salvaged without moving them.
 				 */
 				int	NumSaved = IDcomp(new + i, old + col, oldlen-col)
-						- NumSimilar(new + col, old + col, min(i, oldlen)-col);
+						- NumSimilar(new + col, old + col, jmin(i, oldlen)-col);
 
 				if (OkayInsert(NumSaved, i - col)) {
 					InsChar(lineno, col, i - col, new);
@@ -960,7 +960,7 @@ bool	samelength;
 	 * Note: we must avoid multiplying by INFINITY.
 	 */
 	return Saved + (samelength ? 0 : CElen) >
-		min(MDClen, DC != NULL? DClen * num : INFINITY);
+		jmin(MDClen, DC != NULL? DClen * num : INFINITY);
 }
 
 private bool
@@ -976,8 +976,8 @@ int	Saved,
 
 	if (IC != NULL)		/* Per character prefixes */
 		n = num * IClen;
-	n = min(n, MIClen);
-	n = min(n, IMEIlen);
+	n = jmin(n, MIClen);
+	n = jmin(n, IMEIlen);
 # else /* !NCURSES_BUG */
 	/* Note: the way termcap/terminfo is defined, we must use *both*
 	 * IC and IM to insert, but normally only one will be defined.
@@ -986,7 +986,7 @@ int	Saved,
 	register int	n = 0;
 
 	if (IC != NULL)		/* Per character prefixes */
-		n = min(num * IClen, MIClen);
+		n = jmin(num * IClen, MIClen);
 
 	if (!IN_INSmode)
 		n += IMEIlen;
@@ -1497,7 +1497,7 @@ NextPage()
 			rbell();
 			return;
 		}
-		newline = next_line(curwind->w_top, max(1, WSIZE(curwind) - 1));
+		newline = next_line(curwind->w_top, jmax(1, WSIZE(curwind) - 1));
 		SetTop(curwind, curwind->w_line = newline);
 		if (curwind->w_bufp == curbuf)
 			SetLine(newline);
@@ -1517,7 +1517,7 @@ PrevPage()
 	} else if (is_non_minus_arg()) {
 		DownScroll();
 	} else {
-		newline = prev_line(curwind->w_top, max(1, WSIZE(curwind) - 1));
+		newline = prev_line(curwind->w_top, jmax(1, WSIZE(curwind) - 1));
 		SetTop(curwind, curwind->w_line = newline);
 		if (curwind->w_bufp == curbuf)
 			SetLine(newline);
@@ -1575,7 +1575,7 @@ Eow()
 		return;
 
 	SetLine(next_line(curwind->w_top, WSIZE(curwind) - 1 -
-			min(WSIZE(curwind) - 1, arg_value() - 1)));
+			jmin(WSIZE(curwind) - 1, arg_value() - 1)));
 	if (!is_an_arg())
 		Eol();
 }
@@ -1588,7 +1588,7 @@ Bow()
 	if (Asking)
 		return;
 
-	SetLine(next_line(curwind->w_top, min(WSIZE(curwind) - 1, arg_value() - 1)));
+	SetLine(next_line(curwind->w_top, jmin(WSIZE(curwind) - 1, arg_value() - 1)));
 }
 
 /* Typeout Mechanism */

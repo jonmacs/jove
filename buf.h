@@ -34,7 +34,7 @@
 #define Abbrev		(1 << 1)	/* abbrev mode */
 #define OverWrite	(1 << 2)	/* over write mode */
 #define Indent		(1 << 3)	/* indent same as previous line after return */
-#define ReadOnly	(1 << 4)	/* buffer is read only */
+#define BReadOnly	(1 << 4)	/* buffer is read only */
 #define ShowMatch	(1 << 5)	/* paren flash mode */
 #ifdef IPROCS
   /* buffer is running DBX process -- track source references */

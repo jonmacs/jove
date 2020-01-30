@@ -16,6 +16,7 @@
 #include "screen.h"
 #include "disp.h"	/* for redisplay() */
 
+#undef CR /* sigh, used as field name in some windows header */
 #include <windows.h>
 
 INPUT_RECORD in_event[NCHARS], *eventp = in_event;	/* Input events e.g. keyboard, mouse-click */
@@ -148,9 +149,9 @@ formatChar(char c)
 	static char cbuf[6];
 
 	if (c >= ' ' && c <= '~')
-		sprintf(cbuf, "%c", c);
+		wsprintf(cbuf, "%c", c);
 	else
-		sprintf(cbuf, "\\%03o", (unsigned char)c);
+		wsprintf(cbuf, "\\%03o", (unsigned char)c);
 	return cbuf;
 }
 
@@ -161,7 +162,7 @@ formatEvent(INPUT_RECORD* event)
 
 	switch (event->EventType) {
 	  case KEY_EVENT:
-		sprintf(buffer, "KEY%s '%s%s%s%s'[%d times] Scan=%d Keycode=%d\n",
+		wsprintf(buffer, "KEY%s '%s%s%s%s'[%d times] Scan=%d Keycode=%d\n",
 			event->Event.KeyEvent.bKeyDown?"DOWN":"UP",
 			(event->Event.KeyEvent.dwControlKeyState &
 				(RIGHT_ALT_PRESSED|LEFT_ALT_PRESSED) ? "ALT-" : ""),
@@ -176,7 +177,7 @@ formatEvent(INPUT_RECORD* event)
 			);
 		break;
 	  case MOUSE_EVENT:
-		sprintf(buffer, "MOUSE%s%s %s%s%s%s%s%s (%d,%d)\n",
+		wsprintf(buffer, "MOUSE%s%s %s%s%s%s%s%s (%d,%d)\n",
 				(event->Event.MouseEvent.dwEventFlags&MOUSE_MOVED ?
 						" MOVED" : ""),
 				(event->Event.MouseEvent.dwEventFlags&DOUBLE_CLICK?
@@ -195,18 +196,18 @@ formatEvent(INPUT_RECORD* event)
 				);
 		break;
 	  case WINDOW_BUFFER_SIZE_EVENT:
-		sprintf(buffer, "RESIZE (%d,%d)\n",
+		wsprintf(buffer, "RESIZE (%d,%d)\n",
 			eventp->Event.WindowBufferSizeEvent.dwSize.Y,
 			eventp->Event.WindowBufferSizeEvent.dwSize.X);
 		break;
 	  case MENU_EVENT:
-		sprintf(buffer, "MENU %d\n", eventp->Event.MenuEvent.dwCommandId);
+		wsprintf(buffer, "MENU %d\n", eventp->Event.MenuEvent.dwCommandId);
 		break;
 	  case FOCUS_EVENT:
-		sprintf(buffer, "FOCUS %d\n", eventp->Event.FocusEvent.bSetFocus);
+		wsprintf(buffer, "FOCUS %d\n", eventp->Event.FocusEvent.bSetFocus);
 		break;
 	  default:
-		sprintf(buffer, "UNKNOWN %d\n", eventp->EventType);
+		wsprintf(buffer, "UNKNOWN %d\n", eventp->EventType);
 		break;
 	}
 	return buffer;
@@ -649,7 +650,7 @@ ConsoleFail(char *fdef)
 	char why[200];
 	char *reason = getLastErrorString();
 
-	sprintf(why, "Console function \"%s\" failed", fdef);
+	wsprintf(why, "Console function \"%s\" failed", fdef);
 	if (MessageBox(NULL, getLastErrorString(), why, MB_OKCANCEL) == IDCANCEL)
 		abort();
 }
@@ -782,7 +783,7 @@ scr_putchar(char c)
 	case LF:
 		c_row += 1;
 		break;
-	case CR:
+	case CTL('M'): /* CR */
 		c_col = 0;
 		break;
 	case BS:

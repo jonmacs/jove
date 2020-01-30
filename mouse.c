@@ -201,7 +201,7 @@ private bool
 ObeyProc(p)
 void (*p) ptrproto((void));
 {
-	if (BufMinorMode(curbuf, ReadOnly)) {
+	if (BufMinorMode(curbuf, BReadOnly)) {
 		rbell();
 		message("[Buffer is read-only]");
 		return NO;

@@ -466,7 +466,7 @@ ZXchar	c;
 				}
 				minmatch = numfound == 0
 					? (int)strlen(Possible[i])
-					: min(minmatch, numcomp(Possible[lastmatch], Possible[i]));
+					: jmin(minmatch, numcomp(Possible[lastmatch], Possible[i]));
 				numfound += 1;
 				lastmatch = i;
 			}

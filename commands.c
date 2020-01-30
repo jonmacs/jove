@@ -156,7 +156,7 @@ register const data_obj	*cp;
 
 			if (cmd->c_proc != NULL) {
 				if ((cmd->Type & MODIFIER)
-				&& BufMinorMode(curbuf, ReadOnly))
+				&& BufMinorMode(curbuf, BReadOnly))
 				{
 					rbell();
 					message("[Buffer is read-only]");

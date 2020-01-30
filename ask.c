@@ -457,9 +457,9 @@ int	n;
 				minmatch = numfound == 0
 					? (int)strlen(dir_vec[i])
 #ifdef FILENAME_CASEINSENSITIVE
-					: min(minmatch, numcompcase(dir_vec[lastmatch], dir_vec[i]));
+					: jmin(minmatch, numcompcase(dir_vec[lastmatch], dir_vec[i]));
 #else
-					: min(minmatch, numcomp(dir_vec[lastmatch], dir_vec[i]));
+					: jmin(minmatch, numcomp(dir_vec[lastmatch], dir_vec[i]));
 #endif
 				lastmatch = i;
 				numfound += 1;
@@ -560,7 +560,7 @@ ZXchar	c;
 	} else {
 		/* we're a '?' */
 		const int
-			towidth = min((CO - 2), MAX_TYPEOUT);
+			towidth = jmin((CO - 2), MAX_TYPEOUT);
 		int
 			i,
 			maxlen = 0,
@@ -573,7 +573,7 @@ ZXchar	c;
 		Typeout("Possible completions (in %s):", dir);
 
 		for (i = 0; i < nentries; i++)
-			maxlen = max((int)strlen(dir_vec[i]), maxlen);
+			maxlen = jmax((int)strlen(dir_vec[i]), maxlen);
 		maxlen += 4;	/* pad each column with at least 4 spaces */
 		if (maxlen > towidth)
 		    maxlen = towidth;

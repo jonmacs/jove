@@ -238,7 +238,7 @@ register int	nbytes;
 		while (nbytes > 0) {
 			char	ibuf[512+1];	/* NOTE: room for added NUL */
 			size_t n = f_readn(ProcInput, ibuf,
-				(size_t)min((int)(sizeof ibuf) - 1, nbytes));
+				(size_t)jmin((int)(sizeof ibuf) - 1, nbytes));
 
 			nbytes -= n;
 			proc_rec(p, ibuf, n);

@@ -41,8 +41,8 @@ extern int
 	LineDist proto((LinePtr nextp,LinePtr endp)),
 	LinesTo proto((LinePtr from, LinePtr to)),
 	length proto((LinePtr line)),
-	max proto((int a,int b)),
-	min proto((int a,int b)),
+	jmax proto((int a,int b)),
+	jmin proto((int a,int b)),
 	numcomp proto((const char *s1, const char *s2)),
 	numcompcase proto((const char *s1, const char *s2));
 

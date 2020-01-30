@@ -15,11 +15,9 @@ allows you to easily understand and modify JOVE.  The executable
 version allows you to easily install JOVE without using a C compiler.
 Neither requires the other.
 
-Each distribution may be in the form of a .zip or .zoo archive.  If
+Each distribution may be in the form of a .zip archive.  If
 you use pkunzip, be sure to use the -d flag to get it to correctly
-place files in subdirectories.  In the .zoo file, lines are terminated
-with NL (LF), not CR LF.  This may cause some problems for certain DOS
-commands such as MORE.
+place files in subdirectories.
 
 The source distribution for MSDOS (and WIN32 -- Windows/95 and
 Windows/NT) is either called jovedoss.zip or given a name indicating

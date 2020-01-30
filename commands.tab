@@ -236,7 +236,7 @@ const struct cmd	commands[] = {
 	{ COMMAND, "quit-process", WIRED_CMD(ProcQuit) },
 #endif
 	{ MODCMD, "quoted-insert", WIRED_CMD(QuotChar) },
-	{ DefMinor(ReadOnly), "read-only-mode", WIRED_CMD(NULL) },
+	{ DefMinor(BReadOnly), "read-only-mode", WIRED_CMD(NULL) },
 #ifdef ABBREV
 	{ COMMAND, "read-word-abbrev-file", WIRED_CMD(RestAbbrevs) },
 #endif

@@ -125,7 +125,7 @@ DelPChar()
 		 * but control characters displayed as two are not handled.
 		 */
 		int	rightcol = calc_pos(linebuf, curchar);
-		int	charcount = min(arg_value(), curchar);
+		int	charcount = jmin(arg_value(), curchar);
 		int	colcount = rightcol - calc_pos(linebuf, curchar-charcount);
 
 		b_char(charcount);

@@ -5,9 +5,6 @@
 # this notice is included in all the source files and documentation.     #
 ##########################################################################
 
-VERSION=4.17.0.9
-DIST=jove-$(VERSION)
-
 # SHELL for this Makefile (csh won't work!)
 SHELL = /bin/sh
 
@@ -283,7 +280,7 @@ HEADERS = abbrev.h argcount.h ask.h buf.h c.h case.h chars.h commands.h \
 	misc.h mouse.h move.h paragraph.h proc.h \
 	re.h reapp.h rec.h recover.h resource.h scandir.h screen.h \
 	select.h sysdep.h sysprocs.h temp.h term.h ttystate.h \
-	tune.h util.h vars.h wind.h
+	tune.h util.h vars.h version.h wind.h
 
 DOCTERMS =	doc/jove.rc.sun doc/keychart.sun \
 	doc/jove.rc.sun-cmd doc/keychart.sun-cmd \
@@ -365,20 +362,14 @@ keys.o:	keys.c tune.h sysdep.h jove.h keymaps.h dataobj.h commands.h
 .ALWAYS:
 
 .version: .ALWAYS
-	@if test -e .git; then \
-		v=`git describe --all --long --always | sed 's,.*/,,;s,-,_,g'`; \
-		case "$$v" in [0-9]*) ;; *) v="$(VERSION)_$$v";; esac; \
-	else \
-		v="$(VERSION)"; \
-	fi; \
-	echo $$v > .version.tmp; \
+	@sed -n 's/# *define  *jversion[ \t]*"\([0-9\\.]*\)".*/\1/p' version.h > .version.tmp; \
 	if ! cmp -s .version.tmp .version; then mv .version.tmp .version; else rm .version.tmp; fi
 
 jove.spec: .version .ALWAYS
 	@v=`sed 's/_.*//' .version`; sed "s,__VERSION__,$$v,g" jspec.in > jspec.tmp; \
 	if ! cmp -s jove.spec jspec.tmp; then mv jspec.tmp jove.spec; else rm jspec.tmp; fi
 
-paths.h: .version .ALWAYS
+paths.h: .ALWAYS
 	@echo "/* Changes should be made in Makefile, not to this file! */" > paths.tmp
 	@echo "" >> paths.tmp
 	@echo \#define TMPDIR \"$(JTMPDIR)\" >> paths.tmp
@@ -386,10 +377,6 @@ paths.h: .version .ALWAYS
 	@echo \#define LIBDIR \"$(JLIBDIR)\" >> paths.tmp
 	@echo \#define SHAREDIR \"$(JSHAREDIR)\" >> paths.tmp
 	@echo \#define DFLTSHELL \"$(DFLTSHELL)\" >> paths.tmp
-	@v=`cat .version`; \
-	echo \#define jversion \"$$v\" >> paths.tmp; \
-	w=`echo $(VERSION) | sed 's/\\./,/g'`; \
-	echo \#define jversion_lnum $$w >> paths.tmp; \
 	if ! cmp -s paths.h paths.tmp; then mv paths.tmp paths.h; else rm paths.tmp; fi
 
 makexjove:
@@ -575,34 +562,38 @@ backup.tgz: .filelist
 tape-backup:	.filelist
 	tar cf /dev/rst8 `cat .filelist`
 
-# Build a distribution: a gzipped tar file with a name "jove<version>.tgz"
-# The tar will unpack into a directory with the name jove<version>
+# Build a distribution: a gzipped tar file with a name "jove-<version>.tgz"
+# The tar will unpack into a directory with the name jove-<version>
 # Beware: old files with these names will be blown away.
 distrib:	.filelist
 	set -u ; set -e ; \
-	rm -rf $(DIST) $(DIST).tgz* ; \
-	mkdir $(DIST) ; \
-	tar cf - `cat .filelist` | ( cd $(DIST) ; tar xf - ) ; \
-	tar czf $(DIST).tgz $(DIST) ; \
-	rm -rf $(DIST) ; \
-	ls -l $(DIST).tgz
+	BN=jove-`cat .version` ; \
+	rm -rf $$BN $$BN.tgz* ; \
+	mkdir $$BN ; \
+	tar cf - `cat .filelist` | ( cd $$BN ; tar xf - ) ; \
+	tar czf $$BN.tgz $$BN ; \
+	rm -rf $$BN ; \
+	ls -l $$BN.tgz
 
 rpm: distrib $(RPMHOME)
 	# rpmbuild really wants the source tarball to have
 	# the basename of Source0 in the rpm spec, and be
 	# in the rpmbuild SOURCES directory.
 	rpmsrc=`sed -n '/Source0/s,.*/,,p' jove.spec`; \
-	cp $(DIST).tgz $(RPMHOME)/$$rpmsrc; \
+	BN=jove-`cat .version` ; \
+	cp $$BN.tgz $(RPMHOME)/$$rpmsrc; \
 	rpmbuild -ta $(RPMHOME)/$$rpmsrc
 
 # create a distribution and a separate PGP signature for it
 signeddistrib-pgp:	distrib
-	pgp -sba $(DIST).tgz
-	chmod a+r $(DIST).tgz.asc
+	BN=jove-`cat .version` ; \
+	pgp -sba $$BN.tgz; \
+	chmod a+r $$BN.tgz.asc
 
 signeddistrib-gpg:	distrib
-	gpg -sba $(DIST).tgz
-	chmod a+r $(DIST).tgz.asc
+	BN=jove-`cat .version` ; \
+	gpg -sba $$BN.tgz; \
+	chmod a+r $$BN.tgz.asc
 
 # System V sum can be made to match BSD with a -r flag.
 # To get this effect, override with SUM = sum -r
@@ -613,8 +604,7 @@ checksum:	.filelist
 
 # MSDOS isn't a full-fledged development environment.
 # Preparing a distribution for MSDOS involves discarding some things
-# and pre-building others.  All should have \n converted to CR LF
-# but zoo doesn't do this.
+# and pre-building others.  All should have \n converted to CR LF.
 # From SUPPORT: only setmaps.c and keys.txt [would like teachjove.c, recover.c]
 # From MISC: all but Makefile and README.mac
 # Preformatted documentation. [would like a joverc]
@@ -625,10 +615,6 @@ DOSSRC = $(HEADERS) $(C_SRC) setmaps.c keys.txt \
 	README README.dos README.w32 README.c32 sysdep.doc tune.doc style.doc \
 	jjoveico.uue jjove.rc \
 	doc/cmds.doc doc/jove.man doc/jove.doc tags
-
-jovedoss.zoo:	$(DOSSRC) jjove.ico
-	-rm -f jovedoss.zoo
-	zoo a jovedoss.zoo $(DOSSRC) jjove.ico
 
 jovedoss.zip:	$(DOSSRC) jjove.ico
 	-rm -f jovedoss.zip

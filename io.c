@@ -430,7 +430,7 @@ bool	is_insert;
 	if (!is_insert) {
 		(void) do_stat(curbuf->b_fname, curbuf, DS_SET);
 		set_arg_value((fp->f_flags & F_READONLY)? 1 : 0);
-		TogMinor(ReadOnly);
+		TogMinor(BReadOnly);
 	}
 
 	DOTsave(&save);

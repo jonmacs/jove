@@ -187,15 +187,13 @@ If you don't have the aforementioned source archive, then the first step is
 to create a source archive containing the JOVE sources and related
 documentation.  This needs to be done from a UNIX system, because it depends
 on several unix tools (e.g. nroff and uudecode).  If you don't have a UNIX
-system, get a friend to do this.  This step also requires either zoo or
-pkzip, which are available elsewhere.  To extract the source from the
+system, get a friend to do this.  This step also requires pkzip,
+which is available elsewhere.  To extract the source from the
 archive on the PC side, you'll need the corresponding DOS or WIN32 version
-of zoo, pkunzip or unzip.  Use the following command on the UNIX system to
+of pkunzip or unzip.  Use the following command on the UNIX system to
 create the archive:
 
     make jovedoss.zip
-
-(Substitute zoo for zip if a zoo archive is required).
 
 Once the archive is created, move it to the Windows/NT or Windows/95 system.
 Unpack the archive into its own source directory.
@@ -207,9 +205,9 @@ INCLUDE and LIB environment variables must be set correctly.
     nmake /f makefile.msc WIN32=1
 
 If you want to redistribute the WIN32 version of Jove to others, you can use
-the jovew32x.zip or jovew32x.zoo targets to do so e.g.
+the jovew32x.zip target to do so e.g.
 
-    nmake /f makefile.msc WIN32=1 jovew32x.zoo
+    nmake /f makefile.msc WIN32=1 jovew32x.zip
 
 Jove can also be built from the Visual C++ 2.x workbench.  Just open
 makefile.msc as a project, and set the build command to the above.  For the

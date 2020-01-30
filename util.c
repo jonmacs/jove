@@ -251,7 +251,7 @@ register const Buffer	*b;
 }
 
 int
-min(a, b)
+jmin(a, b)
 register int	a,
 		b;
 {
@@ -259,7 +259,7 @@ register int	a,
 }
 
 int
-max(a, b)
+jmax(a, b)
 register int	a,
 		b;
 {

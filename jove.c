@@ -29,6 +29,7 @@
 #include "proc.h"
 #include "screen.h"
 #include "term.h"
+#include "version.h"
 #include "wind.h"
 
 #ifdef IPROCS
@@ -65,6 +66,7 @@
 #endif /* MSDOS */
 
 #ifdef WIN32
+# undef CR /* sigh, used as a field name in some windows header! */
 # include <windows.h>	/* ??? is this needed? */
 # undef FIONREAD	 /* This is defined but ioctl isn't so we cannot use it. */
 #endif
@@ -302,7 +304,7 @@ int	code;
 
 	resetsighandler(SIGINT, handle_sigint);
 	f_mess("Abort (Type 'n' if you're not sure)? ");
-	Placur(ILI, min(CO - 2, calc_pos(mesgbuf, MAXCOLS)));
+	Placur(ILI, jmin(CO - 2, calc_pos(mesgbuf, MAXCOLS)));
 	flushscreen();
 # ifdef UNIX
 #  ifdef PIPEPROCS
@@ -1361,14 +1363,14 @@ raw_complain(fmt, va_alist)
 	va_list	ap;
 	const char *bp;
 	size_t	rem;
-	ssize_t r;
+	SSIZE_T r;
 
 	va_init(ap, fmt);
 	format(buf, sizeof(buf) - 2, fmt, ap);
 	va_end(ap);
 	strcat(buf, "\r\n");	/* \r *may* be redundant */
 	for (bp = buf, rem = strlen(buf)
-	; rem > 0 && (r = write(2, bp, rem)) != (ssize_t)rem
+	; rem > 0 && (r = write(2, bp, rem)) != (SSIZE_T)rem
 	; bp += r, rem -=r) {
 		if (r < 0 || errno != EINTR)
 		    break;	/* give up */

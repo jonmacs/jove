@@ -422,7 +422,7 @@ bool	abortable;
 		if (oldhl->norm != NULL)
 			MinCol = w;
 		if (oldhl->high != NULL && w > (int)oldhl->start)
-			MinCol = max(MinCol, min(w, (int) (oldhl->start + oldhl->width)));
+			MinCol = jmax(MinCol, jmin(w, (int) (oldhl->start + oldhl->width)));
 	}
 	/* If either the old line or the new line has effects,
 	 * we know that some effects processing is necessary.
@@ -432,7 +432,7 @@ bool	abortable;
 	 */
 	if (hl != NOEFFECT) {
 		if (hl->high != NULL)
-			MinCol = max(MinCol, (int) (hl->start + hl->width));
+			MinCol = jmax(MinCol, (int) (hl->start + hl->width));
 		if (oldhl == NOEFFECT) {
 			oldhl = Curline->s_effects = LEnew();	/* keep Placur on-track */
 			*oldhl = nohl;

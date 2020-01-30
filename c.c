@@ -764,7 +764,7 @@ FillComment()
 	DelMark(savedot);
 	ToMark(close_c_mark);
 	saveRMargin = RMargin;
-	RMargin = max(10,
+	RMargin = jmax(10,
 		saveRMargin - (int)strlen(l_header) - trailer_len - indent_pos + 2);
 	do_rfill(NO);	/* justify from mark through point */
 	RMargin = saveRMargin;

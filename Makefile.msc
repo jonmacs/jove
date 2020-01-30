@@ -11,9 +11,7 @@
 #
 # - supported targets:
 #   + jjove.exe (build JOVE, but don't install it)
-#   + jovedosx.zoo (build executable JOVE kit for DOS)
 #   + jovedosx.zip (build executable JOVE kit for DOS)
-#   + jovew32x.zoo (build executable JOVE kit for Win32)
 #   + jovew32x.zip (build executable JOVE kit for Win32)
 #   + clean
 #
@@ -85,7 +83,6 @@ SRC = .
 # aready on a Unix archive.
 UUDECODE	=	uudecode
 # Used to generate archives for redistributing JOVE executables and docs.
-ZOO			=	zoo
 ZIP			=	pkzip
 
 TMPDIR = c:/tmp
@@ -146,7 +143,7 @@ jjove.bsc: $(OBJECTS:.obj=.sbr)
 /o $@ $(OBJECTS:.obj=.sbr)
 <<
 
-jove.obj:	paths.h
+jove.obj:	paths.h version.h
 vars.obj:	vars.tab
 commands.obj:	commands.tab
 setmaps.obj:	vars.tab commands.tab
@@ -164,12 +161,6 @@ paragraph.c:
 	if exist paragrap.c rename paragrap.c paragraph.c
 !ENDIF
 
-jove$(OS)x.zoo:	paths.h jjove.exe
-	-del jove$(OS)x.zoo
-	-del jove.exe
-	rename jjove.exe jove.exe
-	$(ZOO) -add jove$(OS)x.zoo jove.exe doc\cmds.doc doc\jove.man doc\jove.doc paths.h README.$(OS)
-
 jove$(OS)x.zip:	paths.h jjove.exe
 	-del jove$(OS)x.zip
 	-del jove.exe
@@ -178,7 +169,7 @@ jove$(OS)x.zip:	paths.h jjove.exe
 
 paths.h: makefile.msc
 	@echo Making <<paths.h
-/* Changes should be made in Makefile, not to this file! */
+/* Changes should be made in Makefile.msc, not to this file! */
 
 #define TMPDIR "$(TMPDIR)"
 #define RECDIR "$(RECDIR)"
@@ -187,7 +178,7 @@ paths.h: makefile.msc
 #define DFLTSHELL "$(DFLTSHELL)"
 <<KEEP
 
-# The Jove icon target should be part of the distributed ZOO file, but
+# The Jove icon target should be part of the distributed ZIP file, but
 # if not this rule will build it.
 jjove.ico:	jjoveico.uue
 	$(UUDECODE) $**

@@ -27,7 +27,7 @@ settout()
 {
 # ifndef NO_JSTDOUT
 	flushscreen();		/* flush the one character buffer */
-	ScrBufSize = min(MAXTTYBUF, 256);
+	ScrBufSize = jmin(MAXTTYBUF, 256);
 	jstdout = fd_open("/dev/tty", F_WRITE|F_LOCKED, 1, (char *)NULL, ScrBufSize);
 # endif
 }

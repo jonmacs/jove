@@ -413,7 +413,7 @@ BufList()
 		any_diverged = NO;
 
 	for (b = world; b != NULL; b = b->b_next) {
-		buf_width = max(buf_width, (int)strlen(b->b_name));
+		buf_width = jmax(buf_width, (int)strlen(b->b_name));
 		if (b->b_type == B_FILE)
 		    any_needsaving |= IsModified(b);
 		else

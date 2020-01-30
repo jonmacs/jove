@@ -488,7 +488,7 @@ settout()
 	}
 
 	flushscreen();		/* flush the one character buffer */
-	ScrBufSize = min(MAXTTYBUF, speed_chars * max(LI / 24, 1));
+	ScrBufSize = jmin(MAXTTYBUF, speed_chars * jmax(LI / 24, 1));
 #ifndef NO_JSTDOUT
 	jstdout = fd_open("/dev/tty", F_WRITE|F_LOCKED, 1, (char *)NULL, ScrBufSize);
 #endif
@@ -510,7 +510,7 @@ ttsize()
 	&& win.ws_col >= 12
 	&& win.ws_row >= 3)
 	{
-		CO = min(win.ws_col, MAXCOLS);
+		CO = jmin(win.ws_col, MAXCOLS);
 		LI = win.ws_row;
 	}
 #else /* !TIOCGWINSZ */
@@ -521,7 +521,7 @@ ttsize()
 	&& jwin.bytesx >= 12
 	&& jwin.bytesy >= 3)
 	{
-		CO = min(jwin.bytesx, MAXCOLS);
+		CO = jmin(jwin.bytesx, MAXCOLS);
 		LI = jwin.bytesy;
 	}
 # endif /* BTL_BLIT */

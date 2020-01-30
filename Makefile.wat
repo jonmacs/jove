@@ -11,7 +11,6 @@
 #
 # - supported targets:
 #   + jjove.exe (build JOVE, but don't install it)
-#   + jovedosx.zoo (build executable JOVE kit)
 #   + jovedosx.zip (build executable JOVE kit)
 #   + clean
 #
@@ -124,12 +123,6 @@ HEADERS = abbrev.h argcount.h ask.h buf.h c.h case.h chars.h commands.h &
 #	* $(LD) $(LDFLAGS) -k8196 -fe=$* $(OBJECTS)
 jjove.exe:	paths.h $(OBJECTS) wildargv.obj
 	$(LD) $(LDFLAGS) -k8196 -fm -fe=$* *.obj
-
-jovedosx.zoo:	paths.h jjove.exe
-	-del jovedosx.zoo
-	-del jove.exe
-	rename jjove.exe jove.exe
-	zoo -add jovedosx.zoo jove.exe doc\cmds.doc doc\jove.man doc\jove.doc paths.h README.dos
 
 jovedosx.zip:	paths.h jjove.exe
 	-del jovedosx.zip

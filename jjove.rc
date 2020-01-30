@@ -7,8 +7,9 @@
 //
 // Generated from the TEXTINCLUDE 2 resource.
 //
+#include <windows.h> // per https://mattshaw.org/news/fix-for-error-rc2144-primary-language-id-not-a-number/
 #include "afxres.h"
-#include "paths.h"
+#include "version.h"
 
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS

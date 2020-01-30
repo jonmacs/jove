@@ -588,7 +588,7 @@ Window *w;
 			above = LinesTo(w->w_bufp->b_first, w->w_top),
 			below = LinesTo(w->w_top, (LinePtr)NULL),
 			total = above + below,
-			in = min(below, WSIZE(w));
+			in = jmin(below, WSIZE(w));
 
 		if (above == -1 || below == -1)
 			return &range;	/* something fishy */
