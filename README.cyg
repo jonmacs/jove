@@ -5,10 +5,23 @@
 # this notice is included in all the source files and documentation.     #
 ##########################################################################
 
-[Last updated: 1999 August]
+[Last updated: 2020 January]
 
-Jove for Cygwin32
+Jove for Cygwin
 =================
+
+On modern Cygwin (at least 1.7 onwards, tested recently on 3.1.2),
+either for Cygwin32 or Cygwin64,
+	make SYSDEFS=-DCYGWIN_JTC TERMCAPLIB= XEXT=.exe
+should work (Jove's new builtin JTC termcap replacement should work fine
+on the cygwin console and any terminal emulators shipped with cygwin)
+
+It should also work fine with the Cygwin ncurses package if support
+for ancient non-ANSI/non-VT1xx terminals is desired for some reason.
+	make SYSDEFS=-DCYGWIN TERMCAPLIB=-lncurses XEXT=.exe
+
+Obsolete notes from the original port to Cygwin32, for historical record.
+=========================================================================
 
 Jove has been ported to the Cygwin32 environment using the GNU-Win32 tools.
 Cygwin32 is a POSIX API for Win32, developed by Cygnus Solutions, Inc.  The

@@ -1,3 +1,10 @@
+/**************************************************************************
+ * This file is Copyright (C) 2020 by Mark Moraes.  It is provided        *
+ * without charge and without warranty.  You may copy, modify, and/or     *
+ * distribute it, provided that this notice is included in all the source *
+ * file and documentation.                                                *
+ **************************************************************************/
+
 extern int avoid_pedantic_complaints_about_empty_translation_unit;
 #ifdef JTC
 /*
@@ -16,9 +23,7 @@ extern int avoid_pedantic_complaints_about_empty_translation_unit;
  * and assuming the two-arg increments row/col as %i does.  If
  * someone finds themselves on a terminal that does not
  * support the necessary minimal subset of ANSI X.3, then you
- * need to compile jove with one of
- * termcap/terminfo/curses/ncurses/ncursesw! Please tell
- * jovedev about that!
+ * need to compile jove with one of termcap/terminfo/curses/ncurses/ncursesw!
  */
 /* Mark Moraes, 20200109 */
 

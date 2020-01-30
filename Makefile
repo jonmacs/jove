@@ -14,7 +14,7 @@ SHELL = /bin/sh
 # jove.rc file with some common
 # JLIBDIR is for the PORTSRV and RECOVER programs.
 # JBINDIR is where to put the executables JOVE and TEACHJOVE.
-# XEXT is the extension for executables (empty for UNIX; .exe for CYGWIN32)
+# XEXT is the extension for executables (empty for UNIX; .exe for CYGWIN)
 # JMANDIR is where the manual pages go for JOVE, RECOVER and TEACHJOVE.
 # MANEXT is the extension for the man pages, e.g., jove.1 or jove.l or jove.m.
 #	Must not be "nr".
@@ -37,6 +37,7 @@ MANEXT = 1
 
 # Install permission for SHAREDIR, LIBDIR, BINDIR
 DPERM = 755
+XPERM = 755
 
 # JTMPDIR is where the tmp files get stored, usually /tmp, /var/tmp, or
 # /usr/tmp.  If you wish to be able to recover buffers after a system
@@ -73,15 +74,17 @@ DFLTSHELL = /bin/sh
 
 INSTALLFLAGS = # -g bin -o root
 
-# to install executable files
-XINSTALL=cp
+# XINSTALL to install executable files, prefer install since it is independent
+# of user umask
+# Linux/modern BSD/CYGWIN
+XINSTALL=install $(INSTALLFLAGS) -m 755
+TINSTALL=install $(INSTALLFLAGS) -m 444
+# SysV-derivatives, or non-BSD Unix (V7, etc)
+#XINSTALL=cp
+#TINSTALL=cp
+# 4BSD, SunOS
 #XINSTALL=/usr/ucb/install $(INSTALLFLAGS) -c -m 755 # -s
-#CYGWIN32: XINSTALL=install $(INSTALLFLAGS) -c -m 755
-
-# to install text files
-TINSTALL=cp
 #TINSTALL=/usr/ucb/install $(INSTALLFLAGS) -c -m 644
-#CYGWIN32: TINSTALL=install $(INSTALLFLAGS) -c -m 644
 
 # These should all just be right if the above ones are.
 # You will confuse JOVE if you move anything from LIBDIR or SHAREDIR.
@@ -109,7 +112,7 @@ JOVETOOLM = $(DMANDIR)/jovetool.$(MANEXT)
 #	BSD4.2,4.3			SYSDEFS=-DBSD4
 #	BSDI, 386BSD, BSD4.4		SYSDEFS=-DBSDPOSIX
 #	Consensys V4			SYSDEFS="-DSYSVR4 -DGRANTPT_BUG"
-#	Cygwin32			see README.c32
+#	Cygwin				SYSDEFS=-DCYGWIN_JTC
 #	Compaq Tru64 UNIX V4.0g, 5.1	SYSDEFS=-DSYSVR4
 #	Darwin aka MacOS X		SYSDEFS=-DXBSD
 #	DEC OSF R1.3MK			SYSDEFS=-DSYSVR4

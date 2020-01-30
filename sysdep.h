@@ -176,10 +176,14 @@
 # define ISO_8859_1	1	/* fudge: <ctype.h> doesn't work for 8-bit chars, but X does */
 #endif
 
-#ifdef CYGWIN32 /* System: Cygnus Support Cygwin32 POSIX-like environment
-	on Win95/NT (see README.c32) */
-#define FILENAME_CASEINSENSITIVE	1
-#define BSDPOSIX_STDC	1
+#if defined(CYGWIN_JTC) /* System: Cygwin (that Linux feeling on Windows) */
+# define CYGWIN		1
+# define JTC		1 /* no real point using curses for Cygwin, surely?! */
+#endif
+
+#if defined(CYGWIN) || defined(CYGWIN32) /* System: Cygwin POSIX-like environment on Win95/NT (see README.cyg) */
+# define FILENAME_CASEINSENSITIVE	1
+# define BSDPOSIX_STDC	1
 #endif
 
 #ifdef __QNX__	/* System: QNX OS for x86 family */
