@@ -191,7 +191,7 @@ DEPENDFLAG = -M
 TERMCAPLIB = -ltermcap
 
 # Extra libraries flags needed by oddball systems.
-# Modern BSD systems using openpty need its library.
+# Some BSD systems using openpty need its library.
 #	4.1BSD:	EXTRALIBS = -ljobs
 #	FreeBSD 4.2: EXTRALIBS = -lutil
 #	FreeBSD 4.2, NetBSD 1.5, OpenBSD 2.x:  EXTRALIBS = -lutil
@@ -317,7 +317,7 @@ BACKUPS = $(HEADERS) $(C_SRC) $(SUPPORT) $(MISC) $(FDOCS)
 # all: default target.
 # Builds everything that "install" needs.
 all:	jjove$(XEXT) recover$(XEXT) teachjove$(XEXT) portsrv$(XEXT) \
-	doc/cmds.doc doc/jove.$(MANEXT) doc/teachjove.$(MANEXT)
+	doc/jove.rc doc/cmds.doc doc/jove.$(MANEXT) doc/teachjove.$(MANEXT)
 
 jjove$(XEXT):	$(OBJECTS)
 	$(LDCC) $(LDFLAGS) $(OPTFLAGS) -o jjove$(XEXT) $(OBJECTS) $(TERMCAPLIB) $(EXTRALIBS)

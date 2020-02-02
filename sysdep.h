@@ -15,7 +15,7 @@
 #ifdef XBSD
 /* System: most modern NetBSD, OpenBSD, Darwin Mac OSX */
 # define BSDPOSIX_STDC	1
-# define HAVE_OPENPTY	1
+# define USE_OPENPTY	1
 #endif
 
 #ifdef XLINUX
