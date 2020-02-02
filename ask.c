@@ -29,6 +29,7 @@
 #endif /* !MAC */
 
 ZXchar	AbortChar = CTL('G');	/* VAR: cancels command input */
+bool	DispDefFs = YES;	/* VAR: display default filenames in prompt? */
 
 bool	Asking = NO;
 int	AskingWidth;
@@ -349,9 +350,8 @@ EVexpand()
 
 private char	*fc_filebase;
 bool	DispBadFs = YES;	/* VAR: display filenames with bad extensions? */
-bool	DispDefFs = YES;	/* VAR: display default filenames in prompt? */
-
 char	BadExtensions[sizeof(BadExtensions)] =	/* VAR: extensions to ignore */
+
 # ifndef MSFILESYSTEM
 /* .o: object code format
  * .Z .gz: compressed formats
@@ -605,7 +605,6 @@ ZXchar	c;
 	freedir(&dir_vec, nentries);
 	return YES;
 }
-
 #endif /* F_COMPLETION */
 
 /* ask for file or directory

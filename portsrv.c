@@ -17,9 +17,10 @@
 #ifdef PIPEPROCS	/* almost the whole file! */
 
 #include <signal.h>
-
+#include <sys/ioctl.h>
 #include "sysprocs.h"
 #include "iproc.h"
+extern int pause proto((void));
 
 private struct lump	lump;
 
@@ -126,6 +127,20 @@ char	**argv;
 	if (pipe(p) == -1)
 		proc_error("Cannot pipe jove portsrv.\n");
 
+	tty_fd = open("/dev/tty", O_WRONLY | O_BINARY);
+#ifdef TIOCNOTTY
+	/*
+	 * if one tries to use portsrv on modern *n*x, shells
+	 * (bash, dash) seem to hang, because they seem to try
+	 * to open /dev/tty, even if given the -s option.
+	 * portsrv should not be needed on such machines,
+	 * since they should have and use ptys, but for
+	 * testing on such machines, need to detach from the
+	 * controlling terminal.
+	 */
+	(void) ioctl(tty_fd, TIOCNOTTY, (UnivPtr)0);
+#endif
+	
 	switch (pid = fork()) {
 	case -1:
 		proc_error("portsrv: cannot fork.\n");
@@ -137,6 +152,7 @@ char	**argv;
 		(void) dup2(p[1], 2);
 		(void) close(p[0]);
 		(void) close(p[1]);
+		(void) close(tty_fd);
 
 		NEWPG();
 		execv(argv[1], &argv[2]);
@@ -145,8 +161,6 @@ char	**argv;
 
 	default:
 		(void) close(0);
-		tty_fd = open("/dev/tty", O_WRONLY | O_BINARY);
-
 		(void) signal(SIGINT, SIG_IGN);
 		(void) signal(SIGQUIT, SIG_IGN);
 		(void) close(p[1]);

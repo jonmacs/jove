@@ -301,14 +301,18 @@ DOCS =	doc/README doc/teach-jove doc/jove.qref \
 	doc/jove.nr doc/teachjove.nr doc/xjove.nr doc/jovetool.nr \
 	doc/jove.rc.in doc/example.rc $(DOCTERMS)
 
+# formatted docs, we ship these in the distrib to avoid groff dependency
+# and for non-Unix/Linux platforms
+FDOCS = doc/cmds.doc doc/jove.man doc/jove.man.ps doc/jove.doc
+
 MISC =	Makefile Makefile.bcc Makefile.msc Makefile.wat Makefile.zor \
-	README README.dos README.mac README.w32 README.c32 \
+	README README.dos README.mac README.w32 README.cyg \
 	sysdep.doc tune.doc style.doc jspec.in jove.spec
 
 SUPPORT = teachjove.c recover.c setmaps.c portsrv.c keys.txt \
-	menumaps.txt mjovers.Hqx jjoveico.uue jjove.rc
+	menumaps.txt mjovers.Hqx jjove.ico jjove.rc
 
-BACKUPS = $(HEADERS) $(C_SRC) $(SUPPORT) $(MISC)
+BACKUPS = $(HEADERS) $(C_SRC) $(SUPPORT) $(MISC) $(FDOCS)
 
 # all: default target.
 # Builds everything that "install" needs.
@@ -615,16 +619,13 @@ checksum:	.filelist
 
 DOSSRC = $(HEADERS) $(C_SRC) setmaps.c keys.txt \
 	Makefile.bcc Makefile.msc Makefile.wat Makefile.zor \
-	README README.dos README.w32 README.c32 sysdep.doc tune.doc style.doc \
-	jjoveico.uue jjove.rc \
+	README README.dos README.w32 README.cyg sysdep.doc tune.doc style.doc \
+	jjove.ico jjove.rc \
 	doc/cmds.doc doc/jove.man doc/jove.doc tags
 
 jovedoss.zip:	$(DOSSRC) jjove.ico
 	-rm -f jovedoss.zip
 	zip -k jovedoss.zip jjove.ico -l $(DOSSRC)
-
-jjove.ico:	jjoveico.uue
-	uudecode jjoveico.uue
 
 touch:
 	touch $(OBJECTS)
@@ -632,7 +633,7 @@ touch:
 clean:
 	rm -f a.out core *.o keys.c jjove$(XEXT) portsrv$(XEXT) recover$(XEXT) \
 		setmaps$(XEXT) teachjove$(XEXT) paths.h make.log *.map \#* *~ \
-		jjove.ico doc/cmds.doc doc/jove.man doc/jove.doc doc/jove.rc \
+		doc/cmds.doc doc/jove.man doc/jove.doc doc/jove.rc \
 		doc/jove.man.ps doc/jove.$(MANEXT) doc/teachjove.$(MANEXT) \
 		doc/jovetool.$(MANEXT) $(DIST).tgz jjove.pure_* tags ID \
 		.filelist xjove/.filelist .version jove.spec \

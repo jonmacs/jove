@@ -186,8 +186,8 @@ source archive, you'll need a UNIX system to build this on as well.
 If you don't have the aforementioned source archive, then the first step is
 to create a source archive containing the JOVE sources and related
 documentation.  This needs to be done from a UNIX system, because it depends
-on several unix tools (e.g. nroff and uudecode).  If you don't have a UNIX
-system, get a friend to do this.  This step also requires pkzip,
+on several unix tools (e.g. nroff).  If you don't have a UNIX
+system, get a friend to do this.  This step also requires zip or pkzip,
 which is available elsewhere.  To extract the source from the
 archive on the PC side, you'll need the corresponding DOS or WIN32 version
 of pkunzip or unzip.  Use the following command on the UNIX system to

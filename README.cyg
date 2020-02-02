@@ -20,8 +20,8 @@ It should also work fine with the Cygwin ncurses package if support
 for ancient non-ANSI/non-VT1xx terminals is desired for some reason.
 	make SYSDEFS=-DCYGWIN TERMCAPLIB=-lncurses XEXT=.exe
 
-Obsolete notes from the original port to Cygwin32, for historical record.
-=========================================================================
+Older/obsolete notes from the original port to Cygwin32, for historical record.
+==============================================================================-=
 
 Jove has been ported to the Cygwin32 environment using the GNU-Win32 tools.
 Cygwin32 is a POSIX API for Win32, developed by Cygnus Solutions, Inc.  The
@@ -45,7 +45,7 @@ Search for Cygwin32 in the Makefile.
 
 The environment used for the port was GNU-Win32 Beta 19.1 and the EGCS 2.90.27
 compiler set, and Windows 95.  You'll need either GNU Termcap 1.3 or ncurses
-to build from source.  To build, use "Makefile.c32".
+to build from source.
 
 Note that you may want to set the CYGWIN32 environment variable to "tty" so
 that the CTRL-C key doesn't get treated as an interrupt.
@@ -59,7 +59,7 @@ davy@ers.ibm.com
 [Addendum from Mark Moraes, 2013 April]
 
 I recently built jove on a Cygwin environment (1.7.18) with the
-default cc (gcc 3.4.4), and noted that our instructions in README.c32
+default cc (gcc 3.4.4), and noted that our instructions in README.*
 and Makefile are slightly obsolete.  With the changes/notes below,
 jove 4.16.0.73 seemed to compile and run fine with
 

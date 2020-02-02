@@ -61,11 +61,13 @@
 
 #  ifdef UNIX
 
-#   define WIFSTOPPED(w)	((w & 0377) == 0177)
-#   define WIFEXITED(w)	((w & 0377) == 0)
-#   define WIFSIGNALED(w)	(((w >> 8) & 0377) == 0)
-#   define WEXITSTATUS(w)	((w >> 8) & 0377)
-#   define WTERMSIG(w)	(w & 0177)
+#   ifndef WIFSTOPPED
+#    define WIFSTOPPED(w)	((w & 0377) == 0177)
+#    define WIFEXITED(w)	((w & 0377) == 0)
+#    define WIFSIGNALED(w)	(((w >> 8) & 0377) == 0)
+#    define WEXITSTATUS(w)	((w >> 8) & 0377)
+#    define WTERMSIG(w)	(w & 0177)
+#   endif
 
 #   define wait_opt(stat_loc, options)		wait(stat_loc)
 

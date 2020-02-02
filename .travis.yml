@@ -25,4 +25,4 @@ arch:
  - ppc64le
  - s390x
 script:
- - u=$(uname); case $u in Linux) make SYSDEFS=-DXLINUX TERMCAPLIB=-lncurses;; Darwin) make SYSDEFS=-DXBSD TERMCAPLIB=-lncurses;; *) echo "Unknown uname \"$u\"";; esac
+ - u=$(uname); case $u in Linux) make SYSDEFS=-DXLINUX TERMCAPLIB=-lncurses; make clean; make SYSDEFS='-DBAREBONES -DJTC'; make clean; make SYSDEFS='-DPIPEPROCS -DPOSIX_PROCS';; Darwin) make SYSDEFS=-DXBSD TERMCAPLIB=-lncurses;; *) echo "Unknown uname \"$u\"";; esac

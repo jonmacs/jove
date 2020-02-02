@@ -11,12 +11,12 @@ JOVE on UNIX Systems
 --------------------
 
 For information about other systems, see the other README files:
-  README.c32 for Cygwin32
+  README.cyg for Cygwin32
   README.dos for MS-DOS
   README.mac for Macintosh pre OS-X
   README.w32 for MS Win32
 
-The MS-DOS, old Macintosh and Win32 ports have not been tested in a very
+The MS-DOS and old Macintosh ports have not been tested in a very
 long time.
 
 Quick Summary of Installation
@@ -88,7 +88,7 @@ to make it work on many systems, new and old.  For current systems,
 less configuring is require -- hurray for standards!
 
 Makefile specifies paths for installing JOVE components (JOVEHOME,
-SHAREDIR, LIBDIR, BINDIR, MANDIR, MANEXT), tempfiles (TMPDIR, RECDIR),
+JSHAREDIR, JLIBDIR, JBINDIR, JMANDIR, MANEXT), tempfiles (JTMPDIR, JRECDIR),
 and the default shell (DFLTSHELL).  Although the defaults are
 reasonable, you may wish to change them.
 
@@ -123,7 +123,7 @@ in the main JOVE directory).  If it works, type "make install" to install
 everything where it belongs.
 
 Here are some things to consider when choosing a definition for
-TMPDIR, the directory where JOVE puts temporary files.  The obvious
+JTMPDIR, the directory where JOVE puts temporary files.  The obvious
 place is /tmp, but many systems delete all files in /tmp when they are
 rebooting.  If you hope to recover buffers from a system crash, TMPDIR
 lets you specify a safer place.  If your system does not remove
@@ -150,6 +150,7 @@ version.
 For LINUX, jspec.in is provided to specify how an RPM should be created.
 On Red Hat LINUX 7.x, 8.0, and 9, "rpmbuild -ta jove*.tgz" will build
 source and binary RPMs -- rpm looks inside the .tgz to find jove.spec.
+(Need to 'yum install rpm-build groff' or similar)
 
 It is possible to build a widely portable Linux binary using
 static compilation, perhaps using the musl library to keep

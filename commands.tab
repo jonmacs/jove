@@ -202,7 +202,7 @@ const struct cmd	commands[] = {
 #ifdef JOB_CONTROL
 	{ COMMAND, "pause-jove", WIRED_CMD(PauseJove) },
 #else
-#	ifndef	MAC
+#	ifdef SUBSHELL
 	{ COMMAND, "pause-jove", WIRED_CMD(Push) },
 #	endif
 #endif

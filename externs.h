@@ -103,10 +103,10 @@ extern int	chdir proto((const char */*path*/));
 
 /* POSIX, System Vr4, MSDOS, and our Mac code specify getcwd.
  * System Vr4 (sometimes?) types the second argument "int"!!
+ * In io.c, we implement alternatives with getwd() and the pwd
+ * command!
  */
-# ifdef USE_GETCWD
 extern char	*getcwd proto((char *, size_t));
-# endif /* USE_GETCWD */
 
 # ifdef HAS_SYMLINKS
 /* bufsiz might be of type int in old systems */

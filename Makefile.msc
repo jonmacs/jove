@@ -79,9 +79,6 @@ SRC = .
 # VPATH = .;..	# should read .;$(SRC) - but doesn't work
 
 # Other utilities used in build - defined here so they can be overridden
-# Used to unpack binary sources. May not be needed if unpacked
-# aready on a Unix archive.
-UUDECODE	=	uudecode
 # Used to generate archives for redistributing JOVE executables and docs.
 ZIP			=	pkzip
 
@@ -178,10 +175,7 @@ paths.h: makefile.msc
 #define DFLTSHELL "$(DFLTSHELL)"
 <<KEEP
 
-# The Jove icon target should be part of the distributed ZIP file, but
-# if not this rule will build it.
-jjove.ico:	jjoveico.uue
-	$(UUDECODE) $**
+# The Jove icon target should be part of the distributed ZIP file
 
 !IFNDEF WIN32
 ibmpcdos.obj:	ibmpcdos.c jove.h

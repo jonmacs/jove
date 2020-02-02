@@ -232,7 +232,9 @@ SIGRESTYPE
 finish(code)
 int	code;
 {
+#ifdef RECOVER
 	int save_errno = errno;	/* Subtle, but necessary! */
+#endif
 	bool	DelTmps = YES;		/* Usually we delete them. */
 
 	DisabledRedisplay = YES;

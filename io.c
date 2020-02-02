@@ -1517,7 +1517,7 @@ private daddr	next_bno = 0;
 
 private void	(*blkio) ptrproto((Block *, SSIZE_T (*) ptrproto((int, UnivPtr, size_t))));
 
-/* Needed to comfort dumb MS Visual C */
+/* Needed to comfort MS Visual C */
 private void real_blkio ptrproto((Block *, SSIZE_T (*) ptrproto((int, UnivPtr, size_t))));
 
 private void
@@ -1531,7 +1531,7 @@ register SSIZE_T	(*iofcn) ptrproto((int, UnivPtr, size_t));
 			(iofcn == read) ? "READ" : "WRITE");
 }
 
-/* Needed to comfort dumb MS Visual C */
+/* Needed to comfort MS Visual C */
 private void fake_blkio ptrproto((Block *, SSIZE_T (*) ptrproto((int, UnivPtr, size_t))));
 
 private void
