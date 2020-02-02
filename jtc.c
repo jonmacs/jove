@@ -5,8 +5,6 @@
  * file and documentation.                                                *
  **************************************************************************/
 
-extern int avoid_pedantic_complaints_about_empty_translation_unit;
-#ifdef JTC
 /*
  * NEW, EXPERIMENTAL CODE.  TESTERS WELCOME.
  *
@@ -28,6 +26,10 @@ extern int avoid_pedantic_complaints_about_empty_translation_unit;
 /* Mark Moraes, 20200109 */
 
 #include "jove.h"
+
+#ifndef JTC
+extern int avoid_pedantic_complaints_about_empty_translation_unit;
+#else
 #include "jctype.h"
 #include "fmt.h"	/* for swritef */
 #include "fp.h"		/* for flushscreen */

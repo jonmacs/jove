@@ -196,4 +196,4 @@ keys.obj:	keys.c jove.h
 	$(CC) $(CFLAGS) -I$(SRC) -c keys.c
 
 clean:
-	-rm *.obj setmaps.exe keys.c *.bak *.map *.pdb *.vcp jove.lnk
+	-del *.obj setmaps.exe keys.c *.bak *.map *.pdb *.vcp jove.lnk

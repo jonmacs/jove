@@ -185,8 +185,9 @@ by the superuser, some versions of BSD do manage to close the hole.  A
 disadvantage is that -lutil must be added to the link command because
 openpty is in libutil.
 OpenBSD 3.5 has closed this hole (2004).
-USE_OPENPTY	use the new BSD openpty(3) routine
-HAVE_LIBUTIL_H	use <libutil.h> instead of <util.h>
+USE_OPENPTY	use the new BSD openpty(3) routine (OpenBSD, NetBSD, MacOS X Darwin)
+HAVE_LIBUTIL_H	use <libutil.h> instead of <util.h> (FreeBSD)
+HAVE_PTY_H	use <pty.h> instead of <util.h> (Cygwin, glibc, Interix, OSF/1 4 and 5)
 
 Certain early SVR4 systems have a buggy grantpt library routine that
 is used if PTYPROCS is defined.  A symptom is that the "shell"

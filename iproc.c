@@ -179,9 +179,9 @@ IprocEnvUnset()
  * the two techniques: the first uses pipes and the second uses ptys.
  */
 
-#ifdef PIPEPROCS
 
-#include <sgtty.h>
+#include "ttystate.h"
+#ifdef PIPEPROCS
 
 char	Portsrv[FILESIZE];	/* path to portsrv program (in LibDir) */
 
@@ -462,13 +462,15 @@ kbd_kill()
 #include <sys/time.h>
 #include "select.h"
 
-#include "ttystate.h"
-
 # ifdef USE_OPENPTY	/* modern BSDs have openpty(3) */
 #  ifdef HAVE_LIBUTIL_H	/* but disagree about header! */
 #   include <libutil.h>
 #  else
-#   include <util.h>
+#   ifdef HAVE_PTY_H
+#    include <pty.h>
+#   else
+#    include <util.h>
+#   endif
 #  endif
 # endif
 
