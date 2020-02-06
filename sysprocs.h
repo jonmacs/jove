@@ -70,6 +70,8 @@
 #   endif
 
 #   define wait_opt(stat_loc, options)		wait(stat_loc)
+    /* should be correct if all preceding typedefs or includes worked out */
+    extern pid_t wait proto((wait_status_t *));
 
 #  endif /* UNIX */
 

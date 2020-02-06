@@ -266,7 +266,7 @@ const char	*complaint;
 # endif
 		) {
 # ifdef O_EXCL
-			int fd = open(buf, O_CREAT | O_EXCL | O_RDWR | O_BINARY
+			int fd = open(buf, O_CREAT | O_EXCL | O_RDWR | O_BINARY | O_CLOEXEC
 				, S_IWRITE | S_IREAD);
 # else /* !O_EXCL */
 			int fd = creat(buf, 0600);
@@ -294,7 +294,7 @@ const char	*complaint;
 	if (mktemp(buf) == NULL
 	|| -1 == (fd =
 #  ifdef O_EXCL
-		open(buf, O_CREAT | O_EXCL | O_RDWR | O_BINARY, S_IWRITE | S_IREAD)
+		open(buf, O_CREAT | O_EXCL | O_RDWR | O_BINARY, S_IWRITE | S_IREAD | O_CLOEXEC)
 #  else /* !O_EXCL */
 		creat(buf, 0600)
 #  endif /* !O_EXCL */
@@ -1801,7 +1801,7 @@ char *fname;
 			fname+dirlen);
 	}
 
-	if ((ffd = open(fname, O_RDONLY | O_BINARY)) < 0)
+	if ((ffd = open(fname, O_RDONLY | O_BINARY | O_CLOEXEC)) < 0)
 		return;	/* cannot open original file: nothing to backup, we assume */
 
 	/* create backup file with same mode as input file */
@@ -1822,7 +1822,7 @@ char *fname;
 		 */
 		if ((unlink(bfname) < 0 && errno != ENOENT)
 #  ifdef O_EXCL
-		|| (bffd = open(bfname, O_CREAT | O_EXCL | O_RDWR, mode)) < 0
+		|| (bffd = open(bfname, O_CREAT | O_EXCL | O_RDWR | O_CLOEXEC, mode)) < 0
 #  else
 		|| (bffd = creat(bfname, mode)) < 0
 #  endif

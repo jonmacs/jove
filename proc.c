@@ -854,7 +854,7 @@ UnixToBuf(flags, bnm, InFName, cmd)
 #  endif
 # endif /* !USE_VFORK */
 		if (!((a = "close 0", close(0)) == 0
-		&& (a = "open", open(InFName==NULL? "/dev/null" : InFName, O_RDONLY | O_BINARY)) == 0
+		&& (a = "open", open(InFName==NULL? "/dev/null" : InFName, O_RDONLY | O_BINARY | O_CLOEXEC)) == 0
 		&& (a = "close 1", close(1)) == 0
 		&& (a = "dup 1", dup(p[1])) == 1
 		&& (a = "close 2", close(2)) == 0
@@ -896,7 +896,7 @@ UnixToBuf(flags, bnm, InFName, cmd)
 		/* is there a spawnve (like POSIX) or does environ exist & work? */
 		environ = (char **) jenvdata(&proc_env); /* avoid gcc warning */
 #endif
-		InFailure = InFName != NULL && open(InFName, O_RDONLY | O_BINARY) < 0;
+		InFailure = InFName != NULL && open(InFName, O_RDONLY | O_BINARY | O_CLOEXEC) < 0;
 		if (!InFailure)
 			status = spawnv(0, argv[0], &argv[1]);
 
@@ -914,7 +914,7 @@ UnixToBuf(flags, bnm, InFName, cmd)
 			complain("[filter input failed]");
 		if (status < 0)
 			s_mess("[Spawn failed %d]", errno);
-		ph = open(pipename, O_RDONLY | O_BINARY);
+		ph = open(pipename, O_RDONLY | O_BINARY | O_CLOEXEC);
 		if (ph < 0)
 			complain("[cannot reopen pipe]", strerror(errno));
 		fp = fd_open(argv[1], F_READ, ph, iobuff, LBSIZE);

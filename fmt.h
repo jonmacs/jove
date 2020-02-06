@@ -22,3 +22,8 @@ extern void
 
 extern char
 	*sprint proto((const char *, ...));
+
+extern bool jdebug;
+extern void jdprintf proto((const char *, ...));
+
+#define jdbg if (!jdebug) ; else jdprintf

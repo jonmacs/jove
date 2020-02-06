@@ -449,3 +449,37 @@ add_mess(fmt, va_alist)
 	va_end(ap);
 	message(mesgbuf);
 }
+
+bool jdebug = YES;
+
+#ifdef STDARGS
+void
+jdprintf(const char *fmt, ...)
+#else
+/*VARARGS1*/ void
+jdprintf(fmt, va_alist)
+	const char	*fmt;
+	va_dcl
+#endif
+{
+	static File
+		*dfp,
+		*nofp = (File *)-1;
+	va_list	ap;
+
+	if (dfp == NULL) {
+		const char *p = getenv("JOVEDEBUG");
+		if (p) {
+			dfp = f_open(p, F_WRITE, NULL, LBSIZE);
+		} else {
+			dfp = nofp;
+			jdebug = NO;
+		}
+	}
+	va_init(ap, fmt);
+	if (dfp != nofp) {
+		doformat(dfp, fmt, ap);
+		flushout(dfp);
+	}
+	va_end(ap);
+}

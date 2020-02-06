@@ -51,11 +51,36 @@ int	junk;
 }
 
 private void
+detach()
+{
+	setsid();
+#ifdef TIOCNOTTY
+	{
+		int fd = open("/dev/tty", O_WRONLY | O_BINARY | O_CLOEXEC);
+		/*
+		 * if one tries to use portsrv on modern *n*x,
+		 * shells (bash, dash) seem to hang, because
+		 * they seem to try to open /dev/tty, even if
+		 * given the -s option.  portsrv should not be
+		 * needed on such machines, since they should
+		 * have and use ptys, but for testing on such
+		 * machines, need to detach from the
+		 * controlling terminal.
+		 */
+		(void) ioctl(fd, TIOCNOTTY, (UnivPtr)0);
+		(void) close(fd);
+	}
+#endif
+	NEWPG();
+}
+
+private void
 kbd_process()
 {
 	int	pid,
 		n;
 
+	detach();
 	signal(SIGINT, SIG_IGN);
 	pid = getpid();
 	lump.header.pid = pid;
@@ -64,7 +89,7 @@ kbd_process()
 	for (;;) {
 		n = read(0, (UnivPtr) lump.data, sizeof(lump.data));
 		if (n == -1) {
-			if (errno != EINTR)
+			if (errno == EINTR || errno == EWOULDBLOCK || errno == EAGAIN)
 				break;
 
 			continue;
@@ -127,20 +152,6 @@ char	**argv;
 	if (pipe(p) == -1)
 		proc_error("Cannot pipe jove portsrv.\n");
 
-	tty_fd = open("/dev/tty", O_WRONLY | O_BINARY);
-#ifdef TIOCNOTTY
-	/*
-	 * if one tries to use portsrv on modern *n*x, shells
-	 * (bash, dash) seem to hang, because they seem to try
-	 * to open /dev/tty, even if given the -s option.
-	 * portsrv should not be needed on such machines,
-	 * since they should have and use ptys, but for
-	 * testing on such machines, need to detach from the
-	 * controlling terminal.
-	 */
-	(void) ioctl(tty_fd, TIOCNOTTY, (UnivPtr)0);
-#endif
-	
 	switch (pid = fork()) {
 	case -1:
 		proc_error("portsrv: cannot fork.\n");
@@ -152,15 +163,16 @@ char	**argv;
 		(void) dup2(p[1], 2);
 		(void) close(p[0]);
 		(void) close(p[1]);
-		(void) close(tty_fd);
-
-		NEWPG();
+		detach();
 		execv(argv[1], &argv[2]);
 		_exit(-4);
 		/*NOTREACHED*/
 
 	default:
 		(void) close(0);
+#ifndef TIOCNOTTY
+		tty_fd = open("/dev/tty", O_WRONLY | O_BINARY);
+#endif
 		(void) signal(SIGINT, SIG_IGN);
 		(void) signal(SIGQUIT, SIG_IGN);
 		(void) close(p[1]);

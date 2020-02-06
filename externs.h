@@ -87,6 +87,9 @@ extern char	*ctime proto((const time_t *));
 #ifndef O_BINARY	/* needed for MSDOS and perhaps others */
 # define O_BINARY	0	/* fake if missing with value harmless when ORed */
 #endif
+#ifndef O_CLOEXEC
+# define O_CLOEXEC	0
+#endif
 
 #ifdef POSIX_UNISTD
 # include <unistd.h>

@@ -263,6 +263,7 @@ proc_close(p)
 Process	p;
 {
 	if (p->p_toproc >= 0) {
+		jdbg("closing proc fd %d pid %d", p->p_toproc, p->p_pid);
 		(void) close(p->p_toproc);
 		p->p_toproc = -1;	/* writes will fail */
 		NumProcs -= 1;
@@ -343,6 +344,7 @@ proc_strt(bufname, clobber, procname, va_alist)
 		pipeclose(toproc);
 		jcloseall();
 		set_process_env();
+		jdbg("ready to exec %s %s\n", Portsrv, argv[0]);
 		execv(Portsrv, argv);
 		raw_complain("execl failed: %s", strerror(errno));
 		_exit(1);
@@ -398,7 +400,10 @@ kbd_init()
 	 */
 	int	p[2];
 
-	(void) pipe(p);
+	if (pipe(p) < 0) {
+	    complain("Cannot create pipe to kbd process! %s\n", strerror(errno));
+	    /* NOTREACHED */
+	}
 	ProcInput = fd_open("process-input", F_READ|F_LOCKED, p[0],
 			    (char *)NULL, 512);
 	ProcOutput = p[1];
@@ -411,8 +416,12 @@ kbd_init()
 		(void) setsighandler(SIGINT, SIG_IGN);
 		(void) setsighandler(SIGALRM, SIG_IGN);
 		close(1);
-		dup(ProcOutput);
+		if (dup(ProcOutput) < 0) {
+		    raw_complain("Cannot dup output fd: %s", strerror(errno));
+		    exit(-1);
+		}
 		jcloseall();
+		jdbg("ready to exec %s kbd", Portsrv);
 		execl(Portsrv, "kbd", (char *)NULL);
 		raw_complain("kbd exec failed: %s", strerror(errno));
 		exit(-1);
@@ -428,6 +437,7 @@ private bool	kbd_state = NO;
 void
 kbd_strt()
 {
+	jdbg("kbd_strt state %d pid %d\n", kbd_state, kbd_pid);
 	if (!kbd_state) {
 		if (kbd_pid == -1)
 			kbd_init();
@@ -440,6 +450,7 @@ kbd_strt()
 bool
 kbd_stop()
 {
+	jdbg("kbd_stop state %d pid %d\n", kbd_state, kbd_pid);
 	if (kbd_state) {
 		kbd_state = NO;
 		kill(kbd_pid, KBDSIG);
@@ -451,6 +462,7 @@ kbd_stop()
 void
 kbd_kill()
 {
+	jdbg("kbd_kill state %d pid %d\n", kbd_state, kbd_pid);
 	if (kbd_pid != -1) {
 		kill(kbd_pid, SIGKILL);
 		kbd_pid = -1;
@@ -510,6 +522,8 @@ register int	fd;
 	}
 
 	n = read(fd, (UnivPtr) ibuf, sizeof(ibuf) - 1);
+	jdbg("pty read %d returned %d errno %d from %s\n", fd, n, errno, 
+	     p->p_name);
 	if (n <= 0) {
 		if (n < 0) {
 			switch (errno) {
@@ -524,8 +538,10 @@ register int	fd;
 				 * process leaves the NEW state.  We hope that this
 				 * does not cause a long busy wait.
 				 */
-				if (p->p_io_state == IO_NEW)
+				if (p->p_io_state == IO_NEW) {
+					jdbg("IO_NEW, got errno %d\n", errno);
 					return;
+				}
 
 				/* We get here if the i-proc closes stdout
 				 * before exiting (eg. Bourne Shell),
@@ -555,6 +571,7 @@ ProcCont()
 {
 	Process	p = curbuf->b_process;
 
+	jdbg("ProcCont pid %d %s\n", p->p_pid, p->p_name);
 	if (proc_kill(p, SIGCONT) && p->p_child_state == C_STOPPED) {
 		p->p_child_state = C_LIVE;
 		UpdModLine = YES;
@@ -650,17 +667,21 @@ int	sig;
 {
 	Process	p;
 
+	jdbg("send_sig %d\n", sig);
 	if ((p = curbuf->b_process) == NULL || p->p_fd < 0)
 		complain("[No process]");
 	ToLast();
 #  ifdef TIOCSIG
+	jdbg("TIOCSIG pid %d %s\n", p->p_pid, p->p_name);
 	if (ioctl(p->p_fd, TIOCSIG, sig) < 0)
 		complain("TIOCSIG failed: %d %s", errno, strerror(errno));
 #  else /* !TIOCSIG */
 #   ifdef SVR4_PTYS
+	jdbg("SVR4 TIOCSIGNAL pid %d %s\n", p->p_pid, p->p_name);
 	if (ioctl(p->p_fd, TIOCSIGNAL, sig) < 0)
 		complain("TIOCSIGNAL failed: %d %s", errno, strerror(errno));
 #   else /* !SVR4_PTYS */
+	jdbg("TIOCSIGNAL pid %d %s\n", p->p_pid, p->p_name);
 	if (ioctl(p->p_fd, TIOCSIGNAL, (void *) &sig) < 0)
 		complain("TIOCSIGNAL failed: %d %s", errno, strerror(errno));
 #   endif /* !SVR4_PTYS */
@@ -685,6 +706,7 @@ char	c;
 
 	if ((p = curbuf->b_process) == NULL || p->p_fd < 0)
 		complain("[No process]");
+	jdbg("send_xc 0x%x pid %d %s \n", c, p->p_pid, p->p_name);
 	ToLast();
 	{
 		char	buf[1+1];	/* NOTE: room for added NUL */
@@ -698,6 +720,7 @@ char	c;
 				off = 0,
 				on = 1;
 
+			jdbg("TIOCREMOTE off pid %d %s\n", p->p_pid, p->p_name);
 			while (ioctl(p->p_fd, TIOCREMOTE, (UnivPtr) &off) < 0)
 				if (errno != EINTR)
 					complain("TIOCREMOTE OFF failed: %d %s", errno, strerror(errno));
@@ -718,6 +741,7 @@ char	c;
 				break;
 			}
 #  ifndef NO_TIOCREMOTE
+			jdbg("TIOCREMOTE on pid %d %s\n", p->p_pid, p->p_name);
 			while (ioctl(p->p_fd, TIOCREMOTE, (UnivPtr) &on) < 0)
 				if (errno != EINTR)
 					complain("TIOCREMOTE ON failed: %d %s", errno, strerror(errno));
@@ -743,6 +767,7 @@ ProcEof()
 		complain("[No process]");
 	ToLast();
 	proc_rec(p, mess, sizeof(mess)-1);
+	jdbg("ProcEof pid %d %s\n", p->p_pid, p->p_name);
 	while (write(p->p_fd, (UnivPtr) mess, (size_t)0) < 0)
 		if (errno != EINTR)
 			complain("[error writing EOF to iproc: %d %s]", errno, strerror(errno));
@@ -786,6 +811,7 @@ private void
 proc_close(p)
 Process p;
 {
+	jdbg("proc_close %d %s\n", p->p_pid, p->p_name);
 	if (p->p_fd >= 0) {
 		(void) close(p->p_fd);
 		FD_CLR(p->p_fd, &global_fd);
@@ -801,6 +827,7 @@ Process p;
 char	*buf;
 size_t	nbytes;
 {
+	jdbg("proc_write %d bytes to pid %d %s\n", nbytes, p->p_pid, p->p_name);
 	if (p->p_fd >= 0) {
 		fd_set	mask;
 
@@ -831,9 +858,7 @@ proc_strt(bufname, clobber, procname, va_alist)
 	Process	newp;
 	Buffer	*newbuf;
 	int	ptyfd = -1;
-# ifdef BSD_PTYS
 	int	slvptyfd = -1;
-# endif
 
 # if !defined(TERMIO) && !defined(TERMIOS)
 #  ifdef TIOCSETD
@@ -863,6 +888,7 @@ proc_strt(bufname, clobber, procname, va_alist)
 #  endif
 # endif
 
+	strcpy(ttybuf, "?");	 /* to safely print when debugging */
 	untieDeadProcess(buf_exists(bufname));
 	isprocbuf(bufname);	/* make sure BUFNAME is either nonexistant
 				   or is of type B_PROCESS */
@@ -870,7 +896,7 @@ proc_strt(bufname, clobber, procname, va_alist)
 	make_argv(argv, ap);
 	va_end(ap);
 	if (access(argv[0], X_OK) != 0) {
-		complain("[Couldn't access %s: %s]", argv[0], strerror(errno));
+		complain("[Couldn't access shell %s: %s]", argv[0], strerror(errno));
 		/* NOTREACHED */
 	}
 
@@ -889,13 +915,15 @@ proc_strt(bufname, clobber, procname, va_alist)
 			goto fail;
 		}
 		(void)strcpy(ttybuf, s);
+		jdbg("IRIX_PTYS _getpty ptyfd %d %s\n", ptyfd, ttybuf);
 	}
 # endif /* IRIX_PTYS */
 # ifdef SVR4_PTYS
-	if ((ptyfd = open("/dev/ptmx", O_RDWR | O_BINARY)) < 0) {
+	if ((ptyfd = open("/dev/ptmx", O_RDWR | O_BINARY | O_CLOEXEC)) < 0) {
 		message("[No ptys!]");
 		goto fail;
 	}
+	jdbg("SVR4_PTYS ptmx ptyfd %d\n", ptyfd);
 #  ifndef GRANTPT_BUG
 	/* grantpt() seems to be implemented using a fork/exec.
 	 * This is done to allow grantpt do do priviledged things
@@ -912,6 +940,7 @@ proc_strt(bufname, clobber, procname, va_alist)
 		message("[unlockpt failed]");
 		goto fail;
 	}
+	jdbg("SVR4_PTYS grantpt and unlockpt ptyfd %d\n", ptyfd);
 #  endif /* !GRANTPT_BUG */
 	{
 		register char	*s = ptsname(ptyfd);
@@ -921,8 +950,10 @@ proc_strt(bufname, clobber, procname, va_alist)
 			goto fail;
 		}
 		strcpy(ttybuf, s);
+		jdbg("SVR4_PTYS ptyfd %d %s\n", ptyfd, ttybuf);
 	}
 #  ifdef TIOCFLUSH
+	jdbg("TIOCFLUSH ptyfd %d\n", ptyfd);
 	(void) ioctl(ptyfd, TIOCFLUSH, (UnivPtr) NULL);	/* ??? why? */
 #  endif
 # endif /* SVR4_PTYS */
@@ -930,9 +961,10 @@ proc_strt(bufname, clobber, procname, va_alist)
 #  ifdef USE_OPENPTY
 	if (openpty(&ptyfd, &slvptyfd, ttybuf, NULL, NULL) < 0)
 	{
-		message("[Out of ptys!]");
+		message("[Out of ptys from openpty!]");
 		goto fail;
 	}
+	jdbg("openpty ptyfd %d slv %d %s\n", ptyfd, slvptyfd, ttybuf);
 #  else /* !USE_OPENPTY */
 	{
 		register const char	*s;
@@ -941,15 +973,16 @@ proc_strt(bufname, clobber, procname, va_alist)
 			register const char	*t;
 
 			if (*s == '\0') {
-				message("[Out of ptys!]");
+				message("[Out of ptys in /dev/pty*!]");
 				goto fail;
 			}
 			for (t = "0123456789abcdef"; *t; t++) {
 				swritef(ttybuf, sizeof(ttybuf), "/dev/pty%c%c", *s, *t);
-				if ((ptyfd = open(ttybuf, O_RDWR | O_BINARY)) >= 0) {
+				jdbg("trying pty %s\n", ttybuf);
+				if ((ptyfd = open(ttybuf, O_RDWR | O_BINARY | O_CLOEXEC)) >= 0) {
 					ttybuf[5] = 't';	/* pty => tty */
 					/* Make sure other end is available too */
-					slvptyfd = open(ttybuf, O_RDWR | O_BINARY);
+					slvptyfd = open(ttybuf, O_RDWR | O_BINARY | O_CLOEXEC);
 					if (slvptyfd > 0)
 						break;	/* it worked: use this one */
 
@@ -971,25 +1004,31 @@ proc_strt(bufname, clobber, procname, va_alist)
 		s_mess("[Couldn't access %s: %s]", ttybuf, strerror(errno));
 		goto fail;
 	}
+	jdbg("can access pty %s\n", ttybuf);
 # endif /* !GRANTPT_BUG */
 
 # if !defined(TERMIO) && !defined(TERMIOS)
 #  ifdef TIOCGETD
+	jdbg("TIOCGETD %s\n", ttybuf);
 	(void) ioctl(0, TIOCGETD, (UnivPtr) &ldisc);
 #  endif
 #  ifdef TIOCLGET
+	jdbg("TIOCLGET %s\n", ttybuf);
 	(void) ioctl(0, TIOCLGET, (UnivPtr) &lmode);
 #  endif
 # endif /* !defined(TERMIO) && !defined(TERMIOS) */
 
 # ifdef TIOCGWINSZ
+	jdbg("TIOCGWINSZ %s\n", ttybuf);
 	(void) ioctl(0, TIOCGWINSZ, (UnivPtr) &win);
 # else
 #  ifdef BTL_BLIT
+	jdbg("JWINSIZE %s\n", ttybuf);
 	(void) ioctl(0, JWINSIZE, (UnivPtr) &jwin);
 #  endif /* BTL_BLIT */
 # endif
 
+	jdbg("before fork, ptyfd %d slv %d buf %s\n", ptyfd, slvptyfd, ttybuf);
 	switch (pid = fork()) {
 	case -1:
 		/* fork failed */
@@ -1020,6 +1059,7 @@ proc_strt(bufname, clobber, procname, va_alist)
 		 * us giving good diagnostics for grantpt and unlockpt.
 		 * I hope I've found all the signals caught everywhere else.
 		 */
+		jdbg("child grantpt bug, ptyfd %d slv %d buf %s\n", ptyfd, slvptyfd, ttybuf);
 		(void) setsighandler(SIGCHLD, SIG_DFL);
 		(void) setsighandler(SIGWINCH, SIG_DFL);
 		(void) setsighandler(SIGALRM, SIG_DFL);
@@ -1045,13 +1085,15 @@ proc_strt(bufname, clobber, procname, va_alist)
 		(void) close(2);
 
 # ifdef TERMIOS
+		jdbg("setsid %s\n", ttybuf);
 		setsid();
 # else /* !TERMIOS */
 #  ifdef TIOCNOTTY
 		/* get rid of controlling tty */
 		{
-			int	i = open("/dev/tty", O_RDWR | O_BINARY);
+			int	i = open("/dev/tty", O_RDWR | O_BINARY | O_CLOEXEC);
 
+			jdbg("TIOCNOTTY %d %s\n", i, ttybuf);
 			if (i >= 0) {
 				(void) ioctl(i, TIOCNOTTY, (UnivPtr)NULL);
 				(void) close(i);
@@ -1059,17 +1101,25 @@ proc_strt(bufname, clobber, procname, va_alist)
 		}
 #  endif /* TIOCNOTTY */
 # endif /* !TERMIOS */
-		if (open(ttybuf, O_RDWR | O_BINARY) != 0)
-			_exit(errno+1);
-		(void) dup2(0, 1);
-		(void) dup2(0, 2);
+		jdbg("child ptyfd %d slv %d buf %s\n", ptyfd, slvptyfd, ttybuf);
+		if (slvptyfd >= 0) {
+			/* use what we got from openpty */
+			(void) dup2(slvptyfd, 0);
+		} else {
+			if ((slvptyfd = open(ttybuf, O_RDWR | O_BINARY | O_CLOEXEC)) != 0)
+				_exit(errno+1);
+		}
+		(void) dup2(slvptyfd, 1);
+		(void) dup2(slvptyfd, 2);
 
 # ifdef BSD_PTYS
+		jdbg("closed slv %d %s\n", slvptyfd, ttybuf);
 		close(slvptyfd);	/* safe to close now that std* are open */
 # endif /* BSD_PTYS */
 
 # ifdef SVR4_PTYS
 #  ifdef I_PUSH		/* LINUX/glibc no longer even pretends to support this (2008) */
+		jdbg("SVR4_PTYS I_PUSH ptem ldterm ttcompat %s\n", ttybuf);
 		(void) ioctl(0, I_PUSH, (UnivPtr) "ptem");
 		(void) ioctl(0, I_PUSH, (UnivPtr) "ldterm");
 		(void) ioctl(0, I_PUSH, (UnivPtr) "ttcompat");
@@ -1081,6 +1131,7 @@ proc_strt(bufname, clobber, procname, va_alist)
 		 * This is needed by OSF.  It may be needed by BSDPOSIX systems.
 		 * It should not hurt on any system that defines TIOCSCTTY.
 		 */
+		jdbg("TIOCSTTY %s\n", ttybuf);
 		if (ioctl(0, TIOCSCTTY) == -1)
 			_exit(errno+1);	/* no good way to signal user */
 
@@ -1099,38 +1150,46 @@ proc_strt(bufname, clobber, procname, va_alist)
 		{
 			int	on = 1;
 
+			jdbg("chuld TIOCREMOTE on %d %s\n", ptyfd, ttybuf);
 			if (ioctl(ptyfd, TIOCREMOTE, (UnivPtr) &on) < 0)
 				_exit(errno+1);	/* no good way to signal user */
 		}
 # endif
+		jdbg("child closing %d %s\n", ptyfd, ttybuf);
 		close(ptyfd);
 
 # if !defined(TERMIO) && !defined(TERMIOS)
 #  ifdef TIOCSETD
+		jdbg("child TIOCSETD %s\n", ttybuf);
 		(void) ioctl(0, TIOCSETD, (UnivPtr) &ldisc);
 #  endif
 #  ifdef TIOCLSET
+		jdbg("child TIOCLSET %s\n", ttybuf);
 		(void) ioctl(0, TIOCLSET, (UnivPtr) &lmode);
 #  endif
 #  ifdef TIOCSETC
 		(void) ioctl(0, TIOCSETC, (UnivPtr) &tc[NO]);
 #  endif
 #  ifdef USE_TIOCSLTC
+		jdbg("child TIOCSLTC %s\n", ttybuf);
 		(void) ioctl(0, TIOCSLTC, (UnivPtr) &ls[NO]);
 #  endif
 # endif /* !defined(TERMIO) && !defined(TERMIOS) */
 
 # ifdef TIOCGWINSZ
+		jdbg("child TIOCSWINSZ %s\n", ttybuf);
 		win.ws_row = curwind->w_height;
 		(void) ioctl(0, TIOCSWINSZ, (UnivPtr) &win);
 # else /* !TIOCGWINSZ */
 #  ifdef BTL_BLIT
+		jdbg("child JSWINSIZE %s\n", ttybuf);
 		jwin.bytesy = curwind->w_height;
 		(void) ioctl(0, JSWINSIZE, (UnivPtr) &jwin);
 #  endif
 # endif /* !TIOCGWINSZ */
 
 # if defined(TERMIO) || defined(TERMIOS)
+		jdbg("child set termio(s)%s\n", ttybuf);
 		sgt = sg[NO];
 		sgt.c_iflag &= ~(IGNBRK | BRKINT | ISTRIP | INLCR | IGNCR | ICRNL
 #  ifdef IXANY	/* not in QNX */
@@ -1140,46 +1199,57 @@ proc_strt(bufname, clobber, procname, va_alist)
 		sgt.c_lflag &= ~(ECHO);
 		sgt.c_oflag &= ~(ONLCR | TABDLY);
 #  ifdef TERMIO
+		jdbg("child TCSETAW %s\n", ttybuf);
 		do {} while (ioctl(0, TCSETAW, (UnivPtr) &sgt) < 0 && errno == EINTR);
 #  endif
 #  ifdef TERMIOS
+		jdbg("child TCSADRAIN %s\n", ttybuf);
 		do {} while (tcsetattr(0, TCSADRAIN, &sgt) < 0 && errno == EINTR);
 #  endif
 # else /* !(defined(TERMIO) || defined(TERMIOS)) */
+		jdbg("child set sgt %s\n", ttybuf);
 		sgt = sg[NO];
 		sgt.sg_flags &= ~(ECHO | CRMOD | ANYP | ALLDELAY | RAW | LCASE | CBREAK | TANDEM);
 		(void) stty(0, &sgt);
 # endif /* !(defined(TERMIO) || defined(TERMIOS)) */
 
+		jdbg("newpg %s\n", ttybuf);
 		NEWPG();
-# ifdef POSIX_PROCS
-		tcsetpgrp(0, getpid());
-# else /* !POSIX_PROCS */
 		{
 			int	i = getpid();
 
+# ifdef POSIX_PROCS
+			jdbg("tcsetpgrp %d %s\n", i, ttybuf);
+			tcsetpgrp(0, getpid());
+# else /* !POSIX_PROCS */
+			jdbg("TIOCSPGRP %d %s\n", i, ttybuf);
 			(void) ioctl(0, TIOCSPGRP, (UnivPtr) &i);
-		}
 # endif /* POSIX_PROCS */
+		}
 
 		set_process_env();
+		jdbg("ready to exec %s %s\n", argv[0], argv[1]);
 		execvp(argv[0], &argv[1]);
 		raw_complain("execvp failed! %s", strerror(errno));
 		_exit(errno + 1);
 	}
 
 # ifdef BSD_PTYS
+	jdbg("closing slv %d %s\n", slvptyfd, ttybuf);
 	close(slvptyfd);
 # endif /* BSD_PTYS */
 
 	newp = (Process) emalloc(sizeof *newp);
 
 # ifdef O_NDELAY
+	jdbg("O_NDELAY %d %s\n", ptyfd, ttybuf);
 	fcntl(ptyfd, F_SETFL, O_NDELAY);
 # endif
 # ifdef O_NONBLOCK
+	jdbg("O_NONBLOCK %d %s\n", ptyfd, ttybuf);
 	fcntl(ptyfd, F_SETFL, O_NONBLOCK);
 # endif
+	jdbg("started pid %d fd %d %s\n", pid, ptyfd, ttybuf);
 	newp->p_fd = ptyfd;
 	newp->p_pid = pid;
 
@@ -1210,6 +1280,7 @@ proc_strt(bufname, clobber, procname, va_alist)
 	return;
 
 fail:
+	jdbg("pty open fail %d %d %s\n", ptyfd, slvptyfd, ttybuf);
 	if (ptyfd >= 0)
 		close(ptyfd);
 # ifdef BSD_PTYS

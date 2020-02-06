@@ -107,14 +107,35 @@ JOVETOOLM = $(DMANDIR)/jovetool.$(MANEXT)
 # systems (but not Solaris!).  If this isn't suitable for your system,
 # you will need to change it.  You may need to define a new symbol for
 # your OS if we haven't created a suitable one.  See sysdep.h.
+# The OS and version recently tested with a specific SYSDEFS are below.
+# For most systems below, if they have select() (i.e. any *n*x variant
+# since the late 1980s), you can add -DJTC to the SYSDEFS and TERMCAPLIB=
+# to skip the curses/termcap dependency and only support ansi/vt[12345]xx/xterm
+# terminals (i.e any practical terminals since the late 1980s!)
 #
+#	Cygwin 3.1.2			SYSDEFS=-DCYGWIN TERMCAPLIB=-lncursesw
+#	Cygwin				SYSDEFS=-DCYGWIN_JTC TERMCAPLIB= # builtin vt100/xterm/rxvt etc support, no need for curses dependency
+#	Darwin aka MacOS X		SYSDEFS=-DXBSD
+#	FreeBSD 12.1			SYSDEFS="-DXBSD -DHAVE_LIBUTIL_H" EXTRALIBS=-lutil
+#	Linux (modern, UNIX98 PTYS)	SYSDEFS=-DXLINUX  # some have -ltermcap
+#	Linux (modern, UNIX98 PTYS)	SYSDEFS=-DXLINUX TERMCAPLIB=-lncurses
+#	Linux (modern, UNIX98 PTYS)	SYSDEFS=-DXLINUX TERMCAPLIB=-lncursesw
+#	Linux (modern, glibc pty.h)	SYSDEFS='-DBSDPOSIX_STDC -DUSE_OPENPTY -DHAVE_PTY_H' EXTRALIBS=-lutil TERMCAPLIB=...
+#	MacOS X aka Darwin 		SYSDEFS=-DXBSD
+#	NetBSD 8.1			SYSDEFS=-DNETBSD EXTRALIBS=-lutil
+#	OpenBSD 6.6			SYSDEFS=-DXBSD EXTRALIBS=-lutil
+#
+# The following used to work circa Jove 4.16 in the 1990s and have probably not
+# been tested in the 21st century, they may still work but some of this
+# ancient support may be deleted from Jove at some point, we welcome
+# any recent success stories from jove builders/packagers to refresh
+# or maintain these. Pretty please!
+# 
 #	Apple A/UX on macIIs		SYSDEFS=-DA_UX
 #	BSD4.2,4.3			SYSDEFS=-DBSD4
 #	BSDI, 386BSD, BSD4.4		SYSDEFS=-DBSDPOSIX
 #	Consensys V4			SYSDEFS="-DSYSVR4 -DGRANTPT_BUG"
-#	Cygwin				SYSDEFS=-DCYGWIN_JTC
 #	Compaq Tru64 UNIX V4.0g, 5.1	SYSDEFS=-DSYSVR4
-#	Darwin aka MacOS X		SYSDEFS=-DXBSD
 #	DEC OSF R1.3MK			SYSDEFS=-DSYSVR4
 #	DEC OSF/1 V1.3			SYSDEFS="-DBSDPOSIX -DNO_TIOCREMOTE -DNO_TIOCSIGNAL"
 #	DEC OSF/1 V2.0 and later	SYSDEFS=-DSYSVR4
@@ -122,20 +143,14 @@ JOVETOOLM = $(DMANDIR)/jovetool.$(MANEXT)
 #	DEC Ultrix 4.3			SYSDEFS="-DBSDPOSIX -DJVDISABLE=255"
 #	Digital UNIX V4.0 and later	SYSDEFS="-DSYSVR4 -DGRANTPT_BUG"
 #	DG AViiON 5.3R4			SYSDEFS="-DSYSVR4 -DBSD_SIGS"
-#	FreeBSD 4.2			SYSDEFS="-DXBSD -DHAVE_LIBUTIL_H" EXTRALIBS=-lutil
 #	HP/UX 8 or 9			SYSDEFS="-DHPUX -Ac"
 #	HP/UX 11 (-Ac redundant)	SYSDEFS=-DHPUX
 #	IBM AIX 3.2			SYSDEFS=-DAIX3_2
 #	IBM AIX 4.2, 5.2		SYSDEFS="-DAIX4_2" TERMCAPLIB="-lcurses -ls"
 #	Irix 3.3-4.0.5			SYSDEFS="-DIRIX -DIRIX4"
 #	Irix 5.0 onwards		SYSDEFS="-DIRIX -prototypes"
-#	LINUX (older, eg. RedHat 4, 5)	SYSDEFS=-DBSDPOSIX
-#	LINUX (with UNIX98 PTYS)	SYSDEFS=-DXLINUX
-#       				some need TERMCAPLIB=-lcurses or TERMCAPLIB=-lncurses or TERMCAPLIB=-lncursesw
-#	MacOS X aka Darwin 		SYSDEFS=-DXBSD
+#	Linux (older, eg. RedHat 4, 5)	SYSDEFS=-DBSDPOSIX
 #	MIPS RiscOS4.x			SYSDEFS="-systype bsd43 -DBSD4"
-#	NetBSD 1.5			SYSDEFS=-DXBSD EXTRALIBS=-lutil
-#	OpenBSD 2.x			SYSDEFS=-DXBSD EXTRALIBS=-lutil
 #	SCO Unix			SYSDEFS=-DSCO
 #	SunOS3.x			SYSDEFS=-DSUNOS3
 #	SunOS4.0*			SYSDEFS=-DSUNOS40

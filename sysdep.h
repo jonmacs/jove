@@ -12,10 +12,16 @@
  * that "grep System: sysdep.h" catches the first line of all symbols.
  */
 
+#ifdef NETBSD
+/* System: modern NetBSD, sigh, TIOCREMOTE does not work, see iproc.c comment */
+# define XBSD		1
+# define NO_TIOCREMOTE	1
+#endif
+
 #ifdef XBSD
-/* System: most modern NetBSD, OpenBSD, Darwin Mac OSX */
+/* System: most modern FreeBSD, OpenBSD, Darwin Mac OSX */
 # define BSDPOSIX_STDC	1
-# define USE_OPENPTY	1
+# define USE_OPENPTY	1   /* FreeBSD will also need HAVE_LIBUTIL_H */
 #endif
 
 #ifdef XLINUX
@@ -214,10 +220,10 @@
 # define USE_GETCWD	1
 # define FULL_UNISTD	1
 # define USE_SELECT	1
-# ifndef PIPEPROCS	/* useful to test PIPEPROCS even on pty platforms */
+# if !defined(PIPEPROCS) && !defined(NO_IPROCS)	/* useful to test PIPEPROCS even on pty platforms */
 #  define PTYPROCS	1
+#  define BSD_PTYS	1	/* beware security flaw! */
 # endif
-# define BSD_PTYS	1	/* beware security flaw! */
 # define POSIX_PROCS	1
 # define POSIX_SIGS	1
 # define JOB_CONTROL	1
@@ -287,8 +293,10 @@
 # define USE_GETCWD	1
 # define FULL_UNISTD	1
 # define USE_SELECT	1
-# define PTYPROCS	1
-# define SVR4_PTYS	1
+# if !defined(PIPEPROCS) && !defined(NO_IPROCS)	/* useful to test PIPEPROCS even on pty platforms */
+#  define PTYPROCS	1
+#  define SVR4_PTYS	1
+# endif
 # define POSIX_PROCS	1
 # define POSIX_SIGS	1
 # define JOB_CONTROL	1

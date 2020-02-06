@@ -61,7 +61,7 @@ const char	*dir;
 {
 	int	fd;
 
-	if ((fd = open(dir, O_RDONLY | O_BINARY)) != -1) {
+	if ((fd = open(dir, O_RDONLY | O_BINARY | O_CLOEXEC)) != -1) {
 		struct stat	stbuf;
 
 		if ((fstat(fd, &stbuf) != -1)

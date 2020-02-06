@@ -546,7 +546,7 @@ kbd_getch()
 #   ifdef UNIX
 					InSlowRead = NO;
 #   endif
-				} while (nchars < 0 && errno == EINTR);
+				} while (nchars < 0 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK));
 				if (nchars <= 0)
 					finish(SIGHUP);
 			}

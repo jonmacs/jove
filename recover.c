@@ -288,7 +288,7 @@ char *fname;
 	 * in saving its name.
 	 */
 	(void) sprintf(rfile, "%s/%s", CurDir, fname);
-	if ((fd = open(rfile, O_RDONLY | O_BINARY)) != -1) {
+	if ((fd = open(rfile, O_RDONLY | O_BINARY | O_CLOEXEC)) != -1) {
 		if (read(fd, (UnivPtr) &header, sizeof header) != sizeof header) {
 			close(fd);
 			fprintf(stderr, "recover: could not read complete header from %s, skipping\n", rfile);
@@ -661,7 +661,7 @@ struct file_pair	*fp;
 		Header.Nbuffers,
 		Header.Nbuffers != 1 ? "s" : "",
 		ctime(&Header.UpdTime));
-	data_fd = open(datafile, O_RDONLY | O_BINARY);
+	data_fd = open(datafile, O_RDONLY | O_BINARY | O_CLOEXEC);
 	if (data_fd == -1) {
 		fprintf(stderr, "recover: but I can't read the data file (%s).\n", datafile);
 		ask_del("Should I delete the tmp files? ", fp);
@@ -834,7 +834,7 @@ savetmps()
 		case 0:
 			fprintf(stderr, "Recovering: %s, %s\n", fp->file_data,
 			 fp->file_rec);
-			if ((fd = open(fp->file_rec, O_RDONLY | O_BINARY)) != -1) {
+			if ((fd = open(fp->file_rec, O_RDONLY | O_BINARY | O_CLOEXEC)) != -1) {
 				if ((read(fd, (UnivPtr) &header, sizeof header) != sizeof header)) {
 					close(fd);
 					return;

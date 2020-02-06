@@ -86,11 +86,11 @@ int	flags,
 
 	switch (F_MODE(flags)) {
 	case F_READ:
-		fd = open(name, O_RDONLY | O_BINARY);
+		fd = open(name, O_RDONLY | O_BINARY | O_CLOEXEC);
 		break;
 
 	case F_APPEND:
-		fd = open(name, O_WRONLY | O_BINARY);
+		fd = open(name, O_WRONLY | O_BINARY | O_CLOEXEC);
 		if (fd != -1) {
 			(void) lseek(fd, (off_t)0, 2);
 			break;
@@ -98,7 +98,7 @@ int	flags,
 		/* FALLTHROUGH */
 	case F_WRITE:
 #ifdef O_CREAT
-		fd = open(name, O_CREAT | O_TRUNC | O_BINARY | O_RDWR,
+		fd = open(name, O_CREAT | O_TRUNC | O_BINARY | O_RDWR | O_CLOEXEC,
 # ifdef UNIX
 			(jmode_t)CreatMode
 # else

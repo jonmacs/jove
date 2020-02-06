@@ -15,6 +15,10 @@
 #include <string.h>
 #include <errno.h>
 
+#ifndef EWOULDBLOCK
+# define EWOULDBLOCK EAGAIN /* older Unix, e.g. V7 */
+#endif
+
 #ifdef USE_STDIO_H
 # include <stdio.h> /* for recover, setmaps */
 #endif
