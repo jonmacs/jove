@@ -911,7 +911,7 @@ proc_strt(bufname, clobber, procname, va_alist)
 		register char	*s = _getpty(&ptyfd, O_RDWR | O_NDELAY, 0600, 0);
 
 		if (s == NULL) {
-			message("[No ptys!]");
+			message("[No pty from getpty!]");
 			goto fail;
 		}
 		(void)strcpy(ttybuf, s);
@@ -919,8 +919,8 @@ proc_strt(bufname, clobber, procname, va_alist)
 	}
 # endif /* IRIX_PTYS */
 # ifdef SVR4_PTYS
-	if ((ptyfd = open("/dev/ptmx", O_RDWR | O_BINARY | O_CLOEXEC)) < 0) {
-		message("[No ptys!]");
+	if ((ptyfd = open("/dev/ptmx", O_RDWR | O_BINARY)) < 0) {
+		message("[No pty from /dev/ptmx!]");
 		goto fail;
 	}
 	jdbg("SVR4_PTYS ptmx ptyfd %d\n", ptyfd);
@@ -942,6 +942,15 @@ proc_strt(bufname, clobber, procname, va_alist)
 	}
 	jdbg("SVR4_PTYS grantpt and unlockpt ptyfd %d\n", ptyfd);
 #  endif /* !GRANTPT_BUG */
+#ifdef TIOCGPTPEER
+	/* if we have TIOCGPTPEER (Linux post-2017), much better to use it! */
+	slvptyfd = ioctl (ptyfd, TIOCGPTPEER, O_RDWR | O_NOCTTY);
+	if (slvptyfd == -1 && errno != EINVAL && errno != ENOTTY) {
+		message("[ioctl TIOCGPTPEER failed]");
+		goto fail;
+	}
+	jdbg("SVR4_PTYS TIOCGPTPEER ptyfd %d slv %d\n", ptyfd, slvptyfd);
+#endif
 	{
 		register char	*s = ptsname(ptyfd);
 
@@ -961,7 +970,7 @@ proc_strt(bufname, clobber, procname, va_alist)
 #  ifdef USE_OPENPTY
 	if (openpty(&ptyfd, &slvptyfd, ttybuf, NULL, NULL) < 0)
 	{
-		message("[Out of ptys from openpty!]");
+		message("[No pty from openpty!]");
 		goto fail;
 	}
 	jdbg("openpty ptyfd %d slv %d %s\n", ptyfd, slvptyfd, ttybuf);
