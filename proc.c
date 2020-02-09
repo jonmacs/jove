@@ -819,6 +819,18 @@ UnixToBuf(flags, bnm, InFName, cmd)
 # endif
 
 # ifdef USE_VFORK
+	/*
+	 * There are several other forks in Jove, but for
+	 * machines lacking MMUs, where vfork might be
+	 * significantly more performant, it is nice to have
+	 * SUBSHELL capability using pipes (MSDOS_PROCS use a
+	 * temporary file for subshell output and spawn).
+	 * moraes Note from 2020 4.17: vfork has not been tested in a
+	 * long time, it is quite possible/likely that it does
+	 * not even work (I think that nothing between here
+	 * and the exec damages parent state, but using vfork
+	 * is a deal with the devil)
+	 */
 	ChildPid = vfork();
 # else
 	ChildPid = fork();
@@ -837,22 +849,10 @@ UnixToBuf(flags, bnm, InFName, cmd)
 	}
 	if (ChildPid == 0) {
 		const char	*a;	/* action name (for error message) */
-# ifdef USE_VFORK
-		/* There are several other forks in Jove, but this is
-		 * the only one we execute often enough to make it worth
-		 * using a vfork.  This assumes a system with vfork also
-		 * has BSD signals!
-		 */
 		(void) setsighandler(SIGINT, SIG_DFL);
 #  ifdef SIGINT_UNBLOCK
 		SIGINT_UNBLOCK();
 #  endif
-# else /* !USE_VFORK */
-		(void) setsighandler(SIGINT, SIG_DFL);
-#  ifdef SIGINT_UNBLOCK
-		SIGINT_UNBLOCK();
-#  endif
-# endif /* !USE_VFORK */
 		if (!((a = "close 0", close(0)) == 0
 		&& (a = "open", open(InFName==NULL? "/dev/null" : InFName, O_RDONLY | O_BINARY | O_CLOEXEC)) == 0
 		&& (a = "close 1", close(1)) == 0
@@ -865,8 +865,7 @@ UnixToBuf(flags, bnm, InFName, cmd)
 
 		pipeclose(p);
 		jcloseall();
-		environ = (char **) jenvdata(&proc_env); /* avoid gcc warning */
-		execv(argv[0], &argv[1]);
+		execve(argv[0], &argv[1], (char **) jenvdata(&proc_env));
 		raw_complain("Execl failed: %s", strerror(errno));
 		_exit(1);
 	}

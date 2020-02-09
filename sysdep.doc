@@ -10,20 +10,31 @@ features, others are to select Jove features.  The former are defined in
 sysdep.h, the latter in tune.h.  This file describes the ones in sysdep.h.
 
 sysdep.h is structured as a set of #ifdefs for different systems, each system
-being identified by some unique symbol (e.g. SUNOS41 for SunOS version 4.1
-and 4.1.*).  We do not use symbols pre-defined by the compilers, they're too
+being identified by some unique symbol, recently, the result of the
+uname command on an OS, for convenience.  (e.g. Linux, Darwin, FreeBSD etc,
+but previously, SYSVR4 for various System V Release 4 machines). 
+
+sydepo.h, not used by any Jove code, is a historical archive
+of definitions that were once tested on various machines,
+but have not been tested for the recent release, so it is
+entirely possible that changes for other systems have caused
+those older definitions to stop working.
+
+We usually avoid symbols pre-defined by the compilers, they're too
 hard to predict and often do not provide the granularity that's necessary to
-differentiate between system versions or types.  If the system you run is
+differentiate between system versions or types.  There's also sometimes
+a variety of compilers with different pre-defined symbols. If the system you run is
 included in sysdep.h, just use it.  If not, select a symbol to define your
 system (e.g. SOMEOS) and choose the appropriate system-dependent options that
 characterize your systems terminal handling, process handling, header files,
-etc from the list below.
+etc from the list below.  Using an existing system, or common group of
+characteristics (XBSD, BSDPOSIX_REALSTDC, etc) is often a good start.
 
 NOTE: We've removed almost all the "#ifdef system-type" ifdefs from the body
 of Jove code, replacing those with the feature ifdefs documented below.
 This sort of approach is necessary in this day & age of hybrid systems.
 If you're porting Jove to a new system, please follow the feature-based
-approach and don't stick "#ifdef system-type" ifdefs in the code.
+approach and don't put "#ifdef system-type" ifdefs in the code.
 
 For terminal handling under Unix, define one of the following, in
 decreasing order of preference.
@@ -184,6 +195,7 @@ this routine.  Currently, the only advantage is that when JOVE is run
 by the superuser, some versions of BSD do manage to close the hole.  A
 disadvantage is that -lutil must be added to the link command because
 openpty is in libutil.
+
 OpenBSD 3.5 has closed this hole (2004).
 USE_OPENPTY	use the new BSD openpty(3) routine (OpenBSD, NetBSD, MacOS X Darwin)
 HAVE_LIBUTIL_H	use <libutil.h> instead of <util.h> (FreeBSD)
@@ -197,9 +209,10 @@ have this bug.  It turns out that this bug is documented as a feature
 in "The Single UNIX Specification", Version 2!
 GRANTPT_BUG  Define this to enable a work-around.
 
-Certain systems, for example IRIX 4 and IRIX 5.3, define the symbol
-TIOCREMOTE but don't implement this ioctl correctly.  A symptom is
-that the eof-process command will not work.
+Certain systems, for example NetBSD (at least 7.x and 8.x),
+IRIX 4 and IRIX 5.3, define the symbol TIOCREMOTE but don't
+implement this ioctl correctly.  A symptom is that the
+eof-process command will not work.
 NO_TIOCREMOTE	Define this to avoid using TIOCREMOTE even if the
 		system defines it.
 
@@ -220,11 +233,9 @@ POSIX_PROCS	Supports POSIX processes, waitpid()
 BSD_WAIT	Has sys/wait.h and "union wait".
 If neither POSIX_PROCS nor BSD_WAIT is defined, Jove uses wait().  (old UNIXes)
 
-
 If BSD_WAIT was defined, also consider defining
 WAIT3		use wait3() on systems that have it.  (BSD4.2 and modern
 		non-POSIX UNIXes).  If this is not defined, we try wait2().
-
 
 Signal handling varies between systems.  The original UNIX signal mechanism
 is unsafe -- if a second signal is received soon enough, the program will
@@ -245,12 +256,11 @@ on BSD systems, where the normally unsafe signal() is in fact safe).
 
 JOB_CONTROL	System supports job control (SIGTSTP, ^Z etc. for pause-jove)
 
-
 USE_VFORK	system has a vfork that is much faster than fork.  This
 		capability should be nuked (any self-respecting copy-on-write
 		memory implementation should be able to do fork almost as
-		fast as vfork)!
-
+		fast as vfork)!  It is only believed to be useful for
+		architectures without an MMU (we welcome test reports)
 
 The following are only needed for IPROCS.
 BSD_SETPGRP	setpgrp takes two arguments.   If this is not defined,
@@ -386,11 +396,13 @@ NCURSES_BUG	Work around the non-standard meaning of insert character
 		if you use a Datamedia 2500 terminal).  We automatically
 		define this for UNIX.
 
-Jove has been built and tested on PC-compatible computers under
-several compilers and at least two environments.  The following
-manifests are primarily used to tailor the characteristics of
-various PC environments and/or differentiate them from the Unix or
-MAC variants of Jove.
+Jove has been built and tested on PC-compatible computers
+under a couple of compilers and environments, but is neither
+developed nor regression tested on them, so it might be in
+active use there.  The following defimanifests are primarily
+used to tailor the characteristics of various PC
+environments and/or differentiate them from the Unix or MAC
+variants of Jove.
 
 MSDOS		MSDOS or MSDOS-like system, such as IBM PC, DEC Rainbow,
 		or Atari ST.  Only tested on IBMPCDOS recently.
@@ -441,7 +453,8 @@ PCNONASCII	The IBM PC keyboards have a number of keys that don't
 		by the key.  PCNONASCII is both the feature selector,
 		and, if defined, it has the value of this prefix.
 
-NO_JSTDOUT	This suppresses stdio-style buffering for screen output.
+NO_JSTDOUT	This suppresses stdio-style buffering for screen output
+		or the use of file descriptor 0 or /dev/tty.
 
 CODEPAGE437	This is the name of the "ordinary" character set supported
 		by IBM PC displays.  It is described in the appendix of
@@ -451,8 +464,7 @@ CODEPAGE437	This is the name of the "ordinary" character set supported
 PCSCRATTR	Exploit IBMPC screen attributes.  Enables variables
 		text-attribute, mode-line-attribute, and highlight-attribute.
 
-
-Jove has been ported to the Macintosh using Think C version 5.0.  This port
-has not been well tested, nor does it follow Mac conventions.  Perhaps it
+Jove was once ported to the old (pre OS X) has not been well
+tested, nor does it follow Mac conventions.  Perhaps it
 should be considered a proof of portability.
 MAC		Select all the Macintosh-specific code.

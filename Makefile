@@ -103,8 +103,8 @@ XJOVEM = $(DMANDIR)/xjove.$(MANEXT)
 JOVETOOLM = $(DMANDIR)/jovetool.$(MANEXT)
 
 # SYSDEFS: specify system characteristics.
-# The default is -DBSDPOSIX_STDC, which describes a number of modern
-# systems (but not Solaris!).  If this isn't suitable for your system,
+# The default is the system uname, which describes a number of modern
+# systems (but not Solaris or Cygwin).  If this isn't suitable for your system,
 # you will need to change it.  You may need to define a new symbol for
 # your OS if we haven't created a suitable one.  See sysdep.h.
 # The OS and version recently tested with a specific SYSDEFS are below.
@@ -113,17 +113,17 @@ JOVETOOLM = $(DMANDIR)/jovetool.$(MANEXT)
 # to skip the curses/termcap dependency and only support ansi/vt[12345]xx/xterm
 # terminals (i.e any practical terminals since the late 1980s!)
 #
-#	Cygwin 3.1.2			SYSDEFS=-DCYGWIN TERMCAPLIB=-lncursesw
-#	Cygwin				SYSDEFS=-DCYGWIN_JTC TERMCAPLIB= # builtin vt100/xterm/rxvt etc support, no need for curses dependency
-#	Darwin aka MacOS X		SYSDEFS=-DXBSD
-#	FreeBSD 12.1			SYSDEFS="-DXBSD -DHAVE_LIBUTIL_H" EXTRALIBS=-lutil
-#	Linux (modern, UNIX98 PTYS)	SYSDEFS=-DXLINUX  # some have -ltermcap
-#	Linux (modern, UNIX98 PTYS)	SYSDEFS=-DXLINUX TERMCAPLIB=-lncurses
-#	Linux (modern, UNIX98 PTYS)	SYSDEFS=-DXLINUX TERMCAPLIB=-lncursesw
-#	Linux (modern, glibc pty.h)	SYSDEFS='-DBSDPOSIX_STDC -DUSE_OPENPTY -DHAVE_PTY_H' EXTRALIBS=-lutil TERMCAPLIB=...
-#	MacOS X aka Darwin 		SYSDEFS=-DXBSD
-#	NetBSD 8.1			SYSDEFS=-DNETBSD EXTRALIBS=-lutil
-#	OpenBSD 6.6			SYSDEFS=-DXBSD EXTRALIBS=-lutil
+#	Cygwin 3.1.2			SYSDEFS=-DCYGWIN_JTC TERMCAPLIB= # builtin vt100/xterm/rxvt etc support, no need for curses dependency
+#	Cygwin 3.1.2 (curses)		SYSDEFS=-DCYGWIN TERMCAPLIB=-lncursesw
+#	Darwin aka MacOS X		SYSDEFS=-DDarwin
+#	FreeBSD 12.1			SYSDEFS=-DFreeBSD EXTRALIBS=-lutil
+#	Linux (modern, UNIX98 PTYS)	SYSDEFS=-DLinux  # some have -ltermcap
+#	Linux (modern, UNIX98 PTYS)	SYSDEFS=-DLinux TERMCAPLIB=-lncurses
+#	Linux (modern, UNIX98 PTYS)	SYSDEFS=-DLinux TERMCAPLIB=-lncursesw
+#	Linux (modern, glibc pty.h)	SYSDEFS=-DGLIBCPTY EXTRALIBS=-lutil TERMCAPLIB=...
+#	MacOS X aka Darwin 		SYSDEFS=-DDarwin
+#	NetBSD 8.1			SYSDEFS=-DNetBSD EXTRALIBS=-lutil
+#	OpenBSD 6.6			SYSDEFS=-DOpenBSD EXTRALIBS=-lutil
 #
 # The following used to work circa Jove 4.16 in the 1990s and have probably not
 # been tested in the 21st century, they may still work but some of this
@@ -174,8 +174,10 @@ JOVETOOLM = $(DMANDIR)/jovetool.$(MANEXT)
 #
 # Add -DUSE_EXIT if you're profiling or using purify (this causes Jove
 # to exit using exit(), instead of _exit()).
+# Add -DDEBUGCRASH if you want to not trap on SEGV, BUS, etc, useful
+# running jove under a debugger (gdb, dbx)
 
-SYSDEFS = -DBSDPOSIX_STDC
+SYSDEFS = -DLinux
 
 # Select optimization level (flags passed to compiling and linking steps).
 # On most systems: -g for debugging, -O for optimization.

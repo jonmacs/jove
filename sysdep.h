@@ -10,201 +10,83 @@
  * for a better description of what the different #define feature symbols
  * mean.  If you add new ones, please keep the syntax of the first #ifdef, so
  * that "grep System: sysdep.h" catches the first line of all symbols.
+ * See sysdepo.h for old, symbols for untested systems that once worked.
  */
 
-#ifdef NETBSD
+/* The modern *BSD family all have slightly different quirks */
+#ifdef NetBSD
 /* System: modern NetBSD, sigh, TIOCREMOTE does not work, see iproc.c comment */
 # define XBSD		1
 # define NO_TIOCREMOTE	1
 #endif
 
-#ifdef XBSD
-/* System: most modern FreeBSD, OpenBSD, Darwin Mac OSX */
+#ifdef FreeBSD
+/* System: modern FreeBSD, needs HAVE_LIBUTIL_H */
+# define XBSD		1
+# define HAVE_LIBUTIL_H 1
+#endif
+
+#if defined(OpenBSD) || defined(Darwin) || defined (XBSD)
+/* System: modern OpenBSD, Darwin Mac OSX */
 # define BSDPOSIX_STDC	1
-# define USE_OPENPTY	1   /* FreeBSD will also need HAVE_LIBUTIL_H */
+# define USE_OPENPTY	1
 #endif
 
-#ifdef XLINUX
-/* System: most modern Linux (post RedHat6). Old Linux are BSDPOSIX_STDC */
-# define SYSVR4		1
-# define _XOPEN_SOURCE	500
-#endif
-
-/* System: Solaris 2.0, SunOS 5.0 -- use SYSVR4 and GRANTPT_BUG */
-
-/* System: Solaris 2.x, SunOS 5.x -- use SYSVR4 */
-
-#ifdef SUNOS41	/* System: SunOS4.1 to 4.1.3 */
-# define TERMIOS	1
-# define USE_GETCWD	1
-# define POSIX_UNISTD	1
-# define USE_SELECT	1
-# define PTYPROCS	1
-# define BSD_PTYS	1	/* beware security flaw! */
-# define POSIX_PROCS	1
-# define BSD_SIGS	1
-# define JOB_CONTROL	1
-# define BSD_SETPGRP	1
-# define USE_KILLPG	1
-# define USE_GETPWNAM	1
-# define USE_GETHOSTNAME	1
-# define NO_STRERROR	1
-# define USE_FSYNC	1
-# define USE_FSTAT	1
-# define USE_FCHMOD	1
-# define HAS_SYMLINKS	1
-# define USE_CTYPE	1
-#endif
-
-#ifdef SUNOS40	/* System: SunOS4.0 to 4.0.3c */
-/* Almost identical to SUNOS41, main difference is that SUNOS41 uses
- * POSIX_PROCS, this one uses BSD_WAIT/WAIT3, USE_MEMORY_H.
- * Beware: TERMIO under SunOS 4.0 does not allow VSUSP to be changed,
- * so we cannot use it.
- */
-/* try to patch over <termios.h> problems */
-# define TERMIOS	1
-# define setsid()	/* SunOS 4.0 apparently has no concept of session */
-# define cfgetospeed(p)	(CBAUD & (p)->c_cflag)
-# define tcgetattr(fd, p)	ioctl((fd), TCGETS, (UnivPtr)(p))
-# define tcsetattr(fd, oa, p)	ioctl((fd), (oa), (UnivPtr)(p))
-/* fake values for "optional_actions" (oa) arg to tcsetattr */
-#  define TCSANOW	TCSETS
-#  define TCSADRAIN	TCSETSW
-#  define TCSAFLUSH	TCSETSF
-/* end of <termios.h> patches */
-
-# define USE_GETCWD	1
-# define USE_SELECT	1
-# define PTYPROCS	1
-# define BSD_PTYS	1	/* beware security flaw! */
-# define BSD_WAIT	1
-# define WAIT3		1
-# define BSD_SIGS	1
-# define JOB_CONTROL	1
-# define USE_VFORK	1
-# define BSD_SETPGRP	1
-# define USE_KILLPG	1
-# define USE_GETPWNAM	1
-# define USE_GETHOSTNAME	1
-# define NO_STRERROR	1
-# define USE_FSYNC	1
-# define USE_FSTAT	1
-# define USE_FCHMOD	1
-# define HAS_SYMLINKS	1
-# define USE_MEMORY_H	1
-#endif
-
-#ifdef SUNOS3	/* System: SunOS before 4.0, eg. 3.5. not recently tested */
-/* This is very close to BSD4 */
-# define SGTTY		1
-# define USE_GETWD	1
-# define USE_SELECT	1
-# define PTYPROCS	1
-# define BSD_PTYS	1	/* beware security flaw! */
-# define BSD_WAIT	1
-# define WAIT3		1
-# define BSD_SIGS	1
-# define JOB_CONTROL	1
-# define USE_VFORK	1
-# define BSD_SETPGRP	1
-# define USE_KILLPG	1
-# define BSD_DIR	1
-# define USE_GETPWNAM	1
-# define SIGRESTYPE	int
-# define SIGRESVALUE	0
-# define USE_GETHOSTNAME	1
-# define NO_STRERROR	1
-# define USE_FSYNC	1
-# define USE_FSTAT	1
-# define USE_FCHMOD	1
-# define HAS_SYMLINKS	1
-/* # define USE_BCOPY	1 */
-/* # define USE_INDEX	1 */
-#endif
-
-#ifdef AIX3_2	/* System: IBM RS6000 running AIX 3.2 */
-# define AIX		1
-# define FULL_UNISTD	1
-# define USE_GETWD	1
-# define TERMIOS	1	/* uses termio struct for terminal modes */
-# define USE_UNAME	1
-# define USE_SELECT	1
-# define USE_SELECT_H	1
-# define PTYPROCS	1
-# define BSD_PTYS	1	/* beware security flaw! */
-# define NO_EOF_FROM_PTY    1	/* BUG! */
-# define POSIX_PROCS	1
-# define WAIT3		1
-# define POSIX_SIGS	1
-# define JOB_CONTROL	1
-# define USE_GETPWNAM	1
-# define USE_UNAME	1
-# define USE_FSYNC	1
-# define USE_FSTAT	1
-# define USE_FCHMOD	1
-# define HAS_SYMLINKS	1
-# define USE_CTYPE	1
-#endif
-
-#ifdef AIX4_2	/* System: IBM AIX 4.2 */
-# define AIX		1
-# define FULL_UNISTD	1
-# define USE_GETWD	1
-# define TERMIOS	1	/* uses termio struct for terminal modes */
-# define USE_UNAME	1
-# define USE_SELECT	1
-# define USE_SELECT_H	1
-# define PTYPROCS	1
-# define BSD_PTYS	1	/* beware security flaw! */
-# define NO_EOF_FROM_PTY    1	/* BUG! */
-# define POSIX_PROCS	1
-# define WAIT3		1
-# define POSIX_SIGS	1
-# define JOB_CONTROL	1
-# define USE_GETPWNAM	1
-# define USE_UNAME	1
-# define USE_FSYNC	1
-# define USE_FSTAT	1
-# define USE_FCHMOD	1
-# define HAS_SYMLINKS	1
-# define USE_CTYPE	1
-  /* Only difference from AIX3_2, perhaps due to switching from
-   * -ltermcap to -lcurses (-ltermcap seems to have disappeared):
-   */
-# define DEFINE_PC_BC_UP_OSPEED	1	/* May be needed for all SYSVR2 */
-#endif
-
-#ifdef __convex__	/* System: ConvexOS (versions 10.x - 11.x) */
-/* Note: this must be placed before BSDPOSIX ifdef (we define BSDPOSIX). */
-# define BSDPOSIX	1	/* mostly like BSDPOSIX */
-# define STICKY_TTYSTATE	1	/* fudge: many progs stupidly set ISTRIP */
-# define ISO_8859_1	1	/* fudge: <ctype.h> doesn't work for 8-bit chars, but X does */
-#endif
-
-#if CYGWIN_JTC		/* System: Cygwin (that Linux feeling on Windows) */
+#ifdef CYGWIN_JTC
+/* System: Cygwin (that Linux feeling on Windows) */
 # define CYGWIN		1
 # define JTC		1 /* no real point using curses for Cygwin, surely?! */
 #endif
 
-#if defined(CYGWIN) || defined(CYGWIN32) /* System: Cygwin POSIX-like environment on Win95/NT (see README.cyg) */
+#if defined(CYGWIN) || defined(CYGWIN32)
+/* System: Cygwin POSIX-like environment on Win95/NT (see README.cyg) */
 # define FILENAME_CASEINSENSITIVE	1
-# if 1
+# define GLIBCPTY	1
+#endif
+
+#if defined(Linux) || defined(XLINUX)
+/* System: most modern Linux (RedHat6-on). Old Linux are BSDPOSIX_STDC */
+# define SYSVR4		1
+# define _XOPEN_SOURCE	500
+#endif
+
+#if defined(GLIBCPTY)
+/*
+ * modern glibc e.g. Linux, Cygwin) provides openpty and pty.h
+ * so this is also Linux alternative.
+ */
 #  define USE_OPENPTY	1	/* older Cygwin may not have openpty? */
 #  define HAVE_PTY_H	1
 #  define BSDPOSIX_STDC	1
-# else
-#  define SYSVR4		1
-#  define _XOPEN_SOURCE	500
-# endif
 #endif
 
-#ifdef __QNX__	/* System: QNX OS for x86 family */
-/* Note: this must be placed before BSDPOSIX ifdef (we define BSDPOSIX). */
-# define BSDPOSIX	1
-# define ONLCR		OPOST	/* how to do ONLCR */
-# define USE_SELECT_H	1
+#ifdef _MSC_VER	/* System: Microsoft C for the IBM-PC under MSDOS or WIN32 */
+/* 4.16.0.38 tested under VC++ 5.0 / VS 97 */
+/* 4.16.0.62 tested under Visual C++ 6.0 SP5 */
+/* 4.17.x.x tested under Visual Studio 2019 Community Edition */
+# if defined(_WIN32) && !defined(WIN32)
+#  define WIN32 _WIN32
+# endif
+# ifdef WIN32
+#  define WINRESIZE	1
+# else /* ! WIN32 => MSDOS */
+#  define IBMPCDOS		1
+#  define MALLOC_CACHE	1	/* DGROUP gets full otherwise */
+#  if defined(M_I86LM)	/* large memory model */
+#   define NBUF		62	/* NBUF*JBUFSIZ must be less than 64 kB */
+#  else
+#   define NBUF		3
+#   define FAR_LINES	1	/* to squeeze larger files, distance Lines */
+#  endif
+# endif
+# define REALSTDC	1	/* MS C only defines __STDC__ if you use /Za */
+# define NO_MKSTEMP	1
+# define _POSIX_	1	/* suppresses MS's min and max in VC++ 5.0 */
+# define jmode_t	int	/* no mode_t on WIN32 */
 #endif
+
+/* ************************************************************************/
+/* Some very common collectons of capabilities, used by many defs above   */
 
 #ifdef BSDPOSIX_STDC	/* Same as BSDPOSIX, but with a Standard enough C */
 /* System: BSDI, 386BSD, BSD4.4, NetBSD -- BSDPOSIX_STDC */
@@ -240,47 +122,11 @@
 # endif
 #endif
 
-#ifdef IRIX
-# define _BSD_COMPAT	1	/* Turn on BSD setpgrp and other neat things */
-# define TERMIOS	1
-# define USE_GETCWD	1
-# define FULL_UNISTD	1
-# define USE_SELECT	1
-# define PTYPROCS	1
-# define POSIX_PROCS	1
-# define POSIX_SIGS	1
-# define JOB_CONTROL	1
-# ifdef IRIX4
-   /* Should work for IRIX 4.0.4 back to 3.2 or 3.3.  This is a Posix system
-    * with its own way of doing PTYS.  Older versions may need MIPS_CC_BUG
-    * defined as well.
-    */
-#  define IRIX_PTYS	1
-#  define NO_TIOCREMOTE	1
-#  define SIGRESTYPE	int
-#  define SIGRESVALUE	0
-# else
-   /* IRIX 5 and later */
-#  define SVR4_PTYS	1
-#  define NO_TIOCREMOTE	1
-#  define NO_TIOCSIGNAL	1
-#  define SIGRESTYPE	void
-#  define SIGRESVALUE	/*void!*/
-# endif
-# define BSD_SETPGRP	1
-# define USE_GETPWNAM	1
-# define USE_KILLPG	1
-# define USE_GETHOSTNAME	1
-# define HAS_SYMLINKS	1
-# define USE_CTYPE	1
-#endif
-
 #ifdef SYSVR4	/* System: System V, Release 4 and derivatives */
 /* System: Consensys V4 -- use SYSVR4 and GRANTPT_BUG */
 /* System: DEC OSF/1 V2.0 or later -- use SYSVR4 */
 /* System: DEC OSF R1.3MK -- use SYSVR4 */
 /* System: Digital UNIX V4.0 and later -- use SYSVR4 and GRANTPT_BUG */
-/* System: Red Hat LINUX 6.x or 7.x -- use SYSVR4 and _XOPEN_SOURCE=500 */
 /* System: Solaris 2.0, SunOS 5.0 -- use SYSVR4 and GRANTPT_BUG */
 /* System: Solaris 2.x, SunOS 5.x -- use SYSVR4 */
 /* Note: some versions of System V Release 4 have a bug in that affects
@@ -308,227 +154,6 @@
 # define HAS_SYMLINKS	1
 # define REALSTDC	1
 # define USE_CTYPE	1
-#endif
-
-#ifdef HPUX	/* System: Hewlett-Packard HP-UX 9.01 & 11, probably others */
-# define TERMIOS	1
-# define USE_BSDTTYINCLUDE	1	/* No other way to turn off ^Y */
-# define USE_GETCWD	1
-# define FULL_UNISTD	1
-# define USE_SELECT	1
-# define PTYPROCS	1
-# define BSD_PTYS	1	/* beware security flaw! */
-# define POSIX_PROCS	1
-# define NO_EOF_FROM_PTY    1	/* BUG! */
-# define POSIX_SIGS	1
-# define JOB_CONTROL	1
-# define USE_UNAME	1
-# define DEFINE_PC_BC_UP_OSPEED	1	/* May be needed for all SYSVR2 */
-# define HAS_SYMLINKS	1
-#endif
-
-#ifdef BSD4	/* System: Berkeley BSD4.x, 2.9, 2.10, MIPS RiscOS 4.x */
-/* MIPS needs -systype bsd43, older releases (before 4.50?) may need
- * MIPS_CC_BUG defined as well.
- */
-# define SGTTY		1
-# define USE_GETWD	1
-# define USE_SELECT	1
-# define PTYPROCS	1
-# define BSD_PTYS	1	/* beware security flaw! */
-# define BSD_WAIT	1
-# define WAIT3		1
-# define BSD_SIGS	1
-# define JOB_CONTROL	1
-# define USE_VFORK	1
-# define BSD_SETPGRP	1
-# define USE_KILLPG	1
-# define BSD_DIR	1
-# define HAS_SYMLINKS	1
-# define SIGRESTYPE	int
-# define SIGRESVALUE	0
-# define USE_GETHOSTNAME	1
-# define NO_STRERROR	1
-# define USE_FSYNC	1
-# define USE_FSTAT	1
-# define USE_FCHMOD	1
-# define USE_BCOPY	1
-# define USE_INDEX	1
-#endif
-
-#ifdef SCO_ODT3	/* System: SCO ODT 3.0 */
-# define TERMIOS	1
-/* # define FULL_UNISTD	1 */	/* Not tested!  May be worth trying. */
-# define USE_GETCWD	1
-# define POSIX_UNISTD	1
-# define USE_SELECT	1
-# define PTYPROCS	1
-# define BSD_PTYS	1	/* beware security flaw! */
-# define POSIX_PROCS	1
-# define JOB_CONTROL	1
-# define USE_UNAME	1
-/* In SCO ODT 3.0, a wait() will never finish if SIGCHLD is being held.
- * We think that this is a bug.  It's rumoured to be "fixed" in the next
- * release.  JOVE's IPROCS code no longer triggers this bug.
- */
-# define PTYPROCS	1
-# define HAS_SYMLINKS	1
-# define USE_CTYPE	1
-#endif
-
-#ifdef _MSC_VER	/* System: Microsoft C for the IBM-PC under MSDOS or WIN32 */
-/* 4.16.0.38 tested under VC++ 5.0 / VS 97 */
-/* 4.16.0.62 tested under Visual C++ 6.0 SP5 */
-# if defined(_WIN32) && !defined(WIN32)
-#  define WIN32 _WIN32
-# endif
-# ifdef WIN32
-#  define WINRESIZE	1
-# else /* ! WIN32 => MSDOS */
-#  define IBMPCDOS		1
-#  define MALLOC_CACHE	1	/* DGROUP gets full otherwise */
-#  if defined(M_I86LM)	/* large memory model */
-#   define NBUF		62	/* NBUF*JBUFSIZ must be less than 64 kB */
-#  else
-#   define NBUF		3
-#   define FAR_LINES	1	/* to squeeze larger files, distance Lines */
-#  endif
-# endif
-# define REALSTDC	1	/* MS C only defines __STDC__ if you use /Za */
-# define NO_MKSTEMP	1
-# define _POSIX_	1	/* suppresses MS's min and max in VC++ 5.0 */
-# define jmode_t	int	/* no mode_t on WIN32 */
-#endif
-
-#ifdef ZTCDOS	/* System: Zortech C V3.0 for the IBM-PC under MSDOS */
-# define IBMPCDOS		1
-# define getch		jgetch	/* UGH!  Zortech steals from our namespace. */
-# define MALLOC_CACHE	1	/* DGROUP gets full otherwise */
-# define REALSTDC	1	/* close enough for us, but ZTCDOS doesn't define __STDC__ */
-# ifdef M_I86LM		/* large memory model */
-#  define NBUF		62	/* NBUF*JBUFSIZ must be less than 64 kB */
-# else
-#  define NBUF		3
-#  define FAR_LINES	1	/* to squeeze larger files, distance Lines */
-# endif
-  /* (1) specify stack size, and
-   * (2) request support of wildcards in command-line args (UGH!)
-   */
-# define STACK_DECL	unsigned int _stack = 0x2000; WILDCARDS
-# define dostime_t	dos_time_t	/* is Zortech out of step? */
-# define _dos_gettime	dos_gettime
-# define NO_MKSTEMP	1
-# define NO_MKTEMP	1
-#endif
-
-#if defined(__WATCOMC__) && defined(MSDOS)	/* System: Watcom C V10.0 for the IBM-PC under MSDOS */
-# define IBMPCDOS		1
-# define MALLOC_CACHE	1	/* DGROUP gets full otherwise */
-# define REALSTDC	1	/* close enough for us, but ZTCDOS doesn't define __STDC__ */
-# ifdef M_I86LM		/* large memory model */
-#  define NBUF		62	/* NBUF*JBUFSIZ must be less than 64 kB */
-# else
-#  define NBUF		3
-#  define FAR_LINES	1	/* to squeeze larger files, distance Lines */
-# endif
-# define NO_MKSTEMP	1
-# define NO_MKTEMP	1
-#endif
-
-#ifdef __BORLANDC__	/* System: Borland C/C++ (v3.1) for the IBM-PC under MSDOS */
-# define IBMPCDOS		1
-# define MALLOC_CACHE	1	/* DGROUP gets full otherwise */
-# define REALSTDC	1	/* close enough for us, but not strict ANSI */
-# ifdef __LARGE__
-#  define NBUF		62	/* NBUF*JBUFSIZ must be less than 64 kB */
-#  define FAR_LINES 1	/* to squeeze larger files, distance Lines */
-# else
-#  ifdef __MEDIUM__
-#    define NBUF	3
-#    define FAR_LINES 1	/* to squeeze larger files, distance Lines */
-#  endif
-# endif
-# define STACK_DECL	unsigned int _stklen = 0x2000;		/* Borland's way of specifying stack size */
-/* probably: # define NO_MKSTEMP	1 */
-/* probably: # define NO_MKTEMP	1 */
-#endif
-
-/* All the systems marked with XXX_ are ones that this version of Jove (4.16)
- * has not been tested on.  4.15 was the transition from implicit #ifdefs
- * scattered throughout the code to feature-based ifdefs that MUST be
- * enabled in sysdep.h.  The #ifdef XXX_* below have been left in to provide a
- * guide to re-porting this version to those architectures.  If you do so
- * successfully, please send a copy of these changes to
- * jovehacks@cs.toronto.edu and we'll try to incorporate those changes above
- * and get rid of the XXX_.
- */
-
-#ifdef XXX_M_XENIX	/* System: Microsoft or SCO Xenix */
-/* #define NBUF	48 */	/* if we are on a 286, NBUF*JBUFSIZ must be less than 64 kB */
-# define BSD_DIR	1
-#endif
-
-#ifdef XXX_SYSV		/* System: System V Rel. 2, System III */
-# define TERMIO		1
-# define USE_PWD
-# define NONBLOCKINGREAD	1
-# define USE_MEMORY_H	1
-# define DIRENT_EMULATE	1	/* for truly old versions? */
-#endif
-
-#ifdef XXX_A_UX		/* System: A/UX on a MacII (Do *not* define "MAC") */
-/* It might be better to try BSDPOSIX for newer A/UX. */
-# define BSD_WAIT	1
-# define BSD_DIR	1
-# define WAIT3		1
-# define BSD_SIGS	1	/* ??? */
-# define USE_KILLPG	1
-# define TERMIO		1	/* uses termio struct for terminal modes */
-# define USE_GETHOSTNAME	1
-# define USE_SELECT	1
-#endif
-
-#ifdef XXX_OLDMIPS	/* System: MIPS-SYSV, Irix before 3.3. */
-/* Older MIPS (UMIPS-SYSV, anything other than their 4.3 port before
- * RISCOS4.x) and SGI 4D OSes (anything before Irix3.3) have BSD style wait,
- * and directory routines if you link -lbsd and define -I/usr/include/bsd on
- * the compile line. But they have SysV style signals.  Jove was ported to the
- * SGI 68K boxes once, but it the mods seem to have been lost.
- */
-# define BSD_WAIT	1	/* Berkeley style sys/wait.h */
-# define BSD_DIR	1	/* Berkeley style dirent routines */
-#endif
-
-#ifdef XXX_MSC51	/* System: Microsoft C 5.1 on IBM PC under DOS*/
-/* This hasn't been tested recently.  Consider stealing ZTCDOS settings. */
-# define IBMPCDOS		1
-# define NO_PTRPROTO	1
-# define REALSTDC	1	/* well, almost */
-# ifdef M_I86LM		/* large memory model */
-#  define NBUF		62	/* NBUF*JBUFSIZ must be less than 64 kB */
-# else
-#  define SMALL		1
-# endif
-/* probably: # define NO_MKSTEMP	1 */
-/* probably: # define NO_MKTEMP	1 */
-#endif
-
-#ifdef THINK_C	/* System: Think C version 5.0 on the Macintosh */
-# define MAC 1
-# define REALSTDC	1	/* we hope */
-# define MALLOC_CACHE	1   /* Only 32K of static space on Mac, so... */
-  typedef long	off_t;
-# define USE_GETCWD	1
-# define USE_INO	1	/* we fake it */
-  typedef int	dev_t;
-  typedef int	ino_t;
-# define DIRECTORY_ADD_SLASH 1
-# define NO_MKSTEMP	1	/* no mkstemp library routine */
-# define NO_MKTEMP	1	/* no mktemp library routine */
-# define NO_FCNTL	1	/* no <fcntl.h> header */
-# define EOL	'\r'	/* end-of-line character for files */
-# define WINRESIZE	1
-# define AUTO_BUFS	1	/* slim down data segment */
 #endif
 
 /**************** Common Characteristics ****************/
