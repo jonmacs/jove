@@ -694,10 +694,13 @@ char *buf;
 const char *str;
 size_t bufsz;
 {
-	if (strlen(str) < bufsz)
-		strcpy(buf, str);
-	else
+	size_t strsz = strlen(str);
+	if (strsz < bufsz) {
+		byte_move(str, buf, strsz);
+		buf[strsz] = '\0';
+	} else {
 		complain("string too long");
+	}
 }
 
 bool

@@ -1014,13 +1014,7 @@ int	lineno,
 		register char	*to = sp->s_line + col,
 				*from = to + num;
 		register size_t	len = sp->s_roof - from;
-
-#ifdef USE_MEMORY_H
-		memmove((UnivPtr)to, (UnivConstPtr)from, len);
-#else
-		while (len--)
-			*to++ = *from++;
-#endif
+		byte_move(from, to, len);
 	}
 	clrline(sp->s_roof - num, sp->s_roof);
 	sp->s_roof -= num;

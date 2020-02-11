@@ -256,6 +256,7 @@
  */
 #ifdef USE_BCOPY
 # define byte_copy(from, to, len)	bcopy((UnivConstPtr)(from), (UnivPtr)(to), (size_t)(len))
+# define byte_move(from, to, len)	byte_copy(from, to, len)
 # define byte_zero(s, n)	bzero((UnivPtr)(s), (size_t)(n))
 #endif
 
@@ -264,6 +265,7 @@
 #  include <memory.h>
 # endif
 # define byte_copy(from, to, count)	memcpy((UnivPtr)(to), (UnivConstPtr)(from), (size_t)(count))
+# define byte_move(from, to, count)	memmove((UnivPtr)(to), (UnivConstPtr)(from), (size_t)(count))
 # define byte_zero(s, n)		memset((UnivPtr)(s), 0, (size_t)(n))
 #endif
 
