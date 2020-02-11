@@ -287,7 +287,6 @@ int	code;
 	/*NOTREACHED*/
 }
 
-#ifndef DEBUGCRASH
 /* SIGINT is caused by the user hitting the INTR key.
  * We give him a choice of death or continuation.
  */
@@ -354,7 +353,6 @@ int	code;
 	errno = save_errno;
 	return SIGRESVALUE;
 }
-#endif /* DEBUGCRASH */
 
 private char	smbuf[20],
 		*bp = smbuf;
@@ -1800,16 +1798,28 @@ char	*argv[];
 #endif
 
 #ifdef UNIX
-# ifndef DEBUGCRASH
-	(void) setsighandler(SIGHUP, finish);
+	/*
+	 * Jove binds INTR to a key, typically ^], which can
+	 * sometimes get hit accidentally, but it prompts in the handler.
+	 */
 	(void) setsighandler(SIGINT, handle_sigint);
+	/*
+	 * always cleanup on HUP (terminal disconnected), or
+	 * TERM (typically, system going down)
+	 */
+	(void) setsighandler(SIGHUP, finish);
+	(void) setsighandler(SIGTERM, finish);
+# ifndef DEBUGCRASH
+	/*
+	 * DEBUGCRASH means we do not set handlers for SIGBUS,
+	 * SIGSEGV, and SIGPIPE, so this can drop into a debugger or
+	 * leave a core file to assist debugging.
+	 */
 #  ifdef SIGBUS
 	(void) setsighandler(SIGBUS, finish);
 #  endif /* SIGBUS */
 	(void) setsighandler(SIGSEGV, finish);
 	(void) setsighandler(SIGPIPE, finish);
-	/* ??? Why should we ignore SIGTERM? */
-	/* (void) setsighandler(SIGTERM, SIG_IGN); */
 # endif /* DEBUGCRASH */
 	(void) setsighandler(SIGALRM, AlarmHandler);
 	SetClockAlarm(NO);
