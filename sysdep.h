@@ -24,13 +24,13 @@
 /* System: modern FreeBSD, needs HAVE_LIBUTIL_H */
 # define XBSD		1
 # define HAVE_LIBUTIL_H 1
+# define SPELL		"aspell list < %s | sort -u"
 #endif
 
 #if defined(OpenBSD) || defined(Darwin) || defined (XBSD)
 /* System: modern OpenBSD, Darwin Mac OSX */
 # define BSDPOSIX_STDC	1
 # define USE_OPENPTY	1
-# define SPELL		"aspell list < %s | sort -u"
 #endif
 
 #ifdef CYGWIN_JTC
@@ -43,6 +43,7 @@
 /* System: Cygwin POSIX-like environment on Win95/NT (see README.cyg) */
 # define FILENAME_CASEINSENSITIVE	1
 # define GLIBCPTY	1
+# define SPELL		"aspell list < %s | sort -u"
 #endif
 
 #if defined(Linux) || defined(XLINUX)
@@ -57,9 +58,9 @@
  * modern glibc e.g. Linux, Cygwin) provides openpty and pty.h
  * so this is also Linux alternative.
  */
-#  define USE_OPENPTY	1	/* older Cygwin may not have openpty? */
-#  define HAVE_PTY_H	1
-#  define BSDPOSIX_STDC	1
+# define USE_OPENPTY	1	/* older Cygwin may not have openpty? */
+# define HAVE_PTY_H	1
+# define BSDPOSIX_STDC	1
 #endif
 
 #ifdef _MSC_VER	/* System: Microsoft C for the IBM-PC under MSDOS or WIN32 */
