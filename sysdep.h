@@ -30,6 +30,7 @@
 /* System: modern OpenBSD, Darwin Mac OSX */
 # define BSDPOSIX_STDC	1
 # define USE_OPENPTY	1
+# define SPELL		"aspell list < %s | sort -u"
 #endif
 
 #ifdef CYGWIN_JTC
