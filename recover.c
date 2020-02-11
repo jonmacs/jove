@@ -221,6 +221,7 @@ daddr	atl;
 	return blk_buf + off;
 }
 
+/* This pre-dates strdup, but can we assume it exists now? */
 char *
 copystr(s)
 const char	*s;
@@ -246,6 +247,18 @@ private const char	*CurDir;
 private bool	add_name proto((char *));
 
 private void
+free_files() {
+	while (First != NULL) {
+		struct file_pair	*p = First;
+
+		First = p->file_next;
+		free((UnivPtr) p->file_data);
+		free((UnivPtr) p->file_rec);
+		free((UnivPtr) p);
+	}
+}
+
+private void
 get_files(dirname)
 const char	*dirname;
 {
@@ -253,12 +266,7 @@ const char	*dirname;
 	int	nentries;
 
 	/* first, free any previous entries */
-	while (First != NULL) {
-		struct file_pair	*p = First;
-
-		First = p->file_next;
-		free((UnivPtr) p);
-	}
+	free_files();
 
 	CurDir = dirname;
 	nentries = jscandir(dirname, &nmptr, add_name,
@@ -866,6 +874,7 @@ savetmps()
 				perror("recover: chown failed.");
 		}
 	}
+	free_files();
 }
 
 private int
