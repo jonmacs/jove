@@ -313,28 +313,32 @@ DOCTERMS =	doc/jove.rc.sun doc/keychart.sun \
 	doc/keychart. \
 	doc/XTermresource
 
-DOCS =	doc/README doc/teach-jove doc/jove.qref \
-	doc/intro.nr doc/cmds.macros.nr doc/cmds.nr doc/contents.nr \
-	doc/jove.nr doc/teachjove.nr doc/xjove.nr doc/jovetool.nr \
-	doc/jove.rc.in doc/example.rc $(DOCTERMS)
-
 # formatted docs, we ship these in the distrib to avoid groff dependency
 # and for non-Unix/Linux platforms
 FDOCS = doc/cmds.doc doc/jove.man doc/jove.man.ps doc/jove.doc
 
+# files we generate that we also ship in distrib for platforms sans sed
+GEN = 	jove.spec doc/jove.rc doc/jove.$(MANEXT) \
+	doc/teachjove.$(MANEXT) doc/jovetool.$(MANEXT)
+
+DOCS =	doc/README doc/teach-jove doc/jove.qref \
+	doc/intro.nr doc/cmds.macros.nr doc/cmds.nr doc/contents.nr \
+	doc/jove.nr doc/teachjove.nr doc/xjove.nr doc/jovetool.nr \
+	doc/jove.rc.in doc/example.rc $(DOCTERMS) $(FDOCS) $(GEN)
+
 MISC =	Makefile Makefile.bcc Makefile.msc Makefile.wat Makefile.zor \
 	README README.dos README.mac README.w32 README.cyg \
-	sysdep.doc tune.doc style.doc jspec.in jove.spec
+	sysdep.doc tune.doc style.doc jspec.in
 
 SUPPORT = teachjove.c recover.c setmaps.c portsrv.c keys.txt \
 	menumaps.txt mjovers.Hqx jjove.ico jjove.rc
 
-BACKUPS = $(HEADERS) $(C_SRC) $(SUPPORT) $(MISC) $(FDOCS)
+BACKUPS = $(HEADERS) $(C_SRC) $(SUPPORT) $(MISC)
 
 # all: default target.
 # Builds everything that "install" needs.
-all:	jjove$(XEXT) recover$(XEXT) teachjove$(XEXT) portsrv$(XEXT) \
-	doc/jove.rc doc/cmds.doc doc/jove.$(MANEXT) doc/teachjove.$(MANEXT)
+all:	jjove$(XEXT) recover$(XEXT) teachjove$(XEXT) portsrv$(XEXT) $(FDOCS) \
+	$(GEN)
 
 jjove$(XEXT):	$(OBJECTS)
 	$(LDCC) $(LDFLAGS) $(OPTFLAGS) -o jjove$(XEXT) $(OBJECTS) $(TERMCAPLIB) $(EXTRALIBS)
@@ -355,7 +359,7 @@ ovjove:	$(OBJECTS)
 
 # portsrv is only needed if IPROCS are implemented using PIPEPROCS
 # (modern systems use PTYPROCS).
-# Making PORTSRVINST null supresses building and installing portsrv.
+# Making PORTSRVINST null suppresses installing portsrv.
 
 # PORTSRVINST=$(PORTSRV)
 PORTSRVINST=
@@ -649,18 +653,15 @@ touch:
 
 clean:
 	rm -f a.out core *.o keys.c jjove$(XEXT) portsrv$(XEXT) recover$(XEXT) \
-		setmaps$(XEXT) teachjove$(XEXT) paths.h make.log *.map \#* *~ \
-		doc/cmds.doc doc/jove.man doc/jove.doc doc/jove.rc \
-		doc/jove.man.ps doc/jove.$(MANEXT) doc/teachjove.$(MANEXT) \
-		doc/jovetool.$(MANEXT) $(DIST).tgz jjove.pure_* tags ID \
-		.filelist xjove/.filelist .version jove.spec \
-		paths.tmp jspec.tmp .version.tmp doc/jove.rc.tmp
+		setmaps$(XEXT) teachjove$(XEXT) make.log *.map \#* *~ *.tmp \
+		$(DIST).tgz jjove.pure_* tags ID \
+		.filelist xjove/.filelist .version
 
 cleanall: clean
 	( cd xjove ; make clean )
 
 clobber: clean
-	rm -f *.orig *.rej
+	rm -f paths.h $(FDOCS) $(GEN) *.orig *.rej
 	( cd xjove ; make clobber )
 
 # This version only works under 4.3BSD
