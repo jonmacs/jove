@@ -56,8 +56,8 @@
 #  define	SUBSHELL	1	/* enable various uses of subshells */
 # endif
 
-# ifdef SUBSHELL
-#  define SPELL		1	/* spell words and buffer commands (requires SUBSHELL) */
+# if defined(SUBSHELL) && !defined(SPELL)
+#  define SPELL		"spell %s"	/* spell words and buffer commands (requires SUBSHELL) */
 # endif
 
 # ifdef UNIX

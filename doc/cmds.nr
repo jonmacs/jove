@@ -2189,11 +2189,22 @@ two spaces are left after each sentence by commands such as
 .IQ fill-paragraph ;
 otherwise, one space is left.  The default is
 .IQ on .
+.dc "spell-command-format" "(variable)"
+This is the format specification string for a command which will run 
+a spell checker on a specified file and produce
+a list of misspelled words on the output. This variable (and related
+.IQ spell-buffer
+capability) is only available
+if Jove is built with support for subshells.  The string must contain one
+instance of the specifier %s which will be replaced with
+the pathname of the file to be checked.
 .dc "spell-buffer" "Not Bound"
-This runs the selected buffer through the
+This saves the current buffer and runs it through the
 .UX
 .IQ spell
-program and places
+command (specified by the variable
+.IQ spell-command-format
+) and places
 the output in buffer \*QSpell\*U.  Then \s-2JOVE\s0 lets you edit the list of
 words, expecting you to delete the ones that you don't care about, i.e., the
 ones you know are spelled correctly.  Then the

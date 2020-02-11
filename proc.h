@@ -70,3 +70,6 @@ extern char	ErrFmtStr[256];		/* VAR: format string for parse errors */
 extern bool	WtOnMk;			/* VAR: write files on compile-it command */
 extern bool	WrapProcessLines;	/* VAR: wrap process lines at CO-1 chars */
 #endif
+#ifdef SPELL
+extern char	SpellCmdFmt[FILESIZE];		/* VAR: command to use for spell check */
+#endif

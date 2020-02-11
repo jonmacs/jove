@@ -61,6 +61,10 @@ char	ErrFmtStr[256] = "^\\{\"\\|\\}\\([^:\"( \t]*\\)\\{\"\\, line \\|:\\|(\\} *\
 \\|::  *\\([^(]*\\)(\\([0-9]*\\))$\
 \\|( \\([^(]*\\)(\\([0-9]*\\)) ),";	/* VAR: format string for parse errors */
 
+#ifdef SPELL
+char	SpellCmdFmt[FILESIZE] = SPELL;	/* VAR: command to use for spell check */
+#endif
+
 struct error {
 	Buffer		*er_buf;	/* Buffer error is in */
 	LinePtr		er_mess,	/* Actual error message */
@@ -457,7 +461,7 @@ SpelBuffer()
 		complain("no file name");
 	if (IsModified(curbuf))
 		SaveFile();
-	swritef(com, sizeof(com), "spell %s", curbuf->b_fname);
+	swritef(com, sizeof(com), SpellCmdFmt, curbuf->b_fname);
 	(void) UnixToBuf(UTB_DISP|UTB_CLOBBER|UTB_ERRWIN|UTB_SH,
 		Spell, (char *)NULL, com);
 	message("[Delete the irrelevant words and then type ^X ^C]");

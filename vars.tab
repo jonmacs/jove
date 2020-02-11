@@ -101,6 +101,9 @@ const struct variable	variables[] = {
 	{ VARIABLE, "shell-flags", VAR(ShFlags), V_STRING },
 #endif
 	{ VARIABLE, "space-sentence-2", VAR(&SpaceSent2), V_BOOL },
+#ifdef SPELL
+	{ VARIABLE, "spell-command-format", VAR(SpellCmdFmt), V_STRING },
+#endif
 #ifdef RECOVER
 	{ VARIABLE, "sync-frequency", VAR(&SyncFreq), V_WHOLE },
 #endif

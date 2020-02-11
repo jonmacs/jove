@@ -48,6 +48,7 @@
 /* System: most modern Linux (RedHat6-on). Old Linux are BSDPOSIX_STDC */
 # define SYSVR4		1
 # define _XOPEN_SOURCE	500
+# define SPELL		"aspell list < %s | sort -u"
 #endif
 
 #if defined(GLIBCPTY)
