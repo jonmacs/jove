@@ -454,11 +454,15 @@ void
 SpelBuffer()
 {
 	static const char	Spell[] = "Spell";
+	const char *cp;
 	char	com[100];
 	Buffer	*savebp = curbuf;
 
 	if (curbuf->b_fname == NULL)
 		complain("no file name");
+	if ((cp = strchr(SpellCmdFmt, '%')) == NULL ||
+	    cp[1] != 's' || strchr(cp+2, '%') != NULL)
+		complain("spell-command-format needs one %%s with no other format characters");
 	if (IsModified(curbuf))
 		SaveFile();
 	swritef(com, sizeof(com), SpellCmdFmt, curbuf->b_fname);
