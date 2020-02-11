@@ -1353,7 +1353,8 @@ closeiprocs()
 
 #endif /* !PIPEPROCS */
 
-char	proc_prompt[128] = "% ";	/* VAR: process prompt */
+/* This is for the shell window. Supports sh, csh and ksh. */
+char	proc_prompt[128] = "^[^%$#]*[%$#] ";	/* VAR: process prompt */
 
 const char *
 pstate(p)

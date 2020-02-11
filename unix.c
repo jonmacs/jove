@@ -61,11 +61,20 @@ int	lmword[2];		/* local mode word */
  * without provocation.
  */
 
-bool	OKXonXoff = NO;	/* VAR: XON/XOFF can be used as ordinary chars */
+/*
+ * Modern terminals (which are almost always terminal
+ * emulators) are generally fine with ^S and ^Q, so follow GNU
+ * Emacs lead and assume that by default.
+ */
+bool	OKXonXoff = YES;	/* VAR: XON/XOFF can be used as ordinary chars */
 ZXchar	IntChar = CTL(']');	/* VAR: ttysetattr sets this to generate SIGINT */
 
 #ifdef BIFF
-bool	DisBiff = NO;		/* VAR: turn off/on biff with entering/exiting jove */
+/*
+ * Ancient UNIXes can mess up the screen with biff when mail
+ * arrives, and it does no harm to turn this on anyway.
+ */
+bool	DisBiff = YES;		/* VAR: turn off/on biff with entering/exiting jove */
 #endif /* BIFF */
 
 void

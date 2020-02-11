@@ -386,7 +386,11 @@ data_obj *EscKeys[NCHARS] = {
 	"unbound",			/* P  */
 	"query-replace-string",		/* Q  */
 	"replace-string",		/* R  */
+#ifdef JOB_CONTROL
+	"pause-jove",			/* S  */
+#else
 	"unbound",			/* S  */
+#endif
 	"unbound",			/* T  */
 	"case-word-upper",		/* U  */
 	"previous-page",		/* V  */
@@ -418,7 +422,11 @@ data_obj *EscKeys[NCHARS] = {
 	"unbound",			/* p  */
 	"query-replace-string",		/* q  */
 	"replace-string",		/* r  */
+#ifdef JOB_CONTROL
+	"pause-jove",			/* s  */
+#else
 	"unbound",			/* s  */
+#endif
 	"unbound",			/* t  */
 	"case-word-upper",		/* u  */
 	"previous-page",		/* v  */

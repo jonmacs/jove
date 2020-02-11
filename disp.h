@@ -34,7 +34,7 @@ extern bool
 extern int
 	calc_pos proto((char *lp,int c_char));
 
-#define MAX_TYPEOUT	132	/* maximum width of typout (in chars) */
+#define MAX_TYPEOUT	MAXCOLS	/* maximum width of typout (in chars) */
 
 extern void
 	ChkWindows proto((LinePtr line1,LinePtr line2)),
@@ -75,9 +75,9 @@ extern bool	BriteMode;		/* VAR: make the mode line inverse? */
 extern int	MailInt;		/* VAR: mail check interval */
 extern char	Mailbox[FILESIZE];	/* VAR: mailbox name */
 #endif /* UNIX */
-extern char	ModeFmt[120];		/* VAR: mode line format string */
+extern char	ModeFmt[MAXCOLS];	/* VAR: mode line format string */
 extern bool	ScrollAll;		/* VAR: when current line scrolls, scroll whole window? */
-extern int	ScrollWidth;	/* VAR: unit of horizontal scrolling */
+extern int	ScrollWidth;		/* VAR: unit of horizontal scrolling */
 extern bool	UseBuffers;		/* VAR: use buffers with Typeout() */
 #ifdef ID_CHAR
 extern bool	UseIC;			/* VAR: whether or not to use i/d char processesing */

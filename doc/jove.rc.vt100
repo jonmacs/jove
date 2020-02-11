@@ -43,7 +43,7 @@ bind-to-key exchange-point-and-mark ^[^[Oy
 bind-to-key newline-and-backup ^[^[Oq
 bind-macro-to-key kill-line ^[^[Os
 
-# The vt100 is the only terminal that needs flow control to throttle
-# output from the computer. The following line is unlikely to be needed
-# for any vt100-emulator.
-set allow-^S-and-^Q off
+# Real vt100 might have needed flow control to throttle
+# output from the computer, but unlikely to be needed
+# for any modern vt100-emulator.
+# set allow-^S-and-^Q off

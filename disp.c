@@ -1158,7 +1158,7 @@ register const char	*str;
 }
 
 /* VAR: mode line format string */
-char	ModeFmt[120] = "%3c %w %[%sJOVE (%M)   Buffer: %b  \"%f\" %]%s%i#-%m*- %((%t)%s%)%e";
+char	ModeFmt[MAXCOLS] = "%[Jove%]%w%w%c(%M)%3c[%b:%n]%2c\"%f\"%c%i# %m*-%2c%p%2s%(%d%e(%t)%)";
 
 private void
 ModeLine(w, line, linenum)
