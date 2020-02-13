@@ -716,6 +716,7 @@ UnixToBuf(flags, bnm, InFName, cmd)
 	SIGINTMASK_INIT();
 #endif
 
+	jdbg("UnixToBuf flags 0x%x \"%s\"\n", flags, cmd);
 	SlowCmd += 1;;
 	if (flags & UTB_SH) {
 			*ap++ = Shell;
@@ -887,41 +888,50 @@ UnixToBuf(flags, bnm, InFName, cmd)
 		int	oldi = dup(0),
 			oldo = dup(1),
 			olde = dup(2);
-		bool	InFailure;
+		bool	InFailure = NO;
 		int	ph;
 
 		PathCat(pipename, sizeof(pipename), TmpDir, "jpXXXXXX");
 		ph = MakeTemp(pipename, "cannot make tempfile \"%s\" for filter");
-		close(1);
-		close(2);
-		dup(ph);
-		dup(ph);
-		close(ph);
+		jdbg("created temp \"%s\"\n", pipename);
 
-		close(0);
-#if 0
-		/* is there a spawnve (like POSIX) or does environ exist & work? */
-		environ = (char **) jenvdata(&proc_env); /* avoid gcc warning */
-#endif
-		InFailure = InFName != NULL && open(InFName, O_RDONLY | O_BINARY | O_CLOEXEC) < 0;
-		jdbg("opened %s\n", InFName);
+		if (dup2(ph, 1) < 0 || dup2(ph, 2) < 0) {
+			jdbg("dup2 of temp file fd failed: %d %s\n", errno,
+			     strerror(errno));
+			InFailure = YES;
+		}
+		(void) close(ph);
+		(void) close(0);
+
 		if (!InFailure)
-			status = spawnv(0, argv[0], &argv[1]);
-
-		close(0);
-		close(1);
-		close(2);
-		dup(oldi);
-		dup(oldo);
-		dup(olde);
-		close(oldi);
-		close(oldo);
-		close(olde);
+			InFailure = InFName != NULL && open(InFName, O_RDONLY | O_BINARY | O_CLOEXEC) < 0;
+		jdbg("InFailure %d InFName \"%s\"\n", InFailure,
+		     InFName == NULL ? "(NULL)" : InFName);
+		if (!InFailure) {
+			if (jdebug) {
+				int vk = 0;
+				while (argv[vk]) {
+					jdprintf("%d: \"%s\"\n", vk, argv[vk]);
+					vk++;
+				}
+			}
+			status = spawnve(0, argv[0], &argv[1],
+					 jenvdata(&proc_env));
+			jdbg("status %d spawnve \"%s\"\n", status, argv[0]);
+		}
+		jdbg("restoring fds 0 1 2 from %d %d %d\n", oldi, oldo, olde);
+		(void) dup2(oldi, 0);
+		(void) dup2(oldo, 1);
+		(void) dup2(olde, 2);
+		(void) close(oldi);
+		(void) close(oldo);
+		(void) close(olde);
 
 		if (InFailure)
 			complain("[filter input failed]");
 		if (status < 0)
 			s_mess("[Spawn failed %d]", errno);
+		jdbg("opening \"%s\" from \"%s\"\n", pipename, argv[1]);
 		ph = open(pipename, O_RDONLY | O_BINARY | O_CLOEXEC);
 		if (ph < 0)
 			complain("[cannot reopen pipe]", strerror(errno));

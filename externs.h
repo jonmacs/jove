@@ -126,6 +126,21 @@ extern int	access proto((const char */*path*/, int /*mode*/));
 #  define R_OK	4	/* readable by caller? */
 # endif
 
+# if defined(IBMPCDOS) || defined(WIN32)
+  /*
+   * At least as of 2007, perhaps earlier, the Microsoft runtime has
+   * no X_OK and considers a value of 1 to be invalid, e.g see
+   * https://gcc.gnu.org/bugzilla/show_bug.cgi?id=30972
+   * https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/access-waccess?view=vs-2019
+   * Older runtimes may have accepted it, but VS 2019, in Win 7 Pro, 
+   * crashes the program.
+   */
+#  ifdef X_OK
+#   undef X_OK
+#  endif
+#  define X_OK F_OK
+# endif
+
 extern int	creat proto((const char */*path*/, jmode_t /*mode*/));
 	/* open may have an optional third argument, promo(jmode_t) mode */
 extern int	open proto((const char */*path*/, int /*flags*/, ...));
