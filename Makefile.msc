@@ -132,7 +132,7 @@ jjove.exe
 
 # Jove users note: don't confuse jjove.rc with jove.rc, which
 # is the Jove setup script.
-jjove.res:	jjove.rc jjove.ico resource.h version.h
+jjove.res:	jjove.rc jjove.ico version.h
 	$(RC) $(RCDEFINES) -r jjove.rc
 
 jjove.bsc: $(OBJECTS:.obj=.sbr)

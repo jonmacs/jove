@@ -298,7 +298,7 @@ HEADERS = abbrev.h argcount.h ask.h buf.h c.h case.h chars.h commands.h \
 	fmt.h fp.h insert.h io.h iproc.h jove.h \
 	keymaps.h list.h mac.h macros.h marks.h \
 	misc.h mouse.h move.h paragraph.h proc.h \
-	re.h reapp.h rec.h recover.h resource.h scandir.h screen.h \
+	re.h reapp.h rec.h recover.h scandir.h screen.h \
 	select.h sysdep.h sysprocs.h temp.h term.h ttystate.h \
 	tune.h util.h vars.h version.h wind.h
 

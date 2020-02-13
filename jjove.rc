@@ -1,14 +1,11 @@
 //Microsoft Developer Studio generated resource script.
 //
-#include "resource.h"
-
 #define APSTUDIO_READONLY_SYMBOLS
 /////////////////////////////////////////////////////////////////////////////
 //
 // Generated from the TEXTINCLUDE 2 resource.
 //
 #include <windows.h> // per https://mattshaw.org/news/fix-for-error-rc2144-primary-language-id-not-a-number/
-#include "afxres.h"
 #include "version.h"
 
 /////////////////////////////////////////////////////////////////////////////
@@ -40,12 +37,11 @@ IDI_JOVE_ICON           ICON    DISCARDABLE     "JJOVE.ICO"
 
 1 TEXTINCLUDE DISCARDABLE 
 BEGIN
-    "resource.h\0"
+    "\0"
 END
 
 2 TEXTINCLUDE DISCARDABLE 
 BEGIN
-    "#include ""afxres.h""\r\n"
     "\0"
 END
 

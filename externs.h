@@ -147,11 +147,12 @@ extern SSIZE_T	read proto((int /*fd*/, UnivPtr /*buf*/, size_t /*nbytes*/));
 extern SSIZE_T	write proto((int /*fd*/, UnivConstPtr /*buf*/, size_t /*nbytes*/));
 # endif
 
-# if !defined(ZTCDOS) && !defined(__BORLANDC__)
+# if !defined(ZTCDOS) && !defined(__BORLANDC__) && !defined(_MSC_VER)
 /* Zortech incorrectly defines argv as const char **.
  * Borland incorrectly defines argv as char *[] and omits some consts
- * on execl and execlp parameters.
- * On the other hand, each supplies declarations for these functions.
+ * MSC incorrectly defines argv as char const* const *
+ * on some or all exec*() prototype declarations that they supply.
+ * Jove uses spawn on these platforms anyway.
  */
 extern int	execl proto((const char */*path*/, const char */*arg*/, ...));
 extern int	execlp proto((const char */*file*/, const char */*arg*/, ...));

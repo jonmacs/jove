@@ -904,6 +904,7 @@ UnixToBuf(flags, bnm, InFName, cmd)
 		environ = (char **) jenvdata(&proc_env); /* avoid gcc warning */
 #endif
 		InFailure = InFName != NULL && open(InFName, O_RDONLY | O_BINARY | O_CLOEXEC) < 0;
+		jdbg("opened %s\n", InFName);
 		if (!InFailure)
 			status = spawnv(0, argv[0], &argv[1]);
 

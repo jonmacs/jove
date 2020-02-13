@@ -9,6 +9,8 @@
 
 #ifdef IPROCS	/* the body is the rest of this file */
 
+#define MAX_BUSY_WAIT 3	/* seconds to ignore errors on pty */
+
 #include <signal.h>
 
 #include "re.h"
@@ -45,6 +47,7 @@ struct process {
 	int	p_fd;		/* file descriptor of pty? opened r/w */
 # define	p_portpid	p_pid	/* pid of direct child (the shell) */
 	pid_t	p_pid;		/* pid of child (the shell) */
+	time_t	p_start;	/* time we started this child */
 #endif
 	Buffer	*p_buffer;	/* add output to end of this buffer */
 	char	*p_name;	/* ... */
@@ -539,9 +542,13 @@ register int	fd;
 				 * does not cause a long busy wait.
 				 */
 				if (p->p_io_state == IO_NEW) {
-					jdbg("IO_NEW, got errno %d\n", errno);
-					return;
+					time_t now = time(NULL);
+					jdbg("IO_NEW err %d start %D now %D\n",
+					     errno, (long)p->p_start,(long)now);
+					if (now < p->p_start+MAX_BUSY_WAIT)
+					    return;
 				}
+				jdbg("treating error as EOF\n");
 
 				/* We get here if the i-proc closes stdout
 				 * before exiting (eg. Bourne Shell),
@@ -1258,7 +1265,9 @@ proc_strt(bufname, clobber, procname, va_alist)
 	jdbg("O_NONBLOCK %d %s\n", ptyfd, ttybuf);
 	fcntl(ptyfd, F_SETFL, O_NONBLOCK);
 # endif
-	jdbg("started pid %d fd %d %s\n", pid, ptyfd, ttybuf);
+	(void) time(&(newp->p_start));
+	jdbg("start pid %d fd %d %s %D\n", pid, ptyfd, ttybuf,
+	     (long) newp->p_start);
 	newp->p_fd = ptyfd;
 	newp->p_pid = pid;
 

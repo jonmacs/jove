@@ -43,6 +43,7 @@
 /* System: Cygwin POSIX-like environment on Win95/NT (see README.cyg) */
 # define FILENAME_CASEINSENSITIVE	1
 # define GLIBCPTY	1
+# define O_TRUNC_BROKEN	1   /* see fp.c */
 # define SPELL		"aspell list < %s | sort -u"
 #endif
 

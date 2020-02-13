@@ -108,6 +108,20 @@ int	flags,
 #else
 		fd = creat(name, (jmode_t)CreatMode);
 #endif
+#ifdef O_TRUNC_BROKEN
+		/*
+		 * Cygwin 3.1.2 open(..., O_TRUNC) seems to
+		 * not truncate files on VirtualBox shared
+		 * folders, perhaps on any network drive? But
+		 * it has ftruncate and that appears to
+		 * workaround the problem. Since most uses of
+		 * this function will subsequently write to
+		 * the minibuf, seems pointless to report
+		 * an error on ftruncate, which really should
+		 * never happen if we successfully opened the file!
+		 */
+		if (fd >= 0) (void) ftruncate(fd, 0);
+#endif
 		break;
 
 	default:
