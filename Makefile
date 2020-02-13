@@ -383,6 +383,7 @@ setmaps.o:	setmaps.c
 	$(LOCALCC) $(LOCALCFLAGS) -c setmaps.c
 
 keys.c:	setmaps$(XEXT) keys.txt
+	@-rm -f keys.c
 	./setmaps$(XEXT) < keys.txt > keys.c
 
 keys.o:	keys.c tune.h sysdep.h jove.h keymaps.h dataobj.h commands.h
@@ -390,14 +391,17 @@ keys.o:	keys.c tune.h sysdep.h jove.h keymaps.h dataobj.h commands.h
 .ALWAYS:
 
 .version: .ALWAYS
+	@-rm -f version.h.tmp
 	@sed -n 's/# *define  *jversion[ \t]*"\([0-9\\.]*\)".*/\1/p' version.h > .version.tmp; \
 	if ! cmp -s .version.tmp .version; then mv .version.tmp .version; else rm .version.tmp; fi
 
 jove.spec: .version .ALWAYS
+	@-rm -f jspec.tmp
 	@v=`sed 's/_.*//' .version`; sed "s,__VERSION__,$$v,g" jspec.in > jspec.tmp; \
 	if ! cmp -s jove.spec jspec.tmp; then mv jspec.tmp jove.spec; else rm jspec.tmp; fi
 
 paths.h: .ALWAYS
+	@-rm -f paths.tmp
 	@echo "/* Changes should be made in Makefile, not to this file! */" > paths.tmp
 	@echo "" >> paths.tmp
 	@echo \#define TMPDIR \"$(JTMPDIR)\" >> paths.tmp
@@ -456,18 +460,22 @@ $(TEACH-JOVE): doc/teach-jove
 	$(TINSTALL) doc/teach-jove $(TEACH-JOVE)
 
 doc/cmds.doc:	doc/cmds.macros.nr doc/cmds.nr
+	@-rm -f doc/cmds.doc
 	LANG=C $(NROFF) doc/cmds.macros.nr doc/cmds.nr > doc/cmds.doc
 
 doc/jove.man:	doc/intro.nr doc/cmds.nr
+	@-rm -f doc/jove.man
 	( LANG=C; export LANG; cd doc; tbl intro.nr | $(NROFF) -ms - cmds.nr >jove.man )
 
 doc/jove.man.ps:
+	@-rm -f doc/doc/jove.man.ps
 	( LANG=C; export LANG; cd doc; tbl intro.nr | $(TROFF) -ms - cmds.nr contents.nr $(TROFFPOST) >jove.man.ps )
 
 $(CMDS.DOC): doc/cmds.doc
 	$(TINSTALL) doc/cmds.doc $(CMDS.DOC)
 
 doc/jove.rc: doc/jove.rc.in
+	@-rm -f doc/jove.rc.tmp
 	sed "s,__ETCDIR__,$(JETCDIR)," doc/jove.rc.in > doc/jove.rc.tmp
 	if ! cmp -s doc/jove.rc.tmp doc/jove.rc; then mv doc/jove.rc.tmp doc/jove.rc; else rm doc/jove.rc.tmp; fi
 
@@ -490,6 +498,7 @@ $(TEACHJOVE): teachjove$(XEXT)
 	$(XINSTALL) teachjove$(XEXT) $(TEACHJOVE)
 
 doc/jove.$(MANEXT): doc/jove.nr
+	@-rm -f doc/jove.$(MANEXT)
 	sed -e 's;<TMPDIR>;$(JTMPDIR);' \
 	     -e 's;<LIBDIR>;$(JLIBDIR);' \
 	     -e 's;<SHAREDIR>;$(JSHAREDIR);' \
@@ -504,9 +513,11 @@ $(JOVEM): $(DMANDIR) doc/jove.$(MANEXT)
 # are not fixed yet, and because we must do the formatting.
 
 doc/jove.doc: doc/jove.nr
+	@-rm -f doc/jove.doc
 	LANG=C $(NROFF) -man doc/jove.nr >doc/jove.doc
 
 doc/teachjove.$(MANEXT): doc/teachjove.nr
+	@-rm -f doc/teachjove.$(MANEXT)
 	sed -e 's;<TMPDIR>;$(JTMPDIR);' \
 	     -e 's;<LIBDIR>;$(JLIBDIR);' \
 	     -e 's;<SHAREDIR>;$(JSHAREDIR);' \
@@ -519,6 +530,7 @@ $(XJOVEM): $(DMANDIR) doc/xjove.nr
 	$(TINSTALL) doc/xjove.nr $(XJOVEM)
 
 doc/jovetool.$(MANEXT): doc/jovetool.nr
+	@-rm -f doc/jovetool.$(MANEXT)
 	sed -e 's;<MANDIR>;$(MANDIR);' \
 	     -e 's;<MANEXT>;$(MANEXT);' doc/jovetool.nr > doc/jovetool.$(MANEXT)
 
@@ -559,6 +571,7 @@ extags:	$(C_SRC) $(HEADERS)
 # to be rebuilt every time it is needed.
 
 .filelist:	$(BACKUPS) $(DOCS) .xjfilelist
+	@-rm -f .filelist
 	@ls $(BACKUPS) >.filelist
 	@ls $(DOCS) >>.filelist
 	@sed -e 's=^=xjove/=' xjove/.filelist >>.filelist
@@ -576,15 +589,17 @@ coall:	.filelist
 	co $(BACKUPS) `cat .filelist`
 
 jove.shar:	.filelist
+	@-rm -f jove.shar
 	shar .filelist > jove.shar
 
 backup.Z: .filelist
-	rm -f backup backup.Z
+	-rm -f backup backup.Z
 	tar cf backup `cat .filelist`
 	compress backup
 
 backup.tgz: .filelist
 	# GNU tar only: z
+	-rm -f backup.tgz
 	tar czf backup.tgz `cat .filelist`
 
 tape-backup:	.filelist
@@ -667,6 +682,7 @@ clobber: clean
 # This version only works under 4.3BSD
 dependbsd:
 	@echo '"make depend" only works under 4.3BSD'
+	@-rm -f Makefile.new
 	sed -e '/^# DO NOT DELETE THIS LINE/q' Makefile >Makefile.new
 	for i in ${SOURCES} ; do \
 		$(CC) ${CFLAGS} ${DEPENDFLAG} $$i | \
