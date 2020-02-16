@@ -121,9 +121,19 @@
 
 /* Since we don't use stdio.h, we may have to define NULL and EOF */
 
-#ifndef NULL
-# define NULL	0
+/*
+ * Some systmes (OpenIndiana 20191106, for example, but possibly many Solaris,
+ * define NULL to be (void *) 0, which is OK per POSIX, but their compilers then
+ * then complain about initializations from NULL that lack a cast to the type.
+ * Defining NULL to good, old-fashioned 0, is fine on all systems, more portable.
+ * If we encounter a compiler that does not like this, guess we will have to add
+ * some manifest to protect it, or switch to JNULL.
+ */
+
+#ifdef NULL
+# undef NULL
 #endif
+#define NULL	0
 
 #ifndef EOF
 #define EOF	(-1)

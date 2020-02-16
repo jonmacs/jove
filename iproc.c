@@ -995,10 +995,10 @@ proc_strt(bufname, clobber, procname, va_alist)
 			for (t = "0123456789abcdef"; *t; t++) {
 				swritef(ttybuf, sizeof(ttybuf), "/dev/pty%c%c", *s, *t);
 				jdbg("trying pty %s\n", ttybuf);
-				if ((ptyfd = open(ttybuf, O_RDWR | O_BINARY | O_CLOEXEC)) >= 0) {
+				if ((ptyfd = open(ttybuf, O_RDWR | O_BINARY)) >= 0) {
 					ttybuf[5] = 't';	/* pty => tty */
 					/* Make sure other end is available too */
-					slvptyfd = open(ttybuf, O_RDWR | O_BINARY | O_CLOEXEC);
+					slvptyfd = open(ttybuf, O_RDWR | O_BINARY);
 					if (slvptyfd > 0)
 						break;	/* it worked: use this one */
 
@@ -1101,15 +1101,15 @@ proc_strt(bufname, clobber, procname, va_alist)
 		(void) close(2);
 
 # ifdef TERMIOS
-		jdbg("setsid %s\n", ttybuf);
+		jdbg("child setsid %s\n", ttybuf);
 		setsid();
 # else /* !TERMIOS */
 #  ifdef TIOCNOTTY
 		/* get rid of controlling tty */
 		{
-			int	i = open("/dev/tty", O_RDWR | O_BINARY | O_CLOEXEC);
+			int	i = open("/dev/tty", O_RDWR | O_BINARY);
 
-			jdbg("TIOCNOTTY %d %s\n", i, ttybuf);
+			jdbg("child TIOCNOTTY %d %s\n", i, ttybuf);
 			if (i >= 0) {
 				(void) ioctl(i, TIOCNOTTY, (UnivPtr)NULL);
 				(void) close(i);
@@ -1118,24 +1118,22 @@ proc_strt(bufname, clobber, procname, va_alist)
 #  endif /* TIOCNOTTY */
 # endif /* !TERMIOS */
 		jdbg("child ptyfd %d slv %d buf %s\n", ptyfd, slvptyfd, ttybuf);
-		if (slvptyfd >= 0) {
-			/* use what we got from openpty */
-			(void) dup2(slvptyfd, 0);
-		} else {
-			if ((slvptyfd = open(ttybuf, O_RDWR | O_BINARY | O_CLOEXEC)) != 0)
+		if (slvptyfd < 0) {
+			if ((slvptyfd = open(ttybuf, O_RDWR | O_BINARY)) != 0)
 				_exit(errno+1);
-		}
+			jdbg("child slv slv %d\n", slvptyfd);
+		} /* else use what we got from openpty */
 		(void) dup2(slvptyfd, 1);
 		(void) dup2(slvptyfd, 2);
-
-# ifdef BSD_PTYS
-		jdbg("closed slv %d %s\n", slvptyfd, ttybuf);
-		close(slvptyfd);	/* safe to close now that std* are open */
-# endif /* BSD_PTYS */
-
+		if (slvptyfd != 0) {
+			(void) dup2(slvptyfd, 0);
+			jdbg("child closing slv %d %s\n", slvptyfd, ttybuf);
+			(void) close(slvptyfd);	/* safe to close now that std* are open */
+		}
+		jdbg("child std 0, 1, 2 duped\n");
 # ifdef SVR4_PTYS
 #  ifdef I_PUSH		/* LINUX/glibc no longer even pretends to support this (2008) */
-		jdbg("SVR4_PTYS I_PUSH ptem ldterm ttcompat %s\n", ttybuf);
+		jdbg("child SVR4_PTYS I_PUSH ptem ldterm ttcompat %s\n", ttybuf);
 		(void) ioctl(0, I_PUSH, (UnivPtr) "ptem");
 		(void) ioctl(0, I_PUSH, (UnivPtr) "ldterm");
 		(void) ioctl(0, I_PUSH, (UnivPtr) "ttcompat");
@@ -1146,11 +1144,13 @@ proc_strt(bufname, clobber, procname, va_alist)
 		/* Make this controling tty.
 		 * This is needed by OSF.  It may be needed by BSDPOSIX systems.
 		 * It should not hurt on any system that defines TIOCSCTTY.
+		 * On Solaris (OpenIndiana 2019.11), the ioctl fails with errno 25 (ENOTTY)
+		 * but that seems harmless, so we just log but ignore error returns
+		 * (as used to be the case before 4.16.0.31!)
 		 */
-		jdbg("TIOCSTTY %s\n", ttybuf);
-		if (ioctl(0, TIOCSCTTY) == -1)
-			_exit(errno+1);	/* no good way to signal user */
-
+		jdbg("child TIOCSTTY %s\n", ttybuf);
+		if (ioctl(0, TIOCSCTTY) < 0)
+			jdbg("TIOCSCTTY failed errno %d %s\n", errno, strerror(errno));
 # endif
 
 # ifndef NO_TIOCREMOTE
@@ -1166,7 +1166,7 @@ proc_strt(bufname, clobber, procname, va_alist)
 		{
 			int	on = 1;
 
-			jdbg("chuld TIOCREMOTE on %d %s\n", ptyfd, ttybuf);
+			jdbg("child TIOCREMOTE on %d %s\n", ptyfd, ttybuf);
 			if (ioctl(ptyfd, TIOCREMOTE, (UnivPtr) &on) < 0)
 				_exit(errno+1);	/* no good way to signal user */
 		}
@@ -1229,22 +1229,22 @@ proc_strt(bufname, clobber, procname, va_alist)
 		(void) stty(0, &sgt);
 # endif /* !(defined(TERMIO) || defined(TERMIOS)) */
 
-		jdbg("newpg %s\n", ttybuf);
+		jdbg("child newpg %s\n", ttybuf);
 		NEWPG();
 		{
 			int	i = getpid();
 
 # ifdef POSIX_PROCS
-			jdbg("tcsetpgrp %d %s\n", i, ttybuf);
+			jdbg("child tcsetpgrp %d %s\n", i, ttybuf);
 			tcsetpgrp(0, getpid());
 # else /* !POSIX_PROCS */
-			jdbg("TIOCSPGRP %d %s\n", i, ttybuf);
+			jdbg("child TIOCSPGRP %d %s\n", i, ttybuf);
 			(void) ioctl(0, TIOCSPGRP, (UnivPtr) &i);
 # endif /* POSIX_PROCS */
 		}
 
 		set_process_env();
-		jdbg("ready to exec %s %s\n", argv[0], argv[1]);
+		jdbg("child ready to exec %s %s\n", argv[0], argv[1]);
 		execvp(argv[0], &argv[1]);
 		raw_complain("execvp failed! %s", strerror(errno));
 		_exit(errno + 1);

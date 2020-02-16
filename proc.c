@@ -863,7 +863,7 @@ UnixToBuf(flags, bnm, InFName, cmd)
 		SIGINT_UNBLOCK();
 #  endif
 		if (!((a = "close 0", close(0)) == 0
-		&& (a = "open", open(InFName==NULL? "/dev/null" : InFName, O_RDONLY | O_BINARY | O_CLOEXEC)) == 0
+		&& (a = "open", open(InFName==NULL? "/dev/null" : InFName, O_RDONLY | O_BINARY)) == 0
 		&& (a = "close 1", close(1)) == 0
 		&& (a = "dup 1", dup(p[1])) == 1
 		&& (a = "close 2", close(2)) == 0
@@ -904,7 +904,7 @@ UnixToBuf(flags, bnm, InFName, cmd)
 		(void) close(0);
 
 		if (!InFailure)
-			InFailure = InFName != NULL && open(InFName, O_RDONLY | O_BINARY | O_CLOEXEC) < 0;
+			InFailure = InFName != NULL && open(InFName, O_RDONLY | O_BINARY) < 0;
 		jdbg("InFailure %d InFName \"%s\"\n", InFailure,
 		     InFName == NULL ? "(NULL)" : InFName);
 		if (!InFailure) {

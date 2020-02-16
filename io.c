@@ -266,8 +266,8 @@ const char	*complaint;
 # endif
 		) {
 # ifdef O_EXCL
-			int fd = open(buf, O_CREAT | O_EXCL | O_RDWR | O_BINARY | O_CLOEXEC
-				, S_IWRITE | S_IREAD);
+			int fd = open(buf, O_CREAT | O_EXCL | O_RDWR | O_BINARY,
+					S_IWRITE | S_IREAD);
 # else /* !O_EXCL */
 			int fd = creat(buf, 0600);
 # endif /* !O_EXCL */
@@ -294,7 +294,7 @@ const char	*complaint;
 	if (mktemp(buf) == NULL
 	|| -1 == (fd =
 #  ifdef O_EXCL
-		open(buf, O_CREAT | O_EXCL | O_RDWR | O_BINARY, S_IWRITE | S_IREAD | O_CLOEXEC)
+		open(buf, O_CREAT | O_EXCL | O_RDWR | O_BINARY, S_IWRITE | S_IREAD)
 #  else /* !O_EXCL */
 		creat(buf, 0600)
 #  endif /* !O_EXCL */
