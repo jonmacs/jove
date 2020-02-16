@@ -181,12 +181,13 @@ SYSDEFS = -DLinux
 
 # Select optimization level (flags passed to compiling and linking steps).
 # On most systems: -g for debugging, -O for optimization.
+# -Os produces smaller binaries with gcc, should not hurt performance
 # On the official Sun ANSI C compiler and the standard System V Release 4
 # compiler, adding -Xa -v will increase compiler checking.
 # On DEC OSF/1 and Digital UNIX VV4.0, add -std1 to enable ANSI C features
 # and perhaps -g3 for more debugging info with optimization.
 
-OPTFLAGS = -O -Wall -pedantic
+OPTFLAGS = -O # -g -Wall -pedantic
 
 # For making dependencies under BSD systems
 DEPENDFLAG = -M

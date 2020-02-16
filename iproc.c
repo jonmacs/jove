@@ -1149,8 +1149,9 @@ proc_strt(bufname, clobber, procname, va_alist)
 		 * (as used to be the case before 4.16.0.31!)
 		 */
 		jdbg("child TIOCSTTY %s\n", ttybuf);
-		if (ioctl(0, TIOCSCTTY) < 0)
+		if (ioctl(0, TIOCSCTTY) < 0) {
 			jdbg("TIOCSCTTY failed errno %d %s\n", errno, strerror(errno));
+		}
 # endif
 
 # ifndef NO_TIOCREMOTE

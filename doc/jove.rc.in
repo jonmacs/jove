@@ -1,3 +1,5 @@
+# Make changes to jove.rc.in (and not jove.rc)
+#
 # This standard system-wide initialization file provides various
 # reasonable defaults. However, it is probably best seen as a starting
 # point, with examples of interesting possibilities, from which
@@ -39,17 +41,27 @@ process-bind-to-key quit-process ^C^\
 process-bind-to-key stop-process ^C^Z
 process-bind-to-key dstop-process ^C^Y
 
+# A plethora of programs now unilaterally try to color
+# their output using ANSI color sequences, and all
+# have different ways to turn that off, sigh.
 iproc-env-export INSIDE_JOVE=iproc
 iproc-env-export TERM=dumb
 iproc-env-unset COLORTERM
-iproc-env-export LS_COLORS=never
+iproc-env-export LS_COLORS=none
+iproc-env-unset CLICOLOR
 iproc-env-export GREP_COLOR=never
+iproc-env-unset GREP_COLORS
 iproc-env-export GCC_COLORS=""
 iproc-env-export SYSTEMD_LOG_COLOR=false
 
+# since proc do not have a pty, fewer
+# programs produce color, not sure
+# if all these are needed.
 proc-env-export INSIDE_JOVE=proc
-proc-env-export LS_COLORS=never
+proc-env-export LS_COLORS=none
+proc-env-unset CLICOLOR
 proc-env-export GREP_COLOR=never
+proc-env-unset GREP_COLORS
 proc-env-export GCC_COLORS=""
 proc-env-export SYSTEMD_LOG_COLOR=false
 
