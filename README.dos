@@ -5,7 +5,7 @@
 # this notice is included in all the source files and documentation.     #
 ##########################################################################
 
-[Updated in May 1996]
+[Updated in February 2020]
 
 HOW TO GET STARTED WITH JOVE:
 =============================
@@ -207,18 +207,41 @@ in 64kB; one consequence is that JOVE's tempfile cache is severely
 reduced.  The advantage of Medium Model is that JOVE's object code is
 considerably smaller.
 
-JOVE has been compiled (1994 July) with version 3.1 of Borland's C compiler.
-Use Makefile.bcc.
+JOVE has been compiled (2020 February) for Windows under
+Visual Studio 2019 on Windows 7 Pro (on virtualbox), using a
+command-line window.
+	nmake /f Makefile.msc
+Since this is not a primary platform for current JOVE maintainers,
+new testers (and bug reports/patches) are welcome.
 
-JOVE has been compiled with version 8.0 of the Microsoft C compiler
-a.k.a. Visual C.  It will probabally also compile with versions 6 or 7
-but this has not been confirmed.  Use the makefile called Makefile.msc.
+JOVE has been compiled (2020 February) for DOS with the Open Watcom
+1.9.0 compiler (which can be downloaded from
+http://ftp.openwatcom.org/install/open-watcom-c-dos-1.9.exe)
+under the dosbox emulator (0.74-4.2+deb9u2build0.16.04.1 on Ubuntu 16.04)
+	wmake -f Makefile.wat
+in the source unpacked from jovedoss.zip (make that on a
+Unix/Linux machine) Since this is not a primary platform for
+current JOVE maintainers, new testers (and bug
+reports/patches) are welcome.
 
-JOVE has been compiled (1996 May) with version 10 of Watcom's C compiler.
-Use Makefile.wat.
+JOVE was once compiled (1994 July) with version 3.1 of
+Borland's C compiler. Extract relevant files/definitions from
+ old/Makefile.bcc and old/sysdep.h, which will likely
+require some tweaking in order to be brought uptodate.
+Patches are welcome.
 
-JOVE has been compiled (1996 May) with version 3.0 of Zortech's C compiler.
-Use Makefile.zor.
+JOVE was once compiled with version 8.0 of the Microsoft C compiler
+a.k.a. Visual C.  It might  have also compiled with versions 6 or 7
+but that was never confirmed.  The makefile called Makefile.msc might
+be adaptable to this, patches are welcome.
+
+JOVE was once compiled (1996 May) with version 10 of
+Watcom's C compiler.  Makefile.wat might still work (but see
+the notes for wildargv.c), patches are welcome.
+
+JOVE was once compiled (1996 May) with version 3.0 of
+Zortech's C compiler.  If that is desired again, try
+old/Makefile.zor and definitions from old/sysdep.h, patches are welcome.
 
 JOVE once supported MSDOS on hardware that is not IBM PC compatible.
 In particular, use -DRAINBOW for the DEC Rainbow computer (this
@@ -232,3 +255,5 @@ for Zortech C by D. Hugh Redelmeier (hugh@mimosa.com).  Joe Smith
 (jes@mbio.med.upenn.edu) ported to Borland C.  Several others,
 including Jim Patterson (jimp@cognos.com) and Gary Puckering
 (garyp@cognos.com) updated the Microsoft port.
+Mark Moraes (moraes@cs.toronto.edu) re-ported to Win32 and DOS in
+in Feb 2020.

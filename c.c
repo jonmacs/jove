@@ -18,7 +18,7 @@
 #include "marks.h"
 #include "misc.h"
 #include "move.h"
-#include "paragraph.h"
+#include "para.h"
 
 private void
 	FindMatch proto((int));
@@ -77,7 +77,7 @@ mp_error()
  */
 Bufpos *
 m_paren(p_type, dir, can_mismatch, can_stop)
-char	p_type;
+DAPchar	p_type;
 register int	dir;
 bool	can_mismatch;
 bool	can_stop;

@@ -10,7 +10,8 @@
  * for a better description of what the different #define feature symbols
  * mean.  If you add new ones, please keep the syntax of the first #ifdef, so
  * that "grep System: sysdep.h" catches the first line of all symbols.
- * See sysdepo.h for old, symbols for untested systems that once worked.
+ * See old/sysdep.h for historical symbols for untested systems that once
+ * worked.
  */
 
 /* The modern *BSD family all have slightly different quirks */
@@ -25,6 +26,18 @@
 # define XBSD		1
 # define HAVE_LIBUTIL_H 1
 # define SPELL		"aspell list < %s | sort -u"
+#endif
+
+#ifdef WATCOMC	/* System: Open Watcom C 1.9 for x86 running MSDOS */
+# define IBMPCDOS		1
+# define MALLOC_CACHE	1	/* DGROUP gets full otherwise */
+# define REALSTDC	1	/* close enough for us, but ZTCDOS doesn't define __STDC__ */
+# ifndef SMALL
+#  define NBUF		31	/* NBUF*JBUFSIZ must be less than 64 kB */
+#  define JLGBUFSIZ	11	/* max line length of 2048 chars */
+# else
+#  define FAR_LINES	1	/* to squeeze larger files, distance Lines */
+# endif
 #endif
 
 #if defined(OpenBSD) || defined(Darwin) || defined (XBSD)
@@ -132,7 +145,7 @@
 /* System: DEC OSF R1.3MK -- use SYSVR4 */
 /* System: Digital UNIX V4.0 and later -- use SYSVR4 and GRANTPT_BUG */
 /* System: Solaris 2.0, SunOS 5.0 -- use SYSVR4 and GRANTPT_BUG */
-/* System: Solaris 2.x, SunOS 5.x -- use SYSVR4 */
+/* System: Solaris 2.x onwards, SunOS 5.x, OpenIndiana/Illumos/Joyent -- use SYSVR4 */
 /* Note: some versions of System V Release 4 have a bug in that affects
  * interactive processes.  Examples include Consensys V4 and SunOS 5.0
  * also known as Solaris 5.0.  See the description of GRANTPT_BUG in

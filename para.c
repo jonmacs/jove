@@ -14,7 +14,7 @@
 #include "marks.h"
 #include "misc.h"
 #include "move.h"
-#include "paragraph.h"
+#include "para.h"
 #include "re.h"
 
 private int	get_indent proto((LinePtr));

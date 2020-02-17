@@ -68,9 +68,8 @@ CC = wcc
 # NOTE: quotes around the macro body in a -D are actually taken as part
 # of that body!!
 
-# predefined automatically:__WATCOMC__
-
-CFLAGS = -mm -wx -zq
+# If you build with medium (i.e. -mm), you might need to add -dSMALL=1
+CFLAGS = -ml -wx -zq -dWATCOMC=1
 
 # Linker:
 
@@ -97,24 +96,19 @@ LDFLAGS = $(CFLAGS) -x
 OBJECTS = keys.obj commands.obj abbrev.obj ask.obj buf.obj c.obj &
 	case.obj jctype.obj delete.obj extend.obj argcount.obj insert.obj &
 	io.obj jove.obj macros.obj marks.obj misc.obj mouse.obj move.obj &
-	paragrap.obj proc.obj re.obj reapp.obj scandir.obj list.obj &
+	para.obj proc.obj re.obj reapp.obj scandir.obj list.obj &
 	keymaps.obj util.obj vars.obj wind.obj fmt.obj disp.obj term.obj &
 	fp.obj screen.obj msgetch.obj ibmpcdos.obj
 
 HEADERS = abbrev.h argcount.h ask.h buf.h c.h case.h chars.h commands.h &
 	jctype.h dataobj.h delete.h disp.h extend.h externs.h &
 	fmt.h fp.h insert.h io.h iproc.h jove.h &
-	keymaps.h list.h loadavg.h mac.h macros.h marks.h &
-	misc.h mouse.h move.h paragraph.h proc.h &
+	keymaps.h list.h mac.h macros.h marks.h &
+	misc.h mouse.h move.h para.h proc.h &
 	re.h reapp.h rec.h scandir.h screen.h &
 	sysdep.h sysprocs.h temp.h term.h ttystate.h &
 	tune.h util.h vars.h version.h wind.h
 
-# This is what we really want to use, but Zortech's make doesn't work
-# when a target appears in more than one rule.  So, as it stands,
-# changing a header will *not* force recompilation :-(
-#
-# $(OBJECTS):	$(HEADERS)
 #
 # For this reason, we can only force the building of paths.h
 # by adding it to the dependencies for explicit targets.
@@ -124,22 +118,28 @@ HEADERS = abbrev.h argcount.h ask.h buf.h c.h case.h chars.h commands.h &
 jjove.exe:	paths.h $(OBJECTS) wildargv.obj
 	$(LD) $(LDFLAGS) -k8196 -fm -fe=$* *.obj
 
+# Complains about an overly long command
+# $(OBJECTS):	$(HEADERS)
+
 jovedosx.zip:	paths.h jjove.exe
 	-del jovedosx.zip
 	-del jove.exe
 	rename jjove.exe jove.exe
-	pkzip -aP jovedosx.zip jove.exe doc\cmds.doc doc\jove.man doc\jove.doc paths.h README.dos
+	pkzip -aP jovedosx.zip jove.exe doc\*.* paths.h README.dos
 
 # Note that quotes are not stripped by the shell that will
 # execute the recipe for paths.h
 
 paths.h:	Makefile.wat
-	echo /* Changes should be made in Makefile, not to this file! */ > paths.h
-	echo $#define TMPDIR "$(TMPDIR)" >> paths.h
-	echo $#define RECDIR "$(RECDIR)" >> paths.h
-	echo $#define LIBDIR "$(LIBDIR)" >> paths.h
-	echo $#define SHAREDIR "$(SHAREDIR)" >> paths.h
-	echo $#define DFLTSHELL "$(DFLTSHELL)" >> paths.h
+	@echo Making <<paths.h
+/* Changes should be made in Makefile.wat, not to this file! */
+
+#define TMPDIR "$(TMPDIR)"
+#define RECDIR "$(RECDIR)"
+#define LIBDIR "$(LIBDIR)"
+#define SHAREDIR "$(SHAREDIR)"
+#define DFLTSHELL "$(DFLTSHELL)"
+<<KEEP
 
 setmaps.exe:	commands.tab keys.txt setmaps.c
 	wcl $(CFLAGS) setmaps.c -fe=setmaps.exe
@@ -151,7 +151,12 @@ keys.c:	setmaps.exe keys.txt
 # Note: it may be necessary to manually copy the source file from
 # the distribution CDROM to the installation.  On the CDROM, the
 # file's path is \watcom\src\startup\wildargv.c.
-# At least with some versions, wildargv.c does not accept tabs as
+# Or you can get it from 
+# http://perforce.openwatcom.org:4000/@md=d&cd=//depot/openwatcom/bld/clib/startup/c/&c=WFs@//depot/openwatcom/bld/clib/startup/c/wildargv.c?ac=22
+# (e.g. version 3 seems to compile with OpenWatcom 1.9)
+# The latest versions at github need newer compilers than 1.9.0
+# https://github.com/open-watcom/open-watcom-v2/master/bld/clib/startup/c/wildargv.c
+# At least with some versions (fixed in the github version), wildargv.c does not accept tabs as
 # argument delimiters.  This should be fixed.
 # Change line 82 from:
 #	    while( *p == ' ' ) ++p;	/* skip over blanks */
@@ -162,8 +167,10 @@ keys.c:	setmaps.exe keys.txt
 # to:
 #		    if( *p == ' ' || *p == '\t' ) break;
 
-wildargv.obj:	$(%WATCOM)\src\startup\wildargv.c
-	$(CC) $(CFLAGS) $(%WATCOM)\src\startup\wildargv.c
+#WILDSRC=$(%WATCOM)\src\startup\wildargv.c
+WILDSRC=wildargv.c
+wildargv.obj:	$(WILDSRC)
+	$(CC) $(CFLAGS) $(WILDSRC)
 
 clean:	.SYMBOLIC
 	-del *.obj
@@ -171,4 +178,3 @@ clean:	.SYMBOLIC
 	-del *.bak
 	-del *.map
 	-del keys.c
-	-del paths.h

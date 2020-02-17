@@ -31,7 +31,7 @@
 #include "marks.h"
 #include "misc.h"
 #include "move.h"
-#include "paragraph.h"
+#include "para.h"
 #include "proc.h"
 #include "reapp.h"
 #include "wind.h"

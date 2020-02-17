@@ -17,7 +17,7 @@
 #include "marks.h"
 #include "misc.h"
 #include "move.h"
-#include "paragraph.h"
+#include "para.h"
 
 void
 prCTIME()

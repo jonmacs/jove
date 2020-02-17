@@ -134,7 +134,7 @@ mac_init()
 
 void
 mac_putc(c)
-char	c;
+DAPchar	c;
 {
 	if (kmac_len >= kmac_buflen) {
 		KeyMacro.m_body = erealloc((UnivPtr) KeyMacro.m_body, (size_t) kmac_buflen + 16);

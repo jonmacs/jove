@@ -85,7 +85,9 @@ extern UnivPtr
 	freealloc proto((UnivPtr obj, size_t size));
 
 #if defined(IPROCS) || defined(SUBSHELL)
+# ifndef WATCOMC
 extern char **environ;	/* <unistd.h> */
+# endif
 
 typedef struct {
 	const char **e_data;

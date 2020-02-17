@@ -439,7 +439,7 @@ int	flag;
 
 void
 ins_c(c, buf, atchar, num, max)
-char	c;
+DAPchar	c;
 char	*buf;
 int	atchar,
 	num,

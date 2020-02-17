@@ -22,7 +22,7 @@
 /* #include "jove.h" */
 #include "mac.h"
 #include "mouse.h"
-#include "paragraph.h"
+#include "para.h"
 #include "proc.h"
 #include "re.h"
 #include "reapp.h"

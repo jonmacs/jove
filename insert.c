@@ -20,7 +20,7 @@
 #include "marks.h"
 #include "misc.h"
 #include "move.h"
-#include "paragraph.h"
+#include "para.h"
 #include "screen.h"	/* for tabstop */
 #include "sysprocs.h"
 #include "proc.h"
@@ -149,7 +149,7 @@ char	c;
 
 void
 overwrite(c, n)
-char	c;
+DAPchar	c;
 int	n;
 {
 	register int	i;
@@ -205,7 +205,7 @@ SelfInsert()
 /* insert character C N times at point */
 void
 insert_c(c, n)
-char	c;
+DAPchar	c;
 int	n;
 {
 	if (n > 0) {
@@ -568,7 +568,7 @@ YankPop()
 # ifdef __BORLANDC__
 #  include <alloc.h>	/* Borland farmalloc() */
 # else
-#  ifdef __WATCOMC__
+#  ifdef WATCOMC
 #   include <malloc.h>
 #   define farmalloc(sz)	_fmalloc(sz)
 #   define farfree(x)	_ffree(x)

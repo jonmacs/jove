@@ -319,7 +319,7 @@ proc_strt(bufname, clobber, procname, va_alist)
 	untieDeadProcess(buf_exists(bufname));
 	isprocbuf(bufname);	/* make sure BUFNAME is either nonexistant
 				   or is of type B_PROCESS */
-	if (access(Portsrv, X_OK) < 0) {
+	if (access(Portsrv, J_X_OK) < 0) {
 		complain("[Couldn't access %s: %s]", Portsrv, strerror(errno));
 		/* NOTREACHED */
 	}
@@ -902,7 +902,7 @@ proc_strt(bufname, clobber, procname, va_alist)
 	va_init(ap, procname);
 	make_argv(argv, ap);
 	va_end(ap);
-	if (access(argv[0], X_OK) != 0) {
+	if (access(argv[0], J_X_OK) != 0) {
 		complain("[Couldn't access shell %s: %s]", argv[0], strerror(errno));
 		/* NOTREACHED */
 	}

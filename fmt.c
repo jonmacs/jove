@@ -162,7 +162,7 @@ const char	*str;
 
 private void
 pad(c, amount)
-register char	c;
+register DAPchar	c;
 register int	amount;
 {
 	while (--amount >= 0)

@@ -109,9 +109,9 @@ extern int	chdir proto((const char */*path*/));
  * In io.c, we implement alternatives with getwd() and the pwd
  * command!  Win32 has a getcwd with different signature!
  */
-#ifndef WIN32
+# ifndef WIN32
 extern char	*getcwd proto((char *, size_t));
-#endif
+# endif
 
 # ifdef HAS_SYMLINKS
 /* bufsiz might be of type int in old systems */
@@ -124,21 +124,6 @@ extern int	access proto((const char */*path*/, int /*mode*/));
 #  define X_OK	1	/* is it executable by caller? */
 #  define W_OK	2	/* writable by caller? */
 #  define R_OK	4	/* readable by caller? */
-# endif
-
-# if defined(IBMPCDOS) || defined(WIN32)
-  /*
-   * At least as of 2007, perhaps earlier, the Microsoft runtime has
-   * no X_OK and considers a value of 1 to be invalid, e.g see
-   * https://gcc.gnu.org/bugzilla/show_bug.cgi?id=30972
-   * https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/access-waccess?view=vs-2019
-   * Older runtimes may have accepted it, but VS 2019, in Win 7 Pro, 
-   * crashes the program.
-   */
-#  ifdef X_OK
-#   undef X_OK
-#  endif
-#  define X_OK F_OK
 # endif
 
 extern int	creat proto((const char */*path*/, jmode_t /*mode*/));
@@ -162,9 +147,10 @@ extern SSIZE_T	read proto((int /*fd*/, UnivPtr /*buf*/, size_t /*nbytes*/));
 extern SSIZE_T	write proto((int /*fd*/, UnivConstPtr /*buf*/, size_t /*nbytes*/));
 # endif
 
-# if !defined(ZTCDOS) && !defined(__BORLANDC__) && !defined(_MSC_VER)
+# if !defined(WATCOMC) && !defined(ZTCDOS) && !defined(__BORLANDC__) && !defined(_MSC_VER)
 /* Zortech incorrectly defines argv as const char **.
  * Borland incorrectly defines argv as char *[] and omits some consts
+ * Watcom incorrectly defines argv as const char *const
  * MSC incorrectly defines argv as char const* const *
  * on some or all exec*() prototype declarations that they supply.
  * Jove uses spawn on these platforms anyway.
@@ -195,6 +181,19 @@ extern int	unlink proto((const char */*path*/));
 
 #endif /* !POSIX_UNISTD */
 
+#if defined(IBMPCDOS) || defined(WIN32)
+  /*
+   * At least as of 2007, perhaps earlier, the Microsoft runtime has
+   * no X_OK and considers a value of 1 to be invalid, e.g see
+   * https://gcc.gnu.org/bugzilla/show_bug.cgi?id=30972
+   * https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/access-waccess?view=vs-2019
+   * Older runtimes may have accepted it, but VS 2019, in Win 7 Pro, 
+   * crashes the program.
+   */
+# define J_X_OK F_OK
+#else
+# define J_X_OK X_OK
+#endif
 
 #ifndef FULL_UNISTD
 

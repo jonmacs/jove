@@ -779,7 +779,7 @@ UnixToBuf(flags, bnm, InFName, cmd)
 	}
 	*ap++ = NULL;
 
-	if (access(argv[0], X_OK) != 0) {
+	if (access(argv[0], J_X_OK) != 0) {
 		complain("[Couldn't access %s: %s]", argv[0], strerror(errno));
 		/* NOTREACHED */
 	}
