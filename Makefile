@@ -8,6 +8,10 @@
 # SHELL for this Makefile (csh won't work!)
 SHELL = /bin/sh
 
+# If the system has no cmp, not a big deal, minor optimization to prevent
+# a few needless rebuilds
+CMP = cmp
+
 # JOVEHOME is the directory in which pieces of JOVE are kept.  It is only used
 #	in the default definitions of JSHAREDIR, JLIBDIR, JBINDIR, and JMANDIR.
 # JSHAREDIR is for online documentation, and the distributed standard system-wide
@@ -394,12 +398,12 @@ keys.o:	keys.c tune.h sysdep.h jove.h keymaps.h dataobj.h commands.h
 .version: .ALWAYS
 	@-rm -f version.h.tmp
 	@sed -n 's/# *define  *jversion[ \t]*"\([0-9\\.]*\)".*/\1/p' version.h > .version.tmp; \
-	if ! cmp -s .version.tmp .version; then mv .version.tmp .version; else rm .version.tmp; fi
+	if ! $(CMP) -s .version.tmp .version 2> /dev/null; then mv .version.tmp .version; else rm .version.tmp; fi
 
 jove.spec: .version .ALWAYS
 	@-rm -f jspec.tmp
 	@v=`sed 's/_.*//' .version`; sed "s,__VERSION__,$$v,g" jspec.in > jspec.tmp; \
-	if ! cmp -s jove.spec jspec.tmp; then mv jspec.tmp jove.spec; else rm jspec.tmp; fi
+	if ! $(CMP) -s jove.spec jspec.tmp 2> /dev/null; then mv jspec.tmp jove.spec; else rm jspec.tmp; fi
 
 paths.h: .ALWAYS
 	@-rm -f paths.tmp
@@ -410,7 +414,7 @@ paths.h: .ALWAYS
 	@echo \#define LIBDIR \"$(JLIBDIR)\" >> paths.tmp
 	@echo \#define SHAREDIR \"$(JSHAREDIR)\" >> paths.tmp
 	@echo \#define DFLTSHELL \"$(DFLTSHELL)\" >> paths.tmp
-	if ! cmp -s paths.h paths.tmp; then mv paths.tmp paths.h; else rm paths.tmp; fi
+	if ! $(CMP) -s paths.h paths.tmp 2> /dev/null; then mv paths.tmp paths.h; else rm paths.tmp; fi
 
 makexjove:
 	( cd xjove ; make CC="$(CC)" OPTFLAGS="$(OPTFLAGS)" SYSDEFS="$(SYSDEFS)" $(TOOLMAKEEXTRAS) xjove )
@@ -444,13 +448,13 @@ $(DSHAREDIR)::
 	if test ! -e $(DSHAREDIR); then mkdir -p $(DSHAREDIR) && chmod $(DPERM) $(DSHAREDIR); fi
 
 $(DETCDIR)::
-	if test ! -e $(DETCDIR); then mkdir -p $(DETCDIR) && chmod $(DPERM) $(DETCDIR); fi
+	-if test ! -e $(DETCDIR); then mkdir -p $(DETCDIR) && chmod $(DPERM) $(DETCDIR); fi
 
 $(DMANDIR)::
 	if test ! -e $(DMANDIR); then mkdir -p $(DMANDIR) && chmod $(DPERM) $(DMANDIR); fi
 
 $(DRECDIR)::
-	if test ! -e $(DRECDIR); then mkdir -p $(DRECDIR) && chmod $(RECPERM) $(DRECDIR); fi
+	-if test ! -e $(DRECDIR); then mkdir -p $(DRECDIR) && chmod $(RECPERM) $(DRECDIR); fi
 
 # first run of rpmbuild will mkdir other sibling directories in RPMHOME, but 
 # we need this before we run rpmbuild, so RPMHOME might not even exist.
@@ -478,7 +482,7 @@ $(CMDS.DOC): doc/cmds.doc
 doc/jove.rc: doc/jove.rc.in
 	@-rm -f doc/jove.rc.tmp
 	sed "s,__ETCDIR__,$(JETCDIR)," doc/jove.rc.in > doc/jove.rc.tmp
-	if ! cmp -s doc/jove.rc.tmp doc/jove.rc; then mv doc/jove.rc.tmp doc/jove.rc; else rm doc/jove.rc.tmp; fi
+	if ! $(CMP) -s doc/jove.rc.tmp doc/jove.rc 2> /dev/null; then mv doc/jove.rc.tmp doc/jove.rc; else rm doc/jove.rc.tmp; fi
 
 $(JOVERC): doc/jove.rc
 	$(TINSTALL) doc/jove.rc $(JOVERC)
@@ -726,8 +730,8 @@ depend:
 	@echo '# DEPENDENCIES MUST END AT END OF FILE' >>Makefile.new
 	@echo '# IF YOU PUT STUFF HERE IT WILL GO AWAY' >>Makefile.new
 	@echo '# see "make depend" above' >>Makefile.new
-	@if cmp -s Makefile Makefile.new ; \
-		then echo '*** Makefile is already up to date' ; \
+	@if $(CMP) -s Makefile Makefile.new 2> /dev/null; \
+		then echo '*** Makefile is already up to date' ; rm -f Makefile.new; \
 		else echo '*** New makefile is in "Makefile.new".  Move it to "Makefile".' ; \
 	fi
 
@@ -749,8 +753,9 @@ fp.o: $(JOVE_H) fp.h jctype.h disp.h fmt.h mac.h
 fmt.o: $(JOVE_H) chars.h fp.h jctype.h disp.h extend.h fmt.h mac.h
 insert.o: $(JOVE_H) jctype.h list.h chars.h disp.h abbrev.h ask.h c.h delete.h insert.h fmt.h macros.h marks.h misc.h move.h para.h screen.h sysprocs.h proc.h wind.h re.h
 io.o: $(JOVE_H) list.h fp.h jctype.h disp.h ask.h fmt.h insert.h marks.h sysprocs.h proc.h wind.h rec.h mac.h re.h temp.h
-iproc.o: $(JOVE_H) re.h jctype.h disp.h fp.h sysprocs.h iproc.h ask.h extend.h fmt.h insert.h marks.h move.h proc.h wind.h select.h ttystate.h
-jove.o: $(JOVE_H) fp.h jctype.h chars.h disp.h re.h reapp.h sysprocs.h rec.h ask.h extend.h fmt.h macros.h marks.h mouse.h paths.h proc.h screen.h term.h wind.h iproc.h select.h mac.h
+iproc.o: $(JOVE_H) re.h jctype.h disp.h fp.h sysprocs.h iproc.h ask.h extend.h fmt.h insert.h marks.h move.h proc.h wind.h ttystate.h select.h
+jove.o: $(JOVE_H) fp.h jctype.h chars.h disp.h re.h reapp.h sysprocs.h rec.h ask.h extend.h fmt.h macros.h marks.h mouse.h paths.h proc.h screen.h term.h version.h wind.h iproc.h select.h mac.h
+jtc.o: $(JOVE_H) jctype.h fmt.h fp.h select.h
 list.o: $(JOVE_H) list.h
 macros.o: $(JOVE_H) jctype.h fp.h chars.h disp.h ask.h commands.h macros.h extend.h fmt.h
 marks.o: $(JOVE_H) fmt.h marks.h disp.h
@@ -765,15 +770,15 @@ scandir.o: $(JOVE_H) scandir.h
 screen.o: $(JOVE_H) fp.h chars.h jctype.h disp.h extend.h fmt.h term.h mac.h screen.h wind.h
 term.o: $(JOVE_H) term.h fp.h
 termcap.o: $(JOVE_H) term.h disp.h fmt.h fp.h jctype.h screen.h
-unix.o: $(JOVE_H) fp.h chars.h term.h ttystate.h util.h
+unix.o: $(JOVE_H) fp.h chars.h term.h ttystate.h
 util.o: $(JOVE_H) jctype.h disp.h fp.h ask.h chars.h fmt.h insert.h macros.h marks.h move.h rec.h mac.h
 vars.o: $(JOVE_H) extend.h vars.h abbrev.h ask.h c.h jctype.h disp.h insert.h sysprocs.h iproc.h mac.h mouse.h para.h proc.h re.h reapp.h rec.h screen.h term.h ttystate.h wind.h vars.tab
 wind.o: $(JOVE_H) chars.h disp.h ask.h extend.h commands.h mac.h reapp.h wind.h screen.h
 msgetch.o: $(JOVE_H) chars.h disp.h
-mac.o: $(TUNE_H) $(JOVE_H) mac.h ask.h chars.h disp.h extend.h fp.h commands.h fmt.h marks.h misc.h move.h screen.h scandir.h term.h vars.h wind.h
+mac.o: $(TUNE_H) $(JOVE_H) mac.h ask.h chars.h disp.h extend.h fp.h commands.h fmt.h marks.h misc.h move.h screen.h scandir.h term.h vars.h version.h wind.h
 keymaps.o: $(JOVE_H) list.h fp.h jctype.h chars.h disp.h re.h ask.h commands.h macros.h extend.h fmt.h screen.h vars.h sysprocs.h iproc.h
 ibmpcdos.o: $(JOVE_H) fp.h chars.h screen.h term.h
-mouse.o: $(JOVE_H) disp.h misc.h ask.h chars.h delete.h fmt.h insert.h marks.h move.h wind.h term.h jctype.h mouse.h xjove/mousemsg.h fp.h
+mouse.o: $(JOVE_H) disp.h misc.h ask.h chars.h delete.h fmt.h insert.h marks.h move.h wind.h term.h fp.h jctype.h mouse.h xjove/mousemsg.h
 win32.o: $(JOVE_H) fp.h chars.h screen.h disp.h
 portsrv.o: $(JOVE_H) sysprocs.h iproc.h
 recover.o: $(JOVE_H) temp.h sysprocs.h rec.h paths.h recover.h scandir.c jctype.h

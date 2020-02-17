@@ -6,6 +6,7 @@ addons:
     - groff
     - ncurses-dev
     - exuberant-ctags
+    - zip
   homebrew:
     packages:
       - make
@@ -13,6 +14,7 @@ addons:
       - groff
       - ncurses
       - ctags
+      - zip
 branches:
  - moraes
 os:
@@ -27,4 +29,23 @@ arch:
  - ppc64le
  - s390x
 script:
- - o="-O3 -Wall -pedantic"; u=$(uname); case $u in Linux) make OPTFLAGS="$o" SYSDEFS=-DXLINUX TERMCAPLIB=-lncurses; make clean; make OPTFLAGS="$o" SYSDEFS='-DBAREBONES -DJTC'; make clean; make OPTFLAGS="$o" SYSDEFS='-DPIPEPROCS -DPOSIX_PROCS';; Darwin) make OPTFLAGS="$o" SYSDEFS=-DXBSD TERMCAPLIB=-lncurses;; *) echo "Unknown uname \"$u\"";; esac
+ - |
+    o="-O3 -Wall -pedantic"
+    u=$(uname)
+    case $u in
+    *BSD)   e=-lutil
+            t=-ltermcap
+            ;;
+    *)      e=
+            t=-lncurses
+            ;;
+    esac
+    make OPTFLAGS="$o" SYSDEFS=-D$u TERMCAPLIB=$t EXTRALIBS=$e
+    make clean
+    make OPTFLAGS="$o" SYSDEFS='-DBAREBONES -DSMALL -DJTC'
+    make clean
+    make OPTFLAGS="$o" SYSDEFS='-DPIPEPROCS -DPOSIX_PROCS'
+    make clean
+    make OPTFLAGS="$o" SYSDEFS='-D$u -DUSE_VFORK' TERMCAPLIB=$t EXTRALIBS=$e
+    make clean
+    make distrib jovedoss.zip
