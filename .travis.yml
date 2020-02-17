@@ -5,12 +5,14 @@ addons:
     - git
     - groff
     - ncurses-dev
+    - exuberant-ctags
   homebrew:
     packages:
       - make
       - git
       - groff
       - ncurses
+      - ctags
 branches:
  - moraes
 os:
