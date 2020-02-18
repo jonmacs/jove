@@ -32,6 +32,7 @@ script:
     set -eux
     o="-Os -Wall -pedantic"
     u=$(uname)
+    d=
     case $u in
     *BSD)   e=-lutil
             t=-ltermcap
@@ -40,7 +41,9 @@ script:
     SunOS)  e=
             t=-ltermcap
 	    u=SYSVR4
-	    if test -x /usr/bin/getconf; then j=-j$(getconf NPROCESSORS_ONLN); else j=; fi
+	    o=-O
+	    j="NROFF=nroff TROFF=troff"
+	    d="-DREALSTDC"
             ;;
     *)      e=
             t=-lncurses
@@ -49,9 +52,9 @@ script:
     esac
     make $j OPTFLAGS="$o" SYSDEFS=-D$u TERMCAPLIB=$t EXTRALIBS=$e &&
     make clean &&
-    make $j OPTFLAGS="$o" SYSDEFS='-DTERMIOS -DPIPEPROCS -DPOSIX_PROCS' TERMCAPLIB=$t &&
+    make $j OPTFLAGS="$o" SYSDEFS="-DTERMIOS -DPIPEPROCS -DPOSIX_PROCS $d" TERMCAPLIB=$t &&
     make clean &&
-    make $j OPTFLAGS="$o" SYSDEFS="-DBSDPOSIX" TERMCAPLIB=$t &&
+    make $j OPTFLAGS="$o" SYSDEFS="-DBSDPOSIX $d" TERMCAPLIB=$t &&
     make clean &&
     case "$u" in
     Linux)
