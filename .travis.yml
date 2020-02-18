@@ -58,3 +58,4 @@ script:
         ;;
     esac &&
     make distrib jovedoss.zip
+    set +eux
