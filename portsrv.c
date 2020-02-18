@@ -53,7 +53,9 @@ int	junk;
 private void
 detach()
 {
+#ifdef POSIX_PROCS
 	setsid();
+#endif
 #ifdef TIOCNOTTY
 	{
 		int fd = open("/dev/tty", O_WRONLY | O_BINARY | O_CLOEXEC);

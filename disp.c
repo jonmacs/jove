@@ -515,8 +515,7 @@ int	start;
 
 	/* mode line: */
 
-	/* ??? The following assignment to des_p->s_id is very questionable:
-	 * it stores a pointer in a daddr variable!
+	/* ??? The following assignment to des_p->s_id is tricky:
 	 *
 	 * We count on the cast pointer value being distinct from
 	 * any other daddr, but equal to itself.  Turning
@@ -539,7 +538,7 @@ int	start;
 	 * -- DHR
 	 */
 	des_p->s_window = w;
-	des_p->s_id = (daddr) w->w_bufp | DDIRTY;
+	des_p->s_id = (jwid_t) w->w_bufp | DDIRTY;
 	des_p->s_flags = (des_p->s_id != phys_p->s_id || UpdModLine)?
 		s_MODELINE | s_DIRTY : 0;
 	des_p->s_offset = 0;
@@ -1346,17 +1345,16 @@ int	linenum;
 			break;
 			}
 
-#ifdef IPROCS
 		case 'p':
+#ifdef IPROCS
 			if (thisbuf->b_type == B_PROCESS) {
 				char	tmp[40];
 
 				swritef(tmp, sizeof(tmp), "(%s)", pstate(thisbuf->b_process));
 				mode_app(tmp);
 			}
-			break;
 #endif
-
+			break;
 		case 's':
 			if (mode_p[-1] != ' ')
 				*mode_p++ = ' ';

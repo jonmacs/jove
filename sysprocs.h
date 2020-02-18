@@ -105,6 +105,7 @@ extern int	UNMACRO(vfork) proto((void));
 #ifdef POSIX_PROCS
 # ifndef FULL_UNISTD
    extern int	UNMACRO(setpgid) proto((pid_t /*pid*/, pid_t /*pgid*/));
+   extern pid_t UNMACRO(setsid) proto((void));
 # endif
 # define NEWPG()	setpgid(0, getpid())
 #else /* !POSIX_PROCS */

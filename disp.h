@@ -8,11 +8,13 @@
 #define makedirty(line)	{ (line)->l_dline |= DDIRTY; }
 #define isdirty(line)	((line)->l_dline & DDIRTY)
 
+typedef unsigned long jwid_t;	/* must be > max(sizeof(daddr),sizeof(Buffer *)) */
+
 struct scrimage {
 	int	s_offset,	/* offset to start printing at */
 		s_flags,	/* various flags */
 		s_vln;		/* Visible Line Number */
-	daddr	s_id;		/* unique identifier */
+	jwid_t	s_id;		/* unique identifier for line */
 	LinePtr	s_lp;		/* line to display (if any) */
 	Window	*s_window;	/* window that contains this line */
 };

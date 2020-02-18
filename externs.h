@@ -155,10 +155,12 @@ extern SSIZE_T	write proto((int /*fd*/, UnivConstPtr /*buf*/, size_t /*nbytes*/)
  * on some or all exec*() prototype declarations that they supply.
  * Jove uses spawn on these platforms anyway.
  */
-extern int	execl proto((const char */*path*/, const char */*arg*/, ...));
-extern int	execlp proto((const char */*file*/, const char */*arg*/, ...));
-extern int	execv proto((const char */*path*/, char *const /*argv*/[]));
-extern int	execvp proto((const char */*file*/, char *const /*argv*/[]));
+extern int	execl proto((const char * /*path*/, const char * /*arg*/, ...));
+extern int	execlp proto((const char * /*file*/, const char * /*arg*/, ...));
+extern int	execv proto((const char * /*path*/, char *const /*argv*/[]));
+extern int	execve proto((const char * /*path*/, char *const /*argv*/[],
+			      char *const /*envp*/[]));
+extern int	execvp proto((const char * /*file*/, char *const /*argv*/[]));
 # endif
 
 # ifdef MSC51

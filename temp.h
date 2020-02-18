@@ -48,9 +48,11 @@
  * (within the block).  Many of the following definitions are for
  * packing and unpacking daddr values.
  *
- * There is a buffer cache of NBUF buffers (64 on !SMALL machines and the
- * 3 on small ones).  The blocks are stored in LRU order and each block
- * is also stored in a hash table by block #.  When a block is requested
+ * There is a buffer cache of NBUF buffers (3 on SMALL machine,
+ * and some larger value (e.g. 64) on !SMALL machines.  For 8086
+ * memory models, NBUF*buffersize must be less than 64K).  The
+ * blocks are stored in LRU order and each block is also stored
+ * in a hash table by block #.  When a block is requested,
  * it can quickly be looked up in the hash table.  If it's not there the
  * LRU block is assigned the new block #.  If it finds that the LRU block
  * is dirty (i.e., has pending IO) it syncs the WHOLE tmp file, i.e.,

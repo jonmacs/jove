@@ -584,6 +584,9 @@ extags:	$(C_SRC) $(HEADERS)
 .xjfilelist:
 	@( cd xjove ; make .filelist )
 
+travis:
+	sed '1,/^script/d;/^ *- |/d' .travis.yml | sh -x
+
 # override CIFLAGS with something like:
 # CIFLAGS="-m'some reason for change' -u4.14.10.n -q"
 
