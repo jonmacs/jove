@@ -43,19 +43,19 @@ script:
     esac
     make $j OPTFLAGS="$o" SYSDEFS=-D$u TERMCAPLIB=$t EXTRALIBS=$e &&
     make clean &&
-    make $j OPTFLAGS="$o" SYSDEFS='-DBAREBONES -DSMALL -DJTC' TERMCAPLIB= &&
+    make $j OPTFLAGS="$o" SYSDEFS='-DTERMIOS -DPIPEPROCS -DPOSIX_PROCS' TERMCAPLIB=$t &&
     make clean &&
-    make $j OPTFLAGS="$o" SYSDEFS='-DPIPEPROCS -DPOSIX_PROCS' TERMCAPLIB=$t &&
+    make $j OPTFLAGS="$o" SYSDEFS="-DBSDPOSIX" TERMCAPLIB=$t &&
     make clean &&
     case "$u" in
     Linux)
         make $j OPTFLAGS="$o" SYSDEFS="-DGLIBCPTY" TERMCAPLIB=$t EXTRALIBS=-lutil &&
         make clean &&
-        make $j OPTFLAGS="$o" SYSDEFS="-DTERMIO -DTERMINFO -DUSE_VFORK" TERMCAPLIB=$t &&
+        make $j OPTFLAGS="$o" SYSDEFS="-DTERMINFO -DUSE_VFORK" TERMCAPLIB=$t &&
         make clean &&
-        make $j OPTFLAGS="$o" SYSDEFS="-DBSDPOSIX" TERMCAPLIB=$t &&
+        make $j OPTFLAGS="$o" SYSDEFS='-DBAREBONES -DSMALL -DJTC' TERMCAPLIB= &&
         make clean
         ;;
     esac &&
-    make distrib jovedoss.zip
-    set +eux
+    make distrib jovedoss.zip &&
+    set +u
