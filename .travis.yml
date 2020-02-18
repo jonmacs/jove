@@ -39,6 +39,7 @@ script:
             ;;
     SunOS)  e=
             t=-ltermcap
+	    u=SYSVR4
 	    if test -x /usr/bin/getconf; then j=-j$(getconf NPROCESSORS_ONLN); else j=; fi
             ;;
     *)      e=
