@@ -320,7 +320,7 @@ DOCTERMS =	doc/jove.rc.sun doc/keychart.sun \
 
 # formatted docs, we ship these in the distrib to avoid groff dependency
 # and for non-Unix/Linux platforms
-FDOCS = doc/cmds.doc doc/jove.man doc/jove.man.ps doc/jove.doc tags
+FDOCS = doc/cmds.doc doc/jove.man doc/jove.man.ps doc/jove.doc
 
 # files we generate that we also ship in distrib for platforms sans sed
 GEN = 	jove.spec doc/jove.rc doc/jove.$(MANEXT) \
@@ -575,10 +575,11 @@ extags:	$(C_SRC) $(HEADERS)
 # we alway force a make of xjove/.filelist.  This forces .filelist
 # to be rebuilt every time it is needed.
 
-.filelist:	$(BACKUPS) $(DOCS) .xjfilelist
+.filelist:	$(BACKUPS) $(DOCS) tags .xjfilelist
 	@-rm -f .filelist
 	@ls $(BACKUPS) >.filelist
 	@ls $(DOCS) >>.filelist
+	@ls tags >>.filelist
 	@sed -e 's=^=xjove/=' xjove/.filelist >>.filelist
 
 .xjfilelist:
@@ -664,7 +665,7 @@ checksum:	.filelist
 DOSSRC = $(HEADERS) $(C_SRC) setmaps.c keys.txt \
 	Makefile.msc Makefile.wat \
 	README README.dos README.w32 README.cyg sysdep.doc tune.doc style.doc \
-	jjove.rc $(FDOCS) \
+	jjove.rc $(FDOCS) tags \
 	doc/teach-jove doc/jove.qref doc/jove.rc doc/example.rc
 
 jovedoss.zip:	.version $(DOSSRC) jjove.ico Makefile
