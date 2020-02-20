@@ -120,7 +120,8 @@ int	flags,
 		 * an error on ftruncate, which really should
 		 * never happen if we successfully opened the file!
 		 */
-		if (fd >= 0) (void) ftruncate(fd, 0);
+		if (fd >= 0)
+			(void) ftruncate(fd, 0);
 #endif
 		break;
 
