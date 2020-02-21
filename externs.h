@@ -104,12 +104,13 @@ extern char	*ctime proto((const time_t *));
 
 extern int	chdir proto((const char */*path*/));
 
-/* POSIX, System Vr4, MSDOS, and our Mac code specify getcwd.
+/* POSIX, System Vr4, MSDOS have getcwd() of this form.
  * System Vr4 (sometimes?) types the second argument "int"!!
  * In io.c, we implement alternatives with getwd() and the pwd
  * command!  Win32 has a getcwd with different signature!
+ * Our mac.c code provides a getcwd() replacement.
  */
-# ifndef WIN32
+# ifdef USE_GETCWD
 extern char	*getcwd proto((char *, size_t));
 # endif
 
@@ -147,7 +148,7 @@ extern SSIZE_T	read proto((int /*fd*/, UnivPtr /*buf*/, size_t /*nbytes*/));
 extern SSIZE_T	write proto((int /*fd*/, UnivConstPtr /*buf*/, size_t /*nbytes*/));
 # endif
 
-# if !defined(WATCOMC) && !defined(ZTCDOS) && !defined(__BORLANDC__) && !defined(_MSC_VER)
+# if !defined(OWCDOS) && !defined(ZTCDOS) && !defined(__BORLANDC__) && !defined(_MSC_VER)
 /* Zortech incorrectly defines argv as const char **.
  * Borland incorrectly defines argv as char *[] and omits some consts
  * Watcom incorrectly defines argv as const char *const

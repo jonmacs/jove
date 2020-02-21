@@ -60,7 +60,7 @@
 # include <time.h>
 # include <process.h>
 # define SIGHUP	99
-# ifdef WATCOMC
+# ifdef OWCDOS
 #  include <malloc.h>	/* for _heapgrow */
 # endif
 #endif /* MSDOS */
@@ -1620,7 +1620,7 @@ char	*argv[];
 	argc = getArgs(&argv);
 #endif
 
-#ifdef WATCOMC
+#ifdef OWCDOS
 	/* Watcom C under DOS won't grow the near heap after any far
 	 * allocation, so we must bump it up to the full 64K now.
 	 */

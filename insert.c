@@ -568,7 +568,7 @@ YankPop()
 # ifdef __BORLANDC__
 #  include <alloc.h>	/* Borland farmalloc() */
 # else
-#  ifdef WATCOMC
+#  ifdef OWCDOS
 #   include <malloc.h>
 #   define farmalloc(sz)	_fmalloc(sz)
 #   define farfree(x)	_ffree(x)

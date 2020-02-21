@@ -85,7 +85,18 @@ extern UnivPtr
 	freealloc proto((UnivPtr obj, size_t size));
 
 #if defined(IPROCS) || defined(SUBSHELL)
-# ifndef WATCOMC
+
+# ifndef OWCDOS
+/*
+ * The Open Watcom C declaration of environ has some macro
+ * decorations that do not match with this, so we skip this,
+ * their declaration works and is available.
+ * Linux only provides this in unistd.h if _GNU_SOURCE is defined,
+ * which we do not.
+ * *BSD and OpenIndiana (Solaris) and probably most other
+ * systems do not provide it, since it is not part of POSIX,
+ * but environ seems remarkably portable, nonetheless!
+ */
 extern char **environ;	/* <unistd.h> */
 # endif
 
