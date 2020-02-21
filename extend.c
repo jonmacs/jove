@@ -561,7 +561,7 @@ void
 BufPos()
 {
 	register LinePtr	lp = curbuf->b_first;
-	register int
+	register long
 		i,
 		dotline = 0;	/* avoid uninitialized complaint from gcc -W */
 	long	dotchar = 0;	/* avoid uninitialized complaint from gcc -W */
@@ -580,7 +580,7 @@ BufPos()
 	 * Does not seem worth fixing.  Using unsigned long would double
 	 * the limit, but unsigned long is not in K&R C.
 	 */
-	f_mess("[\"%s\" line %d/%d, char %D/%D (%d%%), cursor = %d/%d]",
+	f_mess("[\"%s\" line %D/%D, char %D/%D (%d%%), cursor = %d/%d]",
 	       filename(curbuf), dotline, i, dotchar, nchars,
 	       (nchars == 0) ? 100 : (int) (((long) dotchar * 100) / nchars),
 	       calc_pos(linebuf, curchar),

@@ -32,11 +32,20 @@
 # define IBMPCDOS		1
 # define MALLOC_CACHE	1	/* DGROUP gets full otherwise */
 # define REALSTDC	1	/* close enough for us, but ZTCDOS doesn't define __STDC__ */
-# ifndef SMALL
-#  define NBUF		31	/* NBUF*JBUFSIZ must be less than 64 kB */
-#  define JLGBUFSIZ	11	/* max line length of 2048 chars */
-# endif
 # define FAR_LINES	1	/* to squeeze larger files, distance Lines */
+# if defined(__SMALL__) || defined(__COMPACT__)
+/* currently 20K over the 64K limit, so not really viable */
+#  define BAREBONES     1
+#  define SMALL         1
+# endif
+# if defined(__MEDIUM__)
+#  define JLGBUFSIZ	10	/* so JBUFSIZ (and max line len) 1024 chars */
+#  define NBUF		7
+#  define SMALL		1
+# else
+#  define JLGBUFSIZ	11	/* so JBUFSIZ (and max line len) 2048 chars */
+#  define NBUF		31	/* NBUF*JBUFSIZ must be less than 64K */
+# endif
 #endif
 
 #if defined(OpenBSD) || defined(Darwin) || defined (XBSD)
@@ -234,6 +243,9 @@
 # define WINRESIZE	1
 # define MOUSE		1
 # define MALLOC_CACHE	1
+# if !(defined(USE_PWD) || defined(USE_GETCWD) || defined(USE_GETWD))
+#  define USE_GETWD     1
+# endif
 # if !(defined(NO_IPROCS) || defined(PIPEPROCS) || defined(PTYPROCS))
 #  define PIPEPROCS	1	/* use pipes */
 # endif
