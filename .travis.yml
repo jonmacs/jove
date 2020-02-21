@@ -23,14 +23,14 @@ jobs:
       env: CC=gcc-7
       addons:
         homebrew:
-          packages: [gcc7, *brews]
+          packages: [gcc@7, *brews]
     # ADD latest gcc (-9) on default linux amd64 (xenial),
     - os: linux
       env: CC=gcc-9
       addons:
         apt:
           sources: [ ubuntu-toolchain-r-test ]
-          packages: [gcc-9, *apts]
+          packages: [gcc-9, *apts, *common]
     # ADD oldest and newest versions of xcode and linux
     - os: osx
       osx_image: xcode6.4
