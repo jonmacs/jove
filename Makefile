@@ -83,6 +83,9 @@ INSTALLFLAGS = # -g bin -o root
 # Linux/modern BSD/CYGWIN
 XINSTALL=install $(INSTALLFLAGS) -m 755
 TINSTALL=install $(INSTALLFLAGS) -m 444
+# newer Solaris 2.x aka SunOS 5.x
+#XINSTALL=/usr/gnu/bin/install $(INSTALLFLAGS) -m 755
+#TINSTALL=/usr/gnu/bin/install $(INSTALLFLAGS) -m 444
 # SysV-derivatives, or non-BSD Unix (V7, etc)
 #XINSTALL=cp
 #TINSTALL=cp
