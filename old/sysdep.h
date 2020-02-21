@@ -295,7 +295,7 @@
 # define NO_MKTEMP	1
 #endif
 
-#if defined(_WATCOMC__) && defined(MSDOS)	/* System: Watcom C V10.0 for the IBM-PC under MSDOS */
+#if defined(_OWCDOS__) && defined(MSDOS)	/* System: Watcom C V10.0 for the IBM-PC under MSDOS */
 # define IBMPCDOS		1
 # define MALLOC_CACHE	1	/* DGROUP gets full otherwise */
 # define REALSTDC	1	/* close enough for us, but ZTCDOS doesn't define __STDC__ */

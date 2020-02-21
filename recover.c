@@ -224,7 +224,8 @@ daddr	atl;
 	if (bno != curblock) {
 		ssize_t nb;
 		const char *what;
-		off_t r, boff = bno << JLGBUFSIZ;
+		off_t	    r,
+			    boff = bno_to_seek_off(bno);
 
 		if (Debug)
 			fprintf(dfp, "lseek %d to bno %lu 0x%lx boff %ld 0x%lx\n", data_fd, (unsigned long)bno, (unsigned long) bno, boff, boff);
@@ -710,7 +711,7 @@ FILE	*out;
 #ifdef USE_CRLF
 			fputc('\r', out);
 #endif
-			fputc('\n', out);
+			fputc(EOL, out);
 		}
 	}
 }

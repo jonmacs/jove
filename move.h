@@ -6,10 +6,10 @@
  **************************************************************************/
 
 extern void
-	b_char proto((int n)),
-	f_char proto((int n)),
-	f_word proto((int num)),
-	line_move proto((int dir, int n, bool line_cmd));
+	b_char proto((long n)),
+	f_char proto((long n)),
+	f_word proto((long num)),
+	line_move proto((int dir, long n, bool line_cmd));
 
 extern int
 	how_far proto((LinePtr line,int col));

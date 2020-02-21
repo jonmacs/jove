@@ -183,7 +183,7 @@ ErrParse()
 	Bufpos	*bp;
 	char	fname[FILESIZE],
 		lineno[FILESIZE];
-	int	lnum,
+	long	lnum,
 		last_lnum = -1;
 	struct error	*ep = NULL;
 	Buffer	*buf,
@@ -199,7 +199,7 @@ ErrParse()
 		SetDot(bp);
 		get_FL_info(fname, lineno);
 		buf = do_find((Window *)NULL, fname, YES, YES);
-		(void) chr_to_int(lineno, 10, NO, &lnum);
+		(void) chr_to_long(lineno, 10, NO, &lnum);
 		if (buf != lastb) {
 			lastb = buf;
 			last_lnum = 1;		/* new file */

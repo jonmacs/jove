@@ -115,16 +115,25 @@ print					recursive-edit				ring-the-bell(ABORT)	^G
 set					source					version
 
 --- VARIABLES
-allow-^S-and-^Q				allow-bad-characters-in-filenames	auto-case-abbrev
-bad-filename-extensions			c-indentation-increment			case-ignore-search
-comment-format				display-filenames-with-bad-extensions	disable-biff
-error-window-size			file-creation-mode			files-should-end-with-newline
-left-margin				mailbox					mail-check-frequency
-make-backup-files			mark-threshold				match-regular-expression
-meta-key				mode-line				mode-line-should-standout
-paren-flash-delay			process-prompt				interrupt-character
-right-margin				scroll-step				search-exit-char
-send-typeout-to-buffer			shell					shell-flags
-sync-frequency				tab-width				tag-file
-tmp-file-pathname			update-time-frequency			use-i/d-char
-visible-bell				wrap-search				write-files-on-make
+abort-char 				allow-^S-and-^Q				allow-bad-characters-in-filenames
+auto-case-abbrev			bad-filename-extensions			c-argument-indentation
+c-indentation-increment			case-ignore-search			comment-format
+dbx-format-string			disable-biff				display-default-filenames
+display-filenames-with-bad-extensions	enhanced-keyboard			error-format-string
+error-window-size			expand-environment-variables		file-creation-mode
+files-should-end-with-newline		highlight-attribute			highlight-mark
+interrupt-character			lc-ctype				left-margin
+lib-dir-pathname			macify					mail-check-frequency
+mailbox					make-backup-files			mark-threshold
+match-regular-expression		meta-key				mode-line
+mode-line-attribute			mode-line-should-standout		one-key-confirmation
+paragraph-delimiter-pattern		paren-flash-delay			process-prompt
+right-margin				save-on-exit				scroll-all-lines
+scroll-bar				scroll-step				scroll-width
+search-exit-char			send-typeout-to-buffer			share-dir-pathname
+shell					shell-flags				space-sentence-2
+spell-command-format			sync-frequency				tab-width
+tag-file				text-attribute				tmp-file-pathname
+update-time-frequency			use-i/d-char				visible-bell
+wrap-process-lines			wrap-search				write-files-on-make
+xt-mouse

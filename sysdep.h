@@ -40,8 +40,8 @@
 #  define BAREBONES     1
 # endif
 # if defined(__LARGE__)
-#  define JLGBUFSIZ	11	/* so JBUFSIZ (and max line len) 2048 chars */
-#  define NBUF		31	/* NBUF*JBUFSIZ must be less than 64K */
+#  define LG_JBUFSIZ	11	/* so JBUFSIZ (and max line len) 2048 chars */
+#  define NBUF		30	/* NBUF*JBUFSIZ must be less than 64K */
 # endif
 #endif
 
@@ -326,68 +326,52 @@
 # endif
 #endif
 
-/* Determine number of buffers and the size of a buffer
- * (and hence the maximum length of a line, among other things).
- */
-
-#ifdef JSMALL
-# ifndef NBUF
-#  define NBUF		3
-# endif
-# ifndef JLGBUFSIZ
-#  define JLGBUFSIZ	9	/* 512 bytes is the traditional UNIX block size */
-# endif
-#endif
-
-#ifndef NBUF
-# define NBUF 64
-#endif
-
-#ifndef JLGBUFSIZ
-# define JLGBUFSIZ 12	/* perhaps a good match for 4KiB pages */
-#endif
-
-#define JBUFSIZ	(1<<JLGBUFSIZ)
-
-
-#ifndef NCHARS
-# define NCHARS 0400
+#ifndef SIGRESTYPE	/* default to void, correct for most modern systems */
+# define SIGRESTYPE	void
+# define SIGRESVALUE	/*void!*/
 #endif
 
 #ifndef EOL
 # define EOL	'\n'	/* end-of-line character for files */
 #endif
 
-#ifndef SIGRESTYPE	/* default to void, correct for most modern systems */
-# define SIGRESTYPE	void
-# define SIGRESVALUE	/*void!*/
-#endif
-
-/* daddr: tmp file index type (see temp.h)
- *
- * On a system which limits JOVE to a very small data segment,
- * it may be worthwhile limiting daddr to a short.  This reduces
- * the size of a Line descriptor, but reduces the addressable size
- * of the temp file.  This is reasonable on a PDP-11 and perhaps
- * an iAPX*86.
- * NOTE: logically, daddr is unsigned, but a signed type will work
- * if you cannot use an unsigned type.
+#ifdef JSMALL
+  /*
+   * On small memory/no-VM machines, save as much data space
+   * as we can.  Going to hit either Out of lines, Tmp file
+   * too large, or Out of memory (for open files) at some
+   * point, alas.
  */
+typedef unsigned short	daddr;    /* index of line contents in tmp file, see temp.h. */
+# define LG_FILESIZE	7	/* log2 maximum path length (including '\0'): currently, 2+1+64+3+1+3+1 == 80 ought to be OK */
+# define MAXCOLS	132	/* maximum number of columns */
+# define MAXTTYBUF	512	/* maximum size of output terminal buffer */
+# ifndef LG_JBUFSIZ
+#  define LG_JBUFSIZ	9	/* temp file block size, also maximum line length. 512 bytes is the traditional UNIX block size */
+# endif
+# ifndef NBUF
+#  define NBUF		3	/* number of temp file blocks to cache in memory */
+# endif
 
-#ifndef JSMALL
-  typedef unsigned long		daddr;
+#else
+  /*
+   * On most modern machines (VM, or lots of memory), use
+   * slightly more generous buffer sizes to improve speed
+   * and/or convenience.
+   */
+typedef unsigned long	daddr;    /* index of line contents in tmp file, see temp.h. */
 # define LG_FILESIZE	8	/* log2 maximum path length (including '\0') */
-#else /* JSMALL */
-  typedef unsigned short	daddr;
-# define LG_FILESIZE	7	/* currently, 2+1+64+3+1+3+1 == 80 ought to be OK */
-#endif /* JSMALL */
+# define MAXCOLS	512	/* maximum number of columns */
+# define MAXTTYBUF	2048	/* maximum size of output terminal buffer */
+# ifndef LG_JBUFSIZ
+#  define LG_JBUFSIZ 12		/* temp file block size, also maximum line length. perhaps a good match for 4KiB pages */
+# endif
+# ifndef NBUF
+#  define NBUF 64		/* number of temp file blocks to cache in memory */
+# endif
 
-#define NULL_DADDR	((daddr) 0)
+#endif /* !JSMALL */
 
+#define JBUFSIZ			(1 << LG_JBUFSIZ)
 #define FILESIZE		(1 << LG_FILESIZE)
 
-#ifndef CHAR_BITS
-# define CHAR_BITS	8	/* factor to convert sizeof => bits */
-#endif
-
-#define DDIRTY		((daddr)1 << (sizeof(daddr)*CHAR_BITS - 1))	/* daddr dirty flag */

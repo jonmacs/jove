@@ -62,6 +62,9 @@ const struct variable	variables[] = {
 	{ VARIABLE, "lc-ctype", VAR(LcCtype), V_STRING|V_LOCALE },
 #endif
 	{ VARIABLE, "left-margin", VAR(&LMargin), V_WHOLE },
+#if defined(SUBSHELL) || defined(PIPEPROCS) || defined(RECOVER)
+	{ VARIABLE, "lib-dir-pathname", VAR(LibDir), V_FILENAME },
+#endif
 #ifdef MAC
 	{ VARIABLE, "macify", VAR(&Macmode), V_BOOL },
 #endif
@@ -96,6 +99,7 @@ const struct variable	variables[] = {
 	{ VARIABLE, "scroll-width", VAR(&ScrollWidth), V_WHOLE },
 	{ VARIABLE, "search-exit-char", VAR(&SExitChar), V_CHAR },
 	{ VARIABLE, "send-typeout-to-buffer", VAR(&UseBuffers), V_BOOL },
+	{ VARIABLE, "share-dir-pathname", VAR(ShareDir), V_FILENAME },
 #ifdef SUBSHELL
 	{ VARIABLE, "shell", VAR(Shell), V_FILENAME },
 	{ VARIABLE, "shell-flags", VAR(ShFlags), V_STRING },

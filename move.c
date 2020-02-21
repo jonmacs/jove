@@ -17,7 +17,7 @@ private int	line_pos;
 
 void
 f_char(n)
-register int	n;
+register long	n;
 {
 	if (n < 0) {
 		b_char(-n);
@@ -36,7 +36,7 @@ register int	n;
 
 void
 b_char(n)
-register int	n;
+register long	n;
 {
 	if (n < 0) {
 		f_char(-n);
@@ -88,11 +88,11 @@ PrevLine()
  */
 void
 line_move(dir, n, line_cmd)
-int	dir,
-	n;
+int	dir;
+long	n;
 bool	line_cmd;
 {
-	LinePtr	(*proc) ptrproto((LinePtr, int)) =
+	LinePtr	(*proc) ptrproto((LinePtr, long)) =
 		(dir == FORWARD) ? next_line : prev_line;
 	LinePtr	line;
 
@@ -270,7 +270,7 @@ Eos()
 
 void
 f_word(num)
-register int	num;
+register long	num;
 {
 	if (num < 0) {
 		while (++num <= 0) {

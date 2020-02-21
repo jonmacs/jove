@@ -65,7 +65,7 @@ register LinePtr	after;
 
 void
 LineInsert(num)
-register int	num;
+register long	num;
 {
 	char	newline[LBSIZE];
 	register LinePtr	newdot,
@@ -445,7 +445,7 @@ int wrap_off;
 
 void
 open_lines(n)
-int	n;
+long	n;
 {
 	Bufpos	dot;
 
@@ -662,9 +662,9 @@ private bool
 newchunk()
 {
 	register LinePtr	newline;
-	register int	i;
+	register long	i;
 	ChunkPtr	f;
-	int	nlines = CHUNKSIZE;
+	long	nlines = CHUNKSIZE;
 	bool	done_gc = NO;
 
 	for (;;) {
@@ -725,7 +725,7 @@ remfreelines(c)
 register ChunkPtr	c;
 {
 	register LinePtr	lp;
-	register int	i;
+	register long	i;
 
 	for (lp = c->c_block, i = c->c_nlines; i != 0 ; lp++, i--) {
 		if (lp->l_prev == NULL)
@@ -752,7 +752,7 @@ GCchunks()
 	register ChunkPtr	cp;
 	ChunkPtr	prev = NULL,
 			next;
-	register int	i;
+	register long	i;
 	register LinePtr	newline;
 
 	RecycleLines();

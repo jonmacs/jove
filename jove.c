@@ -176,19 +176,11 @@ int	global_maxfd;
 
 /* paths */
 
-/* path of machine-independent library */
-#ifdef SHAREDIR
+/* VAR: directory path of machine-independent library with joverc, docs, etc */
 char	ShareDir[FILESIZE] = SHAREDIR;
-#else
-char	ShareDir[FILESIZE];
-#endif
 
 /* VAR: directory/device to store tmp files */
-#ifdef TMPDIR
 char	TmpDir[FILESIZE] = TMPDIR;
-#else
-char	TmpDir[FILESIZE];
-#endif
 
 #ifdef SUBSHELL
 char
@@ -200,11 +192,11 @@ char
 # endif /* MSFILESYSTEM */
 #endif
 
-/* LibDir: path of machine-dependent library (for Portsrv and Recover) */
+/* VAR: directory path of machine-dependent library (for Portsrv and Recover) */
 
-#if defined(SUBSHELL) || defined(PIPEPROCS)
+#if defined(SUBSHELL) || defined(PIPEPROCS) || defined(RECOVER)
 # define NEED_LIBDIR	1
-private char	LibDir[FILESIZE] = LIBDIR;
+char	LibDir[FILESIZE] = LIBDIR;
 #endif
 
 /* finish: handle bad-news signals.
@@ -1156,15 +1148,15 @@ UNIX_cmdline(argc, argv)
 int	argc;
 char	*argv[];
 {
-	int	lineno = 0,
-		nwinds = 1;
+	long	lineno = 0;
+	int	nwinds = 1;
 	char	*pattern = NULL;
 
 	while (argc > 1) {
 		switch (argv[1][0]) {
 		case '+':
 			if ('0' <= argv[1][1] && argv[1][1] <= '9') {
-				(void) chr_to_int(&argv[1][1], 10, NO, &lineno);
+				(void) chr_to_long(&argv[1][1], 10, NO, &lineno);
 				break;
 			} else switch (argv[1][1]) {
 			case '\0':

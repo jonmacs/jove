@@ -1184,6 +1184,18 @@ This sets the
 variable to the current position of
 point.  This is an easy way to say, \*QMake the left margin begin here,\*U
 without having to count the number of spaces over it actually is.
+.dc "lib-dir-pathname" "(variable)"
+This tells JOVE where to find the machine-dependent helper
+programs: the
+.IQ recover
+program, run when 
+.IQ "jove -r"
+is run after a crash to try to recover unsaved files,
+and on some older machines without pseudo-terminal support, the 
+.IQ portsrv
+program, which handles multiplexed communication with the
+keyboard and interactive shells (if JOVE is compiled with SUBSHELL
+and PIPEPROCS configured)
 .dc "lisp-mode" "Not Bound"
 This turns on the Lisp major mode.  In Lisp mode, the characters Tab
 and \*Q)\*U are treated specially, similar to the way they are treated in C mode.
@@ -1995,6 +2007,18 @@ If a
 command is given a numeric argument, it acts like a
 .IQ pop-mark
 command.
+.dc "share-dir-pathname" "(variable)"
+This tells JOVE where to find the machine-independent configuration
+files that it uses, typically some system-wide
+.IQ jove.rc
+configuration files read on startup, 
+the formatted help information for the 
+.IQ describe-*
+commands and the tutorial.  There is usually a compiled-in path that
+should be correct if Jove was properly installed.  This path
+can also be overridden with the 
+.IQ -s
+command-line option.
 .dc "shell" "(variable)"
 The shell to be used with all the shell-\(** commands command.  If your SHELL
 environment variable is set, it is used as the default value of

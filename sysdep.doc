@@ -14,7 +14,7 @@ being identified by some unique symbol, recently, the result of the
 uname command on an OS, for convenience.  (e.g. Linux, Darwin, FreeBSD etc,
 but previously, SYSVR4 for various System V Release 4 machines). 
 
-sydepo.h, not used by any Jove code, is a historical archive
+old/sysdep.h, not used by any Jove code, is a historical archive
 of definitions that were once tested on various machines,
 but have not been tested for the recent release, so it is
 entirely possible that changes for other systems have caused
@@ -115,7 +115,7 @@ don't provide a definition, it defaults to mode_t.
 Different environments have different memory and address space limitations.
 Generally, these controls default appropriately.
 NBUF		Number of memory blocks allocated to cache for buffers.
-JLGBUFSIZ	log-base-2(sizeof buffer block).  Generally 9 or 10,
+LG_JBUFSIZ	log-base-2(sizeof buffer block).  Generally 9 or 10,
 		yielding blocks of size 512 or 1024 bytes.  Each text line
 		in Jove is restricted to fit within a single block, so
 		larger is better.  Also, larger blocks should reduce
@@ -123,16 +123,16 @@ JLGBUFSIZ	log-base-2(sizeof buffer block).  Generally 9 or 10,
 		and RAM.  Smaller blocks reduce the number of bytes
 		transferred and more efficiently use cache memory
 		(there would be more blocks in an identically sized cache).
-SMALL		Intended for machines with small address spaces, for example
-		the PDP-11 and small or medium model on x86.  It drastically
-		reduces NBUF, cuts down JLGBUFSIZ, and makes daddr an
+JSMALL		Intended for machines with small address spaces, for example
+		the PDP-11 and  DOS 8086/8088.  It drastically
+		reduces NBUF, cuts down LG_JBUFSIZ, and makes daddr an
 		unsigned short.
 MALLOC_CACHE	Causes the in-core cache for disk blocks to be malloced
 		rather than allocated as a static variable.  This helps
 		environments where statically allocated things are placed
 		in one limited segment, but malloced things are placed
 		in separate segments.  Examples include MAC and large
-		model x86.  Remember that NBUF * ((1<<JLGBUFSIZ) + overhead)
+		model x86.  Remember that NBUF * ((1<<LG_JBUFSIZ) + overhead)
 		will probably have to fit within a single segment.
 AUTO_BUFS	Allocate several of the fixed buffers on the stack
 		instead of statically.  On the PDP-11, this exploits
@@ -260,7 +260,7 @@ on BSD systems, where the normally unsafe signal() is in fact safe).
 JOB_CONTROL	System supports job control (SIGTSTP, ^Z etc. for pause-jove)
 
 USE_VFORK	system has a vfork that is much faster than fork.  This
-		capability should be nuked (any self-respecting copy-on-write
+		capability should be nuked (any modern copy-on-write
 		memory implementation should be able to do fork almost as
 		fast as vfork)!  It is only believed to be useful for
 		architectures without an MMU (we welcome test reports)
@@ -364,7 +364,7 @@ USE_EXIT	Normally, Jove exits by calling _exit, to avoid stdio.
 		debugging tools like purify.
 
 UNIX		This is automatically defined if we're none of MAC, MSDOS
-		or WIN32.  Yuk!
+		or WIN32.
 
 TERMCAP		Support display diversity via termcap database.
 		This is automatically defined for UNIX.
@@ -407,15 +407,18 @@ used to tailor the characteristics of various PC
 environments and/or differentiate them from the Unix or MAC
 variants of Jove.
 
-MSDOS		MSDOS or MSDOS-like system, such as IBM PC, DEC Rainbow,
-		or Atari ST.  Only tested on IBMPCDOS recently.
+WIN32		indicates Jove running as a Console app under the WIN32
+		(Windows NT, 95, 98, 2000, XP, etc)
+		Tested on Windows 7 for 4.17.
+
+OWCDOS		Open Watcom compiler for MSDOS.  This has been tested for 4.17
+
+MSDOS		MSDOS or MSDOS-like system. Only tested on IBMPCDOS in recent
+		memory, but worked on the DEC Rainbow ant Atari ST once.
 
 IBMPCDOS	Indicates MSDOS on an IBM PC-Compatible hardware platform.
 		This enables hardware-specific characteristics of Jove on
 		this platform, such as the screen and keyboard interface.
-
-WIN32		indicates Jove running as a Console app under the WIN32
-		api on Windows NT or Windows 95.
 
 The following characteristics are currently enabled only in the MSDOS
 and WIN32 environments but could be enabled in other environments if

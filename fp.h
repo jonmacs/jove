@@ -16,11 +16,6 @@ extern void flushscreen proto((void));
 extern File	*jstdout;
 # define scr_putchar(c)	f_putc((c), jstdout)
 extern void		flushscreen proto((void));
-# ifndef JSMALL
-#  define MAXTTYBUF	2048
-# else
-#  define MAXTTYBUF	512
-# endif
 #endif /* !NO_JSTDOUT */
 
 

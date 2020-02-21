@@ -1348,7 +1348,7 @@ private LinePtr
 ctol(ctlv)	/* find buffer line for ctlvalue */
 int ctlv;
 {
-	return next_line(curbuf->b_first, (int) ((npos * ctlv)/MAXC));
+	return next_line(curbuf->b_first, (long) ((npos * ctlv)/MAXC));
 }
 
 private void

@@ -42,17 +42,20 @@ description of the files within the archive:
 
 jovedosl.exe    A JOVE executable, compiled with large model.
                 This is the recommended version, it can handle a
-		total of about 31,000 lines in the editor before
+		total of about 32,000 lines in the editor before
 		it runs out of PC memory, and can handle lots of
 		files simultaneously.
+recoverl.exe	This is the recover program to pull data back out
+		of the temporary working file if jovedosl or the PC
+		crashed while editing.
 jovedosm.exe    A JOVE executable file compiled with medium model.
                 Generally not recommended, it is fairly likely to
 		run out of memory, or hit a temp file limit
-		when editing large numbers of files. But it does
-		seem to be able to handle about 47,000 lines before
-		running out of PC memory. It has known issues displaying
-		or working with line numbers above 32,767
-                (they go negative after that),
+		when editing large numbers of files. But if
+		memory is really tight on your DOS PC, try this.
+recoverm.exe	This is the recover program to pull data back out
+		of the temporary working file if jovedosm or the PC
+		crashed while editing.
 doc\cmds.doc    contains text for the describe-command and describe-
                 variable command.  Should be moved into the directory
                 described under SHAREDIR
@@ -233,7 +236,8 @@ new testers (and bug reports/patches) are welcome.
 JOVE has been compiled (2020 February) for DOS with the Open Watcom
 1.9.0 compiler (which can be downloaded from
 http://ftp.openwatcom.org/install/open-watcom-c-dos-1.9.exe)
-under the dosbox emulator (0.74-4.2+deb9u2build0.16.04.1 on Ubuntu 16.04)
+under FreeDOS 1.2 and the dosbox emulator 
+(0.74-4.2+deb9u2build0.16.04.1 on Ubuntu 16.04) using
 	wmake -f Makefile.wat
 in the source unpacked from jovedoss.zip (make that on a
 Unix/Linux machine) Since this is not a primary platform for

@@ -36,10 +36,12 @@ extern const char
 	*jbasename proto((const char *f)),
 	*filename proto((const Buffer *b));
 
-extern int
+extern long
 	inorder proto((LinePtr nextp,int char1,LinePtr endp,int char2)),
 	LineDist proto((LinePtr nextp,LinePtr endp)),
-	LinesTo proto((LinePtr from, LinePtr to)),
+	LinesTo proto((LinePtr from, LinePtr to));
+
+extern int
 	length proto((LinePtr line)),
 	jmax proto((int a,int b)),
 	jmin proto((int a,int b)),
