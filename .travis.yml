@@ -1,34 +1,52 @@
+# test Jove build on a variety of Travis-CI platforms
+# Mark Moraes, 20200221
 language: c
 addons:
-  apt_packages:
-    - make
-    - git
-    - groff
-    - ncurses-dev
-    - exuberant-ctags
-    - zip
+  apt_packages: 
+    - &common [make, groff, ctags, zip ]
+    - &apts [ ncurses-dev ]
   homebrew:
-    packages:
-      - make
-      - git
-      - groff
-      - ncurses
-      - ctags
-      - zip
-branches:
- - moraes
-os:
- - linux
- - osx
-compiler:
- - gcc
-arch:
- - amd64
- - arm64
- - ppc64le
- - s390x
+    packages: &brews [ ncurses, *common ]
+branches: [ moraes ]
+os: [ linux, osx ]
+compiler: [gcc, clang ]
+arch: &archs [amd64, arm64, ppc64le, s390x]
+jobs:
+  # now modify the build matrix constructed above
+  exclude:
+    # REMOVE gcc on osx (it is just clang)
+    - os: osx
+      compiler: gcc
+  include:
+    # ADD an explicit osx homebrew gcc-7 (i.e. not clang)
+    - os: osx
+      env: CC=gcc-7
+      addons:
+        homebrew:
+          packages: [gcc7, *brews]
+    # ADD latest gcc (-9) on default linux amd64 (xenial),
+    - os: linux
+      env: CC=gcc-9
+      addons:
+        apt:
+          sources: [ ubuntu-toolchain-r-test ]
+          packages: [gcc-9, *apts]
+    # ADD oldest and newest versions of xcode and linux
+    - os: osx
+      osx_image: xcode6.4
+    - os: osx
+      osx_image: xcode11.3
+    - os: linux
+      dist: precise
+      arch: amd64
+    - os: linux
+      dist: bionic
+      arch: amd64
+    - os: linux
+      dist: bionic
+      arch: arm64
 script:
- - |
+  - |
     set -eux
     td=$(mktemp -d)
     dd="DESTDIR=$td"

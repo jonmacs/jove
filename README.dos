@@ -40,12 +40,28 @@ jove416x.zip).  The executable archive contains all the files needed
 to use jove: the executables and the documentation.  Here is quick
 description of the files within the archive:
 
-jove.exe        the JOVE executable file
-doc\cmds.doc    contains text for the describe-command and describe
-                varible command.  Should be moved into the directory
+jovedosl.exe    A JOVE executable, compiled with large model.
+                This is the recommended version, it can handle a
+		total of about 31,000 lines in the editor before
+		it runs out of PC memory, and can handle lots of
+		files simultaneously.
+jovedosm.exe    A JOVE executable file compiled with medium model.
+                Generally not recommended, it is fairly likely to
+		run out of memory, or hit a temp file limit
+		when editing large numbers of files. But it does
+		seem to be able to handle about 47,000 lines before
+		running out of PC memory. It has known issues displaying
+		or working with line numbers above 32,767
+                (they go negative after that),
+doc\cmds.doc    contains text for the describe-command and describe-
+                variable command.  Should be moved into the directory
                 described under SHAREDIR
 doc\jove.man    the complete JOVE manual
 doc\jove.doc    the "manpage" for JOVE: describes how to run JOVE
+doc\jove.qre    a plain text quick reference card with JOVE commands/variables
+doc\joveman.ps  PostScript version of the JOVE manual for printing
+doc\jove.rc     a system-default startuup file, if moved into SHAREDIR
+doc\example.rc  other example startup configuration
 paths.h         This file shows what the default directories JOVE was
                 compiled with.  The file itself is not used to run JOVE.
 README.dos      This file.

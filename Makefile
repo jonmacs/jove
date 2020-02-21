@@ -102,8 +102,8 @@ RECOVER = $(DLIBDIR)/recover$(XEXT)
 PORTSRV = $(DLIBDIR)/portsrv$(XEXT)
 JOVERC = $(DSHAREDIR)/jove.rc
 TERMSDIR = $(DSHAREDIR)
-CMDS.DOC = $(DSHAREDIR)/cmds.doc
-TEACH-JOVE = $(DSHAREDIR)/teach-jove
+CMDSDOC = $(DSHAREDIR)/cmds.doc
+TEACHJOVEDOC = $(DSHAREDIR)/teach-jove
 JOVEM = $(DMANDIR)/jove.$(MANEXT)
 TEACHJOVEM = $(DMANDIR)/teachjove.$(MANEXT)
 XJOVEM = $(DMANDIR)/xjove.$(MANEXT)
@@ -435,9 +435,9 @@ installjovetool: $(JOVETOOLM)
 # Thus, if "all" is done first, "install" can be invoked with
 # JOVEHOME pointing at a playpen where files are to be marshalled.
 # This property is fragile.
-install: $(DLIBDIR) $(DSHAREDIR) $(DBINDIR) $(DMANDIR) $(DRECDIR) $(DETCDIR) \
-	 $(TEACH-JOVE) $(CMDS.DOC) $(TERMSDIR)docs $(JOVERC) \
-	 $(PORTSRVINST) $(RECOVER) $(JOVE) $(TEACHJOVE) $(MANUALS)
+install: $(DRECDIR) $(DETCDIR) \
+	$(TEACHJOVEDOC) $(CMDSDOC) $(TERMSDIR)docs $(JOVERC) \
+	$(PORTSRVINST) $(RECOVER) $(JOVE) $(TEACHJOVE) $(MANUALS)
 	@echo See the README about changes to /etc/rc or /etc/rc.local
 	@echo so that the system recovers jove files on reboot after a crash
 
@@ -464,7 +464,7 @@ $(DRECDIR)::
 $(RPMHOME)::
 	if test ! -e $(RPMHOME); then mkdir -p $(RPMHOME) && chmod $(DPERM) $(RPMHOME); fi
 
-$(TEACH-JOVE): doc/teach-jove
+$(TEACHJOVEDOC): $(DSHAREDIR) doc/teach-jove
 	$(TINSTALL) doc/teach-jove $(TEACH-JOVE)
 
 doc/cmds.doc:	doc/cmds.macros.nr doc/cmds.nr
@@ -479,30 +479,30 @@ doc/jove.man.ps:
 	@-rm -f doc/doc/jove.man.ps
 	( LANG=C; export LANG; cd doc; tbl intro.nr | $(TROFF) -ms - cmds.nr contents.nr $(TROFFPOST) >jove.man.ps )
 
-$(CMDS.DOC): doc/cmds.doc
-	$(TINSTALL) doc/cmds.doc $(CMDS.DOC)
+$(CMDSDOC): $(DSHAREDIR) doc/cmds.doc
+	$(TINSTALL) doc/cmds.doc $(CMDSDOC)
 
 doc/jove.rc: doc/jove.rc.in
 	@-rm -f doc/jove.rc.tmp
 	sed "s,__ETCDIR__,$(JETCDIR)," doc/jove.rc.in > doc/jove.rc.tmp
 	if ! $(CMP) -s doc/jove.rc.tmp doc/jove.rc 2> /dev/null; then mv doc/jove.rc.tmp doc/jove.rc; else rm doc/jove.rc.tmp; fi
 
-$(JOVERC): doc/jove.rc
+$(JOVERC): $(DSHAREDIR) doc/jove.rc
 	$(TINSTALL) doc/jove.rc $(JOVERC)
 
-$(TERMSDIR)docs: $(DOCTERMS)
+$(TERMSDIR)docs: $(TERMSDIR) $(DOCTERMS)
 	$(TINSTALL) $(DOCTERMS) $(TERMSDIR)
 
-$(PORTSRV): portsrv$(XEXT)
+$(PORTSRV): $(DLIBDIR) portsrv$(XEXT)
 	$(XINSTALL) portsrv$(XEXT) $(PORTSRV)
 
-$(RECOVER): recover$(XEXT)
+$(RECOVER): $(DLIBDIR) recover$(XEXT)
 	$(XINSTALL) recover$(XEXT) $(RECOVER)
 
-$(JOVE): jjove$(XEXT)
+$(JOVE): $(DBINDIR) jjove$(XEXT)
 	$(XINSTALL) jjove$(XEXT) $(JOVE)
 
-$(TEACHJOVE): teachjove$(XEXT)
+$(TEACHJOVE): $(DBINDIR) teachjove$(XEXT)
 	$(XINSTALL) teachjove$(XEXT) $(TEACHJOVE)
 
 doc/jove.$(MANEXT): doc/jove.nr
@@ -546,7 +546,7 @@ $(JOVETOOLM): $(DMANDIR) doc/jovetool.$(MANEXT)
 	$(TINSTALL) doc/jovetool.$(MANEXT) $(JOVETOOLM)
 
 echo:
-	@echo $(C-FILES) $(HEADERS)
+	@echo $(SOURCES) $(HEADERS)
 
 # note: $(C_SRC) contains commands.tab and vars.tab
 # These should not be linted, but they will probably be ignored.

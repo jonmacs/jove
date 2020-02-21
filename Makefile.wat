@@ -70,14 +70,14 @@ CC = wcc
 
 # -ms (small mode) does not work (Jove is about 20K over the 64K code limit,
 # even with -DBAREBONES)
-# -mm (medium mode) has max line length of 1024 chars, and can edit
-# tens of files before running out of either heap memory or tmp file size,
-# but it can get upto about 47000 lines, but line numbers go negative at 32K,
+# -mm (medium mode) builds with -DSMALL to avoid running out of heap 
+# memory when editing many files.
 # -ml (large mode) is recommended, has more buffers and should be faster
 # for practical use, takes advantage of all heap memory so can keep a very
-# large number of files open, big tmp file, can handle about 31000 lines
-# before it runs out of heap memory.  640K ought to be enough for anyone, huh?
-CFLAGS = -ml -wx -zq -dOWCDOS=1
+# large number of files open, big tmp file, but the price is somewhat fewer
+# lines than -mm before it runs out of heap. 640K ought to be enough for anyone!
+MODEL = -ml
+CFLAGS = $(MODE) -wx -zq -dOWCDOS=1
 
 # Linker:
 

@@ -29,7 +29,7 @@
 #endif
 
 #ifdef OWCDOS	/* System: Open Watcom C 1.9 for x86 running MSDOS */
-# define IBMPCDOS		1
+# define IBMPCDOS	1
 # define MALLOC_CACHE	1	/* DGROUP gets full otherwise */
 # define REALSTDC	1	/* close enough for us, but ZTCDOS doesn't define __STDC__ */
 # define FAR_LINES	1	/* to squeeze larger files, distance Lines */
@@ -39,8 +39,6 @@
 #  define SMALL         1
 # endif
 # if defined(__MEDIUM__)
-#  define JLGBUFSIZ	10	/* so JBUFSIZ (and max line len) 1024 chars */
-#  define NBUF		7
 #  define SMALL		1
 # else
 #  define JLGBUFSIZ	11	/* so JBUFSIZ (and max line len) 2048 chars */
