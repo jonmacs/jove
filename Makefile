@@ -465,7 +465,7 @@ $(RPMHOME)::
 	if test ! -e $(RPMHOME); then mkdir -p $(RPMHOME) && chmod $(DPERM) $(RPMHOME); fi
 
 $(TEACHJOVEDOC): $(DSHAREDIR) doc/teach-jove
-	$(TINSTALL) doc/teach-jove $(TEACH-JOVE)
+	$(TINSTALL) doc/teach-jove $(TEACHJOVEDOC)
 
 doc/cmds.doc:	doc/cmds.macros.nr doc/cmds.nr
 	@-rm -f doc/cmds.doc
