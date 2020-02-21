@@ -39,16 +39,23 @@ jobs:
     - os: linux
       dist: precise
       arch: amd64
+      addons:
+        apt_packages: [*apts, *common]
     - os: linux
       dist: bionic
       arch: amd64
+      addons:
+        apt_packages: [*apts, *common]
     - os: linux
       dist: bionic
       arch: arm64
+      addons:
+        apt_packages: [*apts, *common]
 script:
   - |
     set -eux
-    td=$(mktemp -d)
+    # note: older *BSD, OSX, Solaris require a template
+    td=$(mktemp -d "${TMPDIR:-/tmp}/jvt.XXXXXXXX")
     dd="DESTDIR=$td"
     o="-Os -Wall -pedantic"
     u=$(uname)
