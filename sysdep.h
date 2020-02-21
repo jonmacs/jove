@@ -28,16 +28,15 @@
 # define SPELL		"aspell list < %s | sort -u"
 #endif
 
-#ifdef WATCOMC	/* System: Open Watcom C 1.9 for x86 running MSDOS */
+#ifdef OWCDOS	/* System: Open Watcom C 1.9 for x86 running MSDOS */
 # define IBMPCDOS		1
 # define MALLOC_CACHE	1	/* DGROUP gets full otherwise */
 # define REALSTDC	1	/* close enough for us, but ZTCDOS doesn't define __STDC__ */
 # ifndef SMALL
 #  define NBUF		31	/* NBUF*JBUFSIZ must be less than 64 kB */
 #  define JLGBUFSIZ	11	/* max line length of 2048 chars */
-# else
-#  define FAR_LINES	1	/* to squeeze larger files, distance Lines */
 # endif
+# define FAR_LINES	1	/* to squeeze larger files, distance Lines */
 #endif
 
 #if defined(OpenBSD) || defined(Darwin) || defined (XBSD)

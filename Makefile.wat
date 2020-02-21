@@ -68,8 +68,13 @@ CC = wcc
 # NOTE: quotes around the macro body in a -D are actually taken as part
 # of that body!!
 
-# If you build with medium (i.e. -mm), you might need to add -dSMALL=1
-CFLAGS = -ml -wx -zq -dWATCOMC=1
+# -ms (small mode) does not work (Jove is about 20K over the 64K code limit,
+# even with -DBAREBONES)
+# -mm (medium mode) requires -dSMALL=1 to fit static data into 64K, uses
+# farmalloc for lines.
+# -ml (large mode) is recommended, has more buffers and should be faster
+# for practical use, takes advantage of memory
+CFLAGS = -mm -dSMALL -wx -zq -dOWCDOS=1
 
 # Linker:
 
