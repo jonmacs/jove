@@ -77,7 +77,7 @@ CC = wcc
 # large number of files open, big tmp file, but the price is somewhat fewer
 # lines than -mm before it runs out of heap. 640K ought to be enough for anyone!
 MODEL = -ml
-CFLAGS = $(MODE) -wx -zq -dOWCDOS=1
+CFLAGS = $(MODEL) -wx -zq -dOWCDOS=1
 
 # Linker:
 

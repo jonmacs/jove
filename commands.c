@@ -126,7 +126,7 @@ const char	*prompt;
 
 const struct cmd *
 FindCmd(proc)
-register void	(*proc) ptrproto((void));
+register cmdproc_t proc;
 {
 	register const struct cmd	*cp;
 

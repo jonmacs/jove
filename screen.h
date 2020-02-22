@@ -7,12 +7,15 @@
 
 #ifdef HIGHLIGHTING
 
+typedef void(*LEproc) ptrproto((bool));
+#define LENULLPROC (LEproc)0
+
 typedef struct LErange {
 	unsigned
 		start,	/* starting column for highlighting */
 		width;	/* width of highlighting */
-	void (*norm) ptrproto((bool));
-	void (*high) ptrproto((bool));
+	LEproc	norm,
+		high;
 } *LineEffects;
 
 #define	NOEFFECT	((LineEffects) NULL)

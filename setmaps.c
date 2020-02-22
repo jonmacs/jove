@@ -14,7 +14,7 @@
 #define LINESIZE	100	/* hope this is big enough */
 #define STACKLIMIT	10	/* max conditional depth */
 
-#define	PROC(p)	NULL	/* discard function pointers */
+#define	PROC(p)	NULLPROC	/* discard function pointers */
 #include "commands.tab"
 
 #define VAR(v)	NULL, (size_t)0	/* discard variable pointers */

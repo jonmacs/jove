@@ -677,10 +677,10 @@ jovedoss.zip:	.version $(DOSSRC) jjove.ico Makefile
 	rm -rf $$BN && \
 	mkdir $$BN && \
 	tar cf - jjove.ico $(DOSSRC) | ( cd $$BN ; tar xf - ) && \
-	zip -k jovedoss-tmp$$$$.zip $$BN/jjove.ico && \
+	zip -q -k jovedoss-tmp$$$$.zip $$BN/jjove.ico && \
 	rm -f $$BN/jjove.ico && \
 	mv $$BN/doc/jove.man.ps $$BN/doc/joveman.ps && \
-	zip -k jovedoss-tmp$$$$.zip -r -l $$BN/* && \
+	zip -q -k jovedoss-tmp$$$$.zip -r -l $$BN/* && \
 	rm -f jovedoss.zip && \
 	mv jovedoss-tmp$$$$.zip jovedoss.zip && \
 	rm -rf $$BN ; \

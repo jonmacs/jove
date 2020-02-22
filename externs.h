@@ -148,7 +148,7 @@ extern SSIZE_T	read proto((int /*fd*/, UnivPtr /*buf*/, size_t /*nbytes*/));
 extern SSIZE_T	write proto((int /*fd*/, UnivConstPtr /*buf*/, size_t /*nbytes*/));
 # endif
 
-# if !defined(OWCDOS) && !defined(ZTCDOS) && !defined(__BORLANDC__) && !defined(_MSC_VER)
+# ifdef UNIX
 /* Zortech incorrectly defines argv as const char **.
  * Borland incorrectly defines argv as char *[] and omits some consts
  * Watcom incorrectly defines argv as const char *const

@@ -300,7 +300,7 @@ WindFind()
 		break;
 
 	default:
-		cmd = NULL;	/* avoid uninitialized complaint from gcc -W */
+		cmd = NULLPROC;	/* avoid uninitialized complaint from gcc -W */
 		complain("T: find-tag, ^T: find-tag-at-point, F: find-file, B: select-buffer.");
 		/*NOTREACHED*/
 	}

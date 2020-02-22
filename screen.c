@@ -414,7 +414,7 @@ bool	abortable;
 	 * to ensure Placur does not get into trouble.  (UGLY!)
 	 */
 	struct LErange	*oldhl = Curline->s_effects;
-	static const struct LErange	nohl = { 0, 0, NULL, NULL };
+	static const struct LErange	nohl = { 0, 0, LENULLPROC, LENULLPROC };
 
 	if (oldhl != NOEFFECT) {
 		int	w = Curline->s_roof - Curline->s_line;
@@ -438,7 +438,7 @@ bool	abortable;
 			*oldhl = nohl;
 		}
 	}
-	real_effect = NULL;
+	real_effect = LENULLPROC;
 #else /* !HIGHLIGHTING */
 	if (Curline->s_effects != hl)
 		MinCol = Curline->s_roof - Curline->s_line;	/* must obliterate old */

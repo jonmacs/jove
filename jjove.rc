@@ -79,7 +79,7 @@ BEGIN
         BLOCK "100904b0"
         BEGIN
             VALUE "Comments", "Originally authored by Jonathan Payne\0"
-            VALUE "CompanyName", "jovehacks@cs.toronto.edu\0"
+            VALUE "CompanyName", "github.com/jonmacs/jove\0"
             VALUE "LegalCopyright", "Copyright (C) 1986-1999 by Jonathan Payne."
             VALUE "Copyright",  "This program is Copyright (C) 1986-1999 by Jonathan Payne.  JOVE is "
                   "provided by Jonathan and Jovehacks without charge and without "

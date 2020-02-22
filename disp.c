@@ -671,7 +671,7 @@ register int	linenum;
 		char	*lptr;
 		int	fromcol = W_NUMWIDTH(w);
 #ifdef HIGHLIGHTING
-		static struct LErange lr = {0, 0, NULL, US_effect};
+		static struct LErange lr = {0, 0, LENULLPROC, US_effect};
 		Mark	*mark = b_curmark(w->w_bufp);
 		bool	marked_line = (MarkHighlighting
 # ifdef TERMCAP

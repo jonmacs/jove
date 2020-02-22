@@ -37,7 +37,7 @@ order to display text on the screen and accept and interpret keystrokes.
 
 The original port of Jove to WIN32 was performed by Jim Patterson
 (Jim.Patterson@Cognos.COM) with the help and advice of D. Hugh Redelmeier
-(hugh@mimosa.com) as well as early testing and feedback by Gary Puckering
+as well as early testing and feedback by Gary Puckering
 (Gary.Puckering@Cognos.COM).
 
 Advantages of WIN32 version

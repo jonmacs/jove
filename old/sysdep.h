@@ -12,12 +12,13 @@
  * The XXX* symbos are preserved have been left in to
  * provide a guide to re-porting this version to those
  * architectures.  If you do so successfully, please send a
- * copy of these changes to jovedev@cs.toronto.edu and we'll
+ * copy of these changes to github.com/jonmacs/jove and we'll
  * try to incorporate those changes above and get rid of the
  * XXX_, and move the tested definition back to sysdep.h.
 
 #ifdef SUNOS41	/* System: SunOS4.1 to 4.1.3 */
 # define TERMIOS	1
+# define NO_IOCTL_H_TTY	1	/* <sys/ioctl.h> conflicts with <termios.h>? */
 # define USE_GETCWD	1
 # define POSIX_UNISTD	1
 # define USE_SELECT	1
@@ -56,6 +57,7 @@
 #  define TCSAFLUSH	TCSETSF
 /* end of <termios.h> patches */
 
+# define NO_IOCTL_H_TTY	1	/* <sys/ioctl.h> conflicts with <termios.h>? */
 # define USE_GETCWD	1
 # define USE_SELECT	1
 # define PTYPROCS	1

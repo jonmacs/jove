@@ -5,11 +5,14 @@
  * this notice is included in all the source files and documentation.     *
  **************************************************************************/
 
+typedef void(*cmdproc_t)  ptrproto((void));
+#define NULLPROC (cmdproc_t)0
+
 struct cmd {
 	/* Type and Name must match data_obj */
 	int	Type;
 	const char	*Name;
-	void	(*c_proc) ptrproto((void));
+	cmdproc_t 	c_proc;
 #ifdef MAC
 	char c_map;			/* prefix map for About Jove... */
 	char c_key;			/* key binding for About Jove... */
@@ -19,7 +22,7 @@ struct cmd {
 extern const struct cmd	commands[];
 
 extern const struct cmd
-	*FindCmd proto((void (*proc) ptrproto((void))));
+	*FindCmd proto((cmdproc_t));
 
 extern void
 	ExecCmd proto((const data_obj *cp));

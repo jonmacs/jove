@@ -983,16 +983,20 @@ commit 0ae3c568851d6990665f5e1dbdbea67a63374c0c
     Windows 95) and the Macintosh with almost the same functionality as
     the Un*x version.
     
-    The official ftp location for Jove is
+    The official source location for Jove is
+    	github.com/jonmacs/jove
+    (newest code in the moraes branch)
+    The ftp location for Jove is
     	ftp.cs.toronto.edu:/pub/moraes/jove/
     The file jove.README describes the contents of this directory.
     Source is provided for all platforms, as are pre-compiled versions
     for MSDOS, MSWin32, and the Macintosh.
     
-    Jove is supported by a group of users.  We can be reached by email at
-    jovehacks@cs.toronto.edu.  We welcome bug reports.  We also welcome
-    reports on porting Jove.  We are even interested in suggestions for
-    new features, but we are conservative in adopting them.
+    Jove is supported by a group of users.  We can be
+    reached on the github.com/jonmacs/jove bug tracker.  We
+    welcome bug reports.  We also welcome reports on porting
+    Jove.  We are even interested in suggestions for new
+    features, but we are conservative in adopting them.
     
-    Hugh Redelmeier (for Jovehacks)
-    hugh@mimosa.com
+    Mark Moraes, Hugh Redelmeier (for Jovehacks)
+

@@ -139,7 +139,7 @@ which describes how to set the cursor, how to scroll, and many other
 things, for that particular terminal.  A small example TERMCAP file
 comes with JOVE.  If your terminal is not included there, you should ask a
 local UNIX guru for help.  If you don't have one, you can ask
-jovehacks@cs.toronto.edu.
+github.com/jonmacs/jove
 
 
 DIFFERENCES BETWEEN JOVE UNDER MSDOS AND UNIX JOVE:
@@ -267,9 +267,8 @@ which is much like MSDOS but not at all like the IBM PC.
 
 The original port of JOVE to the IBM PC was done by Karl
 Gegenfurtner (karl@hipl.psych.nyu.edu).  Karl's port was modified
-for Zortech C by D. Hugh Redelmeier (hugh@mimosa.com).  Joe Smith
+for Zortech C by D. Hugh Redelmeier).  Joe Smith
 (jes@mbio.med.upenn.edu) ported to Borland C.  Several others,
 including Jim Patterson (jimp@cognos.com) and Gary Puckering
 (garyp@cognos.com) updated the Microsoft port.
-Mark Moraes (moraes@cs.toronto.edu) re-ported to Win32 and DOS in
-in Feb 2020.
+Mark Moraes re-ported to Win32 and DOS in in Feb 2020.

@@ -26,8 +26,8 @@ const struct cmd	commands[] = {
 	{ COMMAND, "apropos", WIRED_CMD(Apropos) },
 	{ COMMAND, "auto-execute-command", WIRED_CMD(CAutoExec) },
 	{ COMMAND, "auto-execute-macro", WIRED_CMD(MAutoExec) },
-	{ DefMinor(Fill), "auto-fill-mode", WIRED_CMD(NULL) },
-	{ DefMinor(Indent), "auto-indent-mode", WIRED_CMD(NULL) },
+	{ DefMinor(Fill), "auto-fill-mode", WIRED_CMD(NULLPROC) },
+	{ DefMinor(Indent), "auto-indent-mode", WIRED_CMD(NULLPROC) },
 	{ COMMAND, "backward-character", WIRED_CMD(BackChar) },
 	{ COMMAND, "backward-list", WIRED_CMD(BList) },
 	{ COMMAND, "backward-paragraph", WIRED_CMD(BackPara) },
@@ -46,7 +46,7 @@ const struct cmd	commands[] = {
 #endif
 	{ COMMAND, "bind-to-key", WIRED_CMD(BindAKey) },
 	{ COMMAND, "buffer-position", WIRED_CMD(BufPos) },
-	{ DefMajor(CMODE), "c-mode", WIRED_CMD(NULL) },
+	{ DefMajor(CMODE), "c-mode", WIRED_CMD(NULLPROC) },
 	{ MODCMD, "case-character-capitalize", WIRED_CMD(CapChar) },
 	{ MODCMD, "case-region-lower", WIRED_CMD(CasRegLower) },
 	{ MODCMD, "case-region-upper", WIRED_CMD(CasRegUpper) },
@@ -66,7 +66,7 @@ const struct cmd	commands[] = {
 	{ COMMAND, "current-error", WIRED_CMD(ShowErr) },
 	{ COMMAND, "date", WIRED_CMD(prCTIME) },
 #ifdef IPROCS
-	{ DefMinor(DbxMode), "dbx-mode", WIRED_CMD(NULL) },
+	{ DefMinor(DbxMode), "dbx-mode", WIRED_CMD(NULLPROC) },
 #endif
 #ifdef ABBREV
 	{ COMMAND, "define-global-word-abbrev", WIRED_CMD(DefGAbbrev) },
@@ -137,7 +137,7 @@ const struct cmd	commands[] = {
 	{ COMMAND, "forward-s-expression", WIRED_CMD(FSexpr) },
 	{ COMMAND, "forward-sentence", WIRED_CMD(Eos) },
 	{ COMMAND, "forward-word", WIRED_CMD(ForWord) },
-	{ DefMajor(FUNDAMENTAL), "fundamental-mode", WIRED_CMD(NULL) },
+	{ DefMajor(FUNDAMENTAL), "fundamental-mode", WIRED_CMD(NULLPROC) },
 	{ COMMAND, "gather-numeric-argument", WIRED_CMD(TimesFour) },
 	{ COMMAND, "goto-line", WIRED_CMD(GoLine) },
 	{ COMMAND, "goto-window-with-buffer", WIRED_CMD(GotoWind) },
@@ -172,7 +172,7 @@ const struct cmd	commands[] = {
 	{ MODCMD, "kill-to-end-of-sentence", WIRED_CMD(KillEos) },
 	{ COMMAND, "left-margin-here", WIRED_CMD(SetLMargin) },
 #ifdef LISP
-	{ DefMajor(LISPMODE), "lisp-mode", WIRED_CMD(NULL) },
+	{ DefMajor(LISPMODE), "lisp-mode", WIRED_CMD(NULLPROC) },
 #endif
 	{ COMMAND, "list-buffers", WIRED_CMD(BufList) },
 #ifdef IPROCS
@@ -192,7 +192,7 @@ const struct cmd	commands[] = {
 	{ COMMAND, "next-page", WIRED_CMD(NextPage) },
 	{ COMMAND, "next-window", WIRED_CMD(NextWindow) },
 	{ COMMAND, "number-lines-in-window", WIRED_CMD(WNumLines) },
-	{ DefMinor(OverWrite), "over-write-mode", WIRED_CMD(NULL) },
+	{ DefMinor(OverWrite), "over-write-mode", WIRED_CMD(NULLPROC) },
 	{ COMMAND, "page-next-window", WIRED_CMD(PageNWind) },
 	{ MODCMD, "paren-flash", WIRED_CMD(DoParen) },
 	{ COMMAND, "parse-errors", WIRED_CMD(ErrParse) },
@@ -236,7 +236,7 @@ const struct cmd	commands[] = {
 	{ COMMAND, "quit-process", WIRED_CMD(ProcQuit) },
 #endif
 	{ MODCMD, "quoted-insert", WIRED_CMD(QuotChar) },
-	{ DefMinor(BReadOnly), "read-only-mode", WIRED_CMD(NULL) },
+	{ DefMinor(BReadOnly), "read-only-mode", WIRED_CMD(NULLPROC) },
 #ifdef ABBREV
 	{ COMMAND, "read-word-abbrev-file", WIRED_CMD(RestAbbrevs) },
 #endif
@@ -280,7 +280,7 @@ const struct cmd	commands[] = {
 #endif
 	{ MODCMD, "shift-region-left", WIRED_CMD(LRShift) },
 	{ MODCMD, "shift-region-right", WIRED_CMD(RRShift) },
-	{ DefMinor(ShowMatch), "show-match-mode", WIRED_CMD(NULL) },
+	{ DefMinor(ShowMatch), "show-match-mode", WIRED_CMD(NULLPROC) },
 	{ COMMAND, "shrink-window", WIRED_CMD(ShrWindow) },
 	{ COMMAND, "source", WIRED_CMD(Source) },
 #ifdef SPELL
@@ -296,7 +296,7 @@ const struct cmd	commands[] = {
 #ifdef JOB_CONTROL
 	{ COMMAND, "suspend-jove", WIRED_CMD(PauseJove) },
 #endif
-	{ DefMajor(TEXTMODE), "text-mode", WIRED_CMD(NULL) },
+	{ DefMajor(TEXTMODE), "text-mode", WIRED_CMD(NULLPROC) },
 	{ MODCMD, "transpose-characters", WIRED_CMD(TransChar) },
 	{ MODCMD, "transpose-lines", WIRED_CMD(TransLines) },
 	{ COMMAND, "unbound", WIRED_CMD(Unbound) },
@@ -305,7 +305,7 @@ const struct cmd	commands[] = {
 	{ COMMAND, "visit-file", WIRED_CMD(JReadFile) },
 	{ COMMAND, "window-find", WIRED_CMD(WindFind) },
 #ifdef ABBREV
-	{ DefMinor(Abbrev), "word-abbrev-mode", WIRED_CMD(NULL) },
+	{ DefMinor(Abbrev), "word-abbrev-mode", WIRED_CMD(NULLPROC) },
 #endif
 	{ COMMAND, "write-file", WIRED_CMD(JWriteFile) },
 	{ COMMAND, "write-macros-to-file", WIRED_CMD(WriteMacs) },
@@ -332,5 +332,5 @@ const struct cmd	commands[] = {
 #endif
 	{ MODCMD, "yank", WIRED_CMD(Yank) },
 	{ MODCMD, "yank-pop", WIRED_CMD(YankPop) },
-	{ COMMAND, NULL, NULL },
+	{ COMMAND, NULL, NULLPROC },
 };

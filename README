@@ -39,41 +39,51 @@ BSD/Darwin/Mac OS X:
 
 LINUX:
   Using RPM (if sufficiently close to Red Hat; make sure RPMHOME is correct
-  in the Makefile and use:
+  in the Makefile, that you have the rpm-build package, a compiler and
+  and use:
     make rpm
-  Otherwise, set JOVEHOME appropriately and use:
-    make SYSDEFS=-DXLINUX install
-    If this fails because the system doesn't have -ltermcap, try:
-    make SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500" TERMCAPLIB=-lncurses install
-    or, if the system has ncursesw instead of ncurses,
-    make SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500" TERMCAPLIB=-lncursesw install
-    or, if you feel that it is ok to assume the entire world has vt[123]xx-compatible
-    terminal emulators (i.e xterm, rxvt, st, vte, konsole, gnome-terminal et al)
+  and them install the resulting rpm from
+  $HOME/rpmbuild/RPMS with "rpm -i"
+
+  To compile and install from source, set JOVEHOME
+  appropriately and check what form of terminal handling
+  library your system provides:  -ltermcap (libtermcap.so
+  available on Debian derivatives in the libtinfo-dev
+  package), -lncurses (libncurses.so, available on many
+  Linux in packages called ncurses, ncurses-base,
+  ncurses-dev or ncurses-devel or libncurses-dev ...),
+  -lncursesw (libncursesw.so with similar package names as
+  ncurses), or -ltinfo (libtinfo.so on Gentoo, from package
+  sys-libs/ncurses) You will also need to ensure you have
+  terminal descriptions, which are sometimes in separate
+  packages (e.g. called ncurses-terminfo-base or
+  ncurses-base or ncurses-term)
+
+use:
+    make SYSDEFS=-DLinux TERMCAPLIB=-l... install
+    using the appropriate library you found/installed for your Linux.
+
+    or, if you feel that it is ok to assume the entire world
+    has vt[123]xx-compatible terminal emulators (i.e xterm,
+    rxvt, st, vte, konsole, gnome-terminal et al), compile
+    with JOVE'ss new built-in ansi/vtxxx/xterm driver using
     make SYSDEFS="-DXLINUX -DJTC" TERMCAPLIB= install
 
 Solaris:
   make SYSDEFS="-DSYSVR4" install
 
 Other systems:
-  Read comments about SYSDEFS settings in Makefile
-
-Some systems have dropped the termcap library.  The curses (or
-ncurses or ncursesw) library is much fatter than termcap, but will do.
-If ld complains that there is no -ltermcap, add TERMCAPLIB=-lcurses.
-If ld then complains that there is no -lcurses, try TERMCAPLIB=-lncurses.
-If ld then complains that there is no -lncurses, try TERMCAPLIB=-lncursesw.
-You might need to use your package manager to install ncurses or ncursesw
-as well as the terminfo database (e.g. called ncurses-terminfo-base
-or ncurses-base or ncurses-term) to get the relevant terminal
-descriptions.
+  Read comments about SYSDEFS settings in Makefile, check sysdep.h
+  for recently tested system settings or old/sysdep.h for once-working
+  but currently untested settings that will need to be copied into sysdep.h,
+  or just set on the command-line with SYSDEFS="-D..."
 
 When in doubt, read the rest of this document.
 
 Please help us keep up with new systems.  If your system isn't covered
 here on in the SYSDEFS section of Makefile, tell us what works.  If
 your system is covered, but the documented procedure doesn't work,
-tell us.
-
+tell us by filing a bug on http://github.com/jonmacs/jove
 
 Full Story of Installation
 --------------------------
@@ -95,7 +105,7 @@ reasonable, you may wish to change them.
 For many systems, you will need to change the definition of SYSDEFS.
 to the symbol that identifies your system's characteristics, using the
 notation for a macro-setting flag to the C compiler.  For example, on
-a Sun running SunOS 4.0, use "SYSDEFS=-DSUNOS40".  The Makefile
+a machine running NetBSD, use "SYSDEFS=-DNetBSD".  The Makefile
 describes suitable settings of SYSDEFS for many configurations.  If
 yours isn't mentioned, use "grep System: sysdep.h" to find all
 currently supported system configurations.  If there is no canned
@@ -157,32 +167,36 @@ static compilation, perhaps using the musl library to keep
 size small.  E.g., using the small Alpine Linux docker image,
 one can use:
 
-docker pull alpine:3.9  # 3.10 does not seem to have static musl
-apk add gcc musl-dev make
-make 'CC=gcc --static' OPTFLAGS=-O3 SYSDEFS=-DXLINUX TERMCAPLIB=
+	docker pull alpine
+	apk add gcc musl-dev make
+	make 'CC=gcc --static' OPTFLAGS=-O3 SYSDEFS='-DLinux -DJTC' TERMCAPLIB=
 The resulting jjove can be run standalone pretty-much anywhere,
 though the doc/jove.rc file might also be useful.
 
 Some features.
 --------------
 
-"doc/jove.rc" and "doc/example.rc" are JOVE initialization files.  "jove.rc"
-is the recommended "system" rc file (until you are ready to roll your own,
-that is).  It gets read every time JOVE starts up FOR EVERYONE ("make
-install" should copy it to the right place automatically).  After that
-JOVE reads the initialization file .joverc in the user's home directory.
-"example.rc" is my personal .joverc.
+"doc/jove.rc" and "doc/example.rc" are JOVE initialization
+files.  "jove.rc" is the recommended "system" rc file (until
+you are ready to roll your own, that is).  It gets read
+every time JOVE starts up FOR EVERYONE ("make install"
+should copy it to the right place automatically).  After
+that JOVE reads the initialization file .joverc in the
+user's home directory.  "example.rc" is taken from a
+personal .joverc.
 
-The files intro.nr and cmds.nr in the doc directory are the official JOVE
-manual.  I got permission from Richard Stallman to use his manual for the
-original EMACS, modifying it where necessary for JOVE.  Lots of work was
-done by Brian Harvey on this manual.
+The files intro.nr and cmds.nr in the doc directory are the
+official JOVE manual.  Jonathan got permission from Richard
+Stallman to use his manual for the original EMACS, modifying
+it where necessary for JOVE.  Lots of work was done by Brian
+Harvey on this manual.
 
-There are man pages for jove and teachjove.  Teachjove is for people who
-have never used EMACS style editors.  It is an interactive tutorial, THE
-tutorial written by Stallman for the original EMACS, only slightly
-modified for JOVE in the appropriate places.  The man pages are
-completely up to date, thanks to me.
+There are man pages for jove and teachjove.  Teachjove is
+for people who have never used EMACS style editors.  It is
+an interactive tutorial, THE tutorial written by Stallman
+for the original EMACS, only slightly modified for JOVE in
+the appropriate places.  The man pages are completely up to
+date, thanks to Jon.
 
 
 Some acknowledgments.
@@ -216,7 +230,7 @@ Thanks to Jim Patterson for the Win 32 port.
 Thanks to the other JoveHacks for testing and for contributing numerous
 fixes, portability enhancements, and pieces of sage advice.
 
-	D. Hugh Redelmeier (hugh@mimosa.com)
+	D. Hugh Redelmeier
 
 Changes since 4.16
 ------------------
@@ -432,8 +446,15 @@ If a window-find command is issued while the current window's lines
 are numbered, the numbering may become wrong temporarily.  We are
 working on this bug.
 
-JOVE can not handle lines longer than JBUFSIZ characters (usually 1024,
-but 512 on some small systems).  Eliminating this limit is not easy.
+JOVE can not handle lines longer than JBUFSIZ characters
+(usually 4096, but 512 on some small systems).  Eliminating
+this limit is not easy.  JBUFSIZ is 2^JLGBUFSIZ, which can
+be raised; JOVE keeps NBUF such buffers in memory and
+reads/writes these from/to a temporary file, and lines may
+not exceed a buffer, so making JLGBUFSIZ larger increases
+the max line length.  However, it increases memory
+consumption, though that only matters on machines in the
+sub-megabyte range.
 
 JOVE can not handle NUL characters in the buffer.  In most cases,
 they are discarded silently, another dubious feature.
@@ -441,16 +462,20 @@ they are discarded silently, another dubious feature.
 JOVE does not handle Unicode (aka UTF-8), it silently ignores LANG,
 locale etc.  Fixing this limitation is not easy.
 
+On machines with 16bit ints, jove line numbers will go
+negative at 32767.  This affects MSDOS (though in large
+model, Jove usually tops out at about 31000 lines, avoiding
+the problem!)
+
 Bug Reports and Maintenance.
 ----------------------------
 
 Jonathan Payne no longer works on JOVE.
 
-The mailing list jovedev@cs.toronto.edu forwards mail to the group of
-people who care about JOVE.  We welcome submissions to
-jovedev, for example:
+A group of JOVE maintainers supports the
+github.com/jonmacs/jove releases and welcomes:
 
-- queries and suggestions about support for additional systems
+- help or success reports or issues with porting for additional systems
 
 - bug reports (we may already have an explanation or fix)
 

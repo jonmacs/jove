@@ -75,27 +75,24 @@ extern int	lmword[2];		/* local mode word */
 
 # endif /* SGTTY */
 
-#  if !defined(TIOCGWINSZ) || defined(BSDPOSIX)
-   /* In an attempt to get a definition for TIOCGWINSZ,
-    * we include <sys/ioctl.h>.  In a perfect world, we could always
-    * or never include it, but (1) at least SunOS 4.[01] <sys/ioctl.h>
-    * conflicts seriously with <termios.h>, and yet (2) at least BSDI
-    * requires <sys/ioctl.h> to define TIOCGWINSZ.  We hope that this
-    * compromise will work on all systems.
-    *
-    * Another reason to include this file is to get a definition for
-    * TIOCSCTTY under OSF and perhaps BSDPOSIX.
-    */
-#   include <sys/ioctl.h>
-#  endif
+# ifndef NO_IOCTL_H_TTY
+  /* In an attempt to get a definition for TIOCGWINSZ,
+   * we include <sys/ioctl.h>.  In a perfect world, we could always
+   * include it, but at least SunOS 4.[01] <sys/ioctl.h>
+   * conflicts seriously with <termios.h>.  Some systems require it
+   * to define TIOCGWINSZ (e.g. BSDI), or TIOCSCTTY (OSF, other
+   * POSIX?).
+   */
+#  include <sys/ioctl.h>
+# endif
 
-#  ifdef BTL_BLIT
-#   include <sys/jioctl.h>	/* get BTL window resizing definitions */
-#  endif
+# ifdef BTL_BLIT
+#  include <sys/jioctl.h>	/* get BTL window resizing definitions */
+# endif
 
-#  ifdef SCO_ODT3
-#   undef TIOCGWINSZ	/* SCO ODT 3 defines this but does not implement it!!! */
-#  endif
+# ifdef SCO_ODT3
+#  undef TIOCGWINSZ	/* SCO ODT 3 defines this but does not implement it!!! */
+# endif
 
 /* Variables: */
 
