@@ -24,7 +24,7 @@ jobs:
       addons:
         homebrew:
           packages: [gcc@7, *brews]
-        update: true
+          update: true
     # ADD latest gcc (-9) on default linux amd64 (xenial),
     - os: linux
       env: CC=gcc-9
@@ -60,6 +60,7 @@ script:
     dd="DESTDIR=$td"
     o="-Os -Wall -pedantic"
     u=$(uname)
+    e=
     d=
     x=
     lib=
@@ -68,8 +69,10 @@ script:
             t=-ltermcap
             if test -x /usr/bin/getconf; then j=-j$(getconf NPROCESSORS_ONLN); else j=; fi
             ;;
-    SunOS)  e=
-            t=-ltermcap
+    Darwin) t=-ltermcap
+            d="-DTERMIOS"
+	    ;;
+    SunOS)  t=-ltermcap
             if test -x /usr/bin/getconf; then j=-j$(getconf NPROCESSORS_ONLN); else j=; fi
             u=SYSVR4
             o=-O
@@ -87,8 +90,7 @@ script:
             fi
             x="$x XINSTALL=$xi TINSTALL=$xi"
             ;;
-    *)      e=
-            t=-lncurses
+    *)      t=-lncurses
             if test -e /etc/alpine-release; then
                 d="-DUSE_GETCWD -DTERMIOS"; lib=MUSL;
             elif test -e /etc/gentoo-release; then
