@@ -71,7 +71,7 @@ script:
             ;;
     Darwin) t=-ltermcap
             d="-DTERMIOS"
-	    ;;
+            ;;
     SunOS)  t=-ltermcap
             if test -x /usr/bin/getconf; then j=-j$(getconf NPROCESSORS_ONLN); else j=; fi
             u=SYSVR4
