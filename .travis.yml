@@ -24,6 +24,7 @@ jobs:
       addons:
         homebrew:
           packages: [gcc@7, *brews]
+	update: true
     # ADD latest gcc (-9) on default linux amd64 (xenial),
     - os: linux
       env: CC=gcc-9
