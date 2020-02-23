@@ -951,7 +951,7 @@ proc_strt(bufname, clobber, procname, va_alist)
 #  endif /* !GRANTPT_BUG */
 #ifdef TIOCGPTPEER
 	/* if we have TIOCGPTPEER (Linux post-2017), much better to use it! */
-	slvptyfd = ioctl (ptyfd, TIOCGPTPEER, O_RDWR | O_NOCTTY);
+	slvptyfd = ioctl(ptyfd, TIOCGPTPEER, O_RDWR | O_NOCTTY);
 	if (slvptyfd == -1 && errno != EINVAL && errno != ENOTTY) {
 		message("[ioctl TIOCGPTPEER failed]");
 		goto fail;
