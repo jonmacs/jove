@@ -187,6 +187,7 @@ IprocEnvUnset()
 #ifdef PIPEPROCS
 
 char	Portsrv[FILESIZE];	/* path to portsrv program (in LibDir) */
+const char	*procarg0 = "jove-portsrv"; /* helpful identifying it in ps */
 
 int	NumProcs = 0;
 
@@ -202,8 +203,9 @@ register int	nbytes;
 {
 	register Process	p = proc_pid(pid);
 
+	jdbg("read_pipe_proc pid %D %d\n", (long) pid, nbytes);
 	if (p == NULL) {
-		writef("\riproc: unknown pid (%d)", (int)pid);
+		writef("\riproc: unknown pid (%D)", (long) pid);
 	} else if (p->p_io_state == IO_NEW) {
 		/* first message: pid of real child, not of portsrv */
 		pid_t	rpid;
@@ -266,7 +268,8 @@ proc_close(p)
 Process	p;
 {
 	if (p->p_toproc >= 0) {
-		jdbg("closing proc fd %d pid %d", p->p_toproc, p->p_pid);
+		jdbg("closing proc fd %d pid %D NumProcs %d\n",
+		     p->p_toproc, (long) (p->p_pid), NumProcs);
 		(void) close(p->p_toproc);
 		p->p_toproc = -1;	/* writes will fail */
 		NumProcs -= 1;
@@ -326,6 +329,8 @@ proc_strt(bufname, clobber, procname, va_alist)
 
 	dopipe(toproc);
 
+	jdbg("proc_strt NumProcs=%d buf \"%s\" proc \"%s\"\n",
+	     NumProcs, bufname, procname);
 	if (NumProcs++ == 0)
 		kbd_strt();	/* may create kbd process: must be done before fork */
 	switch (pid = fork()) {
@@ -337,7 +342,7 @@ proc_strt(bufname, clobber, procname, va_alist)
 		/* NOTREACHED */
 
 	case 0:
-		argv[0] = "portsrv";
+		argv[0] = (char*)procarg0;
 		va_init(ap, procname);
 		make_argv(&argv[1], ap);
 		va_end(ap);
@@ -347,7 +352,8 @@ proc_strt(bufname, clobber, procname, va_alist)
 		pipeclose(toproc);
 		jcloseall();
 		set_process_env();
-		jdbg("ready to exec %s %s\n", Portsrv, argv[0]);
+		jdbg("ready to exec %s %s %s %s\n", Portsrv, argv[0],
+		     argv[1]? argv[1] : "(null)", argv[2]? argv[2] : "(null)");
 		execv(Portsrv, argv);
 		raw_complain("execl failed: %s", strerror(errno));
 		_exit(1);
@@ -424,8 +430,8 @@ kbd_init()
 		    exit(-1);
 		}
 		jcloseall();
-		jdbg("ready to exec %s kbd", Portsrv);
-		execl(Portsrv, "kbd", (char *)NULL);
+		jdbg("ready to exec %s as %s --kbd\n", Portsrv, procarg0);
+		execl(Portsrv, procarg0, "--kbd", (char *)NULL);
 		raw_complain("kbd exec failed: %s", strerror(errno));
 		exit(-1);
 	}
@@ -440,7 +446,8 @@ private bool	kbd_state = NO;
 void
 kbd_strt()
 {
-	jdbg("kbd_strt state %d pid %d\n", kbd_state, kbd_pid);
+	jdbg("kbd_strt state %d pid %D NumProcs %d\n",
+	     kbd_state, (long) kbd_pid, NumProcs);
 	if (!kbd_state) {
 		if (kbd_pid == -1)
 			kbd_init();
@@ -453,7 +460,8 @@ kbd_strt()
 bool
 kbd_stop()
 {
-	jdbg("kbd_stop state %d pid %d\n", kbd_state, kbd_pid);
+	jdbg("kbd_stop state %d pid %D NumProcs %d\n",
+	     kbd_state, (long) kbd_pid, NumProcs);
 	if (kbd_state) {
 		kbd_state = NO;
 		kill(kbd_pid, KBDSIG);
@@ -465,7 +473,8 @@ kbd_stop()
 void
 kbd_kill()
 {
-	jdbg("kbd_kill state %d pid %d\n", kbd_state, kbd_pid);
+	jdbg("kbd_kill state %d pid %D Numprocs %d\n",
+	     kbd_state, (long) kbd_pid, NumProcs);
 	if (kbd_pid != -1) {
 		kill(kbd_pid, SIGKILL);
 		kbd_pid = -1;
@@ -529,17 +538,14 @@ register int	fd;
 	     p->p_name);
 	if (n <= 0) {
 		if (n < 0) {
-			switch (errno) {
-			case EIO:
-			case EWOULDBLOCK:
-#if EWOULDBLOCK != EAGAIN
-			case EAGAIN:
-#endif
-				/* ??? On some systems, pty reads fail initially, for
-				 * reasons that are not clear to me (DHR).  This code
-				 * forgives these specific kinds of failure until the
-				 * process leaves the NEW state.  We hope that this
-				 * does not cause a long busy wait.
+			if (errno == EIO || RETRY_ERRNO(errno)) {
+				/*
+				 * ??? On some systems, pty reads fail
+				 * initially, for reasons that are not clear to
+				 * me (DHR).  This code forgives these specific
+				 * kinds of failure until the process leaves the
+				 * NEW state.  We hope that this does not cause
+				 * a long busy wait.
 				 */
 				if (p->p_io_state == IO_NEW) {
 					time_t now = time(NULL);
@@ -554,8 +560,7 @@ register int	fd;
 				 * before exiting (eg. Bourne Shell),
 				 * so we treat it as a simple EOF.
 				 */
-				break;
-			default:
+			} else {
 				/* true I/O error */
 				swritef(ibuf, sizeof(ibuf),
 					"\n[pty read error: %s]\n", strerror(errno));
@@ -578,7 +583,7 @@ ProcCont()
 {
 	Process	p = curbuf->b_process;
 
-	jdbg("ProcCont pid %d %s\n", p->p_pid, p->p_name);
+	jdbg("ProcCont pid %D %s\n", (long)(p->p_pid), p->p_name);
 	if (proc_kill(p, SIGCONT) && p->p_child_state == C_STOPPED) {
 		p->p_child_state = C_LIVE;
 		UpdModLine = YES;
@@ -1732,7 +1737,7 @@ ShellProc()
 	char	shbuf[20];
 	register Buffer	*b;
 
-	swritef(shbuf, sizeof(shbuf), "*shell-%d*", arg_value());
+	swritef(shbuf, sizeof(shbuf), "[shell-%d]", arg_value());
 	b = buf_exists(shbuf);
 	if (b == NULL || dead(b->b_process)) {
 		char	cbnspace[FILESIZE];

@@ -320,20 +320,9 @@ int	code;
 #  ifdef NONBLOCKINGREAD
 	setblock(YES);	/* turn blocking on (in case it was off) */
 #  endif
-	for (;;) {
+	do {
 		c = 'n';
-		if (read(0, (UnivPtr) &c, sizeof(c)) < 0) {
-			switch (errno) {
-			case EINTR:
-#  if EWOULDBLOCK != EAGAIN	/* aliases in System Vr4 */
-			case EWOULDBLOCK:
-#  endif
-			case EAGAIN:
-				continue;
-			}
-		}
-		break;
-	}
+	} while (read(0, (UnivPtr) &c, sizeof(c)) < 0 && RETRY_ERRNO(errno));
 #  ifdef PIPEPROCS
 	if (started)
 		kbd_strt();
@@ -544,7 +533,7 @@ kbd_getch()
 #   ifdef UNIX
 					InSlowRead = NO;
 #   endif
-				} while (nchars < 0 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK));
+				} while (nchars < 0 && RETRY_ERRNO(errno));
 				if (nchars <= 0)
 					finish(SIGHUP);
 			}
@@ -1201,6 +1190,7 @@ char	*argv[];
 		case '-':
 			switch (argv[1][1]) {
 			case 'd':	/* Ignore current directory path */
+			case 'D':	/* Ignore debug file name */
 			case 'l':	/* Ignore libdir path */
 			case 's':	/* Ignore sharedir path */
 				argv += 1;
@@ -1682,6 +1672,12 @@ char	*argv[];
 		setCWD(argp[1]);
 	else
 		getCWD();	/* After we setup curbuf in case we have to getwd() */
+
+	if ((argp = scanvec(argv, "-D")) != NULL) {
+		jdpath = argp[1];
+		jdbg("jove debug started %s\n",
+		     get_time((time_t *)NULL, (char *)NULL, 0, -1));
+	}
 
 #ifdef MAC
 	HomeDir = gethome();

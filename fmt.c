@@ -450,7 +450,8 @@ add_mess(fmt, va_alist)
 	message(mesgbuf);
 }
 
-bool jdebug = YES;
+bool jdebug	    = YES;  /* so that first jdprintf is called */
+const char *jdpath  = NULL; /* if non-NULL, will be opened on first jdprintf */
 
 #ifdef STDARGS
 void
@@ -462,22 +463,17 @@ jdprintf(fmt, va_alist)
 	va_dcl
 #endif
 {
-	static File
-		*dfp,
-		*nofp = (File *)-1;
+	static bool first_time = YES;
+	static File *dfp = NULL;
 	va_list	ap;
 
-	if (dfp == NULL) {
-		const char *p = getenv("JOVEDEBUG");
-		if (p) {
-			dfp = f_open(p, F_WRITE, NULL, LBSIZE);
-		} else {
-			dfp = nofp;
-			jdebug = NO;
-		}
+	if (first_time && jdpath != NULL) {
+		dfp = f_open(jdpath, F_WRITE | F_LOCKED, NULL, LBSIZE);
+		jdebug = (dfp != NULL);
+		first_time = NO;
 	}
 	va_init(ap, fmt);
-	if (dfp != nofp) {
+	if (dfp != NULL) {
 		doformat(dfp, fmt, ap);
 		flushout(dfp);
 	}

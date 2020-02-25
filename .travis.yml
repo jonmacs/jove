@@ -64,6 +64,7 @@ script:
     e=
     d=
     x=
+    d=-DTERMIOS
     lib=
     jv=NPROCESSORS_ONLN
     case $u in
@@ -71,13 +72,12 @@ script:
             t=-ltermcap
             ;;
     Darwin) t=-ltermcap
-            d="-DTERMIOS"
             ;;
     SunOS)  t=-ltermcap
             u=SYSVR4
             o=-O
             x="NROFF=nroff TROFF=troff"
-            d="-DREALSTDC"
+            d="-DREALSTDC -DPOSIX_PROCS"
             ur=$(uname -r)
             case "$ur" in
             5.0) d="$d -DGRANTPT_BUG";;
@@ -92,7 +92,7 @@ script:
             ;;
     *)      t=-lncurses
             if test -e /etc/alpine-release; then
-                d="-DUSE_GETCWD -DTERMIOS"; lib=MUSL;
+                d="$d -DUSE_GETCWD"; lib=MUSL;
             elif test -e /etc/gentoo-release; then
                 t=-ltinfo; lib=GLIBC;
             else
@@ -108,7 +108,7 @@ script:
     make clean &&
     make $j OPTFLAGS="$o" SYSDEFS=-D$u TERMCAPLIB=$t EXTRALIBS=$e $x $dd/t10-$u install &&
     make clean &&
-    make $j OPTFLAGS="$o" SYSDEFS="-DPIPEPROCS -DPOSIX_PROCS $d" $x TERMCAPLIB=$t $dd/t20-pipeprocs install &&
+    make $j OPTFLAGS="$o" SYSDEFS="-DPIPEPROCS $d" $x TERMCAPLIB=$t $dd/t20-pipeprocs install &&
     make clean &&
     make $j OPTFLAGS="$o" SYSDEFS="-DBSDPOSIX $d" TERMCAPLIB=$t $x $dd/t30-bsdposix install &&
     make clean &&

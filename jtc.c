@@ -34,10 +34,8 @@ extern int avoid_pedantic_complaints_about_empty_translation_unit;
 #include "fmt.h"	/* for swritef */
 #include "fp.h"		/* for flushscreen */
 
-#ifdef USE_SELECT
-#  include <sys/time.h>
-#  include "select.h"
-#endif
+#include <sys/time.h>
+#include "select.h"
 
 #ifdef TERMIOS
 # include <termios.h>

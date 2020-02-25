@@ -12,6 +12,8 @@ jove \- an interactive display-oriented text editor
 [
 .BI \-d \ directory
 ] [
+.BI \-D \ debugfile
+] [
 .BI \-l \ libdir
 ] [
 .BI \-s \ sharedir
@@ -108,6 +110,11 @@ C shell initialization file (.cshrc):
 	alias popd      'popd \e!*; setenv CWD $cwd'
 	alias pushd     'pushd \e!*; setenv CWD $cwd'
 .fi
+.BI \-D \ debugfile
+.I debugfile
+is created if missing, and some internal debug output is written to it. 
+Only for developers (or filing with bug reports on interactive-shell
+misbehaviour)
 .TP
 .BI \-l \ libdir
 Allows the user to specify the directory in which binary files required by

@@ -62,22 +62,26 @@ CC = wcc
 # -w<number>	set warning level number
 # -wx		generate all warnings
 # -zq		operate quietly (diagnostics are not suppressed)
+# -os		optimize for size over speed
+# -ot		optimize for speed over size
+# -s 		do not add stack overflow check code
 #
 # Same as UNIX:
 # -d<name>[=text] precompilation #define name [text]
 # NOTE: quotes around the macro body in a -D are actually taken as part
 # of that body!!
 
-# -ms (small mode) does not work (Jove is about 20K over the 64K code limit,
-# even with -DBAREBONES)
+# -ms (small mode) cannot be used (Jove is about 15K over the 64K code limit,
+# even with -DBAREBONES, and OPTFLAGS="-os -s")
 # -mm (medium mode) builds with -DSMALL to avoid running out of heap 
 # memory when editing many files.
 # -ml (large mode) is recommended, has more buffers and should be faster
 # for practical use, takes advantage of all heap memory so can keep a very
-# large number of files open, big tmp file, but the price is somewhat fewer
-# lines than -mm before it runs out of heap. 640K ought to be enough for anyone!
+# large number of files open, big tmp file, but the price is 30% fewer lines
+# than -mm before it runs out of heap. 640K ought to be enough for anyone!
 MODEL = -ml
-CFLAGS = $(MODEL) -wx -zq -dOWCDOS=1
+OPTFLAGS = -os	# optimize for size over speed
+CFLAGS = $(MODEL) $(OPTFLAGS) -wx -zq -dOWCDOS=1
 
 # Linker:
 
@@ -86,10 +90,12 @@ LD = wcl
 # Watcom wcl (Watcom Compile/Link) Link Flags:
 #
 # -fe=<file_name> set .exec output file name
+# -fm 		generate .map file
 # -kN		allocate N bytes for stack
 # -x		make case of names significant
 
-LDFLAGS = $(CFLAGS) -x
+STACKSIZE = 12000
+LDFLAGS = $(CFLAGS) -x -k$(STACKSIZE)
 
 # ===================================================================
 # Implicit rules.
@@ -122,9 +128,9 @@ HEADERS = abbrev.h argcount.h ask.h buf.h c.h case.h chars.h commands.h &
 # by adding it to the dependencies for explicit targets.
 # In the hope that it is built soon enough, we put it at the front.
 
-#	* $(LD) $(LDFLAGS) -k8196 -fe=$* $(OBJECTS)
+#	* $(LD) $(LDFLAGS) -fe=$* $(OBJECTS)
 jjove.exe:	paths.h $(OBJECTS) wildargv.obj
-	$(LD) $(LDFLAGS) -k8196 -fm -fe=$* *.obj
+	$(LD) $(LDFLAGS) -fm -fe=$* *.obj
 
 # Complains about an overly long command
 # $(OBJECTS):	$(HEADERS)

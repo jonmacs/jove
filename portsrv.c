@@ -12,6 +12,7 @@
  * of misc. programs to install.  The resulting program is small anyway.
  */
 
+#define USE_STDIO_H 1
 #include "jove.h"
 
 #ifdef PIPEPROCS	/* almost the whole file! */
@@ -31,14 +32,42 @@ private struct lump	lump;
  * a lot when it's getting its keyboard input via a pipe.
  */
 
+#ifdef POSIX_SIGS
+SIGHANDLERTYPE
+setsighandler(signo, handler)
+int	signo;
+SIGHANDLERTYPE	handler;
+{
+	static struct sigaction	act;	/* static so unspecified fields are 0 */
+	struct sigaction	oact;
+
+	act.sa_handler = handler;
+	act.sa_flags = SA_RESTART | SA_NODEFER;
+	sigaction(signo, &act, NULL);
+	return oact.sa_handler;
+}
+#else
+# define setsighandler(signo, handler) signal((signo), (handler))
+#endif
+
 private SIGRESTYPE strt_read proto((int));
+private volatile bool wait_for_sig = NO;
 
 private SIGRESTYPE
 hold_read(junk)
 int	junk;	/* passed in when invoked by a signal; of no interest */
 {
-	signal(KBDSIG, strt_read);
+	setsighandler(KBDSIG, strt_read);
+#if defined(BSD_SIGS)||defined(POSIX_SIGS)
+	/*
+	 * with restartable signals, the read() in kbd_process() might never
+	 * return EINTR, so need to wait here till we receive KBDSIG again.
+	 */
 	pause();
+#else
+	/* For old non-BSD Unix, without restartable signals */
+	wait_for_sig = YES;
+#endif
 	return SIGRESVALUE;
 }
 
@@ -46,7 +75,8 @@ private SIGRESTYPE
 strt_read(junk)
 int	junk;
 {
-	signal(KBDSIG, hold_read);
+	setsighandler(KBDSIG, hold_read);
+	wait_for_sig = NO;
 	return SIGRESVALUE;
 }
 
@@ -69,8 +99,10 @@ detach()
 		 * machines, need to detach from the
 		 * controlling terminal.
 		 */
-		(void) ioctl(fd, TIOCNOTTY, (UnivPtr)0);
-		(void) close(fd);
+		if (fd >= 0) {
+		    (void) ioctl(fd, TIOCNOTTY, (UnivPtr)0);
+		    (void) close(fd);
+		}
 	}
 #endif
 	NEWPG();
@@ -80,7 +112,7 @@ private void
 kbd_process()
 {
 	int	pid,
-		n;
+		n = -1;
 
 	detach();
 	signal(SIGINT, SIG_IGN);
@@ -89,17 +121,20 @@ kbd_process()
 
 	strt_read(0);
 	for (;;) {
+		if (wait_for_sig) {
+		    pause();
+		}
 		n = read(0, (UnivPtr) lump.data, sizeof(lump.data));
-		if (n == -1) {
-			if (errno == EINTR || errno == EWOULDBLOCK || errno == EAGAIN)
-				break;
-
+		if (n < 0) {
+			if (!RETRY_ERRNO(errno))
+				break;	/* something unfortunate hapened?! */
+			/* most likely KBDSIG */
 			continue;
 		}
 		lump.header.nbytes = n;
 		/* It is not clear what we can do if this write fails */
 		do {} while (write(1, (UnivPtr) &lump, sizeof(struct header) + n) < 0
-			&& errno == EINTR);
+			&& RETRY_ERRNO(errno));
 	}
 }
 
@@ -107,15 +142,13 @@ kbd_process()
  * standard output goes to jove's process input.
  */
 
-private int	tty_fd;
-
 private void
 proc_write(ptr, n)
 UnivConstPtr	ptr;
 size_t	n;
 {
 	/* It is not clear what we can do if this write fails */
-	do {} while (write(1, ptr, n) < 0 && errno == EINTR);
+	do {} while (write(1, ptr, n) < 0 && RETRY_ERRNO(errno));
 }
 
 private void
@@ -139,8 +172,20 @@ char	*str;
 	strcpy(lump.data, str);
 	proc_write((UnivConstPtr) &lump, sizeof(struct header) + lump.header.nbytes);
 	/* It is not clear what we can do if this write fails */
-	do {} while (write(tty_fd, (UnivConstPtr)str, strlen(str)) < 0 && errno == EINTR);
-	exit(-2);
+#ifndef TIOCNOTTY
+	{
+		/*
+		 * for last-ditch error-reporting on old machines. On new
+		 * machines, we are either detached from tty or trying to open
+		 * it might hang.
+		 */
+		int tfd = open("/dev/tty", O_WRONLY | O_BINARY);
+		if (tfd >= 0)
+		do {} while (write(tfd, (UnivConstPtr)str, strlen(str)) < 0 &&
+			     RETRY_ERRNO(errno));
+	}
+#endif
+	_exit(-2);
 }
 
 private void
@@ -172,9 +217,6 @@ char	**argv;
 
 	default:
 		(void) close(0);
-#ifndef TIOCNOTTY
-		tty_fd = open("/dev/tty", O_WRONLY | O_BINARY);
-#endif
 		(void) signal(SIGINT, SIG_IGN);
 		(void) signal(SIGQUIT, SIG_IGN);
 		(void) close(p[1]);
@@ -185,7 +227,7 @@ char	**argv;
 		byte_copy((UnivConstPtr) &pid, (UnivPtr) lump.data, sizeof(pid_t));
 		/* It is not clear what we can do if this write fails */
 		do {} while (write(1, (UnivConstPtr) &lump, sizeof(struct header) + sizeof(pid_t)) < 0
-			&& errno == EINTR);
+			&& RETRY_ERRNO(errno));
 
 		/* read proc's output and send it to jove */
 		read_pipe(p[0]);
@@ -221,17 +263,32 @@ main(argc, argv)
 int	argc;
 char	**argv;
 {
-	if (strcmp(argv[0], "kbd") == 0)
+	if (argc == 2 && strcmp(argv[1], "--kbd") == 0) {
 		kbd_process();
-	else
+	} else if (argc > 2) {
 		portsrv_process(argc, argv);
+	} else {
+		fprintf(stderr, "Usage: %s --kbd\nor\n%s EXECUTABLE ARGV...\n",
+			argv[0], argv[0]);
+		exit(1);
+	}
 	return 0;
 }
 
 #else /* !PIPEPROCS */
+/*
+ * Without PIPEPROCS (ptyprocs or NO_IPROCS), this program
+ * should neither be installed nor called, but just in case,
+ * some verbosity to help with the bug report!
+ */
 int
-main()
+main(int argc, char **argv)
 {
-	return 0;
+	int i;
+	fprintf(stderr, "%s not compiled for PIPEPROCS: argc=%d\n", argv[0],
+		argc);
+	for (i = 0; i < argc; i++)
+		fprintf(stderr, "argv[%d] = \"%s\"\n", i, argv[i]);
+	return 1;
 }
 #endif /* !PIPEPROCS */

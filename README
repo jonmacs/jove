@@ -70,7 +70,7 @@ use:
     make SYSDEFS="-DXLINUX -DJTC" TERMCAPLIB= install
 
 Solaris:
-  make SYSDEFS="-DSYSVR4" install
+  make SYSDEFS="-DSYSVR4" TERMCAPLIB=-ltermcap install
 
 Other systems:
   Read comments about SYSDEFS settings in Makefile, check sysdep.h

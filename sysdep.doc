@@ -47,6 +47,9 @@ TERMIO		Have "struct termio" and termio.h for tty characteristics.
 		BSD-style Job Control, don't use TERMIO: it cannot
 		suppress the action of some magic characters.
 
+SunOS4 sys/ioctl.h conflicts seriously with termios.h, so it needs
+NO_IOCTL_H_TTY
+
 Jove needs to know the current working directory for pathname optimization
 and the directory functions that it provides ("cd", "pushd", etc).
 Define one of the following, in order of decreasing preference:

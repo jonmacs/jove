@@ -16,7 +16,11 @@
 #include <errno.h>
 
 #ifndef EWOULDBLOCK
-# define EWOULDBLOCK EAGAIN /* older Unix, e.g. V7 */
+# /* older Unix, e.g. V7 */
+# define RETRY_ERRNO(e)	((e) == EINTR || (e) == EAGAIN)
+#else
+# define RETRY_ERRNO(e) ((e) == EINTR || (e) == EAGAIN || (e) == EWOULDBLOCK)
+
 #endif
 
 #ifdef USE_STDIO_H

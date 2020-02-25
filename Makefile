@@ -124,10 +124,9 @@ JOVETOOLM = $(DMANDIR)/jovetool.$(MANEXT)
 #	Cygwin 3.1.2 (curses)		SYSDEFS=-DCYGWIN TERMCAPLIB=-lncursesw
 #	Darwin aka MacOS X		SYSDEFS=-DDarwin
 #	FreeBSD 12.1			SYSDEFS=-DFreeBSD EXTRALIBS=-lutil
-#	Linux (modern, UNIX98 PTYS)	SYSDEFS=-DLinux  # some have -ltermcap
-#	Linux (modern, UNIX98 PTYS)	SYSDEFS=-DLinux TERMCAPLIB=-lncurses
+#	Linux (modern, UNIX98 PTYS)	SYSDEFS=-DLinux
 #	Linux (modern, UNIX98 PTYS)	SYSDEFS=-DLinux TERMCAPLIB=-lncursesw
-#	Linux (modern, glibc pty.h)	SYSDEFS=-DGLIBCPTY EXTRALIBS=-lutil TERMCAPLIB=...
+#	Linux (modern, glibc pty.h)	SYSDEFS=-DGLIBCPTY EXTRALIBS=-lutil
 #	MacOS X aka Darwin 		SYSDEFS=-DDarwin
 #	NetBSD 8.1			SYSDEFS=-DNetBSD EXTRALIBS=-lutil
 #	OpenBSD 6.6			SYSDEFS=-DOpenBSD EXTRALIBS=-lutil
@@ -137,7 +136,7 @@ JOVETOOLM = $(DMANDIR)/jovetool.$(MANEXT)
 # been tested in the 21st century, they may still work but some of this
 # ancient support may be deleted from Jove at some point, we welcome
 # any recent success stories from jove builders/packagers to refresh
-# or maintain these. Pretty please!
+# or maintain these. Pretty please! Almost all these need TERMCAPLIB=-ltermcap
 # 
 #	Apple A/UX on macIIs		SYSDEFS=-DA_UX
 #	BSD4.2,4.3			SYSDEFS=-DBSD4
@@ -202,20 +201,24 @@ DEPENDFLAG = -M
 #	DEPENDFLAG = -xM
 
 # Flags for Library to provide termcap functions.
-# Some systems have dropped termcap: use -lcurses (fatter!) or -lncurses
-#	Cygwin32: TERMCAPLIB = -L/usr/local/lib -lcurses
-#	SysV Rel. 2: TERMCAPLIB = -lcurses
-#	SCO UNIX: TERMCAPLIB = -lcurses
-#	AIX on the R6000s: TERMCAPLIB = -lcurses -ltermcap -ls
-#	OpenSuSE: TERMCAPLIB = -lncurses
+# Most modern open-source systems have dropped termcap, or ship it
+# as part of the ncurses or tinfo packages.
+# For systems without dynamic libraries, termcap or terminfo are smaller,
+# and preferable to the bulkier curses library.
+#	BSD4.x, BSDI, SunOS4: TERMCAPLIB=-ltermcap
+#	Old Cygwin32: TERMCAPLIB=-L/usr/local/lib -lcurses
+#	SysV Rel. 2: TERMCAPLIB=-lcurses
+#	SCO UNIX: TERMCAPLIB=-lcurses
+#	AIX on the R6000s: TERMCAPLIB=-lcurses -ltermcap -ls
+#	OpenSuSE: TERMCAPLIB=-lncurses
 # Jove comes with a simplified termcap substitute that only supports
 # ANSI X.3/VT[1-5]xx or compatible terminal emulators like xterm, rxvt, etc,
 # which is almost certainly all that is necessary on modern machines.
 # To use it, define -DJTC and leave TERMCAPLIB unset
 
-TERMCAPLIB = -ltermcap
+TERMCAPLIB = -lncurses
 
-# Extra libraries flags needed by oddball systems.
+# Extra libraries flags needed by various systems.
 # Some BSD systems using openpty need its library.
 #	4.1BSD:	EXTRALIBS = -ljobs
 #	FreeBSD 4.2: EXTRALIBS = -lutil

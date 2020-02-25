@@ -340,7 +340,7 @@ char	*command;
 	do {
 		c = *command++;
 	} while (jiswhite(c));
-	*cp++ = '*'; /* same convention as minibuf for output window names */
+	*cp++ = '['; /* avoid potential clash with script or program names */
 	while (cp < &bnm[sizeof(bnm) - 1] && c != '\0' && !jiswhite(c)) {
 		*cp++ = c;
 		c = *command++;
@@ -353,7 +353,7 @@ char	*command;
 		cp--; /* make sure cp points at '\0' */
 	}
 	if (cp > &bnm[1] && cp < &bnm[sizeof(bnm)-1]) {
-		*cp++ = '*';
+		*cp++ = ']';
 		*cp = '\0';
 	}
 	return bnm;
