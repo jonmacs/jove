@@ -623,7 +623,7 @@ tape-backup:	.filelist
 # Build a distribution: a gzipped tar file with a name "jove-<version>.tgz"
 # The tar will unpack into a directory with the name jove-<version>
 # Beware: old files with these names will be blown away.
-distrib:	.filelist
+tgz:	.filelist
 	set -u ; set -e ; \
 	BN=jove-`cat .version` ; \
 	rm -rf $$BN $$BN.tgz* ; \
@@ -633,7 +633,9 @@ distrib:	.filelist
 	rm -rf $$BN ; \
 	ls -l $$BN.tgz
 
-rpm: distrib $(RPMHOME)
+distrib: tgz zip
+
+rpm: tgz $(RPMHOME)
 	# rpmbuild really wants the source tarball to have
 	# the basename of Source0 in the rpm spec, and be
 	# in the rpmbuild SOURCES directory.
@@ -642,13 +644,8 @@ rpm: distrib $(RPMHOME)
 	cp $$BN.tgz $(RPMHOME)/$$rpmsrc; \
 	rpmbuild -ta $(RPMHOME)/$$rpmsrc
 
-# create a distribution and a separate PGP signature for it
-signeddistrib-pgp:	distrib
-	BN=jove-`cat .version` ; \
-	pgp -sba $$BN.tgz; \
-	chmod a+r $$BN.tgz.asc
-
-signeddistrib-gpg:	distrib
+# create a distribution and a separate GPG signature for it
+signed:	tgz
 	BN=jove-`cat .version` ; \
 	gpg -sba $$BN.tgz; \
 	chmod a+r $$BN.tgz.asc
@@ -668,26 +665,27 @@ checksum:	.filelist
 # Preformatted documentation. [would like a joverc]
 # tags
 
-DOSSRC = $(HEADERS) $(C_SRC) setmaps.c keys.txt \
+DOSSRC = $(HEADERS) $(C_SRC) setmaps.c recover.c keys.txt \
 	Makefile.msc Makefile.wat \
 	README README.dos README.w32 README.cyg sysdep.doc tune.doc style.doc \
 	jjove.rc $(FDOCS) tags \
 	doc/teach-jove doc/jove.qref doc/jove.rc doc/example.rc
 
-jovedoss.zip:	.version $(DOSSRC) jjove.ico Makefile
+zip:	.version $(DOSSRC) jjove.ico Makefile
 	set -u ; set -e ; \
-	BN=jove`sed 's/\.//g;s/^\(....\).*/\1/' .version` && \
+        V=`sed 's/\.//g;s/^\(...\).*/\1/' .version` && \
+	BN=jove$${V}s && \
 	rm -rf $$BN && \
 	mkdir $$BN && \
 	tar cf - jjove.ico $(DOSSRC) | ( cd $$BN ; tar xf - ) && \
-	zip -q -k jovedoss-tmp$$$$.zip $$BN/jjove.ico && \
+	zip -q -k jovetmp$$$$.zip $$BN/jjove.ico && \
 	rm -f $$BN/jjove.ico && \
 	mv $$BN/doc/jove.man.ps $$BN/doc/joveman.ps && \
-	zip -q -k jovedoss-tmp$$$$.zip -r -l $$BN/* && \
-	rm -f jovedoss.zip && \
-	mv jovedoss-tmp$$$$.zip jovedoss.zip && \
+	zip -q -k jovetmp$$$$.zip -r -l $$BN/* && \
+	rm -f jove$${V}s.zip && \
+	mv jovetmp$$$$.zip jove$${V}s.zip && \
 	rm -rf $$BN ; \
-	ls -l jovedoss.zip
+	ls -l jove$${V}s.zip
 
 touch:
 	touch $(OBJECTS)
@@ -695,14 +693,15 @@ touch:
 clean:
 	rm -f a.out core *.o keys.c jjove$(XEXT) portsrv$(XEXT) recover$(XEXT) \
 		setmaps$(XEXT) teachjove$(XEXT) make.log *.map \#* *~ *.tmp \
-		$(DIST).tgz jjove.pure_* ID \
+		jjove.pure_* ID \
 		.filelist xjove/.filelist .version
 
 cleanall: clean
 	( cd xjove ; make clean )
 
+# NOTE: deletes distrib
 clobber: clean
-	rm -f paths.h $(FDOCS) $(GEN) tags *.orig *.rej
+	rm -f paths.h $(FDOCS) $(GEN) tags *.tgz *.zip *.orig *.rej
 	( cd xjove ; make clobber )
 
 # This version only works under 4.3BSD

@@ -122,8 +122,8 @@ script:
         make clean
         ;;
     esac &&
-    make $x distrib &&
-    if type zip 2> /dev/null; then make $x jovedoss.zip; fi &&
+    make $x tgz &&
+    if type zip 2> /dev/null; then make $x zip; fi &&
     ls -s $(find $td | grep /bin/) &&
     rm -rf $td &&
     set +u
