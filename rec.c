@@ -15,10 +15,6 @@
 #include "fmt.h"
 #include "recover.h"
 
-#if !defined(MAC) && !defined(ZTCDOS)
-# include <sys/file.h>
-#endif
-
 private int	rec_fd = -1;
 private char	*recfname;
 private File	*rec_out;
@@ -51,7 +47,7 @@ recinit()
 #ifdef MAC
 		".jrecXXX"	/* must match string in mac.c:Ffilter() */
 #else
-		"jrecXXXXXX"
+		"jrXXXXXX"
 #endif
 		);
 	recfname = copystr(buf);
@@ -61,10 +57,8 @@ recinit()
 
 	/* Initialize the record header (TmpFileName initialized by rectmpname). */
 	Header.RecMagic = RECMAGIC;
-#ifdef UNIX
 	Header.Uid = getuid();
 	Header.Pid = getpid();
-#endif
 }
 
 /* Close recfile before execing a child process.
@@ -130,6 +124,7 @@ SyncRec()
 {
 	register Buffer	*b;
 	static bool	beenhere = NO;
+	time_t		tupd;
 
 	/* Count number of interesting buffers.  If none, don't bother syncing. */
 	Header.Nbuffers = 0;
@@ -154,7 +149,8 @@ SyncRec()
 		return;
 
 	f_seek(rec_out, (off_t)0);
-	(void) time(&Header.UpdTime);
+	(void) time(&tupd);
+	Header.UpdTime = tupd;
 	Header.FreePtr = DFree;
 	dmpobj(Header);
 	for (b = world; b != NULL; b = b->b_next)

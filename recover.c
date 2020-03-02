@@ -6,7 +6,7 @@
  **************************************************************************/
 
 /* Recovers JOVE files after a system/editor crash.
- * Usage: recover [-d directory] [-syscrash]
+ * Usage: recover [-d directory] [-syscrash] [-uid UID][-v] [-D]
  * The -syscrash option is specified in /etc/rc.  It directs recover to
  * move all the jove tmp files from tmp_dir (/tmp) to RECDIR (/usr/preserve).
  * recover -syscrash must be invoked in /etc/rc BEFORE /tmp gets cleared out.
@@ -15,7 +15,14 @@
  * The -d option lets you specify the directory to search for tmp files when
  * the default isn't the right one.
  *
- * Look in Makefile to change the default directories.
+ * The -uid option lets you specify the user id if you wish to recover
+ * files for another user (presumably as root, since otherwise you should
+ * not be able to read the recovery/tmp files)
+ *
+ * The -v option turns on some verbose chatter to the screen, and -D
+ * turns on even more verbose debugging to a file.
+ *
+ * Change JRECDIR and JTMPDIR in Makefile to change the default directories.
  */
 
 #define USE_STDIO_H 1
@@ -36,23 +43,25 @@ char	*argv[];
 
 #else /* RECOVER */	/* the body is the rest of this file */
 
-#include "temp.h"
 #include "sysprocs.h"
 #include "rec.h"
 #include "paths.h"
 
 #include "recover.h"
+#include <sys/stat.h>
 
-#ifdef UNIX
+#ifndef UNIX
+# define signal(x, y)	-1
+# define kill(x, y)	-1
+#else /*UNIX */
 # include <signal.h>
 # include <sys/file.h>
 # include <pwd.h>
 # include <time.h>
-#endif
 
-#ifdef USE_UNAME
-# include <sys/utsname.h>
-#endif
+# ifdef USE_UNAME
+#  include <sys/utsname.h>
+# endif
 
 /* Strictly speaking, popen is not available in stdio.h in POSIX.1 or ANSI-C.
  * It is part of POSIX.2, and declared incorrectly in OSF/1, so we suppress
@@ -62,7 +71,7 @@ char	*argv[];
 extern FILE	*popen proto((const char *, const char *));
 #endif
 
-#ifndef FULL_UNISTD
+# ifndef FULL_UNISTD
 
 /* The parameter of getpwuid is widened uid_t,
  * but there no easy portable way to write this
@@ -70,16 +79,18 @@ extern FILE	*popen proto((const char *, const char *));
 extern struct passwd *getpwuid(/*widened uid_t*/);
 extern char	*ctime proto((const time_t *));
 extern void	perror proto((const char *));
+extern int	stat proto((const char *, struct stat *));
 
-# ifdef USE_UNAME
+#  ifdef USE_UNAME
 extern int	uname proto((struct utsname *));
-# endif
+#  endif
 
-# ifdef USE_GETHOSTNAME
+#  ifdef USE_GETHOSTNAME
 extern int	gethostname proto((const char *, size_t));
-# endif
+#  endif
 
-#endif /* !FULL_UNISTD */
+# endif /* !FULL_UNISTD */
+#endif /* UNIX */
 
 #ifndef L_SET
 # define L_SET	0
@@ -87,9 +98,10 @@ extern int	gethostname proto((const char *, size_t));
 #endif
 
 private char	blk_buf[JBUFSIZ];
-private int	nleft;
+private long	nleft;
+private long	nshort;
 private FILE	*ptrs_fp;
-private int	data_fd;
+private int	data_fd = -1;
 private struct rec_head	Header;
 private long	Nchars,
 	Nlines;
@@ -97,6 +109,8 @@ private char	tty[] = "/dev/tty";
 private const char	*tmp_dir = TMPDIR;
 private uid_t	UserID;
 private bool	Verbose = NO;
+private bool	Debug = NO;
+private FILE	*dfp;
 private char	RecDir[] = RECDIR;
 
 private struct file_pair {
@@ -107,7 +121,8 @@ private struct file_pair {
 	struct file_pair	*file_next;
 } *First = NULL;
 
-private struct rec_entry	*buflist[100];	/* system initializes to 0 */
+private long			maxbufs;
+private struct rec_entry	**buflist;	/* system initializes to 0 */
 
 #ifndef F_COMPLETION
 # define F_COMPLETION	/* since scandir.c is surrounded by an ifdef */
@@ -133,6 +148,8 @@ erealloc(ptr, size)
 UnivPtr ptr;
 size_t size;
 {
+	if (ptr == NULL)
+		return malloc(size); /* some realloc do not like ptr == NULL */
 	if ((ptr = realloc(ptr, size)) == NULL) {
 		fprintf(stderr, "couldn't realloc(%ld)\n", (long)size);
 		exit(1);
@@ -170,7 +187,7 @@ char	*buf;
 {
 	register char	*bp,
 			*lp;
-	register int	nl;
+	register long	nl;
 
 	lp = buf;
 	bp = getblock(tl);
@@ -179,42 +196,61 @@ char	*buf;
 	while ((*lp++ = *bp++) != '\0') {
 		if (--nl == 0) {
 			/* oops: line didn't end within block: fake it */
+			if (Verbose)
+				fprintf(dfp, "warning: truncated line %lu\n", (unsigned long)tl);
 			*lp++ = '\0';
 			break;
 		}
 	}
 }
 
+private jmp_buf	int_env;
+
 private char *
 getblock(atl)
 daddr	atl;
 {
-	int	bno,
+	daddr	bno,
 		off;
-	static int	curblock = -1;
+	static daddr	curblock = MAX_BLOCKS;
 
 	bno = da_to_bno(atl);
 	off = da_to_off(atl);
 	nleft = JBUFSIZ - off;
+	if (Debug)
+	    fprintf(dfp, "getblock atl %ld bno %ld off %ld nleft %ld\n",
+		    (long)atl, (long)bno, (long)off, (long)nleft);
 
 	if (bno != curblock) {
-		ssize_t r;
+		ssize_t nb;
 		const char *what;
+		off_t r, boff = bno << JLGBUFSIZ;
 
-		errno = 0;
+		if (Debug)
+			fprintf(dfp, "lseek %d to bno %lu 0x%lx boff %ld 0x%lx\n", data_fd, (unsigned long)bno, (unsigned long) bno, boff, boff);
 		what = "lseek";
-		lseek(data_fd, (off_t) bno * JBUFSIZ, L_SET);
-		if (errno == 0) {
+		r = lseek(data_fd, boff, L_SET);
+		if (r >= 0) {
 			what = "read";
-			r = read(data_fd, (UnivPtr)blk_buf, (size_t)JBUFSIZ);
-			if (errno == 0 && r != JBUFSIZ) {
-				fprintf(stderr, "read of JOVE tempfile failed -- too short\n");
-				exit(1);
+			nb = read(data_fd, (UnivPtr)blk_buf, (size_t)JBUFSIZ);
+			if (nb >= 0 && nb != JBUFSIZ) {
+				if (nshort == 0)
+					fprintf(stderr, "short read from JOVE tempfile %ld\n", (long)nb);
+				nshort++;
+				bno = MAX_BLOCKS;
+				if (nb > off) {
+					nleft = nb - off;
+				} else {
+					blk_buf[off] = '\0';
+					nleft = 1;
+				}
+			} else if (nb < 0) {
+				r = -1;
 			}
 		}
-		if (errno != 0) {
-			fprintf(stderr, "%s of JOVE tempfile failed %s\n", what, strerror(errno));
-			exit(1);
+		if (r < 0) {
+			fprintf(stderr, "%s of JOVE tempfile failed bno %ld errno %d %s\n", what, (long)bno, errno, strerror(errno));
+			longjmp(int_env, 1);
 		}
 		curblock = bno;
 	}
@@ -284,10 +320,19 @@ char *fname;
 	struct file_pair	*fp;
 	struct rec_head		header;
 	int	fd;
-	static const char	jrecstr[] = "jrec";
+	/* jrecstr must match the start of the string in recinit */
+#ifdef MAC
+	static const char	jrecstr[] = ".jrec";
+#else
+	static const char	jrecstr[] = "jr";
+#endif
+	struct stat		stbuf;
 
-	if (strncmp(fname, jrecstr, sizeof(jrecstr)-1) != 0)
+	if (strncmp(fname, jrecstr, sizeof(jrecstr)-1) != 0) {
+		if (Debug)
+			fprintf(dfp, "skipping %s\n", fname);
 		return NO;
+	}
 
 	/* If we get here, we found a "recover" tmp file, so now
 	 * we look for the corresponding "data" tmp file.  First,
@@ -296,15 +341,24 @@ char *fname;
 	 * in saving its name.
 	 */
 	(void) sprintf(rfile, "%s/%s", CurDir, fname);
+	if (stat(rfile, &stbuf) != 0 || !S_ISREG(stbuf.st_mode)) {
+		if (Verbose)
+			fprintf(dfp, "skipping non-regular file %s\n", rfile);
+		return NO;
+	}
+	if (Debug)
+		fprintf(dfp, "checking %s\n", rfile);
 	if ((fd = open(rfile, O_RDONLY | O_BINARY | O_CLOEXEC)) != -1) {
 		if (read(fd, (UnivPtr) &header, sizeof header) != sizeof header) {
 			close(fd);
-			fprintf(stderr, "recover: could not read complete header from %s, skipping\n", rfile);
+			fprintf(stderr, "recover: could not read complete header from %s, skipping\n",
+				rfile);
 			return NO;
 		}
 		if (header.RecMagic != RECMAGIC) {
 			close(fd);
-			fprintf(stderr, "recover: %s is not from this version of JOVE, skipping\n", rfile);
+			fprintf(stderr, "recover: skipping incompatible %s magic 0x%lx != our 0x%lx\n",
+				rfile, header.RecMagic, RECMAGIC);
 			return NO;
 		}
 		close(fd);
@@ -357,26 +411,26 @@ options()
 private void	tellme proto((const char *, char *, size_t)),
 	list proto((void));
 
-private struct rec_entry **
+private long
 getsrc()
 {
 	char	name[FILESIZE];
-	int	number;
+	long	number;
 
 	for (;;) {
 		tellme("Which buffer ('?' for list)? ", name, sizeof(name));
 		if (name[0] == '?')
 			list();
 		else if (name[0] == '\0')
-			return NULL;
+			return -1;
 		else if ((number = atoi(name)) > 0 && number <= Header.Nbuffers)
-			return &buflist[number];
+			return number;
 		else {
-			int	i;
+			long	i;
 
 			for (i = 1; i <= Header.Nbuffers; i++)
 				if (strcmp(buflist[i]->r_bname, name) == 0)
-					return &buflist[i];
+					return i;
 			printf("%s: unknown buffer.\n", name);
 		}
 	}
@@ -439,8 +493,7 @@ size_t	anslen;
 	readword(answer, anslen);
 }
 
-private jmp_buf	int_env;
-
+#ifdef UNIX
 private SIGRESTYPE
 catch(junk)
 int	UNUSED(junk);
@@ -448,13 +501,14 @@ int	UNUSED(junk);
 	longjmp(int_env, 1);
 	/*NOTREACHED*/
 }
+#endif /* UNIX */
 
-private void	get proto((struct rec_entry **src, char *dest));
+private void	get proto((long src, char *dest));
 
 private void
 restore()
 {
-	register int	i;
+	register long	i;
 	char	tofile[FILESIZE+1], /* leading # */
 		answer[SMALLSTRSIZE];
 	int	nrecovered = 0;
@@ -477,22 +531,25 @@ tryagain:
 			       sizeof(tofile));
 			goto tryagain;
 		}
-		get(&buflist[i], tofile);
+		if (Debug)
+			fprintf(dfp, "getting %ld %s to %s\n", i,
+				buflist[i]->r_bname, tofile);
+		get(i, tofile);
 		nrecovered += 1;
 	}
 	printf("Recovered %d buffers.\n", nrecovered);
 }
 
-private void	dump_file proto((int which, FILE *out));
+private void	dump_file proto((long which, FILE *out));
 
 private void
 get(src, dest)
-struct rec_entry	**src;
+long	src;
 char	*dest;
 {
 	FILE	*volatile outfile;	/* "volatile" to preserve outfile across setjmp */
 
-	if (src == NULL || dest == NULL)
+	if (src < 0 || src >= maxbufs || dest == NULL)
 		return;
 
 	if (dest == tty) {
@@ -507,14 +564,25 @@ char	*dest;
 	}
 	if (setjmp(int_env) == 0) {
 		(void) signal(SIGINT, catch);
-		dump_file((int)(src - buflist), outfile);
+		dump_file(src, outfile);
 	} else {
 		printf("\nAborted!\n");
 	}
 	(void) signal(SIGINT, SIG_DFL);
 	if (dest != tty) {
-		fclose(outfile);
+		if (fflush(outfile) == EOF || ferror(outfile) ||
+#ifdef USE_FSYNC
+		    fsync(fileno(outfile)) < 0 ||
+#endif
+		    fclose(outfile) == EOF) {
+			fprintf(stderr, "Error flushing/closing %s: errno %d %s\n", dest, errno, strerror(errno));
+		}
 		printf(" %ld lines, %ld characters.\n", Nlines, Nchars);
+	}
+	fflush(stdout);
+	if (nshort) {
+		fprintf(stderr, "%ld missing lines (short reads of data file)\n", nshort);
+		nshort = 0;
 	}
 }
 
@@ -541,10 +609,10 @@ struct rec_entry	*recptr;
 
 private void
 seekto(which)
-int	which;
+long	which;
 {
-	long	offset;
-	int	i;
+	long	offset,
+		i;
 
 	offset = sizeof (Header) + (Header.Nbuffers * sizeof (struct rec_entry));
 	for (i = 1; i < which; i++)
@@ -553,11 +621,32 @@ int	which;
 }
 
 private void
+freeblist()
+{
+	long	i;
+	for (i = 0; i < maxbufs; i++) {
+		if (buflist[i]) {
+			free((UnivPtr) buflist[i]);
+			buflist[i] = NULL;
+		}
+	}
+	free((UnivPtr) buflist);
+	buflist = NULL;
+	maxbufs = 0;
+}
+
+private void
 makblist()
 {
-	int	i;
+	long	i;
 
 	fseek(ptrs_fp, (long) sizeof (Header), L_SET);
+	if (maxbufs <= Header.Nbuffers) {
+		maxbufs = Header.Nbuffers+1;
+		buflist = (struct rec_entry **) erealloc(NULL, maxbufs*sizeof(struct rec_entry *));
+		for (i = 0; i < maxbufs; i++)
+			buflist[i] = NULL;
+	}
 	for (i = 1; i <= Header.Nbuffers; i++) {
 		if (buflist[i] == NULL) {
 			buflist[i] = (struct rec_entry *) malloc (sizeof (struct rec_entry));
@@ -568,10 +657,18 @@ makblist()
 		}
 		read_rec(buflist[i]);
 	}
-	while (buflist[i]) {
-		free((UnivPtr) buflist[i]);
-		buflist[i] = NULL;
-		i += 1;
+	/*
+	 * just for safety, unset any remaining buflist
+	 * entries. since we should always be using
+	 * Header.Nbuffers as a limit, we should never touch these.
+	 */
+	while (i < maxbufs) {
+		if (buflist[i]) {
+			buflist[i]->r_bname[0] = buflist[i]->r_fname[0] = '\0';
+			buflist[i]->r_nlines = buflist[i]->r_dotline =
+				buflist[i]->r_dotchar = 0;
+		}
+		i++;
 	}
 }
 
@@ -586,15 +683,15 @@ register FILE	*fp;
 	while (--nchars >= 0)
 		*cp++ = getc(fp);
 
-	return addr;
+	return addr & ~DDIRTY;
 }
 
 private void
 dump_file(which, out)
-int	which;
+long	which;
 FILE	*out;
 {
-	register int	nlines;
+	register long	nlines; /* XXX lnum_t */
 	register daddr	addr;
 	char	buf[JBUFSIZ];
 
@@ -603,12 +700,18 @@ FILE	*out;
 	Nchars = Nlines = 0L;
 	while (--nlines >= 0) {
 		addr = getaddr(ptrs_fp);
+		if (Debug)
+			fprintf(dfp, "line %ld addr %lu\n", nlines, (unsigned long)addr);
 		jgetline(addr, buf);
 		Nlines += 1;
 		Nchars += 1 + strlen(buf);
 		fputs(buf, out);
-		if (nlines > 0)
+		if (nlines > 0) {
+#ifdef USE_CRLF
+			fputc('\r', out);
+#endif
 			fputc('\n', out);
+		}
 	}
 }
 
@@ -617,10 +720,10 @@ FILE	*out;
 private void
 list()
 {
-	int	i;
+	long	i;
 
 	for (i = 1; i <= Header.Nbuffers; i++)
-		printf("%d) buffer %s  \"%s\" (%d lines)\n", i,
+		printf("%ld) buffer %s  \"%s\" (%ld lines)\n", i,
 			buflist[i]->r_bname,
 			buflist[i]->r_fname,
 			buflist[i]->r_nlines);
@@ -635,24 +738,36 @@ struct file_pair	*fp;
 	char	answer[SMALLSTRSIZE];
 	char	*datafile = fp->file_data,
 		*pntrfile = fp->file_rec;
+	time_t	tupd;
 
 	ptrs_fp = fopen(pntrfile, "rb");
 	if (ptrs_fp == NULL) {
-		if (Verbose)
-			fprintf(stderr, "recover: cannot read rec file (%s).\n", pntrfile);
+		fprintf(stderr, "recover: cannot read rec file (%s).\n", pntrfile);
 		return 0;
 	}
+	if (Debug)
+		fprintf(dfp, "opened %s\n", pntrfile);
 	if (fread((UnivPtr) &Header, sizeof Header, (size_t)1, ptrs_fp) != 1) {
-		if (Verbose)
-			fprintf(stderr, "recover: cannot read header from rec file (%s).\n", pntrfile);
+		fprintf(stderr, "recover: cannot read header from rec file (%s).\n", pntrfile);
 		return 0;
 	}
-	if (Header.Uid != UserID)
+	if (Debug)
+		fprintf(dfp, "read header from %s, uid %ld, pid %ld, %ld bufs, %s\n",
+			pntrfile, Header.Uid, Header.Pid, Header.Nbuffers, Header.TmpFileName);
+
+	if (Header.Uid != (long)UserID) {
+		if (Debug)
+		    fprintf(dfp, "different user %ld != %ld\n",
+			    (long)Header.Uid, (long)UserID);
 		return 0;
+	}
 
 	/* Ask about JOVE's that are still running ... */
-	if (kill(Header.Pid, 0) == 0)
+	if (kill((pid_t)Header.Pid, 0) == 0) {
+		if (Debug)
+		    fprintf(dfp, "still running pid %ld\n", Header.Pid);
 		return 0;
+	}
 
 	if (Header.Nbuffers == 0) {
 		printf("There are no modified buffers in %s; should I delete the tmp file?", pntrfile);
@@ -665,20 +780,23 @@ struct file_pair	*fp;
 		ask_del("Should I delete it? ", fp);
 		return 1;	/* We'll, we sort of found something. */
 	}
-	printf("Found %d buffer%s last updated: %s",
-		Header.Nbuffers,
-		Header.Nbuffers != 1 ? "s" : "",
-		ctime(&Header.UpdTime));
+	tupd = (time_t)Header.UpdTime;
+	printf("Found %ld buffer%s last updated: %s",
+		Header.Nbuffers, Header.Nbuffers != 1 ? "s" : "", ctime(&tupd));
 	data_fd = open(datafile, O_RDONLY | O_BINARY | O_CLOEXEC);
 	if (data_fd == -1) {
 		fprintf(stderr, "recover: but I can't read the data file (%s).\n", datafile);
 		ask_del("Should I delete the tmp files? ", fp);
 		return 1;
 	}
+	if (Debug)
+		fprintf(dfp, "opened fd %d data file %s\n", data_fd, datafile);
 	makblist();
 	list();
 
 	for (;;) {
+		long	src;
+
 		tellme("(Type '?' for options): ", answer, sizeof(answer));
 		switch (answer[0]) {
 		case '\0':
@@ -693,7 +811,12 @@ struct file_pair	*fp;
 			break;
 
 		case 'p':
-			get(getsrc(), tty);
+			if ((src = getsrc()) < 0)
+				break;
+			if (Debug)
+				fprintf(dfp, "getting %ld %s to %s\n",
+					src, buflist[src]->r_bname, tty);
+			get(src, tty);
 			break;
 
 		case 'q':
@@ -704,12 +827,13 @@ struct file_pair	*fp;
 		    {
 			/* So it asks for src first. */
 			char	*dest;
-			struct rec_entry	**src;
-
-			if ((src = getsrc()) == NULL)
+			if ((src = getsrc()) < 0)
 				break;
 
 			dest = getdest();
+			if (Debug)
+				fprintf(dfp, "getting %ld %s to %s\n",
+					src, buflist[src]->r_bname, dest);
 			get(src, dest);
 			break;
 		    }
@@ -748,6 +872,7 @@ struct file_pair	*fp;
 }
 
 
+#ifdef UNIX
 private const char *
 hname()
 {
@@ -777,11 +902,13 @@ struct rec_head *rec;
 	FILE *mail_pipe;
 	struct passwd *pw;
 	int r;
+	time_t tupd;
 
-	if ((pw = getpwuid(rec->Uid))== NULL)
+	if ((pw = getpwuid((uid_t)rec->Uid))== NULL)
 		return;
 
-	last_update = ctime(&(rec->UpdTime));
+	tupd = (time_t)(rec->UpdTime);
+	last_update = ctime(&tupd);
 	/* Start up mail */
 	sprintf(mail_cmd, "/bin/mail %s", pw->pw_name);
 	if ((r = setuid(getuid())) < 0) {
@@ -797,10 +924,10 @@ struct rec_head *rec;
 	setbuf(mail_pipe, mail_cmd);
 	/* Let's be grammatically correct! */
 	buf_string = rec->Nbuffers == 1? "buffer" : "buffers";
-	fprintf(mail_pipe, "Subject: Jove saved %d %s after \"%s\" crashed\n",
+	fprintf(mail_pipe, "Subject: Jove saved %ld %s after \"%s\" crashed\n",
 		rec->Nbuffers, buf_string, hname());
 	fprintf(mail_pipe, " \n");
-	fprintf(mail_pipe, "Jove saved %d %s when the system \"%s\"\n",
+	fprintf(mail_pipe, "Jove saved %ld %s when the system \"%s\"\n",
 		rec->Nbuffers, buf_string, hname());
 	fprintf(mail_pipe, "crashed on %s\n\n", last_update);
 	fprintf(mail_pipe, "You can retrieve the %s using Jove's -r\n",
@@ -827,6 +954,16 @@ savetmps()
 	if (strcmp(tmp_dir, RecDir) == 0)
 		return;		/* Files are moved to the same place. */
 
+	/* sanity check on RecDir */
+	strcpy(buf, RecDir);
+	strcat(buf, "/foo");
+	if (stat(RecDir, &stbuf) < 0 || !S_ISDIR(stbuf.st_mode) ||
+	    access(buf, W_OK) != 0) {
+		fprintf(stderr, "recover: need writable directory \"%s\"\n", RecDir);
+		exit(2);
+	}
+
+	printf("Recovering jove files ... ");
 	get_files(tmp_dir);
 	for (fp = First; fp != NULL; fp = fp->file_next) {
 		if (stat(fp->file_data, &stbuf) < 0) {
@@ -875,7 +1012,9 @@ savetmps()
 		}
 	}
 	free_files();
+	printf("Done.\n");
 }
+#endif /* UNIX */
 
 private int
 lookup(dir)
@@ -888,11 +1027,16 @@ const char	*dir;
 	get_files(dir);
 	for (fp = First; fp != NULL; fp = fp->file_next) {
 		nfound += doit(fp);
-		if (ptrs_fp)
+		if (ptrs_fp) {
 			(void) fclose(ptrs_fp);
-		if (data_fd > 0)
+			ptrs_fp = NULL;
+		}
+		if (data_fd > 0) {
 			(void) close(data_fd);
+			data_fd = -1;
+		}
 	}
+	free_files();
 	return nfound;
 }
 
@@ -928,14 +1072,21 @@ char	*argv[];
 	}
 	if (scanvec(argv, "-v"))
 		Verbose = YES;
+	if ((argvp = scanvec(argv, "-D")) != NULL) {
+		Debug = YES;
+		dfp = fopen(argvp[1], "wc");
+		fprintf(dfp, "debugging %s\n", ctime(NULL));
+	} else {
+		dfp = stdout;
+	}
 	if ((argvp = scanvec(argv, "-d")) != NULL)
 		tmp_dir = argvp[1];
+#ifdef UNIX
 	if (scanvec(argv, "-syscrash")) {
-		printf("Recovering jove files ... ");
 		savetmps();
-		printf("Done.\n");
 		exit(0);
 	}
+#endif
 	if ((argvp = scanvec(argv, "-uid")) != NULL)
 		UserID = atoi(argvp[1]);
 	/* Check default directory */
@@ -945,6 +1096,7 @@ char	*argv[];
 		nfound += lookup(RecDir);
 	if (nfound == 0)
 		printf("There's nothing to recover.\n");
+	freeblist();
 	return 0;
 }
 

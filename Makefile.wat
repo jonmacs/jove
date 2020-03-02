@@ -73,12 +73,13 @@ CC = wcc
 
 # -ms (small mode) cannot be used (Jove is about 15K over the 64K code limit,
 # even with -DBAREBONES, and OPTFLAGS="-os -s")
-# -mm (medium mode) builds with -DSMALL to avoid running out of heap 
-# memory when editing many files.
-# -ml (large mode) is recommended, has more buffers and should be faster
-# for practical use, takes advantage of all heap memory so can keep a very
-# large number of files open, big tmp file, but the price is 30% fewer lines
-# than -mm before it runs out of heap. 640K ought to be enough for anyone!
+# -mm (medium mode) builds with very few I/O buffers, and 512-byte max line
+# length. Might run out of tmp file space or heap memory if editing many
+# files.
+# -ml (large mode) is recommended, has more buffers (so should be faster
+# for normal use), 2K max line length, takes advantage of all heap memory
+# so can keep a very large number of files open.
+# 640K ought to be enough for anyone!
 MODEL = -ml
 OPTFLAGS = -os	# optimize for size over speed
 CFLAGS = $(MODEL) $(OPTFLAGS) -wx -zq -dOWCDOS=1
@@ -110,7 +111,7 @@ LDFLAGS = $(CFLAGS) -x -k$(STACKSIZE)
 OBJECTS = keys.obj commands.obj abbrev.obj ask.obj buf.obj c.obj &
 	case.obj jctype.obj delete.obj extend.obj argcount.obj insert.obj &
 	io.obj jove.obj macros.obj marks.obj misc.obj mouse.obj move.obj &
-	para.obj proc.obj re.obj reapp.obj scandir.obj list.obj &
+	para.obj proc.obj re.obj reapp.obj rec.obj scandir.obj list.obj &
 	keymaps.obj util.obj vars.obj wind.obj fmt.obj disp.obj term.obj &
 	fp.obj screen.obj msgetch.obj ibmpcdos.obj
 
@@ -123,14 +124,24 @@ HEADERS = abbrev.h argcount.h ask.h buf.h c.h case.h chars.h commands.h &
 	sysdep.h sysprocs.h temp.h term.h ttystate.h &
 	tune.h util.h vars.h version.h wind.h
 
+all: jjove.exe recover.exe
+
 #
 # For this reason, we can only force the building of paths.h
 # by adding it to the dependencies for explicit targets.
 # In the hope that it is built soon enough, we put it at the front.
+# To avoid over-long cmd line, we use *.obj for jjove link,
+# which means we have to ensure recover or setmaps use one-step
+# compile-and-link and do not leave .obj lying around.
 
 #	* $(LD) $(LDFLAGS) -fe=$* $(OBJECTS)
 jjove.exe:	paths.h $(OBJECTS) wildargv.obj
+	-del recover.obj
+	-del setmaps.obj
 	$(LD) $(LDFLAGS) -fm -fe=$* *.obj
+
+recover.exe:	recover.c
+	wcl $(CFLAGS) $(LDFLAGS) $< -fe=$@ $<
 
 # Complains about an overly long command
 # $(OBJECTS):	$(HEADERS)
@@ -155,9 +166,10 @@ paths.h:	Makefile.wat
 #define DFLTSHELL "$(DFLTSHELL)"
 <<KEEP
 
-setmaps.exe:	commands.tab keys.txt setmaps.c
-	wcl $(CFLAGS) setmaps.c -fe=setmaps.exe
-	del setmaps.obj
+setmaps.exe:	setmaps.c
+	wcl $(CFLAGS) $(LDFLAGS) $< -fe=$@
+
+setmaps.c: commands.tab
 
 keys.c:	setmaps.exe keys.txt
 	setmaps < keys.txt > keys.c

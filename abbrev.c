@@ -271,7 +271,7 @@ EditAbbrevs()
 #ifdef MAC
 		".jabbXXX"	/* must match string in mac.c:Ffilter() */
 #else
-		"jabbXXXXXX"
+		"jaXXXXXX"
 #endif
 		);
 

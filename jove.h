@@ -280,7 +280,11 @@ extern volatile bool	UpdModLine;	/* Does the mode line need to be updated? */
 
 /* term.c: universal termcap-like declarations */
 
-#define MAXCOLS		512	/* maximum number of columns */
+#ifdef JSMALL
+# define MAXCOLS	132	/* maximum number of columns */
+#else
+# define MAXCOLS	512	/* maximum number of columns */
+#endif
 
 extern int
 	SG,		/* number of magic cookies left by SO and SE */

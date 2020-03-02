@@ -1620,6 +1620,15 @@ char	*argv[];
 	iniargc = argc;
 	iniargv = argv;
 
+	if ((argp = scanvec(argv, "-D")) != NULL) {
+		jdpath = argp[1];
+		jdbg("jove debug started %s\n",
+		     get_time((time_t *)NULL, (char *)NULL, 0, -1));
+	}
+	jdbg("MAXCOLS=%d\n", MAXCOLS);
+	jdbg("NBUF=%d\n", NBUF);
+	jdbg("JBUFSIZ=%d\n", JBUFSIZ);
+
 	if (setjmp(mainjmp)) {
 		ttysetattr(NO);
 		writef("\nAck! I can't deal with error \"%s\" now.\n", mesgbuf);
@@ -1672,12 +1681,6 @@ char	*argv[];
 		setCWD(argp[1]);
 	else
 		getCWD();	/* After we setup curbuf in case we have to getwd() */
-
-	if ((argp = scanvec(argv, "-D")) != NULL) {
-		jdpath = argp[1];
-		jdbg("jove debug started %s\n",
-		     get_time((time_t *)NULL, (char *)NULL, 0, -1));
-	}
 
 #ifdef MAC
 	HomeDir = gethome();

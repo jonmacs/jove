@@ -32,15 +32,14 @@
 # define IBMPCDOS	1
 # define MALLOC_CACHE	1	/* DGROUP gets full otherwise */
 # define REALSTDC	1	/* close enough for us, but ZTCDOS doesn't define __STDC__ */
+# define JSMALL		1	/* less than 64K lines fit in memory anyway */
 # define FAR_LINES	1	/* to squeeze larger files, distance Lines */
+# define FULL_UNISTD	1
 # if defined(__SMALL__) || defined(__COMPACT__)
 /* currently 20K over the 64K limit, so not really viable */
 #  define BAREBONES     1
-#  define SMALL         1
 # endif
-# if defined(__MEDIUM__)
-#  define SMALL		1
-# else
+# if defined(__LARGE__)
 #  define JLGBUFSIZ	11	/* so JBUFSIZ (and max line len) 2048 chars */
 #  define NBUF		31	/* NBUF*JBUFSIZ must be less than 64K */
 # endif
@@ -331,7 +330,7 @@
  * (and hence the maximum length of a line, among other things).
  */
 
-#ifdef SMALL
+#ifdef JSMALL
 # ifndef NBUF
 #  define NBUF		3
 # endif
@@ -359,12 +358,6 @@
 # define EOL	'\n'	/* end-of-line character for files */
 #endif
 
-#ifndef MSDOS	/* maximum path length (including '\0') */
-# define FILESIZE	256
-#else /* MSDOS */
-# define FILESIZE	128	/* currently, 2+1+64+3+1+3+1 == 80 ought to be OK */
-#endif /* MSDOS */
-
 #ifndef SIGRESTYPE	/* default to void, correct for most modern systems */
 # define SIGRESTYPE	void
 # define SIGRESVALUE	/*void!*/
@@ -381,16 +374,20 @@
  * if you cannot use an unsigned type.
  */
 
-#ifdef SMALL
+#ifndef JSMALL
+  typedef unsigned long		daddr;
+# define LG_FILESIZE	8	/* log2 maximum path length (including '\0') */
+#else /* JSMALL */
   typedef unsigned short	daddr;
-#else
-  typedef unsigned long	daddr;
-#endif /* SMALL */
+# define LG_FILESIZE	7	/* currently, 2+1+64+3+1+3+1 == 80 ought to be OK */
+#endif /* JSMALL */
 
-#define NULL_DADDR		((daddr) 0)
+#define NULL_DADDR	((daddr) 0)
+
+#define FILESIZE		(1 << LG_FILESIZE)
 
 #ifndef CHAR_BITS
 # define CHAR_BITS	8	/* factor to convert sizeof => bits */
 #endif
 
-#define DDIRTY	((daddr)1 << (sizeof(daddr)*CHAR_BITS - 1))	/* daddr dirty flag */
+#define DDIRTY		((daddr)1 << (sizeof(daddr)*CHAR_BITS - 1))	/* daddr dirty flag */
