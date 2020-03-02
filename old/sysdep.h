@@ -377,7 +377,7 @@
 # ifdef M_I86LM		/* large memory model */
 #  define NBUF		62	/* NBUF*JBUFSIZ must be less than 64 kB */
 # else
-#  define SMALL		1
+#  define JSMALL		1
 # endif
 /* probably: # define NO_MKSTEMP	1 */
 /* probably: # define NO_MKTEMP	1 */

@@ -60,10 +60,29 @@
  * systems, like the IBM PC, if the blocks are sorted before sync'ing.
  */
 
-/* select chunk size by specifiying its log2 */
+/* Select chunk size by specifiying its log2.
+ * For short daddr, we would like to use all the bits to refer
+ * to lines, so setting LG_CHNK_CHARS to close to max useful
+ * line size means we can address the most lines in the tmp
+ * file, i.e. daddr of N and N+1 almost always refer to
+ * separate lines.  90% of lines in JOVE src, for example, are
+ * less than 64 bytes, and lines between 32 and 64 bytes
+ * account for 40% of total bytes, so 64 seems a good chunk
+ * size.  That does mean that lines less than 32 bytes are
+ * wasting half the chunk in the tmp file, which is about 30%
+ * wasted space in the tmp file (a relatively inexpensive
+ * resource) and also in b_cache (a precious resource).  For
+ * small machines, tmp file size is less of an issue than
+ * memory, by definition, which is why we make this tradeoff.
+ * For large machines, fitting as many lines into b_cache is
+ * good for performance, daddr_bits are cheap for even 32bit
+ * machines, let alone 64bit. On the latter, we probably are
+ * wasting some memory on long daddr_t, int would be fine, but
+ * :shrug:
+ */
 
-#ifdef SMALL
-# define LG_CHNK_CHARS		4	/* save bits in daddr at cost of space in tempfile */
+#ifdef JSMALL
+# define LG_CHNK_CHARS		6	/* save bits in daddr at cost of space in tempfile */
 #else
 # define LG_CHNK_CHARS		0
 #endif

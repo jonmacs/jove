@@ -1310,7 +1310,7 @@ tmpinit()
 #ifdef MAC
 		".joveXXX"	/* must match string in mac.c:Ffilter() */
 #else
-		"joveXXXXXX"
+		"jvXXXXXX"
 #endif
 		);
 	tfname = copystr(buf);
@@ -1551,6 +1551,9 @@ d_cache_init()
 			**hp;	/* Hash pointer */
 	register daddr	bno;
 
+	jdbg("MAX_BLOCKS=%D\n", (long)MAX_BLOCKS);
+	jdbg("CHNK_CHARS=%D\n", (long)CHNK_CHARS);
+	jdbg("BLK_CHNKS=%D\n", (long)BLK_CHNKS);
 #ifdef MALLOC_CACHE
 	if (b_cache == NULL) {
 		b_cache = (Block *) calloc((size_t)NBUF,sizeof(Block));

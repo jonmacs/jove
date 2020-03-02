@@ -60,9 +60,7 @@
 #  define SPELL		"spell %s"	/* spell words and buffer commands (requires SUBSHELL) */
 # endif
 
-# ifdef UNIX
-#  define RECOVER	1	/* include code to attempt recovery from JOVE crashes */
-# endif
+# define RECOVER	1	/* include code to attempt recovery from JOVE crashes */
 
 #endif /* !BAREBONES */
 
