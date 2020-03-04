@@ -434,13 +434,13 @@ int	btype;
 void
 GrowWindowCmd()
 {
-	WindSize(curwind, abs(arg_value()));
+	WindSize(curwind, abs((int)arg_value()));
 }
 
 void
 ShrWindow()
 {
-	WindSize(curwind, -abs(arg_value()));
+	WindSize(curwind, -abs((int)arg_value()));
 }
 
 /* Change the size of the window by inc.  First arg is the window,

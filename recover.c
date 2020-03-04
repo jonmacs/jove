@@ -228,7 +228,7 @@ daddr	atl;
 			    boff = bno_to_seek_off(bno);
 
 		if (Debug)
-			fprintf(dfp, "lseek %d to bno %lu 0x%lx boff %ld 0x%lx\n", data_fd, (unsigned long)bno, (unsigned long) bno, boff, boff);
+			fprintf(dfp, "lseek %d to bno %lu 0x%lx boff %ld 0x%lx\n", data_fd, (unsigned long)bno, (unsigned long) bno, (long)boff, (long)boff);
 		what = "lseek";
 		r = lseek(data_fd, boff, L_SET);
 		if (r >= 0) {
