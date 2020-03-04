@@ -1429,7 +1429,7 @@ Mark	*m;
 	Bufpos	save;
 	char	fname[FILESIZE],
 		lineno[FILESIZE];
-	int	lnum;
+	long	lnum;
 	Window	*savew = curwind;
 	Buffer	*buf;
 
@@ -1439,7 +1439,7 @@ Mark	*m;
 		get_FL_info(fname, lineno);
 		buf = do_find((Window *)NULL, fname, YES, YES);
 		pop_wind(buf->b_name, NO, -1);
-		lnum = atoi(lineno);
+		lnum = atol(lineno);
 		SetLine(next_line(buf->b_first, lnum - 1));
 		SetWind(savew);
 	}

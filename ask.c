@@ -137,7 +137,7 @@ bool	(*d_proc) ptrproto((ZXchar));
 		case CTL('N'):
 		case CTL('P'):
 			if (CurAskPtr != NULL) {
-				int	n = (c == CTL('P') ? -arg_value() : arg_value());
+				long	n = (c == CTL('P') ? -arg_value() : arg_value());
 
 				CurAskPtr = next_line(CurAskPtr, n);
 				if (CurAskPtr == curbuf->b_first && CurAskPtr->l_next != NULL)

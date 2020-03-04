@@ -14,11 +14,11 @@ struct window {
 	Buffer	*w_bufp;	/* buffer associated with this window */
 	LinePtr
 		w_top,		/* top line */
-		w_line;	/* current line */
+		w_line;		/* current line */
+	long	w_topnum;	/* buffer line number of the topline */
 	int
 		w_char,
 		w_height,	/* window height (including mode line) */
-		w_topnum,	/* buffer line number of the topline */
 		w_dotcol,	/* screen column of w_line (set by UpdWindow) */
 		w_dotline,	/* screen line number of w_line (set by UpdWindow) */
 		w_flags,

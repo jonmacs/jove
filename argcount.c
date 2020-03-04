@@ -8,8 +8,8 @@
 #include "jove.h"
 #include "jctype.h"
 
-int	arg_state = AS_NONE,
-	arg_count;
+int	arg_state = AS_NONE;
+long	arg_count;
 
 void
 negate_arg()
@@ -26,8 +26,8 @@ negate_arg()
 private void
 gather_argument(ns, nc)
 	int
-		ns,	/* new state */
-		nc;	/* new count */
+	    ns,		/* new state */
+	    nc;		/* new count */
 {
 	for (;;) {
 		ZXchar	c;
@@ -43,7 +43,7 @@ gather_argument(ns, nc)
 			arg_count = nc;	/* ignore previous value (but remember sign) */
 		} else {
 			/* Continuing in this state. */
-			int	t = arg_count;
+			long	t = arg_count;
 
 			switch (ns) {
 			case AS_NUMERIC:

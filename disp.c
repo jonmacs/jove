@@ -392,9 +392,10 @@ register Window	*w;
 int	start;
 {
 	LinePtr	lp;
-	int	i,
+	long	i,
 		upper,		/* top of window */
-		lower,		/* bottom of window */
+		lower;		/* bottom of window */
+	int
 		strt_col,	/* starting print column of current line */
 		ntries = 0;	/* # of tries at updating window */
 	register struct scrimage	*des_p,
@@ -685,7 +686,7 @@ register int	linenum;
 		des_p->s_flags &= ~(s_DIRTY | s_L_MOD);
 
 		if (w->w_flags & W_NUMLINES)
-			swritef(outbuf, sizeof(outbuf), "%6d  ", des_p->s_vln);
+			swritef(outbuf, sizeof(outbuf), "%6D  ", des_p->s_vln);
 		if (des_p->s_offset != 0) {
 			outbuf[fromcol++] = '!';
 			outbuf[fromcol] = '\0';

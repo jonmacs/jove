@@ -16,13 +16,7 @@ extern void flushscreen proto((void));
 extern File	*jstdout;
 # define scr_putchar(c)	f_putc((c), jstdout)
 extern void		flushscreen proto((void));
-# ifndef JSMALL
-#  define MAXTTYBUF	2048
-# else
-#  define MAXTTYBUF	512
-# endif
 #endif /* !NO_JSTDOUT */
-
 
 #define f_putc(c, fp)	{ while (--(fp)->f_cnt < 0) flushout(fp); *(fp)->f_ptr++ = (c); }
 #define f_getc(fp)	\

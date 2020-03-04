@@ -18,8 +18,9 @@ extern daddr	DFree;	/* pointer to end of tmp file */
 
 extern int	Jr_Len;		/* length of Just Read Line */
 
-extern long	io_chars;
-extern int	io_lines;
+extern long
+		io_chars,
+		io_lines;
 
 extern int	MakeTemp proto((char *, const char *));
 

@@ -42,8 +42,8 @@ int	InJoverc = 0;
 private struct AutoExec {
 	const char	*a_pattern;
 	const data_obj	*a_cmd;
-	int	a_arg_state,
-		a_arg_count;
+	int	a_arg_state;
+	long	a_arg_count;
 } AutoExecs[NEXECS];	/* must be initialized by system to 0 */
 
 private int	ExecIndex = 0;
@@ -147,21 +147,21 @@ Extend()
 	ExecCmd(findcom(": "));
 }
 
-/* Read a positive integer from CP.  It must be in base BASE, and
+/* Read a positive long integer from CP.  It must be in base BASE, and
  * complains if it isn't.  If allints, all the characters
  * in the string must be integers or we return NO (failure); otherwise
  * we stop reading at the first nondigit and return YES (success).
  */
 bool
-chr_to_int(cp, base, allints, result)
+chr_to_long(cp, base, allints, result)
 register const char	*cp;
 int	base;
 bool	allints;
-register int	*result;
+register long	*result;
 {
 	register char	c;
-	int	value = 0,
-		sign;
+	long	value = 0;
+	int	sign;
 
 	if ((c = *cp) == '-') {
 		sign = -1;
@@ -182,6 +182,39 @@ register int	*result;
 	}
 	*result = value * sign;
 	return YES;
+}
+
+/* Read a positive integer from CP.  It must be in base BASE, and
+ * complains if it isn't.  If allints, all the characters
+ * in the string must be integers or we return NO (failure); otherwise
+ * we stop reading at the first nondigit and return YES (success).
+ */
+bool
+chr_to_int(cp, base, allints, result)
+register const char	*cp;
+int	base;
+bool	allints;
+register int	*result;
+{
+	long	value;
+	bool ret = chr_to_long(cp, base, allints, &value);
+	if (ret == YES)
+	    *result = (int)(value & ~0); /* XXX but no worse than before */
+	return ret;
+}
+
+long
+ask_long(def, prompt, base)
+const char	*def;
+const char	*prompt;
+int	base;
+{
+	const char	*val = ask(def, prompt);
+	long	value;
+
+	if (!chr_to_long(val, base, YES, &value))
+		complain("That's not a number!");
+	return value;
 }
 
 int

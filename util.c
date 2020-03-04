@@ -94,9 +94,9 @@ ToLast()
 
 int	MarkThresh = 22;	/* VAR: moves greater than MarkThresh will SetMark (avg screen size) */
 
-private int	line_diff;
+private long	line_diff;
 
-int
+long
 inorder(nextp, char1, endp, char2)
 register LinePtr	nextp,
 		endp;
@@ -138,7 +138,7 @@ int	char1,
 /* Number of lines (forward OR back) from nextp to endp.
  * Note: if they are not related, returns 0.
  */
-int
+long
 LineDist(nextp, endp)
 LinePtr	nextp,
 		endp;
@@ -149,13 +149,13 @@ LinePtr	nextp,
 /* Number of lines forward from "from" to "to"; -1 if not found.
  * Note: if "to" is (LinePtr)NULL, returns number of lines to end + 1
  */
-int
+long
 LinesTo(from, to)
 register LinePtr
 	from,
 	to;
 {
-	int	n = 0;
+	long	n = 0;
 
 	for (;;) {
 		if (from == to)

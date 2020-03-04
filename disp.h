@@ -12,8 +12,8 @@ typedef unsigned long jwid_t;	/* must be > max(sizeof(daddr),sizeof(Buffer *)) *
 
 struct scrimage {
 	int	s_offset,	/* offset to start printing at */
-		s_flags,	/* various flags */
-		s_vln;		/* Visible Line Number */
+		s_flags;	/* various flags */
+	long	s_vln;		/* Visible Line Number */
 	jwid_t	s_id;		/* unique identifier for line */
 	LinePtr	s_lp;		/* line to display (if any) */
 	Window	*s_window;	/* window that contains this line */

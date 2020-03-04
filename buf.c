@@ -872,7 +872,7 @@ register LinePtr	lp;
 LinePtr
 next_line(line, num)
 register LinePtr	line;
-register int	num;
+register long	num;
 {
 	if (num < 0)
 		return prev_line(line, -num);
@@ -886,7 +886,7 @@ register int	num;
 LinePtr
 prev_line(line, num)
 register LinePtr	line;
-register int	num;
+register long	num;
 {
 	if (num < 0)
 		return next_line(line, -num);

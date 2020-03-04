@@ -39,7 +39,8 @@ extern void
 /* private to macros */
 
 extern int
-	arg_state,	/* NO, YES, or YES_NODIGIT */
+	arg_state;	/* NO, YES, or YES_NODIGIT */
+extern long
 	arg_count;
 
 #define	AS_NONE	0	/* no arg */

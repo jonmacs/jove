@@ -28,11 +28,16 @@ extern void
 extern ZXchar
 	addgetc proto((void));
 
+extern long
+	ask_long proto((const char *def, const char *prompt, int base));
+
 extern int
 	ask_int proto((const char *def, const char *prompt, int base)),
 	complete proto((const char *const *possible, const char *def, const char *prompt, int flags));
 
-extern bool	chr_to_int proto((const char *cp, int base, bool allints, int *result));
+extern bool
+	chr_to_int proto((const char *cp, int base, bool allints, int *result)),
+	chr_to_long proto((const char *cp, int base, bool allints, long *result));
 
 /* Commands: */
 extern void

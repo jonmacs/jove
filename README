@@ -448,10 +448,10 @@ working on this bug.
 
 JOVE can not handle lines longer than JBUFSIZ characters
 (usually 4096, but 512 on some small systems).  Eliminating
-this limit is not easy.  JBUFSIZ is 2^JLGBUFSIZ, which can
+this limit is not easy.  JBUFSIZ is 2^LG_JBUFSIZ, which can
 be raised; JOVE keeps NBUF such buffers in memory and
 reads/writes these from/to a temporary file, and lines may
-not exceed a buffer, so making JLGBUFSIZ larger increases
+not exceed a buffer, so making LG_JBUFSIZ larger increases
 the max line length.  However, it increases memory
 consumption, though that only matters on machines in the
 sub-megabyte range.

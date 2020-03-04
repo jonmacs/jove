@@ -133,6 +133,19 @@
 #define EOF	(-1)
 #endif
 
+/* Pervasive data types and constants */
+
+#ifndef CHAR_BIT
+# define CHAR_BIT	8	/* factor to convert sizeof => bits */
+#endif
+
+#ifndef NCHARS
+# define NCHARS 0400
+#endif
+
+#define NULL_DADDR	((daddr) 0)
+#define DDIRTY		((daddr)1 << (sizeof(daddr)*CHAR_BIT - 1))	/* daddr dirty flag */
+
 #define private		static
 
 typedef int	bool;
@@ -280,12 +293,6 @@ extern volatile bool	UpdModLine;	/* Does the mode line need to be updated? */
 
 /* term.c: universal termcap-like declarations */
 
-#ifdef JSMALL
-# define MAXCOLS	132	/* maximum number of columns */
-#else
-# define MAXCOLS	512	/* maximum number of columns */
-#endif
-
 extern int
 	SG,		/* number of magic cookies left by SO and SE */
 	LI,		/* number of lines */
@@ -325,8 +332,9 @@ typedef struct FileStruct	File;	/* fp.h */
 /* paths */
 
 extern char
-	ShareDir[FILESIZE],	/* path of machine-independent library */
-	TmpDir[FILESIZE];	/* VAR: directory/device to store tmp files */
+	ShareDir[FILESIZE],	/* VAR: directory path of machine-independent library */
+	LibDir[FILESIZE],	/* VAR: directory path of machine-dependenty libray */
+	TmpDir[FILESIZE];	/* VAR: directory path to store tmp files */
 
 #ifdef SUBSHELL
 extern char

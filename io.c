@@ -62,7 +62,7 @@ private void
 #endif
 
 long	io_chars;		/* number of chars in this open_file */
-int	io_lines;		/* number of lines in this open_file */
+long	io_lines;		/* number of lines in this open_file */
 
 #ifdef BACKUPFILES
 bool	BkupOnWrite = NO;	/* VAR: make backup files when writing */
@@ -337,7 +337,7 @@ File	*fp;
 {
 	if (fp != NULL) {
 		if (fp->f_flags & F_TELLALL)
-			add_mess(" %d lines, %D characters.",
+			add_mess(" %D lines, %D characters.",
 				 io_lines, io_chars);
 		f_close(fp);
 	}
@@ -1224,7 +1224,7 @@ JReadFile()
 		reloading;
 	Window
 		*wp;
-	int
+	long
 		curlineno;
 
 #ifdef MAC
@@ -1515,33 +1515,29 @@ private Block
 
 private daddr	next_bno = 0;
 
-private void	(*blkio) ptrproto((Block *, SSIZE_T (*) ptrproto((int, UnivPtr, size_t))));
-
 /* Needed to comfort MS Visual C */
-private void real_blkio ptrproto((Block *, SSIZE_T (*) ptrproto((int, UnivPtr, size_t))));
+private void blkio ptrproto((Block *, SSIZE_T (*) ptrproto((int, UnivPtr, size_t))));
 
 private void
-real_blkio(b, iofcn)
+blkio(b, iofcn)
 register Block	*b;
 register SSIZE_T	(*iofcn) ptrproto((int, UnivPtr, size_t));
 {
-	(void) lseek(tmpfd, (off_t)b->b_bno << JLGBUFSIZ, 0);
-	if ((*iofcn)(tmpfd, (UnivPtr) b->b_buf, (size_t)JBUFSIZ) != JBUFSIZ)
-		error("[Tmp file %s error: to continue editing would be dangerous]",
-			(iofcn == read) ? "READ" : "WRITE");
-}
+	off_t boff = bno_to_seek_off(b->b_bno);
+	ssize_t nb;
+	static bool first_time = YES;
 
-/* Needed to comfort MS Visual C */
-private void fake_blkio ptrproto((Block *, SSIZE_T (*) ptrproto((int, UnivPtr, size_t))));
-
-private void
-fake_blkio(b, iofcn)
-register Block	*b;
-register SSIZE_T	(*iofcn) ptrproto((int, UnivPtr, size_t));
-{
+	if (first_time) {
 	tmpinit();
-	blkio = real_blkio;
-	real_blkio(b, iofcn);
+		first_time = NO;
+	}
+	if (lseek(tmpfd, boff, 0) < 0)
+		error("[Tmp file seek error to %D: %d %s; to continue editing would be dangerous]",
+		      (long)boff, errno, strerror(errno));
+	else if ((nb = (*iofcn)(tmpfd, (UnivPtr) b->b_buf, (size_t)JBUFSIZ)) != JBUFSIZ)
+		error("[Tmp file %s error got %D: %d %s: to continue editing would be dangerous]",
+			(iofcn == read) ? "READ" : "WRITE", (long)nb,
+			nb < 0 ? errno : 0, nb < 0 ? strerror(errno): "");
 }
 
 void
@@ -1576,7 +1572,6 @@ d_cache_init()
 		bp->b_HASHnext = *(hp = &bht[B_HASH(bno)]);
 		*hp = bp;
 	}
-	blkio = fake_blkio;
 }
 
 void
@@ -1591,14 +1586,14 @@ SyncTmp()
 	 */
 	for (bno = 0; bno < next_bno; bno++) {
 		if ((b = lookup_block(bno)) != NULL && b->b_dirty) {
-			(*blkio)(b, (SSIZE_T (*) ptrproto((int, UnivPtr, size_t)))write);
+			blkio(b, (SSIZE_T (*) ptrproto((int, UnivPtr, size_t)))write);
 			b->b_dirty = NO;
 		}
 	}
 #else /* !MSDOS */
 	for (b = f_block; b != NULL; b = b->b_LRUnext)
 		if (b->b_dirty) {
-			(*blkio)(b, (SSIZE_T (*) ptrproto((int, UnivPtr, size_t)))write);
+			blkio(b, (SSIZE_T (*) ptrproto((int, UnivPtr, size_t)))write);
 			b->b_dirty = NO;
 		}
 #endif /* !MSDOS */
@@ -1663,7 +1658,7 @@ register Block	*bp;
 		bht[B_HASH(bp->b_bno)] = hp->b_HASHnext;
 
 	if (bp->b_dirty) {	/* do, now, the delayed write */
-		(*blkio)(bp, (SSIZE_T (*) ptrproto((int, UnivPtr, size_t)))write);
+		blkio(bp, (SSIZE_T (*) ptrproto((int, UnivPtr, size_t)))write);
 		bp->b_dirty = NO;
 	}
 
@@ -1701,7 +1696,7 @@ bool	IsWrite;
 	 * through arithmetic overflow.
 	 */
 	if (bno >=  MAX_BLOCKS-1)
-		error("Tmp file too large.  Get help!");
+		error("Tmp file too large for line %D bno %D, max is %D.  Get help!", (long)atl, (long)bno, (long)(MAX_BLOCKS-1));
 	nleft = JBUFSIZ - off;
 	if (lastb != NULL && lastb->b_bno == bno) {
 		bp = lastb;	/* same as last time */
@@ -1751,7 +1746,7 @@ bool	IsWrite;
 		 */
 
 		if (bno < next_bno)
-			(*blkio)(bp, read);
+			blkio(bp, read);
 		else
 			next_bno = bno + 1;
 	}

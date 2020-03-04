@@ -168,9 +168,9 @@ extern void
 
 extern LinePtr
 	lastline proto((LinePtr lp)),
-	listput proto((Buffer *buf,LinePtr after)),
-	next_line proto((LinePtr line,int num)),
-	prev_line proto((LinePtr line,int num));
+	listput proto((Buffer *buf, LinePtr after)),
+	next_line proto((LinePtr line, long num)),
+	prev_line proto((LinePtr line, long num));
 
 /* Commands: */
 

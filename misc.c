@@ -144,7 +144,7 @@ KillEOL()
 {
 	LinePtr	line2;
 	int	char2;
-	int	num = arg_value();
+	long	num = arg_value();
 
 	if (is_an_arg()) {
 		if (num == 0) {	/* Kill to beginning of line */
@@ -248,7 +248,7 @@ GoLine()
 	LinePtr	newline;
 
 	if (!is_an_arg())
-		set_arg_value(ask_int("1", "Line: ", 10));
+		set_arg_value(ask_long("1", "Line: ", 10));
 	if (arg_value() < 0)
 		newline = prev_line(curbuf->b_last, -1 - arg_value());
 	else

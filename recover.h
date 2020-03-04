@@ -30,9 +30,9 @@
  * The bulk of any jrec file is the daddr pointers anyway.
  */
 
-#define JLGBUFSIZMIN	7
-#if JLGBUFSIZ < JLGBUFSIZMIN || (JLGBUFSIZ-JLGBUFSIZMIN) > 15
-Error will not be able to encode recovery header JLGBUFSIZ safely
+#define LG_JBUFSIZMIN	7
+#if LG_JBUFSIZ < LG_JBUFSIZMIN || (LG_JBUFSIZ-LG_JBUFSIZMIN) > 15
+Error will not be able to encode recovery header LG_JBUFSIZ safely
 #endif
 
 #define LG_FILESIZEMIN	6
@@ -47,7 +47,7 @@ Error will not be able to encode recovery header LG_CHNK_CHARS safely
 # define RECVER		2	    /* JOVE recovery file, version 2 */
 # define RECMAGIC	(((((((((((((long)'J' << 4) | \
                                   RECVER) << 4) | \
-                                (JLGBUFSIZ-JLGBUFSIZMIN)) << 4) | \
+                                (LG_JBUFSIZ-LG_JBUFSIZMIN)) << 4) | \
                                sizeof(long)) << 4) | \
                              sizeof(daddr)) << 4) | \
                            (LG_FILESIZE-LG_FILESIZEMIN)) << 4) | \

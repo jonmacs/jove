@@ -14,7 +14,7 @@
 #include "chars.h"
 #include "disp.h"
 #include "ask.h"
-#include "extend.h" /* for chr_to_int */
+#include "extend.h" /* for chr_to_* */
 #include "fmt.h"
 #include "marks.h"
 #include "reapp.h"
@@ -485,9 +485,9 @@ bool	localp;
 			else
 				SetDot(bp);
 		} else {
-			int lnum = 0;   /* keep gcc -W quiet */
+			long lnum = 0;   /* keep gcc -W quiet */
 
-			if (chr_to_int(sstr, 10, YES, &lnum) != YES || lnum < 1) {
+			if (chr_to_long(sstr, 10, YES, &lnum) != YES || lnum < 1) {
 				swritef(mesgbuf, sizeof mesgbuf, "Invalid line number: %s", sstr);
 				message(mesgbuf);
 			} else {

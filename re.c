@@ -64,17 +64,17 @@ REgetc()
 #define BACKREF	(NONE_OF+2)	/* \# {chunk number} */
 #define EOP	(BACKREF+2)	/* end of pattern */
 
-#define CHAR_MASK	((1 << CHAR_BITS) - 1)	/* byte mask, really */
+#define CHAR_MASK	((1 << CHAR_BIT) - 1)	/* byte mask, really */
 #define ALT_LEN_LEN	2	/* an alt starts with a two-byte length */
-#define ALT_LEN(p)	(((p)[0] & CHAR_MASK) + (((p)[1] & CHAR_MASK) << CHAR_BITS))
+#define ALT_LEN(p)	(((p)[0] & CHAR_MASK) + (((p)[1] & CHAR_MASK) << CHAR_BIT))
 
 /* ONE_OF/NONE_OF is represented as a bit vector.
  * These symbols parameterize the representation.
  */
 
-#define	SETSIZE		(NCHARS / CHAR_BITS)
-#define	SETBYTE(c)	((c) / CHAR_BITS)
-#define	SETBIT(c)	(1 << ((c) % CHAR_BITS))
+#define	SETSIZE		(NCHARS / CHAR_BIT)
+#define	SETBYTE(c)	((c) / CHAR_BIT)
+#define	SETBIT(c)	(1 << ((c) % CHAR_BIT))
 
 #define NPAR	10	/* [0-9] - 0th is the entire matched string, i.e. & */
 private char	*comp_ptr,
@@ -217,7 +217,7 @@ toolong:
 
 					len = comp_ptr - comp_len;
 					comp_len[0] = (char) len;	/* truncate */
-					comp_len[1] = (char) (len >> CHAR_BITS);	/* truncate */
+					comp_len[1] = (char) (len >> CHAR_BIT);	/* truncate */
 					(*altcntp) += 1;
 					if (done)
 						break;
