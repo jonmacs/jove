@@ -462,11 +462,6 @@ they are discarded silently, another dubious feature.
 JOVE does not handle Unicode (aka UTF-8), it silently ignores LANG,
 locale etc.  Fixing this limitation is not easy.
 
-On machines with 16bit ints, jove line numbers will go
-negative at 32767.  This affects MSDOS (though in large
-model, Jove usually tops out at about 31000 lines, avoiding
-the problem!)
-
 Bug Reports and Maintenance.
 ----------------------------
 
