@@ -429,10 +429,13 @@ int	flag;
 {
 	static const char	mesg[] = "[line too long]";
 
-	if (flag == JMP_COMPLAIN)
+	if (flag == JMP_COMPLAIN) {
 		complain(mesg);
-	else
+		/* NOTREACHED */
+	} else {
 		error(mesg);
+		/* NOTREACHED */
+	}
 }
 
 /* Insert num copies of character c at offset atchar in buffer buf of size max */
@@ -454,8 +457,10 @@ int	atchar,
 
 	from = &buf[atchar];
 	taillen = *from == '\0'?  1 : strlen(from) + 1;	/* include NUL */
-	if (atchar + taillen + num > max)
+	if (atchar + taillen + num > max) {
 		len_error(JMP_COMPLAIN);
+		/* NOTREACHED */
+	}
 	from += taillen;
 	to = from + num;
 	do {
@@ -487,8 +492,10 @@ int	atchar;
 	onto += atchar;
 
 	do {
-		if (onto >= endp)
+		if (onto >= endp) {
 			len_error(JMP_ERROR);
+			/* NOTREACHED */
+		}
 	} while ((*onto++ = *from++) != '\0');
 }
 
@@ -504,8 +511,10 @@ void
 dopipe(p)
 int	*p;
 {
-	if (pipe(p) == -1)
+	if (pipe(p) == -1) {
 		complain("[Pipe failed: %s]", strerror(errno));
+		/* NOTREACHED */
+	}
 }
 
 void
@@ -679,9 +688,10 @@ const char *str;
 {
 	if (strlen(str) < bufsz)
 		strcpy(buf, str);
-	else if (bufsz == 0)
+	else if (bufsz == 0) {
 		complain("internal error");	/* cannot even fit NUL */
-	else {
+		/* NOTREACHED */
+	} else {
 		strncpy(buf, str, bufsz - 1);
 		buf[bufsz-1] = '\0';
 	}
@@ -700,6 +710,7 @@ size_t bufsz;
 		buf[strsz] = '\0';
 	} else {
 		complain("string too long");
+		/* NOTREACHED */
 	}
 }
 
@@ -770,16 +781,20 @@ ZXchar
 DecodePair(first, second)
 ZXchar	first, second;
 {
-	if (second == EOF || second == '\n')
+	if (second == EOF || second == '\n') {
 		complain("unexpected end of file after %p", first);
+		/* NOTREACHED */
+	}
 	if (first == '^') {
 		if (second == '?') {
 			second = DEL;
 		} else {
 			ZXchar	us = CharUpcase(second);
 
-			if (us < '@' || '_' < us)
+			if (us < '@' || '_' < us) {
 				complain("unknown control character %p", second);
+				/* NOTREACHED */
+			}
 			second = CTL(us);
 		}
 	}

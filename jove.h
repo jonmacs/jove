@@ -403,7 +403,7 @@ extern ZXchar
 extern void
 	cmd_sync proto((void)),
 	add_stroke proto((ZXchar)),
-	error proto((const char *, ...)),
+	error proto((const char *, ...)) NEVER_RETURNS,
 	complain proto((const char *, ...)) NEVER_RETURNS,
 	raw_complain proto((const char *, ...)),
 	confirm proto((const char *, ...)),

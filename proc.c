@@ -217,8 +217,10 @@ ErrParse()
 private void
 NeedErrors()
 {
-	if (cur_error == NULL)
+	if (cur_error == NULL) {
 		complain("No errors!");
+		/* NOTREACHED */
+	}
 }
 
 private bool
@@ -423,8 +425,10 @@ const char	*bname;
 
 	buftospel = curbuf;
 	wordsb = buf_exists(bname);
-	if (wordsb == NULL)
+	if (wordsb == NULL) {
 		complain("Buffer %s is gone!", bname);
+		/* NOTREACHED */
+	}
 	perr_buf = wordsb;	/* This is important (buffer containing
 				   error messages) */
 	SetBuf(wordsb);
@@ -458,11 +462,15 @@ SpelBuffer()
 	char	com[100];
 	Buffer	*savebp = curbuf;
 
-	if (curbuf->b_fname == NULL)
+	if (curbuf->b_fname == NULL) {
 		complain("no file name");
+		/* NOTREACHED */
+	}
 	if ((cp = strchr(SpellCmdFmt, '%')) == NULL ||
-	    cp[1] != 's' || strchr(cp+2, '%') != NULL)
+	    cp[1] != 's' || strchr(cp+2, '%') != NULL) {
 		complain("spell-command-format needs one %%s with no other format characters");
+		/* NOTREACHED */
+	}
 	if (IsModified(curbuf))
 		SaveFile();
 	swritef(com, sizeof(com), SpellCmdFmt, curbuf->b_fname);
@@ -471,8 +479,10 @@ SpelBuffer()
 	message("[Delete the irrelevant words and then type ^X ^C]");
 	ToFirst();
 	Recur();
-	if (!valid_bp(savebp))
+	if (!valid_bp(savebp)) {
 		complain("Buffer gone!");
+		/* NOTREACHED */
+	}
 	SetBuf(savebp);
 	SpelParse(Spell);
 }
@@ -855,6 +865,7 @@ UnixToBuf(flags, bnm, InFName, cmd)
 		(void) setsighandler(SIGINT, old_int),
 # endif
 		complain("[Fork failed: %s]", strerror(fork_errno));
+		/* NOTREACHED */
 	}
 	if (ChildPid == 0) {
 		const char	*a;	/* action name (for error message) */
@@ -927,14 +938,18 @@ UnixToBuf(flags, bnm, InFName, cmd)
 		(void) close(oldo);
 		(void) close(olde);
 
-		if (InFailure)
+		if (InFailure) {
 			complain("[filter input failed]");
+			/* NOTREACHED */
+		}
 		if (status < 0)
 			s_mess("[Spawn failed %d]", errno);
 		jdbg("opening \"%s\" from \"%s\"\n", pipename, argv[1]);
 		ph = open(pipename, O_RDONLY | O_BINARY | O_CLOEXEC);
-		if (ph < 0)
-			complain("[cannot reopen pipe]", strerror(errno));
+		if (ph < 0) {
+			complain("[cannot reopen pipe %s: %s]", pipename, strerror(errno));
+			/* NOTREACHED */
+		}
 		fp = fd_open(argv[1], F_READ, ph, iobuff, LBSIZE);
 	}
 

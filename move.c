@@ -69,16 +69,20 @@ BackChar()
 void
 NextLine()
 {
-	if ((curline == curbuf->b_last) && eolp())
+	if ((curline == curbuf->b_last) && eolp()) {
 		complain(NullStr);
+		/* NOTREACHED */
+	}
 	line_move(FORWARD, arg_value(), YES);
 }
 
 void
 PrevLine()
 {
-	if ((curline == curbuf->b_first) && bolp())
+	if ((curline == curbuf->b_first) && bolp()) {
 		complain(NullStr);
+		/* NOTREACHED */
+	}
 	line_move(BACKWARD, arg_value(), YES);
 }
 

@@ -69,7 +69,7 @@ extern void
 	ToFirst proto((void)),
 	ToLast proto((void)),
 	ins_c proto((DAPchar c,char *buf,int atchar,int num,int max)),
-	len_error proto((int flag)),
+	len_error proto((int flag)) NEVER_RETURNS,
 	linecopy proto((char *onto,int atchar,char *from)),
 	modify proto((void)),
 	diverge proto((Buffer *buf, bool d)),

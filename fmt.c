@@ -291,6 +291,7 @@ va_list	ap;
 
 		default:
 			complain("Unknown format directive: \"%%%c\"", c);
+			/* NOTREACHED */
 		}
 	}
 	current_fmt = prev_fmt;

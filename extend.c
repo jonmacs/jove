@@ -81,8 +81,10 @@ const data_obj	*(*proc) ptrproto((const char *));
 		&& p->a_arg_count == arg_count)
 			return;		/* eliminate duplicates */
 
-	if (ExecIndex >= NEXECS)
+	if (ExecIndex >= NEXECS) {
 		complain("Too many auto-executes, max %d.", NEXECS);
+		/* NOTREACHED */
+	}
 	p->a_pattern = copystr(pattern);
 	p->a_cmd = d;
 	p->a_arg_state = arg_state;
@@ -176,8 +178,10 @@ register long	*result;
 			break;
 		}
 		c = c - '0';
-		if (c >= base)
+		if (c >= base) {
 			complain("You must specify in base %d.", base);
+			/* NOTREACHED */
+		}
 		value = value * base + c;
 	}
 	*result = value * sign;
@@ -212,8 +216,10 @@ int	base;
 	const char	*val = ask(def, prompt);
 	long	value;
 
-	if (!chr_to_long(val, base, YES, &value))
+	if (!chr_to_long(val, base, YES, &value)) {
 		complain("That's not a number!");
+		/* NOTREACHED */
+	}
 	return value;
 }
 
@@ -226,8 +232,10 @@ int	base;
 	const char	*val = ask(def, prompt);
 	int		value = 0;	/* avoid gcc complaint */
 
-	if (!chr_to_int(val, base, YES, &value))
+	if (!chr_to_int(val, base, YES, &value)) {
 		complain("That's not a number!");
+		/* NOTREACHED */
+	}
 	return value;
 }
 
@@ -307,8 +315,10 @@ char	*prompt;
 
 		vpr_aux(vp, def, sizeof(def));
 		val = ask_int(def, prompt, (vp->v_flags & V_FMODE)? 8 : 10);
-		if (val < lwb)
+		if (val < lwb) {
 			complain("[%s must not be less than %d]", vp->Name, lwb);
+			/* NOTREACHED */
+		}
 		*((int *) vp->v_value) = val;
 		break;
 	    }
@@ -449,8 +459,10 @@ ZXchar	c;
 		int	i;
 		size_t	len = strlen(linebuf);
 
-		if (InJoverc)
+		if (InJoverc) {
 			complain("[invalid `?']");
+			/* NOTREACHED */
+		}
 		/* kludge: in case we're using UseBuffers, in which case
 		 * linebuf gets written all over (but restored by TOstop/TOabort)
 		 */
@@ -490,8 +502,10 @@ ZXchar	c;
 						comp_value = i;	/* good: done */
 						return NO;
 					} else {
-						if (InJoverc)
+						if (InJoverc) {
 							complain("[%s already exists]");
+							/* NOTREACHED */
+						}
 						add_mess(" [already exists]");
 						SitFor(7);
 						return YES;
@@ -522,9 +536,11 @@ ZXchar	c;
 			comp_value = lastmatch;
 			return NO;
 		}
-		if (InJoverc)
+		if (InJoverc) {
 			complain("[\"%s\" %s]", linebuf,
 				numfound == 0? "unknown" : "ambiguous");
+			/* NOTREACHED */
+		}
 		if (numfound == 0) {
 			/* Unknown: either not ALLOW_NEW (bad) or not CR (not good enough) */
 			add_mess(" [unknown]");
@@ -560,9 +576,10 @@ const char	*prompt;
 int	flags;
 {
 	/* protect static "Possible" etc. from being overwritten due to recursion */
-	if (InRealAsk)
+	if (InRealAsk) {
 		complain((char *) NULL);
-
+		/* NOTREACHED */
+	}
 	Possible = possible;
 	comp_flags = flags;
 	(void) do_ask("\r\n \t?", aux_complete, def, prompt);
@@ -587,6 +604,7 @@ Source()
 	if (!joverc(fnamebuf) && !silence) {
 		message(IOerr("read", fnamebuf));
 		complain((char *)NULL);
+		/* NOTREACHED */
 	}
 }
 
@@ -644,8 +662,10 @@ char	*cmd;
 			if (*ip == '\0')
 				break;
 
-			if (ap == &args[elemsof(args)])
+			if (ap == &args[elemsof(args)]) {
 				complain("Too many args for IF shell command");
+				/* NOTREACHED */
+			}
 			*ap++ = op;
 			for (;;) {
 				char
@@ -669,8 +689,10 @@ char	*cmd;
 						case '\\':
 							if (c == '"') {
 								c2 = *ip++;
-								if (c2 == '\0')
+								if (c2 == '\0') {
 									complain("Misplaced \\ in IF command");
+									/* NOTREACHED */
+								}
 							}
 							/*FALLTHROUGH*/
 						default:
@@ -681,8 +703,10 @@ char	*cmd;
 					continue;
 				case '\\':
 					c = *ip++;
-					if (c == '\0')
+					if (c == '\0') {
 						complain("Misplaced \\ in IF command");
+						/* NOTREACHED */
+					}
 					/*FALLTHROUGH*/
 				default:
 					*op++ = c;
@@ -714,10 +738,14 @@ char	*cmd;
 			/*NOTREACHED*/
 		}
 		dowait(&status);
-		if (!WIFEXITED(status))
+		if (!WIFEXITED(status)) {
 			complain("[no status returned from child in IF test]");
-		if (WIFSIGNALED(status))
+			/* NOTREACHED */
+		}
+		if (WIFSIGNALED(status)) {
 			complain("[IF test terminated by signal %d]", WTERMSIG(status));
+			/* NOTREACHED */
+		}
 		return WEXITSTATUS(status)==0;
 	}
 # else
@@ -725,8 +753,10 @@ char	*cmd;
 	{
 		int	status;
 
-		if ((status = spawnvp(0, args[0], args)) < 0)
+		if ((status = spawnvp(0, args[0], args)) < 0) {
 			complain("[Spawn failed: IF]");
+			/* NOTREACHED */
+		}
 		return (status == 0);	/* 0 means successful */
 	}
 #  else /* !MSDOS_PROCS */
@@ -745,8 +775,10 @@ char	*oppat;
 	int	len = strlen(verb);
 
 	if (caseeqn(inp, verb, (size_t)len) && LookingAt("[ \\t]\\|$", inp, len)) {
-		if (!LookingAt(oppat, inp, len))
+		if (!LookingAt(oppat, inp, len)) {
 			complain("[malformed %s]", verb);
+			/* NOTREACHED */
+		}
 		return YES;
 	}
 	return NO;
@@ -804,9 +836,10 @@ char	*file;
 			char	cmd[128];
 
 			finger <<= 1;
-			if (finger == 0)
+			if (finger == 0) {
 				complain("[`if' nested too deeply]");
-
+				/* NOTREACHED */
+			}
 			putmatch(1, cmd, sizeof cmd);
 			if (skipping == 0 && !do_if(cmd))
 				skipping |= finger;
@@ -814,8 +847,10 @@ char	*file;
 #ifndef MAC	/* no environment in MacOS */
 		} else if (cmdmatch(Inputp, "ifenv", "\\>[ \t]*\\<\\([^ \t][^ \t]*\\)\\>[ \t]\\(.*\\)$")) {
 			finger <<= 1;
-			if (finger == 0)
+			if (finger == 0) {
 				complain("[`ifenv' nested too deeply]");
+				/* NOTREACHED */
+			}
 			if (skipping == 0) {
 				char	envname[128],
 					envpat[128],
@@ -829,13 +864,17 @@ char	*file;
 			}
 #endif
 		} else if (cmdmatch(Inputp, "else", "[ \\t]*$")) {
-			if (finger == 1 || (inelse & finger))
+			if (finger == 1 || (inelse & finger)) {
 				complain("[Unexpected `else']");
+				/* NOTREACHED */
+			}
 			inelse |= finger;
 			skipping ^= finger;
 		} else if (cmdmatch(Inputp, "endif", "[ \\t]*$")) {
-			if (finger == 1)
+			if (finger == 1) {
 				complain("[Unexpected `endif']");
+				/* NOTREACHED */
+			}
 			inelse &= ~finger;
 			skipping &= ~finger;
 			finger >>= 1;
@@ -859,10 +898,12 @@ char	*file;
 
 				if ((c = peekchar) != EOF) {
 					peekchar = EOF;
-					if (Inputp != NULL && ZXRC(Inputp[-1]) == c)
+					if (Inputp != NULL && ZXRC(Inputp[-1]) == c) {
 						Inputp -= 1;
-					else if (!jiswhite(c) && c != '\n' && c != '\0')
+					} else if (!jiswhite(c) && c != '\n' && c != '\0') {
 						complain("[junk at end of line]");
+						/* NOTREACHED */
+					}
 				}
 
 				if (Inputp == NULL)
@@ -873,8 +914,10 @@ char	*file;
 				if (*Inputp == '\0' || *Inputp == '\n')
 					break;
 
-				if (this_cmd != ARG_CMD)
+				if (this_cmd != ARG_CMD) {
 					complain("[junk at end of line]");
+					/* NOTREACHED */
+				}
 			}
 		}
 	}
@@ -883,6 +926,7 @@ char	*file;
 	if (finger != 1) {
 		finger = 1;
 		complain("[Missing endif]");
+		/* NOTREACHED */
 	}
 #endif
 	f_close(fp);

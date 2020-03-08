@@ -516,6 +516,7 @@ int	mproto;
 			hl_mode(0,1,1,1,1);
 		}
 		complain("[mouse input of wrong format]");
+		/* NOTREACHED */
 	}
 
 	/* Note: at this point, up_expected still reflects previous state.
@@ -533,6 +534,7 @@ int	mproto;
 		}
 		up_expected = NO;	/* resynch in neutral */
 		complain("[Mouse events out of order]");
+		/* NOTREACHED */
 	}
 
 	/* update up_expected to reflect new state */
@@ -546,8 +548,10 @@ int	mproto;
 	{
 		/* Hugh: ??? is this leak possible? -- checking code added as a probe. */
 		/* CHL believes assert oldpos==NULL */
-		if (oldpos != NULL)
+		if (oldpos != NULL) {
 			complain("[internal error: mark leak from MouseParams]");
+			/* NOTREACHED */
+		}
 		oldpos = MakeMark(curline, curchar);
 	}
 
@@ -597,8 +601,10 @@ int	mproto;
 		&& (but_state & JT_EVENTMASK) != JT_UPEVENT)
 		{
 			ScrollToMouse();
-			if (but_state & (JT_CSMASK | JT_CLICKMASK))
+			if (but_state & (JT_CSMASK | JT_CLICKMASK)) {
 				complain("[You are just scrolling a window]");
+				/* NOTREACHED */
+			}
 		} else if ((but_state & JT_BUTMASK) == JT_MIDDLE
 		&& (but_state & (JT_UPEVENT | JT_DRAGEVENT)) != 0)
 		{
@@ -612,8 +618,10 @@ int	mproto;
 			}
 			if (curwind == oldwind && curwind->w_next != fwind)
 				WindSize(curwind->w_next, wind_pos);
-			if (but_state & (JT_CSMASK | JT_CLICKMASK))
+			if (but_state & (JT_CSMASK | JT_CLICKMASK)) {
 				complain("[You are just resizing a window]");
+				/* NOTREACHED */
+			}
 		}
 	} else if ((but_state & JT_PASTEMASK) && (but_state & JT_CSMASK) == 0) {
 		/* With JT_PASTE/CUT, window switching is allowed. */
@@ -623,8 +631,10 @@ int	mproto;
 		 * mode line) only switches to that window, with no action.
 		 * Other shifts and multiclicks indicate a confused user.
 		 */
-		if (but_state & (JT_CSMASK | JT_CLICKMASK))
+		if (but_state & (JT_CSMASK | JT_CLICKMASK)) {
 			complain("[You were just changing windows]");
+			/* NOTREACHED */
+		}
 	} else if (wind_pos <= 0) {
 		/* ignore out-of-window events */
 	} else	{

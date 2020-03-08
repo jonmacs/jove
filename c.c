@@ -99,8 +99,10 @@ bool	can_stop;
 	{
 		char	*cp = strchr(p_types, p_type);
 
-		if (cp == NULL)
+		if (cp == NULL) {
 			complain("[Cannot match %c's]", p_type);
+			/* NOTREACHED */
+		}
 		p_match = cp[dir];
 	}
 	DOTsave(&savedot);
@@ -330,8 +332,10 @@ FDownList()
  * comments or quotes
  */
 		sp = dosearch(sstr, FORWARD, YES);
-		if (sp == NULL || jisclosep(lcontents(sp->p_line)[sp->p_char - 1]))
+		if (sp == NULL || jisclosep(lcontents(sp->p_line)[sp->p_char - 1])) {
 			complain("[No contained expression]");
+			/* NOTREACHED */
+		}
 		SetDot(sp);
 	}
 }
@@ -346,8 +350,10 @@ int	dir;
 	register Bufpos	*bp;
 	register char	c = linebuf[curchar];
 
-	if (strchr(p_types, c) == NULL || backslashed(linebuf, curchar))
+	if (strchr(p_types, c) == NULL || backslashed(linebuf, curchar)) {
 		complain((char *)NULL);
+		/* NOTREACHED */
+	}
 	if (dir == FORWARD)
 		f_char(1);
 	bp = m_paren(c, dir, YES, NO);
@@ -583,10 +589,14 @@ parse_cmt_fmt()
 				break;
 			case '!':
 			case 'c':
-				if (++comp_no == elemsof(component))
+				if (++comp_no == elemsof(component)) {
 					complain("too many components");
-				if ((c=='c') != (comp_no==2))
+					/* NOTREACHED */
+				}
+				if ((c=='c') != (comp_no==2)) {
 					complain("wrong separator: %%%c", c);
+					/* NOTREACHED */
+				}
 				*body_p++ = '\0';
 				body_p = *++c_body;
 				body_limit = body_p + CMT_STR_BOUND - 1;
@@ -596,8 +606,10 @@ parse_cmt_fmt()
 				/*NOTREACHED*/
 			}
 		}
-		if (body_p >= body_limit)
+		if (body_p >= body_limit) {
 			complain("component too long");
+			/* NOTREACHED */
+		}
 		*body_p++ = c;
 	}
 	*body_p = '\0';
@@ -631,14 +643,18 @@ FillComment()
 	/* Figure out if we're "inside" a comment.
 	 * First look back for opening comment symbol.
 	 */
-	if ((match_o = dosearch(open_pat, BACKWARD, NO)) == NULL)
+	if ((match_o = dosearch(open_pat, BACKWARD, NO)) == NULL) {
 		complain("No opening %s to match to.", open_pat);
+		/* NOTREACHED */
+	}
 	open_c_pt = *match_o;
 	if ((match_c = dosearch(close_pat, BACKWARD, NO)) != NULL
 	&& inorder(open_c_pt.p_line, open_c_pt.p_char,
-		    match_c->p_line, match_c->p_char))
+		    match_c->p_line, match_c->p_char)) {
 		complain("[Must be between %s and %s to re-format]",
 			open_pat, close_pat);
+		/* NOTREACHED */
+	}
 
 	/* Now look forward for closing comment symbol.
 	 * This involves looking forward for the next opening too.

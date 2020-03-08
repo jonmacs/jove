@@ -399,8 +399,10 @@ data_obj *obj;
 {
 	int i;
 
-	if (k_len == 0)
+	if (k_len == 0) {
 		complain("can't bind empty key sequence");
+		/* NOTREACHED */
+	}
 	for (i = 0; i < k_len - 1; i++) {
 		struct keymap *submap = GetKeymap(m, ZXC(keys[i]));
 
@@ -454,8 +456,10 @@ struct keymap *map;
 		if (c == EOF)
 			break;
 
-		if (i == sizeof(keys) - 1)
+		if (i == sizeof(keys) - 1) {
 			complain("key sequence too long");
+			/* NOTREACHED */
+		}
 		keys[i++] = c;
 		if (!InJoverc) {
 			if (is_an_arg()) {
@@ -550,6 +554,7 @@ void
 Unbound()
 {
 	complain("%f");
+	/* NOTREACHED */
 }
 
 void

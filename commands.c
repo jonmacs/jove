@@ -83,8 +83,10 @@ const char	*prompt;
 		/* gather the cmd name */
 		while (jisprint(c = getch()) && c != ' ') {
 			*cp++ = CharDowncase(c);
-			if (cp == &cmdbuf[sizeof(cmdbuf)])
+			if (cp == &cmdbuf[sizeof(cmdbuf)]) {
 				complain("command too long");
+				/* NOTREACHED */
+			}
 		}
 		*cp = '\0';
 		cmdlen = cp - cmdbuf;
@@ -98,14 +100,18 @@ const char	*prompt;
 				if (cmd->Name[cmdlen] == '\0')
 					return (data_obj *) cmd;
 
-				if (which != NULL)
+				if (which != NULL) {
 					complain("[\"%s\" ambiguous]", cmdbuf);
+					/* NOTREACHED */
+				}
 				which = cmd;
 			}
 		    }
 		}
-		if (which == NULL)
+		if (which == NULL) {
 			complain("[\"%s\" unknown]", cmdbuf);
+			/* NOTREACHED */
+		}
 		return (data_obj *) which;
 #undef	hash
 	} else {

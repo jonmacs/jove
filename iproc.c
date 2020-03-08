@@ -293,6 +293,7 @@ size_t	nbytes;
 				buf += wr;
 			} else if (errno != EINTR) {
 				complain("[error writing to iproc: %d %s]", errno, strerror(errno));
+				/* NOTREACHED */
 			}
 		}
 	}
@@ -680,22 +681,30 @@ int	sig;
 	Process	p;
 
 	jdbg("send_sig %d\n", sig);
-	if ((p = curbuf->b_process) == NULL || p->p_fd < 0)
+	if ((p = curbuf->b_process) == NULL || p->p_fd < 0) {
 		complain("[No process]");
+		/* NOTREACHED */
+	}
 	ToLast();
 #  ifdef TIOCSIG
 	jdbg("TIOCSIG pid %d %s\n", p->p_pid, p->p_name);
-	if (ioctl(p->p_fd, TIOCSIG, sig) < 0)
+	if (ioctl(p->p_fd, TIOCSIG, sig) < 0) {
 		complain("TIOCSIG failed: %d %s", errno, strerror(errno));
+		/* NOTREACHED */
+	}
 #  else /* !TIOCSIG */
 #   ifdef SVR4_PTYS
 	jdbg("SVR4 TIOCSIGNAL pid %d %s\n", p->p_pid, p->p_name);
-	if (ioctl(p->p_fd, TIOCSIGNAL, sig) < 0)
+	if (ioctl(p->p_fd, TIOCSIGNAL, sig) < 0) {
 		complain("TIOCSIGNAL failed: %d %s", errno, strerror(errno));
+		/* NOTREACHED */
+	}
 #   else /* !SVR4_PTYS */
 	jdbg("TIOCSIGNAL pid %d %s\n", p->p_pid, p->p_name);
-	if (ioctl(p->p_fd, TIOCSIGNAL, (void *) &sig) < 0)
+	if (ioctl(p->p_fd, TIOCSIGNAL, (void *) &sig) < 0) {
 		complain("TIOCSIGNAL failed: %d %s", errno, strerror(errno));
+		/* NOTREACHED */
+	}
 #   endif /* !SVR4_PTYS */
 #  endif /* !TIOCSIG */
 }
@@ -716,8 +725,10 @@ char	c;
 {
 	Process	p;
 
-	if ((p = curbuf->b_process) == NULL || p->p_fd < 0)
+	if ((p = curbuf->b_process) == NULL || p->p_fd < 0) {
 		complain("[No process]");
+		/* NOTREACHED */
+	}
 	jdbg("send_xc 0x%x pid %d %s \n", c, p->p_pid, p->p_name);
 	ToLast();
 	{
@@ -734,8 +745,10 @@ char	c;
 
 			jdbg("TIOCREMOTE off pid %d %s\n", p->p_pid, p->p_name);
 			while (ioctl(p->p_fd, TIOCREMOTE, (UnivPtr) &off) < 0)
-				if (errno != EINTR)
+				if (errno != EINTR) {
 					complain("TIOCREMOTE OFF failed: %d %s", errno, strerror(errno));
+					/* NOTREACHED */
+				}
 #  endif /* !NO_TIOCREMOTE */
 			for (;;) {
 				switch (write(p->p_fd, (UnivPtr) &c, sizeof(c))) {
@@ -754,9 +767,12 @@ char	c;
 			}
 #  ifndef NO_TIOCREMOTE
 			jdbg("TIOCREMOTE on pid %d %s\n", p->p_pid, p->p_name);
-			while (ioctl(p->p_fd, TIOCREMOTE, (UnivPtr) &on) < 0)
-				if (errno != EINTR)
+			while (ioctl(p->p_fd, TIOCREMOTE, (UnivPtr) &on) < 0) {
+				if (errno != EINTR) {
 					complain("TIOCREMOTE ON failed: %d %s", errno, strerror(errno));
+					/* NOTREACHED */
+				}
+			}
 #  endif /* !NO_TIOCREMOTE */
 		}
 	}
@@ -775,14 +791,19 @@ ProcEof()
 	static char mess[] = "<EOF> ";	/* NOTE: NUL will be overwritten */
 	Process	p;
 
-	if ((p = curbuf->b_process) == NULL || p->p_fd < 0)
+	if ((p = curbuf->b_process) == NULL || p->p_fd < 0) {
 		complain("[No process]");
+		/* NOTREACHED */
+	}
 	ToLast();
 	proc_rec(p, mess, sizeof(mess)-1);
 	jdbg("ProcEof pid %d %s\n", p->p_pid, p->p_name);
-	while (write(p->p_fd, (UnivPtr) mess, (size_t)0) < 0)
-		if (errno != EINTR)
+	while (write(p->p_fd, (UnivPtr) mess, (size_t)0) < 0) {
+		if (errno != EINTR) {
 			complain("[error writing EOF to iproc: %d %s]", errno, strerror(errno));
+			/* NOTREACHED */
+		}
+	}
 # endif /* !NO_TIOCREMOTE */
 }
 
@@ -805,6 +826,7 @@ ProcStop()
 	kbd_sig(SIGTSTP, VSUSP, t_suspc);
 # else
 	complain("[stop-process not supported]");
+	/* NOTREACHED */
 # endif
 }
 
@@ -816,6 +838,7 @@ ProcDStop()
 	send_oxc(VDSUSP, t_dsuspc);
 # else
 	complain("[dstop-process not supported]");
+	/* NOTREACHED */
 # endif
 }
 
@@ -1510,8 +1533,10 @@ proc_kill(p, sig)
 register Process	p;
 int	sig;
 {
-	if (p == NULL)
+	if (p == NULL) {
 		complain("[no process]");
+		/* NOTREACHED */
+	}
 	if (!child_dead(p)) {
 		if (killpg(p->p_pid, sig) != -1)
 			return YES;
@@ -1560,9 +1585,11 @@ register Buffer	*b;
 		if (p != NULL) {
 			Buffer	*old = curbuf;
 
-			if (!dead(p))
+			if (!dead(p)) {
 				complain("Process %s, attached to %b, is %s.",
 					 proc_cmd(p), b, pstate(p));
+				/* NOTREACHED */
+			}
 			SetBuf(p->p_buffer);
 			DelMark(p->p_mark);
 			SetBuf(old);

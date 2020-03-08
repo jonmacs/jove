@@ -66,11 +66,14 @@ bool	re,
 	newdot = dosearch(s, dir, re);
 	okay_wrap = NO;
 	if (newdot == NULL) {
-		if (WrapScan)
+		if (WrapScan) {
 			complain("No \"%s\" in buffer.", s);
-		else
+			/* NOTREACHED */
+		} else {
 			complain("No \"%s\" found to %s.", s,
 				 (dir == FORWARD) ? "bottom" : "top");
+			/* NOTREACHED */
+		}
 	}
 	PushPntp(newdot->p_line);
 	SetDot(newdot);
@@ -434,6 +437,8 @@ char	*filebuf,
 				/* we've found the match */
 				if (!LookingAt(pattern, line, 0)) {
 					complain("tag line confuses me: %s", line);
+					/* NOTREACHED */
+
 				} else {
 					char patdelim[2];
 
@@ -519,14 +524,18 @@ FDotTag()
 		c2 = c1;
 	char	tagname[50];
 
-	if (!jisident(linebuf[curchar]))
+	if (!jisident(linebuf[curchar])) {
 		complain("Not a tag!");
+		/* NOTREACHED */
+	}
 	while (c1 > 0 && jisident(linebuf[c1 - 1]))
 		c1 -= 1;
 	while (jisident(linebuf[c2]))
 		c2 += 1;
-	if ((c2 - c1) >= (int)sizeof(tagname))
+	if ((c2 - c1) >= (int)sizeof(tagname)) {
 		complain("tag too long");
+		/* NOTREACHED */
+	}
 	null_ncpy(tagname, linebuf + c1, (size_t) (c2 - c1));
 	find_tag(tagname, !is_an_arg());
 }

@@ -49,8 +49,10 @@ int	flags,
 		if (fp->f_flags == 0)
 			break;
 
-	if (i == MAXFILES)
+	if (i == MAXFILES) {
 		complain("[Too many open files!]");
+		/* NOTREACHED */
+	}
 	fp->f_bufsize = buf_size;
 	fp->f_cnt = 0;
 	fp->f_fd = fd;
@@ -166,6 +168,7 @@ File	*fp;
 		 * could easily print it.
 		 */
 		error("[%s error: %s]", what, strerror(err));
+		/* NOTREACHED */
 	}
 }
 
@@ -281,6 +284,7 @@ register File	*fp;
 					fp->f_flags |= F_ERR;
 					error("[I/O error(%s); file = %s, fd = %d]",
 						strerror(errno), fp->f_name, fp->f_fd);
+					/* NOTREACHED */
 #ifndef MSDOS
 				}
 #endif /* MSDOS */

@@ -16,8 +16,10 @@ negate_arg()
 {
 	if (arg_count < 0) {
 		arg_count = -arg_count;
-		if (arg_count < 0)
+		if (arg_count < 0) {
 			complain("arg count overflow");
+			/* NOTREACHED */
+		}
 	} else {
 		arg_count = -arg_count;
 	}
@@ -56,8 +58,10 @@ gather_argument(ns, nc)
 				t *= nc;	/* multiply by factor */
 				break;
 			}
-			if (t < arg_count)
+			if (t < arg_count) {
 				complain("arg count overflow");
+				/* NOTREACHED */
+			}
 			arg_count = t;
 		}
 		if (neg)
@@ -90,12 +94,14 @@ TimesFour()
 void
 Digit()
 {
-	if (LastKeyStruck == '-')
+	if (LastKeyStruck == '-') {
 		gather_argument(AS_NEGSIGN, -1);
-	else if (jisdigit(LastKeyStruck))
+	} else if (jisdigit(LastKeyStruck)) {
 		gather_argument(AS_NUMERIC, LastKeyStruck - '0');
-	else
+	} else {
 		complain((char *)NULL);
+		/* NOTREACHED */
+	}
 }
 
 void

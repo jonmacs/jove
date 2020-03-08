@@ -51,8 +51,10 @@ StrLength()
 		if (*cp == '"' && (cp == linebuf || cp[-1] != '\\'))
 			break;
 
-		if (cp == linebuf)
+		if (cp == linebuf) {
 			complain(inquotes);
+			/* NOTREACHED */
+		}
 	}
 
 	cp += 1;	/* skip opening quote */
@@ -67,8 +69,10 @@ StrLength()
 			return;
 		case '\\':
 			if (!jisdigit(*cp)) {
-				if (*cp == '\0')
+				if (*cp == '\0') {
 					complain(inquotes);
+					/* NOTREACHED */
+				}
 				cp += 1;
 			} else {
 				int	num = 3;
@@ -88,8 +92,10 @@ TransChar()
 {
 	char	before;
 
-	if (curchar == 0 || (eolp() && curchar == 1))
+	if (curchar == 0 || (eolp() && curchar == 1)) {
 		complain((char *)NULL);	/* BEEP */
+		/* NOTREACHED */
+	}
 	if (eolp())
 		b_char(1);
 	before = linebuf[curchar - 1];
@@ -132,6 +138,7 @@ void
 Leave()
 {
 	longjmp(mainjmp, JMP_QUIT);
+	/* NOTREACHED */
 }
 
 /* If argument is specified, kill that many lines down.  Otherwise,
@@ -212,8 +219,10 @@ Yank()
 		lp;
 	Bufpos	*dot;
 
-	if (killbuf[killptr] == NULL)
+	if (killbuf[killptr] == NULL) {
 		complain("[Nothing to yank!]");
+		/* NOTREACHED */
+	}
 	lsave();
 	line = killbuf[killptr];
 	lp = lastline(line);
@@ -268,8 +277,10 @@ SetLMargin()
 {
 	int	lmarg = calc_pos(linebuf, curchar);
 
-	if (lmarg >= RMargin)
+	if (lmarg >= RMargin) {
 		complain("[Left margin must be left of right margin]");
+		/* NOTREACHED */
+	}
 	LMargin = lmarg;
 }
 
@@ -278,7 +289,9 @@ SetRMargin()
 {
 	int	rmarg = calc_pos(linebuf, curchar);
 
-	if (rmarg <= LMargin)
+	if (rmarg <= LMargin) {
 		complain("[Right margin must be right of left margin]");
+		/* NOTREACHED */
+	}
 	RMargin = rmarg;
 }

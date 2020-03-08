@@ -157,8 +157,10 @@ int	kind;
 
 	/* wrap the whole expression around (implied) parens */
 	if (kind != IN_CB) {
-		if (re_blk->r_nparens >= NPAR)
-				complain("Too many ('s; max is %d.", NPAR);
+		if (re_blk->r_nparens >= NPAR) {
+			complain("Too many ('s; max is %d.", NPAR);
+			/* NOTREACHED */
+		}
 		*comp_ptr++ = OPENP;
 		*parenp++ = *comp_ptr++ = re_blk->r_nparens++;
 	}
@@ -169,6 +171,7 @@ int	kind;
 		if (comp_ptr > comp_endp) {
 toolong:
 			complain("Search string too long/complex.");
+			/* NOTREACHED */
 		}
 		prev_verb = this_verb;
 		this_verb = comp_ptr;
@@ -212,9 +215,10 @@ toolong:
 					 */
 					if (max_paren == -1)
 						max_paren = re_blk->r_nparens;
-					if (max_paren != re_blk->r_nparens)
+					if (max_paren != re_blk->r_nparens) {
 						complain("[each alternate must have the same number of \\( \\)]");
-
+						/* NOTREACHED */
+					}
 					len = comp_ptr - comp_len;
 					comp_len[0] = (char) len;	/* truncate */
 					comp_len[1] = (char) (len >> CHAR_BIT);	/* truncate */
@@ -226,21 +230,27 @@ toolong:
 			    }
 
 			case '}':
-				if (kind != IN_CB)
+				if (kind != IN_CB) {
 					complain("Unexpected \\}.");
+					/* NOTREACHED */
+				}
 				done_cb = YES;
 				goto outahere;
 
 			case '(':
-				if (re_blk->r_nparens >= NPAR)
+				if (re_blk->r_nparens >= NPAR) {
 					complain("Too many ('s; max is %d.", NPAR);
+					/* NOTREACHED */
+				}
 				*comp_ptr++ = OPENP;
 				*parenp++ = *comp_ptr++ = re_blk->r_nparens++;
 				break;
 
 			case ')':
-				if (parenp == parens)
+				if (parenp == parens) {
 					complain("Too many )'s.");
+					/* NOTREACHED */
+				}
 				*comp_ptr++ = CLOSEP;
 				*comp_ptr++ = *--parenp;
 				break;
@@ -248,13 +258,17 @@ toolong:
 			case '|':
 				if (kind == IN_CB)
 					goto outahere;
-				if (alt_p >= alt_endp)
+				if (alt_p >= alt_endp) {
 					complain("Too many alternates; max %d.", NALTS);
+					/* NOTREACHED */
+				}
 				/* close off previous alternate */
 				*comp_ptr++ = CLOSEP;
 				*comp_ptr++ = *--parenp;
-				if (parenp != parens)
+				if (parenp != parens) {
 					complain("Unmatched \\(.");
+					/* NOTREACHED */
+				}
 				*comp_ptr++ = EOP;
 
 				/* We demand that each alternate has the same number
@@ -263,9 +277,10 @@ toolong:
 				 */
 				if (outer_max_paren == -1)
 					outer_max_paren = re_blk->r_nparens;
-				if (outer_max_paren != re_blk->r_nparens)
+				if (outer_max_paren != re_blk->r_nparens) {
 					complain("[each alternate must have the same number of \\( \\)]");
-
+					/* NOTREACHED */
+				}
 				/* start a new alt */
 				*alt_p++ = comp_ptr;
 				re_blk->r_nparens = 0;
@@ -366,8 +381,10 @@ toolong:
 				comp_ptr[SETBYTE(c)] |= SETBIT(c);
 				c = REgetc();
 			} while (c != ']');
-			if (c == EOF)
+			if (c == EOF) {
 				complain("Missing ].");
+				/* NOTREACHED */
+			}
 			comp_ptr += SETSIZE;
 			break;
 
@@ -437,19 +454,24 @@ outahere:
 		*comp_ptr++ = CLOSEP;
 		*comp_ptr++ = *--parenp;
 	}
-	if (parenp != parens)
+	if (parenp != parens) {
 		complain("Unmatched \\(.");
-	if (kind == IN_CB && c == EOF)	/* end of pattern with missing \}. */
+		/* NOTREACHED */
+	}
+	if (kind == IN_CB && c == EOF)	{ /* end of pattern with missing \}. */
 		complain("Missing \\}.");
+		/* NOTREACHED */
+	}
 	*comp_ptr++ = EOP;
 
 	/* We demand that each alternate has the same number
 	 * of parens because we currently have no mechanism to
 	 * set the matching strings to a meaningful default.
 	 */
-	if (outer_max_paren != -1 && outer_max_paren != re_blk->r_nparens)
+	if (outer_max_paren != -1 && outer_max_paren != re_blk->r_nparens) {
 		complain("[each alternate must have the same number of \\( \\)]");
-
+		/* NOTREACHED */
+	}
 	return done_cb;
 }
 
@@ -640,6 +662,7 @@ star:
 
 	default:
 		complain("RE error match (%d).", comp_ptr[-1]);
+		/* NOTREACHED */
 	}
 	/* NOTREACHED */
 }
@@ -831,15 +854,17 @@ int which;
 	register char	*pp = pstrtlst[which];
 	register int	n;
 
-	if (pp == NULL)
+	if (pp == NULL) {
 		complain("\\%d not defined", which);
-
+		/* NOTREACHED */
+	}
 	n  = pendlst[which] - pp;
 
 	/* note: ensure space will be left for a NUL */
-	if (off + n >= endp)
+	if (off + n >= endp) {
 		len_error(JMP_ERROR);
-		
+		/* NOTREACHED */
+	}
 	while (--n >= 0)
 		*off++ = *pp++;
 	return off;
@@ -883,8 +908,10 @@ bool delp;
 				}
 			}
 			*tp++ = c;
-			if (tp >= endp)
+			if (tp >= endp) {
 				len_error(JMP_ERROR);
+				/* NOTREACHED */
+			}
 		}
 	}
 	rp = loc2;
@@ -900,9 +927,12 @@ bool delp;
 		REeom += 1;
 	}
 	loc2 = re_blk->r_lbuf + REeom;
-	while ((*tp++ = *rp++) != '\0')
-		if (tp >= endp)
+	while ((*tp++ = *rp++) != '\0') {
+		if (tp >= endp) {
 			len_error(JMP_ERROR);
+			/* NOTREACHED */
+		}
+	}
 }
 
 void

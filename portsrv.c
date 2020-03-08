@@ -163,9 +163,11 @@ int	fd;
 	}
 }
 
+private void proc_error proto((const char * /* str */)) NEVER_RETURNS;
+
 private void
 proc_error(str)
-char	*str;
+const char	*str;
 {
 	lump.header.pid = getpid();
 	lump.header.nbytes = strlen(str);
@@ -196,9 +198,10 @@ char	**argv;
 	int	p[2];
 	pid_t	pid;
 
-	if (pipe(p) == -1)
+	if (pipe(p) == -1) {
 		proc_error("Cannot pipe jove portsrv.\n");
-
+		/* NOTREACHED */
+	}
 	switch (pid = fork()) {
 	case -1:
 		proc_error("portsrv: cannot fork.\n");

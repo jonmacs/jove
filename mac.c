@@ -1918,13 +1918,18 @@ rawgetc()
 	static int cptr = 0;
 	ZXchar c;
 
-	if (EventCmd)
+	if (EventCmd) {
 		longjmp(auxjmp, 1);
+		/* NOTREACHED */
+	}
+		
 
 	while (nchars <= 0) {
 		nchars = 0;
-		if (EventCmd)
+		if (EventCmd) {
 			longjmp(auxjmp, 1);
+			/* NOTREACHED */
+		}
 
 		CheckEvents();	/* ugh! WAIT for a character */
 	}
@@ -1937,8 +1942,10 @@ rawgetc()
 bool
 rawchkc()
 {
-	if (EventCmd)
+	if (EventCmd) {
 		longjmp(auxjmp, 1);
+		/* NOTREACHED */
+	}
 
 	if (nchars == 0)
 		CheckEvents();	/* this should NOT be necessary! */

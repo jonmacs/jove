@@ -706,8 +706,10 @@ nbufline()
 	if (faline == NULL) {
 		RecycleLines();
 		if (faline == NULL) {
-			if (!newchunk())
+			if (!newchunk()) {
 				complain("[Out of lines] ");
+				/* NOTREACHED */
+			}
 		}
 	}
 	newline = faline;
@@ -790,8 +792,10 @@ GSexpr()
 	Bufpos	dot,
 		end;
 
-	if (linebuf[curchar] != '(')
+	if (linebuf[curchar] != '(') {
 		complain((char *)NULL);
+		/* NOTREACHED */
+	}
 	DOTsave(&dot);
 	FSexpr();
 	DOTsave(&end);

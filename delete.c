@@ -52,8 +52,10 @@ int	char1,
 {
 	register LinePtr	retline;
 
-	if ((line1 == line2 && char1 == char2) || line2 == NULL)
+	if ((line1 == line2 && char1 == char2) || line2 == NULL) {
 		complain((char *)NULL);
+		/* NOTREACHED */
+	}
 	(void) fixorder(&line1, &char1, &line2, &char2);
 
 	retline = nbufline();	/* New buffer line */
@@ -155,8 +157,10 @@ bool	OK_kill;
 		f_char(num);
 	else
 		b_char(num);
-	if (before.p_line == curline && before.p_char == curchar)
+	if (before.p_line == curline && before.p_char == curchar) {
 		complain((char *)NULL);
+		/* NOTREACHED */
+	}
 	if (killp)
 		reg_kill(before.p_line, before.p_char, YES);
 	else {
@@ -288,8 +292,10 @@ CopyRegion()
 	register int	status;
 
 	mp = CurMark();
-	if (mp->m_line == curline && mp->m_char == curchar)
+	if (mp->m_line == curline && mp->m_char == curchar) {
 		complain((char *)NULL);
+		/* NOTREACHED */
+	}
 
 	nl = new_kill();
 

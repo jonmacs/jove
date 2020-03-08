@@ -63,8 +63,10 @@ register Mark	*m;
 	else {
 		while (mp != NULL && mp->m_next != m)
 			mp = mp->m_next;
-		if (mp == NULL)
+		if (mp == NULL) {
 			complain("Unknown mark!");
+			/* NOTREACHED */
+		}
 		mp->m_next = m->m_next;
 	}
 	RecycleMark(m);
@@ -202,8 +204,10 @@ Mark	*m;
 Mark *
 CurMark()
 {
-	if (curmark == NULL)
+	if (curmark == NULL) {
 		complain("No mark.");
+		/* NOTREACHED */
+	}
 	return curmark;
 }
 

@@ -424,9 +424,10 @@ getInputEvents(char *bp, int size)
 	int nchars = 0;
 
 	if (eventp >= in_event+nevents) {
-		if (!ReadConsoleInput(conin,
-							  in_event, NCHARS, &nevents))
+		if (!ReadConsoleInput(conin, in_event, NCHARS, &nevents)) {
 			complain("ReadConsole failed (shouldn't happen)");
+			/* NOTREACHED */
+		}
 		eventp = in_event;
 	}
 	while (eventp < in_event+nevents) {

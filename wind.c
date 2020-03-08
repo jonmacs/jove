@@ -42,8 +42,10 @@ register Window	*w;
 	while (wp != w) {
 		lineno += wp->w_height;
 		wp = wp->w_next;
-		if (wp == fwind)
+		if (wp == fwind) {
 			complain("window?");
+			/* NOTREACHED */
+		}
 	}
 	return lineno + 1;
 }
@@ -61,9 +63,10 @@ register Window	*wp;
 		*prev = wp->w_prev,
 		*heir = prev;	/* default: previous window inherits space */
 
-	if (one_windp())
+	if (one_windp()) {
 		complain(onlyone);
-
+		/* NOTREACHED */
+	}
 	prev->w_next = wp->w_next;
 	wp->w_next->w_prev = prev;
 
@@ -96,9 +99,10 @@ int	n;
 	if (n < 1)
 		n = 1;
 	amt = wp->w_height / (n + 1);
-	if (amt < 2)
+	if (amt < 2) {
 		complain(toosmall);
-
+		/* NOTREACHED */
+	}
 	do {
 		register Window	*new = (Window *) emalloc(sizeof (Window));
 
@@ -177,10 +181,14 @@ PrevWindow()
 {
 	register Window	*new = curwind->w_prev;
 
-	if (Asking)
+	if (Asking) {
 		complain((char *)NULL);
-	if (one_windp())
+		/* NOTREACHED */
+	}
+	if (one_windp()) {
 		complain(onlyone);
+		/* NOTREACHED */
+	}
 	SetWind(new);
 }
 
@@ -354,10 +362,14 @@ NextWindow()
 {
 	register Window	*new = curwind->w_next;
 
-	if (Asking)
+	if (Asking) {
 		complain((char *)NULL);
-	if (one_windp())
+		/* NOTREACHED */
+	}
+	if (one_windp()) {
 		complain(onlyone);
+		/* NOTREACHED */
+	}
 	SetWind(new);
 }
 
@@ -366,8 +378,10 @@ NextWindow()
 void
 PageNWind()
 {
-	if (one_windp())
+	if (one_windp()) {
 		complain(onlyone);
+		/* NOTREACHED */
+	}
 	NextWindow();
 	NextPage();
 	PrevWindow();
@@ -451,14 +465,17 @@ WindSize(w, inc)
 register Window	*w;
 register int	inc;
 {
-	if (one_windp())
+	if (one_windp()) {
 		complain(onlyone);
-
+		/* NOTREACHED */
+	}
 	if (inc == 0)
 		return;
 	else if (inc < 0) {	/* Shrinking this Window. */
-		if (w->w_height + inc < 2)
+		if (w->w_height + inc < 2) {
 			complain(toosmall);
+			/* NOTREACHED */
+		}
 		w->w_height += inc;
 		w->w_prev->w_height -= inc;
 	} else {		/* Growing the window. */
@@ -467,8 +484,10 @@ register int	inc;
 		 * doing either followed by the other restores original
 		 * sizes of all affected windows.
 		 */
-		if (w->w_prev->w_height - inc < 2)
+		if (w->w_prev->w_height - inc < 2) {
 			complain(toosmall);
+			/* NOTREACHED */
+		}
 		w->w_height += inc;
 		w->w_prev->w_height -= inc;
 	}

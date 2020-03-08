@@ -208,8 +208,10 @@ register LinePtr	lp;
 			/* BH line with backslash is head of next para */
 			break;
 	} while ((lp = lp->l_next) != NULL);
-	if (lp == NULL)
+	if (lp == NULL) {
 		complain((char *) NULL);
+		/* NOTREACHED */
+	}
 	return lp;
 }
 
@@ -241,17 +243,21 @@ strt:
 	if (i_blank(this)) {		/* rule 1 */
 		if (how == BACKWARD) {
 			while (i_blank(curline))
-				if (firstp(curline))
+				if (firstp(curline)) {
 					complain((char *)NULL);
-				else
+					/* NOTREACHED */
+				} else {
 					line_move(BACKWARD, 1, NO);
+				}
 			goto strt;
 		} else {
 			while (i_blank(curline))
-				if (lastp(curline))
+				if (lastp(curline)) {
 					complain((char *)NULL);
-				else
+					/* NOTREACHED */
+				} else {
 					line_move(FORWARD, 1, NO);
+				}
 			head = curline;
 			next = curline->l_next;
 			body = !i_bsblank(next)? next : head;
@@ -307,15 +313,19 @@ strt:
 					head = this;
 			}
 		} while (head == NULL && (lp = lp->l_prev) != NULL);
-		if (lp == NULL)
+		if (lp == NULL) {
 			complain((char *)NULL);
+			/* NOTREACHED */
+		}
 	}
 	if (body == NULL)		/* this must be a one line paragraph */
 		body = head;
 	if (tail == NULL)
 		tail = tailrule(body);
-	if (tail == NULL || head == NULL || body == NULL)
+	if (tail == NULL || head == NULL || body == NULL) {
 		complain("BUG! tail(%d),head(%d),body(%d)!", tail, head, body);
+		/* NOTREACHED */
+	}
 	para_head = head;
 	para_tail = tail;
 	head_indent = get_indent(head);
@@ -567,8 +577,10 @@ tryagain:
 		if (dir == BACKWARD
 		&& (!first_time || (para_head == curline && bolp())))
 		{
-			if (bobp())
+			if (bobp()) {
 				complain((char *)NULL);
+				/* NOTREACHED */
+			}
 			b_char(1);
 			first_time = !first_time;
 			goto tryagain;

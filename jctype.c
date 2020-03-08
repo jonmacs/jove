@@ -322,6 +322,7 @@ locale_adjust()
 			locale_adjust();	/* note: this will recurse only one level */
 		}
 		complain("Unrecognized lc-ctype: %s", temp);
+		/* NOTREACHED */
 	}
 }
 

@@ -98,8 +98,10 @@ bool	(*d_proc) ptrproto((ZXchar));
 #ifdef MAC
 	menus_off();
 #endif
-	if (InRealAsk)
+	if (InRealAsk) {
 		complain((char *) NULL);
+		/* NOTREACHED */
+	}
 	save_arg(saved_as, saved_ac);
 	push_env(savejmp);
 	InRealAsk = YES;
@@ -184,8 +186,10 @@ cleanup:
 		}
 		if (no_typed)
 			return NULL;
-	} else
+	} else {
 		complain((char *)NULL);
+		/* NOTREACHED */
+	}
 	return Minibuf;
 }
 
@@ -209,8 +213,10 @@ ask(def, fmt, va_alist)
 	va_end(ap);
 	ans = real_ask("\r\n", NULL_ASK_EXT, def, prompt);
 	if (ans == NULL) {		/* Typed nothing. */
-		if (def == NULL)
+		if (def == NULL) {
 			complain("[No default]");
+			/* NOTREACHED */
+		}
 		ans = def;
 	}
 	return ans;
@@ -266,8 +272,10 @@ yes_or_no_p(fmt, va_alist)
 			AskingWidth = strlen(prompt);
 			c = getch();
 			Asking = NO;
-			if (c == AbortChar)
+			if (c == AbortChar) {
 				complain("[Aborted]");
+				/* NOTREACHED */
+			}
 			switch (CharUpcase(c)) {
 			case 'Y':
 				return YES;
@@ -477,8 +485,10 @@ int	n;
 							as when we were called? */
 
 			if (minmatch > (int)strlen(fc_filebase)) {
-				if (minmatch >= LBSIZE - (fc_filebase - linebuf))
+				if (minmatch >= LBSIZE - (fc_filebase - linebuf)) {
 					len_error(JMP_COMPLAIN);
+					/* NOTREACHED */
+				}
 				the_same = NO;
 				null_ncpy(fc_filebase, dir_vec[lastmatch], (size_t) minmatch);
 				modify();
@@ -537,8 +547,10 @@ ZXchar	c;
 		char	tmp[FILESIZE];
 
 		fc_filebase += 1;
-		if ((size_t) (fc_filebase - linebuf) >= sizeof(tmp))
+		if ((size_t) (fc_filebase - linebuf) >= sizeof(tmp)) {
 			len_error(JMP_COMPLAIN);
+			/* NOTREACHED */
+		}
 		null_ncpy(tmp, linebuf, (size_t) (fc_filebase - linebuf));
 		if (tmp[0] == '\0')
 			strcpy(tmp, "/");
@@ -649,8 +661,10 @@ char
 #ifdef F_COMPLETION
 	ans = real_ask("\r\n \t?", f_complete, pretty_name, prompt);
 	/* note: *pretty_name may have been overwritten -- we can't use it */
-	if (ans == NULL && (ans = pr_name(def, YES)) == NULL)
+	if (ans == NULL && (ans = pr_name(def, YES)) == NULL) {
 		complain("[No default file name]");
+		/* NOTREACHED */
+	}
 #else
 	ans = ask(pretty_name, prompt);
 #endif

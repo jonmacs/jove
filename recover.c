@@ -171,7 +171,6 @@ size_t	n;
 	to[n] = '\0';
 }
 
-#define complain printf	/* kludge! needed by scandir.c */
 #include "scandir.c"	/* to get dirent simulation and jscandir */
 
 /* Get a line at `tl' in the tmp file into `buf' which should be LBSIZE
@@ -252,6 +251,7 @@ daddr	atl;
 		if (r < 0) {
 			fprintf(stderr, "%s of JOVE tempfile failed bno %ld errno %d %s\n", what, (long)bno, errno, strerror(errno));
 			longjmp(int_env, 1);
+			/* NOTREACHED */
 		}
 		curblock = bno;
 	}

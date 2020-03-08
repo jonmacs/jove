@@ -99,11 +99,16 @@ int	count;
 {
 	register struct m_thread	*t;
 
-	for (t = mac_stack; t != NULL; t = t->mt_prev)
-		if (t->mt_mp == m)
+	for (t = mac_stack; t != NULL; t = t->mt_prev) {
+		if (t->mt_mp == m) {
 			complain("[Cannot execute macro recusively]");
-	if (count <= 0)
+			/* NOTREACHED */
+		}
+	}
+	if (count <= 0) {
 		complain("[Cannot execute macro a negative number of times]");
+		/* NOTREACHED */
+	}
 	t = alloc_mthread();
 	t->mt_prev = mac_stack;
 	mac_stack = t;
@@ -207,14 +212,20 @@ NameMac()
 	char	*name = NULL;
 	struct macro	*m;
 
-	if (KeyMacro.m_len == 0)
+	if (KeyMacro.m_len == 0) {
 		complain("[No keyboard macro to name!]");
-	if (in_macro() || InMacDefine)
+		/* NOTREACHED */
+	}
+	if (in_macro() || InMacDefine) {
 		complain("[Can't name while defining/executing]");
+		/* NOTREACHED */
+	}
 	if ((m = ask_macname(ProcFmt, ALLOW_OLD | ALLOW_INDEX | ALLOW_NEW)) == NULL)
 		name = copystr(Minibuf);
-	if (m == &KeyMacro)
+	if (m == &KeyMacro) {
 		complain("[Can't name it that!]");
+		/* NOTREACHED */
+	}
 	MacDef(m, name, KeyMacro.m_len, KeyMacro.m_body);
 }
 
@@ -281,16 +292,20 @@ DefKBDMac()
 		macro_buffer[LBSIZE];
 	int	len;
 
-	if (m == &KeyMacro)
+	if (m == &KeyMacro) {
 		complain("[Can't name it that!]");
+		/* NOTREACHED */
+	}
 	/* ??? I hope that this ask doesn't change *m! */
 	macro_body = ask(NullStr, ": %f %s enter body: ", macro_name);
 	len = 0;
 	while ((c = ZXC(*macro_body++)) != '\0') {
 		if (c == '\\' || c == '^')
 			c = DecodePair(c, ZXC(*macro_body++));
-		if (len >= LBSIZE)
+		if (len >= LBSIZE) {
 			complain("Macro to large");
+			/* NOTREACHED */
+		}
 		macro_buffer[len++] = c;
 	}
 	MacDef(m, macro_name, len, macro_buffer);
@@ -322,8 +337,10 @@ Forget()
 	if (InMacDefine) {
 		message("Keyboard macro defined.");
 		InMacDefine = NO;
-	} else
+	} else {
 		complain("[end-kbd-macro: not currently defining macro!]");
+		/* NOTREACHED */
+	}
 }
 
 void
@@ -362,8 +379,10 @@ int flags;
 	register struct macro	*m;
 
 	for (m = macros; m != NULL; m = m->m_nextm) {
-		if (strs == &strings[elemsof(strings)-1])
+		if (strs == &strings[elemsof(strings)-1]) {
 			complain("[too many macros]");
+			/* NOTREACHED */
+		}
 		*strs++ = m->Name;
 	}
 	*strs = NULL;

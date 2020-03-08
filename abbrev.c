@@ -299,8 +299,10 @@ BindMtoW()
 	const char	*word = ask((char *)NULL, "Word: ");
 
 	if ((ap = lookup_abbrev(A_tables[curbuf->b_major], word)) == NULL
-	&& (ap = lookup_abbrev(A_tables[GLOBAL], word)) == NULL)
+	&& (ap = lookup_abbrev(A_tables[GLOBAL], word)) == NULL) {
 		complain("%s: unknown abbrev.", word);
+		/* NOTREACHED */
+	}
 
 	ap->a_cmdhook = findmac("Macro: ");
 }

@@ -166,8 +166,10 @@ char *to;
 
 	if (to[1] == ':') {
 		d = CharUpcase(to[0]) - ('A' - 1);
-		if (d < 'A'-('A'-1) || 'Z'-('A'-1) < d)
+		if (d < 'A'-('A'-1) || 'Z'-('A'-1) < d) {
 			complain("invalid drive");
+			/* NOTREACHED */
+		}
 		_dos_getdrive(&dd);
 		if (dd != d)
 			_dos_setdrive(d, &dd);	/* ??? no failure report? */
@@ -301,6 +303,7 @@ const char	*complaint;
 	))
 	{
 		complain(complaint, buf);
+		/* NOTREACHED */
 	}
 	return fd;
 # endif /* !NO_MKTEMP */
@@ -505,9 +508,10 @@ bool	okay_home;
 		size_t	PWDlen = strlen(PWD);
 		size_t	improvement = 0;
 
-		if (strlen(fname) >= (size_t)FILESIZE)
+		if (strlen(fname) >= (size_t)FILESIZE) {
 			complain("filename longer than %d", FILESIZE-1);
-
+			/* NOTREACHED */
+		}
 		strcpy(name_buf, fname);	/* default: unchanged */
 		if (strncmp(fname, PWD, PWDlen) == 0 && fname[PWDlen] == '/') {
 			/* Below current directory: strip prefix and /.
@@ -639,8 +643,10 @@ getCWD()
 		if (cwd == NULL || !chkCWD(cwd)) {
 #endif
 			cwd = getcwd(pathname, sizeof(pathname));
-			if (cwd == NULL)
+			if (cwd == NULL) {
 				error("Cannot get current directory");
+				/* NOTREACHED */
+			}
 #ifndef MAC	/* no environment in MacOS */
 		}
 	}
@@ -674,8 +680,10 @@ doPushd(newdir)
 {
 	UpdModLine = YES;
 	if (*newdir == '\0') {	/* Wants to swap top two entries */
-		if (list_next(DirStack) == NULL)
+		if (list_next(DirStack) == NULL) {
 			complain("pushd: no other directory.");
+			/* NOTREACHED */
+		}
 		newdir = dir_name(list_next(DirStack));
 		if (Dchdir(newdir) == -1)
 		{
@@ -719,11 +727,12 @@ Popd()
 {
 	char *newdir;
 
-	if (list_next(DirStack) == NULL)
+	if (list_next(DirStack) == NULL) {
 		complain("popd: directory stack is empty.");
+		/* NOTREACHED */
+	}
 	newdir = dir_name(list_next(DirStack));
-	if (Dchdir(newdir) == -1)
-	{
+	if (Dchdir(newdir) == -1) {
 		s_mess("popd: cannot change back into %s.", newdir);
 		return;
 	}
@@ -785,6 +794,7 @@ register char	*user,
 	add_mess(" [unknown user: %s]", user);
 	SitFor(7);
 	complain((char *)NULL);
+	/* NOTREACHED */
 }
 
 # endif /* USE_GETPWNAM */
@@ -849,8 +859,10 @@ char	*intobuf;
 			if (uendp == NULL)
 				uendp = name + strlen(name);
 			name += 1;
-			if ((size_t) (uendp - name) >= sizeof(unamebuf))
+			if ((size_t) (uendp - name) >= sizeof(unamebuf)) {
 				len_error(JMP_COMPLAIN);
+				/* NOTREACHED */
+			}
 			null_ncpy(unamebuf, name, (size_t) (uendp - name));
 			get_hdir(unamebuf, localbuf);
 			name = uendp;
@@ -1036,9 +1048,12 @@ JWriteFile()
 		register char	*cp = fnamebuf;
 		register char	c;
 
-		while ((c = *cp++) != '\0')
-			if (!jisprint(c) || strchr(badchars, c)!=NULL)
+		while ((c = *cp++) != '\0') {
+			if (!jisprint(c) || strchr(badchars, c)!=NULL) {
 				complain("'%p': bad character in filename.", c);
+				/* NOTREACHED */
+			}
+		}
 	}
 
 	filemunge(fnamebuf);
@@ -1117,6 +1132,7 @@ bool	complainifbad;
 			message(IOerr((F_MODE(how) == F_READ) ? "open" : "create",
 			    fname));
 			complain((char *)NULL);
+			/* NOTREACHED */
 		}
 	} else {
 		const char	*rd_only = NullStr;
@@ -1531,13 +1547,17 @@ register SSIZE_T	(*iofcn) ptrproto((int, UnivPtr, size_t));
 	tmpinit();
 		first_time = NO;
 	}
-	if (lseek(tmpfd, boff, 0) < 0)
+	if (lseek(tmpfd, boff, 0) < 0) {
 		error("[Tmp file seek error to %D: %d %s; to continue editing would be dangerous]",
 		      (long)boff, errno, strerror(errno));
-	else if ((nb = (*iofcn)(tmpfd, (UnivPtr) b->b_buf, (size_t)JBUFSIZ)) != JBUFSIZ)
+		/* NOTREACHED */
+	}
+	else if ((nb = (*iofcn)(tmpfd, (UnivPtr) b->b_buf, (size_t)JBUFSIZ)) != JBUFSIZ) {
 		error("[Tmp file %s error got %D: %d %s: to continue editing would be dangerous]",
 			(iofcn == read) ? "READ" : "WRITE", (long)nb,
 			nb < 0 ? errno : 0, nb < 0 ? strerror(errno): "");
+		/* NOTREACHED */
+	}
 }
 
 void
@@ -1553,8 +1573,10 @@ d_cache_init()
 #ifdef MALLOC_CACHE
 	if (b_cache == NULL) {
 		b_cache = (Block *) calloc((size_t)NBUF,sizeof(Block));
-		if (b_cache == NULL)
+		if (b_cache == NULL) {
 			error("cannot allocate buffer cache");
+			/* NOTREACHED */
+		}
 	}
 #endif /* MALLOC_CACHE */
 
@@ -1695,8 +1717,10 @@ bool	IsWrite;
 	 * and we want to prevent space overflow from being undetected
 	 * through arithmetic overflow.
 	 */
-	if (bno >=  MAX_BLOCKS-1)
+	if (bno >=  MAX_BLOCKS-1) {
 		error("Tmp file too large for line %D bno %D, max is %D.  Get help!", (long)atl, (long)bno, (long)(MAX_BLOCKS-1));
+		/* NOTREACHED */
+	}
 	nleft = JBUFSIZ - off;
 	if (lastb != NULL && lastb->b_bno == bno) {
 		bp = lastb;	/* same as last time */
@@ -1830,6 +1854,7 @@ char *fname;
 			(void) close(ffd);
 			complain("[cannot create backup \"%s\": %d %s]",
 				bfname, e, strerror(e));
+			/* NOTREACHED */
 		}
 	}
 
@@ -1846,25 +1871,30 @@ char *fname;
 				close(bffd);
 				close(ffd);
 				complain("[error writing backup: %d %s]", e, strerror(e));
+				/* NOTREACHED */
 			}
 			p += wr;
 			rr -= wr;
 		}
 	}
 
-	if (rr < 0 || close(ffd) != 0)
+	if (rr < 0 || close(ffd) != 0) {
 		complain("[error reading \"%s\": %d %s]", fname, errno, strerror(errno));
+		/* NOTREACHED */
+	}
 #  ifdef USE_FSYNC
 	if (fsync(bffd) != 0) {
 		int	e = errno;
 
 		(void) close(bffd);
 		complain("[error fsyncing backup: %d %s]", e, strerror(e));
+		/* NOTREACHED */
 	}
 #  endif /* USE_FSYNC */
-	if (close(bffd) != 0)
+	if (close(bffd) != 0) {
 		complain("[error closing backup: %d %s]", errno, strerror(errno));
-
+		/* NOTREACHED */
+	}
 # else /* MSFILESYSTEM */
 	/* This code is designed to fit withing the 8.3 limitation of
 	 * MSDOS ("FAT" -- huh!) file systems.  Even though newer versions
@@ -1887,8 +1917,10 @@ char *fname;
 	}
 	strcat(tmp, ".bak");
 	unlink(tmp);
-	if (rename(fname, tmp) != 0)
+	if (rename(fname, tmp) != 0) {
 		complain("[cannot rename to \"%s\": %s]", tmp, strerror(errno));
+		/* NOTREACHED */
+	}
 # endif /* MSFILESYSTEM */
 }
 #endif /* BACKUPFILES */

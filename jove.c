@@ -1035,8 +1035,10 @@ Push()
 	if (started)
 		kbd_strt();
 #  endif
-	if (forkerr != 0)
+	if (forkerr != 0) {
 		complain("[Fork failed: %s]", strerror(errno));
+		/* NOTREACHED */
+	}
 # endif /* !MSDOS_PROCS */
 }
 
@@ -1085,6 +1087,7 @@ getch()
 		 * we're reading a .joverc file.
 		 */
 		complain("[command line too short]");
+		/* NOTREACHED */
 	}
 
 #ifdef RECOVER
@@ -1176,7 +1179,7 @@ char	*argv[];
 				break;
 			default:
 				error("Invalid switch %s",argv[1]);
-				break;
+				/* NOTREACHED */
 			}
 			break;
 		case '-':
@@ -1226,7 +1229,7 @@ char	*argv[];
 				break;
 			default:
 				error("Invalid switch %s",argv[1]);
-				break;
+				/* NOTREACHED */
 			}
 			break;
 		default:
@@ -1251,10 +1254,12 @@ char	*argv[];
 					Bufpos	*bufp;
 
 					if ((bufp = dosearch(pattern, FORWARD, UseRE)) != NULL
-					|| (bufp = dosearch(pattern, BACKWARD, UseRE)) != NULL)
+					|| (bufp = dosearch(pattern, BACKWARD, UseRE)) != NULL) {
 						SetDot(bufp);
-					else
+					} else {
 						complain("Couldn't match pattern in file.");
+						/* NOTREACHED */
+					}
 				}
 				if (nwinds > 0) {
 					nwinds -= 1;
@@ -1305,6 +1310,7 @@ error(fmt, va_alist)
 	}
 	rbell();
 	longjmp(mainjmp, JMP_ERROR);
+	/* NOTREACHED */
 }
 
 #ifdef STDARGS
@@ -1327,6 +1333,7 @@ complain(fmt, va_alist)
 	}
 	rbell();
 	longjmp(mainjmp, JMP_COMPLAIN);
+	/* NOTREACHED */
 }
 
 /* format and display a message without using the normal display mechanisms */
@@ -1374,8 +1381,10 @@ confirm(fmt, va_alist)
 	va_init(ap, fmt);
 	format(mesgbuf, sizeof mesgbuf, fmt, ap);
 	va_end(ap);
-	if (!yes_or_no_p("%s", mesgbuf))
+	if (!yes_or_no_p("%s", mesgbuf)) {
 		longjmp(mainjmp, JMP_COMPLAIN);
+		/* NOTREACHED */
+	}
 }
 
 /* Recursive edit.
@@ -1398,8 +1407,10 @@ Recur()
 	DoKeys(NO);	/* NO means not first time */
 	UpdModLine = YES;
 	RecDepth -= 1;
-	if (!valid_bp(b))
+	if (!valid_bp(b)) {
 		complain("Buffer gone!");
+		/* NOTREACHED */
+	}
 	tiewind(curwind, b);
 	SetBuf(b);
 	if (!is_an_arg())
