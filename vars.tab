@@ -5,7 +5,9 @@
  * this notice is included in all the source files and documentation.     *
  **************************************************************************/
 
-/* This file is #included by vars.c and setmaps.c */
+/* This file is #included by vars.c and setmaps.c
+ * Each defines VAR differently!
+ */
 
 const struct variable	variables[] = {
 	{ VARIABLE, "abort-char", VAR(&AbortChar), V_CHAR },

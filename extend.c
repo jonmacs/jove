@@ -224,7 +224,7 @@ const char	*prompt;
 int	base;
 {
 	const char	*val = ask(def, prompt);
-	int	value;
+	int		value = 0;	/* avoid gcc complaint */
 
 	if (!chr_to_int(val, base, YES, &value))
 		complain("That's not a number!");
@@ -468,7 +468,7 @@ ZXchar	c;
 		/* let's do some completion! */
 		int
 			i,
-			numeral,
+			numeral = 0,		/* avoid gcc complaint */
 			len = strlen(linebuf),
 			minmatch = 1000,	/* init with dummy to placate picky compilers */
 			maxmatch = 0,

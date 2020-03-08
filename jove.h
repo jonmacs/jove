@@ -189,7 +189,7 @@ extern SIGHANDLERTYPE setsighandler proto((int, SIGHANDLERTYPE));
   * signal handlers need to be re-established.
   */
 # define resetsighandler(signo, handler)	{ \
-	static SIGHANDLERTYPE   reset_handler = NULL; \
+	static SIGHANDLERTYPE	reset_handler; \
  \
 	if (reset_handler != (handler)) \
 		reset_handler = setsighandler((signo), (handler)); \

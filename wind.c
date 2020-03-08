@@ -275,7 +275,7 @@ WindFind()
 	Bufpos
 		odot,
 		ndot;
-	void	(*cmd) ptrproto((void));
+	cmdproc_t	cmd;
 
 	DOTsave(&odot);
 
@@ -300,7 +300,7 @@ WindFind()
 		break;
 
 	default:
-		cmd = NULLPROC;	/* avoid uninitialized complaint from gcc -W */
+		cmd = (cmdproc_t)0;	/* avoid uninitialized complaint from gcc -W */
 		complain("T: find-tag, ^T: find-tag-at-point, F: find-file, B: select-buffer.");
 		/*NOTREACHED*/
 	}

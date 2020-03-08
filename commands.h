@@ -6,13 +6,12 @@
  **************************************************************************/
 
 typedef void(*cmdproc_t)  ptrproto((void));
-#define NULLPROC (cmdproc_t)0
 
 struct cmd {
 	/* Type and Name must match data_obj */
 	int	Type;
 	const char	*Name;
-	cmdproc_t 	c_proc;
+	const cmdproc_t 	c_proc;
 #ifdef MAC
 	char c_map;			/* prefix map for About Jove... */
 	char c_key;			/* key binding for About Jove... */

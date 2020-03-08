@@ -16,6 +16,7 @@
 #ifdef MOUSE	/* the body is the rest of this file */
 
 /* #include "argcount.h" */
+#include "commands.h"	/* for cmdproc_t */
 #include "disp.h"
 #include "misc.h"
 #include "ask.h"
@@ -199,7 +200,7 @@ ScrollToMouse()
 
 private bool
 ObeyProc(p)
-void (*p) ptrproto((void));
+cmdproc_t p;
 {
 	if (BufMinorMode(curbuf, BReadOnly)) {
 		rbell();
