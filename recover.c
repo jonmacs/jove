@@ -50,11 +50,6 @@ char	*argv[];
 #include "recover.h"
 #include <sys/stat.h>
 
-#if !defined(S_ISREG) && defined(S_IFMT) && defined(S_IFREG)
-/* Is this only WIN32?  Should not hurt on other platforms - MM */
-# define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
-#endif
-
 #ifndef UNIX
 # define signal(x, y)	-1
 # define kill(x, y)	-1
@@ -350,7 +345,7 @@ char *fname;
 	 * in saving its name.
 	 */
 	(void) sprintf(rfile, "%s/%s", CurDir, fname);
-	if (stat(rfile, &stbuf) != 0 || !S_ISREG(stbuf.st_mode)) {
+	if (stat(rfile, &stbuf) != 0 || (stbuf.st_mode & S_IFMT) != S_IFREG) {
 		if (Verbose)
 			fprintf(dfp, "skipping non-regular file %s\n", rfile);
 		return NO;
