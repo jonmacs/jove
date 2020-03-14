@@ -1540,11 +1540,11 @@ register Block	*b;
 register SSIZE_T	(*iofcn) ptrproto((int, UnivPtr, size_t));
 {
 	off_t boff = bno_to_seek_off(b->b_bno);
-	ssize_t nb;
+	SSIZE_T nb;
 	static bool first_time = YES;
 
 	if (first_time) {
-	tmpinit();
+		tmpinit();
 		first_time = NO;
 	}
 	if (lseek(tmpfd, boff, 0) < 0) {

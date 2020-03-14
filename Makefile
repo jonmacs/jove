@@ -478,7 +478,7 @@ doc/jove.man:	doc/intro.nr doc/cmds.nr
 	@-rm -f doc/jove.man
 	( LANG=C; export LANG; cd doc; tbl intro.nr | $(NROFF) -ms - cmds.nr >jove.man )
 
-doc/jove.man.ps:
+doc/jove.man.ps: doc/intro.nr doc/cmds.nr doc/contents.nr
 	@-rm -f doc/doc/jove.man.ps
 	( LANG=C; export LANG; cd doc; tbl intro.nr | $(TROFF) -ms - cmds.nr contents.nr $(TROFFPOST) >jove.man.ps )
 

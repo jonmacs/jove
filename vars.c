@@ -37,6 +37,33 @@
 #define VAR(v)	(UnivPtr)(v), sizeof(v)
 #include "vars.tab"
 
+private int
+varcmp(p1, p2)
+UnivConstPtr	p1, p2;
+{
+	const struct variable *v1 = (const struct variable *) p1;
+	const struct variable *v2 = (const struct variable *) p2;
+	return strncmp(v1->Name, v2->Name, strlen(v1->Name));
+}
+
+const char *
+getvar(name, vbuf, vbufsize)
+const char	*name;
+char		*vbuf;
+size_t		vbufsize;
+{
+	struct variable		vkey;
+	const struct variable	*vp;
+	vkey.Name = name;
+	vp = (const struct variable *) bsearch((UnivConstPtr)&vkey,
+		(UnivConstPtr)variables, elemsof(variables) - 1,/* ignore NULL */
+		sizeof(struct variable), varcmp);
+	if (vp == NULL)
+		return NULL;
+	vpr_aux(vp, vbuf, vbufsize);
+	return vbuf;
+}
+
 const data_obj *
 findvar(prompt)
 const char	*prompt;

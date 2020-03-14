@@ -50,7 +50,10 @@ extern void	exit proto((int));
 extern int	atoi proto((const char */*nptr*/));
 
 extern void	qsort proto((UnivPtr /*base*/, size_t /*nmemb*/,
-	size_t /*size*/, int (*/*compar*/)(UnivConstPtr, UnivConstPtr)));
+	size_t /*size*/, int (*/*compar*/) ptrproto((UnivConstPtr, UnivConstPtr))));
+extern UnivPtr	bsearch(UnivConstPtr /*key*/, UnivConstPtr /*base*/,
+			size_t /*nmemb*/, size_t /*size*/,
+			int (*compar) ptrproto((UnivConstPtr, UnivConstPtr)));
 
 extern char	*getenv proto((const char *));
 extern int	system proto((const char *));

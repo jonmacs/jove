@@ -96,7 +96,7 @@ DFLTSHELL = command
 OBJECTS = keys.obj commands.obj abbrev.obj ask.obj buf.obj c.obj \
 	case.obj jctype.obj delete.obj extend.obj argcount.obj \
 	insert.obj io.obj jove.obj macros.obj marks.obj misc.obj mouse.obj move.obj \
-	para.obj proc.obj re.obj reapp.obj scandir.obj \
+	para.obj proc.obj re.obj reapp.obj rec.obj scandir.obj \
 	list.obj keymaps.obj util.obj vars.obj wind.obj \
 	fmt.obj disp.obj term.obj fp.obj screen.obj \
 	$(SYSOBJS)
@@ -114,7 +114,7 @@ HEADERS = abbrev.h argcount.h ask.h buf.h c.h case.h chars.h commands.h \
 RESOURCE	=	jjove.res
 !ENDIF
 
-all: jjove.exe $(BROWSE_TGT)
+all: jjove.exe recover.exe $(BROWSE_TGT)
 
 jjove.exe:	$(OBJECTS) $(HEADERS) $(RESOURCE)
 !IF "$(WIN32)" != ""
@@ -177,6 +177,9 @@ $(OBJECTS): $(HEADERS)
 
 setmaps.exe:	setmaps.obj
 	cl /F 6000 setmaps.obj
+
+recover.exe:	recover.obj
+	cl /F 6000 recover.obj
 
 setmaps.obj:	commands.tab vars.tab keys.txt setmaps.c
 

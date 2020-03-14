@@ -2909,10 +2909,15 @@ is obeyed, and otherwise the second lot (the \fIelse\fP part is optional).
 Another variant of this feature allows you to say, in place of \fIif\fP
 <shell-command>,
 \fIifenv\fP <environment-variable> <pattern>, which succeeds if
-<environment-variable> exists and if its value matches <pattern>.  These
+<environment-variable> exists and if its value matches the regular 
+expression <pattern> (an anchored match from the beginning
+of the variable value).  There
+is a similar variant
+\fIifvar\fP <jove-variable> <pattern>, which succeeds if the specified
+\s-2JOVE\s0 variable exists and if its value matches <pattern>. These
 conditional commands can be nested in the usual way; also indentation and
-empty lines have no effect.  Finally, you can include comments on any line
-that starts with a \*Q#\*U.
+empty lines have no effect.  Finally, any line
+that starts with a \*Q#\*U is treated as a comment and is ignored by \s-2JOVE\s0.
 .LP
 Here are some examples taken from the provided \fBjove.rc\fP.
 .KS

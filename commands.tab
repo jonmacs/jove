@@ -19,7 +19,7 @@
 
 /* Table of commands
  *
- * Note: must be kept in alphabetical order (the truth is more complicated).
+ * Note: must be kept in alphabetical order (setmaps does a check).
  */
 
 const struct cmd	commands[] = {

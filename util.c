@@ -775,6 +775,33 @@ int errnum;
 }
 #endif /* NO_STRERROR */
 
+#ifdef NO_BSEARCH
+UnivPtr
+jbsearch(key, base, nmemb, size, compar)
+UnivConstPtr key, base;
+size_t nmemb, size;
+int (*compar) ptrproto((UnivConstPtr, UnivConstPtr));
+{
+	size_t n = nmemb;
+	const char *midp, *lop = (const char *) base;
+	int v;
+	while (n > 0) {
+		midp = lop + (n >> 1)*size;
+		v = (*compar)(key, midp);
+		if (debug) printf("%zu %zu %zu %d\n", (lop - (const char *)base)/size, (midp - (const char *)base)/size, n >> 1, v);
+		if (v == 0) {
+			return (UnivPtr)midp;
+		}
+		if (v > 0) {
+		    lop = midp + size;
+		    n--;
+		}
+		n >>= 1;
+	}
+	return NULL;
+}
+#endif /* NO_BSEARCH */
+
 /* decode a pair of characters representing \x or ^x */
 
 ZXchar

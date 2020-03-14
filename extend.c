@@ -296,6 +296,8 @@ vset_aux(vp, prompt)
 const struct variable	*vp;
 char	*prompt;
 {
+	if (vp->v_flags & V_READONLY)
+		complain("[cannot set readonly variable %s]", vp->Name);
 	switch (vp->v_flags & V_TYPEMASK) {
 	case V_INT:
 	case V_WHOLEX:
@@ -841,6 +843,7 @@ char	*file;
 				/* NOTREACHED */
 			}
 			putmatch(1, cmd, sizeof cmd);
+			jdbg("if finger=0x%x skipping=0x%x inelse=0x%x cmd=\"%s\"\n", finger, skipping, inelse, cmd);
 			if (skipping == 0 && !do_if(cmd))
 				skipping |= finger;
 #endif /* SUBSHELL */
@@ -851,6 +854,7 @@ char	*file;
 				complain("[`ifenv' nested too deeply]");
 				/* NOTREACHED */
 			}
+			jdbg("ifenv finger=0x%x skipping=0x%x inelse=0x%x\n", finger, skipping, inelse);
 			if (skipping == 0) {
 				char	envname[128],
 					envpat[128],
@@ -863,6 +867,28 @@ char	*file;
 					skipping |= finger;
 			}
 #endif
+		} else if (cmdmatch(Inputp, "ifvar", "\\>[ \t]*\\<\\([^ \t][^ \t]*\\)\\>[ \t]\\(.*\\)$")) {
+			finger <<= 1;
+			if (finger == 0) {
+				complain("[`if' nested too deeply]");
+				/* NOTREACHED */
+			}
+			jdbg("ifvar finger=0x%x skipping=0x%x inelse=0x%x\n", finger, skipping, inelse);
+			if (skipping == 0) {
+				char	vname[128],
+					vpat[128],
+					vbuf[128],
+					*val;
+				bool	matched = NO;
+
+				putmatch(1, vname, sizeof vname);
+				putmatch(2, vpat, sizeof vpat);
+				val = (char *)getvar(vname, vbuf, sizeof(vbuf));
+				jdbg("ifvar var \"%s\" => \"%s\" vpat \"%s\"\n", vname, val != NULL? val : "(null)", vpat);
+				if (val==NULL || !(matched = LookingAt(vpat, val, 0)))
+					skipping |= finger;
+				jdbg("ifvar matched=%d skipping=0x%x\n", matched, skipping);
+			}
 		} else if (cmdmatch(Inputp, "else", "[ \\t]*$")) {
 			if (finger == 1 || (inelse & finger)) {
 				complain("[Unexpected `else']");
@@ -870,6 +896,7 @@ char	*file;
 			}
 			inelse |= finger;
 			skipping ^= finger;
+			jdbg("else finger=0x%x skipping=0x%x inelse 0x%x\n", finger, skipping, inelse);
 		} else if (cmdmatch(Inputp, "endif", "[ \\t]*$")) {
 			if (finger == 1) {
 				complain("[Unexpected `endif']");
@@ -878,6 +905,7 @@ char	*file;
 			inelse &= ~finger;
 			skipping &= ~finger;
 			finger >>= 1;
+			jdbg("endif finger=0x%x skipping=0x%x inlse=0x%x\n", finger, skipping, inelse);
 		} else if (skipping == 0) {
 			(void) strcat(Inputp, "\n");
 			for (;;) {

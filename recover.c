@@ -50,9 +50,17 @@ char	*argv[];
 #include "recover.h"
 #include <sys/stat.h>
 
+#if !defined(S_ISREG) && defined(S_IFMT) && defined(S_IFREG)
+/* Is this only WIN32?  Should not hurt on other platforms - MM */
+# define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
+#endif
+
 #ifndef UNIX
 # define signal(x, y)	-1
 # define kill(x, y)	-1
+# ifdef WIN32
+#  define uid_t int
+# endif
 #else /*UNIX */
 # include <signal.h>
 # include <sys/file.h>
@@ -221,7 +229,7 @@ daddr	atl;
 		    (long)atl, (long)bno, (long)off, (long)nleft);
 
 	if (bno != curblock) {
-		ssize_t nb;
+		SSIZE_T nb;
 		const char *what;
 		off_t	    r,
 			    boff = bno_to_seek_off(bno);

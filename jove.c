@@ -102,6 +102,7 @@ SIGHANDLERTYPE	handler;
 #endif
 
 bool	TimeDisplayed = YES;	/* is time actually displayed in modeline? */
+char	JoveFeatures[MAXCOLS];	/* VAR: list of compiled-in features */
 
 #ifdef UNIX
 
@@ -1589,6 +1590,120 @@ bool	dousr;
 	}
 }
 
+private void
+setfeatures()
+{
+	size_t jlen = 0;
+	JoveFeatures[0] = '\0';
+#ifdef UNIX
+	jamstrsub(JoveFeatures + jlen, ":unix", sizeof(JoveFeatures) - jlen);
+	jlen = strlen(JoveFeatures);
+#endif
+#ifdef MSDOS
+	jamstrsub(JoveFeatures + jlen, ":msdos", sizeof(JoveFeatures) - jlen);
+	jlen = strlen(JoveFeatures);
+#endif
+#ifdef WIN32
+	jamstrsub(JoveFeatures + jlen, ":win32", sizeof(JoveFeatures) - jlen);
+	jlen = strlen(JoveFeatures);
+#endif
+#ifdef MAC
+	jamstrsub(JoveFeatures + jlen, ":mac", sizeof(JoveFeatures) - jlen);
+	jlen = strlen(JoveFeatures);
+#endif
+#ifdef IBMPCDOS
+	jamstrsub(JoveFeatures + jlen, ":ibmpc", sizeof(JoveFeatures) - jlen);
+	jlen = strlen(JoveFeatures);
+#endif
+#ifdef ABBREV
+	jamstrsub(JoveFeatures + jlen, ":abbr", sizeof(JoveFeatures) - jlen);
+	jlen = strlen(JoveFeatures);
+#endif
+#ifdef BACKUPFILES
+	jamstrsub(JoveFeatures + jlen, ":bak", sizeof(JoveFeatures) - jlen);
+	jlen = strlen(JoveFeatures);
+#endif
+#ifdef BIFF
+	jamstrsub(JoveFeatures + jlen, ":biff", sizeof(JoveFeatures) - jlen);
+	jlen = strlen(JoveFeatures);
+#endif
+#ifdef CMT_FMT
+	jamstrsub(JoveFeatures + jlen, ":cmtfmt", sizeof(JoveFeatures) - jlen);
+	jlen = strlen(JoveFeatures);
+#endif
+#ifdef F_COMPLETION
+	jamstrsub(JoveFeatures + jlen, ":fcomp", sizeof(JoveFeatures) - jlen);
+	jlen = strlen(JoveFeatures);
+#endif
+#ifdef IPROCS
+	jamstrsub(JoveFeatures + jlen, ":iproc", sizeof(JoveFeatures) - jlen);
+	jlen = strlen(JoveFeatures);
+#endif
+#ifdef PIPEPROCS
+	jamstrsub(JoveFeatures + jlen, ":pipe", sizeof(JoveFeatures) - jlen);
+	jlen = strlen(JoveFeatures);
+#endif
+#ifdef PTYPROCS
+	jamstrsub(JoveFeatures + jlen, ":pty", sizeof(JoveFeatures) - jlen);
+	jlen = strlen(JoveFeatures);
+#endif
+#ifdef LISP
+	jamstrsub(JoveFeatures + jlen, ":lisp", sizeof(JoveFeatures) - jlen);
+	jlen = strlen(JoveFeatures);
+#endif
+#ifdef SUBSHELL
+	jamstrsub(JoveFeatures + jlen, ":proc", sizeof(JoveFeatures) - jlen);
+	jlen = strlen(JoveFeatures);
+#endif
+#ifdef SPELL
+	jamstrsub(JoveFeatures + jlen, ":spell", sizeof(JoveFeatures) - jlen);
+	jlen = strlen(JoveFeatures);
+#endif
+#ifdef RECOVER
+	jamstrsub(JoveFeatures + jlen, ":rec", sizeof(JoveFeatures) - jlen);
+	jlen = strlen(JoveFeatures);
+#endif
+#ifdef JOB_CONTROL
+	jamstrsub(JoveFeatures + jlen, ":job", sizeof(JoveFeatures) - jlen);
+	jlen = strlen(JoveFeatures);
+#endif
+#ifdef JSMALL
+	jamstrsub(JoveFeatures + jlen, ":jsmall", sizeof(JoveFeatures) - jlen);
+	jlen = strlen(JoveFeatures);
+#endif
+#ifdef ID_CHAR
+	jamstrsub(JoveFeatures + jlen, ":idchar", sizeof(JoveFeatures) - jlen);
+	jlen = strlen(JoveFeatures);
+#endif
+#ifdef HIGHLIGHTING
+	jamstrsub(JoveFeatures + jlen, ":hl", sizeof(JoveFeatures) - jlen);
+	jlen = strlen(JoveFeatures);
+#endif
+#ifdef JTC
+	jamstrsub(JoveFeatures + jlen, ":jtc", sizeof(JoveFeatures) - jlen);
+	jlen = strlen(JoveFeatures);
+#endif
+#ifdef TERMCAP
+	jamstrsub(JoveFeatures + jlen, ":tcap", sizeof(JoveFeatures) - jlen);
+	jlen = strlen(JoveFeatures);
+#endif
+#ifdef TERMINFO
+	jamstrsub(JoveFeatures + jlen, ":tinfo", sizeof(JoveFeatures) - jlen);
+	jlen = strlen(JoveFeatures);
+#endif
+#ifdef USE_CTYPE
+	jamstrsub(JoveFeatures + jlen, ":ctype", sizeof(JoveFeatures) - jlen);
+	jlen = strlen(JoveFeatures);
+#endif
+#ifdef ISO_8859_1
+	jamstrsub(JoveFeatures + jlen, ":iso88591", sizeof(JoveFeatures) - jlen);
+	jlen = strlen(JoveFeatures);
+#endif
+	jamstrsub(JoveFeatures + jlen, ":", sizeof(JoveFeatures) - jlen);
+	jdbg("jove-features=\"%s\"\n", JoveFeatures);
+}
+
+
 int
 main(argc, argv)
 int	argc;
@@ -1631,6 +1746,7 @@ char	*argv[];
 	jdbg("MAXCOLS=%d\n", MAXCOLS);
 	jdbg("NBUF=%d\n", NBUF);
 	jdbg("JBUFSIZ=%d\n", JBUFSIZ);
+	jdbg("NCHARS=%d\n", NCHARS);
 
 	if (setjmp(mainjmp)) {
 		ttysetattr(NO);
@@ -1719,6 +1835,7 @@ char	*argv[];
 
 	settout();	/* not until we know baudrate */
 	SetTerm();
+	setfeatures();
 
 #ifndef MAC	/* no environment in MacOS */
 	/* Handle overrides for ShareDir and LibDir.

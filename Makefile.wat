@@ -166,10 +166,8 @@ paths.h:	Makefile.wat
 #define DFLTSHELL "$(DFLTSHELL)"
 <<KEEP
 
-setmaps.exe:	setmaps.c
-	wcl $(CFLAGS) $(LDFLAGS) $< -fe=$@
-
-setmaps.c: commands.tab
+setmaps.exe:	setmaps.c commands.tab
+	wcl $(CFLAGS) $(LDFLAGS) setmaps.c -fe=$@
 
 keys.c:	setmaps.exe keys.txt
 	setmaps < keys.txt > keys.c

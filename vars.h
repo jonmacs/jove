@@ -37,5 +37,7 @@ struct variable {
 #define V_TTY_RESET	00200	/* redo the tty modes */
 #define V_LOCALE	00400	/* locale has changed -- do a setlocale */
 #define V_UPDFREQ	01000	/* update-time-frequency -- reset alarm */
+#define V_READONLY	02000	/* not user-modifiable, set by Jove */
 
 extern const struct variable	variables[];
+extern const char		*getvar proto((const char * /*name*/, char * /*vbuf*/, size_t /*vbufsize*/));

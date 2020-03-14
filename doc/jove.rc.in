@@ -35,49 +35,55 @@ define-macro kill-line ^[xbeginning-of-line^M^[xset-mark^M^[xnext-line^M^[xkill-
 # The following apply to shell windows. Note the use of ^C^C, ^C^D etc.,
 # thus leaving ^D available for delete-next-character.
 # This conforms to current emacs usage.
-1 process-bind-to-key interrupt-process ^C^C
-1 process-bind-to-key eof-process ^C^D
-1 process-bind-to-key quit-process ^C^\
-1 process-bind-to-key stop-process ^C^Z
-1 process-bind-to-key dstop-process ^C^Y
+ifvar jove-features :iproc:
+  insert-variable process-prompt
+  process-bind-to-key interrupt-process ^C^C
+  process-bind-to-key eof-process ^C^D
+  process-bind-to-key quit-process ^C^\
+  process-bind-to-key stop-process ^C^Z
+  process-bind-to-key dstop-process ^C^Y
 
-# A plethora of programs now unilaterally try to color
-# their output using ANSI color sequences, and all
-# have different ways to turn that off, sigh.
-1 iproc-env-export INSIDE_JOVE=iproc
-1 iproc-env-export TERM=dumb
-1 iproc-env-unset COLORTERM
-1 iproc-env-export LS_COLORS=none
-1 iproc-env-unset CLICOLOR
-1 iproc-env-export GREP_COLOR=never
-1 iproc-env-unset GREP_COLORS
-1 iproc-env-export GCC_COLORS=""
-1 iproc-env-export SYSTEMD_LOG_COLOR=false
+  # A plethora of programs now unilaterally try to color
+  # their output using ANSI color sequences, and all
+  # have different ways to turn that off, sigh.
+  iproc-env-export INSIDE_JOVE=iproc
+  iproc-env-export TERM=dumb
+  iproc-env-unset COLORTERM
+  iproc-env-export LS_COLORS=none
+  iproc-env-unset CLICOLOR
+  iproc-env-export GREP_COLOR=never
+  iproc-env-unset GREP_COLORS
+  iproc-env-export GCC_COLORS=""
+  iproc-env-export SYSTEMD_LOG_COLOR=false
+endif
 
 # since proc do not have a pty, fewer
 # programs produce color, not sure
 # if all these are needed.
-1 proc-env-export INSIDE_JOVE=proc
-1 proc-env-export LS_COLORS=none
-1 proc-env-unset CLICOLOR
-1 proc-env-export GREP_COLOR=never
-1 proc-env-unset GREP_COLORS
-1 proc-env-export GCC_COLORS=""
-1 proc-env-export SYSTEMD_LOG_COLOR=false
+ifvar jove-features :proc:
+  insert-variable shell
+  proc-env-export INSIDE_JOVE=proc
+  proc-env-export LS_COLORS=none
+  proc-env-unset CLICOLOR
+  proc-env-export GREP_COLOR=never
+  proc-env-unset GREP_COLORS
+  proc-env-export GCC_COLORS=""
+  proc-env-export SYSTEMD_LOG_COLOR=false
 
-# Uncomment to set TERM you find any programs producing
-# unreadable output in subshells via pipes.
-#1 proc-env-export TERM=dumb
+  # Uncomment to set TERM you find any programs producing
+  # unreadable output in subshells via pipes.
+  # proc-env-export TERM=dumb
 
-# gcc error messages have Unicode quote chars
-# if LANG or LC* are set to utf*, which is
-# typical for modern Linux.  That is hard to
-# read inside Jove compile-it output.
-# (similarly, nroff produces Unicode hyphens)
-# LANG=C seems a more readable, albeit constraining
-# default for Jove subshells (at least,
-# till Jove gets to understand Unicode)
-1 proc-env-export LANG=C
+  # gcc error messages have Unicode quote chars
+  # if LANG or LC* are set to utf*, which is
+  # typical for modern Linux.  That is hard to
+  # read inside Jove compile-it output.
+  # (similarly, nroff produces Unicode hyphens)
+  # LANG=C seems a more readable, albeit constraining
+  # default for Jove subshells (at least,
+  # till Jove gets to understand Unicode)
+  proc-env-export LANG=C
+endif
 
 # This makes the arrow keys work on most terminals.
 bind-to-key previous-line ^[[A

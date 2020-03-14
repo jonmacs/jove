@@ -1100,8 +1100,117 @@ the environment that will be exported to interactive processes.
 This takes an argument that is the name of an environment variable and
 removes it from the list of environment variables that will be passed
 to interactive processes.
+.dc "jove-features" "(variable)"
+This is a special, read-only variable, set with a colon-delimited list of 
+all the optional capabilities compiled into \s-2JOVE\s0.  The value will
+be something like
+.br
+.IQ :unix:abbr:bak:biff:cmtfmt:fcomp:iproc:pty:lisp:proc:spell:rec:job:idchar:hl:tcap:ctype: 
+.br
+.IQ unix
+specifies a variety of traditional UNIX/POSIX capabilities (case-sensitive filenames,
+a Unix-style filesystem), as opposed to 
+.br
+.IQ msdos
+or
+.IQ win32
+which have case-insensitive filesystems, for example.  The platform
+.IQ ibmpcdos
+indicates specialization for the IBM-PC platform, which in reality, is
+the only MS-DOS form remaining in existence (other non-IBM-PC platforms,
+like Heath/Zenith, DEC Rainbow, etc probably do not exist anymore,
+as is probably the case for the pre-OSX classic
+.IQ mac
+platform).  Other tokens are
+.br
+.IQ abbr 
+(abbrev-mode exists), 
+.br
+.IQ bak 
+(backup-files can be created),
+.br
+.IQ biff 
+(ability to disable screen-disruptions from old Unix-style mail notification),
+.br
+.IQ cmtfmt
+(format C comments),
+.br
+.IQ fcomp
+(filename completion),
+.br
+.IQ iproc
+(interactive shell processes),
+.br
+.IQ pipe
+(indicating that 
+.IQ iproc
+is implemented using pipes and the 
+.IQ portsrv
+helper program ), or
+.br
+.IQ pty
+(indicating that 
+.IQ iproc
+is implemented using pseudo-terminals, available on any modern
+post-4.2BSD platform),
+.br
+.IQ lisp
+(lisp mode is available),
+.br
+.IQ proc
+(the ability to run non-interactive subshell processes with output 
+to buffers, or switch entirely from \s-2JOVE\s0 to a child shell
+via 
+.IQ push-shell
+and then return to \s-2JOVE\s0 when that child shell exits),
+.br
+.IQ spell
+(the ability to run a spell checker on the contents of a buffer,
+parse and modify the checker output and then step through
+any misspelled words in the original buffer with ^X^N and ^X^P)
+.br
+.IQ rec
+(periodically generate a recovery file so that one can restore unsaved changes
+from \s-2JOVE\s0 editors after a machine or program crash)
+.br
+.IQ job
+(BSD job control is supported, so one can suspend \s-2JOVE\s0
+with the pause-jove command and return to the shell that \s-2JOVE\s0
+was started from, and later resume \s-2JOVE\s0 using a
+shell command like 
+.IQ fg ),
+.br
+.IQ jsmall
+(\s-2JOVE\s0 was built with smaller limits on the number of
+lines it can support, probably only 32000)
+.br
+.IQ idchar
+(\s-2JOVE\s0 will attempt to optimize screen display
+using insert/delete character modes and terminal control sequences),
+.IQ hl
+(enable highlight-mark capabiltiy to display a small underscore for the position of the mark,
+and enable the scroll-bar capability in the buffer mode line),
+.br
+.IQ jtc
+(uses builtin ANSI/VT1xx/XTERM driver rather than 
+.IQ termcap/terminfo/curses ),
+.br
+.IQ tcap
+(termcap database code is enabled)
+.br
+.IQ tinfo
+(uses SystemV-style terminfo rather than BSD-style termcap calls),
+.br
+.IQ ctype
+(uses the system ctype character classification rather than \s-2JOVE\s0 builtin
+capability)
+.br
+.IQ iso88591
+(uses builtin \s-2JOVE\s0 tables for ISO-8859-1 character classification
+rather than the system ctype capability).
 .dc "kill-next-word" "ESC\ D"
 This kills the text from point to the end of the current or next word.
+.IQ 
 The killed text is sent to the kill ring.
 .dc "kill-previous-word" "ESC\ DEL"
 This kills the text from point to the beginning of the current or
@@ -2155,10 +2264,11 @@ ESC should be represented by ^[.
 
 Sometimes it is useful to do different things in
 different circumstances.
-To make this possible, there are two conditional commands:
-.IQ if
+To make this possible, there are three conditional commands:
+.IQ if ,
+.IQ ifenv ,
 and
-.IQ ifenv .
+.IQ ifvar .
 The
 .IQ if
 command takes as an operand a shell command, which it runs.
@@ -2184,6 +2294,14 @@ and a pattern.
 If the environment variable is defined and its value matches the pattern,
 the
 .IQ ifenv
+succeeds.  Note that patterns are anchored matches from the left.
+The
+.IQ ifvar
+command takes as operands the name of a \s-2JOVE\s0 variable
+and a pattern.
+If the \s-2JOVE\s0 variable is defined and its value matches the pattern,
+the
+.IQ ifvar
 succeeds.
 
 For example, here are some lines from the file
@@ -2194,6 +2312,9 @@ bind-to-key pause-jove ^[s
 set process-prompt ^[^%$#]*[%$#]
 # source any TERMinal-specific rc file
 1 source jove.rc.$TERM
+ifvar jove-features .*:iproc:
+  process-bind-to-key interrupt-process ^C^C
+endif
 .DE
 What they do is to provide two alternative key bindings for
 .IQ pause-jove ,
@@ -2206,6 +2327,16 @@ command on the file
 .BQ jove.rc.$TERM .
 Because of the
 numeric argument 1, there will be no complaint if this file cannot be found.
+If \s-2JOVE\s0 was compiled with interactive-processes enabled (in which
+case the string
+.IQ :iproc:
+will be part of the read-only \s-2JOVE\s0 variable 
+.IQ jove-features ),
+the
+.iQ process-bind-to-key
+command binds the key sequence Control-C Control-C to the 
+.IQ interrupt-process
+command, which sends the SIGINT signal to interactive shell.
 .dc "space-sentence-2" (variable)
 If set
 .IQ on ,
