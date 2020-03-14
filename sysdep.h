@@ -350,7 +350,7 @@ typedef unsigned short	daddr;    /* index of line contents in tmp file, see temp
 #  define LG_JBUFSIZ	9	/* temp file block size, also maximum line length. 512 bytes is the traditional UNIX block size */
 # endif
 # ifndef NBUF
-#  define NBUF		3	/* number of temp file blocks to cache in memory */
+#  define NBUF		3	/* number of temp file blocks to cache in memory, NBUF*JBUFSIZ is big part of JOVE memory footprint */
 # endif
 
 #else
@@ -364,10 +364,10 @@ typedef unsigned long	daddr;    /* index of line contents in tmp file, see temp.
 # define MAXCOLS	512	/* maximum number of columns */
 # define MAXTTYBUF	2048	/* maximum size of output terminal buffer */
 # ifndef LG_JBUFSIZ
-#  define LG_JBUFSIZ 12		/* temp file block size, also maximum line length. perhaps a good match for 4KiB pages */
+#  define LG_JBUFSIZ	15	/* temp file block size, also maximum line length, 32K seems better for modern VM machines */
 # endif
 # ifndef NBUF
-#  define NBUF 64		/* number of temp file blocks to cache in memory */
+#  define NBUF		64	/* number of temp file blocks to cache in memory, NBUF*JBUFSIZ is big part of JOVE memory footprint */
 # endif
 
 #endif /* !JSMALL */
