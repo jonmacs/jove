@@ -47,6 +47,7 @@ struct FileStruct {
 				   f_close knows to free it up */
 #define F_TELLALL	0400	/* whether to display info upon close */
 #define F_READONLY	01000	/* file is read only */
+#define F_LINETOOLONG	02000	/* read lines that are too long */
 
 /* ScrBufSize is the size of the buffer for jstdout.  It is also the
  * number of characters to be output between checks for input, so

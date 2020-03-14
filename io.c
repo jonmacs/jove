@@ -419,6 +419,10 @@ bool	is_insert;
 {
 	Bufpos	save;
 	File	*fp;
+	bool	err;
+	int	save_type;
+	char	*tmpfname,
+		*save_fname;
 
 	if (!is_insert)
 		curbuf->b_ntbf = NO;
@@ -437,14 +441,45 @@ bool	is_insert;
 	}
 
 	DOTsave(&save);
+
+	/*
+	 * if read fails, e.g. too long line, it would be
+	 * dangerous to save the buffer back to the real
+	 * filename, so we mark the buffer as scratch (unless
+	 * we are inserting, in which case the buffer might
+	 * have other valuable info worth saving, even with
+	 * the truncated line, sigh!), and give it a temporary
+	 * fname, which we restore after the read succeeds.
+	 */
+	save_type = curbuf->b_type;
+	save_fname = curbuf->b_fname;
+	tmpfname = (char *)emalloc(FILESIZE);
+	backup_name(save_fname, "+", tmpfname, FILESIZE);
+	jdbg("temporary name \"%s\"\n", tmpfname);
+	curbuf->b_fname = tmpfname;
+	if (!is_insert)
+		curbuf->b_type = B_SCRATCH;
+
 	dofread(fp);
+
 	if (is_insert && io_chars > 0) {
 		modify();
 		set_mark();
 	}
 	SetDot(&save);
 	getDOT();
+	err = (fp->f_flags & (F_ERR | F_LINETOOLONG)) != 0;
 	close_file(fp);
+	if (err) {
+		free((UnivPtr)save_fname);
+		complain("[Error reading file%s]", is_insert ? ", buffer has tmp name now" : ", buffer marked as scratch with tmp name");
+		/* NOTREACHED */
+	}
+	/* if we get here, means read worked, yay! */
+	jdbg("restoring original name \"%s\"\n", save_fname);
+	curbuf->b_type = save_type;
+	curbuf->b_fname = save_fname;
+	free((UnivPtr) tmpfname);
 }
 
 void
@@ -1799,6 +1834,22 @@ lsave()
 	DOLsave = NO;
 }
 
+/* build backup file name, also used by SetBuf */
+void
+backup_name(fname, btype, bfname, bfnamesize)
+const char	*fname,
+		*btype;
+char		*bfname;
+size_t		bfnamesize;
+{
+	char	*s = strrchr(fname, '/');
+	size_t	dirlen = (s == NULL)? 0 : s + 1 - fname;
+
+	jamstrsub(bfname, fname, bfnamesize);
+	swritef(bfname+dirlen, (size_t) (bfnamesize - dirlen), "#%s%s~",
+		fname+dirlen, btype);
+}
+
 #ifdef BACKUPFILES
 private void
 file_backup(fname)
@@ -1813,15 +1864,7 @@ char *fname;
 		buf[JBUFSIZ],
 		bfname[FILESIZE];
 
-	/* build backup file name */
-	{
-		char	*s = strrchr(fname, '/');
-		size_t	dirlen = (s == NULL)? 0 : s + 1 - fname;
-
-		strcpy(bfname, fname);
-		swritef(bfname+dirlen, (size_t) (sizeof(bfname) - dirlen), "#%s~",
-			fname+dirlen);
-	}
+	backup_name(fname, "", bfname, sizeof(bfname));
 
 	if ((ffd = open(fname, O_RDONLY | O_BINARY | O_CLOEXEC)) < 0)
 		return;	/* cannot open original file: nothing to backup, we assume */

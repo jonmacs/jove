@@ -323,8 +323,9 @@ size_t	max;
 			continue;
 
 		if (cp >= endp) {
+			fp->f_flags |= F_LINETOOLONG;
 			add_mess(" [Line too long]");
-			rbell();
+                        rbell();
 			return YES;
 		}
 		*cp++ = c;

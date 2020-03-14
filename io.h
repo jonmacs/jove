@@ -70,7 +70,8 @@ extern void
 	WtModBuf proto((void)),
 	WrtReg proto((void)),
 	prCWD proto((void)),
-	prDIRS proto((void));
+	prDIRS proto((void)),
+	backup_name proto((const char *fname, const char *btype, char *bfname, size_t bfnamesize));
 
 /* Variables: */
 
