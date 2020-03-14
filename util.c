@@ -686,14 +686,14 @@ char *buf;
 size_t bufsz;
 const char *str;
 {
-	if (strlen(str) < bufsz)
-		strcpy(buf, str);
-	else if (bufsz == 0) {
-		complain("internal error");	/* cannot even fit NUL */
+	size_t strsz = strlen(str);
+	if (bufsz == 0) {
+		complain("internal error in truncstrsub");	/* cannot even fit NUL */
 		/* NOTREACHED */
 	} else {
-		strncpy(buf, str, bufsz - 1);
-		buf[bufsz-1] = '\0';
+		size_t sz = strsz < bufsz ? strsz : bufsz - 1;
+		byte_move(str, buf, sz);
+		buf[sz] = '\0';
 	}
 }
 
