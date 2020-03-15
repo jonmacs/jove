@@ -411,7 +411,7 @@ char	*name;
 	return NO;
 }
 
-private bool f_match proto((char* file));	/* needed to comfort dumb MS Visual C */
+private bool f_match proto((char* file));	/* needed to comfort MS Visual C */
 
 private bool
 f_match(file)

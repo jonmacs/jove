@@ -453,10 +453,12 @@ bool	is_insert;
 	 */
 	save_type = curbuf->b_type;
 	save_fname = curbuf->b_fname;
-	tmpfname = (char *)emalloc(FILESIZE);
-	backup_name(save_fname, "+", tmpfname, FILESIZE);
-	jdbg("temporary name \"%s\"\n", tmpfname);
-	curbuf->b_fname = tmpfname;
+	if (save_fname) {
+		tmpfname = (char *)emalloc(FILESIZE);
+		backup_name(save_fname, "+", tmpfname, FILESIZE);
+		jdbg("temporary name \"%s\"\n", tmpfname);
+		curbuf->b_fname = tmpfname;
+	}
 	if (!is_insert)
 		curbuf->b_type = B_SCRATCH;
 
@@ -471,15 +473,17 @@ bool	is_insert;
 	err = (fp->f_flags & (F_ERR | F_LINETOOLONG)) != 0;
 	close_file(fp);
 	if (err) {
-		free((UnivPtr)save_fname);
+		if (save_fname)
+			free((UnivPtr)save_fname);
 		complain("[Error reading file%s]", is_insert ? ", buffer has tmp name now" : ", buffer marked as scratch with tmp name");
 		/* NOTREACHED */
 	}
-	/* if we get here, means read worked, yay! */
-	jdbg("restoring original name \"%s\"\n", save_fname);
 	curbuf->b_type = save_type;
-	curbuf->b_fname = save_fname;
-	free((UnivPtr) tmpfname);
+	if (save_fname) {
+		jdbg("restoring original name \"%s\"\n", save_fname);
+		curbuf->b_fname = save_fname;
+		free((UnivPtr) tmpfname);
+	}
 }
 
 void
@@ -1567,7 +1571,7 @@ private Block
 private daddr	next_bno = 0;
 
 /* Needed to comfort MS Visual C */
-private void blkio ptrproto((Block *, SSIZE_T (*) ptrproto((int, UnivPtr, size_t))));
+private void blkio proto((Block *, SSIZE_T (*) ptrproto((int, UnivPtr, size_t))));
 
 private void
 blkio(b, iofcn)

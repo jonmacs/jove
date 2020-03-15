@@ -42,6 +42,8 @@
 const data_obj	*LastCmd;
 const char	*ProcFmt = ": %f ";
 
+private int cmdcmp proto((UnivConstPtr p1, UnivConstPtr p2)); /* Needed to comfort MS Visual C */
+
 private int
 cmdcmp(p1, p2)
 UnivConstPtr	p1, p2;

@@ -37,6 +37,9 @@
 #define VAR(v)	(UnivPtr)(v), sizeof(v)
 #include "vars.tab"
 
+/* Needed to comfort MS Visual C */
+private int varcmp proto((UnivConstPtr p1, UnivConstPtr p2));
+
 private int
 varcmp(p1, p2)
 UnivConstPtr	p1, p2;
