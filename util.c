@@ -714,6 +714,21 @@ size_t bufsz;
 	}
 }
 
+/* Concatenate a string onto a buffer; complain if buffer not large enough */
+void
+jamstrcat(buf, str, bufsz)
+char *buf;
+const char *str;
+size_t bufsz;
+{
+	size_t bstrsz = strlen(buf);
+	if (bstrsz >= bufsz) {
+		complain("base string too long!");
+		/* NOTREACHED */
+	}
+	jamstrsub(buf + bstrsz, str, bufsz - bstrsz);
+}
+
 bool
 sindex(pattern, string)
 register const char	*pattern,

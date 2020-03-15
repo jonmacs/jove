@@ -123,7 +123,8 @@ extern void
 #define jamstr(buf, str)	jamstrsub(buf, str, sizeof(buf))
 extern void
 	truncstrsub proto((char *buf, const char *str, size_t bufsz)),
-	jamstrsub proto((char *buf, const char *str, size_t bufsz));
+	jamstrsub proto((char *buf, const char *str, size_t bufsz)),
+	jamstrcat proto((char *buf, const char *str, size_t bufsz));
 
 /* Variables: */
 

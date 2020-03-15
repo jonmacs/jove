@@ -68,6 +68,7 @@
 #ifdef WIN32
 # undef CR /* sigh, used as a field name in some windows header! */
 # include <windows.h>	/* ??? is this needed? */
+# include <process.h>
 # undef FIONREAD	 /* This is defined but ioctl isn't so we cannot use it. */
 #endif
 
@@ -1121,26 +1122,6 @@ getch()
 	return LastKeyStruck = c;
 }
 
-#if defined(SUBSHELL) && defined(RECOVER)
-private void
-dorecover()
-{
-	char	Recover[FILESIZE];	/* path to recover program (in LibDir) */
-
-	/* Since recover is a normal cooked mode program, reset the terminal */
-	UnsetTerm(NO);
-# ifdef PIPEPROCS
-	kbd_kill();		/* kill the keyboard process */
-# endif
-	PathCat(Recover, sizeof(Recover), LibDir, "recover");
-	execl(Recover, "recover", "-d", TmpDir, (char *) NULL);
-	writef("%s: execl failed! %s\n", Recover, strerror(errno));
-	flushscreen();
-	_exit(-1);
-	/* NOTREACHED */
-}
-#endif /* defined(SUBSHELL) && defined(RECOVER) */
-
 void
 ShowVersion()
 {
@@ -1760,11 +1741,94 @@ char	*argv[];
 	locale_adjust();
 #endif
 
-	getTERM();	/* Get terminal. */
 #ifndef MAC	/* no environment in MacOS */
 	if (getenv("METAKEY"))
 		MetaKey = YES;
-#endif
+
+	/* Handle overrides for ShareDir and LibDir.
+	 * We take care to use the last specification.
+	 * Even if we don't use LibDir, we accept it.
+	 */
+	 {
+		char
+			*so = getenv("JOVESHARE");
+# ifdef NEED_LIBDIR
+		char
+			*lo = getenv("JOVELIB");
+# endif
+
+		for (argp = argv; argp[0] != NULL && argp[1] != NULL; argp++) {
+			if (strcmp(*argp, "-s") == 0)
+				so = *++argp;
+# ifdef NEED_LIBDIR
+			else if (strcmp(*argp, "-l") == 0)
+				lo = *++argp;
+			else if (strcmp(*argp, "-ls") == 0 || strcmp(*argp, "-sl") == 0)
+				lo = so = *++argp;
+# endif
+		}
+		if (so != NULL)
+			if (!carefulcpy(ShareDir, so, sizeof(ShareDir)-9, "ShareDir", YES))
+				finish(0);
+# ifdef NEED_LIBDIR
+		if (lo != NULL)
+			if (!carefulcpy(LibDir, lo, sizeof(LibDir)-9, "LibDir", YES))
+				finish(0);
+#  ifdef PIPEPROCS
+		PathCat(Portsrv, sizeof(Portsrv), LibDir, "portsrv");
+#  endif
+# endif /* NEED_LIBDIR */
+	}
+
+	/* import the temporary file path from the environment
+	 * and fix the string, so that we can append a slash
+	 * safely
+	 */
+# ifdef MSFILESYSTEM
+	envcpy(TmpDir, "TEMP");
+# else
+	envcpy(TmpDir, "TMPDIR");
+# endif
+	{
+		char	*cp = &TmpDir[strlen(TmpDir)];
+
+		do {} while (cp != TmpDir && (*--cp == '/'
+# ifdef MSFILESYSTEM
+			|| *cp == '\\'
+# endif
+			));
+		cp[1] = '\0';
+	}
+
+# ifdef SUBSHELL
+#  ifdef MSFILESYSTEM	/* ??? Is this the right test? */
+	envcpy(Shell, "COMSPEC");
+	/* SHELL, if present in DOS environment, will take precedence over COMSPEC */
+#  endif /* MSFILESYSTEM */
+	envcpy(Shell, "SHELL");
+#  ifdef RECOVER
+	if (scanvec(argv, "-r") != NULL) {
+		char	Recover[FILESIZE];	/* path to recover program (in LibDir) */
+
+		PathCat(Recover, sizeof(Recover), LibDir, "recover");
+#  ifdef MSFILESYSTEM
+		jamstrcat(Recover, ".exe", sizeof(Recover));
+		if (spawnl(P_WAIT, Recover, "recover", "-d", TmpDir, (char *)NULL) == -1)
+#  else /* !MSFILESYSTEM */
+		if (execl(Recover, "recover", "-d", TmpDir, (char *) NULL) == -1)
+#  endif /* !MSFILESYSTEM */
+		{
+			writef("%s: execl failed! %s\n", Recover, strerror(errno));
+			exit(-1);
+		}
+		exit(0); /* only Win32, but no harm otherwise, avoids another ifdef */
+		/* NOTREACHED */
+	}
+#  endif /* RECOVER */
+# endif /* SUBSHELL */
+#endif /* ! MAC */
+
+	getTERM();	/* Get terminal. */
 	ttysetattr(YES);
 	ttsize();
 
@@ -1837,84 +1901,13 @@ char	*argv[];
 	SetTerm();
 	setfeatures();
 
-#ifndef MAC	/* no environment in MacOS */
-	/* Handle overrides for ShareDir and LibDir.
-	 * We take care to use the last specification.
-	 * Even if we don't use LibDir, we accept it.
-	 */
-	 {
-		char
-			*so = getenv("JOVESHARE");
-# ifdef NEED_LIBDIR
-		char
-			*lo = getenv("JOVELIB");
-# endif
-
-		for (argp = argv; argp[0] != NULL && argp[1] != NULL; argp++) {
-			if (strcmp(*argp, "-s") == 0)
-				so = *++argp;
-# ifdef NEED_LIBDIR
-			else if (strcmp(*argp, "-l") == 0)
-				lo = *++argp;
-			else if (strcmp(*argp, "-ls") == 0 || strcmp(*argp, "-sl") == 0)
-				lo = so = *++argp;
-# endif
-		}
-		if (so != NULL)
-			if (!carefulcpy(ShareDir, so, sizeof(ShareDir)-9, "ShareDir", YES))
-				finish(0);
-# ifdef NEED_LIBDIR
-		if (lo != NULL)
-			if (!carefulcpy(LibDir, lo, sizeof(LibDir)-9, "LibDir", YES))
-				finish(0);
-#  ifdef PIPEPROCS
-		PathCat(Portsrv, sizeof(Portsrv), LibDir, "portsrv");
-#  endif
-# endif /* NEED_LIBDIR */
-	}
-#endif /* !MAC */
-
 	ShowVersion();	/* but the 'carefulcpy's which follow might overwrite it */
-
-	/* import the temporary file path from the environment
-	 * and fix the string, so that we can append a slash
-	 * safely
-	 */
-#ifdef MSFILESYSTEM
-	envcpy(TmpDir, "TEMP");
-#endif
-#ifndef MAC	/* no environment in MacOS */
-	envcpy(TmpDir, "TMPDIR");
-#endif
-	{
-		char	*cp = &TmpDir[strlen(TmpDir)];
-
-		do {} while (cp != TmpDir && (*--cp == '/'
-#ifdef MSFILESYSTEM
-			|| *cp == '\\'
-#endif
-			));
-		cp[1] = '\0';
-	}
-
-#ifdef SUBSHELL
-# ifdef MSFILESYSTEM	/* ??? Is this the right test? */
-	envcpy(Shell, "COMSPEC");
-	/* SHELL, if present in DOS environment, will take precedence over COMSPEC */
-# endif /* MSFILESYSTEM */
-	envcpy(Shell, "SHELL");
-#endif /* SUBSHELL */
 
 #ifdef UNIX
 	envcpy(Mailbox, "MAIL");
 #endif
 
 	dojovercs(scanvec(argv, "-J") == NULL, scanvec(argv, "-j") == NULL);
-
-#if defined(SUBSHELL) && defined(RECOVER)
-	if (scanvec(argv, "-r") != NULL)
-		dorecover();
-#endif
 
 #ifdef UNIX
 	/*
