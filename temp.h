@@ -115,4 +115,4 @@
 #define blk_chop(addr)		((daddr)(addr) & ~(BLK_CHNKS - 1))
 #define da_to_bno(addr)		(((daddr)(addr) >> (LG_JBUFSIZ - LG_CHNK_CHARS)) & (MAX_BLOCKS - 1))
 #define da_to_off(addr)		(((daddr)(addr) << LG_CHNK_CHARS) & ((daddr)JBUFSIZ - 1))
-#define bno_to_seek_off(bno)	((off_t)((bno) << LG_JBUFSIZ))
+#define bno_to_seek_off(bno)	(((off_t)bno) << LG_JBUFSIZ)

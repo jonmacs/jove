@@ -30,7 +30,6 @@
 #endif
 
 #ifdef MSFILESYSTEM
-# include <io.h>
 # include <direct.h>
 # include <dos.h>
 # include <stdlib.h>	/* _splitpath, _makepath */

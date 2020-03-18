@@ -15,9 +15,7 @@
 #	include "mac.h"
 #else /* !MAC */
 #	include <sys/stat.h>
-#	ifdef MSFILESYSTEM
-#		include <io.h>
-#	else /* !MSFILESYSTEM */
+#	ifndef MSFILESYSTEM
 #		include <sys/file.h>
 #	endif /* !MSFILESYSTEM */
 #endif /* !MAC */

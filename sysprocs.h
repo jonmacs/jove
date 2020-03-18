@@ -24,6 +24,10 @@
  * - WTERMSIG
  */
 
+#ifdef MSDOS_PROCS
+# include <process.h>
+#endif
+
 #ifdef POSIX_PROCS
 
 # include <sys/types.h>	/* defines pid_t */

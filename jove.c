@@ -58,7 +58,6 @@
 # include <bios.h>
 # include <dos.h>
 # include <time.h>
-# include <process.h>
 # define SIGHUP	99
 # ifdef OWCDOS
 #  include <malloc.h>	/* for _heapgrow */
@@ -68,7 +67,6 @@
 #ifdef WIN32
 # undef CR /* sigh, used as a field name in some windows header! */
 # include <windows.h>	/* ??? is this needed? */
-# include <process.h>
 # undef FIONREAD	 /* This is defined but ioctl isn't so we cannot use it. */
 #endif
 
@@ -270,14 +268,8 @@ int	code;
 #ifdef UNIX
 	if (code != 0 && code != SIGHUP)
 		abort();
-# ifdef USE_EXIT
-	exit(0);
-# else
-	_exit(0);
-# endif
-#else /* !UNIX */
-	exit(0);
-#endif /* !UNIX */
+#endif /* UNIX */
+	EXIT(0);
 	/*NOTREACHED*/
 }
 
@@ -1819,9 +1811,9 @@ char	*argv[];
 #  endif /* !MSFILESYSTEM */
 		{
 			writef("%s: execl failed! %s\n", Recover, strerror(errno));
-			exit(-1);
+			EXIT(-1);
 		}
-		exit(0); /* only Win32, but no harm otherwise, avoids another ifdef */
+		EXIT(0); /* only Win32, but no harm otherwise, avoids another ifdef */
 		/* NOTREACHED */
 	}
 #  endif /* RECOVER */

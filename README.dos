@@ -20,10 +20,10 @@ you use pkunzip, be sure to use the -d flag to get it to correctly
 place files in subdirectories.
 
 The source distribution for MSDOS (and WIN32 -- Windows/95 and
-Windows/NT) is either called jovedoss.zip or given a name indicating
-the version (for example, jove416s.zip).  The source archive contains
-all the source files needed to compile JOVE on an MSDOS or WIN32
-machine.  It differs in three ways from the generic JOVE source
+Windows/NT) is an archive called joveNNNs.zip, where NNN is a version
+number (for example, jove417s.zip for 4.17).  The source archive
+contains all the source files needed to compile JOVE on an MSDOS or
+WIN32 machine.  It differs in three ways from the generic JOVE source
 distribution.  First, it is distributed in a conventional MSDOS
 format, rather than as a tar file.  Second, certain files are left out
 because they are of no use under MSDOS (for example, the X Window
@@ -31,30 +31,23 @@ System support) and may not fit the 8.3 naming straitjacket.  Third, a
 few files are pre-built on UNIX and included because the tools to
 build them are not generally available under MSDOS (for example, the
 formatted documentation).  The source distribution for MSDOS can be
-built from the generic distribution on UNIX with the command "make
-jovedoss.zip".
+built from the generic distribution on UNIX with the command "make zip".
 
-The executable distribution for MSDOS on the IBM PC is either called
-jovedosx.zip or given a name indication the version (like
-jove416x.zip).  The executable archive contains all the files needed
-to use jove: the executables and the documentation.  Here is quick
-description of the files within the archive:
+The executable distribution for MSDOS on the IBM PC is an archive
+called joveNNNm.zip or joveNNNl.zip where NNN is a version number
+(e.g. 417 for 4.17).  The archive contains all the files needed to use
+jove: the executables and the documentation. joveNNNm.zip contains
+executables built for medium model (slightly smaller memory footprint,
+maximum line lengths of 512 bytes, but likely to run out of memory or
+hit a temp file limit when editing lots of files at the same time),
+while joveNNNl.zip contains executables built for large model (bigger
+memory footprint, maximum line length of 2048 bytes, can usually go
+upto 32K total lines across many buffers, so it's generally the
+recommended version).
 
-jovedosl.exe    A JOVE executable, compiled with large model.
-                This is the recommended version, it can handle a
-		total of about 32,000 lines in the editor before
-		it runs out of PC memory, and can handle lots of
-		files simultaneously.
-recoverl.exe	This is the recover program to pull data back out
-		of the temporary working file if jovedosl or the PC
-		crashed while editing.
-jovedosm.exe    A JOVE executable file compiled with medium model.
-                Generally not recommended, it is fairly likely to
-		run out of memory, or hit a temp file limit
-		when editing large numbers of files. But if
-		memory is really tight on your DOS PC, try this.
-recoverm.exe	This is the recover program to pull data back out
-		of the temporary working file if jovedosm or the PC
+jove.exe        JOVE editor executable.
+recover.exe	This is the recover program to pull data back out
+		of the temporary working file if JOVE or the PC
 		crashed while editing.
 doc\cmds.doc    contains text for the describe-command and describe-
                 variable command.  Should be moved into the directory

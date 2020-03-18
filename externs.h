@@ -73,6 +73,10 @@ extern char	*ctime proto((const time_t *));
 
 /* UNIX */
 
+#ifdef MSFILESYSTEM
+# include <io.h>
+#endif
+
 #ifdef MSC51
 #define const	/* the const's in the following defs conflict with MSC 5.1 */
 #endif

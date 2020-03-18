@@ -28,13 +28,7 @@
 
 #include <signal.h>
 
-#ifdef MSDOS_PROCS
-# include <io.h>
-# ifndef MSC51
-#  include <sys/stat.h>	/* for S_IWRITE and S_IREAD */
-# endif
-# include <process.h>
-#endif /* WIN32 */
+#include <sys/stat.h>	/* for S_IWRITE and S_IREAD */
 
 #ifdef POSIX_SIGS
 # define SIGINTMASK_DECL	sigset_t sigintmask;

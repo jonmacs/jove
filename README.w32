@@ -16,16 +16,17 @@ source distribution, or in the MSDOS source distribution.  The latter is
 more useful because it includes pre-built documentation files which must be
 created on a UNIX system, but excludes some things only of use on UNIX (for
 example, X Window System support).  The filename of the MSDOS source
-distribution is jovedoss.zip, or a name that includes the version number
-(for example, jove416s.zip).
+distribution is a name that includes the version number joveNNNs.zip
+(for example, jove417s.zip for version 4.17).
 
-A pre-compiled and ready-to-run copie of JOVE for WIN32 is distributed in
-archives with the name jovew32x.zip or a name that includes the version
-number (for example, jove416w.zip).
+A pre-compiled and ready-to-run copy of JOVE for WIN32 is distributed
+in archives with the name joveNNNw.zip (for example, jove417w.zip for
+version 4.17).
 
-Jove for WIN32 has been tested on both the Windows/NT and the Windows/95
-platforms, and provides much the same advantages under Windows/95 as it does
-for Windows/NT.  One functional difference is that under Windows/95 there is
+Jove for WIN32 has been tested on the Win7 platform, but is expected to
+work on older versions like Windows/95, 98, NT, 2000, XP, etc, and
+might work on newer versions like Win8 and Win10.
+One functional difference is that under Windows/95 there is
 apparently no way to dynamically resize the console window as there is under
 Windows/NT.  There is no code specifically to support Windows/95, though
 some design decisions were based on the need to support it.
@@ -40,8 +41,8 @@ The original port of Jove to WIN32 was performed by Jim Patterson
 as well as early testing and feedback by Gary Puckering
 (Gary.Puckering@Cognos.COM).
 
-Advantages of WIN32 version
-===========================
+Advantages of WIN32 version (over DOS)
+======================================
 
 Since Windows/NT and Windows/95 support native DOS applications like Jove,
 using the 16-bit version of JOVE is a perfectly acceptable alternative to
@@ -62,10 +63,11 @@ does under UNIX when it receives a SIGWINCH signal.
 
 3.  32-bit limits.  Jove for WIN32 is a 32-bit application, and so is less
 prone to size constraints than its 16-bit DOS cousin (though through clever
-coding even 16-bit DOS Jove is able to handle files of a considerable size).
+coding even 16-bit DOS Jove is able to handle a lot files of a considerable size).
+It is hoped that Jove works on 64bit Windows as well.
 
 4.  Non-Intel platforms.  Jove for WIN32 should be a simple port to other WIN32
-platforms e.g. Alpha and PowerPC (though I haven't actually built it on any of
+platforms e.g. Alpha and PowerPC (though it hasn't actually been built on any of
 these).  The performance advantage of having native applications can be
 considerable, since these platforms must use software emulation to run 16-bit
 DOS applications.

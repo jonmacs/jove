@@ -26,10 +26,6 @@
 # include "mac.h"
 #endif
 
-#ifdef MSDOS_PROCS
-# include <process.h>
-#endif
-
 private void
 	DefAutoExec proto((const data_obj *(*proc) ptrproto((const char *))));
 

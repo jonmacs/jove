@@ -123,7 +123,7 @@
 # define UNMACRO(proc)	(proc)
 #endif
 
-/* Since we don't use stdio.h, we may have to define NULL and EOF */
+/* Since Jove does not use stdio.h (recover and setmaps do), we may have to define NULL and EOF */
 
 #ifndef NULL
 #define NULL	(void *)0

@@ -21,9 +21,6 @@
 #include "move.h"
 #include "wind.h"
 
-#ifdef MSFILESYSTEM
-# include <io.h>
-#endif
 #define HASHSIZE	20
 
 struct abbrev {

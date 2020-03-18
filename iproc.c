@@ -428,13 +428,13 @@ kbd_init()
 		close(1);
 		if (dup(ProcOutput) < 0) {
 		    raw_complain("Cannot dup output fd: %s", strerror(errno));
-		    exit(-1);
+		    EXIT(-1);
 		}
 		jcloseall();
 		jdbg("ready to exec %s as %s --kbd\n", Portsrv, procarg0);
 		execl(Portsrv, procarg0, "--kbd", (char *)NULL);
 		raw_complain("kbd exec failed: %s", strerror(errno));
-		exit(-1);
+		EXIT(-1);
 	}
 }
 

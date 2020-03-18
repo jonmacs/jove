@@ -259,7 +259,14 @@
 # if defined(SIGCLD) && !defined(SIGCHLD)
 #  define SIGCHLD	SIGCLD
 # endif
+# ifndef USE_EXIT
+#  define EXIT _exit	/* so linker does not drag in all of stdio for static linking */
+# endif
 #endif /* UNIX */
+
+#ifndef EXIT
+# define EXIT	exit
+#endif
 
 /* lint suppression macros; GCC requires use of extensions! Clang mimics. */
 #if !defined(GCC_LINT) && (defined(__GNUC__) || defined(__clang__))
