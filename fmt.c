@@ -19,7 +19,6 @@
 
 private void
 	doformat proto((File *, const char *, va_list)),
-	outld proto((long, int)),
 	pad proto((DAPchar, int));
 
 char	mesgbuf[MESG_SIZE];
@@ -95,46 +94,45 @@ private struct fmt_state {
 	File	*iop;
 } current_fmt;
 
+/* TODO: Make this unsigned long when we dump support for pre-ANSI C (use flag to ask for sign?) */
 private void
 putld(d, base)
 long	d;
 int	base;
 {
-	int	len = 1;
+	static const char	chars[] = {'0', '1', '2', '3', '4', '5', '6',
+				    '7', '8', '9', 'a', 'b', 'c', 'd',
+				    'e', 'f'};
+	int	len = 0;
 	long	tmpd = d;
+	char	ubuf[32],
+		*ep = ubuf + sizeof(ubuf),
+		*up = ep;
 
+	if (d < 0) {
+		len += 1;
+		tmpd = -d;
+	}
 	if (current_fmt.width == 0 && current_fmt.precision) {
 		current_fmt.width = current_fmt.precision;
 		current_fmt.padc = '0';
 	}
-	while ((tmpd = (tmpd / base)) != 0)
+	do {
+		int i = tmpd % base;
+		tmpd = tmpd / base;
+		*--up = chars[i];
 		len += 1;
-	if (d < 0)
-		len += 1;
+	} while (tmpd != 0);
 	if (!current_fmt.leftadj)
 		pad(current_fmt.padc, current_fmt.width - len);
-	if (d < 0) {
+	if (d < 0)
 		f_putc('-', current_fmt.iop);
-		d = -d;
+	while (up != ep) {
+		f_putc((int)*up, current_fmt.iop);
+		up++;
 	}
-	outld(d, base);
 	if (current_fmt.leftadj)
 		pad(current_fmt.padc, current_fmt.width - len);
-}
-
-private void
-outld(d, base)
-long	d;
-int	base;
-{
-	register long	n;
-	static const char	chars[] = {'0', '1', '2', '3', '4', '5', '6',
-				    '7', '8', '9', 'a', 'b', 'c', 'd',
-				    'e', 'f'};
-
-	if ((n = (d / base)) != 0)
-		outld(n, base);
-	f_putc((int) (chars[(int) (d % base)]), current_fmt.iop);
 }
 
 private void
@@ -165,10 +163,15 @@ pad(c, amount)
 register DAPchar	c;
 register int	amount;
 {
-	while (--amount >= 0)
+	while (c && --amount >= 0)
 		f_putc(c, current_fmt.iop);
 }
 
+/*
+ * TODO: Support U and u for unsigned long and unsigned when
+ * we dump support for pre-ANSI C, OXox should probably use
+ * unsigned too.
+ */
 #ifdef ZTCDOS
 /* ZTCDOS only accepts va_list in a prototype */
 private void

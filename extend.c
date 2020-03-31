@@ -606,6 +606,24 @@ Source()
 	}
 }
 
+/* TODO: Make this unsigned long when we dump support for pre-ANSI C */
+/* calculate percentage without float and no overflow */
+private int
+calc_percent(a, b)
+long	a, b;
+{
+	int v;
+	if (b == 0) {
+		v = 100;
+	} else if (a > (~(1UL << ((sizeof(long)*CHAR_BIT)-1)))/100) {
+		v = (int) (a / (b / 100));
+	} else {
+		v = (int) ((a * 100) / b);
+	}
+	return v;
+}
+	
+/* TODO: Make dotchar, nchars unsigned long when we dump support for pre-ANSI C */
 void
 BufPos()
 {
@@ -624,14 +642,9 @@ BufPos()
 		nchars += length(lp) + (lp->l_next != NULL);	/* include the NL */
 	}
 
-	/* Note: percent calculation might overflow if there are more
-	 * than 20 megs in a buffer (LONG_MAX may be as small as 2**31 - 1).
-	 * Does not seem worth fixing.  Using unsigned long would double
-	 * the limit, but unsigned long is not in K&R C.
-	 */
 	f_mess("[\"%s\" line %D/%D, char %D/%D (%d%%), cursor = %d/%d]",
 	       filename(curbuf), dotline, i, dotchar, nchars,
-	       (nchars == 0) ? 100 : (int) (((long) dotchar * 100) / nchars),
+	       calc_percent(dotchar, nchars),
 	       calc_pos(linebuf, curchar),
 	       calc_pos(linebuf, (int)strlen(linebuf)));
 	stickymsg = YES;

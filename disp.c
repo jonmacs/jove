@@ -685,8 +685,14 @@ register int	linenum;
 		des_p->s_lp->l_dline &= ~DDIRTY;
 		des_p->s_flags &= ~(s_DIRTY | s_L_MOD);
 
-		if (w->w_flags & W_NUMLINES)
+		if (w->w_flags & W_NUMLINES) {
+			outbuf[fromcol-2] = ' ';
 			swritef(outbuf, sizeof(outbuf), "%6D  ", des_p->s_vln);
+			if (outbuf[fromcol-2] != ' ') {
+			    outbuf[fromcol-2] = '*';
+			    outbuf[fromcol-1] = ' ';
+			}
+		}
 		if (des_p->s_offset != 0) {
 			outbuf[fromcol++] = '!';
 			outbuf[fromcol] = '\0';
