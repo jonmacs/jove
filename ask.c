@@ -19,6 +19,7 @@
 #include "fmt.h"
 #include "marks.h"
 #include "move.h"
+#include "wind.h"
 
 #ifdef MAC
 # include "mac.h"
@@ -88,7 +89,11 @@ bool	(*d_proc) ptrproto((ZXchar));
 {
 	jmp_buf	savejmp;
 	ZXchar	c;
-	int	prompt_len;
+	int	prompt_len,
+		prompt_off = 0,
+		line_off = 0;
+	const char	*prompt_leftchar = "",
+			*line_leftchar = "";
 	Buffer	*saveb = curbuf;
 	volatile bool	aborted = NO;
 	bool	no_typed = NO;
@@ -123,10 +128,47 @@ bool	(*d_proc) ptrproto((ZXchar));
 
 	this_cmd = OTHER_CMD;	/* probably redundant */
 	for (;;) {
+		int COMAX = CO - 3,
+		    nw;
 		cmd_sync();
-		s_mess("%s%s", prompt, linebuf);
+		jdbg("prompt=\"%s\" plen=%d poff=%d cc=%d loff=%d linebuf=\"%s\"\n", prompt, prompt_len, prompt_off, curchar, line_off, linebuf);
+		if (line_off > 0 && curchar < line_off) {
+			/* might need to scroll right, just force recalc */
+			line_off = 0;
+			line_leftchar = "";
+			prompt_off = 0;
+			prompt_leftchar = "";
+		}
+#define PRWIDTH	    (prompt_len - prompt_off + SIWIDTH(prompt_off))
+#define ASKWIDTH    (PRWIDTH + curchar - line_off + SIWIDTH(line_off)) 
+		nw = ASKWIDTH;
+		if (nw > COMAX) {
+			int COMID = COMAX/2;
+			if (prompt_len > COMID) {
+				/* offset into prompt so it ends at center */
+				prompt_off = prompt_len - COMID + 1;
+				prompt_leftchar = "!";
+			} else {
+				prompt_off = 0;
+				prompt_leftchar = "";
+			}
+			nw = ASKWIDTH;
+			if (nw > COMAX) {
+				/* scroll buf left */
+				line_off = PRWIDTH + curchar - COMID - COMID/2;
+				line_leftchar = "!";
+			} else {
+				line_off = 0;
+				line_leftchar = "";
+			}
+			nw = ASKWIDTH;
+		}
+		jdbg("prompt=\"%s\" plen=%d poff=%d cc=%d loff=%d nw=%d linebuf=\"%s\"\n", prompt, prompt_len, prompt_off, curchar, line_off, nw, linebuf);
+		if (!InJoverc)
+			s_mess("%s%s%s%s", prompt_leftchar, &prompt[prompt_off],
+			       line_leftchar, &linebuf[line_off]);
 		Asking = YES;
-		AskingWidth = curchar + prompt_len;
+		AskingWidth = nw;
 		c = getch();
 		if (c != '\0' && strchr(delim, c) != NULL) {
 			if (d_proc == NULL_ASK_EXT || !(*d_proc)(c))

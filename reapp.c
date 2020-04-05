@@ -267,7 +267,7 @@ bool	query,
 
 	/* Now the replacement string.  Do_ask() so the user can play with
 	 * the default (previous) replacement string by typing ^R in ask(),
-	 * OR, he can just hit Return to replace with nothing.
+	 * OR, can just hit Return to replace with nothing.
 	 */
 	{
 		const char	*rp = do_ask("\r\n",
@@ -277,8 +277,7 @@ bool	query,
 	}
 
 	if ((numdone = substitute(&re_blk, query, l1, char1, l2, char2)) != 0
-	&& !inreg)
-	{
+	    && !inreg) {
 		do_set_mark(l1, char1);
 		add_mess(" ");		/* just making things pretty */
 	} else {

@@ -262,7 +262,9 @@ redisplay()
 		}
 
 		if (Asking) {
-			Placur(ILI, jmin(CO - 2, calc_pos(mesgbuf, AskingWidth)));
+			int p = calc_pos(mesgbuf, AskingWidth);
+			jdbg("redisplay CO=%d aw=%d p=%d \"%s\"\n", CO, AskingWidth, p, mesgbuf);
+			Placur(ILI, jmin(CO - 2, p));
 				/* Nice kludge */
 			flushscreen();
 		} else {
@@ -456,7 +458,7 @@ int	start;
 		 * a horizontal window
 		 */
 		if (PhysScreen[i].s_offset == -1
-	    || !(strt_col <= dot_col && dot_col < end_col))
+		|| !(strt_col <= dot_col && dot_col < end_col))
 		{
 			/* If dot_col is within first step left of screen, step left.
 			 * Otherwise, if ditto for right.
@@ -568,6 +570,7 @@ bool	abortable;
 		return;
 #endif
 	i_set(ILI, 0);
+	jdbg("DrawMesg aw=%d \"%s\"\n", AskingWidth, mesgbuf);
 	DeTab(mesgbuf, 0, outbuf, outbuf + CO, NO);
 	if (swrite(outbuf, NOEFFECT, abortable)) {
 		cl_eol();
