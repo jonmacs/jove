@@ -10,14 +10,17 @@
 Jove for WIN32
 ==============
 
-The support for WIN32 (that is, Windows/95 and Windows/NT) is integrated
-into the generic JOVE source.  The source can be found in the generic JOVE
-source distribution, or in the MSDOS source distribution.  The latter is
-more useful because it includes pre-built documentation files which must be
+Jove can be built for WIN32 (that is, Windows versions after Windows/95)
+using either the generic JOVE source distribution, or in the MSDOS
+source distribution, natively with Microsoft Visual C, or cross-compiled
+with MinGW-w64.  The MSDOS source might be preferable since
+because it includes pre-built documentation files which must be
 created on a UNIX system, but excludes some things only of use on UNIX (for
 example, X Window System support).  The filename of the MSDOS source
 distribution is a name that includes the version number joveNNNs.zip
-(for example, jove417s.zip for version 4.17).
+(for example, jove417s.zip for version 4.17), created by running
+'make zip' on a Unix/Linux/*BSD system, 
+	make zip
 
 A pre-compiled and ready-to-run copy of JOVE for WIN32 is distributed
 in archives with the name joveNNNw.zip (for example, jove417w.zip for
@@ -26,10 +29,6 @@ version 4.17).
 Jove for WIN32 has been tested on the Win7 platform, but is expected to
 work on older versions like Windows/95, 98, NT, 2000, XP, etc, and
 might work on newer versions like Win8 and Win10.
-One functional difference is that under Windows/95 there is
-apparently no way to dynamically resize the console window as there is under
-Windows/NT.  There is no code specifically to support Windows/95, though
-some design decisions were based on the need to support it.
 
 Jove for WIN32 does not function under the WIN32s environment (which is a
 special subsystem of Windows 3.1).  The primary reason is that WIN32s
@@ -40,6 +39,23 @@ The original port of Jove to WIN32 was performed by Jim Patterson
 (Jim.Patterson@Cognos.COM) with the help and advice of D. Hugh Redelmeier
 as well as early testing and feedback by Gary Puckering
 (Gary.Puckering@Cognos.COM).
+
+Building Jove for WIN32
+=======================
+
+To build for WIN32 natively using Microsoft Visual C++ (2.0 or later),
+unpack a source distribution, setup the Visual C environment (typically,
+by running vcvars32.bat or starting a Developer Command window from
+Visual Studio), and use
+	
+	nmake /f Makefile.msc
+
+To cross-compile on a Unix/Linux machine with MinGW installed
+(e.g. on a modern Debian/Ubuntu/Mint, try "apt install mingw-w64"),
+and then use
+
+	make CC=i686-w64-mingw32-gcc SYSDEFS="-DMINGW" LOCALCC=gcc TERMCAPLIB= XEXT=.exe EXTRAOBJS="win32.o jjove.coff" EXTRALIBS=-lcomdlg32
+
 
 Advantages of WIN32 version (over DOS)
 ======================================
@@ -84,6 +100,11 @@ than Jove for DOS on a suitable platform for several reasons.
 its own icon.  No more hunting around in MORICONS.DLL for something
 suitable.  (If you don't like my planet icon, feel free to craft another;
 I'm not an artist)!
+
+One functional difference is that under Windows/95 there is
+apparently no way to dynamically resize the console window as there is under
+Windows/NT.  There is no code specifically to support Windows/95, though
+some design decisions were based on the need to support it.
 
 ENVIRONMENT VARIABLES USED BY JOVE:
 ===================================
@@ -177,43 +198,6 @@ you like it.
 
   This has an unfortunate size effect of obscuring the Jove window,
   however.  If someone finds a better setup, please broadcast it!
-
-Building Jove for WIN32
-=======================
-
-In order to build JOVE for WIN32, you need a Windows/95 or Windows/NT system
-with Visual C++ 2.0 or later installed.  If you don't already have a DOS
-source archive, you'll need a UNIX system to build this on as well.
-
-If you don't have the aforementioned source archive, then the first step is
-to create a source archive containing the JOVE sources and related
-documentation.  This needs to be done from a UNIX system, because it depends
-on several unix tools (e.g. nroff).  If you don't have a UNIX
-system, get a friend to do this.  This step also requires zip or pkzip,
-which is available elsewhere.  To extract the source from the
-archive on the PC side, you'll need the corresponding DOS or WIN32 version
-of pkunzip or unzip.  Use the following command on the UNIX system to
-create the archive:
-
-    make jovedoss.zip
-
-Once the archive is created, move it to the Windows/NT or Windows/95 system.
-Unpack the archive into its own source directory.
-
-After unpacking, Jove can be built using the following command.  Note that
-the 32-bit Visual C++ compiler must be on your path and the appropriate
-INCLUDE and LIB environment variables must be set correctly.
-
-    nmake /f makefile.msc WIN32=1
-
-If you want to redistribute the WIN32 version of Jove to others, you can use
-the jovew32x.zip target to do so e.g.
-
-    nmake /f makefile.msc WIN32=1 jovew32x.zip
-
-Jove can also be built from the Visual C++ 2.x workbench.  Just open
-makefile.msc as a project, and set the build command to the above.  For the
-DEBUG version add DEBUG=1 to the command line.
 
 Development Notes:
 ==================

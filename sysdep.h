@@ -28,47 +28,29 @@
 # define SPELL		"aspell list < %s | sort -u"
 #endif
 
-#ifdef OWCDOS	/* System: Open Watcom C 1.9 for x86 running MSDOS */
-# define IBMPCDOS	1
-# define MALLOC_CACHE	1	/* DGROUP gets full otherwise */
-# define REALSTDC	1	/* close enough for us, but ZTCDOS doesn't define __STDC__ */
-# define JSMALL		1	/* less than 64K lines fit in memory anyway */
-# define FAR_LINES	1	/* to squeeze larger files, distance Lines */
-# define FULL_UNISTD	1
-# if defined(__SMALL__) || defined(__COMPACT__)
-/* currently 20K over the 64K limit, so not really viable */
-#  define BAREBONES     1
-# endif
-# if defined(__LARGE__)
-#  define LG_JBUFSIZ	11	/* so JBUFSIZ (and max line len) 2048 chars */
-#  define NBUF		30	/* NBUF*JBUFSIZ must be less than 64K */
-# endif
-#endif
-
 #if defined(OpenBSD) || defined(Darwin) || defined (XBSD)
 /* System: modern OpenBSD, Darwin Mac OSX */
 # define BSDPOSIX_STDC	1
 # define USE_OPENPTY	1
 #endif
 
-#ifdef CYGWIN_JTC
-/* System: Cygwin (that Linux feeling on Windows) */
+#if defined(Linux) || defined(XLINUX)
+/* System: most modern Linux (RedHat6-on). Old Linux are BSDPOSIX_STDC */
+# define SYSVR4		1
+# define _XOPEN_SOURCE	500
+# define SPELL		"aspell list < %s | sort -u"
+#endif
+
+#ifdef CYGWIN_JTC   /* System: Cygwin (that Linux feeling on Windows) */
 # define CYGWIN		1
 # define JTC		1 /* no real point using curses for Cygwin, surely?! */
 #endif
 
 #if defined(CYGWIN) || defined(CYGWIN32)
-/* System: Cygwin POSIX-like environment on Win95/NT (see README.cyg) */
+/* System: Cygwin POSIX-like environment on Windows (see README.cyg) */
 # define FILENAME_CASEINSENSITIVE	1
 # define GLIBCPTY	1
 # define O_TRUNC_BROKEN	1   /* see fp.c */
-# define SPELL		"aspell list < %s | sort -u"
-#endif
-
-#if defined(Linux) || defined(XLINUX)
-/* System: most modern Linux (RedHat6-on). Old Linux are BSDPOSIX_STDC */
-# define SYSVR4		1
-# define _XOPEN_SOURCE	500
 # define SPELL		"aspell list < %s | sort -u"
 #endif
 
@@ -82,26 +64,27 @@
 # define BSDPOSIX_STDC	1
 #endif
 
-#ifdef _MSC_VER	/* System: Microsoft C for the IBM-PC under MSDOS or WIN32 */
+#ifdef MINGW		/* System: MinGW cross-compilation for Windows WIN32 (see README.w32) */
+# define WIN32		1
+# define POSIX_UNISTD	1
+#endif
+
+#ifdef OWCDOS	/* System: Open Watcom C 1.9 for x86 running MSDOS (see README.dos) */
+# define IBMPCDOS	1
+# define REALSTDC	1	/* close enough for us, but ZTCDOS doesn't define __STDC__ */
+# define FULL_UNISTD	1
+#endif
+
+#ifdef _MSC_VER	/* System: Microsoft C for the IBM-PC under MSDOS or WIN32 (see README.dos or README.w32) */
 /* 4.16.0.38 tested under VC++ 5.0 / VS 97 */
 /* 4.16.0.62 tested under Visual C++ 6.0 SP5 */
 /* 4.17.x.x tested under Visual Studio 2019 Community Edition */
 # if defined(_WIN32) && !defined(WIN32)
 #  define WIN32 _WIN32
 # endif
-# ifdef WIN32
-#  define WINRESIZE	1
-# else /* ! WIN32 => MSDOS */
+# ifndef WIN32 /* ! WIN32 => MSDOS, worked pre-MSVC 7.x */
 #  define IBMPCDOS		1
-#  define MALLOC_CACHE	1	/* DGROUP gets full otherwise */
-#  if defined(M_I86LM)	/* large memory model */
-#   define NBUF		62	/* NBUF*JBUFSIZ must be less than 64 kB */
-#  else
-#   define NBUF		3
-#   define FAR_LINES	1	/* to squeeze larger files, distance Lines */
-#  endif
 # endif
-# define REALSTDC	1	/* MS C only defines __STDC__ if you use /Za */
 # define NO_MKSTEMP	1
 # define _POSIX_	1	/* suppresses MS's min and max in VC++ 5.0 */
 # define jmode_t	int	/* no mode_t on WIN32 */
@@ -197,6 +180,17 @@
 # define CODEPAGE437	1	/* Code Page 437 English display characters */
 # define PCSCRATTR	1	/* exploit IBMPC screen attributes */
 # define HIGHLIGHTING	1	/* highlighting is used for mark and scrollbar */
+# define MALLOC_CACHE	1	/* DGROUP gets full otherwise */
+# define JSMALL		1	/* less than 64K lines fit in memory anyway */
+# define FAR_LINES	1	/* to squeeze larger files, use far line pointers */
+# if defined(M_I86SM) || defined(__SMALL__) || defined(M_I86CM) || defined(__COMPACT__)
+/* try small or compact memory model: currently 20K over the 64K code+data limit, so not really viable */
+#  define BAREBONES     1
+# endif
+# if defined(M_I86LM) || defined(__LARGE__)	/* large memory model */
+#  define LG_JBUFSIZ	11	/* so JBUFSIZ (and max line len) 2048 chars */
+#  define NBUF		30	/* NBUF*JBUFSIZ must be less than 64K. Is this true even if MALLOC_CACHE is set? */
+# endif
 #endif
 
 #ifdef MSDOS	/* Common characteristics for MS-DOS systems. */
@@ -208,6 +202,8 @@
 #endif
 
 #ifdef WIN32	/* Common characteristics for WIN32 systems. */
+# define REALSTDC	1	/* MS C only defines __STDC__ if you use /Za */
+# define WINRESIZE	1
 # define PCNONASCII	0xFF	/* prefix for peculiar IBM PC key codes */
 # define NO_JSTDOUT	1	/* don't use jstdout */
 # define CODEPAGE437	1	/* Code Page 437 English display characters */

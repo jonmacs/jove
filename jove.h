@@ -322,7 +322,9 @@ typedef struct FileStruct	File;	/* fp.h */
 #include "argcount.h"
 #include "util.h"
 
+#ifndef NO_EXTERNS  /* setmaps.c does not need externs, messes up cross-compiles */
 #include "externs.h"
+#endif
 
 #define FORWARD		1
 #define BACKWARD	(-1)

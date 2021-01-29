@@ -19,8 +19,8 @@ Each distribution may be in the form of a .zip archive.  If
 you use pkunzip, be sure to use the -d flag to get it to correctly
 place files in subdirectories.
 
-The source distribution for MSDOS (and WIN32 -- Windows/95 and
-Windows/NT) is an archive called joveNNNs.zip, where NNN is a version
+The source distribution for MSDOS (and WIN32 -- Windows/95 or later)
+is an archive called joveNNNs.zip, where NNN is a version
 number (for example, jove417s.zip for 4.17).  The source archive
 contains all the source files needed to compile JOVE on an MSDOS or
 WIN32 machine.  It differs in three ways from the generic JOVE source
@@ -217,14 +217,7 @@ available portion of the normal 640kB memory.  If it is compiled using
 "Medium Model", all of its data (except for line descriptors) must fit
 in 64kB; one consequence is that JOVE's tempfile cache is severely
 reduced.  The advantage of Medium Model is that JOVE's object code is
-considerably smaller.
-
-JOVE has been compiled (2020 February) for Windows under
-Visual Studio 2019 on Windows 7 Pro (on virtualbox), using a
-command-line window.
-	nmake /f Makefile.msc
-Since this is not a primary platform for current JOVE maintainers,
-new testers (and bug reports/patches) are welcome.
+somewhat smaller.
 
 JOVE has been compiled (2020 February) for DOS with the Open Watcom
 1.9.0 compiler (which can be downloaded from
@@ -236,6 +229,17 @@ in the source unpacked from jovedoss.zip (make that on a
 Unix/Linux machine) Since this is not a primary platform for
 current JOVE maintainers, new testers (and bug
 reports/patches) are welcome.
+The following AUTOEXEC.BAT was used:
+PATH C:\WATCOM\BINW;%PATH%
+SET INCLUDE=C:\WATCOM\H
+SET WATCOM=C:\WATCOM
+SET EDPATH=C:\WATCOM\EDDAT
+SET WIPFC=C:\WATCOM\WIPFC
+The following CONFIG.SYS was used:
+FILES=20
+A suitable wildargv.c file can be downloaded from https://tinyurl.com/ow-wildargv
+a.k.a
+ http://perforce.openwatcom.org:4000/@md=d&cd=//depot/openwatcom/bld/clib/startup/c/&cdf=//depot/openwatcom/bld/clib/startup/c/wildargv.c&sr=28826&c=7po@//depot/openwatcom/bld/clib/startup/c/wildargv.c 
 
 JOVE was once compiled (1994 July) with version 3.1 of
 Borland's C compiler. Extract relevant files/definitions from
@@ -246,7 +250,8 @@ Patches are welcome.
 JOVE was once compiled with version 8.0 of the Microsoft C compiler
 a.k.a. Visual C.  It might  have also compiled with versions 6 or 7
 but that was never confirmed.  The makefile called Makefile.msc might
-be adaptable to this, patches are welcome.
+be adaptable to this, patches are welcome.  Try
+	nmake /f Makefile.msc WIN32=0
 
 JOVE was once compiled (1996 May) with version 10 of
 Watcom's C compiler.  Makefile.wat might still work (but see

@@ -266,9 +266,10 @@ LDCC = $(CC)
 # that LOCALCFLAGS must be set to $(MEMFLAGS)
 
 LOCALCC = $(CC)
-LOCALCFLAGS = $(CFLAGS)	# $(MEMFLAGS)
+LOCALCFLAGS = # $(MEMFLAGS)
 LOCALLDFLAGS = $(LDFLAGS)
-LOCALEXTRALIBS = $(EXTRALIBS)
+LOCALEXTRALIBS = 
+LOCALEXT = 
 
 # Objects are grouped into overlays for the benefit of (at least) 2.xBSD.
 
@@ -283,6 +284,10 @@ OVLAY4 = iproc.o reapp.o
 OVLAY5 = proc.o scandir.o term.o case.o
 
 OBJECTS = $(BASESEG) $(OVLAY1) $(OVLAY2) $(OVLAY3) $(OVLAY4) $(OVLAY5)
+
+# win32.o when cross-compiling with mingw for Win32
+EXTRAOBJS =
+WINDRES = i686-w64-mingw32-windres
 
 # These NROFF, TROFF and TROFFPOST settings work with groff.
 # Classic Unix and derivatives used to have ditroff for which, use:
@@ -351,9 +356,13 @@ BACKUPS = $(HEADERS) $(C_SRC) $(SUPPORT) $(MISC)
 all:	jjove$(XEXT) recover$(XEXT) teachjove$(XEXT) portsrv$(XEXT) $(FDOCS) \
 	$(GEN)
 
-jjove$(XEXT):	$(OBJECTS)
-	$(LDCC) $(LDFLAGS) $(OPTFLAGS) -o jjove$(XEXT) $(OBJECTS) $(EXTRALIBS) $(TERMCAPLIB)
+jjove$(XEXT):	$(OBJECTS) $(EXTRAOBJS)
+	$(LDCC) $(LDFLAGS) $(OPTFLAGS) -o jjove$(XEXT) $(OBJECTS) $(EXTRAOBJS) $(EXTRALIBS) $(TERMCAPLIB)
 	@-size jjove$(XEXT)
+
+# For mingw icon
+jjove.coff: jjove.rc version.h
+	$(WINDRES) -r jjove.rc -fo jjove.coff
 
 # For 2.xBSD: link jove as a set of overlays.  Not tested recently.
 
@@ -387,15 +396,15 @@ teachjove$(XEXT):	teachjove.o
 # don't optimize setmaps.c because it produces bad code in some places
 # for some reason
 
-setmaps$(XEXT):	setmaps.o
-	$(LOCALCC) $(LOCALLDFLAGS) -o setmaps$(XEXT) setmaps.o $(LOCALEXTRALIBS)
+setmaps$(LOCALEXT):	setmaps.o
+	$(LOCALCC) $(LOCALLDFLAGS) -o setmaps$(LOCALEXT) setmaps.o $(LOCALEXTRALIBS)
 
 setmaps.o:	setmaps.c
-	$(LOCALCC) $(LOCALCFLAGS) -c setmaps.c
+	$(LOCALCC) $(LOCALCFLAGS) $(SYSDEFS) -c setmaps.c
 
-keys.c:	setmaps$(XEXT) keys.txt
+keys.c:	setmaps$(LOCALEXT) keys.txt
 	@-rm -f keys.c
-	./setmaps$(XEXT) < keys.txt > keys.c
+	./setmaps$(LOCALEXT) < keys.txt > keys.c
 
 keys.o:	keys.c tune.h sysdep.h jove.h keymaps.h dataobj.h commands.h
 
@@ -693,7 +702,7 @@ touch:
 clean:
 	rm -f a.out core *.o keys.c jjove$(XEXT) portsrv$(XEXT) recover$(XEXT) \
 		setmaps$(XEXT) teachjove$(XEXT) make.log *.map \#* *~ *.tmp \
-		jjove.pure_* ID \
+		jjove.pure_* ID *.exe jjove.coff \
 		.filelist xjove/.filelist .version
 
 cleanall: clean

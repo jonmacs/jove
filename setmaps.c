@@ -5,11 +5,22 @@
  * this notice is included in all the source files and documentation.     *
  **************************************************************************/
 
+/*
+ * Setmaps runs at build time, which makes life hard for
+ * cross-compilers:  we need the tune.h/sysdep.h definitions
+ * for the target machine, i.e.  whatever SYSDEFS the makefile
+ * provides, but those may not be appropriate for the host,
+ * which, might be a very different compiler.
+ */
+ 
 #define USE_STDIO_H 1
+#define NO_EXTERNS 1
 #include "jove.h"
 #include "chars.h"
 #include "commands.h"
 #include "vars.h"
+
+extern void	exit proto((int));
 
 #define LINESIZE	100	/* hope this is big enough */
 #define STACKLIMIT	10	/* max conditional depth */
@@ -257,9 +268,9 @@ for (fnp = fnt; fnp->in != NULL; fnp++) {
 #endif
 			{
 				if (comnum < 0)
-					fprintf(of, "\t(data_obj *) NULL,\t\t/* %s */\n", PPchar(ch));
+					fprintf(of, "\t(data_obj *) NULL,\t\t/* %s %s */\n", PPchar(ch), comname);
 				else
-					fprintf(of, "\t(data_obj *) &commands[%d],\t/* %s */\n", comnum, PPchar(ch));
+					fprintf(of, "\t(data_obj *) &commands[%d],\t/* %s %s */\n", comnum, PPchar(ch), comname);
 				ch += 1;
 			}
 		} else {
