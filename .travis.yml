@@ -8,7 +8,7 @@ addons:
   homebrew:
     packages: &brews [ ncurses, *common ]
     update: true
-branches: [ moraes ]
+branches: [ 4_17 ]
 os: [ linux, osx ]
 compiler: [gcc, clang ]
 arch: &archs [amd64, arm64, ppc64le, s390x]
