@@ -921,7 +921,7 @@ UnixToBuf(flags, bnm, InFName, cmd)
 				}
 			}
 			status = spawnve(0, argv[0], &argv[1],
-					 jenvdata(&proc_env));
+					 (char *const *)jenvdata(&proc_env));
 			jdbg("status %d spawnve \"%s\"\n", status, argv[0]);
 		}
 		jdbg("restoring fds 0 1 2 from %d %d %d\n", oldi, oldo, olde);

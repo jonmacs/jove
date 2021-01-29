@@ -1570,15 +1570,15 @@ private Block
 private daddr	next_bno = 0;
 
 /* Needed to comfort MS Visual C */
-private void blkio proto((Block *, SSIZE_T (*) ptrproto((int, UnivPtr, size_t))));
+private void blkio proto((Block *, JSSIZE_T (*) ptrproto((int, UnivPtr, size_t))));
 
 private void
 blkio(b, iofcn)
 register Block	*b;
-register SSIZE_T	(*iofcn) ptrproto((int, UnivPtr, size_t));
+register JSSIZE_T	(*iofcn) ptrproto((int, UnivPtr, size_t));
 {
 	off_t boff = bno_to_seek_off(b->b_bno);
-	SSIZE_T nb;
+	JSSIZE_T nb;
 	static bool first_time = YES;
 
 	if (first_time) {
@@ -1646,14 +1646,14 @@ SyncTmp()
 	 */
 	for (bno = 0; bno < next_bno; bno++) {
 		if ((b = lookup_block(bno)) != NULL && b->b_dirty) {
-			blkio(b, (SSIZE_T (*) ptrproto((int, UnivPtr, size_t)))write);
+			blkio(b, (JSSIZE_T (*) ptrproto((int, UnivPtr, size_t)))write);
 			b->b_dirty = NO;
 		}
 	}
 #else /* !MSDOS */
 	for (b = f_block; b != NULL; b = b->b_LRUnext)
 		if (b->b_dirty) {
-			blkio(b, (SSIZE_T (*) ptrproto((int, UnivPtr, size_t)))write);
+			blkio(b, (JSSIZE_T (*) ptrproto((int, UnivPtr, size_t)))write);
 			b->b_dirty = NO;
 		}
 #endif /* !MSDOS */
@@ -1718,7 +1718,7 @@ register Block	*bp;
 		bht[B_HASH(bp->b_bno)] = hp->b_HASHnext;
 
 	if (bp->b_dirty) {	/* do, now, the delayed write */
-		blkio(bp, (SSIZE_T (*) ptrproto((int, UnivPtr, size_t)))write);
+		blkio(bp, (JSSIZE_T (*) ptrproto((int, UnivPtr, size_t)))write);
 		bp->b_dirty = NO;
 	}
 
@@ -1859,7 +1859,7 @@ file_backup(fname)
 char *fname;
 {
 # ifndef MSFILESYSTEM
-	SSIZE_T	rr;
+	JSSIZE_T	rr;
 	int
 		ffd,
 		bffd = 0;	/* avoid uninitialized complaint from gcc -W */
@@ -1909,7 +1909,7 @@ char *fname;
 		char	*p = buf;
 
 		while (rr > 0) {
-			SSIZE_T	wr = write(bffd, (UnivPtr) p, (size_t) rr);
+			JSSIZE_T	wr = write(bffd, (UnivPtr) p, (size_t) rr);
 
 			if (wr < 0) {
 				int e = errno;

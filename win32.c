@@ -20,7 +20,7 @@
 #include <windows.h>
 
 INPUT_RECORD in_event[NCHARS], *eventp = in_event;	/* Input events e.g. keyboard, mouse-click */
-int nevents;
+DWORD nevents;
 private HANDLE conin, conout, conerr;	/* Console handles */
 private COORD curpos;
 private COORD maxpos;
@@ -531,7 +531,7 @@ SaveBufferFile(Buffer *b)
 		ofn.lpstrTitle = title;
 		wsprintf(title, "Save Jove buffer `%s' as:", b->b_name);
 
-		getcwd(szDirPath);
+		getcwd(szDirPath, _MAX_PATH-1);
 		ofn.Flags = OFN_SHOWHELP | OFN_OVERWRITEPROMPT |
 			OFN_PATHMUSTEXIST;
 		if (!GetSaveFileName(&ofn))

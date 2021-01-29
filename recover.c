@@ -224,7 +224,7 @@ daddr	atl;
 		    (long)atl, (long)bno, (long)off, (long)nleft);
 
 	if (bno != curblock) {
-		SSIZE_T nb;
+		JSSIZE_T nb;
 		const char *what;
 		off_t	    r,
 			    boff = bno_to_seek_off(bno);
@@ -362,7 +362,7 @@ char *fname;
 		if (header.RecMagic != RECMAGIC) {
 			close(fd);
 			fprintf(stderr, "recover: skipping incompatible %s magic 0x%lx != our 0x%lx\n",
-				rfile, header.RecMagic, RECMAGIC);
+				rfile, header.RecMagic, (unsigned long)RECMAGIC);
 			return NO;
 		}
 		close(fd);

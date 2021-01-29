@@ -495,11 +495,11 @@ int	fd;
 	return 0;
 }
 
-private SSIZE_T con_read proto((char *buf, size_t size));
+private JSSIZE_T con_read proto((char *buf, size_t size));
 
 /* Raw UNIX-like read */
 
-SSIZE_T
+JSSIZE_T
 read(fd, ubuf, n)
 int	fd;
 UnivPtr	ubuf;
@@ -532,7 +532,7 @@ size_t	n;
 
 /* Raw UNIX-like write */
 
-SSIZE_T
+JSSIZE_T
 write(fd, ubuf, n)
 int	fd;
 UnivConstPtr	ubuf;
@@ -646,7 +646,7 @@ const char *name;
 
 private ZXchar rawgetc proto((void));
 
-private SSIZE_T
+private JSSIZE_T
 con_read(buf, size)
 char *buf;
 size_t size;

@@ -286,7 +286,7 @@ size_t	nbytes;
 {
 	if (p->p_toproc >= 0) {
 		while (nbytes != 0) {
-			SSIZE_T	wr = write(p->p_toproc, (UnivConstPtr)buf, nbytes);
+			JSSIZE_T	wr = write(p->p_toproc, (UnivConstPtr)buf, nbytes);
 
 			if (wr >= 0) {
 				nbytes -= wr;

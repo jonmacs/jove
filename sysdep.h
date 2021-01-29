@@ -218,13 +218,6 @@
 # define USE_CRLF	1
 # define DIRECTORY_ADD_SLASH 1
 # define MSFILESYSTEM	1
-# if defined(_MSC_VER) && _MSC_VER >= 1200 /* VC 6.0+ */
-   /* <basetsd.h> defines SSIZE_T -- a name that we thought was safely
-    * in our namespace!  To prevent havoc, we include that header now
-    * so that our own definition will be suppressed.
-    */
-#  include <basetsd.h>
-# endif
 #endif
 
 /* The operating system (MSDOS, WIN32, or MAC) must be defined by this point. */
@@ -310,13 +303,13 @@
 # define POSIX_UNISTD	1
 #endif
 
-/* SSIZE_T: result type of read() and write() */
+/* JSSIZE_T: result type of read() and write() */
 #ifdef FULL_UNISTD
-# define SSIZE_T    ssize_t
+# define JSSIZE_T    ssize_t
 #endif
 
-#ifndef SSIZE_T
-# define SSIZE_T    int
+#ifndef JSSIZE_T
+# define JSSIZE_T    int
 #endif
 
 /* jmode_t: the type for file modes

@@ -17,7 +17,7 @@ extern int
 	unlink proto((const char *)),
 	chdir proto((const char *));
 
-extern SSIZE_T
+extern JSSIZE_T
 	read proto((int /*fd*/, UnivPtr /*buf*/, size_t /*nbytes*/)),
 	write proto((int /*fd*/, UnivConstPtr /*buf*/, size_t /*nbytes*/));
 
@@ -100,13 +100,6 @@ extern char	*ctime proto((const time_t *));
 
 #ifdef POSIX_UNISTD
 # include <unistd.h>
-# if _POSIX_VERSION < 199009L	/* defined in <unistd.h>: can't test earlier */
-   /* ssize_t is not defined in original POSIX.1
-    * Surprise: NetBSD defines it, even though it claims to be old POSIX.1!
-    * To dodge this problem, we define ssize_t as a macro, not a typedef.
-    */
-#  define ssize_t	int
-# endif
 #else /* !POSIX_UNISTD */
 
 extern int	chdir proto((const char */*path*/));
@@ -148,11 +141,17 @@ extern int mkstemp proto((char */*template*/));
 # endif
 
 # ifdef MSC51
-extern SSIZE_T	read proto((int /*fd*/, char * /*buf*/, size_t /*nbytes*/));
-extern SSIZE_T	write proto((int /*fd*/, const char * /*buf*/, size_t /*nbytes*/));
+extern JSSIZE_T	read proto((int /*fd*/, char * /*buf*/, size_t /*nbytes*/));
+extern JSSIZE_T	write proto((int /*fd*/, const char * /*buf*/, size_t /*nbytes*/));
 # else
-extern SSIZE_T	read proto((int /*fd*/, UnivPtr /*buf*/, size_t /*nbytes*/));
-extern SSIZE_T	write proto((int /*fd*/, UnivConstPtr /*buf*/, size_t /*nbytes*/));
+# if defined(WIN32)
+#  define JRWSIZE_T unsigned int /* MSVC for 64bit uses this, not size_t */
+# else
+#  define JRWSIZE_T size_t
+# endif
+extern JSSIZE_T	read proto((int /*fd*/, UnivPtr /*buf*/, JRWSIZE_T /*nbytes*/));
+extern JSSIZE_T	write proto((int /*fd*/, UnivConstPtr /*buf*/, JRWSIZE_T /*nbytes*/));
+# undef JRWSIZE_T
 # endif
 
 # ifdef UNIX

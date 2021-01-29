@@ -221,7 +221,7 @@ int	(*sorter) ptrproto((UnivConstPtr, UnivConstPtr));
  */
 int
 jscandir(dir, nmptr, qualify, sorter)
-char	*dir;
+const char	*dir;
 char	***nmptr;
 bool	(*qualify) ptrproto((char *));
 int	(*sorter) ptrproto((UnivConstPtr, UnivConstPtr));

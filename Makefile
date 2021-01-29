@@ -352,7 +352,7 @@ all:	jjove$(XEXT) recover$(XEXT) teachjove$(XEXT) portsrv$(XEXT) $(FDOCS) \
 	$(GEN)
 
 jjove$(XEXT):	$(OBJECTS)
-	$(LDCC) $(LDFLAGS) $(OPTFLAGS) -o jjove$(XEXT) $(OBJECTS) $(TERMCAPLIB) $(EXTRALIBS)
+	$(LDCC) $(LDFLAGS) $(OPTFLAGS) -o jjove$(XEXT) $(OBJECTS) $(EXTRALIBS) $(TERMCAPLIB)
 	@-size jjove$(XEXT)
 
 # For 2.xBSD: link jove as a set of overlays.  Not tested recently.
@@ -365,7 +365,7 @@ ovjove:	$(OBJECTS)
 		-Z $(OVLAY4) \
 		-Z $(OVLAY5) \
 		-Y $(BASESEG) \
-		-o jjove$(XEXT)  $(TERMCAPLIB) $(EXTRALIBS) -lc
+		-o jjove$(XEXT) $(EXTRALIBS) $(TERMCAPLIB) -lc
 	@-size jjove$(XEXT)
 
 # portsrv is only needed if IPROCS are implemented using PIPEPROCS

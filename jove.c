@@ -1326,14 +1326,14 @@ raw_complain(fmt, va_alist)
 	va_list	ap;
 	const char *bp;
 	size_t	rem;
-	SSIZE_T r;
+	JSSIZE_T r;
 
 	va_init(ap, fmt);
 	format(buf, sizeof(buf) - 2, fmt, ap);
 	va_end(ap);
 	strcat(buf, "\r\n");	/* \r *may* be redundant */
 	for (bp = buf, rem = strlen(buf)
-	; rem > 0 && (r = write(2, bp, rem)) != (SSIZE_T)rem
+	; rem > 0 && (r = write(2, bp, rem)) != (JSSIZE_T)rem
 	; bp += r, rem -=r) {
 		if (r < 0 || errno != EINTR)
 		    break;	/* give up */

@@ -257,7 +257,7 @@ register File	*fp;
 		char	*p = fp->f_base;
 
 		for (;;) {
-			SSIZE_T
+			JSSIZE_T
 				n = fp->f_ptr - p,
 				wr;
 
