@@ -1,0 +1,19 @@
+# basic Jove test build
+# Mark Moraes, 20210210
+language: c
+addons:
+  apt_packages: 
+    - &common [make, groff, ctags, zip ]
+    - &apts [ ncurses-dev ]
+os: [ linux ]
+compiler: [gcc  ]
+arch: &archs [amd64]
+jobs:
+    - os: linux
+      dist: bionic
+      arch: arm64
+      addons:
+        apt_packages: [*apts, *common]
+script:
+  - |
+    make SYSDEFS="-DSYSVR4 -D_XOPEN_SOURCE=500" TERMCAPLIB=-lncurses
