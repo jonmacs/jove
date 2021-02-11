@@ -5,11 +5,15 @@
  * this notice is included in all the source files and documentation.     *
  **************************************************************************/
 
-
 /* (C) 1986, 1987, 1988 Ken Mitchum.  This code is intended only for use with Jove. */
 
-/* In 1995 December, D. Hugh Redelmeier hacked on the code to make
- * it work again.  The environment was Think C 5.0 under System 7.1.
+/* This code is not needed for MacOS X onwards, i.e any modern Mac,
+ * on which Jove's classic UNIX/POSIX code works well, as of 4.17.
+ * All #ifdef MAC is will be removed in a future version of Jove,
+ * unless someone volunteers to test it.
+ *
+ * This code was last tested since 1995 December, when D. Hugh Redelmeier
+ * hacked on the code to make it work on Think C 5.0 under System 7.1.
  *
  * Obligatory excuses:
  * - Hugh is not a Mac expert
