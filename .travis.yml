@@ -85,8 +85,8 @@ script:
     Linux)  t=-lncurses
             if test -e /etc/alpine-release; then
                 d="$d -DUSE_GETCWD"; lib=MUSL;
-	    elif test -e /etc/gentoo-release; then
-	    	t="-ltinfo"; lib=GLIBC;
+            elif test -e /etc/gentoo-release; then
+                t="-ltinfo"; lib=GLIBC;
             else
                 lib=GLIBC;
             fi
