@@ -5,9 +5,8 @@
  * this notice is included in all the source files and documentation.     *
  **************************************************************************/
 
-/* UNIX Library/System Routine Emulations for Macintosh (mac.c) */
-
 #ifdef MAC
+/* UNIX Library/System Routine Emulations for old Macintosh (mac.c) */
 
 extern int
 	creat proto((const char *, jmode_t)),
@@ -108,7 +107,7 @@ extern int	chdir proto((const char */*path*/));
  * System Vr4 (sometimes?) types the second argument "int"!!
  * In io.c, we implement alternatives with getwd() and the pwd
  * command!  Win32 has a getcwd with different signature!
- * Our mac.c code provides a getcwd() replacement.
+ * Our old mac.c code provides a getcwd() replacement.
  */
 # ifdef USE_GETCWD
 extern char	*getcwd proto((char *, size_t));

@@ -29,6 +29,9 @@
 #include "jove.h"
 
 #define SMALLSTRSIZE	30	/* used for small buffers */
+#define MAXRECDIRSIZE	64	/* enough for RECDIR */
+#define MAXFILENAMESIZE	16	/* /jvNNNNNN and trailing NUL */
+#define PATHBUFSIZE	(MAXRECDIRSIZE+MAXFILENAMESIZE)
 
 #ifndef RECOVER
 
@@ -37,7 +40,8 @@ main(argc, argv)
 int	argc;
 char	*argv[];
 {
-	printf("recovery is not implemented in this JOVE configuration.\n");
+	printf("%s: recovery not implemented in this JOVE configuration.\n",
+	       argv[0]);
 	return 1;
 }
 
@@ -80,9 +84,6 @@ extern FILE	*popen proto((const char *, const char *));
  * but there no easy portable way to write this
  */
 extern struct passwd *getpwuid(/*widened uid_t*/);
-extern char	*ctime proto((const time_t *));
-extern void	perror proto((const char *));
-extern int	stat proto((const char *, struct stat *));
 
 #  ifdef USE_UNAME
 extern int	uname proto((struct utsname *));
@@ -92,6 +93,7 @@ extern int	uname proto((struct utsname *));
 extern int	gethostname proto((const char *, size_t));
 #  endif
 
+extern int	mkdir proto((const char *, jmode_t));
 # endif /* !FULL_UNISTD */
 #endif /* UNIX */
 
@@ -100,6 +102,7 @@ extern int	gethostname proto((const char *, size_t));
 # define L_INCR	1
 #endif
 
+private const char *progname;
 private char	blk_buf[JBUFSIZ];
 private long	nleft;
 private long	nshort;
@@ -114,7 +117,7 @@ private uid_t	UserID;
 private bool	Verbose = NO;
 private bool	Debug = NO;
 private FILE	*dfp;
-private char	RecDir[] = RECDIR;
+private const char *RecDir = RECDIR;
 
 private struct file_pair {
 	char	*file_data,
@@ -252,7 +255,7 @@ daddr	atl;
 			}
 		}
 		if (r < 0) {
-			fprintf(stderr, "%s of JOVE tempfile failed bno %ld errno %d %s\n", what, (long)bno, errno, strerror(errno));
+			fprintf(stderr, "%s of JOVE tempfile failed bno %ld: %s\n", what, (long)bno, strerror(errno));
 			longjmp(int_env, 1);
 			/* NOTREACHED */
 		}
@@ -267,10 +270,12 @@ copystr(s)
 const char	*s;
 {
 	char	*str;
+	size_t	sz = strlen(s) + 1;
 
-	str = malloc((size_t) (strlen(s) + 1));
+	str = malloc((size_t)sz);
 	if (str == NULL) {
-		fprintf(stderr, "recover: cannot malloc for copystr.\n");
+		fprintf(stderr, "%s: cannot malloc %lu for copystr.\n", progname,
+			(unsigned long)sz);
 		exit(-1);
 	}
 	strcpy(str, s);
@@ -355,21 +360,22 @@ char *fname;
 	if ((fd = open(rfile, O_RDONLY | O_BINARY | O_CLOEXEC)) != -1) {
 		if (read(fd, (UnivPtr) &header, sizeof header) != sizeof header) {
 			close(fd);
-			fprintf(stderr, "recover: could not read complete header from %s, skipping\n",
-				rfile);
+			fprintf(stderr, "%s: could not read complete header from %s, skipping\n",
+				progname, rfile);
 			return NO;
 		}
 		if (header.RecMagic != RECMAGIC) {
 			close(fd);
-			fprintf(stderr, "recover: skipping incompatible %s magic 0x%lx != our 0x%lx\n",
-				rfile, header.RecMagic, (unsigned long)RECMAGIC);
+			fprintf(stderr, "%s: skipping incompatible %s magic 0x%lx != our 0x%lx\n",
+				progname, rfile, header.RecMagic, (unsigned long)RECMAGIC);
 			return NO;
 		}
 		close(fd);
 	}
 	(void) sprintf(dfile, "%s/%s", CurDir, header.TmpFileName);
 	if (access(dfile, F_OK) != 0) {
-		fprintf(stderr, "recover: can't find the data file `%s' for %s\n", header.TmpFileName, rfile);
+		fprintf(stderr, "%s: can't find the data file `%s' for %s\n",
+			progname, header.TmpFileName, rfile);
 #ifdef NEVER
 		/*
 		 * MM: I don't think it's a good idea to delete the files
@@ -386,7 +392,7 @@ char *fname;
 	 */
 	fp = (struct file_pair *) malloc(sizeof *fp);
 	if (fp == NULL) {
-		fprintf(stderr, "recover: cannot malloc for file_pair.\n");
+		fprintf(stderr, "%s: cannot malloc for file_pair.\n", progname);
 		exit(-1);
 	}
 	fp->file_data = copystr(dfile);
@@ -560,7 +566,7 @@ char	*dest;
 		outfile = stdout;
 	} else {
 		if ((outfile = fopen(dest, "wb")) == NULL) {
-			printf("recover: cannot create %s.\n", dest);
+			fprintf(stderr, "%s: cannot create %s: %s\n", progname, dest, strerror(errno));
 			(void) signal(SIGINT, SIG_DFL);
 			return;
 		}
@@ -579,7 +585,7 @@ char	*dest;
 		    fsync(fileno(outfile)) < 0 ||
 #endif
 		    fclose(outfile) == EOF) {
-			fprintf(stderr, "Error flushing/closing %s: errno %d %s\n", dest, errno, strerror(errno));
+			fprintf(stderr, "Error flushing/closing %s: %s\n", dest, strerror(errno));
 		}
 		printf(" %ld lines, %ld characters.\n", Nlines, Nchars);
 	}
@@ -608,7 +614,7 @@ read_rec(recptr)
 struct rec_entry	*recptr;
 {
 	if (fread((UnivPtr) recptr, sizeof *recptr, (size_t)1, ptrs_fp) != 1)
-		fprintf(stderr, "recover: cannot read record.\n");
+		fprintf(stderr, "%s: cannot read record. %s\n", progname, strerror(errno));
 }
 
 private void
@@ -655,7 +661,7 @@ makblist()
 		if (buflist[i] == NULL) {
 			buflist[i] = (struct rec_entry *) malloc (sizeof (struct rec_entry));
 			if (buflist[i] == NULL) {
-				fprintf(stderr, "recover: cannot malloc for makblist.\n");
+				fprintf(stderr, "%s: cannot malloc for makblist.\n", progname);
 				exit(-1);
 			}
 		}
@@ -746,13 +752,13 @@ struct file_pair	*fp;
 
 	ptrs_fp = fopen(pntrfile, "rb");
 	if (ptrs_fp == NULL) {
-		fprintf(stderr, "recover: cannot read rec file (%s).\n", pntrfile);
+		fprintf(stderr, "%s: cannot read rec file (%s).\n", progname, pntrfile);
 		return 0;
 	}
 	if (Debug)
 		fprintf(dfp, "opened %s\n", pntrfile);
 	if (fread((UnivPtr) &Header, sizeof Header, (size_t)1, ptrs_fp) != 1) {
-		fprintf(stderr, "recover: cannot read header from rec file (%s).\n", pntrfile);
+		fprintf(stderr, "%s: cannot read header from rec file (%s).\n", progname, pntrfile);
 		return 0;
 	}
 	if (Debug)
@@ -780,7 +786,7 @@ struct file_pair	*fp;
 	}
 
 	if (Header.Nbuffers < 0) {
-		fprintf(stderr, "recover: %s doesn't look like a jove file.\n", pntrfile);
+		fprintf(stderr, "%s: %s doesn't look like a jove recovery file.\n", progname, pntrfile);
 		ask_del("Should I delete it? ", fp);
 		return 1;	/* We'll, we sort of found something. */
 	}
@@ -789,7 +795,7 @@ struct file_pair	*fp;
 		Header.Nbuffers, Header.Nbuffers != 1 ? "s" : "", ctime(&tupd));
 	data_fd = open(datafile, O_RDONLY | O_BINARY | O_CLOEXEC);
 	if (data_fd == -1) {
-		fprintf(stderr, "recover: but I can't read the data file (%s).\n", datafile);
+		fprintf(stderr, "%s: but I can't read the data file (%s).\n", progname, datafile);
 		ask_del("Should I delete the tmp files? ", fp);
 		return 1;
 	}
@@ -902,7 +908,7 @@ struct rec_head *rec;
 {
 	char mail_cmd[BUFSIZ];
 	char *last_update;
-	const char *buf_string;
+	const char *buf_string, *mail_prog;
 	FILE *mail_pipe;
 	struct passwd *pw;
 	int r;
@@ -914,9 +920,17 @@ struct rec_head *rec;
 	tupd = (time_t)(rec->UpdTime);
 	last_update = ctime(&tupd);
 	/* Start up mail */
-	sprintf(mail_cmd, "/bin/mail %s", pw->pw_name);
+	if ((mail_prog = getenv("JOVEMAILER")) == NULL)
+	    mail_prog = "/bin/mail";
+	if (strlen(mail_prog) + 1 + strlen(pw->pw_name) + 1 > sizeof(mail_cmd)) {
+	    fprintf(stderr, "%s: %u buffer too small for \"%s %s\", skipping\n",
+		    progname, (unsigned)sizeof(mail_cmd), mail_prog, pw->pw_name);
+	    return;
+	}
+	sprintf(mail_cmd, "%s %s", mail_prog, pw->pw_name);
 	if ((r = setuid(getuid())) < 0) {
-	    perror("WARNING: jove recover: setuid(getuid()) failed");
+	    fprintf(stderr, "WARNING: %s: setuid(getuid()) failed: %s\n",
+		    progname, strerror(errno));
 	    /*
 	     * used to continue without checking return value,
 	     * so let that behaviour continue, I guess?
@@ -949,9 +963,9 @@ savetmps()
 	struct file_pair	*fp;
 	wait_status_t	status;
 	pid_t	pid;
-	int	fd;
+	int	fd, rc;
 	struct rec_head		header;
-	char	buf[BUFSIZ];
+	char	buf[PATHBUFSIZE];
 	char	*fname;
 	struct stat		stbuf;
 
@@ -959,30 +973,43 @@ savetmps()
 		return;		/* Files are moved to the same place. */
 
 	/* sanity check on RecDir */
-	strcpy(buf, RecDir);
-	strcat(buf, "/foo");
-	if (stat(RecDir, &stbuf) < 0 || !S_ISDIR(stbuf.st_mode) ||
-	    access(buf, W_OK) != 0) {
-		fprintf(stderr, "recover: need writable directory \"%s\"\n", RecDir);
+	if (strlen(RecDir) > MAXRECDIRSIZE) {
+		fprintf(stderr, "%s: recovery directory len is %u, must be smaller than %u\n",
+			progname, (unsigned)strlen(RecDir), MAXRECDIRSIZE);
+		exit(2);
+	}
+	sprintf(buf, "%s/jv%06u", RecDir, (unsigned)getpid()); /* dummy name */
+	stbuf.st_mode = stbuf.st_uid = 0;
+	if ((rc = stat(RecDir, &stbuf)) < 0)
+		if ((rc = mkdir(RecDir, 0755)) == 0)
+			rc = stat(RecDir, &stbuf);
+	if (rc < 0 || !S_ISDIR(stbuf.st_mode) || stbuf.st_uid != getuid() /*||
+	    access(buf, W_OK) != 0*/) {
+		fprintf(stderr, "%s: need writable directory \"%s\" owned by %u: got mode 0%o uid %u rc %d%s\n",
+			progname, RecDir, getuid(), (unsigned)stbuf.st_mode,
+			(unsigned)stbuf.st_uid, rc, rc < 0 ? strerror(errno) : "");
 		exit(2);
 	}
 
+	setbuf(stdout, NULL);
 	printf("Recovering jove files ... ");
 	get_files(tmp_dir);
 	for (fp = First; fp != NULL; fp = fp->file_next) {
+		if (Debug)
+		    fprintf(dfp, "Recovering: %s, %s\n", fp->file_data,
+			    fp->file_rec);
 		if (stat(fp->file_data, &stbuf) < 0) {
-			perror("recover: stat failed.");
+			fprintf(stderr, "%s: stat data %s failed, rec %s: %s\n",
+				progname, fp->file_data, fp->file_rec, strerror(errno));
 			continue;
 		}
 		switch (pid = fork()) {
 		case -1:
-			fprintf(stderr, "recover: can't fork\n!");
+			fprintf(stderr, "%s: can't fork. %s\n!", progname, strerror(errno));
 			exit(-1);
 			/*NOTREACHED*/
 
 		case 0:
-			fprintf(stderr, "Recovering: %s, %s\n", fp->file_data,
-			 fp->file_rec);
 			if ((fd = open(fp->file_rec, O_RDONLY | O_BINARY | O_CLOEXEC)) != -1) {
 				if ((read(fd, (UnivPtr) &header, sizeof header) != sizeof header)) {
 					close(fd);
@@ -993,26 +1020,43 @@ savetmps()
 			MailUser(&header);
 			execl("/bin/mv", "mv", fp->file_data, fp->file_rec,
 				  RecDir, (char *)NULL);
-			fprintf(stderr, "recover: cannot execl /bin/mv.\n");
+			fprintf(stderr, "%s: cannot execl /bin/mv. %s\n", progname, strerror(errno));
 			exit(-1);
 			/*NOTREACHED*/
 
 		default:
 			do {} while (wait(&status) != pid);
 			if (WIFSIGNALED(status))
-				fprintf(stderr, "recover: copy terminated by signal %d\n.\n", WTERMSIG(status));
+				fprintf(stderr, "%s: copy terminated by signal %d\n.\n", progname, WTERMSIG(status));
 			if (WIFEXITED(status))
-				fprintf(stderr, "recover: copy exited with %d.\n", WEXITSTATUS(status));
+				fprintf(stderr, "%s: copy exited with %d.\n", progname, WEXITSTATUS(status));
 			fname = fp->file_data + strlen(tmp_dir);
+			if (strlen(fname)+1 > MAXFILENAMESIZE) {
+				fprintf(stderr, "%s: filename \"%s\" len %u, must be smaller than %u\n",
+					progname, fname, (unsigned)strlen(fname), MAXFILENAMESIZE-1);
+				exit(2);
+			}
 			strcpy(buf, RecDir);
 			strcat(buf, fname);
-			if (chown(buf, stbuf.st_uid, stbuf.st_gid) != 0)
-				perror("recover: chown failed.");
+			if (chown(buf, stbuf.st_uid, stbuf.st_gid) != 0) {
+				fprintf(stderr, "%s: chown data %s to %u.%u failed: %s",
+					progname, buf, (unsigned)stbuf.st_uid, (unsigned)stbuf.st_gid,
+					strerror(errno));
+			}
 			fname = fp->file_rec + strlen(tmp_dir);
+			if (strlen(fname)+1 > MAXFILENAMESIZE) {
+				fprintf(stderr, "%s: filename \"%s\" len %u, must be smaller than %u\n",
+					progname, fname, (unsigned)strlen(fname), MAXFILENAMESIZE-1);
+				exit(2);
+			}
 			strcpy(buf, RecDir);
 			strcat(buf, fname);
-			if (chown(buf, stbuf.st_uid, stbuf.st_gid) != 0)
-				perror("recover: chown failed.");
+			if (chown(buf, stbuf.st_uid, stbuf.st_gid) != 0) {
+				fprintf(stderr, "%s: chown rec %s to %u.%u failed: %s",
+					progname, buf, (unsigned)stbuf.st_uid, (unsigned)stbuf.st_gid,
+					strerror(errno));
+			}
+			fputc('.', stdout);
 		}
 	}
 	free_files();
@@ -1052,18 +1096,22 @@ char	*argv[];
 	int	nfound;
 	char	**argvp;
 
+	progname = argv[0];
 	UserID = getuid();
 
-	/* override <TMPDIR> with $TMPDIR, if any */
+	/* override tmp_dir with $TMPDIR, RecDir with $JOVERECDIR if any */
 	{
 		char	*cp = getenv("TMPDIR");
 
 		if (cp != NULL)
 			tmp_dir = cp;
+		cp = getenv("JOVERECDIR");
+		if (cp != NULL)
+		    RecDir = cp;
 	}
 
 	if (scanvec(argv, "-help")) {
-		printf("recover: usage: recover [-d directory] [-syscrash]\n\n");
+		printf("%s: usage: recover [-d directory] [-syscrash]\n\n", progname);
 		printf("Use \"jove -r\" after JOVE has died for some unknown reason.\n\n");
 		printf("Use \"%s/recover -syscrash\"\n", LIBDIR);
 		printf("\twhen the system is in the process of rebooting.\n");

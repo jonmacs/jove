@@ -72,7 +72,7 @@ const char *s, *pre;
 }
 
 private char *
-PPchar(c)
+PPkey(c)
 int	c;
 {
 	static char	str[16];
@@ -268,9 +268,9 @@ for (fnp = fnt; fnp->in != NULL; fnp++) {
 #endif
 			{
 				if (comnum < 0)
-					fprintf(of, "\t(data_obj *) NULL,\t\t/* %s %s */\n", PPchar(ch), comname);
+					fprintf(of, "\t(data_obj *) NULL,\t\t/* %s %s */\n", PPkey(ch), comname);
 				else
-					fprintf(of, "\t(data_obj *) &commands[%d],\t/* %s %s */\n", comnum, PPchar(ch), comname);
+					fprintf(of, "\t(data_obj *) &commands[%d],\t/* %s %s */\n", comnum, PPkey(ch), comname);
 				ch += 1;
 			}
 		} else {
