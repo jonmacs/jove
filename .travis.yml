@@ -8,7 +8,6 @@ addons:
   homebrew:
     packages: &brews [ ncurses, *common ]
     update: true
-branches: [ 4_17 ]
 os: [ linux, osx ]
 compiler: [gcc, clang ]
 arch: &archs [amd64, arm64, ppc64le, s390x]
@@ -59,28 +58,21 @@ script:
     # note: older *BSD, OSX, Solaris require a template
     td=$(mktemp -d "${TMPDIR:-/tmp}/jvt.XXXXXXXX")
     dd="DESTDIR=$td"
-    o="-Os -Wall -pedantic"
     u=$(uname)
+    o=-O
     e=
     d=
     x=
     d=-DTERMIOS
+    t=-ltermcap
     lib=
     jv=NPROCESSORS_ONLN
     case $u in
-    *BSD)   e=-lutil
-            t=-ltermcap
-            ;;
-    Darwin) t=-ltermcap
-            ;;
-    SunOS)  t=-ltermcap
-            u=SYSVR4
-            o=-O
-            x="NROFF=nroff TROFF=troff"
+    SunOS)  x="NROFF=nroff TROFF=troff"
             d="-DREALSTDC -DPOSIX_PROCS"
             ur=$(uname -r)
             case "$ur" in
-            5.0) d="$d -DGRANTPT_BUG";;
+            5.0) d="-DSYSVR4 -DGRANTPT_BUG";;
             5.*) ;;
             *) echo "$0: Not set up for testing $u $ur" >&2; exit 1;;
             esac
@@ -90,11 +82,11 @@ script:
             fi
             x="$x XINSTALL=$xi TINSTALL=$xi"
             ;;
-    *)      t=-lncurses
+    Linux)  t=-lncurses
             if test -e /etc/alpine-release; then
                 d="$d -DUSE_GETCWD"; lib=MUSL;
-            elif test -e /etc/gentoo-release; then
-                t=-ltinfo; lib=GLIBC;
+	    elif test -e /etc/gentoo-release; then
+	    	t="-ltinfo"; lib=GLIBC;
             else
                 lib=GLIBC;
             fi
@@ -106,9 +98,9 @@ script:
     # (e.g. PIPEPROCS, TERMINFO) may produce warnings (e.g. no declaration for
     # ioctl) because we are just testing somewhat abnormal non-POSIX sysdefs.
     make clean &&
-    make $j OPTFLAGS="$o" SYSDEFS=-D$u TERMCAPLIB=$t EXTRALIBS=$e $x $dd/t10-$u install &&
+    make $j $x $dd/t10-$u install &&
     make clean &&
-    make $j OPTFLAGS="$o" SYSDEFS="-DPIPEPROCS $d" $x TERMCAPLIB=$t $dd/t20-pipeprocs install &&
+    make $j OPTFLAGS="$o" SYSDEFS="-DPIPEPROCS $d" TERMCAPLIB=$t $x $dd/t20-pipeprocs install &&
     make clean &&
     make $j OPTFLAGS="$o" SYSDEFS="-DBSDPOSIX $d" TERMCAPLIB=$t $x $dd/t30-bsdposix install &&
     make clean &&

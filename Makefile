@@ -109,99 +109,34 @@ TEACHJOVEM = $(DMANDIR)/teachjove.$(MANEXT)
 XJOVEM = $(DMANDIR)/xjove.$(MANEXT)
 JOVETOOLM = $(DMANDIR)/jovetool.$(MANEXT)
 
-# SYSDEFS: specify system characteristics.
-# The default is the system uname, which describes a number of modern
-# systems (but not Solaris or Cygwin).  If this isn't suitable for your system,
-# you will need to change it.  You may need to define a new symbol for
-# your OS if we haven't created a suitable one.  See sysdep.h.
-# The OS and version recently tested with a specific SYSDEFS are below.
-# For most systems below, if they have select() (i.e. any *n*x variant
-# since the late 1980s), you can add -DJTC to the SYSDEFS and TERMCAPLIB=
-# to skip the curses/termcap dependency and only support ansi/vt[12345]xx/xterm
-# terminals (i.e any practical terminals since the late 1980s!)
-#
-#	Cygwin 3.1.2			SYSDEFS=-DCYGWIN_JTC TERMCAPLIB= # builtin vt100/xterm/rxvt etc support, no need for curses dependency
-#	Cygwin 3.1.2 (curses)		SYSDEFS=-DCYGWIN TERMCAPLIB=-lncursesw
-#	Darwin aka MacOS X		SYSDEFS=-DDarwin
-#	FreeBSD 12.1			SYSDEFS=-DFreeBSD EXTRALIBS=-lutil
-#	Linux (modern, UNIX98 PTYS)	SYSDEFS=-DLinux
-#	Linux (modern, UNIX98 PTYS)	SYSDEFS=-DLinux TERMCAPLIB=-lncursesw
-#	Linux (modern, glibc pty.h)	SYSDEFS=-DGLIBCPTY EXTRALIBS=-lutil
-#	MacOS X aka Darwin 		SYSDEFS=-DDarwin
-#	NetBSD 8.1			SYSDEFS=-DNetBSD EXTRALIBS=-lutil
-#	OpenBSD 6.6			SYSDEFS=-DOpenBSD EXTRALIBS=-lutil
-#	SunOS5.1 onwards (Solaris/OpenIndiana/Illumos/Joyent)	SYSDEFS=-DSYSVR4
-#
-# The following used to work circa Jove 4.16 in the 1990s and have probably not
-# been tested in the 21st century, they may still work but some of this
-# ancient support may be deleted from Jove at some point, we welcome
-# any recent success stories from jove builders/packagers to refresh
-# or maintain these. Pretty please! Almost all these need TERMCAPLIB=-ltermcap
-# 
-#	Apple A/UX on macIIs		SYSDEFS=-DA_UX
-#	BSD4.2,4.3			SYSDEFS=-DBSD4
-#	BSDI, 386BSD, BSD4.4		SYSDEFS=-DBSDPOSIX
-#	Consensys V4			SYSDEFS="-DSYSVR4 -DGRANTPT_BUG"
-#	Compaq Tru64 UNIX V4.0g, 5.1	SYSDEFS=-DSYSVR4
-#	DEC OSF R1.3MK			SYSDEFS=-DSYSVR4
-#	DEC OSF/1 V1.3			SYSDEFS="-DBSDPOSIX -DNO_TIOCREMOTE -DNO_TIOCSIGNAL"
-#	DEC OSF/1 V2.0 and later	SYSDEFS=-DSYSVR4
-#	DEC Ultrix 4.2			SYSDEFS=-DBSDPOSIX
-#	DEC Ultrix 4.3			SYSDEFS="-DBSDPOSIX -DJVDISABLE=255"
-#	Digital UNIX V4.0 and later	SYSDEFS="-DSYSVR4 -DGRANTPT_BUG"
-#	DG AViiON 5.3R4			SYSDEFS="-DSYSVR4 -DBSD_SIGS"
-#	HP/UX 8 or 9			SYSDEFS="-DHPUX -Ac"
-#	HP/UX 11 (-Ac redundant)	SYSDEFS=-DHPUX
-#	IBM AIX 3.2			SYSDEFS=-DAIX3_2
-#	IBM AIX 4.2, 5.2		SYSDEFS="-DAIX4_2" TERMCAPLIB="-lcurses -ls"
-#	Irix 3.3-4.0.5			SYSDEFS="-DIRIX -DIRIX4"
-#	Irix 5.0 onwards		SYSDEFS="-DIRIX -prototypes"
-#	Linux (older, eg. RedHat 4, 5)	SYSDEFS=-DBSDPOSIX
-#	MIPS RiscOS4.x			SYSDEFS="-systype bsd43 -DBSD4"
-#	SCO Unix			SYSDEFS=-DSCO
-#	SunOS3.x			SYSDEFS=-DSUNOS3
-#	SunOS4.0*			SYSDEFS=-DSUNOS40
-#	SunOS4.1*			SYSDEFS=-DSUNOS41
-#	SunOS5.0 (Solaris 2.0)		SYSDEFS="-DSYSVR4 -DGRANTPT_BUG"
-#	Sys III, Sys V R 2,3		SYSDEFS=-DSYSV PORTSRVINST='$(PORTSRV)'
-#	Sys V Release 4.0		SYSDEFS="-DSYSVR4 -DGRANTPT_BUG"
-#	Sys V Release 4.x		SYSDEFS=-DSYSVR4
-#
-# Some systems based on System V release 4 have a bug affecting interactive
-# processes.  This bug can be worked around by defining GRANTPT_BUG.
-# Read the explanation of GRANTPT_BUG in sysdep.doc.
-#
-# Some of the MIPS based Ultrix (up to 4.2 at least), RiscOS and Irix (up to
-# 3.3 at least) also need -DMIPS_CC_BUG.
-#
-# Some old versions of the HPUX C compiler have a bug in handling forward
-# struct tag declarations.  Using the -Ac flag in place of -Ae will avoid
-# this problem (and reduce the compiler's error checking, unfortunately).
-#
-# Add -DUSE_EXIT if you're profiling or using purify (this causes Jove
-# to exit using exit(), instead of _exit()).
-# Add -DDEBUGCRASH if you want to not trap on SEGV, BUS, etc, useful
-# running jove under a debugger (gdb, dbx)
+# SYSDEFS: specify system characteristics to the C preprocessor using -D options
+# The default (via buildflags.sh --cflags) is the system uname,
+# which describes a number of modern systems.  If this isn't suitable for your system,
+# or you want to customize it, then see README, sysdep.h, sysdep.doc.
+# buildflags also sets a few other cflags (optimization, warnings)
 
-SYSDEFS = -DLinux
+SYSDEFS = `./buildflags.sh --cflags`
 
-# Select optimization level (flags passed to compiling and linking steps).
+# Other compiler flags, flags passed to compiling and linking steps
 # On most systems: -g for debugging, -O for optimization.
 # -Os produces smaller binaries with gcc, should not hurt performance
 # On the official Sun ANSI C compiler and the standard System V Release 4
 # compiler, adding -Xa -v will increase compiler checking.
 # On DEC OSF/1 and Digital UNIX VV4.0, add -std1 to enable ANSI C features
 # and perhaps -g3 for more debugging info with optimization.
+# Some old versions of the HPUX C compiler have a bug in handling forward
+# struct tag declarations.  Using the -Ac flag in place of -Ae will avoid
+# this problem (and reduce the compiler's error checking, unfortunately).
 
-OPTFLAGS = -O # -g -Wall -pedantic
+OPTFLAGS = # -g -O -Wall -pedantic
 
 # For making dependencies under BSD systems
 DEPENDFLAG = -M
 # or, using the official Sun ANSI C compiler
 #	DEPENDFLAG = -xM
 
-# Flags for Library to provide termcap functions.
-# Most modern open-source systems have dropped termcap, or ship it
+# Flags for Library to provide termcap and pty functions.
+# Some modern open-source systems have dropped termcap, or ship it
 # as part of the ncurses or tinfo packages.
 # For systems without dynamic libraries, termcap or terminfo are smaller,
 # and preferable to the bulkier curses library.
@@ -216,13 +151,11 @@ DEPENDFLAG = -M
 # which is almost certainly all that is necessary on modern machines.
 # To use it, define -DJTC and leave TERMCAPLIB unset
 
-TERMCAPLIB = -lncurses
+TERMCAPLIB = `./buildflags.sh --libs`
 
 # Extra libraries flags needed by various systems.
-# Some BSD systems using openpty need its library.
+# Some BSD systems using openpty need the util library.
 #	4.1BSD:	EXTRALIBS = -ljobs
-#	FreeBSD 4.2: EXTRALIBS = -lutil
-#	FreeBSD 4.2, NetBSD 1.5, OpenBSD 2.x:  EXTRALIBS = -lutil
 
 EXTRALIBS =
 
@@ -343,8 +276,8 @@ DOCS =	doc/README doc/teach-jove doc/jove.qref \
 	doc/jove.rc.in doc/example.rc $(DOCTERMS) $(FDOCS) $(GEN)
 
 MISC =	Makefile Makefile.msc Makefile.wat \
-	README README.dos README.mac README.w32 README.cyg \
-	sysdep.doc tune.doc style.doc jspec.in
+	README README.dos README.win \
+	sysdep.doc tune.doc style.doc jspec.in buildflags.sh
 
 SUPPORT = teachjove.c recover.c setmaps.c portsrv.c keys.txt \
 	menumaps.txt mjovers.Hqx jjove.ico jjove.rc
@@ -676,7 +609,7 @@ checksum:	.filelist
 
 DOSSRC = $(HEADERS) $(C_SRC) setmaps.c recover.c keys.txt \
 	Makefile.msc Makefile.wat \
-	README README.dos README.w32 README.cyg sysdep.doc tune.doc style.doc \
+	README README.dos README.win sysdep.doc tune.doc style.doc \
 	jjove.rc $(FDOCS) tags \
 	doc/teach-jove doc/jove.qref doc/jove.rc doc/example.rc
 

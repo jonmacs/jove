@@ -6,9 +6,7 @@
  **************************************************************************/
 
 /*
- * NEW, EXPERIMENTAL CODE.  TESTERS WELCOME.
- *
- * Minimal standalone hardwired terminfo/termcap replacement
+ * Simple standalone hardwired terminfo/termcap replacement
  * that only supports the subset of vt[123]xx/ANSI
  * X3.64/ECMA-48/ISO6429 needed by Jove.  Since everyone in
  * the year 2020CE probably uses a terminal emulator that

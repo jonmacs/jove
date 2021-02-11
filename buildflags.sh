@@ -1,0 +1,28 @@
+#!/bin/sh
+# A hackish autoconfig that gets the Jove build flags right on 
+# most modern systems.
+# Falls back to JTC (Jove built-in termcap for vt1xx) to avoid
+# external dependencies.
+u=`uname | tr -d -c '[a-zA-Z0-9_]'`
+o="-Os -Wall -pedantic"
+cf="-D$u $o"
+lf=
+case "$u" in
+CYGWIN*) cf="-DCYGWIN $o";;
+*BSD|DragonFly)	lf="-ltermcap -lutil";;
+Linux)	if type pkg-config > /dev/null 2>&1; then
+		cf="$cf `pkg-config --cflags ncurses`"
+		lf="$lf `pkg-config --libs ncurses`"
+	elif test -e /etc/gentoo-release; then
+		lf="$lf -ltinfo"
+	else
+		cf="$cf -DJTC"
+	fi
+	;;
+*)	cf="-D$u -DJTC -O";;
+esac
+case "$1" in
+--cflags)	echo "$cf";;
+--libs)		echo "$lf";;
+*)	echo "Usage: $0 [--cflags] [--libs]" >&2; exit 1;;
+esac

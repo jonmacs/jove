@@ -21,7 +21,7 @@
 # define NO_TIOCREMOTE	1
 #endif
 
-#ifdef FreeBSD
+#if defined(FreeBSD) || defined(DragonFly)
 /* System: modern FreeBSD, needs HAVE_LIBUTIL_H */
 # define XBSD		1
 # define HAVE_LIBUTIL_H 1
@@ -34,16 +34,18 @@
 # define USE_OPENPTY	1
 #endif
 
+#if defined(SunOS)
+/* System: SunOS 5.1 aka Solaris 2.1 onwards, including Illumos/Joyent/OpenSolaris/OpenIndiana */
+# define SYSVR4		1
+#endif
+
 #if defined(Linux) || defined(XLINUX)
 /* System: most modern Linux (RedHat6-on). Old Linux are BSDPOSIX_STDC */
 # define SYSVR4		1
-# define _XOPEN_SOURCE	500
+# ifndef _XOPEN_SOURCE
+#  define _XOPEN_SOURCE	500
+# endif
 # define SPELL		"aspell list < %s | sort -u"
-#endif
-
-#ifdef CYGWIN_JTC   /* System: Cygwin (that Linux feeling on Windows) */
-# define CYGWIN		1
-# define JTC		1 /* no real point using curses for Cygwin, surely?! */
 #endif
 
 #if defined(CYGWIN) || defined(CYGWIN32)
@@ -52,6 +54,7 @@
 # define GLIBCPTY	1
 # define O_TRUNC_BROKEN	1   /* see fp.c */
 # define SPELL		"aspell list < %s | sort -u"
+# define JTC		1 /* no real point using curses for Cygwin, surely?! */
 #endif
 
 #if defined(GLIBCPTY)
@@ -90,7 +93,7 @@
 # define jmode_t	int	/* no mode_t on WIN32 */
 #endif
 
-/* ************************************************************************/
+/**************************************************************************/
 /* Some very common collectons of capabilities, used by many defs above   */
 
 #ifdef BSDPOSIX_STDC	/* Same as BSDPOSIX, but with a Standard enough C */

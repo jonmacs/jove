@@ -89,6 +89,8 @@ MIPS_CC_BUG	avoid function definition syntax that provokes a MIPS cc bug.
 		extern declarations that have parentheses around them.
 		(e.g. select).  One version of the error looks like this:
 		externs.h, line 145: ccom: Internal: compiler takes size of function
+		MIPS-based Ultrix upto 4.2 at least, RiscOS and IRIX (upto 3.3
+		at least) need this.
 
 Newer systems tend to have header files with more system calls defined,
 sometimes with prototypes.  Choose one of the following, depending on your
@@ -337,6 +339,8 @@ ISO_8859_1	use wired-in tables reflecting the characteristics of the
 For the IBM PC under MSDOS, look below for the description of CODEPAGE437.
 There is a wired-in table for the Macintosh used if MAC is defined.
 
+DEBUGCRASH	Do not trap on SEGV, BUS signals, useful for running Jove
+		under a debugger (e.g. gdb, dbx)
 
 DEFINE_PC_BC_UP_OSPEED
 		Certain variables used by termcap/terminfo are
@@ -376,9 +380,10 @@ TERMINFO	Support for System V variant of TERMCAP.  TERMCAP
 		must also be defined.  This differentiates between
 		tparm and tgoto.
 
-JTC		EXPERIMENTAL builtin-termcap emulation, avoids need
+JTC		Simple builtin-termcap emulation, avoids need
 		for external library dependency on termcap/terminfo/*curses*.
-		TERMCAP must also be defined.
+		TERMCAP must also be defined.  The OS must support select(),
+		which is used for timing delays.
 		Only works on vt[123]NN or compatible terminals, or
 		emulators like xterm/rxvt/st/vte etc. The environment
 		variable JOVEVT can be set to the level of emulation,
