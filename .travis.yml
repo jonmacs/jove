@@ -1,5 +1,5 @@
 # test Jove build on a variety of Travis-CI platforms
-# Mark Moraes, 20200221
+# Mark Moraes, 20210212
 language: c
 addons:
   apt_packages: 
@@ -10,7 +10,7 @@ addons:
     update: true
 os: [ linux, osx ]
 compiler: [gcc, clang ]
-arch: &archs [amd64, arm64, ppc64le, s390x]
+arch: &archs [amd64, arm64, ppc64le]
 jobs:
   # now modify the build matrix constructed above
   exclude:
