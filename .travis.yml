@@ -38,7 +38,12 @@ jobs:
     - os: osx
       osx_image: xcode11.3
     - os: linux
-      dist: precise
+      dist: trusty
+      arch: amd64
+      addons:
+        apt_packages: [*apts, *common]
+    - os: linux
+      dist: focal
       arch: amd64
       addons:
         apt_packages: [*apts, *common]
