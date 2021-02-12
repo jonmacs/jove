@@ -222,13 +222,20 @@ OBJECTS = $(BASESEG) $(OVLAY1) $(OVLAY2) $(OVLAY3) $(OVLAY4) $(OVLAY5)
 EXTRAOBJS =
 WINDRES = i686-w64-mingw32-windres
 
+ZIP=zip
+ZIPEXT=zip
+ZIPOPTS=-q -k	# common options for both binary and code files
+ZIPTXTOPT=-l -r	# options for recursively adding code files
+TAR=tar
+BACKUPDEV=/dev/rst8	# for tape-backup target!
+
 # These NROFF, TROFF and TROFFPOST settings work with groff.
-# Classic Unix and derivatives used to have ditroff for which, use:
+# Classic Unix and derivatives used to have ditroff, for which use:
 #	NROFF = nroff
 #	TROFF = troff
 #	TROFFPOST = | /usr/lib/lp/postscript/dpost -
 NROFF = nroff -Tascii
-TROFF = groff
+TROFF = troff
 TROFFPOST = 
 
 MANUALS = $(JOVEM) $(TEACHJOVEM)
@@ -551,16 +558,16 @@ jove.shar:	.filelist
 
 backup.Z: .filelist
 	-rm -f backup backup.Z
-	tar cf backup `cat .filelist`
+	$(TAR) cf backup `cat .filelist`
 	compress backup
 
 backup.tgz: .filelist
 	# GNU tar only: z
 	-rm -f backup.tgz
-	tar czf backup.tgz `cat .filelist`
+	$(TAR) czf backup.tgz `cat .filelist`
 
 tape-backup:	.filelist
-	tar cf /dev/rst8 `cat .filelist`
+	$(TAR) cf $(BACKUPDEV) `cat .filelist`
 
 # Build a distribution: a gzipped tar file with a name "jove-<version>.tgz"
 # The tar will unpack into a directory with the name jove-<version>
@@ -570,8 +577,8 @@ tgz:	.filelist
 	BN=jove-`cat .version` ; \
 	rm -rf $$BN $$BN.tgz* ; \
 	mkdir $$BN ; \
-	tar cf - `cat .filelist` | ( cd $$BN ; tar xf - ) ; \
-	tar czf $$BN.tgz $$BN ; \
+	$(TAR) cf - `cat .filelist` | ( cd $$BN ; $(TAR) xf - ) ; \
+	$(TAR) czf $$BN.tgz $$BN ; \
 	rm -rf $$BN ; \
 	ls -l $$BN.tgz
 
@@ -619,15 +626,15 @@ zip:	.version $(DOSSRC) jjove.ico Makefile
 	BN=jove$${V}s && \
 	rm -rf $$BN && \
 	mkdir $$BN && \
-	tar cf - jjove.ico $(DOSSRC) | ( cd $$BN ; tar xf - ) && \
-	zip -q -k jovetmp$$$$.zip $$BN/jjove.ico && \
+	$(TAR) cf - jjove.ico $(DOSSRC) | ( cd $$BN ; $(TAR) xf - ) && \
+	$(ZIP) $(ZIPOPTS) jovetmp$$$$.$(ZIPEXT) $$BN/jjove.ico && \
 	rm -f $$BN/jjove.ico && \
 	mv $$BN/doc/jove.man.ps $$BN/doc/joveman.ps && \
-	zip -q -k jovetmp$$$$.zip -r -l $$BN/* && \
-	rm -f jove$${V}s.zip && \
-	mv jovetmp$$$$.zip jove$${V}s.zip && \
+	$(ZIP) $(ZIPOPTS) jovetmp$$$$.$(ZIPEXT) $(ZIPTXTOPT) $$BN/* && \
+	rm -f jove$${V}s.$(ZIPEXT) && \
+	mv jovetmp$$$$.$(ZIPEXT) jove$${V}s.$(ZIPEXT) && \
 	rm -rf $$BN ; \
-	ls -l jove$${V}s.zip
+	ls -l jove$${V}s.$(ZIPEXT)
 
 touch:
 	touch $(OBJECTS)
@@ -643,7 +650,7 @@ cleanall: clean
 
 # NOTE: deletes distrib
 clobber: clean
-	rm -f paths.h $(FDOCS) $(GEN) tags *.tgz *.zip *.orig *.rej
+	rm -f paths.h $(FDOCS) $(GEN) tags *.tgz *.$(ZIPEXT) *.orig *.rej
 	( cd xjove ; make clobber )
 
 # This version only works under 4.3BSD

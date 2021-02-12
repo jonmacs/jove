@@ -10,11 +10,10 @@ lf=
 case "$u" in
 CYGWIN*) cf="-DCYGWIN $o";;
 *BSD|DragonFly)	lf="-ltermcap -lutil";;
-Linux)	if type pkg-config > /dev/null 2>&1; then
+SunOS)	lf="-ltermcap";;
+Linux)	if pkg-config ncurses > /dev/null 2>&1; then
 		cf="$cf `pkg-config --cflags ncurses`"
 		lf="$lf `pkg-config --libs ncurses`"
-	elif test -e /etc/gentoo-release; then
-		lf="$lf -ltinfo"
 	else
 		cf="$cf -DJTC"
 	fi

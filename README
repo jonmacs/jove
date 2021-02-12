@@ -18,18 +18,31 @@ Quick Summary of Installation
 -----------------------------
 
 Unpack the tar file somewhere convenient and cd into it:
-  tar tzf jove-VERSION.tgz
-  cd jove-VERSION
+    tar tzf jove-VERSION.tgz
+    cd jove-VERSION
 
-For many modern systems (Linux, various BSDs, Solaris, OpenIndiana),
-an auxiliary script called buildflags should help 'make' work out of the box,
-so not much configuration is needed: just specify JOVEHOME to change
-where you want jove installed (default JOVEHOME is /usr/local,
-which puts the binaries in $JOVEHOME/bin, manuals in $JOVEHOME/man/man1,
-other documents and help and config in $JOVEHOME/share/jove, 
+Ensure you have the tools required to build Jove.  You need a C compiler
+(classic Unix cc, gcc or clang should work), the make utility, 
+and basic headers for libc, which may require extra packages on
+some Linux distributions.
+    Debian, Ubuntu, Mint: apt-get update && apt-get install gcc make
+    Alpine: apk update && apk add gcc make musl-dev
+    MacOSX/Darwin: brew install make # ncurses 
+    Nix: nix-shell -p gnumake 
+    Arch: pacman -Sy gcc make # pkgconf ncurses
+    Gentoo: # comes with gcc and make and headers by default!
+
+For many modern systems (Linux, various BSDs, MacOSX/Darwin,
+Solaris, OpenIndiana), an auxiliary script called
+buildflags.sh is provided that should help 'make' work out
+of the box, so not much configuration is needed:  just
+specify JOVEHOME to change where you want jove installed
+(default JOVEHOME is /usr/local, which puts the binaries in
+$JOVEHOME/bin, manuals in $JOVEHOME/man/man1, other
+documents and help and config in $JOVEHOME/share/jove,
 helper programs in $JOVEHOME/lib/jove
-   make # to build
-   make install # to install
+     make # to build
+     make install # to install
 
 If that does not work, please do file a bug, indicating
 your system.  One can also pass SYSDEFS and TERMCAPLIB
@@ -52,38 +65,50 @@ Linux:
   $HOME/rpmbuild/RPMS with "rpm -i"
 
   To compile and install from source, set JOVEHOME
-  appropriately and check what form of terminal handling
-  library your system provides:  -ltermcap (libtermcap.so
-  available on Debian derivatives in the libtinfo-dev
-  package), -lncurses (libncurses.so, available on many
-  Linux in packages called ncurses, ncurses-base,
-  ncurses-dev or ncurses-devel or libncurses-dev ...),
-  -lncursesw (libncursesw.so with similar package names as
-  ncurses), or -ltinfo (libtinfo.so on Gentoo, from package
-  sys-libs/ncurses) You will also need to ensure you have
-  terminal descriptions, which are sometimes in separate
-  packages (e.g. called ncurses-terminfo-base or
-  ncurses-base or ncurses-term)
-
-  Use:
-    make SYSDEFS=-DLinux TERMCAPLIB=-l... install
-   using the appropriate library you found/installed for your Linux.
-   or, if you feel that it is ok to assume the entire world
-   has vt[123]xx-compatible terminal emulators (i.e xterm,
-   rxvt, st, vte, konsole, gnome-terminal et al), compile
-   with JOVE'ss new built-in ansi/vtxxx/xterm driver using
-   make SYSDEFS="-DXLINUX -DJTC" TERMCAPLIB= install
+  appropriately.  By default, Jove has internal support for
+  ansi/vt[1234]xx terminals that are emulated by every
+  modern desktop environment (i.e xterm, rxvt, st, vte,
+  konsole, {gnome,mate}-terminal, ...), so unless you have
+  some very special terminal, you should not need a general
+  purpose terminal handling library like termcap or curses.
+  But if you need one, the packages go by different names on
+  various Linux.  If you install pkgconf (for the pkg-config
+  program) and the ncurses (which sometimes goes by names
+  like ncursesw, ncurses-base, ncurses-dev, ncurses-devel,
+  libncurses-dev, libtinfo-dev, sys-libs), that should be
+  enough on most Linux systems.  Otherwise, you can
+  explicitly ask for it is using something like
+     make SYSDEFS=-D`uname` TERMCAPLIB=-lncursesw
+   
+  If you link with one of the general terminal handling
+  libraries rather than using Jove's builtin handling, then
+  you will also need to ensure you have terminal
+  descriptions, which are sometimes in separate packages
+  (e.g. called ncurses-terminfo-base or ncurses-base or ncurses-term)
 
 Solaris 5.1 or newer:
-  make SYSDEFS="-DSYSVR4" TERMCAPLIB=-ltermcap install
+  make install
 
 Other systems:
   Read comments about SYSDEFS settings in Makefile, check sysdep.h
   for recently tested system settings or old/sysdep.h for once-working
   but currently untested settings that will need to be copied into sysdep.h,
-  or just set on the command-line with SYSDEFS="-D..."
+  or just set on the command-line with SYSDEFS="-D...", TERMCAPLIB 
+  and EXTRALIBS if needed.
 
-When in doubt, read the rest of this document.
+Cross-Compiling:
+
+The Jove Makefile has some support for cross-compiling.  You
+need to set CC to the cross-compiler, SYSDEFS, TERMCAPLIB,
+and perhaps EXTRALIBS for the target system, while you set
+LOCALCC, LOCALCFLAGS, LOCALLDFLAGS, LOCALEXTRALIBS and
+LOCALEXT for the local machine (used when building the
+setmaps program, which generates keys.c, which will then be
+cross-compiled for the target) e.g.
+    make CC=/cross/bin/cc-armv7 SYSDEFS="-DLinux -DJTC" TERMCAPLIB= LOCALCC=cc
+
+For another example, see README.win for cross-compiling
+using MinGW for a Windows target.
 
 Please help us keep up with new systems.  If your system isn't covered
 here on in the SYSDEFS section of Makefile, tell us what works.  If
@@ -93,10 +118,12 @@ tell us by filing a bug on http://github.com/jonmacs/jove
 Full Story of Installation
 --------------------------
 
-JOVE does not use any automatic configuring mechanism.  Most
-configuring is done by editing definitions in Makefile (in some
-situations it is handier to override definitions by supplying them on
-the make command line).
+JOVE does not use any automatic configuring mechanism other
+than the very simple buildflags.sh script, which only works
+on modern Linux/*BSD/MacOSX/Darwin/Solaris.  Fine-tuned
+configuring is done by editing definitions in Makefile (in
+some situations it is handier to override definitions by
+supplying them on the make command line).
 
 JOVE has been around for a *long* time, and a lot of care has been taken
 to make it work on many systems, new and old.  For current systems,
@@ -125,7 +152,9 @@ compiler (OPTFLAGS) or the linker (TERMCAPLIB, EXTRALIBS, LDFLAGS).
 Systems on which 4.17 was tested include the following
 (and their SYSDEFS and TERMCAPLIB will usually be
 correctly set by the buildflags.sh script that is invoked
-by the Makefile)
+by the Makefile).  The following explicit settings also work
+and may provide a guide to customization.
+
 #	Cygwin 3.1.2			SYSDEFS=-DCYGWIN TERMCAPLIB= # builtin vt100/xterm/rxvt etc support, no need for curses dependency
 #	Darwin aka MacOS X onwards	SYSDEFS=-DDarwin
 #	FreeBSD 12.1			SYSDEFS=-DFreeBSD EXTRALIBS=-lutil
@@ -143,7 +172,7 @@ ancient support may be deleted from Jove at some point, we welcome
 any recent success stories from jove builders/packagers to refresh
 or maintain these. Pretty please! Almost all these need TERMCAPLIB=-ltermcap
 
-# 
+
 #	Apple A/UX on macIIs		SYSDEFS=-DA_UX
 #	BSD4.2,4.3			SYSDEFS=-DBSD4
 #	BSDI, 386BSD, BSD4.4		SYSDEFS=-DBSDPOSIX
@@ -252,13 +281,32 @@ Stallman to use his manual for the original EMACS, modifying
 it where necessary for JOVE.  Lots of work was done by Brian
 Harvey on this manual.
 
-There are man pages for jove and teachjove.  Teachjove is
-for people who have never used EMACS style editors.  It is
-an interactive tutorial, THE tutorial written by Stallman
+There are Unix-style manual pages for jove and teachjove.
+Teachjove is for people who have never used EMACS style editors.
+It is an interactive tutorial, THE tutorial written by Stallman
 for the original EMACS, only slightly modified for JOVE in
 the appropriate places.  The man pages are completely up to
 date, thanks to Jon.
 
+Optionally, if you want to use Jove to work with C source code, and
+know/like tags, you will need ctags or etags on your system so that you
+can generate tags files to use with jove -t or Jove's find-tag command
+(bound to the keys "^X t").
+
+If you use Jove to work with text documents, and use the built-in
+spell-check support (i.e. Jove's spell-buffer command), you will
+need to install spell-checker program (spell on classic Unix, aspell
+on Linux/BSD).
+
+Optionally, if you want to modify, rebuild or reformat the
+documents, you will need a troff-style formatter (the package
+called groff on modern Linux/*BSD.  You will also need the "ms"
+macros, should be included with most modern groff, though not
+in the scaled-down groff-base packages)
+
+Optionally, if you want to use 'make zip' to build a source 
+archive suited to DOS/Windows, you will need the zip program
+(generally, a package called zip on most Linux/*BSD)
 
 Some acknowledgments.
 ---------------------
