@@ -38,6 +38,11 @@ jobs:
     - os: osx
       osx_image: xcode11.3
     - os: linux
+      dist: precise
+      arch: amd64
+      addons:
+        apt_packages: [*apts, *common]
+    - os: linux
       dist: trusty
       arch: amd64
       addons:
@@ -123,4 +128,4 @@ script:
     if type zip 2> /dev/null; then make $x zip; fi &&
     ls -s $(find $td | grep /bin/) &&
     rm -rf $td &&
-    set +u
+    set +eu
