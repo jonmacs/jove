@@ -516,10 +516,10 @@ lint: keys.c
 CTAGSFLAGS = -w
 
 tags:	$(C_SRC) $(HEADERS)
-	ctags $(CTAGSFLAGS) $(C_SRC) $(HEADERS)
+	-ctags $(CTAGSFLAGS) $(C_SRC) $(HEADERS)
 
 extags:	$(C_SRC) $(HEADERS)
-	ctags -N --format=1 $(C_SRC) $(HEADERS)
+	-ctags -N --format=1 $(C_SRC) $(HEADERS)
 
 
 # .filelist is a trick to get around a make limit:

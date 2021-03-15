@@ -606,7 +606,7 @@ int
 /* WIN32 calls aren't cheap, so we buffer output */
 
 private char displaybuf[1024];
-private int bufpos = 0;
+private DWORD bufpos = 0;
 
 /* getLastErrorString is a WIN32 helper function that returns a description
  * of the error code that GetLastError() returns.
@@ -738,6 +738,9 @@ flushscreen()
 		DWORD written;
 
 		CHECK(WriteConsole(conout, displaybuf, bufpos, &written, NULL));
+		if (written != bufpos) {
+			byte_move(displaybuf + written, displaybuf, bufpos - written);
+		}
 		bufpos = 0;
 	}
 }

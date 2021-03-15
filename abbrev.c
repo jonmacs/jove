@@ -273,7 +273,7 @@ EditAbbrevs()
 		);
 
 	/* do a safe form of mktemp */
-	close(MakeTemp(tname, "cannot create tempfile \"%s\""));
+	close(MakeTemp(tname, "abbrevs"));
 
 	save_abbrevs(tname);
 	setfname(ebuf, tname);

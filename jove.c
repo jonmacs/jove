@@ -426,7 +426,7 @@ kbd_getch()
 			nchars = 1;
 #else /* !MSDOS */
 # ifdef WIN32
-			if (!charp()) {
+			if (UpdModLine || !charp()) {
 				redisplay();
 				flushscreen();
 			}

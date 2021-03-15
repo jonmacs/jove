@@ -240,6 +240,7 @@ MakeTemp(buf, complaint)
 char	*buf;
 const char	*complaint;
 {
+	const char *errfmt = "cannot create \"%s\" for %s: %s (%d)";
 #ifdef NO_MKSTEMP
 # ifdef NO_MKTEMP
 	/* Some systems don't provide mkstemp or mktemp (nor should
@@ -256,6 +257,7 @@ const char	*complaint;
 	for (;;) {
 		struct stat	sb;
 
+		jdbg("stat temp \"%s\"\n", buf);
 		if (stat(buf, &sb) < 0
 # ifdef ZTCDOS
 		/* Zortech yields ENOTDIR when path isn't found,
@@ -272,6 +274,7 @@ const char	*complaint;
 # else /* !O_EXCL */
 			int fd = creat(buf, 0600);
 # endif /* !O_EXCL */
+			jdbg("opened temp \"%s\" %d %d\n", buf, fd, errno);
 
 			if (fd != -1)
 				return fd;
@@ -279,7 +282,7 @@ const char	*complaint;
 		for (p = seq; ; ) {
 			if (*p == '\0') {
 				/* we ran out of possible names! */
-				complain(complaint, buf);
+				complain(errfmt, buf, complaint, "ran out of names", 0);
 				/*NOTREACHED*/
 			} else if (*p == '9') {
 				*p++ = '0';
@@ -292,6 +295,7 @@ const char	*complaint;
 # else /* !NO_MKTEMP */
 	int fd;
 
+	jdbg("mktemp \"%s\"\n", buf);
 	if (mktemp(buf) == NULL
 	|| -1 == (fd =
 #  ifdef O_EXCL
@@ -301,7 +305,7 @@ const char	*complaint;
 #  endif /* !O_EXCL */
 	))
 	{
-		complain(complaint, buf);
+		complain(errfmt, buf, complaint, strerror(errno), errno);
 		/* NOTREACHED */
 	}
 	return fd;
@@ -323,10 +327,11 @@ const char	*complaint;
 	int fd = mkstemp(buf);
 	int saved_errno = errno;
 
+	jdbg("mkstemp \"%s\" %d %d\n", buf, fd, saved_errno);
 	(void) umask(saved_umask);
 	errno = saved_errno;
 	if (fd == -1) {
-		complain(complaint, buf);
+		complain(errfmt, buf, complaint, strerror(errno), errno);
 		/*NOTREACHED*/
 	}
 	return fd;
@@ -1368,7 +1373,7 @@ tmpinit()
 #endif
 		);
 	tfname = copystr(buf);
-	tmpfd = MakeTemp(tfname, "cannot create tmp file \"%s\"");
+	tmpfd = MakeTemp(tfname, "editing");
 #ifdef RECOVER
 	rectmpname(strrchr(tfname, '/') + 1);
 #endif

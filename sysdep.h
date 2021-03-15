@@ -70,6 +70,7 @@
 #ifdef MINGW		/* System: MinGW cross-compilation for Windows WIN32 (see README.w32) */
 # define WIN32		1
 # define POSIX_UNISTD	1
+# define NO_MKSTEMP	1   /* MKSTEMP on Windows unlinks the filename, which Jove uses for filters */
 #endif
 
 #ifdef OWCDOS	/* System: Open Watcom C 1.9 for x86 running MSDOS (see README.dos) */

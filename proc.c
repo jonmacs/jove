@@ -894,22 +894,43 @@ UnixToBuf(flags, bnm, InFName, cmd)
 			oldo = dup(1),
 			olde = dup(2);
 		bool	InFailure = NO;
-		int	ph;
+		int	ph, pinh, saverrno = 0;
+		const	char *op = "";
 
 		PathCat(pipename, sizeof(pipename), TmpDir, "jpXXXXXX");
-		ph = MakeTemp(pipename, "cannot make tempfile \"%s\" for filter");
-		jdbg("created temp \"%s\"\n", pipename);
-
-		if (dup2(ph, 1) < 0 || dup2(ph, 2) < 0) {
-			jdbg("dup2 of temp file fd failed: %d %s\n", errno,
+		ph = MakeTemp(pipename, "filter buffer");
+		jdbg("created temp \"%s\" ph %d\n", pipename, ph);
+		if (InFName == NULL) {
+		    char	nullname[FILESIZE];
+		    PathCat(nullname, sizeof(nullname), TmpDir, "jnXXXXXX");
+		    pinh = MakeTemp(nullname, "filter null file");
+		    (void) unlink(nullname);
+		} else {
+		    pinh = open(InFName, O_RDONLY | O_BINARY);
+		    if (pinh < 0) {
+			saverrno = errno;
+			op = InFName;
+			jdbg("error opening \"%s\": %d %s\n", InFName, errno);
+			InFailure = YES;
+		    }
+		}
+		if (!InFailure && (dup2(ph, 1) < 0 || dup2(ph, 2) < 0)) {
+			saverrno = errno;
+			op = "dup2 temp";
+			jdbg("%s file fd failed: %d %s\n", op, errno,
 			     strerror(errno));
 			InFailure = YES;
 		}
 		(void) close(ph);
-		(void) close(0);
+		if (!InFailure && dup2(pinh, 0) < 0) {
+			saverrno = errno;
+			op = "dup2 input";
+			jdbg("%s file fd failed: %d %s\n", op, errno,
+			     strerror(errno));
+			InFailure = YES;
+		}
+		(void) close(pinh);
 
-		if (!InFailure)
-			InFailure = InFName != NULL && open(InFName, O_RDONLY | O_BINARY) < 0;
 		jdbg("InFailure %d InFName \"%s\"\n", InFailure,
 		     InFName == NULL ? "(NULL)" : InFName);
 		if (!InFailure) {
@@ -922,7 +943,9 @@ UnixToBuf(flags, bnm, InFName, cmd)
 			}
 			status = spawnve(0, argv[0], &argv[1],
 					 (char *const *)jenvdata(&proc_env));
-			jdbg("status %d spawnve \"%s\"\n", status, argv[0]);
+			if (status < 0) {
+			    saverrno = errno;
+			}
 		}
 		jdbg("restoring fds 0 1 2 from %d %d %d\n", oldi, oldo, olde);
 		(void) dup2(oldi, 0);
@@ -933,11 +956,11 @@ UnixToBuf(flags, bnm, InFName, cmd)
 		(void) close(olde);
 
 		if (InFailure) {
-			complain("[filter input failed]");
+			complain("[filter %s failed %s %d]", op, strerror(saverrno), saverrno);
 			/* NOTREACHED */
 		}
 		if (status < 0)
-			s_mess("[Spawn failed %d]", errno);
+			s_mess("[Spawn failed, status %d: %s %d]", status, strerror(saverrno), saverrno);
 		jdbg("opening \"%s\" from \"%s\"\n", pipename, argv[1]);
 		ph = open(pipename, O_RDONLY | O_BINARY | O_CLOEXEC);
 		if (ph < 0) {
@@ -981,11 +1004,13 @@ UnixToBuf(flags, bnm, InFName, cmd)
 #else /* MSDOS_PROCS */
 	unlink(pipename);
 	getCWD();
+	jdbg("removing %s\n", pipename);
 # ifdef WINRESIZE
 	ResizePending = YES;	/* In case subproc did a MODE command or something */
 # endif
 #endif /* MSDOS_PROCS */
 	SlowCmd -= 1;;
+	jdbg("returning %d\n", status);
 	return status;
 }
 
@@ -1010,7 +1035,7 @@ bool	wrap;
 	PathCat(tname, sizeof(tname), TmpDir, "jfXXXXXX");
 
 	/* safe version of mktemp */
-	close(MakeTemp(tname, "can't create tempfile \"%s\" for filter"));
+	close(MakeTemp(tname, "filter region"));
 
 	fp = open_file(tname, iobuff, F_WRITE, YES);
 	push_env(sav_jmp);

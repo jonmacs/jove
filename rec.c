@@ -51,7 +51,7 @@ recinit()
 #endif
 		);
 	recfname = copystr(buf);
-	rec_fd = MakeTemp(recfname, "Cannot create \"%s\"; recovery disabled.");
+	rec_fd = MakeTemp(recfname, "recovery (disabling it)");
 	/* initialize the recovery file */
 	rec_out = fd_open(recfname, F_WRITE|F_LOCKED, rec_fd, iobuff, LBSIZE);
 
