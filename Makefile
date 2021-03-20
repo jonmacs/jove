@@ -283,7 +283,7 @@ DOCS =	doc/README doc/teach-jove doc/jove.qref \
 	doc/jove.rc.in doc/example.rc $(DOCTERMS) $(FDOCS) $(GEN)
 
 MISC =	Makefile Makefile.msc Makefile.wat \
-	README README.dos README.win \
+	README README.dos README.win ChangeLog LICENSE \
 	sysdep.doc tune.doc style.doc jspec.in buildflags.sh
 
 SUPPORT = teachjove.c recover.c setmaps.c portsrv.c keys.txt \
