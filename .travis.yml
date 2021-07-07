@@ -1,10 +1,10 @@
 # test Jove build on a variety of Travis-CI platforms
-# Mark Moraes, 20210212
+# Mark Moraes, 20210706
 language: c
 addons:
   apt_packages: 
-    - &common [make, groff, ctags, zip ]
-    - &apts [ ncurses-dev ]
+    - &common [make, ctags, zip ]
+    - &apts [ ncurses-dev, groff ]
   homebrew:
     packages: &brews [ ncurses, *common ]
 os: [ linux, osx ]
@@ -40,7 +40,7 @@ jobs:
       dist: precise
       arch: amd64
       addons:
-        apt_packages: [*apts, *common]
+        apt_packages: [ncurses-dev, groff-base, *common]
     - os: linux
       dist: trusty
       arch: amd64
