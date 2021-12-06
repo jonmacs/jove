@@ -1201,6 +1201,8 @@ char	*argv[];
 				}
 				(void) div_wind(curwind, nwinds - 1);
 				break;
+			case '-':	/* Ignore -- which visudo provides */
+				break;
 			default:
 				error("Invalid switch %s",argv[1]);
 				/* NOTREACHED */
