@@ -33,6 +33,8 @@
 #define MAXFILENAMESIZE	16	/* /jvNNNNNN and trailing NUL */
 #define PATHBUFSIZE	(MAXRECDIRSIZE+MAXFILENAMESIZE)
 
+#define BUFCHUNK	100	/* number of recs to allocate at once */
+
 #ifndef RECOVER
 
 int
@@ -155,7 +157,7 @@ UnivPtr ptr;
 size_t size;
 {
 	if (ptr == NULL)
-		return malloc(size); /* some realloc do not like ptr == NULL */
+		return emalloc(size); /* some realloc do not like ptr == NULL */
 	if ((ptr = realloc(ptr, size)) == NULL) {
 		fprintf(stderr, "couldn't realloc(%ld)\n", (long)size);
 		exit(1);
@@ -272,12 +274,7 @@ const char	*s;
 	char	*str;
 	size_t	sz = strlen(s) + 1;
 
-	str = malloc((size_t)sz);
-	if (str == NULL) {
-		fprintf(stderr, "%s: cannot malloc %lu for copystr.\n", progname,
-			(unsigned long)sz);
-		exit(-1);
-	}
+	str = emalloc((size_t)sz);
 	strcpy(str, s);
 
 	return str;
@@ -390,11 +387,7 @@ char *fname;
 	/* If we get here, we've found both files, so we put them
 	 * in the list.
 	 */
-	fp = (struct file_pair *) malloc(sizeof *fp);
-	if (fp == NULL) {
-		fprintf(stderr, "%s: cannot malloc for file_pair.\n", progname);
-		exit(-1);
-	}
+	fp = (struct file_pair *) emalloc(sizeof *fp);
 	fp->file_data = copystr(dfile);
 	fp->file_rec = copystr(rfile);
 	fp->file_flags = 0;
@@ -559,8 +552,11 @@ char	*dest;
 {
 	FILE	*volatile outfile;	/* "volatile" to preserve outfile across setjmp */
 
-	if (src < 0 || src >= maxbufs || dest == NULL)
+	if (src < 0 || src > Header.Nbuffers || src >= maxbufs || dest == NULL) {
+		fprintf(stderr, "internal error: get: src %ld nbuf %ld maxbuf %ld dest 0x%lx\n",
+			src, Header.Nbuffers, maxbufs, (unsigned long)dest);
 		return;
+	}
 
 	if (dest == tty) {
 		outfile = stdout;
@@ -596,18 +592,33 @@ char	*dest;
 	}
 }
 
-private char **
-scanvec(args, str)
+private bool
+isopt(args, str, needval)
 register char	**args,
 		*str;
+bool		needval;
 {
-	while (*args) {
-		if (strcmp(*args, str) == 0)
-			return args;
-		args += 1;
+	char *cp = *args;
+	if (Debug)
+	    fprintf(dfp, "isopt \"%s\" \"%s\" %d\n", *args, str, needval);
+	if (*cp++ != '-') return NO;
+	if (*cp == '-') cp++; /* accept either single or double dash */
+	if (strcmp(cp, str) == 0) {
+		if (Debug)
+			fprintf(dfp, "found option \"%s\" needval %d args[1] \"%s\"\n",
+				    str, needval,
+				    args[1] ? args[1] : "!NULL!");
+		/* XXX for error checking, we sacrifice ability to provide option values
+		   starting with - since those are very unlikely */
+		if (needval && (args[1] == NULL || args[1][0] == '-')) {
+		    fprintf(stderr, "need value after option %s\n", str);
+		    exit(1);
+		}
+		return YES;
 	}
-	return NULL;
+	return NO;
 }
+
 
 private void
 read_rec(recptr)
@@ -648,23 +659,24 @@ freeblist()
 private void
 makblist()
 {
-	long	i;
+	long	i, nmax;
 
 	fseek(ptrs_fp, (long) sizeof (Header), L_SET);
-	if (maxbufs <= Header.Nbuffers) {
-		maxbufs = Header.Nbuffers+1;
-		buflist = (struct rec_entry **) erealloc(NULL, maxbufs*sizeof(struct rec_entry *));
-		for (i = 0; i < maxbufs; i++)
+	/* resize buflist up to multiple of BUFCHUNK */
+	nmax = ( (Header.Nbuffers+1)/BUFCHUNK + 1 ) * BUFCHUNK;
+	if (Debug)
+		fprintf(dfp, "maxbufs %ld nmax %ld\n", maxbufs, nmax);
+	if (maxbufs < nmax) {
+		buflist = (struct rec_entry **) erealloc(buflist, nmax*sizeof(struct rec_entry *));
+		for (i = maxbufs; i < nmax; i++)
 			buflist[i] = NULL;
+		maxbufs = nmax;
 	}
 	for (i = 1; i <= Header.Nbuffers; i++) {
-		if (buflist[i] == NULL) {
-			buflist[i] = (struct rec_entry *) malloc (sizeof (struct rec_entry));
-			if (buflist[i] == NULL) {
-				fprintf(stderr, "%s: cannot malloc for makblist.\n", progname);
-				exit(-1);
-			}
-		}
+		if (Debug)
+			printf("i %ld 0x%lx\n",i, (unsigned long)buflist[i]);
+		if (buflist[i] == NULL)
+			buflist[i] = (struct rec_entry *) emalloc (sizeof (struct rec_entry));
 		read_rec(buflist[i]);
 	}
 	/*
@@ -991,7 +1003,6 @@ savetmps()
 		exit(2);
 	}
 
-	setbuf(stdout, NULL);
 	printf("Recovering jove files ... ");
 	get_files(tmp_dir);
 	for (fp = First; fp != NULL; fp = fp->file_next) {
@@ -1098,6 +1109,8 @@ char	*argv[];
 
 	progname = argv[0];
 	UserID = getuid();
+	setbuf(stdout, NULL);
+	dfp = stdout;
 
 	/* override tmp_dir with $TMPDIR, RecDir with $JOVERECDIR if any */
 	{
@@ -1109,38 +1122,48 @@ char	*argv[];
 		if (cp != NULL)
 		    RecDir = cp;
 	}
-
-	if (scanvec(argv, "-help")) {
-		printf("%s: usage: recover [-d directory] [-syscrash]\n\n", progname);
-		printf("Use \"jove -r\" after JOVE has died for some unknown reason.\n\n");
-		printf("Use \"%s/recover -syscrash\"\n", LIBDIR);
-		printf("\twhen the system is in the process of rebooting.\n");
-		printf("\tThis is done automatically at reboot time and\n");
-		printf("\tso most of you don't have to worry about that.\n\n");
-		printf("Use \"recover -d directory\"\n");
-		printf("\twhen the tmp files are stored in 'directory'\n");
-		printf("\tinstead of in the default one (%s).\n\n", tmp_dir);
-		exit(0);
-	}
-	if (scanvec(argv, "-v"))
-		Verbose = YES;
-	if ((argvp = scanvec(argv, "-D")) != NULL) {
-		Debug = YES;
-		dfp = fopen(argvp[1], "wc");
-		fprintf(dfp, "debugging %s\n", ctime(NULL));
-	} else {
-		dfp = stdout;
-	}
-	if ((argvp = scanvec(argv, "-d")) != NULL)
-		tmp_dir = argvp[1];
+	for (argvp = argv + 1; *argvp; argvp++) {
+		if (isopt(argvp, "v", NO)) {
+			Verbose = YES;
+			continue;
+		}
+		if (isopt(argvp, "D", YES)) {
+			time_t t;
+			Debug = YES;
+			dfp = fopen(*++argvp, "wc");
+			(void) time(&t);
+			fprintf(dfp, "debugfile \"%s\" %s", *argvp, ctime(&t));
+			continue;
+		}
+		if (isopt(argvp, "d", YES)) {
+			tmp_dir = *++argvp;
+			continue;
+		}
+		if (isopt(argvp, "r", YES)) {
+			RecDir = *++argvp;
+			continue;
+		}
+		if (isopt(argvp, "uid", YES)) {
+			UserID = atoi(*++argvp);
+			continue;
+		}
 #ifdef UNIX
-	if (scanvec(argv, "-syscrash")) {
-		savetmps();
-		exit(0);
-	}
+		if (isopt(argvp, "syscrash", NO)) {
+			savetmps();
+			exit(0);
+		}
 #endif
-	if ((argvp = scanvec(argv, "-uid")) != NULL)
-		UserID = atoi(argvp[1]);
+		fprintf(stderr, "Usage: %s [-v] [-d TMPDIR] [-D DEBUGFILE] [-r RecDir] [-uid UID] [-syscrash]\n\n", progname);
+		fprintf(stderr, "Use \"jove -r\" to interactively recover saved state\n");
+		fprintf(stderr, "\tafter JOVE has died for some unknown reason.\n\n");
+		fprintf(stderr, "Use \"%s/recover -syscrash\"\n", LIBDIR);
+		fprintf(stderr, "\tin reboot scripts to copy JOVE saved state to\n");
+		fprintf(stderr, "\t%s before temporary files in %s are cleared.\n\n", RecDir, tmp_dir);
+		fprintf(stderr, "Use \"recover -d TMPDIR\"\n");
+		fprintf(stderr, "\twhen the tmp files are stored in directory TMPDIR\n");
+		fprintf(stderr, "\tinstead of in the default one (%s).\n\n", tmp_dir);
+		exit(1);
+	}
 	/* Check default directory */
 	nfound = lookup(tmp_dir);
 	/* Check whether anything was saved when system died? */

@@ -1,3 +1,1189 @@
+commit bba72938670cc350c45adc47222827382a5ea4a2
+Author: Mark Moraes <moraes@computer.org>
+Date:   Sat May 28 17:05:45 2022 -0400
+
+    4.17.4.0 fix nasty bug I introduced to recover in 4.17.2.8,
+    forgot to pass buflist to erealloc, resulted in uniitalized
+    memory references, would mess up badly on recovery files
+    after the first set.  Now passes valgrind cleanly.  Also
+    simplified option parsing a bit, added -r to also override
+    the RecDir from cmdline, accept double-dash options as well,
+    produce Usage for any unknown option, heuristic to detect
+    missing argument.  Use emalloc in place of malloc in a few places.
+
+commit 716ee39f1503f162aa2add7b387da0cfb7596867
+Author: Mark Moraes <moraes@computer.org>
+Date:   Mon Dec 6 00:00:59 2021 -0500
+
+    4.17.3.9 ignore switch "--" on command-line so that visudo works
+    https://github.com/jonmacs/jove/issues/7
+
+commit 89aa22d940cbc72386b59599ce403e96a64830ee
+Author: Mark Moraes <moraes@computer.org>
+Date:   Tue Jul 6 22:51:29 2021 -0400
+
+    fix build on precise
+
+commit a155b00139e1c6ca7da676a2dccf8548b93ae3a8
+Author: Mark Moraes <moraes@computer.org>
+Date:   Fri Mar 19 23:51:37 2021 -0400
+
+    4.17.3.8
+    
+    Added ChangeLog and LICENSE to MISC so 'make tgz' gets them
+    Skip old/* for github autogeneration
+    Mark *.ico binary
+
+commit 1417da64acb0ba9c8a0232d854f6d9b467c688cd
+Author: Mark Moraes <moraes@computer.org>
+Date:   Mon Mar 15 00:50:16 2021 -0400
+
+    4.17.3.8
+    
+    Do not fail build if ctags is missing.
+    
+    Improve error message from MakeTemp failure to show what
+    caused it.
+    
+    MINGW needs NO_MKSTEMP because Windows mkstemp unlinks the
+    filename, which is needed for filter-*.
+    
+    Fix two long-standing bug in Windows: shell-command used to
+    crash on Win10 with code c0000005 because close(0) seemed to
+    mess up input events, and filter-region did not work because
+    InFName was not being being honored in the WIN32 ifdef.
+    
+    Tried to fix problem where Win10 waits for first event
+    to update mode line.  Helped sometimes, but still does
+    not work consistently.
+
+commit b969d8967ebefb678131dcfc4f70cfe054b31bb2
+Author: Mark Moraes <moraes@computer.org>
+Date:   Mon Feb 22 20:05:50 2021 -0500
+
+    4.17.3.8 in-progress
+    
+    remove update flag for travis homebrew to see if that's fixed,
+    should speed up Mac builds a lot.
+
+commit 043aaab5c8d4e71d4f40449a062dc870cf360e1c
+Author: Mark Moraes <moraes@computer.org>
+Date:   Fri Feb 12 19:10:59 2021 -0500
+
+    4.17.3.8 in-progress
+    
+    Fix buildflags.sh for SunOS aka OpenIndiana.
+    
+    Add +e to end of script so internal travis errors do not cause
+    regression to fail.
+
+commit 71b074fdf0dbfeede6b4b79323ef9d40f65a3b2f
+Author: Mark Moraes <moraes@computer.org>
+Date:   Fri Feb 12 18:52:49 2021 -0500
+
+    4.17.3.8 in-progress
+    
+    Updated Makefile to support 7z or other zip/archiver commands for 'make zip'
+    
+    Improved buildflags pkg-config test slightly
+    
+    Updated README to describe package prereqs on many distros,
+    clarify that buildflags defaults to/fallsback to JTC in many cases.
+
+commit 4b549fd67ba113afc14a89217b21dc483b377ce8
+Author: Mark Moraes <moraes@computer.org>
+Date:   Fri Feb 12 02:03:29 2021 -0500
+
+    4.17.3.8 in-progress
+    
+    fix mention of README.w32 -> README.win in README
+    
+    remove s390x from test platforms, seems to take a very long
+    time and has never yet exposed a problem that other
+    platforms didn't also expose.
+
+commit 81f448aab8899b05ca6d8921e344f434ce3a9986
+Author: Mark Moraes <moraes@computer.org>
+Date:   Thu Feb 11 22:59:07 2021 -0500
+
+    4.17.3.8 in-progress
+    
+    travis ubuntu precise seems to fail (though log shows it succeed?!), works
+    on docker of 12.04, so switching to trusty for old ubuntu and add focal
+    for newest.
+
+commit a9985e2bf0a62eb3c7cbb1a7e95872a954c40f28
+Author: Mark Moraes <moraes@computer.org>
+Date:   Thu Feb 11 01:52:24 2021 -0500
+
+    4.17.3.8 in-progress
+    
+    remove tabs from .travis.yml
+
+commit 0b927d2ac1158889c02cc904c5095994b80bab25
+Author: Mark Moraes <moraes@computer.org>
+Date:   Thu Feb 11 01:45:17 2021 -0500
+
+    4.17.3.8 in-progress
+    
+    Rename PPchar in setmaps to PPkey to avoid duplicate in tags.
+    
+    Add testmailer.sh to test recover -syscrash, also added support
+    for JOVERECDIR to override default recover -syscrash destination
+    (and code to mkdir it if needed).  Other recover cleanup
+    for error messages.
+
+commit ed750ba32e364e2dde0cf889f466a6e216938f86
+Author: Mark Moraes <moraes@computer.org>
+Date:   Thu Feb 11 01:40:07 2021 -0500
+
+    4.17.3.8 in-progress
+    
+    Added buildflags.sh utility script to intuit typical SYSDEFS
+    (via --cflags) and TERMCAPLIB (via --libs) for most modern
+    systems (*BSD, Linux, Solaris, MacOS X).  The small overhead
+    on each compile line seems well worth the ability for most
+    people to not have to read the build docs.  Updated .travis.yml
+    
+    Renamed README.w32 to README.win (clearer), moved README.cyg
+    to old (normal README is fine for modern Cygwin)
+    
+    Removed EXPERIMENTAL comment on JTC, I've been happy with it
+    for a year on a few systems (mainly Linux).
+    
+    Other documentation touch-ups.
+
+commit a6b7300941c02d75da4df3ed12aa81e58bfb0e20
+Author: Mark Moraes <moraes@computer.org>
+Date:   Thu Feb 11 01:35:34 2021 -0500
+
+    4.17.3.8 in-progress
+    
+    updated comment to indicate mac.c historical status
+    
+    moved README.mac to old to avoid confusing modern Mac users.
+
+commit 9eee27ae206ff8fc0960fc923d85e4d02f795455
+Author: Mark Moraes <moraes@computer.org>
+Date:   Fri Jan 29 11:30:14 2021 -0500
+
+    4.17.3.8 in-progress
+    
+    fixed branch name for travis
+
+commit ffaffa2acfd837a985aa2a1f5bed538d5d8fa551
+Author: Mark Moraes <moraes@computer.org>
+Date:   Fri Jan 29 00:59:47 2021 -0500
+
+    4.17.3.8
+    
+    Jove now cross-compiles with MinGW (mingw-w64 4.0.4-2 on
+    Ubuntu 16.04) for WIN32.  Native WIN32 still seems to work.
+    
+    Fixed a bug in setmaps build that probably messed up most
+    cross-compiles (setmaps must have exactly the same feature
+    defines enabled when it includes commands.tab for local
+    compile as will be used for the cross-compilation target platform)
+
+commit dcc4ffd4578e0a1513a1f9e287720bd307d6e0c9
+Author: Mark Moraes <moraes@computer.org>
+Date:   Fri Jan 29 00:12:27 2021 -0500
+
+    4.17.3.8 in-progress
+    
+    switched order of EXTRALIBS so that can link with -lasan -lubsan for
+    address sanitizers which must be the first libraries.
+    
+    renamed SSIZE_T to JSSIZE_T to avoid MSVC clash, removes some ugliness
+    from sysdep.h and removes problem building with mingw (work in progress)
+    
+    win32/mingw: add len arg to win32.c getcwd call
+    fix signature for scandir jscandir in WIN32 branch
+    remove couple of complaints when building with MSVC vcvars64
+    (in MSVC read/write 3rd arg remains unsigned int, not size_t for
+    both vcvars32 and vcvars64).  fprintf format complaint in recover.c,
+    spawnve complaint in proc.c
+    lowercase jjove.ico works for both native and mingw cross.
+
+commit 0ff14839ed1d4550d8441afa09e5e73820328fd2
+Author: Mark Moraes <moraes@computer.org>
+Date:   Sun Apr 5 14:17:37 2020 -0400
+
+    4.17.3.7 added left-right scroll to the minibuf. this is
+    somewhat different logic than normal lines (does not use the
+    Scroll* variables) because, well, so much about the minibuf
+    is already so different from regular lines.  Once it needs
+    to scroll, tries to give the prompt no more than half the
+    width (things like query-replace-search can have big
+    prompts) and keeps the curchar at approx 3/4 of the width.
+    Seems to look reasonable on both tiny and large screens.
+    Also fixed a couple of code indentation weirdnesses I
+    noticed in disp and reapp.
+
+commit 796bdcc55214740db5fc77becf744b1bff45f074
+Author: Mark Moraes <moraes@computer.org>
+Date:   Tue Mar 31 00:54:19 2020 -0400
+
+    4.17.3.6 put a '*' after the 6 digits of line number (if
+    number-lines-in-window is on) if buffer has more than a
+    million lines.  Avoid recursion when formatting numbers.
+    calculate percentage without risk of overflow.  Add note
+    that we avoid unsigned long because of ancient C compiler,
+    be nice if we could format it since we can then use it for
+    byte count, dot, etc (currently, io_chars e.g. as displayed
+    in the message after writing a file goes negative on 32bit
+    machines once one crosses 2GB of text, which can happen on
+    modern machines, though unlikely in files one normally edits)
+
+commit b69684e31644db2c092337e5c233d5e0f37ff490
+Author: Mark Moraes <moraes@computer.org>
+Date:   Wed Mar 18 00:14:15 2020 -0400
+
+    4.17.3.5 fix type promotion bug in my bno_to_seek_off macro,
+    results in bogus recovery and also some tmp file corruption
+    above 32K lines for short daddr (i.e. only on DOS or pdp11)
+    
+    move DOS/WIN process.h inclusions to sysprocs.h and io.h to
+    externs.h for simplification (removes a warning)
+    
+    Use EXIT macro everywhere that matters, defined as exit
+    or _exit based on USE_EXIT.
+    
+    Updated README.{dos,w32} to proposed binary distributions
+    joveNNN{s,w,m,l}.zip
+
+commit 8f16e4ec6ee90b36cda27815aab5db5b2dc6305c
+Author: Mark Moraes <moraes@computer.org>
+Date:   Tue Mar 17 23:21:28 2020 -0400
+
+    deleted tbsearch.c, was a one-time test.
+
+commit d9b7034bb91bc5a52ef3f2c6a52d6f468c3c3424
+Author: Mark Moraes <moraes@computer.org>
+Date:   Tue Mar 17 23:20:55 2020 -0400
+
+    added test program for jbsearch for historical record
+
+commit 0e3d0f56f35f47deafc1316157c22427eb87db97
+Author: Mark Moraes <moraes@computer.org>
+Date:   Sun Mar 15 00:58:48 2020 -0400
+
+    Make jove -r work on Windows (better to exec/spawn it before we
+    mess with the terminal; plus windows wants P_WAIT, for some reason
+    P_OVERLAY does not work)
+    
+    Added jamstrcat (strcat with size check, and safe for overlap)
+    utility function.
+
+commit 4012090145ad5778fdf4c42927c6292cd7daf582
+Author: Mark Moraes <moraes@computer.org>
+Date:   Sun Mar 15 00:56:40 2020 -0400
+
+    Fix to earlier 2a256983c9d4026c5745f4ea333d9140f9a6c24a
+    commit, to leave buffers with null file names (e.g. Main)
+    alone during read.
+    
+    Added proto decls for callbacks that MSVC seems to need
+    (and fix one from ptrproto to proto)
+
+commit 3423a19158769f6fa5b167b45e101469a953e0c7
+Author: Mark Moraes <moraes@computer.org>
+Date:   Sat Mar 14 16:46:13 2020 -0400
+
+    Cord has been using LG_JBUFSIZ of 14 for Debian for a while
+    anyway, seems a good time to bump this default to 15 (i.e.
+    32K, so max linesize is now that).  It's 2020, VM on
+    machines with >1GB of DRAM is the norm, I think a 2MB
+    b_cache footprint for Jove is now quite acceptable.  (Non-VM
+    machines almost certainly need to use JSMALL anyway, or can
+    override this).
+
+commit ba7736ce73911589c541f85afd067ac5876646f9
+Author: Mark Moraes <moraes@computer.org>
+Date:   Sat Mar 14 16:44:39 2020 -0400
+
+    removed the S_ISREG(m) macro hack and replaced with the
+    underlying (m&S_IFMT) == S_IFREG idiom since that is in
+    other jove code already.
+
+commit 2a256983c9d4026c5745f4ea333d9140f9a6c24a
+Author: Mark Moraes <moraes@computer.org>
+Date:   Sat Mar 14 15:55:13 2020 -0400
+
+    4.17.3.4 Fixed issue noted by Adam Sjøgren, that a
+    buffer with truncated lines can still be saved to the
+    original file, which seems bad (fairly sure I've made that
+    mistake at least once, accidentally starting a compile-it
+    and saving files with truncated long lines that I had not
+    noticed, or hadn't yet fixed).  This change puts a temporary
+    filename #FILENAME+~ on the buffer and marks it as SCRATCH
+    (if new) till the read successfully finishes, switches the
+    read to bail out on a Long line.  insert-file changes the
+    name but but does not mark the buffer scratch.  shell
+    processes stop at the long line as they used to (arguably
+    also a bug that should be fixed, but that would require
+    folding or truncating the lines -- I vaguely remember a fix
+    that did that, anyone recall?)
+
+commit b09a9a05b0aa49d187cc0a7e993e7b6734755acb
+Author: Mark Moraes <moraes@computer.org>
+Date:   Sat Mar 14 15:48:43 2020 -0400
+
+    may be gratuitous, but seemed pretty low-cost to protect
+    truncstrsub from overlapping copies, for safety/consistency
+    with jamstrsub. (One day, I'd really like to change all
+    strcpy to jamstrsub, maybe rename it to jstrcpy, since
+    copying to fixed-size buffers without size checks just
+    creeps me out, I don't feel at all confident we can always
+    get them just right by reasoning about them)
+
+commit 35dc21ae366f128e54a610af38e6d4af110b1c3b
+Author: Mark Moraes <moraes@computer.org>
+Date:   Sat Mar 14 01:53:30 2020 -0400
+
+    4.17.3.2 Build recover on Win32, couple of tweaks to make it work.
+    
+    Fix Makefile.wat setmaps target that I broke in previous commit
+    
+    Use bsearch for commands instead of the single character
+    hash, should be fewer steps for most common commands, since
+    distribution is not even by character.  Also use it for vars
+    (has jbsearch for older systems)
+    
+    Added jove-features (read-only) variable with a
+    colon-separated list of feature tokens, and an ifvar
+    directive for joverc to use that, so can keep the same
+    jove.rc file and not get errors on different platforms.
+    probably useful for bug reports too.
+
+commit 222bda4921ded2795124ea9c2f4e74aa51a27e2a
+Author: Mark Moraes <moraes@computer.org>
+Date:   Sun Mar 8 00:27:02 2020 -0500
+
+    removed negative line number bug from README
+
+commit ec656ce154f0994296368499687fa33b6511c2b3
+Author: Mark Moraes <moraes@computer.org>
+Date:   Sun Mar 8 00:06:47 2020 -0500
+
+    4.17.3.1 annotated error and len_error as NEVER_RETURNS too
+    
+    added /* NOTREACHED */ comment after those and a bunch of complain calls
+
+commit fa51970657fd31496f7c9f934d410da49c38478c
+Author: Mark Moraes <moraes@computer.org>
+Date:   Sat Mar 7 23:15:45 2020 -0500
+
+    4.17.3.0 better version of NULLPROC/cmdproc_t initialization from Hugh
+    
+    Found and fixed couple more such complaints (from resetsighandler)
+    
+    Fixed couple of innocuous gcc complaints about uninitialized value
+    (only if chr_to_* complains)
+
+commit 0966d6f4c750e618f7baf31759b5e560951125eb
+Author: Mark Moraes <moraes@computer.org>
+Date:   Wed Mar 4 16:23:34 2020 -0500
+
+    recover.c: some machines off_t is long long, so cast correctly for debug printf
+    
+    wind.c: downcast long arg_val to int for grow/shrink, should be safe (int can
+    hold the increment we plan to grow/shrink a window by)
+
+commit 8b93a409a987e553d584e53cc85bad8b44f08780
+Merge: 3f0c245 d76b939
+Author: Mark Moraes <moraes@computer.org>
+Date:   Tue Mar 3 22:32:43 2020 -0500
+
+    Merge branch 'long-line-num' into moraes
+
+commit d76b9390c0f790b417ebbe81ebcd85150cb92b44
+Author: Mark Moraes <moraes@computer.org>
+Date:   Fri Feb 21 00:49:31 2020 -0500
+
+    4.17.2.9 try to use long for line numbers, so we do not see negative
+    line numbers on platforms where int is 16bit, and can use
+    arg > 32K to move forward, backward lines/chars/words, or goto
+    line numbers.
+    
+    JLGBUFSIZ is now LG_JBUFSIZ to match other LG* constant names.
+    
+    Simplified blkio indirection and check lseek in tmp file for error.
+    Improve tmp file too large message to show some numbers to
+    help with understanding.
+    
+    Move a few constants from sysdep.h to jove.h to be with similar
+    things, and vice-versa (so most JSMALL settings are in one block
+    in sysdep.h). Rename CHAR_BITS to CHAR_BIT so we use the standard
+    manifest if avail.
+
+commit 8601ea19036fd3dc8b54589c4cc4fb71eca7907e
+Author: Mark Moraes <moraes@computer.org>
+Date:   Sun Mar 1 19:16:23 2020 -0500
+
+    4.17.2.8 DOS + recover cleanup
+    
+    rename SMALL manifest to JSMALL to reduce confusion with DOS
+    memory mode. make MAXCOLS small (132) if JSMALL is defined
+    
+    recover cleanup: record JLGBUFSIZ and LG_CHUNK_SIZES to in
+    header.  compiles on DOS with OWC, some int -> long and
+    other related fixes to make it work.  tmpfile names now 8 chars.
+    handle short reads of tmpfile more gracefully because
+    there are some bogus daddrs in recfile when we reach out
+    of memory (bug in rec or insert.c code, perhaps?)
+    
+    make recover header a bit more portable/robust across
+    different configs of jove by storing more info in RECMAGIC
+    and using only long rather than a mix of types. In
+    principle, this opens the door to restoring rec files from
+    any config of jove with the same program.
+    
+    move -D earlier in jove main so we can emit debug in
+    functions called earlier.  Add -D to recover so we can debug
+    it more easily.
+    
+    define FULL_UNISTD for OWCDOS, it seems well-prototyped
+    
+    mention jove-users at freelists
+
+commit 3f0c24580ceda849cf2607f7a281c7cf76884681
+Author: Mark Moraes <moraes@computer.org>
+Date:   Sun Mar 1 19:16:23 2020 -0500
+
+    4.17.1.8 DOS + recover cleanup
+    
+    rename SMALL manifest to JSMALL to reduce confusion with DOS
+    memory mode. make MAXCOLS small (132) if JSMALL is defined
+    
+    recover cleanup: record JLGBUFSIZ and LG_CHUNK_SIZES to in
+    header.  compiles on DOS with OWC, some int -> long and
+    other related fixes to make it work.  tmpfile names now 8 chars.
+    handle short reads of tmpfile more gracefully because
+    there are some bogus daddrs in recfile when we reach out
+    of memory (bug in rec or insert.c code, perhaps?)
+    
+    make recover header a bit more portable/robust across
+    different configs of jove by storing more info in RECMAGIC
+    and using only long rather than a mix of types. In
+    principle, this opens the door to restoring rec files from
+    any config of jove with the same program.
+    
+    move -D earlier in jove main so we can emit debug in
+    functions called earlier.  Add -D to recover so we can debug
+    it more easily.
+    
+    define FULL_UNISTD for OWCDOS, it seems well-prototyped
+    
+    mention jove-users at freelists
+
+commit 0a5e0ff4649c5fa9bcbea54873bcdcfbc90c6206
+Author: Mark Moraes <moraes@computer.org>
+Date:   Thu Feb 27 16:57:52 2020 -0500
+
+    distrib target becomes tgz, jovedos.zip becomes zip and
+    makes joveVVVs.zip, distrib now makes both tgz and zip,
+    clean does not remove tgz, clobber removes tgz and zip
+
+commit 3be5eb0f05f1caf2276a85e5b37bedde163f3e08
+Author: Mark Moraes <moraes@computer.org>
+Date:   Tue Feb 25 00:59:14 2020 -0500
+
+    4.17.2.7 Since -DLinux is default in Makefile, make TERMCAPLIB be -lncurses
+    to match.  That's a better default for most modern systems.
+    
+    Fix Makefile.wat to have bigger stacksize, needed for -ml.  Added -os
+    for default (which shrinks code slightly, but still not enough for -ms to
+    work, sorry)
+    
+    Tried to skip failures for jove.rc on commands that might not exist.
+    
+    Use -D command-line option rather than JOVEDEBUG env var for debug filename,
+    avoids security hazard.  Hugh cleanup of jdprintf.  Add some missing newlines.
+    Put F_LOCKED on debug file so it doesn't get trashed.  Print pid as long.
+    
+    Some cleanup of portsrv (takes --kbd as arg 1 to make it easier to run
+    from shell for testing, fix signal handling for linux so kbd restarts
+    correctly) Add RETRY_ERRNO macro to simplify (and not miss) all the places the
+    retry-after-syscall is needed.
+    
+    jtc needs select, just make it non-conditional to help me
+    build it under travis on more architectures.
+
+commit b1d6aac94aefba38b07460161ac3a45ab270e7de
+Author: Mark Moraes <moraes@computer.org>
+Date:   Sun Feb 23 12:42:46 2020 -0500
+
+    per Hugh, missing space before opening paren
+
+commit f89cde8132df58dbbe61947cd5a658568cb0b33a
+Author: Mark Moraes <moraes@computer.org>
+Date:   Sat Feb 22 01:27:08 2020 -0500
+
+    looks like all homebrew invocations need the update first, till
+    https://github.com/travis-ci/packer-templates-mac/pull/13
+    makes it to production.
+    
+    simplified getconf logic to reduce chance it gets forgotten or copy/pasted.
+
+commit 67b24b81c5dc6dd83064d174e8f9b79e6dd6c258
+Author: Mark Moraes <moraes@computer.org>
+Date:   Sat Feb 22 01:13:59 2020 -0500
+
+    travis (well, yaml) does not like tabs, sigh
+
+commit d95f12d65ea36386199c4322c8f842602fe24b3d
+Author: Mark Moraes <moraes@computer.org>
+Date:   Sat Feb 22 01:08:55 2020 -0500
+
+    fix travis indentation for homebrew, added flag that Darwin needs
+
+commit c27bb4b3b1055926376a1b63bfc5db21f3a7b21f
+Author: Mark Moraes <moraes@computer.org>
+Date:   Sat Feb 22 00:52:52 2020 -0500
+
+    4.17.2.6 doc cleanup, removed email addresses in favor of github
+    
+    more travis cleanup, re-tested on alpine, fedora, gentoo, openindiana, *BSD
+    rearranged test builds a bit
+    
+    Makefile quiet zip chatter
+    
+    OpenIndiana/Solaris compiler does not like promotion from
+    void* to pointer-to-function, so added some typedefs and
+    *NULLPROC definitions to quiet it down in commands.tab,
+    disp.*, screen.*, setmaps
+    
+    ttystate.h simplified an ancient SUNOS4* ifdef
+
+commit 93b835ea412fd100c98e82765aa728a1dd6bb73b
+Author: Mark Moraes <moraes@computer.org>
+Date:   Fri Feb 21 19:31:05 2020 -0500
+
+    odd "Error: Unknown command: bundle" error from homebrew,
+    trying workaround proposed in
+    https://travis-ci.community/t/macos-build-fails-because-of-homebrew-bundle-unknown-command/7296/13
+
+commit 9524fec978b38167b252c2dd7973a56ac422431f
+Author: Mark Moraes <moraes@computer.org>
+Date:   Fri Feb 21 17:30:55 2020 -0500
+
+    still fixing .travis.yml!
+
+commit 335f3e2e02efcfb778752e0b3c12c108a78f069d
+Author: Mark Moraes <moraes@computer.org>
+Date:   Fri Feb 21 17:12:35 2020 -0500
+
+    .travis.yml fix mktemp portability quirk for old xcode, specify apts for jobs.include linuxes
+
+commit d5df0cf29d58f17cfa65290444077c74ff3b0792
+Author: Mark Moraes <moraes@computer.org>
+Date:   Fri Feb 21 16:44:46 2020 -0500
+
+    forgot to change one Makefile name
+
+commit 502392783dcde9f9ade4c87d8722eb9516515956
+Author: Mark Moraes <moraes@computer.org>
+Date:   Fri Feb 21 16:40:20 2020 -0500
+
+    Makefile: fix install dependencies so that -j works correctly.
+    
+    .travis.yml: try real gcc on osx, plus newer and older linux/osx images.
+    
+    Makefile.wat, sysdep.h and README.dos: describe medium vs large
+    executables
+
+commit 00f751a50ab23c565a860d56e0702fcc4a2b6b4d
+Author: Mark Moraes <moraes@computer.org>
+Date:   Fri Feb 21 00:53:06 2020 -0500
+
+    4.17.2.5: Use long for buffer-position line calculation, so
+    can show more than 32K lines correctly on OWCDOS.  This is a
+    small localized change, and does not resolve the bigger
+    issue that Jove uses int for line number calculations, which
+    goes wrong in OWCDOS, which uses 16bit ints, so after 32K
+    lines, number-lines-in-window starts showing negative line
+    numbers.  Fixing that, and goto-line (or arg-count) is a
+    more extensive patch, debatable whether it is worth the
+    change (large files are rare anyway, particularly on DOS,
+    and does JOVE have enough usage on DOS to make this worth
+    it?).  With medium model, Jove can handle about 48K lines
+    (around a 2.1MB file), and is pretty slow at that point.
+    With large model, it handles only 31K lines (about a 1.4MB
+    file), because we give more data space to the Jove buffer
+    cache for increased speed.
+    
+    default UNIX to USE_GETWD if nothing else defined.
+
+commit 7ec53195363f98499340502a1b8a94add264a293
+Author: Mark Moraes <moraes@computer.org>
+Date:   Fri Feb 21 00:51:38 2020 -0500
+
+    per Hugh comment, Changed WATCOMC define OWCDOS so it is
+    clearer that it is our symbol and only for DOS, not a
+    compiler pre-def.
+
+commit 7a73b8d45fe6836ef0e273bf3e8979f848fc1cff
+Author: Mark Moraes <moraes@computer.org>
+Date:   Fri Feb 21 00:13:00 2020 -0500
+
+    added note about memory models to Makefile.wat
+    
+    use FAR_LINES for all models in sysdep.h even if SMALL is not defined.
+
+commit f6a63db7f0dc1bfacb8cd593082afd17c0f2dd3f
+Author: Mark Moraes <moraes@computer.org>
+Date:   Fri Feb 21 00:06:17 2020 -0500
+
+    fix Hugh comment re: SunOS, so this will complain on SunOS4
+    (who runs it now?!), and automatically add -DGRANTPT_BUG on
+    SunOS5.0 (who ran it for more than a few minutes after
+    SunOS5.1 came out?! Yes, I remember both SunOS4.0 nd 5.0
+    quite well, I still get nightmares about them...!)
+    
+    Add comment re: /usr/gnu/bin/install for modern Solaris/OpenIndiana
+
+commit 8769d7664ae167645ba0dd6a666924879cd79b00
+Author: Mark Moraes <moraes@computer.org>
+Date:   Wed Feb 19 20:58:34 2020 -0500
+
+    body on next line of if, per Hugh
+
+commit 6791a128dbc329b7f00b92890c445d4fa6f32593
+Author: Mark Moraes <moraes@computer.org>
+Date:   Tue Feb 18 23:16:57 2020 -0500
+
+    4.17.2.4 removed tags from all target, only needed for distrib and
+    jovedoss.zip
+
+commit 02ca8173d987be68fababc748a33b721e35bcf60
+Author: Mark Moraes <moraes@computer.org>
+Date:   Tue Feb 18 00:35:17 2020 -0500
+
+    make travis now works on OpenIndiana (which really needs REALSTDC to work)
+
+commit f3c70d3c43dc91d5f1558473b72c53f8cfd087ba
+Author: Mark Moraes <moraes@computer.org>
+Date:   Tue Feb 18 00:16:04 2020 -0500
+
+    further travis script fix (trying to see if 'make travis' works on
+    platforms other than those available on travis-ci to make my
+    virtualbox/docker testing easier
+
+commit 7058d46080e60cfcacd8ae4f3d53f1e4d0b9dd33
+Author: Mark Moraes <moraes@computer.org>
+Date:   Tue Feb 18 00:13:13 2020 -0500
+
+    further travis tweaks
+
+commit 9ffbacd3e03e95e4850ab8fa0237ab24c830d593
+Author: Mark Moraes <moraes@computer.org>
+Date:   Mon Feb 17 22:28:17 2020 -0500
+
+    another travis tweak
+
+commit 8f2d6dc0d2d3af17d7b5498e661564a670fa55be
+Author: Mark Moraes <moraes@computer.org>
+Date:   Mon Feb 17 22:06:36 2020 -0500
+
+    have to turn set -u back on, since travis post-script functions break, sigh
+
+commit 6a45834003d06f9a7e30f5f196ea4733028ef011
+Author: Mark Moraes <moraes@computer.org>
+Date:   Mon Feb 17 21:44:48 2020 -0500
+
+    4.17.2.3 fix -DSMALL daddr/s_id ugliness, plus minor tweaks
+    exposed by some of the new travis variants.
+    
+    travis: no need to use gcc+clang (they are the same thing on
+    OS X by default, so rely on OSX for clang coverage, and
+    Linux for gcc coverage, reduces build matrix)
+    
+    test some variants only on Linux for coverage (GLIBCPTY
+    which mimics CYGWIN, and BSDPOSIX)
+    
+    Added 'make travis' target to try the travis script on local machine.
+
+commit 5b998c89d148fe1282dd7372eaeb78310b03702b
+Author: Mark Moraes <moraes@computer.org>
+Date:   Mon Feb 17 12:56:51 2020 -0500
+
+    added .version, *.zip and some patterns for typical debris to .gitignore
+    
+    updated Makefile with 'make depend'
+    
+    updated .travis.yml to build a couple more variants, made it multiline so
+    easier to read
+    
+    check Makefile works right without cmp
+
+commit f57a5d8da644abe1fab04a9a08a29268f257a435
+Author: Mark Moraes <moraes@computer.org>
+Date:   Mon Feb 17 02:07:00 2020 -0500
+
+    added ctags dependency to .travis.yml
+
+commit 18366d49bada3cc242928eef22267188df78ffc0
+Author: Mark Moraes <moraes@computer.org>
+Date:   Mon Feb 17 02:00:59 2020 -0500
+
+    4.17.2.2 builds on dosbox with Open Watcom 1.9.0
+    
+    OW is fussy about char declarations for old-style function params,
+    switched those to DAPchar (only a handful, gcc seems ok with this)
+    
+    ifdef out environ declaration (conflict with type) and exec*
+    (usual confusion with consts not matching our interpretation of POSIX)
+    
+    Much fiddling with Makefile and Makefile.wat and Makefile.msc.
+    
+    Moved sysdepo.h to old/sysdep.h and Makefile.{bcc,zor} to old/
+    renamed paragraph.[ch] to para.[ch] to get rid of 8.3 hackery
+    
+    Made WIN32=1 default for Makefile.msc (it does not build for DOS,
+    and I don't have the energy to figure out if that's even possible,
+    it blows a type size assertion in the Windows headers.
+    
+    Updated README.dos to reflect current state.
+    
+    Cleaner X_OK hackery (define J_X_OK rather than redefining X_OK)
+    
+    Keep tags for PC jovedoss.zip, helpful when looking at src there
+    (reduces need for distribs to have ctags).  tags cleanup moved
+    to clobber target.
+
+commit 72a05b6423a59651635e4b9e1669a29af457bc52
+Author: Mark Moraes <moraes@computer.org>
+Date:   Sun Feb 16 18:10:47 2020 -0500
+
+    4.17.2.1 addition: switched default Makefile OPTFLAGS back
+    to -O so this does not blow up on non-gcc/clang platforms
+    
+    avoid fc31 gcc complaint re: ambiguous else.
+    
+    update jove.rc.in to avoid colors in i-shell busybox (e.g. alpine)
+
+commit 7eb35f8dda8af2dd0fafccfde7f8dded9fe767d1
+Author: Mark Moraes <moraes@computer.org>
+Date:   Sun Feb 16 18:01:16 2020 -0500
+
+    4.17.2.1 now works on openindiana (solaris) hipster x86_64
+    2019.11 (tested on the console in virtualbox)
+    
+        define NULL to 0 to avoid OpenIndiana (and likely other
+        Solaris) complaints from initializing with their own
+        NULL which is defined to (void *)0.
+    
+        cleanup of child iproc debug
+    
+        improve the logic for dup and close of slvptyfd
+    
+        I was clearly over-enthusiastic about CLOEXECs, since
+        dup2 (on Solaris) copies the flag (Linux seems not to?)
+        so I undid some that seem wrong in hindsight.
+    
+        important for OpenIndiana (likely many Solaris or SunOS5
+        or SYSVR4): ioctl TIOCSCTTY fails with ENOTTY, so cannot
+        exit the child on that error, have to ignore it (this
+        check was added 4.16.0.31, used to 'correctly' ignore
+        that error return before .31, sigh! It's 2020 and ptys
+        are still a portability nightmare)
+
+commit ff064e0dbad9a00c59e3e83c01747234b9423752
+Author: Mark Moraes <moraes@computer.org>
+Date:   Thu Feb 13 14:46:33 2020 -0500
+
+    4.17.2.0: found and fixed the causes of shell-command
+    crashes on WIN32; one is that access(file, X_OK) with X_OK
+    == 1 (the traditional/historical value) crashes.  Set X_OK
+    to F_OK for MS platforms.  After that, the close/dup
+    sequence to restore fds crashes (no idea why, just switched
+    them to dup2 and it worked), switched spawnv to spawnve
+    while I was at it so proc-env vars get passed through.
+
+commit cc795b7c76b01b4fc7759c87eb050f00a9151af2
+Author: Mark Moraes <moraes@computer.org>
+Date:   Thu Feb 13 14:42:13 2020 -0500
+
+    remove old files before redirecting onto them so that CYGWIN
+    bug on vbox shared folders does not bite.
+
+commit cbcb072c900e7efd22e52fd2ed88130ac75ec679
+Author: Mark Moraes <moraes@computer.org>
+Date:   Wed Feb 12 23:25:11 2020 -0500
+
+    4.17.1.11: to catch .gitattributes (deleted pre-release 4.17.1.10)
+
+commit 6d3d348a53bad852c81acb7458b5cdf5c7652a08
+Author: Mark Moraes <moraes@computer.org>
+Date:   Wed Feb 12 23:21:32 2020 -0500
+
+    added .gitattibutes to exclude stuff from the github tarball
+
+commit 60a9cff1fb98c460fae513fdca96dbcd42e34eb7
+Author: Mark Moraes <moraes@computer.org>
+Date:   Wed Feb 12 22:42:19 2020 -0500
+
+    4.17.1.10 Removed afxres.h and resource.h and references to
+    them from jjove.rc, they do not seem to be needed by Visual
+    Studio 2019.  MSVC also complains about exec* prototypes,
+    like the comment said for Zortech and Borland, added
+    _MSC_VER to that ifdef.  Now builds cleanly on WIN32, but
+    still crashes on subshell (push-shell works)
+    
+    Fixed weird and severe problem with Cygwin and VirtualBox
+    saving files:  open(...O_TRUNC) does *not* truncate a file
+    that is on a VirtualBox shared folder (which is where I
+    build jove src), so saving a file after deleting a few
+    chars/lines results in old debris since it still stays the
+    original size.  open(O_TRUNC) works as expected on local
+    disk.  Windows open(O_TRUNC) works fine on both local disk
+    and file in vbox shared folder.  ftruncate works on both
+    too, so added a redundant ftruncate after open(O_TRUNC) with
+    an O_TRUNC_BROKEN manifest. (I have a test program to
+    reproduce, will file a Cygwin bug report, not clear if this
+    affects all network folders or just vbox, I suspect the
+    latter else others would have noticed)
+    
+    Hit an infinite busy wait on pty a couple of times (EIO on
+    IO_NEW pty ad nauseum in jdbg output), seems bad to have
+    that risk (which the comment points out), added the pty
+    creation time to the struct process, and eof after a few seconds.
+
+commit 301d3978f6b62de2c4f3885ba6763fc4d5b7f47b
+Author: Mark Moraes <moraes@computer.org>
+Date:   Tue Feb 11 09:31:16 2020 -0500
+
+    added check that my new spell-command-format only contains
+    one %s and no other % specifiers, so user error will not
+    trash memory or crash jove.
+
+commit 9bef4a1b44ea03f286b276cb9f87355d128822cd
+Author: Mark Moraes <moraes@computer.org>
+Date:   Mon Feb 10 22:03:18 2020 -0500
+
+    4.17.1.9 move aspell to FreeBSD, since NetBSD and OpenBSD have spell.
+    Also enable aspell for CYGWIN.
+
+commit 8aa57e59b52ac5705dd96205b46537801b3db534
+Author: Mark Moraes <moraes@computer.org>
+Date:   Mon Feb 10 21:44:42 2020 -0500
+
+    *BSD also has aspell, added to XBSD definition
+
+commit 6ed0fbdb7b2da2680ab0b8e41c14798373bf3b8e
+Author: Mark Moraes <moraes@computer.org>
+Date:   Mon Feb 10 21:32:58 2020 -0500
+
+    4.17.1.8: move various doc/jove.rc defauls (process-prompt,
+    allow-^S-and-^Q, mode-line, disable-biff, pause-jove binding
+    to ^[s ) to the code, they've been in doc/jove.rc for so
+    long they can now be considered official, it reduces the
+    number of weird differences when one just starts up the
+    binary without SHAREDIR installed or for test.
+    
+    also leave allow-^S-and-^Q on for vt100.  I refuse to
+    believe any such real terminals are operational and used for
+    Jove, but far more terminal emulators (e.g. NetBSD console!)
+    claim to be vt100.
+    
+    update ModeFmt and MAX_TYPEOUT to new MAXCOLS to support the
+    sort of wide-terminal that I suspect most of us now use.  I
+    think jove can afford the couple of hundred extra bytes
+    (and when ported back to the PDP-11, MAXCOLS can be set lower,
+    we can accept that fix when it is tested)
+
+commit 3bd5eafa75b6407a8930116b705392919d2c9a96
+Author: Mark Moraes <moraes@computer.org>
+Date:   Mon Feb 10 21:12:54 2020 -0500
+
+    Created spell-command-format variable, define it as aspell
+    on Linux and *BSD, switch the SPELL manifest to the default
+    value, documented.  Seems to work.  AFAIK, the old spell
+    compatibility wrapper hasn't been shipped on most modern
+    platforms.  (Admittedly, it's been a very long time since I
+    used spell to check my thesis, but felt bad it wasn't
+    working when I tried it)
+
+commit e8d6b5690ff603d1c0b2efa6a7b88019ede38f2f
+Author: Mark Moraes <moraes@computer.org>
+Date:   Mon Feb 10 21:09:05 2020 -0500
+
+    address-sanitize reported another overlapping strcpy, seems
+    safest to make jamstrsub work for overlapping copies
+    by calling memmove (it already has the string size),
+    used byte_move() macro for portability and got rid of
+    the ifdef around memmove in disp.c by making that a
+    byte_move as well.  Left mac.c alone, that already has
+    memcpy and probably isn't going to ever be compiled
+    again (please feel free to prove me wrong)
+    
+    	#1 0x42cc7d in strcpy /usr/include/x86_64-linux-gnu/bits/string3.h:110
+    	#2 0x42cc7d in jamstrsub /home/moraes/src/jove/github-jonmacs/jove/util.c:698
+    	#3 0x44ca1f in setsearch /home/moraes/src/jove/github-jonmacs/jove/reapp.c:45
+    	#4 0x44ca7d in search /home/moraes/src/jove/github-jonmacs/jove/reapp.c:64
+    	#5 0x44ea6b in ForSearch /home/moraes/src/jove/github-jonmacs/jove/reapp.c:82
+
+commit 314dc659b3db18d1ae8a332d576e1bb96010b3e1
+Author: Mark Moraes <moraes@computer.org>
+Date:   Mon Feb 10 21:02:43 2020 -0500
+
+    Fix memory leak in recover.c reported by leak-sanitizer
+
+commit db8e23cdcafa29f022f035f61008a0ce3030f110
+Author: Mark Moraes <moraes@computer.org>
+Date:   Mon Feb 10 20:56:50 2020 -0500
+
+    Only remove formatted docs, generated jove.spec and jove.rc
+    to on clobber, not clean.  That ensures that a tree sent via
+    distrib to a PC/Windows won't result in missing docs when
+    one does 'make clean'.  Fixed mis-documentation re: PORTSRVINST.
+
+commit 4624e456a187afe169824704ec34e4d20bb70ac8
+Author: Mark Moraes <moraes@computer.org>
+Date:   Mon Feb 10 20:54:22 2020 -0500
+
+    setting DEBUGCRASH had the unfortunate side-effect of
+    causing ^] to exit jove immediately (SIGINT), and I hit that
+    sometimes when going for ^\ (since I grew up on a terminal
+    where ^S was XON!)  Since the main reason for DEBUGCRASH is
+    to catch SEGV, BUS, etc, seems like HUP, INT, TERM should
+    always be honored, moved those outside the ifdef.
+
+commit 045b93977330a93513dd483d2b56f63ed8e9b257
+Author: Mark Moraes <moraes@computer.org>
+Date:   Sun Feb 9 12:50:30 2020 -0500
+
+    4.17.1.7: removed redundant ifdef in proc.c since no real in
+    the signal handling code for vfork and fork anymore (who
+    knows if it's correct anyway), moved comment to vfork invocation.
+    Ensure that environ is not changed in child (which might/will affect
+    parent in the vfork case). Tested USE_VFORK briefly with Linux,
+    seems to work for minimal testing.
+    
+    Added define for FreeBSD and OpenBSD in sysdep.h to save
+    typing build flags, juse use
+    	make SYSDEFS=$(uname)
+    
+    Moved all historical definitions that are not currently
+    tested to sysdepo.h (not included or used anywhere)
+    
+    Updated notes in Makefile, sysdep.doc, sysdep.h
+
+commit 8ed270b1e3125ab87bc0dc63f660d3e73bef1a1e
+Author: Mark Moraes <moraes@computer.org>
+Date:   Fri Feb 7 19:33:59 2020 -0500
+
+    4.17.1.6 add TIOCGPTPEER for newer Linux (e.g. Alpine 3.9.4) which does
+    not correctly set up pty (or ends up with wrong/bogus slvptyfd) without it!
+
+commit 8f28956f7eb6f4041471f215d0967a90d0d0e3ea
+Author: Mark Moraes <moraes@computer.org>
+Date:   Thu Feb 6 09:12:04 2020 -0500
+
+    4.17.1.5: cleanup of portsrv so that
+    echo ls | ./portsrv.exe /bin/sh sh -is
+    and
+    echo ls | ./portsrv.exe kbd
+    seem to work rather than hang.  pipeprocs still does not fully work on
+    cygwin (neither does ptyprocs, TBD)
+    
+    tweaks to test pipeprocs on linux and *bsd as well, as a fallback option
+    if (when?!) ptys fail, or just to keep an eye on portability to ancient
+    systems.
+    
+    added a long-needed (IMHO) optional debug trace to jove in fmt.h,
+    the jdprintf function and jdbg macro.  JOVEDEBUG environment variable
+    as a filename activates the debug logging -- at the moment, produces
+    a trace of twisty little maze of ifdefs for pty/iproc handling
+    (a mind-boggling portability horror show), which finally uncovered
+    for me that NetBSD (7.2, 8.1 at least) TIOCREMOTE does not work as Jove
+    expects (can I just say broken!), unlike other BSD siblings.
+    Added NETBSD define to sysdep.h with the helpful NO_TIOCREMOTE, thanks
+    to whichever kind soul (Hugh?) documented the breakage so clearly in
+    iproc.c.
+    
+    Added CLOEXEC (attempt at robustness for modern systems after fork),
+    has portabiity #define that should work on ancient ones.
+    
+    Use slvptyfd returned by openpty, seems better than relying on opening
+    the ttyname, though the latter did seem to work fine in *BSD. Maybe this
+    will help cygwin or netbsd, not sure.
+    
+    Clarify 'Out of ptys' message so it will be easier to tell which branch
+    of code is failing.
+    
+    separated currently tested SYSDEFS from uh, historical artifacts in Makefile
+    
+    update .gitignore with generated formatted docs
+
+commit 98e7cba8e312fc7f40a3edcb0342e8d58b56e745
+Author: Mark Moraes <moraes@computer.org>
+Date:   Sun Feb 2 01:25:44 2020 -0500
+
+    4.17.1.4 Makefile.msc clean works, WIN32 has own getcwd. builds on
+    MSVC 2019 Community Edition, but shell-command still crashes.
+    
+    PIPEPROCS compiles on Cygwin but crashes jove on startup.
+    PTYPROCS compiles on Cygwin but hangs in openpty, sigh.
+
+commit 35905957a4d1763037ff014e32a014dee2017926
+Author: Mark Moraes <moraes@computer.org>
+Date:   Sat Feb 1 23:59:37 2020 -0500
+
+    4.17.1.3 fix typo in sysdep.h XBSD for Darwin Mac OS X
+    move popd ahead in doc/jove.rc.in
+    build doc/jove.rc for all
+
+commit 0b9729e6bdbd9983c16e04fd1782f84f05084041
+Author: Mark Moraes <moraes@computer.org>
+Date:   Sat Feb 1 23:17:36 2020 -0500
+
+    4.17.1.2: rename README.c32 to README.cyg and update for latest Cygwin
+    (generally works on both CYGWIN64 and CYGWIN32), update README*.
+    
+    Move DispDefFs outside F_COMPLETION ifdef to match vars.tab, -DBAREBONES
+    now compiles
+    
+    make extern declaration of getcwd unconditional, should be safe, and
+    removes a complaint when building -DBAREBONES
+    
+    fix portsrv to detach from controlling terminal, so it works
+    on Linux (for testing PIPEPROCS; the machines that one
+    needed portsrv for presumably never had job control or
+    controlling terminals?)
+    
+    added a matching RECOVER ifdef in jove.c to get rid of another
+    complaint when -DBAREBONES
+    
+    ifdef to protect WIFSTOPPED in sysprocs.h, avoids complaints when
+    -DBAREBONES
+    
+    remove jjoveico.uue and check in jjove.ico since git can handle binary
+    files, unlike RCS, simplified Makefile to not need uudecode.
+    
+    Save formatted docs in distrib
+
+commit c404593b9eb6c1323e3f11296483e29310c524ab
+Author: Mark Moraes <moraes@computer.org>
+Date:   Thu Jan 30 15:08:54 2020 -0500
+
+    4.7.1.1 tested on Cygwin 3.1.2, updated docs.
+
+commit 42a4eb3489e4c99b32d1cc97883243a3e97c6b86
+Author: Mark Moraes <moraes@computer.org>
+Date:   Thu Jan 30 14:38:27 2020 -0500
+
+    4.7.1.0 changes to build on Windows with MSVC 10.x. builds and mostly works (attempt to run shell command crashes)
+    
+    rename min, max to jmin, jmax, ReadOnly to BReadOnly, and
+    undef CR before including windows.h to avoid clashes with MS
+    macros or field names, sigh!
+    
+    move back to putting jversion in version.h (simpler for DOS/Windows)
+    remove attempt at using git describe
+    
+    remove all targets and doc mentions of zoo format since zip
+    is now ubiquitous
+    
+    use wsprintf instead of sprintf in win32 (MSVC libc
+    apparently no longer provides sprintf by default)
+
+commit e409235d03eb1da27b9e93635d76338425c5a165
+Author: Mark Moraes <moraes@computer.org>
+Date:   Tue Jan 28 09:28:10 2020 -0500
+
+    4.17.0.9: fix stropts for latest Fedora/Arch, /etc/jove/jove.rc
+    
+    Cord requested a per-host jove.rc (jove already had a jove.local
+    in sharedir, but that could be system-wide). Moved doc/jove.rc to
+    doc/jove.rc.in, substituted ETCDIR (which defaults to /etc/jove),
+    updated rpm package.
+    
+    Tested rpm on latest Fedora Docker image I could find (FC31),
+    and discovered that it (and latest ArchLinux docker image) don't have
+    stropts.h and do not define _XOPEN_STREAMS so added an if defined()
+    check, now builds clean.
+    
+    Makefile fix to handle the situation of building in a brand new
+    docker (i.e. no ~/rpmbuild directory to copy src into until one
+    runs rpmbuild, chicken-v-egg) While  at it, prefixed the
+    DESTDIR variants of (SHARE|LIB|BIN|...)DIR with D to detect
+    avoid mistakes from using old command lines.
+    
+    rpm built and installed and worked in Fedora FC31 smoothly.
+    I'll see if I have the energy/patience to produce a PKGBUILD
+    for Arch pacman...
+
+commit 8d22ba1d8e1b0d8a7b915b8de271f71512af9e99
+Author: Mark Moraes <moraes@computer.org>
+Date:   Mon Jan 27 13:19:26 2020 -0500
+
+    4.17.0.8 fix a small irritation - if one runs (with
+    compile-it or shell-command) a script that one is editing,
+    jove wants to overwrite the scrpt source (it prompts, but
+    only offers the option to overwrite the src buffer).  So put
+    asterisks around names of process-output buffers, to match
+    *minibuf* and *shell* to reduce the chance of a collision
+
+commit 440b451af0b71cce78dcd7e6090749199b647229
+Author: Mark Moraes <moraes@computer.org>
+Date:   Mon Jan 27 13:18:09 2020 -0500
+
+    4.17.0.7 typo in TMPDIR when renaming, so empty string in paths.h, fixed.
+
+commit 88aacef72465a2ea78282336f9a4a87505ee0829
+Author: Mark Moraes <moraes@computer.org>
+Date:   Sat Jan 25 22:04:02 2020 -0500
+
+    travis homebrew update seems to take a long time, try without it
+
+commit b5b09391d96b50afe227ab72602126c82bb61569
+Author: Mark Moraes <moraes@computer.org>
+Date:   Sat Jan 25 22:00:23 2020 -0500
+
+    need groff for some travis environments
+
+commit 586ead6202ef045ebcf00cf18e6505b7ae700dd1
+Author: Mark Moraes <moraes@computer.org>
+Date:   Sat Jan 25 21:57:47 2020 -0500
+
+    fixing travis script
+
+commit a24407f72cb94e8d1aa317927d645b0ce80517f9
+Author: Mark Moraes <moraes@computer.org>
+Date:   Sat Jan 25 21:39:59 2020 -0500
+
+    added .travis.yml to try some continuous-integration test builds.
+
+commit 99665b8e7fbdaded198efb5fbb40258a6eb670c1
+Author: Mark Moraes <moraes@computer.org>
+Date:   Sat Jan 25 18:57:41 2020 -0500
+
+    4.17.0.6: can now use
+    	make rpm
+    to build an rpm package, tested on CentOS7.4 (other Fedora or
+    RedHat testing needed)
+
+commit 33f1658f55419833bd56a49d44cea30a8a4fa8cb
+Author: Mark Moraes <moraes@computer.org>
+Date:   Sat Jan 25 16:34:45 2020 -0500
+
+    4.17.0.5 fix version code to not duplicate version if that is the git tag
+
+commit b55bde96f77fc95a976fd9f7c00cbe2f4d31a374
+Author: Mark Moraes <moraes@computer.org>
+Date:   Sat Jan 25 15:53:44 2020 -0500
+
+    added jtc.c to C_SRC in Makefile
+
+commit e194676383e3e9fde8b2c457643239caa710833f
+Author: Mark Moraes <moraes@computer.org>
+Date:   Fri Jan 24 22:34:06 2020 -0500
+
+    4.17.0.4: fixed -Wformat-overflow in teachjove.c, made exit
+    status positive numbers, errors to stderr.
+
 commit de380c334a3348f72427d874af12d7a844ddcf30
 Author: Mark Moraes <moraes@computer.org>
 Date:   Fri Jan 24 21:53:05 2020 -0500
