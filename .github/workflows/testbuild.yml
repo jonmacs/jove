@@ -26,7 +26,7 @@ jobs:
       - name: HostedUbuPrep
         if: startsWith(matrix.os, 'ubuntu-')
         run: |
-          sudo apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y gcc make exuberant-ctags zip ncurses-dev groff       
+          sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y gcc make exuberant-ctags zip ncurses-dev groff       
       - name: HostedTestBuild
         run: |
           ./testbuild.sh
