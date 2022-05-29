@@ -5,7 +5,6 @@ jobs:
     strategy:
       matrix:
         container:
-        - 'ubuntu:14.04'
         - 'ubuntu:18.04'
         - 'ubuntu:20.04'
         - 'ubuntu:devel'
@@ -22,5 +21,5 @@ jobs:
       - run: echo "The workflow is now ready to test your code on the runner."
       - name: test
         run: |
-          sudo apt-get install --force-yes -y gcc make ctags zip ncurses-dev groff && cd ${{ github.workspace }} && make travis
+          apt-get install --force-yes -y gcc make ctags zip ncurses-dev groff && cd ${{ github.workspace }} && make travis
       - run: echo "status ${{ job.status }}."
