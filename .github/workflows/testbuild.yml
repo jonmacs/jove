@@ -4,38 +4,50 @@ on:
     branches:
       - 4_17
 jobs:
-  for-macos:
+  for-hosted:
     strategy:
       matrix:
         os:
         - 'macos-10.15'
         - 'macos-11'
         - 'macos-12'
+        - 'ubuntu-22.04'
+        - 'ubuntu-20.04'
+        - 'ubuntu-18.04'
     runs-on: ${{ matrix.os }}
     steps:
-      - run: echo "event=${{ github.event_name }} os=${{ runner.os }} branch=${{ github.ref }} repo=${{ github.repository }}."
-      - name: MacCheckout
+      - run: echo "event=${{ github.event_name }} runner=${{ runner.os }} os=${{ matrix.os }} branch=${{ github.ref }} repo=${{ github.repository }}."
+      - name: HostedCheckout
         uses: actions/checkout@v3
-      - name: MacTestBuild
+      - name: HostedMacPrep
+        if: startsWith(matrix.os, 'macos-')
         run: |
-          brew install make ctags zip ncurses && ./testbuild.sh
+          brew install make ctags zip ncurses
+      - name: HostedUbuPrep
+        if: startsWith(matrix.os, 'ubuntu-')
+        run: |
+          apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y gcc make exuberant-ctags zip ncurses-dev groff       
+      - name: HostedTestBuild
+        run: |
+          ./testbuild.sh
       - run: echo "status=${{ job.status }}."
-  for-apt-distros:
+  for-containers:
     strategy:
       matrix:
         container:
-        - 'ubuntu:18.04'
-        - 'ubuntu:20.04'
-        - 'ubuntu:devel'
         - 'debian:11'
         - 'debian:testing'
     runs-on: ubuntu-latest
     container: ${{ matrix.container }}
     steps:
-      - run: echo "event=${{ github.event_name }} os=${{ runner.os }} branch=${{ github.ref }} repo=${{ github.repository }}."
-      - name: AptCheckout
+      - run: echo "event=${{ github.event_name }} os=${{ runner.os }} container=${{ matrix.container }} branch=${{ github.ref }} repo=${{ github.repository }}."
+      - name: ContainerCheckout
         uses: actions/checkout@v3
-      - name: AptTestBuild
+      - name: ContainerAptPrep
+        if: startsWith(matrix.container, 'debian:')
         run: |
-          apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y gcc make exuberant-ctags zip ncurses-dev groff && ./testbuild.sh
+          apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y gcc make exuberant-ctags zip ncurses-dev groff       
+      - name: ContainerTestBuild
+        run: |
+          ./testbuild.sh
       - run: echo "status=${{ job.status }}."
