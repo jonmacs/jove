@@ -5,12 +5,12 @@ jobs:
     strategy:
       matrix:
         container:
-	- 'ubuntu:14.04'
-	- 'ubuntu:18.04'
-	- 'ubuntu:20.04'
-	- 'ubuntu:devel'
-	- 'debian:11'
-	- 'debian:testing'
+        - 'ubuntu:14.04'
+        - 'ubuntu:18.04'
+        - 'ubuntu:20.04'
+        - 'ubuntu:devel'
+        - 'debian:11'
+        - 'debian:testing'
     runs-on: ubuntu-latest
     container: ${{ matrix.container }}
     steps:
