@@ -21,5 +21,5 @@ jobs:
       - run: echo "The workflow is now ready to test your code on the runner."
       - name: test
         run: |
-          apt-get update && apt-get install -y gcc make ctags zip ncurses-dev groff && cd ${{ github.workspace }} && make travis
+          apt-get update && apt-get install -y gcc make exuberant-ctags zip ncurses-dev groff && cd ${{ github.workspace }} && make travis
       - run: echo "status ${{ job.status }}."
