@@ -1,7 +1,10 @@
 name: Test-Build
-on: [push]
+on:
+  push:
+    branches:
+      - 4_17
 jobs:
-  apt-distros:
+  for-apt-distros:
     strategy:
       matrix:
         container:
@@ -13,11 +16,10 @@ jobs:
     runs-on: ubuntu-latest
     container: ${{ matrix.container }}
     steps:
-      - run: echo "event ${{ github.event_name }} os ${{ runner.os }} ${{ matrix.os }}"
-      - run: echo "branch ${{ github.ref }} repo ${{ github.repository }}."
-      - name: checkout
+      - run: echo "event=${{ github.event_name }} os=${{ runner.os }} branch=${{ github.ref }} repo=${{ github.repository }}."
+      - name: Checkout
         uses: actions/checkout@v3
-      - name: test
+      - name: TestBuild
         run: |
-          apt-get update && apt-get install -y gcc make exuberant-ctags zip ncurses-dev groff && make travis
-      - run: echo "status ${{ job.status }}."
+          apt-get update && apt-get install -y gcc make exuberant-ctags zip ncurses-dev groff && ./testbuild.sh
+      - run: echo "status=${{ job.status }}."
