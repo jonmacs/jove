@@ -4,6 +4,22 @@ on:
     branches:
       - 4_17
 jobs:
+  for-macos:
+    strategy:
+      matrix:
+        os:
+        - 'macos-10.15'
+        - 'macos-11'
+        - 'macos-12'
+    runs-on: ${{ matrix.os }}
+    steps:
+      - run: echo "event=${{ github.event_name }} os=${{ runner.os }} branch=${{ github.ref }} repo=${{ github.repository }}."
+      - name: MacCheckout
+        uses: actions/checkout@v3
+      - name: MacTestBuild
+        run: |
+          brew install make ctags zip ncurses && ./testbuild.sh
+      - run: echo "status=${{ job.status }}."
   for-apt-distros:
     strategy:
       matrix:
@@ -17,9 +33,9 @@ jobs:
     container: ${{ matrix.container }}
     steps:
       - run: echo "event=${{ github.event_name }} os=${{ runner.os }} branch=${{ github.ref }} repo=${{ github.repository }}."
-      - name: Checkout
+      - name: AptCheckout
         uses: actions/checkout@v3
-      - name: TestBuild
+      - name: AptTestBuild
         run: |
           apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y gcc make exuberant-ctags zip ncurses-dev groff && ./testbuild.sh
       - run: echo "status=${{ job.status }}."
