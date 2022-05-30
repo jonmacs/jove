@@ -162,9 +162,9 @@ and may provide a guide to customization.
 #	Cygwin 3.1.2			SYSDEFS=-DCYGWIN TERMCAPLIB= # builtin vt100/xterm/rxvt etc support, no need for curses dependency
 #	Darwin aka MacOS X onwards	SYSDEFS=-DDarwin TERMCAPLIB=-ltermcap
 #	FreeBSD 12.1			SYSDEFS=-DFreeBSD TERMCAPLIB=-ltermcap EXTRALIBS=-lutil
-#	Linux (modern, glibc pty.h)	SYSDEFS=-DLinux TERMCAPLIB=-lncurses EXTRALIBS=-lutil
-#	Linux (modern, UNIX98 PTYS)	SYSDEFS=-DLinux TERMCAPLIB=-lncursesw
-#	Linux (modern, glibc pty.h)	SYSDEFS=-DGLIBCPTY EXTRALIBS=-lutil
+#	Linux (modern, glibc pty.h)	SYSDEFS=-DLinux TERMCAPLIB=-lncursesw EXTRALIBS=-lutil
+#	Linux (recent, UNIX98 PTYS)	SYSDEFS=-DXLINUX TERMCAPLIB=-lncursesw
+#	Linux (old, BSD PTYS)		SYSDEFS=-DBSDPOSIX_STDC TERMCAPLIB=-lncurses
 #	NetBSD 8.1			SYSDEFS=-DNetBSD TERMCAPLIB=-ltermcap EXTRALIBS=-lutil
 #	OpenBSD 6.6			SYSDEFS=-DOpenBSD TERMCAPLIB-ltermcap EXTRALIBS=-lutil
 #	SunOS5.1 onwards (Solaris/OpenIndiana/Illumos/Joyent)	SYSDEFS=-DSunOS TERMCAPLIB=-ltermcap
