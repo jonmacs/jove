@@ -17,6 +17,7 @@ Linux)	if pkg-config ncurses > /dev/null 2>&1; then
 	else
 		cf="$cf -DJTC"
 	fi
+	lf="$lf -lutil"
 	;;
 *)	cf="-D$u -DJTC -O";;
 esac

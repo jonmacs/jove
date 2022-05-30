@@ -5,7 +5,7 @@
 # this notice is included in all the source files and documentation.     #
 ##########################################################################
 
-[Updated in 2021 February]
+[Updated in 2022 May]
 
 JOVE on UNIX/Linux/MacOS X/*BSD/CygWin Systems
 ----------------------------------------------
@@ -25,9 +25,9 @@ Ensure you have the tools required to build Jove.  You need a C compiler
 (classic Unix cc, gcc or clang should work), the make utility, 
 and basic headers for libc, which may require extra packages on
 some Linux distributions.
-    Debian, Ubuntu, Mint: apt-get update && apt-get install gcc make
-    Alpine: apk update && apk add gcc make musl-dev
-    MacOSX/Darwin: brew install make # ncurses 
+    Debian, Ubuntu, Mint: apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends gcc make ncurses-dev pkg-config exuberant-ctags
+    Alpine: apk update && apk add gcc make musl-dev ncurses-dev pkgconfig ctags
+    MacOSX/Darwin: brew install make ncurses 
     Nix: nix-shell -p gnumake 
     Arch: pacman -Sy gcc make # pkgconf ncurses
     Gentoo: # comes with gcc and make and headers by default!
@@ -86,11 +86,15 @@ Linux:
   descriptions, which are sometimes in separate packages
   (e.g. called ncurses-terminfo-base or ncurses-base or ncurses-term)
 
+  Older Linux may need either SYSDEFS=-DXLINUX or SYSDEFS=-DBSDPOSIX_STDC
+  (but do test how interactive-shell works once built; the main
+  issues are pty-handling, even if they seem to compile without error)
+
 Solaris 5.1 or newer:
   make install
 
 Other systems:
-  Read comments about SYSDEFS settings in Makefile, check sysdep.h
+  Read comments about SYSDEFS settings below, check sysdep.h
   for recently tested system settings or old/sysdep.h for once-working
   but currently untested settings that will need to be copied into sysdep.h,
   or just set on the command-line with SYSDEFS="-D...", TERMCAPLIB 
@@ -156,15 +160,14 @@ by the Makefile).  The following explicit settings also work
 and may provide a guide to customization.
 
 #	Cygwin 3.1.2			SYSDEFS=-DCYGWIN TERMCAPLIB= # builtin vt100/xterm/rxvt etc support, no need for curses dependency
-#	Darwin aka MacOS X onwards	SYSDEFS=-DDarwin
-#	FreeBSD 12.1			SYSDEFS=-DFreeBSD EXTRALIBS=-lutil
-#	Linux (modern, UNIX98 PTYS)	SYSDEFS=-DLinux
+#	Darwin aka MacOS X onwards	SYSDEFS=-DDarwin TERMCAPLIB=-ltermcap
+#	FreeBSD 12.1			SYSDEFS=-DFreeBSD TERMCAPLIB=-ltermcap EXTRALIBS=-lutil
+#	Linux (modern, glibc pty.h)	SYSDEFS=-DLinux TERMCAPLIB=-lncurses EXTRALIBS=-lutil
 #	Linux (modern, UNIX98 PTYS)	SYSDEFS=-DLinux TERMCAPLIB=-lncursesw
 #	Linux (modern, glibc pty.h)	SYSDEFS=-DGLIBCPTY EXTRALIBS=-lutil
-#	MacOS X aka Darwin 		SYSDEFS=-DDarwin
-#	NetBSD 8.1			SYSDEFS=-DNetBSD EXTRALIBS=-lutil
-#	OpenBSD 6.6			SYSDEFS=-DOpenBSD EXTRALIBS=-lutil
-#	SunOS5.1 onwards (Solaris/OpenIndiana/Illumos/Joyent)	SYSDEFS=-DSunOS
+#	NetBSD 8.1			SYSDEFS=-DNetBSD TERMCAPLIB=-ltermcap EXTRALIBS=-lutil
+#	OpenBSD 6.6			SYSDEFS=-DOpenBSD TERMCAPLIB-ltermcap EXTRALIBS=-lutil
+#	SunOS5.1 onwards (Solaris/OpenIndiana/Illumos/Joyent)	SYSDEFS=-DSunOS TERMCAPLIB=-ltermcap
 
 The following used to work circa Jove 4.16 in the 1990s and have probably not
 been tested in the 21st century, they may still work but some of this
@@ -243,20 +246,19 @@ This file contains resource declarations that allow JOVE to respond to
 more function keys and mouse gestures.
 
 For the pdp11 version there is the Ovmakefile.  This has only been
-tested on 2.9bsd, and not recently.  It worked pretty well, actually,
+tested on 2.9bsd once upon a very long ago.  It supposedly worked,
 and it was possible to turn on all the compile time options with this
 version.
 
 For RPM-based Linux, jspec.in specifies how an RPM should be created.
-On Red Hat Linux 7.x, 8.0, and 9, "rpmbuild -ta jove*.tgz" will build
+On most modern Red Hat Linux (Fedora, CentOS, etc), "make rpm" will build
 source and binary RPMs -- rpm looks inside the .tgz to find jove.spec.
-(Need to 'yum install rpm-build groff' or similar)
+(Need to 'yum install rpm-build groff' or similar first)
 
 It is possible to build a widely portable Linux binary using
 static compilation, perhaps using the musl library to keep
 size small.  E.g., using the small Alpine Linux docker image,
 one can use:
-
 	docker pull alpine
 	apk add gcc musl-dev make
 	make 'CC=gcc --static'
@@ -344,6 +346,9 @@ fixes, portability enhancements, and pieces of sage advice.
 Thanks to Arlindo da Silva and Dave Curry for the original Cygwin ports.
 
 Thanks to Ken Mitchum for the original Mac port.
+
+Thanks to Cord Beermann for Debian packaging, Paul Vixie for FreeBSD
+packaging and many fixes.
 
 Changes since 4.16
 ------------------
@@ -547,13 +552,18 @@ places diagnostics about the user and system .joverc files in the buffer
 Known problems
 --------------
 
-In an interactive process buffer, JOVE sometimes fails to receive an
-end-of-file through the pseudo-tty.  In this case, the process window
-will not be considered done, even though the child and all its
-ancestors are dead.  The only consequences are that the status
-display continues to report that the process is not done and that
-another process may not be started up in that buffer.  This only
-happens on certain systems, and we think that they are at fault.
+In an interactive process buffer, JOVE sometimes fails to
+receive an end-of-file through the pseudo-tty, reporting
+"[Process i-shell: Exited 0; not EOFed]" rather than
+"[Process i-shell: Done]".  In this case, the process window
+will not be considered done, even though the child and all
+its ancestors are dead.  The only consequences are that the
+status display continues to report that the process is not
+done and that another process may not be started up in that
+buffer.  This only happens on certain systems, not sure why.
+For example, this worked fine upto Debian 9, and broke in
+Debian 10 (using SYSVR4 ptys), and is fixed by switching to
+GLIBCPTY.  e.g. https://github.com/jonmacs/jove/issues/6
 
 If a window-find command is issued while the current window's lines
 are numbered, the numbering may become wrong temporarily.  We are

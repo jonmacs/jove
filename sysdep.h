@@ -39,8 +39,14 @@
 # define SYSVR4		1
 #endif
 
-#if defined(Linux) || defined(XLINUX)
-/* System: most modern Linux (RedHat6-on). Old Linux are BSDPOSIX_STDC */
+#if defined(XLINUX)
+/*
+ * System: Some Linux e.g. Debian 9 and earlier.  Very old Linux (e.g. before
+ * RedHat6) used BSD-compatible pty handling so BSDPOSIX_STDC is better for
+ * those. Middle-aged Linux (e.g. upto Debian 9) seemed to work better with
+ * SYSVR4 and _XOPEN_SOURCE defined.  Modern Linux (e.g. Debian 10 on) works
+ * better with GLIBCPTY, since they have openpty in libutil, and pty.h.
+ */
 # define SYSVR4		1
 # ifndef _XOPEN_SOURCE
 #  define _XOPEN_SOURCE	500
@@ -57,7 +63,7 @@
 # define JTC		1 /* no real point using curses for Cygwin, surely?! */
 #endif
 
-#if defined(GLIBCPTY)
+#if defined(Linux) || defined(GLIBCPTY)
 /*
  * modern glibc e.g. Linux, Cygwin) provides openpty and pty.h
  * so this is also Linux alternative.

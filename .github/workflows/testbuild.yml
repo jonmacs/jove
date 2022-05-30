@@ -26,7 +26,7 @@ jobs:
       - name: HostedUbuPrep
         if: startsWith(matrix.os, 'ubuntu-')
         run: |
-          sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y gcc make exuberant-ctags zip ncurses-dev groff       
+          sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y gcc make pkg-config ncurses-dev exuberant-ctags zip groff
       - name: HostedTestBuild
         run: |
           ./testbuild.sh
@@ -35,8 +35,14 @@ jobs:
     strategy:
       matrix:
         container:
+        - 'debian:9'
         - 'debian:11'
         - 'debian:testing'
+        - 'alpine:3.9'
+        - 'alpine:3.14'
+        - 'centos:7'
+        - 'fedora:30'
+        - 'fedora:34'
     runs-on: ubuntu-latest
     container: ${{ matrix.container }}
     steps:
@@ -46,8 +52,20 @@ jobs:
       - name: ContainerAptPrep
         if: startsWith(matrix.container, 'debian:')
         run: |
-          apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y gcc make exuberant-ctags zip ncurses-dev groff       
+          apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y gcc make pkg-config ncurses-dev exuberant-ctags zip groff
+      - name: ContainerApkPrep
+        if: startsWith(matrix.container, 'alpine:')
+        run: |
+          apk update && apk add gcc make pkgconfig ncurses-dev ctags zip groff 
+      - name: ContainerRpmPrep
+        if: startsWith(matrix.container, 'centos:') || startsWith(matrix.container, 'fedora:')
+        run: |
+	  yum install -y make gcc ncurses-devel zip groff ctags rpm-build
       - name: ContainerTestBuild
         run: |
           ./testbuild.sh
+      - name: ContainerRpmBuild
+        if: startsWith(matrix.container, 'centos:') || startsWith(matrix.container, 'fedora:')
+        run: |
+	  make rpm && rpm -i $HOME/rpmbuild/RPMS/x86_64/jove-4*.rpm
       - run: echo "status=${{ job.status }}."
