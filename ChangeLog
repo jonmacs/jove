@@ -1,3 +1,16 @@
+commit b36f587cf4990a266812d48a38ae73bbdb3ef12a
+Author: Mark Moraes <moraes@computer.org>
+Date:   Mon May 30 01:51:27 2022 -0400
+
+    4.17.4.1 fixed sysdep.h, buildflags.h and jspec.in so Linux
+    now uses GLIBCPTY (aka OPENPTY, BSDPOSIX_STDC rather than
+    SYSVR4) since modern Linux (Debian 10 on, Alpine 3.13) seem
+    to hit the issue reported in
+    https://github.com/jonmacs/jove/issues/6 where the exit of
+    interactive shells (when they see an EOF) confuses Jove.
+    
+    Added CentOS, Fedora, Alpine to the github actions build matrix.
+
 commit bba72938670cc350c45adc47222827382a5ea4a2
 Author: Mark Moraes <moraes@computer.org>
 Date:   Sat May 28 17:05:45 2022 -0400

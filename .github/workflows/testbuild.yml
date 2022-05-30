@@ -60,12 +60,12 @@ jobs:
       - name: ContainerRpmPrep
         if: startsWith(matrix.container, 'centos:') || startsWith(matrix.container, 'fedora:')
         run: |
-	  yum install -y make gcc ncurses-devel zip groff ctags rpm-build
+          yum install -y make gcc ncurses-devel zip groff ctags rpm-build
       - name: ContainerTestBuild
         run: |
           ./testbuild.sh
       - name: ContainerRpmBuild
         if: startsWith(matrix.container, 'centos:') || startsWith(matrix.container, 'fedora:')
         run: |
-	  make rpm && rpm -i $HOME/rpmbuild/RPMS/x86_64/jove-4*.rpm
+          make rpm && rpm -i $HOME/rpmbuild/RPMS/x86_64/jove-4*.rpm
       - run: echo "status=${{ job.status }}."
