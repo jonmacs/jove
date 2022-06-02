@@ -54,7 +54,7 @@ esac
 make .version
 ver=$(cat .version)
 dist=DIST/$TB_OS-$TB_MACH-$TB_NODE
-if test ! -d $dist; then mkdir $dist; fi
+if test ! -d $dist; then mkdir -p $dist; fi
 
 # note: older *BSD, OSX, Solaris require a template
 td=$(mktemp -d "${TMPDIR:-/tmp}/jvt.XXXXXXXX")
