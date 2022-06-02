@@ -49,6 +49,9 @@ case $# in
 	;;
 esac
 
+# directory for artifacts
+if test ! -d DIST; then mkdir DIST; fi
+
 # note: older *BSD, OSX, Solaris require a template
 td=$(mktemp -d "${TMPDIR:-/tmp}/jvt.XXXXXXXX")
 dd="DESTDIR=$td"
@@ -114,25 +117,37 @@ if type zip 2> /dev/null; then
 		mv jove*s.zip DIST
 	fi
 fi &&
-if type rpmbuild 2> /dev/null && test -d DIST; then
+if test -e /etc/redhat-release; then
 	make rpm &&
-	if test DIST; then
-		rpm -i $HOME/rpmbuild/RPMS/x86_64/jove-[4-9]*.rpm &&
+	rpm -i $HOME/rpmbuild/RPMS/x86_64/jove-[4-9]*.rpm &&
+	if test -d DIST; then
 		mv $HOME/rpmbuild/*RPMS/x86_64/jove-[4-9]*.rpm DIST
 	fi
-elif test -e /etc/alpine-release -a -d DIST; then
+elif test -e /etc/alpine-release; then
 	make .version &&
-	u=$(uname) &&
-	r=$(cat .version)-$(uname)-$(uname -m)-static &&
+	r=$(cat .version)-$TB_OS-$TB_MACH-static &&
 	make SYSDEFS="-D$TB_OS -DJTC" TERMCAPLIB= OPTFLAGS="-Os -static" &&
-	strip jjove recover teachjove &&
-	mv jjove DIST/jove-$r/jove &&
-	mv recover teachjove $DIST/jove-$r &&
-	cp -pr README paths.h doc DIST/jove-$r/ &&
-	tar -c -j -v -f DIST/jove-$r.tar.bz2 DIST/jove-$r
-elif type i686-w64-mingw32-gcc  2> /dev/null && test -e /etc/debian_version -a -d DIST; then
+	if test -d DIST; then
+		if test ! -d DIST/jove-$r; then mkdir DIST/jove-$r; fi &&
+		strip jjove recover teachjove &&
+		mv jjove DIST/jove-$r/jove &&
+		mv recover teachjove $DIST/jove-$r &&
+		cp -pr README paths.h doc DIST/jove-$r/ &&
+		tar -c -j -v -f DIST/jove-$r.tar.bz2 -C DIST jove-$r &&
+		rm -r DIST/jove-$r
+	fi
+elif type i686-w64-mingw32-gcc 2> /dev/null ; then
+	make .version &&
+	r=$(cat .version)-$TB_OS-$TB_MACH-mingw &&
 	make CC=i686-w64-mingw32-gcc SYSDEFS="-DMINGW" LOCALCC=gcc TERMCAPLIB= XEXT=.exe EXTRAOBJS="win32.o jjove.coff" EXTRALIBS=-lcomdlg32 &&
 	make XEXT=.exe clean
+	if test -d DIST; then
+		if test ! -d DIST/jove-$r; then mkdir DIST/jove-$r; fi &&
+		mv jjove.exe DIST/jove-$r/jove &&
+		mv recover.exe teachjove.exe DIST/jove-$r &&
+		cp -pr README paths.h doc DIST/jove-$r &&
+		cd DIST && zip -rm jove-$r.zip jove-$r && cd ..
+	fi
 fi &&
 ls -s $(find $td | grep /bin/) &&
 rm -rf $td &&

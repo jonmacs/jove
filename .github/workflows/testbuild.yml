@@ -21,6 +21,9 @@ jobs:
       - uses: actions/checkout@v3
       - run: ./testbuild.sh --sudo-preinstall
       - run: echo "status=${{ job.status }}."
+      - uses: actions/upload-artifact@v3
+        with:
+          path: DIST
   for-containers:
     strategy:
       fail-fast: false
@@ -43,3 +46,6 @@ jobs:
       - if: startsWith(matrix.container, 'centos:') || startsWith(matrix.container, 'fedora:')
         run: rpm -i $HOME/rpmbuild/RPMS/x86_64/jove-4*.rpm
       - run: echo "status=${{ job.status }}."
+      - uses: actions/upload-artifact@v3
+        with:
+          path: DIST
