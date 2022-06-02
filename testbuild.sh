@@ -7,8 +7,8 @@
 : ${TB_REV=$(uname -r)}
 
 echo TB_MACH=$TB_MACH TB_OS=$TB_OS TB_REV=$TB_REV
-
-for f in /etc/*-release; do if test -r "$f"; then cat "$f"; fi; done
+echo
+for f in /etc/*-release; do if test -r "$f"; then echo ">>> $f"; cat "$f"; echo; fi; done
 
 set -eux
 case $# in
@@ -24,7 +24,7 @@ case $# in
 		exit 1
 		;;
 	esac
-	if type apt 2> /dev/null; then
+	if type apt-get 2> /dev/null; then
 		$SUDO apt-get update
 		$SUDO env DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y gcc make pkg-config ncurses-dev exuberant-ctags zip groff
 		case "$TB_MACH" in
@@ -117,6 +117,7 @@ fi &&
 if test -e /etc/redhat-release -a -d DIST; then
 	make rpm &&
 	if test DIST; then
+		rpm -i $HOME/rpmbuild/RPMS/x86_64/jove-[4-9]*.rpm &&
 		mv $HOME/rpmbuild/*RPMS/x86_64/jove-[4-9]*.rpm DIST
 	fi
 elif test -e /etc/alpine-release -a -d DIST; then
@@ -129,7 +130,7 @@ elif test -e /etc/alpine-release -a -d DIST; then
 	mv recover teachjove $DIST/jove-$r &&
 	cp -pr README paths.h doc DIST/jove-$r/ &&
 	tar -c -j -v -f DIST/jove-$r.tar.bz2 DIST/jove-$r
-elif type i686-w64-mingw32-gcc && test -e /etc/debian_version -a -d DIST; then
+elif type i686-w64-mingw32-gcc  2> /dev/null && test -e /etc/debian_version -a -d DIST; then
 	make CC=i686-w64-mingw32-gcc SYSDEFS="-DMINGW" LOCALCC=gcc TERMCAPLIB= XEXT=.exe EXTRAOBJS="win32.o jjove.coff" EXTRALIBS=-lcomdlg32 &&
 	make XEXT=.exe clean
 fi &&
