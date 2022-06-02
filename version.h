@@ -5,5 +5,6 @@
  * this notice is included in all the source files and documentation.     *
  **************************************************************************/
 
-#define jversion	"4.17.4.2"
-#define jversion_lnum	4,17,4,2	/* for windows jjove.rc file */
+/* NOTE: use only spaces, no TABS below to ensure "make .version" works */
+#define jversion "4.17.4.2" /* make .version uses sed to extract this */
+#define jversion_lnum 4,17,4,2   /* for windows jjove.rc file */

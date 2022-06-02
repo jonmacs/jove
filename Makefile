@@ -304,9 +304,10 @@ keys.o:	keys.c tune.h sysdep.h jove.h keymaps.h dataobj.h commands.h
 
 .ALWAYS:
 
+# BSD sed cannot handle \t, and having tabs in the whitespace feels fragile.
 .version: .ALWAYS
 	@-rm -f version.h.tmp
-	@sed -n 's/# *define  *jversion[ \t]*"\([0-9\\.]*\)".*/\1/p' version.h > .version.tmp; \
+	@sed -n 's/# *define  *jversion  *"\([0-9\\.]*\)".*/\1/p' version.h > .version.tmp; \
 	if ! $(CMP) -s .version.tmp .version 2> /dev/null; then mv .version.tmp .version; else rm .version.tmp; fi
 
 jove.spec: .version .ALWAYS
