@@ -110,7 +110,7 @@ GLIBC)
     make clean
     ;;
 esac &&
-make $x tgz && jove-*.tgz DIST &&
+make $x tgz && mv jove-*.tgz DIST &&
 if type zip 2> /dev/null; then
 	make $x zip && 
 	mv jove*s.zip DIST

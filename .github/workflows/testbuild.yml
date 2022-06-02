@@ -43,8 +43,6 @@ jobs:
       - run: echo "event=${{ github.event_name }} runner=${{ runner.os }} os=${{ matrix.container }} branch=${{ github.ref }} repo=${{ github.repository }}."
       - uses: actions/checkout@v3
       - run: ./testbuild.sh --preinstall
-      - if: startsWith(matrix.container, 'centos:') || startsWith(matrix.container, 'fedora:')
-        run: rpm -i $HOME/rpmbuild/RPMS/x86_64/jove-4*.rpm
       - run: echo "status=${{ job.status }}."
       - uses: actions/upload-artifact@v3
         with:
