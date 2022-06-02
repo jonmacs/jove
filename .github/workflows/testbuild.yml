@@ -20,7 +20,7 @@ jobs:
       - run: echo "event=${{ github.event_name }} runner=${{ runner.os }} os=${{ matrix.os }} branch=${{ github.ref }} repo=${{ github.repository }}."
       - uses: actions/checkout@v3
       - run: ./testbuild.sh --sudo-preinstall
-      - run: echo "status=${{ job.status }}"
+      - run: echo "status=${{ job.status }}."
   for-containers:
     strategy:
       fail-fast: false
@@ -37,9 +37,9 @@ jobs:
     runs-on: ubuntu-latest
     container: ${{ matrix.os }}
     steps:
-      - run: ${{ echo "event=${{ github.event_name }} runner=${{ runner.os }} os=${{ matrix.container }} branch=${{ github.ref }} repo=${{ github.repository }}."
+      - run: echo "event=${{ github.event_name }} runner=${{ runner.os }} os=${{ matrix.container }} branch=${{ github.ref }} repo=${{ github.repository }}."
       - uses: actions/checkout@v3
       - run: ./testbuild.sh --preinstall
       - if: startsWith(matrix.container, 'centos:') || startsWith(matrix.container, 'fedora:')
         run: rpm -i $HOME/rpmbuild/RPMS/x86_64/jove-4*.rpm
-      - run: echo "status=${{ job.status }}"
+      - run: echo "status=${{ job.status }}."
