@@ -37,7 +37,7 @@ case $# in
 	elif type yum 2> /dev/null; then
 		$SUDO yum install -y make gcc ncurses-devel zip groff ctags rpm-build
 	elif type brew 2> /dev/null; then
-		$SUDO brew install make ctags zip ncurses
+		brew install make ctags zip ncurses
 	elif type pacman 2> /dev/null; then
 		$SUDO pacman -Sy gcc make pkgconf ncurses
 	elif type nix-shell 2> /dev/null; then
@@ -114,7 +114,7 @@ if type zip 2> /dev/null; then
 		mv jove*s.zip DIST
 	fi
 fi &&
-if test -e /etc/redhat-release -a -d DIST; then
+if type rpmbuild 2> /dev/null && test -d DIST; then
 	make rpm &&
 	if test DIST; then
 		rpm -i $HOME/rpmbuild/RPMS/x86_64/jove-[4-9]*.rpm &&
