@@ -1,3 +1,5 @@
+   4.17.4.2 move preinstall from testbuild.yml to testbuild.sh
+
 commit b36f587cf4990a266812d48a38ae73bbdb3ef12a
 Author: Mark Moraes <moraes@computer.org>
 Date:   Mon May 30 01:51:27 2022 -0400

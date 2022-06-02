@@ -83,15 +83,6 @@ INSTALLFLAGS = # -g bin -o root
 # Linux/modern BSD/CYGWIN
 XINSTALL=install $(INSTALLFLAGS) -m 755
 TINSTALL=install $(INSTALLFLAGS) -m 444
-# newer Solaris 2.x aka SunOS 5.x
-#XINSTALL=/usr/gnu/bin/install $(INSTALLFLAGS) -m 755
-#TINSTALL=/usr/gnu/bin/install $(INSTALLFLAGS) -m 444
-# SysV-derivatives, or non-BSD Unix (V7, etc)
-#XINSTALL=cp
-#TINSTALL=cp
-# 4BSD, SunOS
-#XINSTALL=/usr/ucb/install $(INSTALLFLAGS) -c -m 755 # -s
-#TINSTALL=/usr/ucb/install $(INSTALLFLAGS) -c -m 644
 
 # These should all just be right if the above ones are.
 # You will confuse JOVE if you move anything from LIBDIR or SHAREDIR.
@@ -120,14 +111,6 @@ SYSDEFS = `./buildflags.sh --cflags`
 # Other compiler flags, flags passed to compiling and linking steps
 # On most systems: -g for debugging, -O for optimization.
 # -Os produces smaller binaries with gcc, should not hurt performance
-# On the official Sun ANSI C compiler and the standard System V Release 4
-# compiler, adding -Xa -v will increase compiler checking.
-# On DEC OSF/1 and Digital UNIX VV4.0, add -std1 to enable ANSI C features
-# and perhaps -g3 for more debugging info with optimization.
-# Some old versions of the HPUX C compiler have a bug in handling forward
-# struct tag declarations.  Using the -Ac flag in place of -Ae will avoid
-# this problem (and reduce the compiler's error checking, unfortunately).
-
 OPTFLAGS = # -g -O -Wall -pedantic
 
 # For making dependencies under BSD systems
@@ -140,12 +123,6 @@ DEPENDFLAG = -M
 # as part of the ncurses or tinfo packages.
 # For systems without dynamic libraries, termcap or terminfo are smaller,
 # and preferable to the bulkier curses library.
-#	BSD4.x, BSDI, SunOS4: TERMCAPLIB=-ltermcap
-#	Old Cygwin32: TERMCAPLIB=-L/usr/local/lib -lcurses
-#	SysV Rel. 2: TERMCAPLIB=-lcurses
-#	SCO UNIX: TERMCAPLIB=-lcurses
-#	AIX on the R6000s: TERMCAPLIB=-lcurses -ltermcap -ls
-#	OpenSuSE: TERMCAPLIB=-lncurses
 # Jove comes with a simplified termcap substitute that only supports
 # ANSI X.3/VT[1-5]xx or compatible terminal emulators like xterm, rxvt, etc,
 # which is almost certainly all that is necessary on modern machines.
@@ -154,52 +131,27 @@ DEPENDFLAG = -M
 TERMCAPLIB = `./buildflags.sh --libs`
 
 # Extra libraries flags needed by various systems.
-# Some BSD systems using openpty need the util library.
-#	4.1BSD:	EXTRALIBS = -ljobs
-
 EXTRALIBS =
 
 # Flags of linker (LDFLAGS)
 # Most systems do not need any flags.
-# Known exceptions:
-#	SysV Rel. 2: LDFLAGS = -Ml
-#	SCO Xenix: LDFLAGS = -Ml -F 3000
-#	AIX Unix: LDFLAGS = -bloadmap:$@.map # only if loadmap
-#
-# To optimize the use of the address spaces, add to the LDFLAGS:
-#	PDP-11 with separate I&D: -i
-#	PDP-11 without separate I&D: -n
-
 LDFLAGS =
-
-# for SCO Xenix, set
-#	MEMFLAGS = -Mle
-#	CFLAGS = -LARGE -O -F 3000 -K -Mle  (say -Mle2 for an 80286)
 
 CFLAGS = $(OPTFLAGS) $(SYSDEFS)
 
-# For SYSVR4 (/usr/ucb/cc will NOT work because of setjmp.h):
-#	CC = /usr/bin/cc
-# To use the SunPro compiler under SunOS 4.n:
-#	CC = acc
-# To use the official Sun compiler under Solaris 2.n:
-#	CC = /opt/SUNWspro/bin/cc
-# For DG AViiON, expect compile errors unless you use the GNU C compiler:
-#	CC=gcc
-
-# Load invocation of cc.
-# to use Purify(TM): LDCC = purify $(CC)
-
+# LDCC can be used for link-time tools instead of CC
 LDCC = $(CC)
 
 # For cross compiling Jove, set CC to the cross compiler, and LOCALCC
 # to the local C compiler. LOCALCC will be used for compiling setmaps,
 # which is run as part of the compilation to generate the keymaps.
-# Set LOCALCFLAGS and LOCALLDFLAGS appropriately too. For Xenix, note
-# that LOCALCFLAGS must be set to $(MEMFLAGS)
+# Set LOCALCFLAGS and LOCALLDFLAGS to anything extra (other than SYSDEFS,
+# which is set automatically), though no optimization or debug or special
+# flags are usually needed (other than Xenix?!), since setmaps is 
+# run just once, so use whatever compiles fastest.
 
 LOCALCC = $(CC)
-LOCALCFLAGS = # $(MEMFLAGS)
+LOCALCFLAGS =
 LOCALLDFLAGS = $(LDFLAGS)
 LOCALEXTRALIBS = 
 LOCALEXT = 
@@ -299,6 +251,8 @@ all:	jjove$(XEXT) recover$(XEXT) teachjove$(XEXT) portsrv$(XEXT) $(FDOCS) \
 jjove$(XEXT):	$(OBJECTS) $(EXTRAOBJS)
 	$(LDCC) $(LDFLAGS) $(OPTFLAGS) -o jjove$(XEXT) $(OBJECTS) $(EXTRAOBJS) $(EXTRALIBS) $(TERMCAPLIB)
 	@-size jjove$(XEXT)
+	@-echo compiled with $(CC) $(CFLAGS)
+	@-echo linked $(XEXT) with $(LDCC) $(LDFLAGS) $(OPTFLAGS) $(EXTRAOBJS) $(EXTRALIBS) $(TERMCAPLIB)
 
 # For mingw icon
 jjove.coff: jjove.rc version.h

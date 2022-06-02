@@ -169,46 +169,6 @@ and may provide a guide to customization.
 #	OpenBSD 6.6			SYSDEFS=-DOpenBSD TERMCAPLIB-ltermcap EXTRALIBS=-lutil
 #	SunOS5.1 onwards (Solaris/OpenIndiana/Illumos/Joyent)	SYSDEFS=-DSunOS TERMCAPLIB=-ltermcap
 
-The following used to work circa Jove 4.16 in the 1990s and have probably not
-been tested in the 21st century, they may still work but some of this
-ancient support may be deleted from Jove at some point, we welcome
-any recent success stories from jove builders/packagers to refresh
-or maintain these. Pretty please! Almost all these need TERMCAPLIB=-ltermcap
-
-
-#	Apple A/UX on macIIs		SYSDEFS=-DA_UX
-#	BSD4.2,4.3			SYSDEFS=-DBSD4
-#	BSDI, 386BSD, BSD4.4		SYSDEFS=-DBSDPOSIX
-#	Consensys V4			SYSDEFS="-DSYSVR4 -DGRANTPT_BUG"
-#	Compaq Tru64 UNIX V4.0g, 5.1	SYSDEFS=-DSYSVR4
-#	DEC OSF R1.3MK			SYSDEFS=-DSYSVR4
-#	DEC OSF/1 V1.3			SYSDEFS="-DBSDPOSIX -DNO_TIOCREMOTE -DNO_TIOCSIGNAL"
-#	DEC OSF/1 V2.0 and later	SYSDEFS=-DSYSVR4
-#	DEC Ultrix 4.2			SYSDEFS=-DBSDPOSIX
-#	DEC Ultrix 4.3			SYSDEFS="-DBSDPOSIX -DJVDISABLE=255"
-#	Digital UNIX V4.0 and later	SYSDEFS="-DSYSVR4 -DGRANTPT_BUG"
-#	DG AViiON 5.3R4			SYSDEFS="-DSYSVR4 -DBSD_SIGS"
-#	HP/UX 8 or 9			SYSDEFS="-DHPUX -Ac"
-#	HP/UX 11 (-Ac redundant)	SYSDEFS=-DHPUX
-#	IBM AIX 3.2			SYSDEFS=-DAIX3_2
-#	IBM AIX 4.2, 5.2		SYSDEFS="-DAIX4_2" TERMCAPLIB="-lcurses -ls"
-#	Irix 3.3-4.0.5			SYSDEFS="-DIRIX -DIRIX4"
-#	Irix 5.0 onwards		SYSDEFS="-DIRIX -prototypes"
-#	Linux (older, eg. RedHat 4, 5)	SYSDEFS=-DBSDPOSIX
-#	MIPS RiscOS4.x			SYSDEFS="-systype bsd43 -DBSD4"
-#	SCO Unix			SYSDEFS=-DSCO
-#	SunOS3.x			SYSDEFS=-DSUNOS3
-#	SunOS4.0*			SYSDEFS=-DSUNOS40
-#	SunOS4.1*			SYSDEFS=-DSUNOS41
-#	SunOS5.0 (Solaris 2.0)		SYSDEFS="-DSYSVR4 -DGRANTPT_BUG"
-#	Sys III, Sys V R 2,3		SYSDEFS=-DSYSV PORTSRVINST='$(PORTSRV)'
-#	Sys V Release 4.0		SYSDEFS="-DSYSVR4 -DGRANTPT_BUG"
-#	Sys V Release 4.x		SYSDEFS=-DSYSVR4
-#
-Some systems based on System V release 4 have a bug affecting interactive
-processes.  This bug can be worked around by defining GRANTPT_BUG.
-Read the explanation of GRANTPT_BUG in sysdep.doc.
-
 Next you may edit "tune.h" to select the compile time features you care
 about.  See "tune.doc" for a description of all the compile time options.
 The default options are quite reasonable so, in most cases, you should
@@ -244,11 +204,6 @@ in /usr/preserve.
 If you plan on using JOVE with a xterm, look at doc/XTermresource.
 This file contains resource declarations that allow JOVE to respond to
 more function keys and mouse gestures.
-
-For the pdp11 version there is the Ovmakefile.  This has only been
-tested on 2.9bsd once upon a very long ago.  It supposedly worked,
-and it was possible to turn on all the compile time options with this
-version.
 
 For RPM-based Linux, jspec.in specifies how an RPM should be created.
 On most modern Red Hat Linux (Fedora, CentOS, etc), "make rpm" will build
@@ -310,6 +265,104 @@ Optionally, if you want to use 'make zip' to build a source
 archive suited to DOS/Windows, you will need the zip program
 (generally, a package called zip on most Linux/*BSD)
 
+Older, once-working systems
+----------------------------
+For the pdp11 version there was once the Ovmakefile, which had only been
+tested on 2.9bsd once upon a very long ago.  It supposedly worked.
+and it was possible to turn on all the compile time options with that
+version. Maybe someone will try a PDP-11 emulator one day with 2.11BSD
+and report back?!
+
+The following used to work circa Jove 4.16 in the 1990s and have probably not
+been tested in the 21st century, they may still work but some of this
+ancient support may be deleted from Jove at some point, we welcome
+any recent success stories from jove builders/packagers to refresh
+or maintain these. Pretty please! Most need TERMCAPLIB=-ltermcap,
+but if you get link errors for tputs or tparm, try TERMCAPLIB=-lcurses
+
+#	Apple A/UX on macIIs		SYSDEFS=-DA_UX
+#	BSD4.2,4.3			SYSDEFS=-DBSD4
+#	BSD4.1				SYSDEFS=-DBSD4 EXTRALIBS = -ljobs
+#	BSDI, 386BSD, BSD4.4		SYSDEFS=-DBSDPOSIX
+#	Consensys V4			SYSDEFS="-DSYSVR4 -DGRANTPT_BUG"
+#	Compaq Tru64 UNIX V4.0g, 5.1	SYSDEFS=-DSYSVR4
+#	DEC OSF R1.3MK			SYSDEFS=-DSYSVR4
+#	DEC OSF/1 V1.3			SYSDEFS="-DBSDPOSIX -DNO_TIOCREMOTE -DNO_TIOCSIGNAL"
+#	DEC OSF/1 V2.0 and later	SYSDEFS=-DSYSVR4
+#	DEC Ultrix 4.2			SYSDEFS=-DBSDPOSIX
+#	DEC Ultrix 4.3			SYSDEFS="-DBSDPOSIX -DJVDISABLE=255"
+#	Digital UNIX V4.0 and later	SYSDEFS="-DSYSVR4 -DGRANTPT_BUG"
+#	DG AViiON 5.3R4			SYSDEFS="-DSYSVR4 -DBSD_SIGS"
+#	HP/UX 8 or 9			SYSDEFS="-DHPUX -Ac"
+#	HP/UX 11 (-Ac redundant)	SYSDEFS=-DHPUX
+#	IBM AIX 3.2			SYSDEFS=-DAIX3_2
+#	IBM AIX 4.2, 5.2		SYSDEFS="-DAIX4_2" TERMCAPLIB="-lcurses -ltermcap -ls"
+#	Irix 3.3-4.0.5			SYSDEFS="-DIRIX -DIRIX4"
+#	Irix 5.0 onwards		SYSDEFS="-DIRIX -prototypes"
+#	Linux (ancient e.g. RedHat 4,5)	SYSDEFS=-DBSDPOSIX
+#	MIPS RiscOS4.x			SYSDEFS="-systype bsd43 -DBSD4"
+#	SCO Unix			SYSDEFS=-DSCO TERMCAPLIB=-lcurses
+#	SunOS3.x			SYSDEFS=-DSUNOS3
+#	SunOS4.0*			SYSDEFS=-DSUNOS40
+#	SunOS4.1*			SYSDEFS=-DSUNOS41
+#	SunOS5.0 (Solaris 2.0)		SYSDEFS="-DSYSVR4 -DGRANTPT_BUG"
+#	Sys III, Sys V R 2,3		SYSDEFS=-DSYSV PORTSRVINST='$(PORTSRV)' TERMCAPLIB=-lcurses
+#	Sys V Release 4.0		SYSDEFS="-DSYSVR4 -DGRANTPT_BUG" TERMCAPLIB=-lcurses
+#	Sys V Release 4.x		SYSDEFS=-DSYSVR4 TERMCAPLIB=-lcurses
+#
+Some systems based on System V release 4 have a bug affecting interactive
+processes.  This bug can be worked around by defining GRANTPT_BUG.
+Read the explanation of GRANTPT_BUG in sysdep.doc.
+
+Notes for invoking make:
+
+# For SYSVR4 (/usr/ucb/cc will NOT work because of setjmp.h):
+#	CC = /usr/bin/cc
+# To use the SunPro compiler under SunOS 4.n:
+#	CC = acc
+# To use the official Sun compiler under Solaris 2.n:
+#	CC = /opt/SUNWspro/bin/cc
+# For DG AViiON, expect compile errors unless you use the GNU C compiler:
+#	CC=gcc
+
+LDCC is the load invocation of CC which can be changed to invoke
+link-time tools e.g. to use Purify(TM), try:
+LDCC = purify $(CC)
+
+Systems that used to need LDFLAGS 
+#	SysV Rel. 2: LDFLAGS = -Ml
+#	SCO Xenix: LDFLAGS = -Ml -F 3000
+#	AIX Unix: LDFLAGS = -bloadmap:$@.map # only if loadmap
+#
+# To optimize the use of the address spaces, add to the LDFLAGS:
+#	PDP-11 with separate I&D: -i
+#	PDP-11 without separate I&D: -n
+
+
+For SCO Xenix, this might need to be set
+#	LOCALCFLAGS = -Mle
+#	CFLAGS = -LARGE -O -F 3000 -K -Mle  (say -Mle2 for an 80286)
+
+
+For compiler OPTFLAGS set in the Makefile:
+# On the official Sun ANSI C compiler and the standard System V Release 4
+# compiler, adding -Xa -v will increase compiler checking.
+# On DEC OSF/1 and Digital UNIX VV4.0, add -std1 to enable ANSI C features
+# and perhaps -g3 for more debugging info with optimization.
+# Some old versions of the HPUX C compiler have a bug in handling forward
+# struct tag declarations.  Using the -Ac flag in place of -Ae will avoid
+# this problem (and reduce the compiler's error checking, unfortunately).
+
+# For install on 4BSD, SunOS
+#XINSTALL=/usr/ucb/install $(INSTALLFLAGS) -c -m 755 # -s
+#TINSTALL=/usr/ucb/install $(INSTALLFLAGS) -c -m 644
+# newer Solaris 2.x aka SunOS 5.x
+#XINSTALL=/usr/gnu/bin/install $(INSTALLFLAGS) -m 755
+#TINSTALL=/usr/gnu/bin/install $(INSTALLFLAGS) -m 444
+# SysV-derivatives, or non-BSD Unix (V7, etc)
+#XINSTALL=cp
+#TINSTALL=cp
+
 Some acknowledgments.
 ---------------------
 
@@ -328,6 +381,10 @@ Thanks to Ken Mitchum for the Macintosh version.
 Thanks to Hugh Redelmeier for his input, his experience, countless bug
 fixes, and ... that's it, I guess.
 
+Thanks to Arlindo da Silva and Dave Curry for the original Cygwin ports.
+
+Thanks to Ken Mitchum for the original Mac port.
+
 (Thanks to Brian Harvey for teaching me about linked lists ...)
 
 Good luck, have fun.
@@ -343,14 +400,30 @@ fixes, portability enhancements, and pieces of sage advice.
 
 	D. Hugh Redelmeier
 
-Thanks to Arlindo da Silva and Dave Curry for the original Cygwin ports.
-
-Thanks to Ken Mitchum for the original Mac port.
-
 Thanks to Cord Beermann for Debian packaging, Paul Vixie for FreeBSD
 packaging and many fixes.
 
-Changes since 4.16
+        Mark Moraes
+
+Changes in 4.17.*
+-----------------
+
+- github
+- Portability fixes, mainly removal of overlapping strcpy
+  for Linux, *BSD, Darwin/MacOS, but also Windows and MinGW
+  fixes, FreeDOS (!), OpenIndiana.
+- Much build cleanup/revamp. Remove some ancient systems from
+  sysdep.h since there seems no hope of testing them.
+- Use aspell if available on Linux
+- handle terminals wider than 256 chars!
+- handle line-numbering correctly if >1M lines!
+- Default line length max to 32K now
+- Fast/simple code to directly handle 99.9% of all currently
+  used terminals (vt100+ derivatives) without needing termcap/terminfo/curses.
+- Do not allow writeback of files if lines were too long, and thus truncated,
+  do not conflate shell output windows with files of the same name.
+
+Changes in 4.16.*
 ------------------
 
 - Portability fixes.  Most important: work around a never-to-be-fixed
@@ -506,9 +579,10 @@ displayed correctly, and will be treated as upper/lower case, etc in the
 correct manner.  The default locale is "C", which reverts to 7-bit ASCII with
 the top 128 characters being displayed in octal.
 
-The format of the "jrec" file has changed.  This means that previous
-versions of recover cannot deal with the files left by crashes of the new
-JOVE, and vice versa.
+The format of the "jrec" file (now "jr*" ) has changed.
+This means that previous versions of recover cannot deal
+with the files left by crashes of the new JOVE, and vice versa.
+4.17+ recover will realize this.
 
 Here is a list of reasons why your .joverc might no longer work.  JOVE
 places diagnostics about the user and system .joverc files in the buffer

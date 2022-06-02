@@ -18,25 +18,14 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - run: echo "event=${{ github.event_name }} runner=${{ runner.os }} os=${{ matrix.os }} branch=${{ github.ref }} repo=${{ github.repository }}."
-      - name: HostedCheckout
-        uses: actions/checkout@v3
-      - name: HostedMacPrep
-        if: startsWith(matrix.os, 'macos-')
-        run: |
-          brew install make ctags zip ncurses
-      - name: HostedUbuPrep
-        if: startsWith(matrix.os, 'ubuntu-')
-        run: |
-          sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y gcc make pkg-config ncurses-dev exuberant-ctags zip groff
-      - name: HostedTestBuild
-        run: |
-          ./testbuild.sh
-      - run: echo "status=${{ job.status }}."
+      - uses: actions/checkout@v3
+      - run: ./testbuild.sh --sudo-preinstall
+      - run: echo "status=${{ job.status }}"
   for-containers:
     strategy:
       fail-fast: false
       matrix:
-        container:
+        os:
         - 'debian:9'
         - 'debian:11'
         - 'debian:testing'
@@ -46,28 +35,11 @@ jobs:
         - 'fedora:30'
         - 'fedora:34'
     runs-on: ubuntu-latest
-    container: ${{ matrix.container }}
+    container: ${{ matrix.os }}
     steps:
-      - run: echo "event=${{ github.event_name }} os=${{ runner.os }} container=${{ matrix.container }} branch=${{ github.ref }} repo=${{ github.repository }}."
-      - name: ContainerCheckout
-        uses: actions/checkout@v3
-      - name: ContainerAptPrep
-        if: startsWith(matrix.container, 'debian:')
-        run: |
-          apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y gcc make pkg-config ncurses-dev exuberant-ctags zip groff
-      - name: ContainerApkPrep
-        if: startsWith(matrix.container, 'alpine:')
-        run: |
-          apk update && apk add gcc make pkgconfig musl-dev ncurses-dev ctags zip groff 
-      - name: ContainerRpmPrep
-        if: startsWith(matrix.container, 'centos:') || startsWith(matrix.container, 'fedora:')
-        run: |
-          yum install -y make gcc ncurses-devel zip groff ctags rpm-build
-      - name: ContainerTestBuild
-        run: |
-          ./testbuild.sh
-      - name: ContainerRpmBuild
-        if: startsWith(matrix.container, 'centos:') || startsWith(matrix.container, 'fedora:')
-        run: |
-          make rpm && rpm -i $HOME/rpmbuild/RPMS/x86_64/jove-4*.rpm
-      - run: echo "status=${{ job.status }}."
+      - run: ${{ echo "event=${{ github.event_name }} runner=${{ runner.os }} os=${{ matrix.container }} branch=${{ github.ref }} repo=${{ github.repository }}."
+      - uses: actions/checkout@v3
+      - run: ./testbuild.sh --preinstall
+      - if: startsWith(matrix.container, 'centos:') || startsWith(matrix.container, 'fedora:')
+        run: rpm -i $HOME/rpmbuild/RPMS/x86_64/jove-4*.rpm
+      - run: echo "status=${{ job.status }}"

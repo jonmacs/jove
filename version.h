@@ -5,5 +5,5 @@
  * this notice is included in all the source files and documentation.     *
  **************************************************************************/
 
-#define jversion	"4.17.4.1"
-#define jversion_lnum	4,17,4,1	/* for windows jjove.rc file */
+#define jversion	"4.17.4.2"
+#define jversion_lnum	4,17,4,2	/* for windows jjove.rc file */

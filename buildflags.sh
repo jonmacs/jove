@@ -4,7 +4,7 @@
 # Falls back to JTC (Jove built-in termcap for vt1xx) to avoid
 # external dependencies.
 u=`uname | tr -d -c '[a-zA-Z0-9_]'`
-o="-Os -Wall -pedantic"
+o="-Os -Wall -Werror -pedantic"
 cf="-D$u $o"
 lf=
 case "$u" in
