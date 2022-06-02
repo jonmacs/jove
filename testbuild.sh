@@ -110,33 +110,30 @@ GLIBC)
     make clean
     ;;
 esac &&
-make $x tgz && if test -d DIST; then mv jove-*.tgz DIST; fi &&
+make $x tgz && jove-*.tgz DIST &&
 if type zip 2> /dev/null; then
 	make $x zip && 
-	if test -d DIST; then
-		mv jove*s.zip DIST
-	fi
+	mv jove*s.zip DIST
 fi &&
 if test -e /etc/redhat-release; then
+	# build and perhaps install RPM
 	make rpm &&
-	rpm -i $HOME/rpmbuild/RPMS/x86_64/jove-[4-9]*.rpm &&
-	if test -d DIST; then
-		mv $HOME/rpmbuild/*RPMS/x86_64/jove-[4-9]*.rpm DIST
-	fi
+	case "$1" in *install) rpm -i $HOME/rpmbuild/RPMS/x86_64/jove-[4-9]*.rpm;; esac &&
+	mv $HOME/rpmbuild/*RPMS/x86_64/jove-[4-9]*.rpm DIST
 elif test -e /etc/alpine-release; then
+	# build a statically compiled version
 	make .version &&
 	r=$(cat .version)-$TB_OS-$TB_MACH-static &&
 	make SYSDEFS="-D$TB_OS -DJTC" TERMCAPLIB= OPTFLAGS="-Os -static" &&
-	if test -d DIST; then
-		if test ! -d DIST/jove-$r; then mkdir DIST/jove-$r; fi &&
-		strip jjove recover teachjove &&
-		mv jjove DIST/jove-$r/jove &&
-		mv recover teachjove $DIST/jove-$r &&
-		cp -pr README paths.h doc DIST/jove-$r/ &&
-		tar -c -j -v -f DIST/jove-$r.tar.bz2 -C DIST jove-$r &&
-		rm -r DIST/jove-$r
-	fi
+	if test ! -d DIST/jove-$r; then mkdir DIST/jove-$r; fi &&
+	strip jjove recover teachjove &&
+	mv jjove DIST/jove-$r/jove &&
+	mv recover teachjove DIST/jove-$r &&
+	cp -pr README paths.h doc DIST/jove-$r/ &&
+	tar -c -j -v -f DIST/jove-$r.tar.bz2 -C DIST jove-$r &&
+	rm -r DIST/jove-$r
 elif type i686-w64-mingw32-gcc 2> /dev/null ; then
+	# build a cross-compiled version for Windows
 	make .version &&
 	r=$(cat .version)-$TB_OS-$TB_MACH-mingw &&
 	make CC=i686-w64-mingw32-gcc SYSDEFS="-DMINGW" LOCALCC=gcc TERMCAPLIB= XEXT=.exe EXTRAOBJS="win32.o jjove.coff" EXTRALIBS=-lcomdlg32 &&
@@ -149,6 +146,8 @@ elif type i686-w64-mingw32-gcc 2> /dev/null ; then
 		cd DIST && zip -rm jove-$r.zip jove-$r && cd ..
 	fi
 fi &&
-ls -s $(find $td | grep /bin/) &&
+make .version &&
+r=$(cat .version)-$TB_OS-$TB_MACH-builds &&
+tar -c -j -v -f DIST/jove-$r.tar.bz2 -C "$td" .
 rm -rf $td &&
 set +eu
