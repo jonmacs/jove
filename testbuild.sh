@@ -5,6 +5,7 @@
 : ${TB_MACH=$(uname -m)}
 : ${TB_OS=$(uname)}
 : ${TB_REV=$(uname -r)}
+: ${TB_NODE=$(uname -n)}
 
 echo TB_MACH=$TB_MACH TB_OS=$TB_OS TB_REV=$TB_REV
 echo
@@ -50,7 +51,10 @@ case $# in
 esac
 
 # directory for artifacts
-if test ! -d DIST; then mkdir DIST; fi
+make .version
+ver=$(cat .version)
+dist=DIST/$TB_OS-$TB_MACH-$TB_NODE
+if test ! -d $dist; then mkdir $dist; fi
 
 # note: older *BSD, OSX, Solaris require a template
 td=$(mktemp -d "${TMPDIR:-/tmp}/jvt.XXXXXXXX")
@@ -110,44 +114,38 @@ GLIBC)
     make clean
     ;;
 esac &&
-make $x tgz && mv jove-*.tgz DIST &&
+make $x tgz && mv jove-*.tgz $dist &&
 if type zip 2> /dev/null; then
 	make $x zip && 
-	mv jove*s.zip DIST
+	mv jove*s.zip $dist
 fi &&
 if test -e /etc/redhat-release; then
 	# build and perhaps install RPM
 	make rpm &&
 	case "$1" in *install) rpm -i $HOME/rpmbuild/RPMS/x86_64/jove-[4-9]*.rpm;; esac &&
-	mv $HOME/rpmbuild/*RPMS/x86_64/jove-[4-9]*.rpm DIST
+	mv $HOME/rpmbuild/*RPMS/x86_64/jove-[4-9]*.rpm $dist
 elif test -e /etc/alpine-release; then
 	# build a statically compiled version
-	make .version &&
-	r=$(cat .version)-$TB_OS-$TB_MACH-static &&
+	r=jove-$ver-static &&
 	make SYSDEFS="-D$TB_OS -DJTC" TERMCAPLIB= OPTFLAGS="-Os -static" &&
-	if test ! -d DIST/jove-$r; then mkdir DIST/jove-$r; fi &&
+	if test ! -d $dist/$r; then mkdir $dist/$r; fi &&
 	strip jjove recover teachjove &&
-	mv jjove DIST/jove-$r/jove &&
-	mv recover teachjove DIST/jove-$r &&
-	cp -pr README paths.h doc DIST/jove-$r/ &&
-	tar -c -j -v -f DIST/jove-$r.tar.bz2 -C DIST jove-$r &&
-	rm -r DIST/jove-$r
+	mv jjove $dist/$r/jove &&
+	mv recover teachjove $dist/$r &&
+	cp -pr README paths.h doc $dist/$r/ &&
+	tar -c -j -v -f $dist/$r.tar.bz2 -C $dist $r &&
+	rm -r $dist/$r
 elif type i686-w64-mingw32-gcc 2> /dev/null ; then
 	# build a cross-compiled version for Windows
-	make .version &&
-	r=$(cat .version)-$TB_OS-$TB_MACH-mingw &&
+	r=jove-$ver-mingw &&
 	make CC=i686-w64-mingw32-gcc SYSDEFS="-DMINGW" LOCALCC=gcc TERMCAPLIB= XEXT=.exe EXTRAOBJS="win32.o jjove.coff" EXTRALIBS=-lcomdlg32 &&
 	make XEXT=.exe clean
-	if test -d DIST; then
-		if test ! -d DIST/jove-$r; then mkdir DIST/jove-$r; fi &&
-		mv jjove.exe DIST/jove-$r/jove &&
-		mv recover.exe teachjove.exe DIST/jove-$r &&
-		cp -pr README paths.h doc DIST/jove-$r &&
-		cd DIST && zip -rm jove-$r.zip jove-$r && cd ..
-	fi
+	if test ! -d $dist/$r; then mkdir $dist/$r; fi &&
+	mv jjove.exe $dist/$r/jove &&
+	mv recover.exe teachjove.exe $dist/$r &&
+	cp -pr README paths.h doc $dist/$r &&
+	cd $dist && zip -rm $r.zip $r && cd ..
 fi &&
-make .version &&
-r=$(cat .version)-$TB_OS-$TB_MACH-builds &&
-tar -c -j -v -f DIST/jove-$r.tar.bz2 -C "$td" .
+tar -c -j -v -f $dist/$ver-builds.tar.bz2 -C "$td" .
 rm -rf $td &&
 set +eu
