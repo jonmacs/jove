@@ -1,4 +1,17 @@
    4.17.4.2 move preinstall from testbuild.yml to testbuild.sh
+   to reduce duplicate code
+
+   generate binaries and docs in DIST artifacts from github actions
+   as part of all test builds
+
+   move more old platform comments (Xenix, OSF/1 etc) for
+   other compiler and link flags from Makefile to README for consistency.
+
+   use only spaces in version.h to make it simpler for BSD
+   sed (no \t, did not want to put literal TAB in Makefile,
+   something might eat or munge it)
+
+   update buildflags for Debian Hurd
 
 commit b36f587cf4990a266812d48a38ae73bbdb3ef12a
 Author: Mark Moraes <moraes@computer.org>

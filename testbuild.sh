@@ -140,7 +140,7 @@ elif type i686-w64-mingw32-gcc 2> /dev/null ; then
 	r=jove-$ver-mingw &&
 	make CC=i686-w64-mingw32-gcc SYSDEFS="-DMINGW" LOCALCC=gcc TERMCAPLIB= XEXT=.exe EXTRAOBJS="win32.o jjove.coff" EXTRALIBS=-lcomdlg32 &&
 	if test ! -d $dist/$r; then mkdir $dist/$r; fi &&
-	mv jjove.exe $dist/$r/jove &&
+	mv jjove.exe $dist/$r/jove.exe &&
 	mv recover.exe teachjove.exe $dist/$r &&
 	cp -pr README paths.h doc $dist/$r &&
 	cd $dist && zip -rm $r.zip $r && cd .. &&

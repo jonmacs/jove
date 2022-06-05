@@ -63,10 +63,10 @@
 # define JTC		1 /* no real point using curses for Cygwin, surely?! */
 #endif
 
-#if defined(Linux) || defined(GLIBCPTY)
+#if defined(Linux) || defined(GNU) || defined(GLIBCPTY)
 /*
  * modern glibc e.g. Linux, Cygwin) provides openpty and pty.h
- * so this is also Linux alternative.
+ * so this is also Linux alternative. Also GNU Debian Hurd.
  */
 # define USE_OPENPTY	1	/* older Cygwin may not have openpty? */
 # define HAVE_PTY_H	1

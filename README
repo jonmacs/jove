@@ -168,6 +168,7 @@ and may provide a guide to customization.
 #	NetBSD 8.1			SYSDEFS=-DNetBSD TERMCAPLIB=-ltermcap EXTRALIBS=-lutil
 #	OpenBSD 6.6			SYSDEFS=-DOpenBSD TERMCAPLIB-ltermcap EXTRALIBS=-lutil
 #	SunOS5.1 onwards (Solaris/OpenIndiana/Illumos/Joyent)	SYSDEFS=-DSunOS TERMCAPLIB=-ltermcap
+#	Debian Hurd 0.9			SYSDEFS="-DGNU -DJTC" EXTRALIBS=-lutil  # TERMCAPLIB=-lncursesw might work, did not try
 
 Next you may edit "tune.h" to select the compile time features you care
 about.  See "tune.doc" for a description of all the compile time options.

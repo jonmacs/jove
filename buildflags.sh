@@ -11,7 +11,8 @@ case "$u" in
 CYGWIN*) cf="-DCYGWIN $o";;
 *BSD|DragonFly)	lf="-ltermcap -lutil";;
 SunOS)	cf="-D$u -O"; lf="-ltermcap";;
-Linux)	if pkg-config ncurses > /dev/null 2>&1; then
+GNU|Linux)
+	if pkg-config ncurses > /dev/null 2>&1; then
 		cf="$cf `pkg-config --cflags ncurses`"
 		lf="$lf `pkg-config --libs ncurses`"
 	else
