@@ -40,7 +40,7 @@ case $# in
 	elif type brew 2> /dev/null; then
 		brew install make ctags zip ncurses
 	elif type pacman 2> /dev/null; then
-		$SUDO pacman -Sy gcc make pkgconf ncurses
+		$SUDO pacman -Sy --noconfirm gcc make pkgconf ncurses
 	elif type nix-shell 2> /dev/null; then
 		$SUDO nix-shell -p gnumake
 	else
