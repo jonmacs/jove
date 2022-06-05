@@ -489,7 +489,7 @@ extags:	$(C_SRC) $(HEADERS)
 	@-rm -f .filelist
 	@ls $(BACKUPS) >.filelist
 	@ls $(DOCS) >>.filelist
-	@ls tags >>.filelist
+	@-ls tags >>.filelist
 	@sed -e 's=^=xjove/=' xjove/.filelist >>.filelist
 
 .xjfilelist:
