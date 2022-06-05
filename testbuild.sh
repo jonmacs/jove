@@ -27,20 +27,20 @@ case $# in
 	esac
 	if type apt-get 2> /dev/null; then
 		$SUDO apt-get update
-		$SUDO env DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y gcc make pkg-config ncurses-dev exuberant-ctags zip groff
+		$SUDO env DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y gcc make pkg-config ncurses-dev groff exuberant-ctags zip
 		case "$TB_MACH" in
 		x86_64) 
 			$SUDO env DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y mingw-w64
 			;;
 		esac
 	elif type apk 2> /dev/null; then
-		$SUDO apk update && apk add gcc make pkgconfig musl-dev ncurses-dev ctags zip groff 
+		$SUDO apk update && apk add gcc make pkgconfig musl-dev ncurses-dev groff ctags zip
 	elif type yum 2> /dev/null; then
-		$SUDO yum install -y make gcc ncurses-devel zip groff ctags rpm-build
+		$SUDO yum install -y make gcc ncurses-devel groff ctags zip rpm-build
 	elif type brew 2> /dev/null; then
 		brew install make ctags zip ncurses
 	elif type pacman 2> /dev/null; then
-		$SUDO pacman -Sy --noconfirm gcc make pkgconf ncurses
+		$SUDO pacman -Sy --noconfirm gcc make pkgconf ncurses groff ctags zip
 	elif type nix-shell 2> /dev/null; then
 		$SUDO nix-shell -p gnumake
 	else
