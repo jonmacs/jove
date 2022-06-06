@@ -1,3 +1,13 @@
+commit 6482cdc0d5cb7ee6e50fb18b8cf0369be769c33d
+Author: Mark Moraes <moraes@computer.org>
+Date:   Sun Jun 5 20:19:02 2022 -0400
+
+   4.17.4.3 fix testbuild.sh to run on Debian Hurd.
+
+commit 71fe53cf1a864ce0a60120a7a3d06f583ce4fc81
+Author: Mark Moraes <moraes@computer.org>
+Date:   Sun Jun 5 19:33:42 2022 -0400
+
    4.17.4.2 move preinstall from testbuild.yml to testbuild.sh
    to reduce duplicate code
 

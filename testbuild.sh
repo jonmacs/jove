@@ -82,7 +82,7 @@ SunOS)  x="NROFF=nroff TROFF=troff"
         fi
         x="$x XINSTALL=$xi TINSTALL=$xi"
         ;;
-Linux)  t=-lncurses
+GNU|Linux)  t=-lncurses
         if test -e /etc/alpine-release; then
             d="$d -DUSE_GETCWD"; lib=MUSL;
         elif test -e /etc/gentoo-release; then
