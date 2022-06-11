@@ -1081,6 +1081,9 @@ crashing \s-2JOVE'S\s0 (trying to save your work).  This is a crude and
 desperate way to stop \s-2JOVE'S\s0.  Unfortunately there is no way to
 turn off the interrupt character.  The default is ^].  See also
 .IQ abort-char .
+.dc "insert-variable" "Not Bound"
+This inserts the value of the specified variable
+at the current point in the current buffer.
 .dc "interrupt-process" "Proc: ^C\ ^C"
 This sends the signal SIGINT to the interactive process
 in the selected buffer.  This only works if you are inside a buffer

@@ -35,8 +35,7 @@ define-macro kill-line ^[xbeginning-of-line^M^[xset-mark^M^[xnext-line^M^[xkill-
 # The following apply to shell windows. Note the use of ^C^C, ^C^D etc.,
 # thus leaving ^D available for delete-next-character.
 # This conforms to current emacs usage.
-ifvar jove-features :iproc:
-  insert-variable process-prompt
+ifvar jove-features .*:iproc:
   process-bind-to-key interrupt-process ^C^C
   process-bind-to-key eof-process ^C^D
   process-bind-to-key quit-process ^C^\
@@ -60,8 +59,7 @@ endif
 # since proc do not have a pty, fewer
 # programs produce color, not sure
 # if all these are needed.
-ifvar jove-features :proc:
-  insert-variable shell
+ifvar jove-features .*:proc:
   proc-env-export INSIDE_JOVE=proc
   proc-env-export LS_COLORS=none
   proc-env-unset CLICOLOR

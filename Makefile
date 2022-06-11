@@ -221,11 +221,16 @@ DOCTERMS =	doc/jove.rc.sun doc/keychart.sun \
 	doc/keychart. \
 	doc/XTermresource
 
+CDOC = doc/cmds.doc
+
 # formatted docs, we ship these in the distrib to avoid groff dependency
-# and for non-Unix/Linux platforms
-FDOCS = doc/cmds.doc doc/jove.man doc/jove.man.ps doc/jove.doc
+# and for non-Unix/Linux platforms.  NOTE: These will be removed by clobber.
+# Also note that jove.man and jove.man.ps require the ms macros
+# (tmac.s or s.tmac) which many systems do not install with base groff.
+FDOCS = $(CDOC) doc/jove.man doc/jove.man.ps doc/jove.doc
 
 # files we generate that we also ship in distrib for platforms sans sed
+# NOTE: these will be removed by clobber.
 GEN = 	jove.spec doc/jove.rc doc/jove.$(MANEXT) \
 	doc/teachjove.$(MANEXT) doc/jovetool.$(MANEXT)
 
@@ -245,8 +250,7 @@ BACKUPS = $(HEADERS) $(C_SRC) $(SUPPORT) $(MISC)
 
 # all: default target.
 # Builds everything that "install" needs.
-all:	jjove$(XEXT) recover$(XEXT) teachjove$(XEXT) portsrv$(XEXT) $(FDOCS) \
-	$(GEN)
+all:	jjove$(XEXT) recover$(XEXT) teachjove$(XEXT) portsrv$(XEXT) $(CDOC) $(GEN)
 
 jjove$(XEXT):	$(OBJECTS) $(EXTRAOBJS)
 	$(LDCC) $(LDFLAGS) $(OPTFLAGS) -o jjove$(XEXT) $(OBJECTS) $(EXTRAOBJS) $(EXTRALIBS) $(TERMCAPLIB)
@@ -298,7 +302,8 @@ setmaps.o:	setmaps.c
 
 keys.c:	setmaps$(LOCALEXT) keys.txt
 	@-rm -f keys.c
-	./setmaps$(LOCALEXT) < keys.txt > keys.c
+	./setmaps$(LOCALEXT) < keys.txt > keys.tmp && \
+	if ! $(CMP) -s keys.c keys.tmp 2> /dev/null; then mv keys.tmp keys.c; else rm keys.tmp; fi
 
 keys.o:	keys.c tune.h sysdep.h jove.h keymaps.h dataobj.h commands.h
 
@@ -376,23 +381,26 @@ $(TEACHJOVEDOC): $(DSHAREDIR) doc/teach-jove
 
 doc/cmds.doc:	doc/cmds.macros.nr doc/cmds.nr
 	@-rm -f doc/cmds.doc
-	LANG=C $(NROFF) doc/cmds.macros.nr doc/cmds.nr > doc/cmds.doc
+	LANG=C $(NROFF) doc/cmds.macros.nr doc/cmds.nr > doc/cmds.tmp && \
+	    mv doc/cmds.tmp doc/cmds.doc
 
 doc/jove.man:	doc/intro.nr doc/cmds.nr
 	@-rm -f doc/jove.man
-	( LANG=C; export LANG; cd doc; tbl intro.nr | $(NROFF) -ms - cmds.nr >jove.man )
+	LANG=C; export LANG; cd doc && tbl intro.nr | $(NROFF) -ms - cmds.nr > jman.tmp && \
+	    mv jman.tmp jove.man
 
 doc/jove.man.ps: doc/intro.nr doc/cmds.nr doc/contents.nr
-	@-rm -f doc/doc/jove.man.ps
-	( LANG=C; export LANG; cd doc; tbl intro.nr | $(TROFF) -ms - cmds.nr contents.nr $(TROFFPOST) >jove.man.ps )
+	@-rm -f doc/jove.man.ps
+	LANG=C; export LANG; cd doc && tbl intro.nr | $(TROFF) -ms - cmds.nr contents.nr $(TROFFPOST) > jmanps.tmp && \
+	    mv jmanps.tmp jove.man.ps
 
-$(CMDSDOC): $(DSHAREDIR) doc/cmds.doc
-	$(TINSTALL) doc/cmds.doc $(CMDSDOC)
+$(CMDSDOC): $(DSHAREDIR) $(CDOC)
+	$(TINSTALL) $(CDOC) $(CMDSDOC)
 
 doc/jove.rc: doc/jove.rc.in
 	@-rm -f doc/jove.rc.tmp
-	sed "s,__ETCDIR__,$(JETCDIR)," doc/jove.rc.in > doc/jove.rc.tmp
-	if ! $(CMP) -s doc/jove.rc.tmp doc/jove.rc 2> /dev/null; then mv doc/jove.rc.tmp doc/jove.rc; else rm doc/jove.rc.tmp; fi
+	sed "s,__ETCDIR__,$(JETCDIR)," doc/jove.rc.in > doc/jove.rc.tmp && \
+	    mv doc/jove.rc.tmp doc/jove.rc
 
 $(JOVERC): $(DSHAREDIR) doc/jove.rc
 	$(TINSTALL) doc/jove.rc $(JOVERC)
@@ -417,7 +425,8 @@ doc/jove.$(MANEXT): doc/jove.nr
 	sed -e 's;<TMPDIR>;$(JTMPDIR);' \
 	     -e 's;<LIBDIR>;$(JLIBDIR);' \
 	     -e 's;<SHAREDIR>;$(JSHAREDIR);' \
-	     -e 's;<SHELL>;$(DFLTSHELL);' doc/jove.nr > doc/jove.$(MANEXT)
+	     -e 's;<SHELL>;$(DFLTSHELL);' doc/jove.nr > doc/jmanp.tmp && \
+	    mv doc/jmanp.tmp doc/jove.$(MANEXT)
 
 $(JOVEM): $(DMANDIR) doc/jove.$(MANEXT)
 	$(TINSTALL) doc/jove.$(MANEXT) $(JOVEM)
@@ -429,14 +438,16 @@ $(JOVEM): $(DMANDIR) doc/jove.$(MANEXT)
 
 doc/jove.doc: doc/jove.nr
 	@-rm -f doc/jove.doc
-	LANG=C $(NROFF) -man doc/jove.nr >doc/jove.doc
+	LANG=C $(NROFF) -man doc/jove.nr > doc/jdoc.tmp && \
+	    mv doc/jdoc.tmp doc/jove.doc
 
 doc/teachjove.$(MANEXT): doc/teachjove.nr
 	@-rm -f doc/teachjove.$(MANEXT)
 	sed -e 's;<TMPDIR>;$(JTMPDIR);' \
 	     -e 's;<LIBDIR>;$(JLIBDIR);' \
 	     -e 's;<SHAREDIR>;$(JSHAREDIR);' \
-	     -e 's;<SHELL>;$(DFLTSHELL);' doc/teachjove.nr > doc/teachjove.$(MANEXT)
+	     -e 's;<SHELL>;$(DFLTSHELL);' doc/teachjove.nr > doc/teach.tmp && \
+	    mv doc/teach.tmp doc/teachjove.$(MANEXT)
 
 $(TEACHJOVEM): $(DMANDIR) doc/teachjove.$(MANEXT)
 	$(TINSTALL) doc/teachjove.$(MANEXT) $(TEACHJOVEM)
@@ -447,10 +458,13 @@ $(XJOVEM): $(DMANDIR) doc/xjove.nr
 doc/jovetool.$(MANEXT): doc/jovetool.nr
 	@-rm -f doc/jovetool.$(MANEXT)
 	sed -e 's;<MANDIR>;$(MANDIR);' \
-	     -e 's;<MANEXT>;$(MANEXT);' doc/jovetool.nr > doc/jovetool.$(MANEXT)
+	     -e 's;<MANEXT>;$(MANEXT);' doc/jovetool.nr > doc/jovetool.tmp && \
+	    mv doc/jovetool.tmp doc/jovetool.$(MANEXT)
 
 $(JOVETOOLM): $(DMANDIR) doc/jovetool.$(MANEXT)
 	$(TINSTALL) doc/jovetool.$(MANEXT) $(JOVETOOLM)
+
+fdocs: $(FDOCS)
 
 echo:
 	@echo $(SOURCES) $(HEADERS)
@@ -486,40 +500,15 @@ extags:	$(C_SRC) $(HEADERS)
 # to be rebuilt every time it is needed.
 
 .filelist:	$(BACKUPS) $(DOCS) tags .xjfilelist
-	@-rm -f .filelist
-	@ls $(BACKUPS) >.filelist
-	@ls $(DOCS) >>.filelist
-	@-ls tags >>.filelist
-	@sed -e 's=^=xjove/=' xjove/.filelist >>.filelist
+	@-rm -f .filelist.tmp
+	@-ls tags >.filelist.tmp
+	@ls $(BACKUPS) >>.filelist.tmp && \
+	    ls $(DOCS) >>.filelist.tmp && \
+	    sed -e 's=^=xjove/=' xjove/.filelist >>.filelist.tmp && \
+	    mv .filelist.tmp .filelist
 
 .xjfilelist:
 	@( cd xjove ; make .filelist )
-
-# override CIFLAGS with something like:
-# CIFLAGS="-m'some reason for change' -u4.14.10.n -q"
-
-ciall:	.filelist
-	ci $(CIFLAGS) `cat .filelist`
-
-coall:	.filelist
-	co $(BACKUPS) `cat .filelist`
-
-jove.shar:	.filelist
-	@-rm -f jove.shar
-	shar .filelist > jove.shar
-
-backup.Z: .filelist
-	-rm -f backup backup.Z
-	$(TAR) cf backup `cat .filelist`
-	compress backup
-
-backup.tgz: .filelist
-	# GNU tar only: z
-	-rm -f backup.tgz
-	$(TAR) czf backup.tgz `cat .filelist`
-
-tape-backup:	.filelist
-	$(TAR) cf $(BACKUPDEV) `cat .filelist`
 
 # Build a distribution: a gzipped tar file with a name "jove-<version>.tgz"
 # The tar will unpack into a directory with the name jove-<version>
@@ -550,13 +539,6 @@ signed:	tgz
 	BN=jove-`cat .version` ; \
 	gpg -sba $$BN.tgz; \
 	chmod a+r $$BN.tgz.asc
-
-# System V sum can be made to match BSD with a -r flag.
-# To get this effect, override with SUM = sum -r
-SUM = sum
-
-checksum:	.filelist
-	$(SUM) `cat .filelist`
 
 # MSDOS isn't a full-fledged development environment.
 # Preparing a distribution for MSDOS involves discarding some things
