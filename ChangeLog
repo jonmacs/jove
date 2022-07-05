@@ -1,4 +1,21 @@
 Author: Mark Moraes <moraes@computer.org>
+Date:   Tue Jul 4 02:53:20 2022 -0400
+
+   4.17.4.5 enhanced buildflags.sh to also invoke
+   dpkg-buildflags if it exists, per
+   https://github.com/jonmacs/jove/issues/11 and
+   https://wiki.debian.org/HardeningWalkthrough
+   Also made the options for buildflags more consistent
+   with Makefile and make conventions (CPPFLAGS, etc)
+   and hopefully easier to override for builders
+   who want to avoid the automation and specify
+   make variables on the command line or avoid
+   buildflags.  Added jove-compiled-with and 
+   jove-linked-with variables to make it a bit
+   easier to find out post-facto what the flags
+   and libraries and compiler/linker options were.
+
+Author: Mark Moraes <moraes@computer.org>
 Date:   Sun Jun 5 20:19:02 2022 -0400
 
    4.17.4.4 incorrect regexp in doc/jove.rc

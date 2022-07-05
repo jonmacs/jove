@@ -433,6 +433,8 @@ extern bool	MetaKey;		/* VAR: this terminal has a meta key */
 extern bool	TimeDisplayed;		/* is time actually displayed in modeline? */
 extern char	JoveFeatures[MAXCOLS];	/* VAR: list of compiled-in features */
 #ifdef UNIX
+extern char	JoveCompiled[MAXCOLS];	/* VAR: compile flags used to build this */
+extern char	JoveLinked[MAXCOLS];	/* VAR: link flags used to build this */
 extern int	UpdFreq;		/* VAR: how often to update modeline */
 extern void	SetClockAlarm proto((bool unset));
 #endif

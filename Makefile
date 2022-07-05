@@ -101,17 +101,19 @@ XJOVEM = $(DMANDIR)/xjove.$(MANEXT)
 JOVETOOLM = $(DMANDIR)/jovetool.$(MANEXT)
 
 # SYSDEFS: specify system characteristics to the C preprocessor using -D options
-# The default (via buildflags.sh --cflags) is the system uname,
+# The default (via buildflags.sh --sysdefs) is the system uname,
 # which describes a number of modern systems.  If this isn't suitable for your system,
 # or you want to customize it, then see README, sysdep.h, sysdep.doc.
-# buildflags also sets a few other cflags (optimization, warnings)
+# SYSCPPFLAGS are for other system-dependent definitions (typically -D... or -I...)
+SYSDEFS = `./buildflags.sh --sysdefs`
+SYSCPPFLAGS = `./buildflags.sh --cppflags`
+CPPFLAGS = $(SYSDEFS) $(SYSCPPFLAGS)
 
-SYSDEFS = `./buildflags.sh --cflags`
-
-# Other compiler flags, flags passed to compiling and linking steps
-# On most systems: -g for debugging, -O for optimization.
-# -Os produces smaller binaries with gcc, should not hurt performance
-OPTFLAGS = # -g -O -Wall -pedantic
+# compiler flags that are passed to both the compiling and linking steps
+# e.g. -g for debugging, -O for optimization.
+OPTFLAGS = 
+SYSCFLAGS = `./buildflags.sh --cflags`
+CFLAGS = $(OPTFLAGS) $(SYSCFLAGS)
 
 # For making dependencies under BSD systems
 DEPENDFLAG = -M
@@ -128,16 +130,16 @@ DEPENDFLAG = -M
 # which is almost certainly all that is necessary on modern machines.
 # To use it, define -DJTC and leave TERMCAPLIB unset
 
-TERMCAPLIB = `./buildflags.sh --libs`
+TERMCAPLIB = 
 
-# Extra libraries flags needed by various systems.
+# Extra libraries flags needed by some systems.
 EXTRALIBS =
 
-# Flags of linker (LDFLAGS)
-# Most systems do not need any flags.
-LDFLAGS =
+SYSLDLIBS = `./buildflags.sh --ldlibs`
+LDLIBS = $(TERMCAPLIB) $(EXTRALIBS) $(SYSLDLIBS)
 
-CFLAGS = $(OPTFLAGS) $(SYSDEFS)
+# linker flags (LDFLAGS) not needed for most systems
+LDFLAGS = `./buildflags.sh --ldflags`
 
 # LDCC can be used for link-time tools instead of CC
 LDCC = $(CC)
@@ -253,10 +255,8 @@ BACKUPS = $(HEADERS) $(C_SRC) $(SUPPORT) $(MISC)
 all:	jjove$(XEXT) recover$(XEXT) teachjove$(XEXT) portsrv$(XEXT) $(CDOC) $(GEN)
 
 jjove$(XEXT):	$(OBJECTS) $(EXTRAOBJS)
-	$(LDCC) $(LDFLAGS) $(OPTFLAGS) -o jjove$(XEXT) $(OBJECTS) $(EXTRAOBJS) $(EXTRALIBS) $(TERMCAPLIB)
+	$(LDCC) $(LDFLAGS) $(CFLAGS) -o jjove$(XEXT) $(OBJECTS) $(EXTRAOBJS) $(LDLIBS)
 	@-size jjove$(XEXT)
-	@-echo compiled with $(CC) $(CFLAGS)
-	@-echo linked $(XEXT) with $(LDCC) $(LDFLAGS) $(OPTFLAGS) $(EXTRAOBJS) $(EXTRALIBS) $(TERMCAPLIB)
 
 # For mingw icon
 jjove.coff: jjove.rc version.h
@@ -283,26 +283,28 @@ ovjove:	$(OBJECTS)
 PORTSRVINST=
 
 portsrv$(XEXT):	portsrv.o
-	$(LDCC) $(LDFLAGS) $(OPTFLAGS) -o portsrv$(XEXT) portsrv.o $(EXTRALIBS)
+	$(LDCC) $(LDFLAGS) $(CFLAGS) -o portsrv$(XEXT) portsrv.o $(LDLIBS)
 
 recover$(XEXT):	recover.o
-	$(LDCC) $(LDFLAGS) $(OPTFLAGS) -o recover$(XEXT) recover.o $(EXTRALIBS)
+	$(LDCC) $(LDFLAGS) $(CFLAGS) -o recover$(XEXT) recover.o $(LDLIBS)
 
 teachjove$(XEXT):	teachjove.o
-	$(LDCC) $(LDFLAGS) $(OPTFLAGS) -o teachjove$(XEXT) teachjove.o $(EXTRALIBS)
+	$(LDCC) $(LDFLAGS) $(CFLAGS) -o teachjove$(XEXT) teachjove.o $(LDLIBS)
 
-# don't optimize setmaps.c because it produces bad code in some places
-# for some reason
-
+# no need to optimize setmaps since it is run once during build, so faster
+# compile is better than faster executable (also urban legend that 
+# optimization produced bad code for setmaps!)
 setmaps$(LOCALEXT):	setmaps.o
-	$(LOCALCC) $(LOCALLDFLAGS) -o setmaps$(LOCALEXT) setmaps.o $(LOCALEXTRALIBS)
+	$(LOCALCC) $(LOCALLDFLAGS) $(SYSDEFS) -o setmaps$(LOCALEXT) setmaps.o $(LOCALEXTRALIBS)
 
 setmaps.o:	setmaps.c
 	$(LOCALCC) $(LOCALCFLAGS) $(SYSDEFS) -c setmaps.c
 
-keys.c:	setmaps$(LOCALEXT) keys.txt
+keys.c:	setmaps$(LOCALEXT) keys.txt Makefile
 	@-rm -f keys.c
 	./setmaps$(LOCALEXT) < keys.txt > keys.tmp && \
+	echo 'char JoveCompiled[sizeof(JoveCompiled)] = "'$(CC) $(CFLAGS) $(CPPFLAGS)'";' >> keys.tmp && \
+	echo 'char JoveLinked[sizeof(JoveLinked)] = "'$(LDCC) $(LDFLAGS) $(CFLAGS) $(EXTRAOBJS) $(LDLIBS)'";' >> keys.tmp && \
 	if ! $(CMP) -s keys.c keys.tmp 2> /dev/null; then mv keys.tmp keys.c; else rm keys.tmp; fi
 
 keys.o:	keys.c tune.h sysdep.h jove.h keymaps.h dataobj.h commands.h

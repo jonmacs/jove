@@ -1103,6 +1103,9 @@ the environment that will be exported to interactive processes.
 This takes an argument that is the name of an environment variable and
 removes it from the list of environment variables that will be passed
 to interactive processes.
+.dc "jove-compiled-with" "(variable)"
+This is a special, read-only variable, containing the compiler, flags and
+options used to build Jove (on Unix-style machines)
 .dc "jove-features" "(variable)"
 This is a special, read-only variable, set with a colon-delimited list of 
 all the optional capabilities compiled into \s-2JOVE\s0.  The value will
@@ -1211,6 +1214,9 @@ capability)
 .IQ iso88591
 (uses builtin \s-2JOVE\s0 tables for ISO-8859-1 character classification
 rather than the system ctype capability).
+.dc "jove-linked-with" "(variable)"
+This is a special, read-only variable, containing the linker, flags and
+libraries used to build Jove (on Unix-style machines)
 .dc "kill-next-word" "ESC\ D"
 This kills the text from point to the end of the current or next word.
 .IQ 

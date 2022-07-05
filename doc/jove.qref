@@ -122,7 +122,8 @@ dbx-format-string			disable-biff				display-default-filenames
 display-filenames-with-bad-extensions	enhanced-keyboard			error-format-string
 error-window-size			expand-environment-variables		file-creation-mode
 files-should-end-with-newline		highlight-attribute			highlight-mark
-interrupt-character			lc-ctype				left-margin
+interrupt-character			jove-compiled-with			jove-features
+jove-linked-with			lc-ctype				left-margin
 lib-dir-pathname			macify					mail-check-frequency
 mailbox					make-backup-files			mark-threshold
 match-regular-expression		meta-key				mode-line
