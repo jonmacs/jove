@@ -52,7 +52,7 @@ BSD/Darwin/Mac OS X:
   use the first of the following that works:
   make install
   make SYSDEFS=-DXBSD install
-  make SYSDEFS="-DBSDPOSIX_STDC -DUSE_OPENPTY -DHAS_LIBUTILS_H" EXTRALIBS=-lutil install
+  make SYSDEFS="-DBSDPOSIX_STDC -DUSE_OPENPTY -DHAS_LIBUTILS_H" SYSLDLIBS=-lutil install
   make SYSDEFS="-DBSDPOSIX_STDC" install
   make SYSDEFS="-DBSDPOSIX" install
 
@@ -78,7 +78,7 @@ Linux:
   libncurses-dev, libtinfo-dev, sys-libs), that should be
   enough on most Linux systems.  Otherwise, you can
   explicitly ask for it is using something like
-     make SYSDEFS=-D`uname` TERMCAPLIB=-lncursesw
+     make SYSDEFS=-D`uname` SYSLDLIBS=-lncursesw
    
   If you link with one of the general terminal handling
   libraries rather than using Jove's builtin handling, then
@@ -97,27 +97,31 @@ Other systems:
   Read comments about SYSDEFS settings below, check sysdep.h
   for recently tested system settings or old/sysdep.h for once-working
   but currently untested settings that will need to be copied into sysdep.h,
-  or just set on the command-line with SYSDEFS="-D...", TERMCAPLIB 
-  and EXTRALIBS if needed.
+  or just set on the command-line with SYSDEFS="-D...", SYSLDLIBS
+  if needed.
 
 Cross-Compiling:
 
 The Jove Makefile has some support for cross-compiling.  You
-need to set CC to the cross-compiler, SYSDEFS, TERMCAPLIB,
-and perhaps EXTRALIBS for the target system, while you set
+need to set CC to the cross-compiler, SYSDEFS, SYSCPPFLAGS 
+(for any -I or -D), SYSCFLAGS (for any special compiler options,
+e.g. target arch), SYSLDFLAGS (e.g. -L) or SYSLDLIBS
+and perhaps EXTRALIBS for the target system, while you can set
 LOCALCC, LOCALCFLAGS, LOCALLDFLAGS, LOCALEXTRALIBS and
-LOCALEXT for the local machine (used when building the
-setmaps program, which generates keys.c, which will then be
+LOCALEXT for the local machine (usually none are needed, since
+they are used when locally building the setmaps program
+on the host, which is run to generate keys.c, which will then be
 cross-compiled for the target) e.g.
-    make CC=/cross/bin/cc-armv7 SYSDEFS="-DLinux -DJTC" TERMCAPLIB= LOCALCC=cc
+    make CC=/cross/bin/cc-armv7 SYSDEFS="-DLinux -DJTC" SYSCFLAGS=-O SYSCPPFLAGS= SYSLDFLAGS= SYSLDLIBS= LOCALCC=cc
 
 For another example, see README.win for cross-compiling
 using MinGW for a Windows target.
 
-Please help us keep up with new systems.  If your system isn't covered
-here on in the SYSDEFS section of Makefile, tell us what works.  If
-your system is covered, but the documented procedure doesn't work,
-tell us by filing a bug on http://github.com/jonmacs/jove
+Please help us keep up with new systems.  If your system
+isn't covered in buildflags.sh or on in the SYSDEFS section
+of Makefile, tell us what works.  If your system is covered,
+but the documented procedure doesn't work, tell us by filing
+a bug on http://github.com/jonmacs/jove
 
 Full Story of Installation
 --------------------------
@@ -150,25 +154,30 @@ configuration for your system, you will have to define a new symbol
 and edit sysdep.h suitably.  See "sysdep.doc" for the possible set of
 system-dependent aspects that you can select/tune. 
 
-On some systems, you may need to change the flags passed to the
-compiler (OPTFLAGS) or the linker (TERMCAPLIB, EXTRALIBS, LDFLAGS).
+On some systems, you may need to change the flags passed to
+the compiler (SYSCPPFLAGS, SYSCFLAGS) or the linker
+(SYSLDFLAGS, SYSLDLIBS, EXTRALIBS).  OPTFLAGS and
+TERMCAPLIB are older variables superseded by
+SYSC*FLAGS and SYSLDLIBS respectively.
 
 Systems on which 4.17 was tested include the following
 (and their SYSDEFS and TERMCAPLIB will usually be
 correctly set by the buildflags.sh script that is invoked
 by the Makefile).  The following explicit settings also work
-and may provide a guide to customization.
+and may provide a guide to customization.  You can also add
+SYSCFLAGS= SYSCPPFLAGS= SYSLDFLAGS= to avoid calling 
+buildflags.sh to avoid automatic build heuristics.
 
-#	Cygwin 3.1.2			SYSDEFS=-DCYGWIN TERMCAPLIB= # builtin vt100/xterm/rxvt etc support, no need for curses dependency
-#	Darwin aka MacOS X onwards	SYSDEFS=-DDarwin TERMCAPLIB=-ltermcap
-#	FreeBSD 12.1			SYSDEFS=-DFreeBSD TERMCAPLIB=-ltermcap EXTRALIBS=-lutil
-#	Linux (modern, glibc pty.h)	SYSDEFS=-DLinux TERMCAPLIB=-lncursesw EXTRALIBS=-lutil
-#	Linux (recent, UNIX98 PTYS)	SYSDEFS=-DXLINUX TERMCAPLIB=-lncursesw
-#	Linux (old, BSD PTYS)		SYSDEFS=-DBSDPOSIX_STDC TERMCAPLIB=-lncurses
-#	NetBSD 8.1			SYSDEFS=-DNetBSD TERMCAPLIB=-ltermcap EXTRALIBS=-lutil
-#	OpenBSD 6.6			SYSDEFS=-DOpenBSD TERMCAPLIB-ltermcap EXTRALIBS=-lutil
-#	SunOS5.1 onwards (Solaris/OpenIndiana/Illumos/Joyent)	SYSDEFS=-DSunOS TERMCAPLIB=-ltermcap
-#	Debian Hurd 0.9			SYSDEFS="-DGNU -DJTC" EXTRALIBS=-lutil  # TERMCAPLIB=-lncursesw might work, did not try
+#	Cygwin 3.1.2			SYSDEFS=-DCYGWIN SYSLDLIBS= # builtin vt100/xterm/rxvt etc support, no need for curses dependency
+#	Darwin aka MacOS X onwards	SYSDEFS=-DDarwin SYSLDLIBS=-ltermcap
+#	FreeBSD 12.1			SYSDEFS=-DFreeBSD SYSLDLIBS=-ltermcap EXTRALIBS=-lutil
+#	Linux (modern, glibc pty.h)	SYSDEFS=-DLinux SYSLDLIBS=-lncursesw EXTRALIBS=-lutil
+#	Linux (recent, UNIX98 PTYS)	SYSDEFS=-DXLINUX SYSLDLIBS=-lncursesw
+#	Linux (old, BSD PTYS)		SYSDEFS=-DBSDPOSIX_STDC SYSLDLIBS=-lncurses
+#	NetBSD 8.1			SYSDEFS=-DNetBSD SYSLDLIBS=-ltermcap EXTRALIBS=-lutil
+#	OpenBSD 6.6			SYSDEFS=-DOpenBSD SYSLDLIBS-ltermcap EXTRALIBS=-lutil
+#	SunOS5.1 onwards (Solaris/OpenIndiana/Illumos/Joyent)	SYSDEFS=-DSunOS SYSLDLIBS=-ltermcap
+#	Debian Hurd 0.9			SYSDEFS="-DGNU -DJTC" EXTRALIBS=-lutil  # SYSLDLIBS=-lncursesw might work, did not try
 
 Next you may edit "tune.h" to select the compile time features you care
 about.  See "tune.doc" for a description of all the compile time options.

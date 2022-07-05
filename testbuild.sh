@@ -100,17 +100,17 @@ if test -x /usr/bin/getconf; then j=-j$(getconf $jv); else j=; fi
 make clean &&
 make $j $x $dd/t10-$TB_OS install &&
 make clean &&
-make $j OPTFLAGS="$o" SYSDEFS="-DPIPEPROCS $d" TERMCAPLIB=$t $x $dd/t20-pipeprocs install &&
+make $j SYSCFLAGS="$o" SYSDEFS="-DPIPEPROCS $d" SYSLDLIBS=$t $x $dd/t20-pipeprocs install &&
 make clean &&
-make $j OPTFLAGS="$o" SYSDEFS="-DBSDPOSIX $d" TERMCAPLIB=$t $x $dd/t30-bsdposix install &&
+make $j SYSCFLAGS="$o" SYSDEFS="-DBSDPOSIX $d" SYSLDLIBS=$t $x $dd/t30-bsdposix install &&
 make clean &&
-make $j OPTFLAGS="$o" SYSDEFS="-DBAREBONES -DSMALL -DJTC $d" TERMCAPLIB= $x $dd/t60-small install &&
+make $j SYSCFLAGS="$o" SYSDEFS="-DBAREBONES -DSMALL -DJTC $d" SYSLDLIBS= $x $dd/t60-small install &&
 make clean &&
 case "$lib" in
 GLIBC)
-    make $j OPTFLAGS="$o" SYSDEFS="-DGLIBCPTY" TERMCAPLIB=$t EXTRALIBS=-lutil $x $dd/t40-glibcpty install &&
+    make $j SYSCFLAGS="$o" SYSDEFS="-DGLIBCPTY" SYSLDLIBS=$t EXTRALIBS=-lutil $x $dd/t40-glibcpty install &&
     make clean &&
-    make $j OPTFLAGS="$o" SYSDEFS="-DTERMINFO -DUSE_VFORK" TERMCAPLIB=$t $x $dd/t50-vfork &&
+    make $j SYSCFLAGS="$o" SYSDEFS="-DTERMINFO -DUSE_VFORK" SYSLDLIBS=$t $x $dd/t50-vfork &&
     make clean
     ;;
 esac &&
@@ -127,7 +127,7 @@ if test -e /etc/redhat-release; then
 elif test -e /etc/alpine-release; then
 	# build a statically compiled version
 	r=jove-$ver-static &&
-	make SYSDEFS="-D$TB_OS -DJTC" TERMCAPLIB= OPTFLAGS="-Os -static" &&
+	make SYSDEFS="-D$TB_OS -DJTC" SYSLDLIBS= SYSCFLAGS="-Os -static" &&
 	if test ! -d $dist/$r; then mkdir $dist/$r; fi &&
 	strip jjove recover teachjove &&
 	mv jjove $dist/$r/jove &&
@@ -138,7 +138,7 @@ elif test -e /etc/alpine-release; then
 elif type i686-w64-mingw32-gcc 2> /dev/null ; then
 	# build a cross-compiled version for Windows
 	r=jove-$ver-mingw &&
-	make CC=i686-w64-mingw32-gcc SYSDEFS="-DMINGW" LOCALCC=gcc TERMCAPLIB= XEXT=.exe EXTRAOBJS="win32.o jjove.coff" EXTRALIBS=-lcomdlg32 &&
+	make CC=i686-w64-mingw32-gcc SYSDEFS="-DMINGW" LOCALCC=gcc SYSLDLIBS= XEXT=.exe EXTRAOBJS="win32.o jjove.coff" EXTRALIBS=-lcomdlg32 &&
 	if test ! -d $dist/$r; then mkdir $dist/$r; fi &&
 	mv jjove.exe $dist/$r/jove.exe &&
 	mv recover.exe teachjove.exe $dist/$r &&
@@ -147,5 +147,4 @@ elif type i686-w64-mingw32-gcc 2> /dev/null ; then
 	make XEXT=.exe clean
 fi &&
 tar -c -j -v -f $dist/$ver-builds.tar.bz2 -C "$td" .
-rm -rf $td &&
-set +eu
+rm -rf $td
