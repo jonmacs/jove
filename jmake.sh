@@ -15,6 +15,7 @@ CYGWIN*)
 	cppflags="-DCYGWIN"
 	;;
 *BSD|DragonFly)
+	# openpty on BSD requires libutil
 	ldlibs="-ltermcap -lutil"
 	;;
 SunOS)	cc=cc; ldlibs="-ltermcap";;
@@ -23,13 +24,22 @@ GNU|Linux)
 		cppflags="$cppflags `dpkg-buildflags --get CPPFLAGS`"
 		cflags="$cflags `dpkg-buildflags --get CFLAGS`"
 		ldflags="$ldflags `dpkg-buildflags --get LDFLAGS`"
-	fi	
-	if pkg-config ncurses > /dev/null 2>&1; then
-		cppflags="$cppflags `pkg-config --cflags ncurses`"
-		ldlibs="$ldlibs `pkg-config --libs ncurses`"
-	else
-		cppflags="$cppflags -DJTC"
 	fi
+	jtc=y
+	# see if we can find ncurses installed via pkgconf or pkg-config
+        for pkc in pkgconf pkg-config; do
+		if $pkc --version > /dev/null 2>&1; then
+			if $pkc ncurses > /dev/null 2>&1; then
+				cppflags="$cppflags `$pkc --cflags ncurses`"
+				ldlibs="$ldlibs `$pkc --libs ncurses`"
+				jtc=n
+			fi
+			break
+		fi
+	done
+	# if no ncurses, use built-in VT1xx code
+	case "$jtc" in y) cppflags="$cppflags -DJTC";; esac
+	# best to use openpty on Linux, so need libutil
 	ldlibs="$ldlibs -lutil"
 	;;
 *)	cc=cc; cppflags="$cppflags -DJTC";;

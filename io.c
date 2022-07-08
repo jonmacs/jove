@@ -1535,6 +1535,7 @@ register File	*fp;
 	line->l_dline = DFree;
 	DFree += REQ_CHNKS(bp - base);
 	if (room < 0) {
+		fp->f_flags |= F_LINETOOLONG;
 		add_mess(" [Line too long]");
 		rbell();
 		return YES;

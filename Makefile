@@ -576,7 +576,7 @@ touch:
 clean:
 	rm -f a.out core *.o keys.c jjove$(XEXT) portsrv$(XEXT) recover$(XEXT) \
 		setmaps$(XEXT) teachjove$(XEXT) make.log *.map \#* *~ *.tmp \
-		jjove.pure_* ID *.exe jjove.coff \
+		jjove.pure_* ID *.exe jjove.coff */*.tmp \
 		.filelist xjove/.filelist .version
 
 cleanall: clean

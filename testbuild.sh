@@ -12,7 +12,7 @@ if test ! -d $dist; then mkdir -p $dist; fi
 
 (echo TB_MACH=$TB_MACH TB_OS=$TB_OS TB_REV=$TB_REV
 echo
-for f in /etc/*-release; do if test -r "$f"; then echo ">>> $f"; cat "$f"; echo; fi; done
+for f in /etc/*-release; do if test -e "$f"; then echo ">>> $f"; cat "$f"; echo; fi; done
 ) | tee $dist/TBINFO
 
 set -eux
