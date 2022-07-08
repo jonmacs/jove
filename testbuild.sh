@@ -31,7 +31,7 @@ case $# in
 	esac
 	if type apt-get 2> /dev/null; then
 		$SUDO apt-get update
-		$SUDO env DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y gcc make pkg-config ncurses-dev groff exuberant-ctags zip
+		$SUDO env DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y gcc make pkg-config ncurses-dev groff exuberant-ctags zip dpkg-dev bzip2
 		case "$TB_MACH" in
 		x86_64) 
 			$SUDO env DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y mingw-w64
