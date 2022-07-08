@@ -425,8 +425,7 @@ bool	is_insert;
 	File	*fp;
 	bool	err;
 	int	save_type;
-	char	*tmpfname,
-		*save_fname;
+	char	*save_fname;
 
 	if (!is_insert)
 		curbuf->b_ntbf = NO;
@@ -458,7 +457,7 @@ bool	is_insert;
 	save_type = curbuf->b_type;
 	save_fname = curbuf->b_fname;
 	if (save_fname) {
-		tmpfname = (char *)emalloc(FILESIZE);
+		char *tmpfname = (char *)emalloc(FILESIZE);
 		backup_name(save_fname, "+", tmpfname, FILESIZE);
 		jdbg("temporary name \"%s\"\n", tmpfname);
 		curbuf->b_fname = tmpfname;
@@ -484,6 +483,7 @@ bool	is_insert;
 	}
 	curbuf->b_type = save_type;
 	if (save_fname) {
+		char *tmpfname = curbuf->b_fname;
 		jdbg("restoring original name \"%s\"\n", save_fname);
 		curbuf->b_fname = save_fname;
 		free((UnivPtr) tmpfname);

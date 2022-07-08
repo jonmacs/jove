@@ -1929,6 +1929,8 @@ char	*argv[];
 # endif /* DEBUGCRASH */
 	(void) setsighandler(SIGALRM, AlarmHandler);
 	SetClockAlarm(NO);
+#else
+        UpdModLine = YES;	/* so Windows updates mode line on first display */
 #endif /* UNIX */
 	ClAndRedraw();
 	flushscreen();

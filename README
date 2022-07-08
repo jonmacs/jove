@@ -34,27 +34,30 @@ some Linux distributions.
 
 For many modern systems (Linux, various BSDs, MacOSX/Darwin,
 Solaris, OpenIndiana), an auxiliary script called
-buildflags.sh is provided that should help 'make' work out
-of the box, so not much configuration is needed:  just
+jmake.sh is provided that auto-detects what the SYSDEFS
+and EXTRALIBS should be, and then invokes 'make'
+without any manual configuration needed:  just
 specify JOVEHOME to change where you want jove installed
 (default JOVEHOME is /usr/local, which puts the binaries in
 $JOVEHOME/bin, manuals in $JOVEHOME/man/man1, other
 documents and help and config in $JOVEHOME/share/jove,
-helper programs in $JOVEHOME/lib/jove
-     make # to build
-     make install # to install
+helper programs in $JOVEHOME/lib/jove e.g. to put jove in
+/opt/jove/{bin,share,...}
+
+     ./jmake.sh JOVEHOME=/opt/jove # to build
+     ./jmake.sh JOVEHOME=/opt/jove install # to install
 
 If that does not work, please do file a bug, indicating
-your system.  One can also pass SYSDEFS and TERMCAPLIB
-(and other variables in the Makefile) by hand.
+your system.  One can also pass SYSDEFS, TERMCAPLIB and
+EXTRALIBS (and other variables in the Makefile) by hand.
 
 BSD/Darwin/Mac OS X:
   use the first of the following that works:
   make install
-  make SYSDEFS=-DXBSD install
-  make SYSDEFS="-DBSDPOSIX_STDC -DUSE_OPENPTY -DHAS_LIBUTILS_H" SYSLDLIBS=-lutil install
-  make SYSDEFS="-DBSDPOSIX_STDC" install
-  make SYSDEFS="-DBSDPOSIX" install
+  make CPPFLAGS=-DXBSD install
+  make CPPFLAGS="-DBSDPOSIX_STDC -DUSE_OPENPTY -DHAS_LIBUTILS_H" LDLIBS=-lutil install
+  make CPPFLAGS="-DBSDPOSIX_STDC" install
+  make CPPFLAGS="-DBSDPOSIX" install
 
 Linux:
   Using RPM (if sufficiently close to Red Hat; make sure RPMHOME is correct
@@ -78,7 +81,7 @@ Linux:
   libncurses-dev, libtinfo-dev, sys-libs), that should be
   enough on most Linux systems.  Otherwise, you can
   explicitly ask for it is using something like
-     make SYSDEFS=-D`uname` SYSLDLIBS=-lncursesw
+     make CPPFLAGS=-D`uname` LDLIBS=-lncursesw
    
   If you link with one of the general terminal handling
   libraries rather than using Jove's builtin handling, then
@@ -86,7 +89,7 @@ Linux:
   descriptions, which are sometimes in separate packages
   (e.g. called ncurses-terminfo-base or ncurses-base or ncurses-term)
 
-  Older Linux may need either SYSDEFS=-DXLINUX or SYSDEFS=-DBSDPOSIX_STDC
+  Older Linux may need either CPPFLAGS=-DXLINUX or CPPFLAGS=-DBSDPOSIX_STDC
   (but do test how interactive-shell works once built; the main
   issues are pty-handling, even if they seem to compile without error)
 
@@ -94,31 +97,33 @@ Solaris 5.1 or newer:
   make install
 
 Other systems:
-  Read comments about SYSDEFS settings below, check sysdep.h
+  Read comments about CPPFLAGS settings below, check sysdep.h
   for recently tested system settings or old/sysdep.h for once-working
   but currently untested settings that will need to be copied into sysdep.h,
-  or just set on the command-line with SYSDEFS="-D...", SYSLDLIBS
+  or just set on the command-line with CPPFLAGS="-D...", LDLIBS
   if needed.
 
 Cross-Compiling:
 
 The Jove Makefile has some support for cross-compiling.  You
-need to set CC to the cross-compiler, SYSDEFS, SYSCPPFLAGS 
-(for any -I or -D), SYSCFLAGS (for any special compiler options,
-e.g. target arch), SYSLDFLAGS (e.g. -L) or SYSLDLIBS
-and perhaps EXTRALIBS for the target system, while you can set
+need to set CC to the cross-compiler, CPPFLAGS,  
+(for any -I or -D cross-compiler options),
+CFLAGS (for any special cross-compiler options,
+e.g. target arch), LDFLAGS (e.g. -L) or LDLIBS
+for the cross-linker for the target system, while you can set
 LOCALCC, LOCALCFLAGS, LOCALLDFLAGS, LOCALEXTRALIBS and
-LOCALEXT for the local machine (usually none are needed, since
-they are used when locally building the setmaps program
-on the host, which is run to generate keys.c, which will then be
+LOCALEXT for the local host machine compiler and linker
+(usually none other than LOCALCC are needed, since they are used
+when locally building the setmaps program on the host,
+which is run to generate keys.c, which will then be
 cross-compiled for the target) e.g.
-    make CC=/cross/bin/cc-armv7 SYSDEFS="-DLinux -DJTC" SYSCFLAGS=-O SYSCPPFLAGS= SYSLDFLAGS= SYSLDLIBS= LOCALCC=cc
+    make CC=/cross/bin/cc-armv7 CPPFLAGS="-DLinux -DJTC" CFLAGS=-O2 CPPFLAGS= LDFLAGS="-L/cross/lib" LDLIBS="-lutil" LOCALCC=cc
 
 For another example, see README.win for cross-compiling
 using MinGW for a Windows target.
 
 Please help us keep up with new systems.  If your system
-isn't covered in buildflags.sh or on in the SYSDEFS section
+isn't covered in buildflags.sh or on in the CPPFLAGS section
 of Makefile, tell us what works.  If your system is covered,
 but the documented procedure doesn't work, tell us by filing
 a bug on http://github.com/jonmacs/jove
@@ -127,11 +132,12 @@ Full Story of Installation
 --------------------------
 
 JOVE does not use any automatic configuring mechanism other
-than the very simple buildflags.sh script, which only works
-on modern Linux/*BSD/MacOSX/Darwin/Solaris.  Fine-tuned
-configuring is done by editing definitions in Makefile (in
-some situations it is handier to override definitions by
-supplying them on the make command line).
+than the very simple jmake.sh script, which only works
+on modern Linux/*BSD/MacOSX/Darwin/Solaris.  System-specific
+configuring is done by defining specific symbols from sysdep.h
+in CPPFLAGS in the Makefile (in most situations it is
+handier to override definitions by supplying them on the make 
+command line rather than the classic technique of editing the Makefile).
 
 JOVE has been around for a *long* time, and a lot of care has been taken
 to make it work on many systems, new and old.  For current systems,
@@ -142,12 +148,12 @@ JSHAREDIR, JLIBDIR, JBINDIR, JMANDIR, MANEXT), tempfiles (JTMPDIR, JRECDIR),
 and the default shell (DFLTSHELL).  Although the defaults are
 reasonable, you may wish to change them.
 
-For many systems, you will need to change the definition of SYSDEFS.
+For many systems, you will need to change the definition of CPPFLAGS.
 to the symbol that identifies your system's characteristics, using the
 notation for a macro-setting flag to the C compiler.  For modern
 systems, that symbol is often the output of the uname command.
-For example, on a machine running NetBSD, use "SYSDEFS=-DNetBSD".
-The Makefile describes suitable settings of SYSDEFS for many configurations.
+For example, on a machine running NetBSD, use "CPPFLAGS=-DNetBSD".
+The Makefile describes suitable settings of CPPFLAGS for many configurations.
 If yours isn't mentioned, use "grep System: sysdep.h" to find all
 currently supported system configurations.  If there is no canned
 configuration for your system, you will have to define a new symbol
@@ -155,35 +161,35 @@ and edit sysdep.h suitably.  See "sysdep.doc" for the possible set of
 system-dependent aspects that you can select/tune. 
 
 On some systems, you may need to change the flags passed to
-the compiler (SYSCPPFLAGS, SYSCFLAGS) or the linker
-(SYSLDFLAGS, SYSLDLIBS, EXTRALIBS).  OPTFLAGS and
-TERMCAPLIB are older variables superseded by
-SYSC*FLAGS and SYSLDLIBS respectively.
+the compiler (CPPFLAGS, CFLAGS) or the linker (LDFLAGS,
+LDLIBS).  [These supersede the older Jove-specific
+conventions of defining OPTFLAGS, SYSDEFS, TERMCAPLIB,
+EXTRALIBS, which should still work]
 
 Systems on which 4.17 was tested include the following
-(and their SYSDEFS and TERMCAPLIB will usually be
+(and their CPPFLAGS and TERMCAPLIB will usually be
 correctly set by the buildflags.sh script that is invoked
 by the Makefile).  The following explicit settings also work
 and may provide a guide to customization.  You can also add
 SYSCFLAGS= SYSCPPFLAGS= SYSLDFLAGS= to avoid calling 
 buildflags.sh to avoid automatic build heuristics.
 
-#	Cygwin 3.1.2			SYSDEFS=-DCYGWIN SYSLDLIBS= # builtin vt100/xterm/rxvt etc support, no need for curses dependency
-#	Darwin aka MacOS X onwards	SYSDEFS=-DDarwin SYSLDLIBS=-ltermcap
-#	FreeBSD 12.1			SYSDEFS=-DFreeBSD SYSLDLIBS=-ltermcap EXTRALIBS=-lutil
-#	Linux (modern, glibc pty.h)	SYSDEFS=-DLinux SYSLDLIBS=-lncursesw EXTRALIBS=-lutil
-#	Linux (recent, UNIX98 PTYS)	SYSDEFS=-DXLINUX SYSLDLIBS=-lncursesw
-#	Linux (old, BSD PTYS)		SYSDEFS=-DBSDPOSIX_STDC SYSLDLIBS=-lncurses
-#	NetBSD 8.1			SYSDEFS=-DNetBSD SYSLDLIBS=-ltermcap EXTRALIBS=-lutil
-#	OpenBSD 6.6			SYSDEFS=-DOpenBSD SYSLDLIBS-ltermcap EXTRALIBS=-lutil
-#	SunOS5.1 onwards (Solaris/OpenIndiana/Illumos/Joyent)	SYSDEFS=-DSunOS SYSLDLIBS=-ltermcap
-#	Debian Hurd 0.9			SYSDEFS="-DGNU -DJTC" EXTRALIBS=-lutil  # SYSLDLIBS=-lncursesw might work, did not try
+#	Cygwin 3.1.2			CPPFLAGS=-DCYGWIN LDLIBS= # builtin vt100/xterm/rxvt etc support, no need for curses dependency
+#	Darwin aka MacOS X onwards	CPPFLAGS=-DDarwin LDLIBS=-ltermcap
+#	FreeBSD 12.1			CPPFLAGS=-DFreeBSD LDLIBS="-ltermcap -lutil"
+#	Linux (modern, glibc pty.h)	CPPFLAGS=-DLinux LDLIBS="-lncursesw -lutil"
+#	Linux (recent, UNIX98 PTYS)	CPPFLAGS=-DXLINUX LDLIBS=-lncursesw
+#	Linux (old, BSD PTYS)		CPPFLAGS=-DBSDPOSIX_STDC LDLIBS=-lncurses
+#	NetBSD 8.1			CPPFLAGS=-DNetBSD LDLIBS="-ltermcap -lutil"
+#	OpenBSD 6.6			CPPFLAGS=-DOpenBSD LDLIBS="-ltermcap -lutil"
+#	SunOS5.1 onwards (Solaris/OpenIndiana/Illumos/Joyent)	CPPFLAGS=-DSunOS LDLIBS=-ltermcap
+#	Debian Hurd 0.9			CPPFLAGS="-DGNU -DJTC" LDLIBS=-lutil  # LDLIBS="-lncursesw -lutil" might work, did not try
 
 Next you may edit "tune.h" to select the compile time features you care
 about.  See "tune.doc" for a description of all the compile time options.
 The default options are quite reasonable so, in most cases, you should
 leave them alone.  If you are really short on space, or are porting JOVE
-to a new system, you may want to define -DBAREBONES in SYSDEFS to avoid
+to a new system, you may want to define -DBAREBONES in CPPFLAGS to avoid
 some of the less-portable features of JOVE initially.
 
 You can type "make" to compile "jjove", "portsrv" (this is compiled on
@@ -287,38 +293,38 @@ The following used to work circa Jove 4.16 in the 1990s and have probably not
 been tested in the 21st century, they may still work but some of this
 ancient support may be deleted from Jove at some point, we welcome
 any recent success stories from jove builders/packagers to refresh
-or maintain these. Pretty please! Most need TERMCAPLIB=-ltermcap,
-but if you get link errors for tputs or tparm, try TERMCAPLIB=-lcurses
+or maintain these. Pretty please! Most need LDLIBS=-ltermcap,
+but if you get link errors for tputs or tparm, try LDLIBS=-lcurses
 
-#	Apple A/UX on macIIs		SYSDEFS=-DA_UX
-#	BSD4.2,4.3			SYSDEFS=-DBSD4
-#	BSD4.1				SYSDEFS=-DBSD4 EXTRALIBS = -ljobs
-#	BSDI, 386BSD, BSD4.4		SYSDEFS=-DBSDPOSIX
-#	Consensys V4			SYSDEFS="-DSYSVR4 -DGRANTPT_BUG"
-#	Compaq Tru64 UNIX V4.0g, 5.1	SYSDEFS=-DSYSVR4
-#	DEC OSF R1.3MK			SYSDEFS=-DSYSVR4
-#	DEC OSF/1 V1.3			SYSDEFS="-DBSDPOSIX -DNO_TIOCREMOTE -DNO_TIOCSIGNAL"
-#	DEC OSF/1 V2.0 and later	SYSDEFS=-DSYSVR4
-#	DEC Ultrix 4.2			SYSDEFS=-DBSDPOSIX
-#	DEC Ultrix 4.3			SYSDEFS="-DBSDPOSIX -DJVDISABLE=255"
-#	Digital UNIX V4.0 and later	SYSDEFS="-DSYSVR4 -DGRANTPT_BUG"
-#	DG AViiON 5.3R4			SYSDEFS="-DSYSVR4 -DBSD_SIGS"
-#	HP/UX 8 or 9			SYSDEFS="-DHPUX -Ac"
-#	HP/UX 11 (-Ac redundant)	SYSDEFS=-DHPUX
-#	IBM AIX 3.2			SYSDEFS=-DAIX3_2
-#	IBM AIX 4.2, 5.2		SYSDEFS="-DAIX4_2" TERMCAPLIB="-lcurses -ltermcap -ls"
-#	Irix 3.3-4.0.5			SYSDEFS="-DIRIX -DIRIX4"
-#	Irix 5.0 onwards		SYSDEFS="-DIRIX -prototypes"
-#	Linux (ancient e.g. RedHat 4,5)	SYSDEFS=-DBSDPOSIX
-#	MIPS RiscOS4.x			SYSDEFS="-systype bsd43 -DBSD4"
-#	SCO Unix			SYSDEFS=-DSCO TERMCAPLIB=-lcurses
-#	SunOS3.x			SYSDEFS=-DSUNOS3
-#	SunOS4.0*			SYSDEFS=-DSUNOS40
-#	SunOS4.1*			SYSDEFS=-DSUNOS41
-#	SunOS5.0 (Solaris 2.0)		SYSDEFS="-DSYSVR4 -DGRANTPT_BUG"
-#	Sys III, Sys V R 2,3		SYSDEFS=-DSYSV PORTSRVINST='$(PORTSRV)' TERMCAPLIB=-lcurses
-#	Sys V Release 4.0		SYSDEFS="-DSYSVR4 -DGRANTPT_BUG" TERMCAPLIB=-lcurses
-#	Sys V Release 4.x		SYSDEFS=-DSYSVR4 TERMCAPLIB=-lcurses
+#	Apple A/UX on macIIs		CPPFLAGS=-DA_UX
+#	BSD4.2,4.3			CPPFLAGS=-DBSD4
+#	BSD4.1				CPPFLAGS=-DBSD4 LDLIBS = -ljobs
+#	BSDI, 386BSD, BSD4.4		CPPFLAGS=-DBSDPOSIX
+#	Consensys V4			CPPFLAGS="-DSYSVR4 -DGRANTPT_BUG"
+#	Compaq Tru64 UNIX V4.0g, 5.1	CPPFLAGS=-DSYSVR4
+#	DEC OSF R1.3MK			CPPFLAGS=-DSYSVR4
+#	DEC OSF/1 V1.3			CPPFLAGS="-DBSDPOSIX -DNO_TIOCREMOTE -DNO_TIOCSIGNAL"
+#	DEC OSF/1 V2.0 and later	CPPFLAGS=-DSYSVR4
+#	DEC Ultrix 4.2			CPPFLAGS=-DBSDPOSIX
+#	DEC Ultrix 4.3			CPPFLAGS="-DBSDPOSIX -DJVDISABLE=255"
+#	Digital UNIX V4.0 and later	CPPFLAGS="-DSYSVR4 -DGRANTPT_BUG"
+#	DG AViiON 5.3R4			CPPFLAGS="-DSYSVR4 -DBSD_SIGS"
+#	HP/UX 8 or 9			CPPFLAGS="-DHPUX -Ac"
+#	HP/UX 11 (-Ac redundant)	CPPFLAGS=-DHPUX
+#	IBM AIX 3.2			CPPFLAGS=-DAIX3_2
+#	IBM AIX 4.2, 5.2		CPPFLAGS="-DAIX4_2" LDLIBS="-lcurses -ltermcap -ls"
+#	Irix 3.3-4.0.5			CPPFLAGS="-DIRIX -DIRIX4"
+#	Irix 5.0 onwards		CPPFLAGS="-DIRIX -prototypes"
+#	Linux (ancient e.g. RedHat 4,5)	CPPFLAGS=-DBSDPOSIX
+#	MIPS RiscOS4.x			CPPFLAGS="-systype bsd43 -DBSD4"
+#	SCO Unix			CPPFLAGS=-DSCO LDLIBS=-lcurses
+#	SunOS3.x			CPPFLAGS=-DSUNOS3
+#	SunOS4.0*			CPPFLAGS=-DSUNOS40
+#	SunOS4.1*			CPPFLAGS=-DSUNOS41
+#	SunOS5.0 (Solaris 2.0)		CPPFLAGS="-DSYSVR4 -DGRANTPT_BUG"
+#	Sys III, Sys V R 2,3		CPPFLAGS=-DSYSV PORTSRVINST='$(PORTSRV)' LDLIBS=-lcurses
+#	Sys V Release 4.0		CPPFLAGS="-DSYSVR4 -DGRANTPT_BUG" LDLIBS=-lcurses
+#	Sys V Release 4.x		CPPFLAGS=-DSYSVR4 LDLIBS=-lcurses
 #
 Some systems based on System V release 4 have a bug affecting interactive
 processes.  This bug can be worked around by defining GRANTPT_BUG.
@@ -410,8 +416,8 @@ fixes, portability enhancements, and pieces of sage advice.
 
 	D. Hugh Redelmeier
 
-Thanks to Cord Beermann for Debian packaging, Paul Vixie for FreeBSD
-packaging and many fixes.
+Thanks to Cord Beermann for Debian packaging, Peter Cock for conda packaging,
+Paul Vixie for FreeBSD packaging and many fixes.
 
         Mark Moraes
 
@@ -425,13 +431,14 @@ Changes in 4.17.*
 - Much build cleanup/revamp. Remove some ancient systems from
   sysdep.h since there seems no hope of testing them.
 - Use aspell if available on Linux
-- handle terminals wider than 256 chars!
-- handle line-numbering correctly if >1M lines!
+- Handle terminals wider than 256 chars!
+- Handle line-numbering correctly if >1M lines!
 - Default line length max to 32K now
 - Fast/simple code to directly handle 99.9% of all currently
   used terminals (vt100+ derivatives) without needing termcap/terminfo/curses.
 - Do not allow writeback of files if lines were too long, and thus truncated,
   do not conflate shell output windows with files of the same name.
+- Horizontal scroll of the minibuffer.
 
 Changes in 4.16.*
 ------------------
@@ -482,7 +489,7 @@ Changes since version 4.14.6.
 -----------------------------
 
 JOVE now works on many newer systems.  For example, it compiles
-under Solaris 2.n (SYSDEFS=-DSYSVR4).
+under Solaris 2.n (CPPFLAGS=-DSYSVR4).
 
 The uninstalled binary in the JOVE directory is jjove instead of xjove
 (xjove is now something else).

@@ -3,7 +3,7 @@
 Summary: Jonathan's Own Version of Emacs
 Name: jove
 Version: __VERSION__
-Release: 9%{?dist}
+Release: 10%{?dist}
 License: Copyright only
 Group: Applications/Editors
 URL: https://github.com/jonmacs/jove
@@ -24,7 +24,7 @@ Unicode (or UTF-8 etc).
 %build
 # Keep both build and install make commands consistent, except for DESTDIR and targets.
 # JOVEHOME must be the ultimate path since it will be compiled into JOVE.
-make JOVEHOME=/usr JLIBDIR=%{_libdir}/jove JSHAREDIR=%{_datadir}/jove JETCDIR=%{_sysconfdir}/jove JMANDIR=%{_mandir}/man1 OPTFLAGS="%{optflags}" all doc/jove.man doc/jove.man.ps
+make JOVEHOME=/usr JLIBDIR=%{_libdir}/jove JSHAREDIR=%{_datadir}/jove JETCDIR=%{_sysconfdir}/jove JMANDIR=%{_mandir}/man1 CPPFLAGS=-DLinux CFLAGS="%{optflags}" LDLIBS="-lncurses -ltinfo -lutil" all doc/jove.man doc/jove.man.ps
 mv doc/jove.man doc/jove.man.txt
 
 %install
@@ -35,7 +35,7 @@ mkdir -p $RPM_BUILD_ROOT%{_bindir}
 mkdir -p $RPM_BUILD_ROOT%{_libdir}
 mkdir -p $RPM_BUILD_ROOT%{_datadir}
 mkdir -p $RPM_BUILD_ROOT%{_mandir}/man1
-make DESTDIR=$RPM_BUILD_ROOT JOVEHOME=/usr JLIBDIR=%{_libdir}/jove JSHAREDIR=%{_datadir}/jove JETCDIR=%{_sysconfdir}/jove JMANDIR=%{_mandir}/man1 OPTFLAGS="%{optflags}" install
+make DESTDIR=$RPM_BUILD_ROOT JOVEHOME=/usr JLIBDIR=%{_libdir}/jove JSHAREDIR=%{_datadir}/jove JETCDIR=%{_sysconfdir}/jove JMANDIR=%{_mandir}/man1 CPPFLAGS=-DLinux CFLAGS="%{optflags}" LDLIBS="-lncurses -ltinfo -lutil" install
 mv doc/README doc/README.doc
 
 %files

@@ -54,7 +54,7 @@ To cross-compile on a Unix/Linux machine with MinGW installed
 (e.g. on a modern Debian/Ubuntu/Mint, try "apt install mingw-w64"),
 and then use
 
-	make CC=i686-w64-mingw32-gcc SYSDEFS="-DMINGW" LOCALCC=gcc TERMCAPLIB= XEXT=.exe EXTRAOBJS="win32.o jjove.coff" EXTRALIBS=-lcomdlg32
+	make CC=i686-w64-mingw32-gcc CPPFLAGS="-DMINGW" LOCALCC=cc TERMCAPLIB= XEXT=.exe EXTRAOBJS="win32.o jjove.coff" LDLIBS=-lcomdlg32
 
 
 Advantages of WIN32 version (over DOS)

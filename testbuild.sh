@@ -7,9 +7,13 @@
 : ${TB_REV=$(uname -r)}
 : ${TB_NODE=$(uname -n)}
 
-echo TB_MACH=$TB_MACH TB_OS=$TB_OS TB_REV=$TB_REV
+dist=DIST/$TB_OS-$TB_MACH-$TB_NODE
+if test ! -d $dist; then mkdir -p $dist; fi
+
+(echo TB_MACH=$TB_MACH TB_OS=$TB_OS TB_REV=$TB_REV
 echo
 for f in /etc/*-release; do if test -r "$f"; then echo ">>> $f"; cat "$f"; echo; fi; done
+) | tee $dist/TBINFO
 
 set -eux
 case $# in
@@ -53,8 +57,6 @@ esac
 # directory for artifacts
 make .version
 ver=$(cat .version)
-dist=DIST/$TB_OS-$TB_MACH-$TB_NODE
-if test ! -d $dist; then mkdir -p $dist; fi
 
 # note: older *BSD, OSX, Solaris require a template
 td=$(mktemp -d "${TMPDIR:-/tmp}/jvt.XXXXXXXX")
@@ -97,20 +99,22 @@ if test -x /usr/bin/getconf; then j=-j$(getconf $jv); else j=; fi
 # other than the first "make install" with $TB_OS, some of the others
 # (e.g. PIPEPROCS, TERMINFO) may produce warnings (e.g. no declaration for
 # ioctl) because we are just testing somewhat abnormal non-POSIX sysdefs.
+# Try using either old-style SYSDEFS, OPTFLAGS and TERMCAPLIB, EXTRALIBS
+# or new-style CPPFLAGS, CFLAGS, LDLIBS
 make clean &&
-make $j $x $dd/t10-$TB_OS install &&
+./jmake.sh $j $x $dd/t10-$TB_OS install &&
 make clean &&
-make $j SYSCFLAGS="$o" SYSDEFS="-DPIPEPROCS $d" SYSLDLIBS=$t $x $dd/t20-pipeprocs install &&
+make $j OPTFLAGS="$o" SYSDEFS="-DPIPEPROCS $d" TERMCAPLIB=$t EXTRALIBS= $x $dd/t20-pipeprocs install &&
 make clean &&
-make $j SYSCFLAGS="$o" SYSDEFS="-DBSDPOSIX $d" SYSLDLIBS=$t $x $dd/t30-bsdposix install &&
+make $j CFLAGS="$o" CPPFLAGS="-DBSDPOSIX $d" LDLIBS=$t $x $dd/t30-bsdposix install &&
 make clean &&
-make $j SYSCFLAGS="$o" SYSDEFS="-DBAREBONES -DSMALL -DJTC $d" SYSLDLIBS= $x $dd/t60-small install &&
+make $j CFLAGS="$o" CPPFLAGS="-DBAREBONES -DSMALL -DJTC $d" LDLIBS= $x $dd/t60-small install &&
 make clean &&
 case "$lib" in
 GLIBC)
-    make $j SYSCFLAGS="$o" SYSDEFS="-DGLIBCPTY" SYSLDLIBS=$t EXTRALIBS=-lutil $x $dd/t40-glibcpty install &&
+    make $j OPTFLAGS="$o" SYSDEFS="-DXLINUX" TERMCAPLIB=$t EXTRALIBS= $x $dd/t40-xlinux install &&
     make clean &&
-    make $j SYSCFLAGS="$o" SYSDEFS="-DTERMINFO -DUSE_VFORK" SYSLDLIBS=$t $x $dd/t50-vfork &&
+    make $j OPTFLAGS="$o" SYSDEFS="-DTERMINFO -DUSE_VFORK" TERMCAPLIB=$t $x $dd/t50-vfork &&
     make clean
     ;;
 esac &&
@@ -122,12 +126,12 @@ fi &&
 if test -e /etc/redhat-release; then
 	# build and perhaps install RPM
 	make rpm &&
-	case "$1" in *install) rpm -i $HOME/rpmbuild/RPMS/x86_64/jove-[4-9]*.rpm;; esac &&
+	case "${1-}" in *install) rpm -i $HOME/rpmbuild/RPMS/x86_64/jove-[4-9]*.rpm;; esac &&
 	mv $HOME/rpmbuild/*RPMS/x86_64/jove-[4-9]*.rpm $dist
 elif test -e /etc/alpine-release; then
 	# build a statically compiled version
 	r=jove-$ver-static &&
-	make SYSDEFS="-D$TB_OS -DJTC" SYSLDLIBS= SYSCFLAGS="-Os -static" &&
+	make SYSDEFS="-D$TB_OS -DJTC" OPTFLAGS="-Os -static" &&
 	if test ! -d $dist/$r; then mkdir $dist/$r; fi &&
 	strip jjove recover teachjove &&
 	mv jjove $dist/$r/jove &&
@@ -138,12 +142,12 @@ elif test -e /etc/alpine-release; then
 elif type i686-w64-mingw32-gcc 2> /dev/null ; then
 	# build a cross-compiled version for Windows
 	r=jove-$ver-mingw &&
-	make CC=i686-w64-mingw32-gcc SYSDEFS="-DMINGW" LOCALCC=gcc SYSLDLIBS= XEXT=.exe EXTRAOBJS="win32.o jjove.coff" EXTRALIBS=-lcomdlg32 &&
+	make CC=i686-w64-mingw32-gcc CPPFLAGS="-DMINGW" LOCALCC=cc XEXT=.exe EXTRAOBJS="win32.o jjove.coff" LDLIBS=-lcomdlg32 &&
 	if test ! -d $dist/$r; then mkdir $dist/$r; fi &&
 	mv jjove.exe $dist/$r/jove.exe &&
 	mv recover.exe teachjove.exe $dist/$r &&
 	cp -pr README paths.h doc $dist/$r &&
-	cd $dist && zip -rm $r.zip $r && cd .. &&
+	(cd $dist && zip -rm $r.zip $r) &&
 	make XEXT=.exe clean
 fi &&
 tar -c -j -v -f $dist/$ver-builds.tar.bz2 -C "$td" .

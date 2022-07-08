@@ -101,26 +101,25 @@ XJOVEM = $(DMANDIR)/xjove.$(MANEXT)
 JOVETOOLM = $(DMANDIR)/jovetool.$(MANEXT)
 
 # SYSDEFS: specify system characteristics to the C preprocessor using -D options
-# The default (via buildflags.sh --sysdefs) is the system uname,
-# which describes a number of modern systems.  If this isn't suitable for your system,
-# or you want to customize it, then see README, sysdep.h, sysdep.doc.
-# SYSCPPFLAGS are for other system-dependent definitions (typically -D... or -I...)
-SYSDEFS = `./buildflags.sh --sysdefs`
-SYSCPPFLAGS = `./buildflags.sh --cppflags`
-CPPFLAGS = $(SYSDEFS) $(SYSCPPFLAGS)
+# The default is the system uname, which should work for many
+# popular modern systems like Linux, *BSD, OpenIndiana.
+# If sysdep.h does not define a block for your system, or uname produces
+# an illegal symbol on your platform (Cygwin, GNU Hurd), use jmake
+# or see README, sysdep.h, sysdep.doc.
+SYSDEFS = -D`uname` -DJTC # for compatibility with old packagers, use CPPFLAGS
+CPPFLAGS = $(SYSDEFS)
 
-# compiler flags that are passed to both the compiling and linking steps
+# OPTFLAGS: compiler flags that are passed to both the compiling & linking steps
 # e.g. -g for debugging, -O for optimization.
-OPTFLAGS = 
-SYSCFLAGS = `./buildflags.sh --cflags`
-CFLAGS = $(OPTFLAGS) $(SYSCFLAGS)
+OPTFLAGS = # for compatibility with old packagers, use CFLAGS
+CFLAGS = $(OPTFLAGS)
 
 # For making dependencies under BSD systems
 DEPENDFLAG = -M
 # or, using the official Sun ANSI C compiler
 #	DEPENDFLAG = -xM
 
-# Flags for Library to provide termcap and pty functions.
+# Flags for Libraries to provide termcap and pty functions.
 # Some modern open-source systems have dropped termcap, or ship it
 # as part of the ncurses or tinfo packages.
 # For systems without dynamic libraries, termcap or terminfo are smaller,
@@ -130,33 +129,31 @@ DEPENDFLAG = -M
 # which is almost certainly all that is necessary on modern machines.
 # To use it, define -DJTC and leave TERMCAPLIB unset
 
-TERMCAPLIB = 
-
-# Extra libraries flags needed by some systems.
-EXTRALIBS =
-
-SYSLDLIBS = `./buildflags.sh --ldlibs`
-LDLIBS = $(TERMCAPLIB) $(EXTRALIBS) $(SYSLDLIBS)
+TERMCAPLIB = # for compatibility with old packagers, deprecated, use LDLIBS
+EXTRALIBS = -lutil # for compatibility with old packagers, deprecated, use LDLIBS
+LDLIBS = $(TERMCAPLIB) $(EXTRALIBS)
 
 # linker flags (LDFLAGS) not needed for most systems
-LDFLAGS = `./buildflags.sh --ldflags`
+LDFLAGS = 
 
-# LDCC can be used for link-time tools instead of CC
+# LDCC can be used for link-time alternatives to CC.  Also useful
+# for purify or similar link-time processing.
 LDCC = $(CC)
 
 # For cross compiling Jove, set CC to the cross compiler, and LOCALCC
 # to the local C compiler. LOCALCC will be used for compiling setmaps,
 # which is run as part of the compilation to generate the keymaps.
-# Set LOCALCFLAGS and LOCALLDFLAGS to anything extra (other than SYSDEFS,
-# which is set automatically), though no optimization or debug or special
+# Set LOCALCFLAGS and LOCALLDFLAGS to anything extra (other than CPPFLAGS,
+# which must be the same for local and cross, so that setmaps generates
+# the correct key bindings), though no optimization or debug or special
 # flags are usually needed (other than Xenix?!), since setmaps is 
 # run just once, so use whatever compiles fastest.
 
 LOCALCC = $(CC)
-LOCALCFLAGS =
+LOCALCFLAGS = # nothing really needed for setmaps
 LOCALLDFLAGS = $(LDFLAGS)
-LOCALEXTRALIBS = 
-LOCALEXT = 
+LOCALEXTRALIBS = # nothing really needed for setmaps
+LOCALEXT = # default is a Un*x-style machine, not Windows
 
 # Objects are grouped into overlays for the benefit of (at least) 2.xBSD.
 
@@ -243,7 +240,7 @@ DOCS =	doc/README doc/teach-jove doc/jove.qref \
 
 MISC =	Makefile Makefile.msc Makefile.wat \
 	README README.dos README.win ChangeLog LICENSE \
-	sysdep.doc tune.doc style.doc jspec.in buildflags.sh
+	sysdep.doc tune.doc style.doc jspec.in jmake.sh
 
 SUPPORT = teachjove.c recover.c setmaps.c portsrv.c keys.txt \
 	menumaps.txt mjovers.Hqx jjove.ico jjove.rc
@@ -295,10 +292,11 @@ teachjove$(XEXT):	teachjove.o
 # compile is better than faster executable (also urban legend that 
 # optimization produced bad code for setmaps!)
 setmaps$(LOCALEXT):	setmaps.o
-	$(LOCALCC) $(LOCALLDFLAGS) $(SYSDEFS) -o setmaps$(LOCALEXT) setmaps.o $(LOCALEXTRALIBS)
+	$(LOCALCC) $(LOCALLDFLAGS) $(LOCALCFLAGS)-o setmaps$(LOCALEXT) setmaps.o $(LOCALEXTRALIBS)
 
+# Critical that setmaps be compiled with same CPPFLAGS
 setmaps.o:	setmaps.c
-	$(LOCALCC) $(LOCALCFLAGS) $(SYSDEFS) -c setmaps.c
+	$(LOCALCC) $(LOCALCFLAGS) $(CPPFLAGS) -c setmaps.c
 
 keys.c:	setmaps$(LOCALEXT) keys.txt Makefile
 	@-rm -f keys.c
