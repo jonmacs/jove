@@ -64,9 +64,13 @@ const struct variable	variables[] = {
 #ifdef UNIX
 	{ VARIABLE, "interrupt-character", VAR(&IntChar), V_CHAR|V_TTY_RESET },
 #endif
+#if defined(UNIX) || defined(MINGW)
 	{ VARIABLE, "jove-compiled-with", VAR(JoveCompiled), V_STRING|V_READONLY},
+#endif
 	{ VARIABLE, "jove-features", VAR(JoveFeatures), V_STRING|V_READONLY},
+#if defined(UNIX) || defined(MINGW)
 	{ VARIABLE, "jove-linked-with", VAR(JoveLinked), V_STRING|V_READONLY},
+#endif
 #if defined(USE_CTYPE) && !defined(NO_SETLOCALE)
 	{ VARIABLE, "lc-ctype", VAR(LcCtype), V_STRING|V_LOCALE },
 #endif
