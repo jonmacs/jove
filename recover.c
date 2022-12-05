@@ -179,6 +179,30 @@ size_t	n;
 	to[n] = '\0';
 }
 
+/* strdup s, and if t is not-NULL, concatenate space and t */
+char *
+copystrs(s, t)
+const char	*s, *t;
+{
+	char	*str, *sp;
+	size_t	ns = strlen(s) + 1, nt = 0;
+
+	if (t)
+		nt = strlen(t) + 1;
+	    
+	sp = str = emalloc(ns + nt);
+	memcpy(sp, s, ns);
+	if (t) {
+		sp += ns;
+		sp[-1] = ' ';
+		memcpy(sp, t, nt);
+	}
+	return str;
+}
+
+/* needed by scandir.c */
+#define copystr(s) copystrs(s, NULL)
+
 #include "scandir.c"	/* to get dirent simulation and jscandir */
 
 /* Get a line at `tl' in the tmp file into `buf' which should be LBSIZE
@@ -264,20 +288,6 @@ daddr	atl;
 		curblock = bno;
 	}
 	return blk_buf + off;
-}
-
-/* This pre-dates strdup, but can we assume it exists now? */
-char *
-copystr(s)
-const char	*s;
-{
-	char	*str;
-	size_t	sz = strlen(s) + 1;
-
-	str = emalloc((size_t)sz);
-	strcpy(str, s);
-
-	return str;
 }
 
 private const char	*CurDir;
@@ -918,8 +928,7 @@ private void
 MailUser(rec)
 struct rec_head *rec;
 {
-	char mail_cmd[BUFSIZ];
-	char *last_update;
+	char *last_update, *mail_cmd;
 	const char *buf_string, *mail_prog;
 	FILE *mail_pipe;
 	struct passwd *pw;
@@ -934,12 +943,7 @@ struct rec_head *rec;
 	/* Start up mail */
 	if ((mail_prog = getenv("JOVEMAILER")) == NULL)
 	    mail_prog = "/bin/mail";
-	if (strlen(mail_prog) + 1 + strlen(pw->pw_name) + 1 > sizeof(mail_cmd)) {
-	    fprintf(stderr, "%s: %u buffer too small for \"%s %s\", skipping\n",
-		    progname, (unsigned)sizeof(mail_cmd), mail_prog, pw->pw_name);
-	    return;
-	}
-	sprintf(mail_cmd, "%s %s", mail_prog, pw->pw_name);
+	mail_cmd = copystrs(mail_prog, pw->pw_name);
 	if ((r = setuid(getuid())) < 0) {
 	    fprintf(stderr, "WARNING: %s: setuid(getuid()) failed: %s\n",
 		    progname, strerror(errno));
@@ -948,10 +952,12 @@ struct rec_head *rec;
 	     * so let that behaviour continue, I guess?
 	     */
 	}
-	if ((mail_pipe = popen(mail_cmd, "w")) == NULL)
-		return;
-
-	setbuf(mail_pipe, mail_cmd);
+	if ((mail_pipe = popen(mail_cmd, "w")) == NULL) {
+	    fprintf(stderr, "%s: failed to popen mail command \"%s\": %s\n",
+		    progname, mail_cmd, strerror(errno));
+	    free(mail_cmd);
+	    return;
+	}
 	/* Let's be grammatically correct! */
 	buf_string = rec->Nbuffers == 1? "buffer" : "buffers";
 	fprintf(mail_pipe, "Subject: Jove saved %ld %s after \"%s\" crashed\n",
@@ -966,6 +972,7 @@ struct rec_head *rec;
 	fprintf(mail_pipe, "\tjove -r\n");
 	fprintf(mail_pipe, "See the Jove manual for more details\n");
 	pclose(mail_pipe);
+	free(mail_cmd);
 }
 
 
@@ -997,7 +1004,7 @@ savetmps()
 			rc = stat(RecDir, &stbuf);
 	if (rc < 0 || !S_ISDIR(stbuf.st_mode) || stbuf.st_uid != getuid() /*||
 	    access(buf, W_OK) != 0*/) {
-		fprintf(stderr, "%s: need writable directory \"%s\" owned by %u: got mode 0%o uid %u rc %d%s\n",
+		fprintf(stderr, "%s: need writable directory \"%s\" owned by %u: got mode 0%o uid %u rc %d: %s\n",
 			progname, RecDir, getuid(), (unsigned)stbuf.st_mode,
 			(unsigned)stbuf.st_uid, rc, rc < 0 ? strerror(errno) : "");
 		exit(2);

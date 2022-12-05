@@ -6,6 +6,7 @@
 : ${TB_OS=$(uname)}
 : ${TB_REV=$(uname -r)}
 : ${TB_NODE=$(uname -n)}
+: ${TB_OPTFLAGS=-O}
 
 dist=DIST/$TB_OS-$TB_MACH-$TB_NODE
 if test ! -d $dist; then mkdir -p $dist; fi
@@ -37,6 +38,8 @@ case $# in
 			$SUDO env DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y mingw-w64
 			;;
 		esac
+		# similar OPTFLAGS to what Cord uses for debian packaging
+		TB_OPTFLAGS="-g -O2 -ffile-prefix-map=$PWD=. -fstack-protector-strong -Wformat -Werror=format-security -Wdate-time -D_FORTIFY_SOURCE=2"
 	elif type apk 2> /dev/null; then
 		$SUDO apk update && apk add gcc make pkgconfig musl-dev ncurses-dev groff ctags zip
 	elif type yum 2> /dev/null; then
@@ -62,7 +65,7 @@ ver=$(cat .version)
 td=$(mktemp -d "${TMPDIR:-/tmp}/jvt.XXXXXXXX")
 dd="DESTDIR=$td"
 u=$(uname)
-o=-O
+o=${TB_OPTFLAGS}
 e=
 d=
 x=

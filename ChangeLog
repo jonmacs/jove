@@ -1,7 +1,40 @@
 Author: Mark Moraes <moraes@computer.org>
+Date:   Fri Dec 4 20:20:45 2022 -0500
+
+   4.17.4.7 recover.c: changed copystr to copystrs in to
+   avoid sprintf to fixed size buffer that generated
+   many complaints.
+   setbuf on pipe seems unnecessary on modern machines/libc.
+   missing space in error message
+
+   testbuild.sh: for apt case, use OPTFLAGS from Cord debian hardening
+
+Author: Mark Moraes <moraes@computer.org>
+Date:   Fri Jul 8 03:39:05 2022 -0400
+
+    4.17.4.6 ifdef jove-{compiled,linked}-with variables for
+    UNIX or MINGW in vars.tab, to match jove.h (the variables
+    get defined by lines appended by the Unix Makefile to keys.c)
+
+    fix missing case where long line did not set the
+    error flag and therefore did not rename the buffer to a
+    temporary name (same issue noted by Adam Sjøgren,
+    partly fixed in commit
+    2a256983c9d4026c5745f4ea333d9140f9a6c24a, Mar 14, 2020)
+    
+    clean removes */*.tmp files
+    
+    jmake.sh looks for pkgconf before pkg-config since it's the
+    new cool thing...
+    
+    some /etc/*-release are symlinks, testbuild.sh was skipping those.
+
+Author: Mark Moraes <moraes@computer.org>
 Date:   Tue Jul 8 00:38:41 2022 -0400
 
-   4.17.4.5 Makefile uses modern CPPFLAGS, CFLAGS, 
+   4.17.4.5 apt case in testbuild installs bzip2 and dpkg-dev
+   Replace buildflags.sh complexity with jmake.sh
+   Makefile uses modern CPPFLAGS, CFLAGS, 
    LDLIBS convention instead of SYSDEFS, OPTFLAGS and
    TERMCAPLIB, EXTRALIBS (though the latter should still
    work if the former aren't used).  
