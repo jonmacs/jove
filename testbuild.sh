@@ -20,10 +20,10 @@ set -eux
 case $# in
 0)	;;
 *)	case "$1" in
-	--preinstall) 
+	--preinstall*) 
 		SUDO=
 		;;
-	--sudo-preinstall)
+	--sudo-preinstall*)
 		SUDO=sudo
 		;;
 	*) 	echo "Usage: $0 --preinstall|--sudo-preinstall" >&2
@@ -54,6 +54,9 @@ case $# in
 		# not a packaging system we know, hope it already has minimal testbuild needs
 		type cc make mktemp
 	fi
+	case "$1" in
+	*only) exit 0;;
+	esac
 	;;
 esac
 

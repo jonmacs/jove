@@ -12,7 +12,7 @@
 # just ignore this script, invoke make directly with
 # the flags you want (see last line for examples.
 u=${JMAKE_UNAME-`uname | tr -d -c '[a-zA-Z0-9_]'`}
-cc=${CC-gcc}
+cc=${CC-cc}
 cppflags="-D$u"	# see sysdep.h for symbols to define for porting Jove to various systems
 cflags=
 ldlibs=
@@ -20,14 +20,14 @@ ldflags=	# special link flags, usually none needed
 extra=		# older UN*X (e.g Solaris, SunOS, etc, might need these)
 case "$u" in
 CYGWIN*)
+	cc=${CC-gcc}
 	cppflags="-DCYGWIN" # CYGWIN uname not legal cpp name
 	;;
 *BSD|DragonFly)
 	# openpty on BSD requires libutil
 	ldlibs="-ltermcap -lutil"
 	;;
-SunOS)	cc=${CC-cc}
-	ldlibs="-ltermcap"
+SunOS)	ldlibs="-ltermcap"
 	extra="NROFF=nroff TROFF=troff"	
         xi=/usr/gnu/bin/install
         if test ! -x $xi; then
@@ -36,6 +36,7 @@ SunOS)	cc=${CC-cc}
         extra="$extra XINSTALL=$xi TINSTALL=$xi"
 	;;
 GNU|Linux)
+	cc=${CC-gcc}
 	if dpkg-buildflags > /dev/null 2>&1; then
 		cppflags="$cppflags `dpkg-buildflags --get CPPFLAGS`"
 		cflags="$cflags `dpkg-buildflags --get CFLAGS`"
