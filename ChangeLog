@@ -1,4 +1,10 @@
 Author: Mark Moraes <moraes@computer.org>
+Date:   Sun Dec 11 16:27:21 2022 -0500
+
+   4.17.4.8 jmake.sh: pass CC through, accept JMAKE_UNAME
+   as override for uname.
+
+Author: Mark Moraes <moraes@computer.org>
 Date:   Fri Dec 4 20:20:45 2022 -0500
 
    4.17.4.7 recover.c: changed copystr to copystrs in to

@@ -1,24 +1,31 @@
-#!/bin/sh
-# A minimal wrapper that auto-detects the OS on most modern 
-# systems, and sets appropriate variables (compile flags etc)
-# for make. For those who hate automatic transmission, just
-# ignore this script and figure out the flags you want
-# to give make yourself, as before.
-# All command-line arguments are passed to make.
-u=`uname | tr -d -c '[a-zA-Z0-9_]'`
+#!/bin/sh -eux
+# NOTE: Jove does not use autotools/configure.  This is 
+# a minimal convenience wrapper that crudely auto-detects the OS on 
+# a few of the most common modern (2020+) open-source
+# operating systems by using uname (which can be overridden for 
+# testing or cross-build).  It sets appropriate variables
+# (CC, CPPFLAGS, CFLAGS, LDLIBS, LDFLAGS) for make.
+# All command-line arguments given to jmake.sh are
+# passed directly onward to make.
+# For distro maintainers or sysadmins with complex or multi-target
+# build environments, or those who just prefer full control of config, 
+# just ignore this script, invoke make directly with
+# the flags you want (see last line for examples.
+u=${JMAKE_UNAME-`uname | tr -d -c '[a-zA-Z0-9_]'`}
+cc=${CC-gcc}
 cppflags="-D$u"	# see sysdep.h for symbols to define for porting Jove to various systems
-cc=gcc
+cflags=
 ldlibs=
 ldflags=	# special link flags, usually none needed
 case "$u" in
 CYGWIN*)
-	cppflags="-DCYGWIN"
+	cppflags="-DCYGWIN" # CYGWIN uname not legal cpp name
 	;;
 *BSD|DragonFly)
 	# openpty on BSD requires libutil
 	ldlibs="-ltermcap -lutil"
 	;;
-SunOS)	cc=cc; ldlibs="-ltermcap";;
+SunOS)	cc=${CC-cc}; ldlibs="-ltermcap";;
 GNU|Linux)
 	if dpkg-buildflags > /dev/null 2>&1; then
 		cppflags="$cppflags `dpkg-buildflags --get CPPFLAGS`"
@@ -37,17 +44,25 @@ GNU|Linux)
 			break
 		fi
 	done
+	if test x$jtc = xy -a -e /etc/gentoo-release; then
+		ldlibs="$ldlibs -ltinfo"
+		jtc=n
+	fi
 	# if no ncurses, use built-in VT1xx code
 	case "$jtc" in y) cppflags="$cppflags -DJTC";; esac
 	# best to use openpty on Linux, so need libutil
 	ldlibs="$ldlibs -lutil"
 	;;
-*)	cc=cc; cppflags="$cppflags -DJTC";;
+*)	# for unknown platforms, we try fairly generic, builtin vt1xx
+	cc=${CC-cc}; cppflags="-DBSDPOSIX -DJTC"
+	;;
 esac
 # default cflags (optimization, link) depend on compiler, prefer gcc-compatible
-if test x$cc = xgcc -o x$cc = xclang; then
-	cflags=${cflags-"-g -Os -Wall -Werror -pedantic"}
-else
-	cflags=${cflags-"-O"}  # unknown compiler, just try optimization
-fi
-exec make CPPFLAGS="$cppflags" CFLAGS="$cflags" LDLIBS="$ldlibs" LDFLAGS="$ldflags" "$@"
+case "$cc" in
+*gcc*|*clang*)
+	cflags=${cflags-"-g -Os -Wall -Werror -pedantic"};;
+*)
+	cflags=${cflags-"-O"}  # unknown compiler, just try vanilla optimization
+	;;
+esac
+exec make CC="$cc" CPPFLAGS="$cppflags" CFLAGS="$cflags" LDLIBS="$ldlibs" LDFLAGS="$ldflags" "$@"
