@@ -14,20 +14,21 @@
 u=${JMAKE_UNAME-`uname | tr -d -c '[a-zA-Z0-9_]'`}
 cc=${CC-cc}
 cppflags="-D$u"	# see sysdep.h for symbols to define for porting Jove to various systems
-cflags=
+# most modern compilers are gcc-compatible (even if called cc)
+cflags=${CFLAGS-"-g -Os -Wall -Werror -pedantic"}
 ldlibs=
 ldflags=	# special link flags, usually none needed
 extra=		# older UN*X (e.g Solaris, SunOS, etc, might need these)
 case "$u" in
 CYGWIN*)
-	cc=${CC-gcc}
-	cppflags="-DCYGWIN" # CYGWIN uname not legal cpp name
+	cppflags="-DCYGWIN"
 	;;
 *BSD|DragonFly)
 	# openpty on BSD requires libutil
 	ldlibs="-ltermcap -lutil"
 	;;
-SunOS)	ldlibs="-ltermcap"
+SunOS)	cflags=-O # generally not gcc
+	ldlibs="-ltermcap"
 	extra="NROFF=nroff TROFF=troff"	
         xi=/usr/gnu/bin/install
         if test ! -x $xi; then
@@ -36,7 +37,6 @@ SunOS)	ldlibs="-ltermcap"
         extra="$extra XINSTALL=$xi TINSTALL=$xi"
 	;;
 GNU|Linux)
-	cc=${CC-gcc}
 	if dpkg-buildflags > /dev/null 2>&1; then
 		cppflags="$cppflags `dpkg-buildflags --get CPPFLAGS`"
 		cflags="$cflags `dpkg-buildflags --get CFLAGS`"
@@ -64,15 +64,7 @@ GNU|Linux)
 	ldlibs="$ldlibs -lutil"
 	;;
 *)	# for unknown platforms, we try fairly generic, builtin vt1xx
-	cc=${CC-cc}; cppflags="-DBSDPOSIX -DJTC"
-	;;
-esac
-# default cflags (optimization, link) depend on compiler, prefer gcc-compatible
-case "$cc" in
-*gcc*|*clang*)
-	cflags=${cflags-"-g -Os -Wall -Werror -pedantic"};;
-*)
-	cflags=${cflags-"-O"}  # unknown compiler, just try vanilla optimization
+	cppflags="-DBSDPOSIX -DJTC"; cflags="-O"
 	;;
 esac
 exec make CC="$cc" CPPFLAGS="$cppflags" CFLAGS="$cflags" LDLIBS="$ldlibs" LDFLAGS="$ldflags" $extra "$@"
