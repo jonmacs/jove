@@ -73,11 +73,13 @@ d=-DTERMIOS
 t=-ltermcap
 lib=
 jv=NPROCESSORS_ONLN
+# Some logic below is replicated in/from jmake.sh, needed here because
+# of the extra non-typical builds that are tested.
 case $TB_OS in
 SunOS)  x="NROFF=nroff TROFF=troff"
         d="-DREALSTDC -DPOSIX_PROCS"
         case "$TB_REV" in
-        5.0) d="-DSYSVR4 -DGRANTPT_BUG";;
+        5.0) d="-DSYSVR4 -DGRANTPT_BUG";; # really, just do not run this version, it was so so so problematic!
         5.*) ;;
         *) echo "$0: Not set up for testing $TB_OS $TB_REV" >&2; exit 1;;
         esac
@@ -105,7 +107,7 @@ if test -x /usr/bin/getconf; then j=-j$(getconf $jv); else j=; fi
 # Try using either old-style SYSDEFS, OPTFLAGS and TERMCAPLIB, EXTRALIBS
 # or new-style CPPFLAGS, CFLAGS, LDLIBS
 make clean &&
-./jmake.sh $j $x $dd/t10-$TB_OS install &&
+./jmake.sh $j $dd/t10-$TB_OS install &&
 make clean &&
 make $j OPTFLAGS="$o" SYSDEFS="-DPIPEPROCS $d" TERMCAPLIB=$t EXTRALIBS= $x $dd/t20-pipeprocs install &&
 make clean &&

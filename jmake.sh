@@ -17,6 +17,7 @@ cppflags="-D$u"	# see sysdep.h for symbols to define for porting Jove to various
 cflags=
 ldlibs=
 ldflags=	# special link flags, usually none needed
+extra=		# older UN*X (e.g Solaris, SunOS, etc, might need these)
 case "$u" in
 CYGWIN*)
 	cppflags="-DCYGWIN" # CYGWIN uname not legal cpp name
@@ -25,7 +26,15 @@ CYGWIN*)
 	# openpty on BSD requires libutil
 	ldlibs="-ltermcap -lutil"
 	;;
-SunOS)	cc=${CC-cc}; ldlibs="-ltermcap";;
+SunOS)	cc=${CC-cc}
+	ldlibs="-ltermcap"
+	extra="NROFF=nroff TROFF=troff"	
+        xi=/usr/gnu/bin/install
+        if test ! -x $xi; then
+            xi=cp
+        fi
+        extra="$extra XINSTALL=$xi TINSTALL=$xi"
+	;;
 GNU|Linux)
 	if dpkg-buildflags > /dev/null 2>&1; then
 		cppflags="$cppflags `dpkg-buildflags --get CPPFLAGS`"
@@ -65,4 +74,4 @@ case "$cc" in
 	cflags=${cflags-"-O"}  # unknown compiler, just try vanilla optimization
 	;;
 esac
-exec make CC="$cc" CPPFLAGS="$cppflags" CFLAGS="$cflags" LDLIBS="$ldlibs" LDFLAGS="$ldflags" "$@"
+exec make CC="$cc" CPPFLAGS="$cppflags" CFLAGS="$cflags" LDLIBS="$ldlibs" LDFLAGS="$ldflags" $extra "$@"
