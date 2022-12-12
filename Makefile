@@ -100,19 +100,31 @@ TEACHJOVEM = $(DMANDIR)/teachjove.$(MANEXT)
 XJOVEM = $(DMANDIR)/xjove.$(MANEXT)
 JOVETOOLM = $(DMANDIR)/jovetool.$(MANEXT)
 
+# We set CFLAGS to SYSDEFS and OPTFLAGS, so we can set
+# the definitions in SYSDEFS (needed for the local compiler
+# of keys.c, and the target compiler for the rest, in order
+# to make this work for cross-compilation)
+
 # SYSDEFS: specify system characteristics to the C preprocessor using -D options
 # The default is the system uname, which should work for many
 # popular modern systems like Linux, *BSD, OpenIndiana.
 # If sysdep.h does not define a block for your system, or uname produces
 # an illegal symbol on your platform (Cygwin, GNU Hurd), use jmake
 # or see README, sysdep.h, sysdep.doc.
-SYSDEFS = -D`uname` -DJTC # for compatibility with old packagers, use CPPFLAGS
-CPPFLAGS = $(SYSDEFS)
+# XXX Among modern systems, FreeBSD does not put CPPFLAGS in the default
+# .c.o make build rules, so we put it in SYSDEFS, which we then add
+# to CFLAGS.  This means the contents of CPPFLAGS will likely 
+# appear twice in cc invocations on non-FreeBSD (i.e. OpenBSD, NetBSD, Linux)
+# so best to avoid setting it (the default value is empty anyway)
+SYSDEFS = -D`uname` -DJTC $(CPPFLAGS)
 
 # OPTFLAGS: compiler flags that are passed to both the compiling & linking steps
 # e.g. -g for debugging, -O for optimization.
-OPTFLAGS = # for compatibility with old packagers, use CFLAGS
-CFLAGS = $(OPTFLAGS)
+OPTFLAGS = -O
+
+# CFLAGS (i.e compile flags for the target compiler) are OPTFLAGS and SYSDEFS,
+# DO NOT OVERRIDE
+CFLAGS = $(OPTFLAGS) $(SYSDEFS)
 
 # For making dependencies under BSD systems
 DEPENDFLAG = -M
@@ -143,7 +155,7 @@ LDCC = $(CC)
 # For cross compiling Jove, set CC to the cross compiler, and LOCALCC
 # to the local C compiler. LOCALCC will be used for compiling setmaps,
 # which is run as part of the compilation to generate the keymaps.
-# Set LOCALCFLAGS and LOCALLDFLAGS to anything extra (other than CPPFLAGS,
+# Set LOCALCFLAGS and LOCALLDFLAGS to anything extra (other than SYSDEFS,
 # which must be the same for local and cross, so that setmaps generates
 # the correct key bindings), though no optimization or debug or special
 # flags are usually needed (other than Xenix?!), since setmaps is 
@@ -294,14 +306,14 @@ teachjove$(XEXT):	teachjove.o
 setmaps$(LOCALEXT):	setmaps.o
 	$(LOCALCC) $(LOCALLDFLAGS) $(LOCALCFLAGS)-o setmaps$(LOCALEXT) setmaps.o $(LOCALEXTRALIBS)
 
-# Critical that setmaps be compiled with same CPPFLAGS
+# Critical that setmaps be compiled with same SYSDEFS
 setmaps.o:	setmaps.c
-	$(LOCALCC) $(LOCALCFLAGS) $(CPPFLAGS) -c setmaps.c
+	$(LOCALCC) $(LOCALCFLAGS) $(SYSDEFS) -c setmaps.c
 
 keys.c:	setmaps$(LOCALEXT) keys.txt Makefile
 	@-rm -f keys.c
 	./setmaps$(LOCALEXT) < keys.txt > keys.tmp && \
-	echo 'char JoveCompiled[sizeof(JoveCompiled)] = "'$(CC) $(CFLAGS) $(CPPFLAGS)'";' >> keys.tmp && \
+	echo 'char JoveCompiled[sizeof(JoveCompiled)] = "'$(CC) $(CFLAGS)'";' >> keys.tmp && \
 	echo 'char JoveLinked[sizeof(JoveLinked)] = "'$(LDCC) $(LDFLAGS) $(CFLAGS) $(EXTRAOBJS) $(LDLIBS)'";' >> keys.tmp && \
 	if ! $(CMP) -s keys.c keys.tmp 2> /dev/null; then mv keys.tmp keys.c; else rm keys.tmp; fi
 

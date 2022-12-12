@@ -107,16 +107,15 @@ if test -x /usr/bin/getconf; then j=-j$(getconf $jv); else j=; fi
 # other than the first "make install" with $TB_OS, some of the others
 # (e.g. PIPEPROCS, TERMINFO) may produce warnings (e.g. no declaration for
 # ioctl) because we are just testing somewhat abnormal non-POSIX sysdefs.
-# Try using either old-style SYSDEFS, OPTFLAGS and TERMCAPLIB, EXTRALIBS
-# or new-style CPPFLAGS, CFLAGS, LDLIBS
+# Try using either old-style TERMCAPLIB, EXTRALIBS or new-style LDLIBS
 make clean &&
 ./jmake.sh $j $dd/t10-$TB_OS install &&
 make clean &&
 make $j OPTFLAGS="$o" SYSDEFS="-DPIPEPROCS $d" TERMCAPLIB=$t EXTRALIBS= $x $dd/t20-pipeprocs install &&
 make clean &&
-make $j CFLAGS="$o" CPPFLAGS="-DBSDPOSIX $d" LDLIBS=$t $x $dd/t30-bsdposix install &&
+make $j OPTFLAGS="$o" SYSDEFS="-DBSDPOSIX $d" LDLIBS=$t $x $dd/t30-bsdposix install &&
 make clean &&
-make $j CFLAGS="$o" CPPFLAGS="-DBAREBONES -DSMALL -DJTC $d" LDLIBS= $x $dd/t60-small install &&
+make $j OPTFLAGS="$o" SYSDEFS="-DBAREBONES -DSMALL -DJTC $d" LDLIBS= $x $dd/t60-small install &&
 make clean &&
 case "$lib" in
 GLIBC)
@@ -150,7 +149,7 @@ elif test -e /etc/alpine-release; then
 elif type i686-w64-mingw32-gcc 2> /dev/null ; then
 	# build a cross-compiled version for Windows
 	r=jove-$ver-mingw &&
-	make CC=i686-w64-mingw32-gcc CPPFLAGS="-DMINGW" LOCALCC=cc XEXT=.exe EXTRAOBJS="win32.o jjove.coff" LDLIBS=-lcomdlg32 &&
+	make CC=i686-w64-mingw32-gcc SYSDEFS="-DMINGW" LOCALCC=cc XEXT=.exe EXTRAOBJS="win32.o jjove.coff" LDLIBS=-lcomdlg32 &&
 	if test ! -d $dist/$r; then mkdir $dist/$r; fi &&
 	mv jjove.exe $dist/$r/jove.exe &&
 	mv recover.exe teachjove.exe $dist/$r &&
