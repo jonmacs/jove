@@ -132,9 +132,13 @@ if type zip 2> /dev/null; then
 fi &&
 if test -e /etc/redhat-release; then
 	# build and perhaps install RPM
+	joverpm=$(rpm -qa | grep jove)
+	case "$joverpm" in "") ;; *) rpm -e $joverpm; esac 
+	rm -f $HOME/rpmbuild/*RPMS/$TB_MACH/jove*.rpm
 	make rpm &&
-	case "${1-}" in *install) rpm -i $HOME/rpmbuild/RPMS/x86_64/jove-[4-9]*.rpm;; esac &&
-	mv $HOME/rpmbuild/*RPMS/x86_64/jove-[4-9]*.rpm $dist
+	cp -av $HOME/rpmbuild/*RPMS/$TB_MACH/jove-[4-9]*.rpm $dist &&
+	case "${1-}" in *install) rpm -i $HOME/rpmbuild/RPMS/$TB_MACH/jove-[4-9]*.rpm;; esac &&
+	rm -f $HOME/rpmbuild/*RPMS/$TB_MACH/jove-[4-9]*.rpm
 elif test -e /etc/alpine-release; then
 	# build a statically compiled version
 	r=jove-$ver-static &&

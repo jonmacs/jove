@@ -2,7 +2,18 @@ Author: Mark Moraes <moraes@computer.org>
 Date:   Sun Dec 11 16:27:21 2022 -0500
 
    4.17.4.8 jmake.sh: pass CC through, accept JMAKE_UNAME
-   as override for uname.
+   as override for uname. only use CC=gcc for Linux
+   reverted a bit of da9018786dcb2e4a30f3f63ecd5081fc710d50e1
+   to use SYSDEFS instead of CPPFLAGS, because FreeBSD does not have the
+   latter as part of .c.o, sigh.  So we're back to SYSDEFS for -D or -I
+   and OPTFLAGS for -O or other oddball compiler flags.
+   default to gcc-style optflags, only change that for SunOS or unknown.
+
+   testbuild.sh --preinstallonly or --sudo-preinstallonly
+   exits after prereq package install without building, useful for
+   updating containers. make rpm more robust for old containers
+   that may have an previously installed jove, use TB_MACH instead
+   of hardwired x86_64
 
 Author: Mark Moraes <moraes@computer.org>
 Date:   Fri Dec 4 20:20:45 2022 -0500
