@@ -446,7 +446,6 @@ bool	abortable;
 
 	if (n > 0) {
 		register ZXchar	c;
-		int	col = i_col;
 
 #ifdef HIGHLIGHTING
 		/* nnhl: non-NULL version of hl (possibly
@@ -504,7 +503,6 @@ bool	abortable;
 				break;
 			}
 			spit(c);
-			col += 1;
 		}
 #ifdef HIGHLIGHTING
 		if (real_effect != NULL)

@@ -1,4 +1,10 @@
 Author: Mark Moraes <moraes@computer.org>
+Date:   Sun Dec 18 02:52:09 2022 -0500
+
+   4.17.4.9 screen.c remove vestigial unused variable 'col'
+   (causes complaints on FreeBSD 13.1)
+
+Author: Mark Moraes <moraes@computer.org>
 Date:   Sun Dec 11 16:27:21 2022 -0500
 
    4.17.4.8 jmake.sh: pass CC through, accept JMAKE_UNAME
