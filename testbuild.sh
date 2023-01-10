@@ -11,7 +11,7 @@ export PATH
 : ${TB_NODE=$(uname -n)}
 : ${TB_OPTFLAGS=-O}
 
-dist=$TB_OS-$TB_MACH-$TB_NODE-$TB_REV
+dist=$TB_OS-$TB_MACH
 if test -e /etc/os-release; then
 	. /etc/os-release
 	dist=$dist-${ID-$NAME}-${VERSION_ID-}
@@ -19,6 +19,7 @@ elif test -e /etc/release; then
 	read ID VERSION_CODENAME VERSION_ID junk < /etc/release
 	dist=$dist-$ID-${VERSION_CODENAME}${VERSION_ID}
 fi
+dist="$dist-$TB_REV-$TB_NODE"
 dist=DIST/$(echo "$dist" | tr '() /*#$?^!~`;<>"'\''' '_')
 mkdir -p "$dist"
 
@@ -160,16 +161,16 @@ elif test -e /etc/alpine-release; then
 		if type $cross 2> /dev/null ; then
 			CC=$cross
 			case "$CC" in cc) tag=$TB_MACH-linux;; *) tag=$cross;; esac
+			r=jove-$ver-$tag-static &&
+			make CC=$CC LOCALCC=cc SYSDEFS="-D$TB_OS -DJTC" OPTFLAGS="-Os -static" clobber all &&
+			if test ! -d $dist/$r; then mkdir $dist/$r; fi &&
+			strip jjove recover teachjove &&
+			mv jjove $dist/$r/jove &&
+			mv recover teachjove $dist/$r &&
+			cp -pr README paths.h doc $dist/$r/ &&
+			tar -c -j -v -f $dist/$r.tar.bz2 -C $dist $r &&
+			rm -r $dist/$r
 		fi
-		r=jove-$ver-$tag-static &&
-		make CC=$CC LOCALCC=cc SYSDEFS="-D$TB_OS -DJTC" OPTFLAGS="-Os -static" clobber all &&
-		if test ! -d $dist/$r; then mkdir $dist/$r; fi &&
-		strip jjove recover teachjove &&
-		mv jjove $dist/$r/jove &&
-		mv recover teachjove $dist/$r &&
-		cp -pr README paths.h doc $dist/$r/ &&
-		tar -c -j -v -f $dist/$r.tar.bz2 -C $dist $r &&
-		rm -r $dist/$r
 	done
 fi &&
 if type i686-w64-mingw32-gcc 2> /dev/null ; then
