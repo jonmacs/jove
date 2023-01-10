@@ -1,4 +1,36 @@
 Author: Mark Moraes <moraes@computer.org>
+Date:   Mon Jan 9 22:34:02 2023 -0500
+
+    4.17.5.0 no code changes to src, just build and test tweaks
+    
+    Makefile tweak so nothing is written to pwd on install
+    target if the all target was already run with the same
+    variables by generating files in tmp before copying if
+    different.
+    
+    created pkg/rpm and pkg/deb dirs, moved jspec.in to pkg/rpm
+    added a sample derived from Cord's debian packaging info to
+    pkg/deb along with a testdeb.sh script that runs pbuilder to
+    generate pkgs for amd64, arm64 and armhf as a test of cross-build.
+    Add pkg to tgz, plus some other .filelist cleanup (include jove.spec)
+    
+    updated some of the test environments in github actions to
+    more recent ones.
+    
+    put old/ back into github automatic release tarballs since
+    it is mentioned in README as a source for info about older sysdep.
+    
+    testbuild.sh: try to put human-friendly distro name and ver
+    in output.  automate sudo guesswork and provide env var SUDO
+    override, no need for --sudo-preinstall option.  add
+    --force-yes in addition to -y to avoid interaction for apt
+    install of prereqs.  Invoke pbuilder if available to
+    generate deb pkgs (but we do not add it automatically as a
+    prereq, pretty expensive, plus seems unhappy inside container)
+    use gzip instead of bzip2 since latter is sometimes missing on
+    some platforms.
+
+Author: Mark Moraes <moraes@computer.org>
 Date:   Sun Dec 18 02:52:09 2022 -0500
 
    4.17.4.9 screen.c remove vestigial unused variable 'col'

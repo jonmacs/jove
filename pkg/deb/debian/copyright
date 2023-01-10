@@ -1,0 +1,54 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: jove
+Upstream-Contact: jovehacks@cs.toronto.edu
+Source: https://github.com/jonmacs/jove/releases
+
+Files: *
+Copyright: 1986-2002 by Jonathan Payne
+License: permissive-1
+ ##########################################################################
+ # This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    #
+ # provided by Jonathan and Jovehacks without charge and without          #
+ # warranty.  You may copy, modify, and/or distribute JOVE, provided that #
+ # this notice is included in all the source files and documentation.     #
+ ##########################################################################
+
+Files: xjove/*
+Copyright: 1991-1999 by C.H.Lindsey
+License: permissive-2
+ ###########################################################################
+ # This program is Copyright (C) 1991-1999 by C.H.Lindsey, University of   #
+ # Manchester.  (X)JOVETOOL is provided to you without charge, and with no #
+ # warranty.  You may copy, modify, and/or distribute (X)JOVETOOL,         #
+ # provided that this notice is included in all the files, except insofar  #
+ # as a more specific copyright notices attaches to the file (x)jovetool.c #
+ ###########################################################################
+
+Files: jtc.c
+Copyright: 2020 by Mark Moraes
+License: permissive-3
+ /**************************************************************************
+  * This file is Copyright (C) 2020 by Mark Moraes.  It is provided        *
+  * without charge and without warranty.  You may copy, modify, and/or     *
+  * distribute it, provided that this notice is included in all the source *
+  * file and documentation.                                                *
+  **************************************************************************/
+
+Files: debian/*
+Copyright: 2020-2022 Cord Beermann <cord@debian.org>
+License: GPL-2+
+ This package is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation; either version 2 of the License, or
+ (at your option) any later version.
+ .
+ This package is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ .
+ You should have received a copy of the GNU General Public License
+ along with this program. If not, see <https://www.gnu.org/licenses/>
+ .
+ On Debian systems, the complete text of the GNU General
+ Public License version 2 can be found in "/usr/share/common-licenses/GPL-2".

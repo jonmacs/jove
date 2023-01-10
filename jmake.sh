@@ -68,4 +68,4 @@ GNU|Linux)
 	sysdefs="-DBSDPOSIX -DJTC"; optflags="-O"
 	;;
 esac
-exec make CC="$cc" SYSDEFS="$sysdefs" OPTFLAGS="$optflags" LDLIBS="$ldlibs" LDFLAGS="$ldflags" $extra "$@"
+exec make ${JMAKE_OPTS-} CC="$cc" SYSDEFS="$sysdefs" OPTFLAGS="$optflags" LDLIBS="$ldlibs" LDFLAGS="$ldflags" $extra "$@"

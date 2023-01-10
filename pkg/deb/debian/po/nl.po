@@ -1,0 +1,69 @@
+# Dutch debconf template translation for jove.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the jove package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# Frans Spiesschaert <Frans.Spiesschaert@yucom.be>, 2020.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: jove_4.17.1.4-1\n"
+"Report-Msgid-Bugs-To: jove@packages.debian.org\n"
+"POT-Creation-Date: 2020-02-04 22:52+0100\n"
+"PO-Revision-Date: 2020-02-05 17:07+0100\n"
+"Last-Translator: Frans Spiesschaert <Frans.Spiesschaert@yucom.be>\n"
+"Language-Team: Debian Dutch l10n Team <debian-l10n-dutch@lists.debian.org>\n"
+"Language: nl\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Gtranslator 3.30.1\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#. Type: note
+#. Description
+#: ../jove.templates:1001
+msgid "Found old version of /etc/jove.rc. Moved it to /etc/jove/jove.rc"
+msgstr ""
+"Er is een oudere /etc/jove.rc gevonden; deze is verplaatst naar /etc/jove/"
+"jove.rc"
+
+#. Type: note
+#. Description
+#: ../jove.templates:2001
+msgid "Old version of /etc/jove.rc and new version /etc/jove/jove.rc found"
+msgstr ""
+"Er is zowel een oude /etc/jove.rc als een nieuwe /etc/jove/jove.rc gevonden"
+
+#. Type: note
+#. Description
+#: ../jove.templates:2001
+msgid "Moving old version to /etc/jove/jove.rc.old"
+msgstr "De oude versie wordt verplaatst naar /etc/jove/jove.rc.old"
+
+#. Type: note
+#. Description
+#: ../jove.templates:3001
+msgid "Removed obsolete /etc/init.d/jove script"
+msgstr "Verouderd script /etc/init.d/jove werd verwijderd"
+
+#. Type: note
+#. Description
+#: ../jove.templates:3001
+msgid "Check NEWS.Debian for more information"
+msgstr "Lees NEWS.Debian voor meer informatie"
+
+#. Type: note
+#. Description
+#: ../jove.templates:4001
+msgid "Found old files in /var/lib/jove/preserve/"
+msgstr "Oude bestanden gevonden in /var/lib/jove/preserve/"
+
+#. Type: note
+#. Description
+#: ../jove.templates:4001
+msgid ""
+"You can recover those by running jove -r Check NEWS.Debian for more "
+"information."
+msgstr ""
+"U kunt deze herstellen door jove -r uit te voeren. Lees NEWS.Debian voor "
+"meer informatie."

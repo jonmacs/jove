@@ -11,15 +11,16 @@ jobs:
         os:
         - 'macos-10.15'
         - 'macos-11'
-        - 'macos-12'
+        - 'macos-latest'
         - 'ubuntu-22.04'
         - 'ubuntu-20.04'
         - 'ubuntu-18.04'
+        - 'ubuntu-latest'
     runs-on: ${{ matrix.os }}
     steps:
       - run: echo "event=${{ github.event_name }} runner=${{ runner.os }} os=${{ matrix.os }} branch=${{ github.ref }} repo=${{ github.repository }}."
       - uses: actions/checkout@v3
-      - run: ./testbuild.sh --sudo-preinstall
+      - run: SUDO=sudo ./testbuild.sh --preinstall
       - run: echo "status=${{ job.status }}."
       - uses: actions/upload-artifact@v3
         with:
@@ -33,10 +34,10 @@ jobs:
         - 'debian:11'
         - 'debian:testing'
         - 'alpine:3.9'
-        - 'alpine:3.14'
+        - 'alpine:latest'
         - 'centos:7'
         - 'fedora:30'
-        - 'fedora:34'
+        - 'fedora:latest'
         - 'archlinux:latest'
         - 'gentoo/stage3:latest'
     runs-on: ubuntu-latest

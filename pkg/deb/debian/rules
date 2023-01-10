@@ -1,0 +1,48 @@
+#!/usr/bin/make -f
+# See debhelper(7)
+# (uncomment to enable)
+# output every command that modifies files on the build system.
+export DH_VERBOSE=1
+
+export DEB_BUILD_MAINT_OPTIONS=hardening=+all
+export DPKG_EXPORT_BUILDFLAGS=1
+include /usr/share/dpkg/buildflags.mk
+include /usr/share/dpkg/buildtools.mk
+CPPFLAGS+=$(shell $(PKG_CONFIG) --cflags ncurses)
+LDLIBS+=$(shell $(PKG_CONFIG) --libs ncurses) -lutil
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	dh_auto_build -- \
+		SYSDEFS="-DLinux" \
+		OPTFLAGS="$(CFLAGS)" \
+		LDLIBS="$(LDLIBS)" \
+		LDFLAGS="$(LDFLAGS)" \
+		JOVEHOME=/usr \
+		JMANDIR=/usr/share/man/man1 \
+		LOCALCC=$(CC_FOR_BUILD) \
+		CC=$(CC) \
+		fdocs all
+
+# Install flags must be same as build flags since paths.h and keys.c
+# are regenerated each time Makefile runs.
+override_dh_auto_install:
+	dh_auto_install -- \
+		DESTDIR=debian/jove \
+		SYSDEFS="-DLinux" \
+		OPTFLAGS="$(CFLAGS)" \
+		LDLIBS="$(LDLIBS)" \
+		LDFLAGS="$(LDFLAGS)" \
+		JOVEHOME=/usr \
+		JMANDIR=/usr/share/man/man1 \
+		LOCALCC=$(CC_FOR_BUILD) \
+		CC=$(CC) \
+		install
+	cp debian/jem.rc debian/jem1.txt debian/jem1.hlp debian/jove/usr/share/jove
+	cp debian/jove.rc debian/jove/etc/jove/jove.rc
+
+override_dh_clean:
+	dh_clean
+	debconf-updatepo

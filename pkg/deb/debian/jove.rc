@@ -1,0 +1,138 @@
+# This standard system-wide initialization file provides various
+# reasonable defaults. However, it is probably best seen as a starting
+# point, with examples of interesting possibilities, from which
+# sysadmins can hack their own versions.
+
+pushlibd
+
+# This macro deletes the line containing the cursor.
+# It is used in several of the jove.rc.TERM files and  is intended
+# for binding to the delete-line key on terminals which have it.
+# It is placed in the kill ring for subsequent yanking.
+define-macro kill-line ^[xbeginning-of-line^M^[xset-mark^M^[xnext-line^M^[xkill-region^M^[xpop-mark^M
+
+# This macro sets a right margin, used below for setting a maximum row length.
+define-macro nice-right-margin ^[xset right-margin 70^M
+
+# Set fill mode when Jove is fired up automatically by certain
+# mail/news readers.
+1 auto-execute-command auto-fill-mode /tmp/\{Re\|article\|rnmail\|snd\.\|nn\.\|post\|mutt\|pn\}
+
+# Set right margin for mail, to prevent long lines.
+1 auto-execute-macro nice-right-margin /tmp/\{Re\|article\|rnmail\|snd\.\|nn\.\|post\|mutt\|pn\}
+
+# The following is if you prefer fill-mode to be on for all
+# files except the ones you want it off for (but on the other hand it could
+# be argued that defaults in editors should be the "least surprising"
+# alternative).
+
+# Sets auto-fill-mode for every file and then turns it off as required.
+# 1 auto-execute-command auto-fill-mode .*
+# 0 auto-execute-command auto-fill-mode .*\.[lcChyfp]$\|.*\.lisp$\|.*\.scm$\|.*\.c++$
+
+# set various language modes.
+1 auto-execute-command c-mode .*\.[cChy]$\|.*\.c++$\|.*\.pl$
+1 auto-execute-command lisp-mode .*\.l$\|.*\.lisp$\|.*\.scm$
+# all the languages need show-match-mode.
+1 auto-execute-command show-match-mode .*\.[lcChyfp]$\|.*\.lisp$\|.*\.scm$\|.*\.c++$\|.*\.pl$
+
+# if you have job control, this puts Jove out of the way temporarily.
+bind-to-key pause-jove ^[S
+bind-to-key pause-jove ^[s
+
+# This is for the shell window. Supports sh, csh and ksh.
+set process-prompt ^[^%$#]*[%$#] 
+
+# The following apply to shell windows. Note the use of ^C^C, ^C^D etc.,
+# thus leaving ^D available for delete-next-character.
+# This conforms to current emacs usage.
+process-bind-to-key interrupt-process ^C^C
+process-bind-to-key eof-process ^C^D
+process-bind-to-key quit-process ^C^\
+process-bind-to-key stop-process ^C^Z
+process-bind-to-key dstop-process ^C^Y
+
+# A plethora of programs now unilaterally try to color
+# their output using ANSI color sequences, and all
+# have different ways to turn that off, sigh.
+iproc-env-export INSIDE_JOVE=iproc
+iproc-env-export TERM=dumb
+iproc-env-unset COLORTERM
+iproc-env-export LS_COLORS=none
+iproc-env-unset CLICOLOR
+iproc-env-export GREP_COLOR=never
+iproc-env-unset GREP_COLORS
+iproc-env-export GCC_COLORS=""
+iproc-env-export SYSTEMD_LOG_COLOR=false
+
+# since proc do not have a pty, fewer
+# programs produce color, not sure
+# if all these are needed.
+proc-env-export INSIDE_JOVE=proc
+proc-env-export LS_COLORS=none
+proc-env-unset CLICOLOR
+proc-env-export GREP_COLOR=never
+proc-env-unset GREP_COLORS
+proc-env-export GCC_COLORS=""
+proc-env-export SYSTEMD_LOG_COLOR=false
+
+# Uncomment to set TERM you find any programs producing
+# unreadable output in subshells via pipes.
+#proc-env-export TERM=dumb
+
+# gcc error messages have Unicode quote chars
+# if LANG or LC* are set to utf*, which is
+# typical for modern Linux.  That is hard to
+# read inside Jove compile-it output.
+# (similarly, nroff produces Unicode hyphens)
+# LANG=C seems a more readable, albeit constraining
+# default for Jove subshells (at least,
+# till Jove gets to understand Unicode)
+proc-env-export LANG=C
+
+# This makes the arrow keys work on most terminals.
+bind-to-key previous-line ^[[A
+bind-to-key next-line ^[[B
+bind-to-key forward-character ^[[C
+bind-to-key backward-character ^[[D
+bind-to-key previous-line ^[OA
+bind-to-key next-line ^[OB
+bind-to-key forward-character ^[OC
+bind-to-key backward-character ^[OD
+
+# This causes the previous file version to remain as '#filename~'.
+# set make-backup-files on
+
+# An alternative modeline with better usage of the space.
+set mode-line %[Jove%]%w%w%c(%M)%3c[%b:%n]%2c"%f"%c%i# %m*-%2c%p%2s%(%d%e(%t)%)
+
+# If a terminal needs ^S/^Q for flow control, set allow-^S-and-^Q off
+# in jove.rc.TERM.  Note that many things claiming to be vt100
+# are now terminal emulators (e.g. NetBSD console), so be careful
+# turning it off.
+set allow-^S-and-^Q on
+
+# Ancient UNIXes can mess up the screen with biff when mail arrives.
+# It does no harm to turn this on anyway.
+set disable-biff on
+
+if sh -c 'test ! -f $HOME/.joverc'
+    source jem.rc
+    auto-execute-command delete-other-windows .*/teach-jove
+endif
+
+# source any TERMinal-specific rc file
+1 source jove.rc.$TERM
+
+# source local custom rc file, if present
+# This might be convenient for system admins 
+# making customizations across their entire domain
+1 source jove-local.rc
+
+popd
+
+# source local host rc file, if present
+# This might be convenient for customizations for a specific
+# machine.
+1 source __ETCDIR__/jove.rc
+

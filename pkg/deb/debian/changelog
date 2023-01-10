@@ -1,0 +1,560 @@
+jove (4.17.5.0-1) unstable; urgency=low
+  * New upstream release.
+
+ -- Cord Beermann <cord@debian.org>  Sun, 08 Jan 2023 17:55:26 -0500
+jove (4.17.4.9-1) unstable; urgency=low
+  * New upstream release.
+
+ -- Cord Beermann <cord@debian.org>  Sun, 18 Dec 2022 03:29:31 -0500
+jove (4.17.4.8-1) unstable; urgency=low
+  * New upstream release.
+    + switched back to make
+
+ -- Cord Beermann <cord@debian.org>  Sun, 18 Dec 2022 02:05:35 +0100
+
+jove (4.17.4.7-1) unstable; urgency=low
+
+  * New upstream release.
+    + switched from plain make to jmake.sh wrapper with pkgconf and 
+      dropped compilerflags from debian/rules
+  * includes compiler hardening
+  * includes correct debugsym
+  * fix FTCBFS: Do not build jove during dh_auto_install without
+    cross tools (closes: 1023583)
+    thanks to Helmut Grohne <helmut@subdivi.de>
+  * make Lintian happy again.
+    (better documentation about change of syntax would have been nice.)
+
+ -- Cord Beermann <cord@debian.org>  Sat, 10 Dec 2022 22:15:35 +0100
+
+jove (4.17.4.4-1) unstable; urgency=low
+
+  * New upstream release.
+  * added fdocs-target which was removed from default upstream.
+
+ -- Cord Beermann <cord@debian.org>  Sat, 11 Jun 2022 14:28:18 +0200
+
+jove (4.17.4.3-1) unstable; urgency=low
+
+  * New upstream release.
+    + should now build on Hurd
+  * cleaned changelog from a double entry out of order.
+
+ -- Cord Beermann <cord@debian.org>  Fri, 10 Jun 2022 21:09:41 +0200
+
+jove (4.17.4.1-1) unstable; urgency=low
+
+  * New upstream release.
+  * dropping pkg-config as Build Dependency
+  * removed SYSDEFS-Definition from build process
+
+ -- Cord Beermann <cord@debian.org>  Mon, 30 May 2022 16:51:56 +0200
+
+jove (4.17.4.0-1) unstable; urgency=medium
+
+  * New upstream release.
+  * added pkg-config as Build Dependency for modified building.
+  * Bump Standard to 4.6.0, no changes
+  * Fixed Lintian Overrides
+
+ -- Cord Beermann <cord@debian.org>  Sun, 29 May 2022 12:14:32 +0200
+
+jove (4.17.3.6-2) unstable; urgency=medium
+
+  * Bump Policy. no changes.
+  * Convert po-Files to utf-8
+  * Minor changes to make Lintian Happy.
+
+ -- Cord Beermann <cord@debian.org>  Sat, 16 Jan 2021 12:07:43 +0100
+
+jove (4.17.3.6-1) unstable; urgency=medium
+
+  * New upstream release
+
+ -- Cord Beermann <cord@debian.org>  Sun, 05 Apr 2020 11:00:17 +0200
+
+jove (4.17.3.5-1) unstable; urgency=medium
+
+  * New upstream release
+    + LG_JBUFSIZ default is now 15, 32k chars per line.
+      Dropping our own modification to 14 (16k chars)
+
+ -- Cord Beermann <cord@debian.org>  Thu, 19 Mar 2020 21:54:13 +0100
+
+jove (4.17.3.2-1) unstable; urgency=medium
+
+  * New upstream release
+    + Documentation enhanced
+
+ -- Cord Beermann <cord@debian.org>  Sat, 14 Mar 2020 11:05:48 +0100
+
+jove (4.17.3.1-1) unstable; urgency=medium
+
+  * New upstream release
+
+ -- Cord Beermann <cord@debian.org>  Sun, 08 Mar 2020 12:21:12 +0100
+
+jove (4.17.2.9-1) unstable; urgency=medium
+
+  * New upstream release
+    + JLGBUFSIZ is now LG_JBUFSIZ
+
+ -- Cord Beermann <cord@debian.org>  Wed, 04 Mar 2020 18:33:08 +0100
+
+jove (4.17.2.8-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Cord Beermann <cord@debian.org>  Tue, 03 Mar 2020 21:19:54 +0100
+
+jove (4.17.2.7-1) unstable; urgency=low
+
+  * New upstream release
+  * Refresh Debian specific jove.rc
+  * Add ctags or emacs-bin-common to Suggest
+  * change Suggest on spell to aspell
+
+ -- Cord Beermann <cord@debian.org>  Wed, 26 Feb 2020 19:07:26 +0100
+
+jove (4.17.2.0-2) unstable; urgency=low
+
+  * Fixed Regression
+    + Let dh_auto_build pass cross compilers to make.
+  * Updated Translations
+    + eu by Iñaki Larrañaga Murgoitio <dooteo@zundan.com>
+    + pt by Miguel Figueiredo <elmig@debianpt.org> (closes: #951358)
+
+ -- Cord Beermann <cord@debian.org>  Sat, 15 Feb 2020 13:40:22 +0100
+
+jove (4.17.2.0-1) unstable; urgency=low
+
+  * New upstream release
+    + move shared-files to /usr/share
+    + adopted most of the patches from previous package
+  * Rebuild Package from scratch.
+    + From 1.0 to 3.0 (quilt)
+    + Pulled all not applied patches and install modifications from debian/*
+  * Installed Manual, Quickreference and Commands to /usr/share/doc/jove
+  * Removed init.d-recover-Job.
+      Script placed in doc-dir, added a NEWS about it.
+      jove -r still does things.
+  * Dropped Function-keys from Beginners Menu
+    (closes: #172206, #322980, #478561, #588002)
+  * Bumped Debian Policy-Version to 4.5.0
+    + added Rules-Requires-Root: no
+  * Updated Translations
+    + de by Helge Kreutzmann <debian@helgefjell.de> (closes: #950469, #950752)
+    + es by Jonatan Porras <jonatanpc8@gmail.com>
+    + ru by Yuri Kozlov <yuray@komyakino.ru> (closes: #950668)
+    + sv by Sebastian Rasmussen <sebras@gmail.com>
+    + eu by Iñaki Larrañaga Murgoitio <dooteo@zundan.com>
+    + fi by Sami Kallio <phinaliumz@gmail.com>
+    + it by Beatrice Torracca <beatricet@libero.it> (closes: #951145)
+    + nl by Frans Spiesschaert <Frans.Spiesschaert@yucom.be> (closes: #951328)
+    + fr by Jean-Pierre Giraud <jean-pierregiraud@neuf.fr> (closes: #951342)
+
+ -- Cord Beermann <cord@debian.org>  Fri, 14 Feb 2020 19:29:24 +0100
+
+jove (4.16.0.73-5) unstable; urgency=low
+
+  * Fix FTCBFS: Let dh_auto_build pass cross compilers to make.
+    thanks Helmut Grohne <helmut@subdivi.de> (Closes: #883116)
+  * Bump Policy-Version to 4.1.1 (no change)
+
+ -- Cord Beermann <cord@debian.org>  Fri, 01 Dec 2017 18:13:04 +0100
+
+jove (4.16.0.73-4) unstable; urgency=low
+
+  * force nroff to ascii to work towards reproducible builds.
+    (choosing ascii as this program itself doesn't support utf-8)
+  * rework debian/copyright
+  * switch to Debhelper 9
+  * add 'set -e' to maintainer scripts.
+  * ignore homepage-field. we don't have one.
+
+ -- Cord Beermann <cord@debian.org>  Thu, 20 Aug 2015 11:14:38 +0200
+
+jove (4.16.0.73-3) unstable; urgency=low
+
+  * The Debconf15 release
+  * bumped Policy-Version to 3.9.5 (no change)
+  * configured to allow a maximum line length of 16k (instead of 4096)
+
+ -- Cord Beermann <cord@debian.org>  Tue, 11 Aug 2015 21:54:46 +0200
+
+jove (4.16.0.73-2) unstable; urgency=low
+
+  * added it.po (closes: #729795)
+  * added lsb sourcisng to init.d to make lintian happy
+  * lowered MTA recommends to Suggest
+  * bumped Policy-Version to 3.9.5 (no change)
+
+ -- Cord Beermann <cord@debian.org>  Fri, 22 Nov 2013 22:06:08 +0100
+
+jove (4.16.0.73-1) unstable; urgency=low
+
+  * New upstream release (Upstream accepted our changes)
+  * acknowledge NMUs (Closes: #596569, #478558, #583662)
+  * added hardening
+  * added empty status init.d
+  * cleaned watch-file
+  * add recommended build targets
+  * bumped Policy-Version to 3.9.3 (no change)
+
+ -- Cord Beermann <cord@debian.org>  Thu, 21 Jun 2012 21:33:34 +0200
+
+jove (4.16.0.72-2.2) unstable; urgency=low
+
+  * Non-maintainer upload.
+  * Drop xjove binary removal, xview is being removed from the archive
+    (Closes: #596569, #478558)
+
+ -- Moritz Muehlenhoff <jmm@debian.org>  Tue, 24 May 2011 23:07:41 +0200
+
+jove (4.16.0.72-2.1) unstable; urgency=low
+
+  * Non-maintainer upload.
+  * Fix pending l10n issues. Debconf translations:
+    - Danish (Joe Hansen).  Closes: #583662
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 07 Apr 2011 08:30:00 +0200
+
+jove (4.16.0.72-2) unstable; urgency=low
+
+  * Rebuild with reworked Architectures.
+    + Modified debian/rules so it simply looks for xviewg to
+    + Now use a whitelist for Architectures in debian/control (Please file a
+      bug if your architecture has xview so xjove can be build)
+
+ -- Cord Beermann <cord@debian.org>  Tue, 25 May 2010 15:48:36 +0200
+
+jove (4.16.0.72-1) unstable; urgency=low
+
+  * New upstream release
+    + fixes a bug that shows up on 64-bit Ubuntu 10.4
+  * Make Lintian Happy
+    + Bumped Policy-version
+    + Depends on dh 7
+    + Adding Source-Format
+  * Dropped linking against libolgx (not used by xjove)
+  * Fixed a typo in the manpage
+  * Acknowledge the NMUs
+
+ -- Cord Beermann <cord@debian.org>  Tue, 25 May 2010 08:04:56 +0200
+
+jove (4.16.0.70-3.2) unstable; urgency=low
+
+  * Non-maintainer upload with maintainer approval to fix release
+    goal.
+  * Correct init.d script dependencies and move from rcS.d/ to
+    runlevels 2-5 (Closes: 548312).
+
+ -- Petter Reinholdtsen <pere@debian.org>  Thu, 18 Mar 2010 19:07:01 +0100
+
+jove (4.16.0.70-3.1) unstable; urgency=low
+
+  * Non-maintainer upload to fix pending l10n issues.
+  * Debconf translations:
+    - Dutch. Closes: #418402
+    - Brazilian Portuguese. Closes: #447798
+    - Spanish. Closes: #465159
+    - Finnish. Closes: #476318
+    - Galician. Closes: #478059
+    - Vietnamese. Closes: #478148
+    - Basque. Closes: #479082
+  * Use "linux-any" in the architectures list instead of a long pile of
+    arches while we really want to exclude non Linux arches
+    Closes: #470034
+  * Do not uncoditionnally strip binaries. Closes: #437241
+  * [Lintian] Remove generic sentences from README.Debian
+  * [Lintian] Correct menu section to Applications/Editors
+  * [Lintian] Set debhelper compatibility with debian/compat
+
+ -- Christian Perrier <bubulle@debian.org>  Thu, 10 Apr 2008 08:23:23 +0200
+
+jove (4.16.0.70-3) unstable; urgency=medium
+
+  * Updated ja.po (closes: #402611)
+  * Updated ru.po (closes: #404429)
+  * adding build-dependency po-debconf
+  * no more changes, should be safe for release.
+
+ -- Cord Beermann <cord@debian.org>  Wed,  3 Jan 2007 22:02:12 +0100
+
+jove (4.16.0.70-2) unstable; urgency=low
+
+  * added provides for 'editor' (closes: #398749)
+  * debconf translations
+    + updated french translation (closes: #374528)
+    + added portugese translation (closes: #381195)
+    + added swedish translation (closes: #387507)
+    + updated czech translation (closes: #389213)
+    + updated german translation (closes: #396421)
+
+ -- Cord Beermann <cord@debian.org>  Sun, 19 Nov 2006 14:12:47 +0100
+
+jove (4.16.0.70-1) unstable; urgency=low
+
+  * New upstream release
+  * bumped Standard to 3.7.2
+    + removed references on /usr/X11R6
+    + no more changes
+  * made lintian (mostly) happy by modifying debconf-templates
+
+ -- Cord Beermann <cord@debian.org>  Wed, 31 May 2006 22:43:51 +0200
+
+jove (4.16.0.69-5) unstable; urgency=low
+
+  * Re-upload without change to trigger buildd. (last time there was
+    a missing dependency on xviewg-dev, so buildds failed.)
+
+ -- Cord Beermann <cord@debian.org>  Thu, 19 Jan 2006 21:10:07 +0100
+
+jove (4.16.0.69-4) unstable; urgency=low
+
+  * dpkg-sig signature aren't acccepted by ftp-master anymore.
+    this sucks.
+    (still closes: #333417, #346620)
+
+ -- Cord Beermann <cord@debian.org>  Tue, 10 Jan 2006 21:12:24 +0100
+
+jove (4.16.0.69-3) unstable; urgency=low
+
+  * Upload failed, as the xviewg-Maintainer promised an upload for the
+    xlib-dev Transition i add xjove back.
+    (closes: #333417, #346620)
+
+ -- Cord Beermann <cord@debian.org>  Mon,  9 Jan 2006 21:49:15 +0100
+
+jove (4.16.0.69-2) unstable; urgency=low
+
+  * added swedish debconf template sv.po (closes: #333417)
+  * I rebuild the package now without the X dependency. this also means that
+    xjove will be no longer available. If xview, which is unmaintained for
+    many years now, comes back to life, i will add xjove again.
+    (closes: #346620)
+
+ -- Cord Beermann <cord@debian.org>  Mon,  9 Jan 2006 21:46:47 +0100
+
+jove (4.16.0.69-1) unstable; urgency=low
+
+  * New upstream release
+  * Updated watch-File
+
+ -- Cord Beermann <cord@debian.org>  Sat,  1 Oct 2005 12:07:09 +0200
+
+jove (4.16.0.68-1) unstable; urgency=low
+
+  * New upstream release
+  * Workarounds a problem which garbles the display if you scroll up.
+
+ -- Cord Beermann <cord@debian.org>  Thu, 29 Sep 2005 22:54:05 +0200
+
+jove (4.16.0.67-2) unstable; urgency=low
+
+  * Fixed debconf-dependency
+
+ -- Cord Beermann <cord@debian.org>  Thu, 29 Sep 2005 21:13:42 +0200
+
+jove (4.16.0.67-1) unstable; urgency=low
+
+  * New upstream release
+  * debhelper compatibility 2 -> 4
+  * po-debconf-usage has been introduced some time ago (closes: #237464)
+  * added czech debconf template cs.po (closes: #298214)
+  * added japanese debconf template ja.po (closes: #310163)
+  * added vietnamese debconf template vi.po (closes: #314259)
+  * fixed alternatives-handling (closes: #327537)
+
+ -- Cord Beermann <cord@debian.org>  Sat, 17 Sep 2005 20:45:35 +0200
+
+jove (4.16.0.65-4) unstable; urgency=low
+
+  * added frensch debconf tmeplate (closes: #303018)
+  * disabled building of xjove for amd64, ppc64, because no xview there.
+  	(closes: #299943)
+  * reintroduced the same handling for hurd-i386
+
+ -- Cord Beermann <cord@debian.org>  Thu,  7 Apr 2005 20:52:07 +0200
+
+jove (4.16.0.65-3) unstable; urgency=medium
+
+  * Madeexcludes to not try to build ia64
+  * added amd64 and ppc64 to build architectures (closes #299943)
+  * urgency medium, because of bug #271313
+
+ -- Cord Beermann <cord@debian.org>  Sun, 20 Mar 2005 21:05:01 +0100
+
+jove (4.16.0.65-2) unstable; urgency=low
+
+  * xjove doesn't build/work on ia64 because of a missing
+    xviewg-Package. see
+    bug 228957. I fixed Build-Deps and Architecture, so this shouldn't
+    stop jove to go to testing.
+  * deleted Provides: emacsen, as this seems to have another meaning
+    according to
+    http://www.debian.org/doc/packaging-manuals/debian-emacs-policy
+
+ -- Cord Beermann <cord@debian.org>  Sat, 12 Mar 2005 14:03:05 +0100
+
+jove (4.16.0.65-1) unstable; urgency=low
+
+  * New upstream release
+  * added Provides: emacsen (it is emacs compatible)
+  * added emacs alternative
+  * made lintian happy
+    + added sendmail as alternative for mail-transport-agent
+    + switched to po-debconf
+    + moved xjove from /usr/X11R6 to /usr
+
+ -- Cord Beermann <cord@debian.org>  Sat, 26 Feb 2005 22:57:41 +0100
+
+jove (4.16.0.64-1) unstable; urgency=low
+
+  * New upstream release
+  * bumped Standard to 3.6.1. (no change)
+
+ -- Cord Beermann <cord@debian.org>  Fri, 27 Feb 2004 17:30:28 +0100
+
+jove (4.16.0.58-1) unstable; urgency=low
+
+  * New upstream release
+  * Fixed references of jove.rc in the manpage (closes: #162636)
+  * I would like to remove the /usr/doc -> /usr/share/doc link, but the
+    debhelper-version currently in testing isn't able to. So it remains for
+    now. (and lintian is unhappy.)
+  * As we don't need to restart the temp-file recovery after a
+    dpkg-reconfigure i don't see a sense in adding a debconf-versioning.
+    (lintian is unhappy.)
+  * removed 'full stop' from descriptons. (lintian is a little happier.)
+  * bumped Standard to 3.5.8.0. (no change)
+
+ -- Cord Beermann <cord@debian.org>  Wed, 29 Jan 2003 20:43:11 +0100
+
+jove (4.16.0.56-1) unstable; urgency=low
+
+  * New upstream release
+    + License update. jove is now DFSG-free again (closes: #120759)
+  * added russian debconf template (closes: #136926)
+
+ -- Cord Beermann <cord@debian.org>  Thu, 21 Mar 2002 19:54:43 +0100
+
+jove (4.16.0.52-3) unstable; urgency=low
+
+  * fixed template. (closes: #123774, #123810)
+
+ -- Cord Beermann <cord@debian.org>  Thu, 13 Dec 2001 19:37:54 +0100
+
+jove (4.16.0.52-2) unstable; urgency=low
+
+  * added german template by Sebastian Feltel <sebastian@feltel.de>
+    (closes: #109144)
+  * moved jove to non-free (closes: #120759)
+    i'll reopen this bug as wishlist item, the Original Author Jonathan Payne
+    said 'I've always personally considered it a "do whatever the hell you
+    want with it" piece of code, as long as you don't try to sell it.'. Sadly
+    the people at jovehacks@cs.toronto.edu, who now maintain that project
+    haven't yet answered my mail or released a copyright-fixed version.
+
+ -- Cord Beermann <cord@debian.org>  Mon, 10 Dec 2001 22:00:28 +0100
+
+jove (4.16.0.52-1) unstable; urgency=low
+
+  * New upstream release
+  * Standards: 3.5.6.0
+
+ -- Cord Beermann <cord@debian.org>  Sun, 12 Aug 2001 11:35:40 +0200
+
+jove (4.16.0.50-1) unstable; urgency=low
+
+  * new upstream
+  * recompile with current testing including XFree86 V4.x
+  * removed Hurdish-excludes from Build-depends, because
+    1. it stops Autobuilders from working correctly
+    2. as xlibs/Xview gets available for the Hurd, jove should be compile
+       fine there. Since then i'll port it myself.
+
+ -- Cord Beermann <cord@debian.org>  Sun, 18 Feb 2001 14:54:16 +0100
+
+jove (4.16.0.49-4) unstable; urgency=low
+
+  * debconf'ed
+
+ -- Cord Beermann <cord@debian.org>  Wed, 17 Jan 2001 20:40:09 +0100
+
+jove (4.16.0.49-3) unstable; urgency=low
+
+  * fixed bug in preinst-script (Closes: #82374) (Thanks to Nathaniel Smith)
+  * changed my address, as i'm now in the project.
+
+ -- Cord Beermann <cord@debian.org>  Mon, 15 Jan 2001 08:58:51 +0100
+
+jove (4.16.0.49-2) unstable; urgency=low
+
+  * fixed a 'cannot build from source' bug. (Closes: #81878)
+  * removed a tailing space from the menu-file.
+    (patches supplied by Martin Michlmayr)
+
+ -- Cord Beermann <debian@cord.de>  Thu, 11 Jan 2001 08:04:57 +0100
+
+jove (4.16.0.49-1) unstable; urgency=low
+
+  * previous Maintainer Loic Prylli gives now Package away to me. Thanks.
+  * New Maintainer: Cord Beermann <debian@cord.de>
+  * New Upstream version.
+  * started packaging up from scratch.
+  * activated mouse and scrollbar
+  * split off xjove as seperate package (depending on jove)
+  * finally closing bugs from previous NMU-Release (Closes: #79015, #50917)
+  * Standards-Version: 3.2.1
+
+ -- Cord Beermann <debian@cord.de>  Sun, 21 Dec 2000 13:38:50 +0100
+
+jove (4.16-5.1) unstable; urgency=low
+
+  * NMU
+  * Patches for compiling on the Hurd (Fixes #79015)
+  * Update to Standards-Version: 3.1.1.1 (Fixes #50917)
+  * Added script to recover crashed jove buffers
+  * changed CONFIGDIR to /etc/jove
+  * Added Beginners Menu (adapted from Gerold Meerkoetter)
+  * Added update-alternatives
+  * Added menu-entry
+  * fixed problem with 'make install'
+
+ -- Cord Beermann <debian@cord.de>  Tue, 12 Dec 2000 23:36:36 +0100
+
+jove (4.16-5) frozen unstable; urgency=low
+
+  * recompile for ncurses3.4
+  * fix wrong path in manpages (bug #21457)
+  * remove irrelevant jovetool and xjove manpages (bug #22312,#22313)
+
+ -- Loic Prylli <lprylli@graville.fdn.fr>  Wed, 11 Nov 1998 19:09:28 +0100
+
+jove (4.16-4) unstable; urgency=low
+
+  * fix Bug#25308: jove 4.16-3 requires /usr/tmp
+
+ -- Loic Prylli <lprylli@graville.fdn.fr>  Wed, 14 Oct 1998 01:12:02 +0200
+
+jove (4.16-3) unstable; urgency=low
+
+  * use dh_testdir and dh_testroot
+  * change buf.c, with glibc stat modifies its args even when failing
+  * change CONFIGDIR, now /etc/jove.rc
+
+ -- Loic Prylli <lprylli@graville.fdn.fr>  Fri, 20 Feb 1998 00:27:17 +0100
+
+jove (4.16-2) unstable; urgency=low
+
+  * removed unneeded patches
+  * cleaned configuration
+
+ -- Loic Prylli <lprylli@graville.fdn.fr>  Mon,  9 Feb 1998 23:59:02 +0100
+
+jove (4.16-1) unstable; urgency=low
+
+  * Initial Release.
+
+ -- Loic Prylli <lprylli@graville.fdn.fr>  Tue, 31 Dec 1996 00:41:08 +0100

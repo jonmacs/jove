@@ -1,0 +1,75 @@
+# Translation of jove debconf templates to French
+#    Translators, if you are not familiar with the PO format, gettext
+#    documentation is worth reading, especially sections dedicated to
+#    this format, e.g. by running:
+#         info -n '(gettext)PO Files'
+#         info -n '(gettext)Header Entry'
+#
+#    Some information specific to po-debconf are available at
+#            /usr/share/doc/po-debconf/README-trans
+#         or http://www.debian.org/intl/l10n/po-debconf/README-trans
+#
+#    Developers do not need to manually edit POT or PO files.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: jove 4.16.0.0.70-1\n"
+"Report-Msgid-Bugs-To: jove@packages.debian.org\n"
+"POT-Creation-Date: 2020-02-04 22:52+0100\n"
+"PO-Revision-Date: 2006-06-15 23:52+0200\n"
+"Last-Translator: Christophe Masson <chrs.masson@tiscali.fr>\n"
+"Language-Team: French <debian-l10n-french@lists.debian.org>\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. Type: note
+#. Description
+#: ../jove.templates:1001
+msgid "Found old version of /etc/jove.rc. Moved it to /etc/jove/jove.rc"
+msgstr ""
+"Un ancien fichier /etc/jove.rc a été trouvé et renommé en /etc/jove/jove.rc"
+
+#. Type: note
+#. Description
+#: ../jove.templates:2001
+msgid "Old version of /etc/jove.rc and new version /etc/jove/jove.rc found"
+msgstr ""
+"Un ancien /etc/jove.rc et un nouveau /etc/jove/jove.rc ont été trouvés "
+"simultanément"
+
+#. Type: note
+#. Description
+#: ../jove.templates:2001
+msgid "Moving old version to /etc/jove/jove.rc.old"
+msgstr "L'ancienne version est renommée /etc/jove/jove.rc.old"
+
+#. Type: note
+#. Description
+#: ../jove.templates:3001
+msgid "Removed obsolete /etc/init.d/jove script"
+msgstr "Une version obsolète du script /etc/init.d/jove a été supprimée"
+
+#. Type: note
+#. Description
+#: ../jove.templates:3001
+msgid "Check NEWS.Debian for more information"
+msgstr "Consultez NEWS.Debian pour plus d'informations"
+
+#. Type: note
+#. Description
+#: ../jove.templates:4001
+msgid "Found old files in /var/lib/jove/preserve/"
+msgstr ""
+"Des anciens fichiers ont été découverts dans /var/lib/jove/preserve/"
+
+#. Type: note
+#. Description
+#: ../jove.templates:4001
+msgid ""
+"You can recover those by running jove -r Check NEWS.Debian for more "
+"information."
+msgstr ""
+"Il est possible de les récupérer en exécutant jove -r. Consultez NEWS.Debian "
+"pour plus d'informations"

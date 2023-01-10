@@ -1,0 +1,3 @@
+    ====================== JOVE Beginners-Menu ======================
+    Save and Exit (C-X s C-X C-C)    Exit without Saving (C-X C-C)
+    Save (C-X S)		     Get rid of this by 'touch ~/.joverc'

@@ -1,0 +1,6 @@
+jove for Debian
+--------------
+xjove depends on xview, which fails to build on some new architectures,
+and which is unmaintained Upstream for years.
+
+ -- Cord Beermann <cord@debian.org>, Sun,  9 Jan 2006 21:52:36 +0100

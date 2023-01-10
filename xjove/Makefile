@@ -68,8 +68,10 @@ default:		xjove
 
 install:	installxjove
 
-.filelist: $(BACKUPS)
-	@ls $(BACKUPS) >.filelist
+FLIST=.filelist
+
+$(FLIST): $(BACKUPS)
+	@ls $(BACKUPS) > $(FLIST)
 
 installxjove:	xjove
 		$(XINSTALL) xjove $(BINDIR)/xjove

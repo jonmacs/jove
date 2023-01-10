@@ -1,0 +1,68 @@
+# jove Brazilian Portuguese translation
+# Copyright (C) 2007 jove'S PACKAGE COPYRIGHT HOLDER
+# This file is distributed under the same license as the jove package.
+# Eder L. Marques (frolic) <frolic@debian-ce.org>, 2007.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: jove 4.16.0.70-3\n"
+"Report-Msgid-Bugs-To: jove@packages.debian.org\n"
+"POT-Creation-Date: 2020-02-04 22:52+0100\n"
+"PO-Revision-Date: 2007-10-19 16:53-0300\n"
+"Last-Translator: Eder L. Marques (frolic) <frolic@debian-ce.org>\n"
+"Language-Team: l10n Portuguese <debian-l10n-portuguese@lists.debian.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"pt_BR utf-8\n"
+"X-Generator: KBabel 1.11.4\n"
+"Plural-Forms:  nplurals=2; plural=(n > 1);\n"
+
+#. Type: note
+#. Description
+#: ../jove.templates:1001
+msgid "Found old version of /etc/jove.rc. Moved it to /etc/jove/jove.rc"
+msgstr ""
+"Uma versão antiga do /etc/jove.rc foi encontrada. Ela foi movida para /etc/"
+"jove/jove.rc"
+
+#. Type: note
+#. Description
+#: ../jove.templates:2001
+msgid "Old version of /etc/jove.rc and new version /etc/jove/jove.rc found"
+msgstr ""
+"Uma versão antiga do /etc/jove.rc e uma versão nova do /etc/jove/jove.rc "
+"foram encontradas"
+
+#. Type: note
+#. Description
+#: ../jove.templates:2001
+msgid "Moving old version to /etc/jove/jove.rc.old"
+msgstr "Movendo a versão antiga para /etc/jove/jove.rc.old"
+
+#. Type: note
+#. Description
+#: ../jove.templates:3001
+msgid "Removed obsolete /etc/init.d/jove script"
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../jove.templates:3001
+msgid "Check NEWS.Debian for more information"
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../jove.templates:4001
+msgid "Found old files in /var/lib/jove/preserve/"
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../jove.templates:4001
+msgid ""
+"You can recover those by running jove -r Check NEWS.Debian for more "
+"information."
+msgstr ""

@@ -1,0 +1,11 @@
+Document: jove.man
+Title: Debian jove Manual
+Author: Jonathan Payne
+Abstract: JOVE is considered a display editor because normally the text being  edited is visible on the screen and is updated automatically as you type your commands.
+Section: Editors
+
+Format: postscript
+Files: /usr/share/doc/jove/jove.man.ps.gz
+
+Format: text
+Files: /usr/share/doc/jove/jove.man.gz

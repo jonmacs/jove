@@ -1,0 +1,29 @@
+#!/bin/sh -e
+
+set -e
+
+. /usr/share/debconf/confmodule
+
+# These are for the generic editor links
+update-alternatives --install /usr/bin/editor editor /usr/bin/jove 60 \
+  --slave /usr/share/man/man1/editor.1.gz editor.1.gz \
+  /usr/share/man/man1/jove.1.gz
+update-alternatives --install /usr/bin/emacs emacs /usr/bin/jove 0 \
+  --slave /usr/share/man/man1/emacs.1.gz emacs.1.gz \
+  /usr/share/man/man1/jove.1.gz
+
+if dpkg --compare-versions "$2" le "4.17.2.0-1" ; then
+  if [ -f /etc/init.d/jove ]
+  then
+    db_input high jove/removeinitd || true
+    update-rc.d -f jove remove >/dev/null
+    rm /etc/init.d/jove
+  fi
+
+  if ls -A /var/lib/jove/preserve/ >/dev/null 
+  then
+    db_input high jove/preservefiles || true
+  fi
+fi
+
+#DEBHELPER#

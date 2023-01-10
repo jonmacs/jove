@@ -1,0 +1,16 @@
+What is JOVE?
+
+JOVE is Jonathan's Own Version of Emacs.  It is based on the original EMACS
+editor written at MIT by Richard Stallman.  Although JOVE is meant to be
+compatible with EMACS, there are some major differences between the two
+editors and you shouldn't rely on their behaving identically.
+
+It is configured to enable novices to edit Email, programs and other text,
+because the UNIX-Standard-Editor 'vi' isn't the best choice for Newbies.
+Other, easy to use editors often require a graphical Desktop, which can't be
+provided everywhere.
+
+To start learning about the functions of JOVE run the Tutorial 'teachjove'. 
+
+To disable the Beginners Menu, you can simply type 'touch $HOME/.joverc'. You
+can also define your personal configuration in that file.

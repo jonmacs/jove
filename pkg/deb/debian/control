@@ -1,0 +1,20 @@
+Source: jove
+Section: editors
+Priority: optional
+Maintainer: Cord Beermann <cord@debian.org>
+Build-Depends: debhelper, po-debconf, libncurses-dev, groff, pkgconf
+Standards-Version: 4.6.1
+Homepage: https://github.com/jonmacs/jove
+Rules-Requires-Root: no
+
+Package: jove
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Provides: editor
+Suggests: aspell, ctags | emacs-bin-common
+Description: Jonathan's Own Version of Emacs - a compact, powerful editor
+ Jove is a compact, powerful Emacs-style text-editor. It provides the common
+ emacs keyboard bindings, together with a reasonable assortment of the most
+ popular advanced features (e.g. interactive shell windows, compile-it,
+ language specific modes) while weighing in with CPU, memory, and disk
+ requirements comparable to vi(1).
