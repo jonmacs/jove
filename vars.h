@@ -40,4 +40,5 @@ struct variable {
 #define V_READONLY	02000	/* not user-modifiable, set by Jove */
 
 extern const struct variable	variables[];
+extern const struct variable	*varidx[IDXSZ];
 extern const char		*getvar proto((const char * /*name*/, char * /*vbuf*/, size_t /*vbufsize*/));

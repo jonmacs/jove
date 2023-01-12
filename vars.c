@@ -37,32 +37,39 @@
 #define VAR(v)	(UnivPtr)(v), sizeof(v)
 #include "vars.tab"
 
-/* Needed to comfort MS Visual C */
-private int varcmp proto((UnivConstPtr p1, UnivConstPtr p2));
-
-private int
-varcmp(p1, p2)
-UnivConstPtr	p1, p2;
-{
-	const struct variable *v1 = (const struct variable *) p1;
-	const struct variable *v2 = (const struct variable *) p2;
-	return strncmp(v1->Name, v2->Name, strlen(v1->Name));
-}
-
 const char *
 getvar(name, vbuf, vbufsize)
 const char	*name;
 char		*vbuf;
 size_t		vbufsize;
 {
-	struct variable		vkey;
-	const struct variable	*vp;
-	vkey.Name = name;
-	vp = (const struct variable *) bsearch((UnivConstPtr)&vkey,
-		(UnivConstPtr)variables, elemsof(variables) - 1,/* ignore NULL */
-		sizeof(struct variable), varcmp);
-	if (vp == NULL)
-		return NULL;
+	register ZXchar	c;
+	const struct variable	*vp, *which = NULL;
+	size_t	vlen = strlen(name);
+	int ic;
+
+	/* look it up (in the reduced search space) */
+	c = ZXC(name[0]);
+	ic = IDX(c);
+	if (ic >= 0 && ic <= IDXSZ
+	    && (vp = varidx[ic]) != NULL) {
+		for (; vp->Name != NULL && vp->Name[0] == name[0]; vp++) {
+			if (strncmp(vp->Name, name, vlen) == 0) {
+				if (vp->Name[vlen] != '\0' &&
+				    which != NULL) {
+					complain("[\"%s\" ambiguous]", name);
+					/* NOTREACHED */
+				}
+				which = vp;
+				if (vp->Name[vlen] == '0')
+				    break;
+			}
+		}
+	}
+	if (which == NULL) {
+		complain("[variable \"%s\" unknown]", name);
+			/* NOTREACHED */
+	}
 	vpr_aux(vp, vbuf, vbufsize);
 	return vbuf;
 }

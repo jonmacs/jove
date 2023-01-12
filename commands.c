@@ -42,29 +42,28 @@
 const data_obj	*LastCmd;
 const char	*ProcFmt = ": %f ";
 
-private int cmdcmp proto((UnivConstPtr p1, UnivConstPtr p2)); /* Needed to comfort MS Visual C */
-
-private int
-cmdcmp(p1, p2)
-UnivConstPtr	p1, p2;
-{
-	const struct cmd *c1 = (const struct cmd *) p1;
-	const struct cmd *c2 = (const struct cmd *) p2;
-	return strncmp(c1->Name, c2->Name, strlen(c1->Name));
-}
-
 const data_obj *
 findcom(prompt)
 const char	*prompt;
 {
 	if (InJoverc) {
-		 /* for faster startup, skip using the minibuffer. */
-		char		cmdbuf[128];
+		/* For faster rc file processing on startup, read until a space
+		 * or a tab or a newline character is reached, and then do a
+		 * semi-indexedlookup on that string.  This should be much faster
+		 * than minibuffer completion for each line.
+		 */
+		char	cmdbuf[128];
+		register const struct cmd	*cmd;
 		register char	*cp = cmdbuf;
 		register ZXchar	c;
-		const struct cmd	*which;
-		struct cmd	ckey;
+		const struct cmd	*which = NULL;
+		size_t	cmdlen;
+		int ic;
 
+#ifdef MAC
+		/* ??? Is this necessary?  The input is comming from a file! */
+		menus_off();	/* Block menu choices during input */
+#endif
 		/* gather the cmd name */
 		while (jisprint(c = getch()) && c != ' ') {
 			*cp++ = CharDowncase(c);
@@ -74,10 +73,26 @@ const char	*prompt;
 			}
 		}
 		*cp = '\0';
-		ckey.Name = cmdbuf;
-		which = (const struct cmd *)bsearch((UnivConstPtr)&ckey,
-			(UnivConstPtr)commands, elemsof(commands) - 1,/* ignore NULL */
-			sizeof(struct cmd), cmdcmp);
+		cmdlen = cp - cmdbuf;
+
+		/* look it up (in the reduced search space) */
+		c = ZXC(cmdbuf[0]);
+		ic = IDX(c);
+		if (ic >= 0 && ic <= IDXSZ
+		    && (cmd = cmdidx[ic]) != NULL) {
+			for (; cmd->Name != NULL && cmd->Name[0] == cmdbuf[0]; cmd++) {
+				if (strncmp(cmd->Name, cmdbuf, cmdlen) == 0) {
+					if (cmd->Name[cmdlen] == '\0')
+						return (data_obj *) cmd;
+
+					if (which != NULL) {
+						complain("[cmd \"%s\" ambiguous]", cmdbuf);
+						/* NOTREACHED */
+					}
+					which = cmd;
+				}
+			}
+		}
 		if (which == NULL) {
 			complain("[\"%s\" unknown]", cmdbuf);
 			/* NOTREACHED */

@@ -145,15 +145,39 @@ main()
 	const struct fname *fnp;
 #endif /* MAC */
 
-	for (comnum = 1; commands[comnum].Name != NULL; comnum++) {
-		if (strcmp(commands[comnum-1].Name, commands[comnum].Name) >= 0) {
+	static int cmdidx[IDXSZ], varidx[IDXSZ];
+	int lastidx = -1, ic;
+	
+	for (comnum = 0; commands[comnum+1].Name != NULL; comnum++) {
+		ic = IDX(commands[comnum].Name[0]);
+		if (ic < 0 || ic >= IDXSZ) {
+			fprintf(stderr, "command %s idx %d is out of range, must be 0..%d\n",
+				commands[comnum].Name, ic, IDXSZ);
+			exit(1);
+		}
+		if (lastidx != ic) {
+			cmdidx[ic] = comnum;
+			lastidx = ic;
+		}
+		if (strcmp(commands[comnum].Name, commands[comnum+1].Name) >= 0) {
 			fprintf(stderr, "command %s is out of order\n",
 				commands[comnum].Name);
 			exit(1);
 		}
 	}
-	for (comnum = 1; variables[comnum].Name != NULL; comnum++) {
-		if (strcmp(variables[comnum-1].Name, variables[comnum].Name) >= 0) {
+	lastidx = -1;
+	for (comnum = 0; variables[comnum+1].Name != NULL; comnum++) {
+		ic = IDX(variables[comnum].Name[0]);
+		if (ic < 0 || ic >= IDXSZ) {
+			fprintf(stderr, "variable %s idx %d is out of range, must be 0..%d\n",
+				variables[comnum].Name, ic, IDXSZ);
+			exit(1);
+		}
+		if (lastidx != ic) {
+			varidx[ic] = comnum;
+			lastidx = ic;
+		}
+		if (strcmp(variables[comnum].Name, variables[comnum+1].Name) >= 0) {
 			fprintf(stderr, "variable %s is out of order\n", variables[comnum].Name);
 			exit(1);
 		}
@@ -193,7 +217,30 @@ for (fnp = fnt; fnp->in != NULL; fnp++) {
 			break;
 		}
 		lino += 1;
-		if (StartsWith(line, "#if")) {
+		if (StartsWith(line, "/* IDX_TAG")) {
+			int i, idx;
+			fputs("const struct cmd *cmdidx[IDXSZ] = {\n", of);
+			for (i = 0; i < IDXSZ; i++) {
+				if (i == 0 || cmdidx[i] != 0) {
+					idx = cmdidx[i];
+					fprintf(of, "\t&commands[%d], /* %s */\n",
+						idx, commands[idx].Name);
+				} else {
+					fputs("\tNULL,\n", of);
+				}
+			}
+			fputs("};\nconst struct variable *varidx[IDXSZ] = {\n", of);
+			for (i = 0; i < IDXSZ; i++) {
+				if (i == 0 || varidx[i] != 0) {
+					idx = varidx[i];
+					fprintf(of, "\t&variables[%d], /* %s */\n",
+						idx, variables[idx].Name);
+				} else {
+					fputs("\tNULL,\n", of);
+				}
+			}
+			fputs("};", of);
+		} else if (StartsWith(line, "#if")) {
 			sp += 1;
 			if (sp == &stackspace[STACKLIMIT]) {
 				fprintf(stderr,

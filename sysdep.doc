@@ -311,10 +311,6 @@ NO_STRERROR	If you do not have the strerror() routine.  Needed for
 		With this defined, Jove provides an emulation using
 		sys_errlist, which should work on most UNIXes.
 
-NO_BSEARCH	If you do not have the bsearch() routine.  Needed for
-		some pre-ANSI systems. With this defined, Jove provides
-		a simple emulation.
-
 USE_FSYNC	Have the fsync() system call.  True on just about all modern
 		UNIXes.  Used to ask the OS to really flush the file to disk.
 

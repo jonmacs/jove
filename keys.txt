@@ -29,6 +29,9 @@
 
 #include "jove.h"
 #include "commands.h"
+#include "vars.h"
+
+/* IDX_TAG do not change this comment: used by setmaps to add cmdidx & varidx */
 
 data_obj *MainKeys[NCHARS] = {
 	"set-mark",			/* ^@ */

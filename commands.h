@@ -19,6 +19,7 @@ struct cmd {
 };
 
 extern const struct cmd	commands[];
+extern const struct cmd	*cmdidx[IDXSZ];
 
 extern const struct cmd
 	*FindCmd proto((cmdproc_t));

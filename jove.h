@@ -353,6 +353,9 @@ extern char
 extern jmp_buf	mainjmp;
 
 
+#define IDX(c)   ((c)-'a')
+#define IDXSZ    (IDX('z')+1)
+
 extern char	NullStr[];
 
 

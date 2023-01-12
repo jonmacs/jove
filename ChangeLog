@@ -1,7 +1,7 @@
 Author: Mark Moraes <moraes@computer.org>
 Date:   Mon Jan 9 22:34:02 2023 -0500
 
-    4.17.5.0 no code changes to src, just build and test tweaks
+    4.17.5.0 unnoticed bugfix to joverc, just build and test tweaks
     
     Makefile tweak so nothing is written to pwd on install
     target if the all target was already run with the same
@@ -29,6 +29,12 @@ Date:   Mon Jan 9 22:34:02 2023 -0500
     prereq, pretty expensive, plus seems unhappy inside container)
     use gzip instead of bzip2 since latter is sometimes missing on
     some platforms.
+
+    joverc handling (commands.*, vars.*, keys.txt) Backed
+    out of bsearch that I tried in 35dc21ae 4.17.3.2 since
+    it does not provide the first-unambiguous-match
+    behaviour.  But now generate cmdidx and varidx in
+    setmaps for a little less code in Jove.
 
 Author: Mark Moraes <moraes@computer.org>
 Date:   Sun Dec 18 02:52:09 2022 -0500
