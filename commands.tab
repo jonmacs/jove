@@ -300,6 +300,7 @@ const struct cmd	commands[] = {
 #ifdef JOB_CONTROL
 	{ COMMAND, "suspend-jove", WIRED_CMD(PauseJove) },
 #endif
+	{ COMMAND, "teach-jove", WIRED_CMD(TeachJove) },
 	{ DefMajor(TEXTMODE), "text-mode", NULLCMD },
 	{ MODCMD, "transpose-characters", WIRED_CMD(TransChar) },
 	{ MODCMD, "transpose-lines", WIRED_CMD(TransLines) },

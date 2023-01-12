@@ -28,6 +28,8 @@ jove \- an interactive display-oriented text editor
 ] [
 .BI \-t \ tag
 ] [
+.B \-T
+] [
 .BI + n\ file
 ] [
 .BI +/ pattern\ file
@@ -159,6 +161,16 @@ Runs the
 command on
 .I tag
 (see ctags(1)).
+.TP
+.B \-T
+starts JOVE in 
+.I teach-jove
+mode, loading the JOVE tutorial into a buffer (unsaved) with
+the filename 
+.IR ~/teach-jove .
+This replaces the old 
+.B teachjove
+command.
 .TP
 .BI \-w n
 Divides the window into

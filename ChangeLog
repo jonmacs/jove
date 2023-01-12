@@ -36,6 +36,17 @@ Date:   Mon Jan 9 22:34:02 2023 -0500
     behaviour.  But now generate cmdidx and varidx in
     setmaps for a little less code in Jove.
 
+    added teach-jove command and -T option to Jove to invoke it,
+    removed standalone teachjove executable which was a nuisance
+    (relied on cp so did not work on Windows/DOS). added
+    teachjov.bat and teachjove shell script for compatibility,
+    but wonder if we can just get rid of those, less namespace
+    pollution.
+
+    removed duplicate/obsolete config from
+    pkg/deb/debian/jove.rc (which goes in /etc/jove/jove.rc
+    on Debian)
+
 Author: Mark Moraes <moraes@computer.org>
 Date:   Sun Dec 18 02:52:09 2022 -0500
 

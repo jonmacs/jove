@@ -64,7 +64,7 @@ RECPERM = 1777
 # place to copy source tarball for rpmbuild
 RPMHOME = $(HOME)/rpmbuild/SOURCES
 
-# DFLTSHELL is the default shell invoked by JOVE and TEACHJOVE.
+# DFLTSHELL is the default shell invoked by JOVE.
 DFLTSHELL = /bin/sh
 
 # The install commands of BSD and System V differ in unpleasant ways:
@@ -88,7 +88,7 @@ TINSTALL=install $(INSTALLFLAGS) -m 444
 # You will confuse JOVE if you move anything from LIBDIR or SHAREDIR.
 
 JOVE = $(DBINDIR)/jove$(XEXT)
-TEACHJOVE = $(DBINDIR)/teachjove$(XEXT)
+TEACHJOVE = $(DBINDIR)/teachjove
 RECOVER = $(DLIBDIR)/recover$(XEXT)
 PORTSRV = $(DLIBDIR)/portsrv$(XEXT)
 JOVERC = $(DSHAREDIR)/jove.rc
@@ -210,7 +210,7 @@ C_SRC = commands.c commands.tab abbrev.c argcount.c ask.c buf.c c.c case.c jctyp
 	util.c vars.c vars.tab wind.c msgetch.c mac.c keymaps.c ibmpcdos.c \
 	mouse.c win32.c
 
-SOURCES = $(C_SRC) portsrv.c recover.c setmaps.c teachjove.c
+SOURCES = $(C_SRC) portsrv.c recover.c setmaps.c
 
 HEADERS = abbrev.h argcount.h ask.h buf.h c.h case.h chars.h commands.h \
 	jctype.h dataobj.h delete.h disp.h extend.h externs.h \
@@ -255,14 +255,14 @@ MISC =	Makefile Makefile.msc Makefile.wat \
 	sysdep.doc tune.doc style.doc jmake.sh \
 	testbuild.sh testmailer.sh
 
-SUPPORT = teachjove.c recover.c setmaps.c portsrv.c keys.txt \
-	menumaps.txt mjovers.Hqx jjove.ico jjove.rc
+SUPPORT = recover.c setmaps.c portsrv.c keys.txt \
+	menumaps.txt mjovers.Hqx jjove.ico jjove.rc teachjov.bat
 
 BACKUPS = $(HEADERS) $(C_SRC) $(SUPPORT) $(MISC)
 
 # all: default target.
 # Builds everything that "install" needs.
-all:	jjove$(XEXT) recover$(XEXT) teachjove$(XEXT) portsrv$(XEXT) $(CDOC) $(GEN)
+all:	jjove$(XEXT) recover$(XEXT) portsrv$(XEXT) $(CDOC) $(GEN)
 
 jjove$(XEXT):	$(OBJECTS) $(EXTRAOBJS)
 	$(LDCC) $(LDFLAGS) $(CFLAGS) -o jjove$(XEXT) $(OBJECTS) $(EXTRAOBJS) $(LDLIBS)
@@ -297,9 +297,6 @@ portsrv$(XEXT):	portsrv.o
 
 recover$(XEXT):	recover.o
 	$(LDCC) $(LDFLAGS) $(CFLAGS) -o recover$(XEXT) recover.o $(LDLIBS)
-
-teachjove$(XEXT):	teachjove.o
-	$(LDCC) $(LDFLAGS) $(CFLAGS) -o teachjove$(XEXT) teachjove.o $(LDLIBS)
 
 # no need to optimize setmaps since it is run once during build, so faster
 # compile is better than faster executable (also urban legend that 
@@ -347,6 +344,7 @@ paths.h: .ALWAYS
 	echo \#define RECDIR \"$(JRECDIR)\"; \
 	echo \#define LIBDIR \"$(JLIBDIR)\"; \
 	echo \#define SHAREDIR \"$(JSHAREDIR)\"; \
+	echo \#define TEACHJOVE \"teach-jove\"; \
 	echo \#define DFLTSHELL \"$(DFLTSHELL)\";) > $(TFILE); \
 	if ! $(CMP) -s $(TFILE) paths.h 2> /dev/null; then mv $(TFILE) paths.h; else rm $(TFILE); fi; rmdir $(TDIR)
 
@@ -436,8 +434,8 @@ $(RECOVER): $(DLIBDIR) recover$(XEXT)
 $(JOVE): $(DBINDIR) jjove$(XEXT)
 	$(XINSTALL) jjove$(XEXT) $(JOVE)
 
-$(TEACHJOVE): $(DBINDIR) teachjove$(XEXT)
-	$(XINSTALL) teachjove$(XEXT) $(TEACHJOVE)
+$(TEACHJOVE): $(DBINDIR) teachjove
+	$(XINSTALL) teachjove $(TEACHJOVE)
 
 doc/jove.$(MANEXT): doc/jove.nr
 	@mkdir $(TDIR) && \
@@ -496,7 +494,6 @@ lint: keys.c
 	lint $(SYSDEFS) portsrv.c
 	lint $(SYSDEFS) recover.c
 	lint $(SYSDEFS) setmaps.c
-	lint $(SYSDEFS) teachjove.c
 	@echo Done
 
 # CTAGSFLAGS = -N --format=1 # fishy options required for Exuberant Ctags
@@ -565,13 +562,13 @@ signed:	.version tgz
 # MSDOS isn't a full-fledged development environment.
 # Preparing a distribution for MSDOS involves discarding some things
 # and pre-building others.  All should have \n converted to CR LF.
-# From SUPPORT: only setmaps.c and keys.txt [would like teachjove.c, recover.c]
+# From SUPPORT: setmaps.c, keys.txt, recover.c
 # From MISC: all but Makefile and README.mac
 # Preformatted documentation. [would like a joverc]
 # tags
 
 DOSSRC = $(HEADERS) $(C_SRC) setmaps.c recover.c keys.txt \
-	Makefile.msc Makefile.wat \
+	Makefile.msc Makefile.wat teachjov.bat \
 	README README.dos README.win sysdep.doc tune.doc style.doc \
 	jjove.rc $(FDOCS) tags \
 	doc/teach-jove doc/jove.qref doc/jove.rc doc/example.rc
@@ -597,7 +594,7 @@ touch:
 
 clean:
 	rm -f a.out core *.o keys.c jjove$(XEXT) portsrv$(XEXT) recover$(XEXT) \
-		setmaps$(XEXT) teachjove$(XEXT) make.log *.map \#* *~ *.tmp \
+		setmaps$(XEXT) make.log *.map \#* *~ *.tmp \
 		jjove.pure_* ID *.exe jjove.coff */*.tmp \
 		.filelist xjove/.filelist .version
 
@@ -696,7 +693,6 @@ win32.o: $(JOVE_H) fp.h chars.h screen.h disp.h
 portsrv.o: $(JOVE_H) sysprocs.h iproc.h
 recover.o: $(JOVE_H) sysprocs.h rec.h paths.h recover.h scandir.c jctype.h
 setmaps.o: $(JOVE_H) chars.h commands.h vars.h commands.tab vars.tab
-teachjove.o: $(TUNE_H) paths.h
 # DEPENDENCIES MUST END AT END OF FILE
 # IF YOU PUT STUFF HERE IT WILL GO AWAY
 # see "make depend" above

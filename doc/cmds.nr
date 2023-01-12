@@ -2428,6 +2428,21 @@ definitions.  The default value is \*Q.\^/tags\*U.
 .dc "text-attribute" "(variable)"
 (IBM PC version only) This specifies the screen attribute (color) for
 normal text characters.  The default is 7 (white on black).
+.dc "teach-jove" "Not Bound"
+This loads the Jove tutorial from from
+the
+.BQ ~/teach-jove
+file if it was already saved there, else it loads the reference copy
+from 
+.BQ SHAREDIR/teach-jove
+into a buffer that will save to
+.BQ ~/teach-jove,
+replacing the old standalone
+.I teachjove
+command.  The 
+.IQ -T
+option, if given to JOVE on the command line, will start JOVE up with
+the tutorial loaded.
 .dc "text-mode" "Not Bound"
 This sets the major mode to Text.  This affects what \s-2JOVE\s0 considers
 as characters that make up words.  For instance, Single-quote is not part of

@@ -428,6 +428,7 @@ extern void
 	Push proto((void)),
 #endif
 	Recur proto((void)),
+	TeachJove proto((void)),
 	ShowVersion proto((void));
 
 /* Variables: */

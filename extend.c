@@ -938,7 +938,7 @@ char	*file;
 					if (Inputp != NULL && ZXRC(Inputp[-1]) == c) {
 						Inputp -= 1;
 					} else if (!jiswhite(c) && c != '\n' && c != '\0') {
-						complain("[junk at end of line]");
+						complain("[junk at end of line, c = %d %c]", c, jisprint(c)?c:' ');
 						/* NOTREACHED */
 					}
 				}
@@ -952,7 +952,7 @@ char	*file;
 					break;
 
 				if (this_cmd != ARG_CMD) {
-					complain("[junk at end of line]");
+					complain("[junk at end of line, this_cmd = %d]", this_cmd);
 					/* NOTREACHED */
 				}
 			}

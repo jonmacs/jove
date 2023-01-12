@@ -1115,6 +1115,20 @@ getch()
 }
 
 void
+TeachJove()
+{
+	char tnamebuf[FILESIZE];
+	PathCat(tnamebuf, sizeof(tnamebuf), HomeDir, TEACHJOVE);
+	SetABuf(curbuf);
+	SetBuf(do_find(curwind, tnamebuf, YES, NO));
+	if (curbuf->b_first == curbuf->b_last) {
+		char teachref[FILESIZE];
+		PathCat(teachref, sizeof(teachref), ShareDir, TEACHJOVE);
+		read_file(teachref, YES);
+	}
+}
+
+void
 ShowVersion()
 {
 	s_mess("Jonathan's Own Version of Emacs (%s)", jversion);
@@ -1177,6 +1191,9 @@ char	*argv[];
 					ErrParse();
 					nwinds = 0;
 				}
+				break;
+			case 'T':	/* teach-jove */
+				TeachJove();
 				break;
 			case 't':	/* find tag */
 				/* check if syntax is -tTag or -t Tag */

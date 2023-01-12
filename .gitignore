@@ -15,7 +15,6 @@ portsrv_*
 recover
 recover_*
 setmaps
-teachjove
 keys.c
 paths.h
 doc/cmds.doc
