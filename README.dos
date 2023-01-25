@@ -5,7 +5,7 @@
 # this notice is included in all the source files and documentation.     #
 ##########################################################################
 
-[Updated in February 2020]
+[Updated in February 2023]
 
 HOW TO GET STARTED WITH JOVE:
 =============================
@@ -15,10 +15,12 @@ allows you to easily understand and modify JOVE.  The executable
 version allows you to easily install JOVE without using a C compiler.
 Neither requires the other.
 
-Each distribution may be in the form of a .zip archive. You can
-create a suitable archive using
+Each distribution may be in the form of a .zip archive (smaller) or
+a .sfx archive (self-extracting executable zip, larger, may be disallowed
+by various security tools, though that may also be true for .zip). You can
+create a suitable archive (source on Un*x, executable on DOS/Windows) using
 	make zip
-if you have the zip command installed.  If you use pkunzip to unpack,
+if you have a zip command installed.  If you use pkunzip to unpack,
 be sure to use the -d flag to get it to correctly place files
 in subdirectories.  If you need/prefer to use 7-zip, something like
 	make ZIP=7z ZIPOPTS=a zip ZIPEXT=7z
@@ -39,30 +41,36 @@ build them are not generally available under MSDOS (for example, the
 formatted documentation).  The source distribution for MSDOS can be
 built from the generic distribution on UNIX with the command "make zip".
 
-The executable distribution for MSDOS on the IBM PC is an archive
-called joveNNNm.zip or joveNNNl.zip where NNN is a version number
-(e.g. 417 for 4.17).  The archive contains all the files needed to use
-jove: the executables and the documentation. joveNNNm.zip contains
-executables built for medium model (slightly smaller memory footprint,
-maximum line lengths of 512 bytes, but likely to run out of memory or
-hit a temp file limit when editing lots of files at the same time),
-while joveNNNl.zip contains executables built for large model (bigger
-memory footprint, maximum line length of 2048 bytes, can usually go
-upto 32K total lines across many buffers, so it's generally the
-recommended version).
+The executable distribution for MSDOS on the IBM PC is an archive called
+joveNNNd.zip where NNN is a version number (e.g. 417 for 4.17).  The
+archive contains all the files needed to use jove: the executables and
+the documentation.  The executables are built for large model (maximum
+line length of 2048 bytes, can usually go upto 32K total lines across
+many buffers).  Jove can also be compiled for medium model (slightly
+smaller memory footprint, maximum line lengths of 512 bytes, but likely
+to run out of memory or hit a temp file limit when editing lots of files
+at the same time, so not recommended, not recently tested)
 
 jove.exe        JOVE editor executable.
 recover.exe	This is the recover program to pull data back out
 		of the temporary working file if JOVE or the PC
-		crashed while editing.
+		previously crashed while editing. It is invoked 
+		by the JOVE -r option. May need to set the JOVELIB
+		environment variable, or use the -l option to locate it
+		if stored in a different location than the compiled-in
+		default (lib-dir-pathname variable in JOVE, LIBDIR
+		in paths.h, empty means same dir as jove.exe)
 doc\cmds.doc    contains text for the describe-command and describe-
-                variable command.  Should be moved into the directory
-                described under SHAREDIR
+                variable command.  If the compiled-in default does not work,
+		then may need to set the JOVESHARE environment variable
+		or use -s JOVE option
 doc\jove.man    the complete JOVE manual
 doc\jove.doc    the "manpage" for JOVE: describes how to run JOVE
 doc\jove.qre    a plain text quick reference card with JOVE commands/variables
 doc\joveman.ps  PostScript version of the JOVE manual for printing
-doc\jove.rc     a system-default startuup file, if moved into SHAREDIR
+doc\jove.rc     a system-default startuup file, see JOVESHARE
+doc\teachjov.txt Jove tutorial for -T option or teach-jove command,
+		see JOVESHARE
 doc\example.rc  other example startup configuration
 paths.h         This file shows what the default directories JOVE was
                 compiled with.  The file itself is not used to run JOVE.
@@ -90,15 +98,37 @@ you have to start over.  Please note also that the Large Model version
 of JOVE has a big cache for the temporary file in memory, which makes
 it quite fast even if you don't have a ramdisk.  It is an MSDOS
 convention to use TEMP; use TMPDIR if you intend that the directory
-is solely for JOVE.
+is solely for JOVE.  Remember to create the temporary directory,
+since JOVE does not do that automatically (newer DOS versions
+usually have a temporary directory and set TEMP)
 
 JOVESHARE
-This variable specifies the path to the directory that will contain
+This variable specifies the path to the directory in which the
+documentation and support files for JOVE can be found
 (1) cmds.doc (the file of command and variable descriptions used by
 the describe-command and desribe-variable commands) and (2) the
 system-wide jove.rc (the first file that is sourced (executed) by JOVE
-when it starts up).  The default is c:/jove (set by SHAREDIR in the
-makefile when JOVE was compiled).
+when it starts up) and (3) the TEACHJOV.TXT tutorial that
+can be accessed with the "teach-jove" command within JOVE,
+or by starting JOVE with the -T option (different from -t;
+unlikes typical DOS programs, JOVE options are case-sensitive)
+If this is a relative path, JOVE will interpret it
+as relative to the directory containing the JOVE
+executable. The default is "doc" (set by SHAREDIR in the
+makefile when JOVE was compiled), which works if you either
+run a compiled JJOVE executable out of the source directory,
+or from the ZIP or (self-extracting) EXE file with the JOVE
+DOS binaries.
+
+JOVELIB
+This variable specifies the path to the directory in which the
+RECOVER.EXE program can be found, needed when JOVE is invoked
+with the -r option.  As with JOVESHARE, a relative directory
+will be interpreted as relative to the same directory as the JOVE
+executable was found.  The default is the empty string, which
+means the same directory as the JOVE executable, which works
+for either a source directory that was just compiled, or the
+pre-packaged ZIP or self-extracting EXE binary distributions.
 
 HOME
 The directory which is to be considered the user's home (as in UNIX).
@@ -110,39 +140,6 @@ home directory.
 
 METAKEY
 If this environment variable is set, JOVE turns on its meta-key variable.
-
-MSDOS ON MACHINES NOT COMPATIBLE WITH THE IBM PC
-================================================
-
-JOVE has been ported to MSDOS machines that are not IBM PC clones.
-One example for which there is special code is the DEC Rainbow.
-Another is the Atari ST (although the specific code for it is not
-included in our current source).  Still others are generic MSDOS
-machines such as the Nabu 1600.  Although the source code still has
-provisions for these, it has not been tested recently and so is
-probably no longer quite right.
-
-The next two variables are not used by the IBM PC version, and have to
-do with specifying the type of terminal in use on a generic MSDOS
-computer.
-
-TERM
-This variable should specify the name of the terminal you are using.
-For example, if you have a DEC vt-100 terminal attached to your MSDOS
-computer, you should give the command "set TERM=vt100" prior to
-starting JOVE.
-
-TERMCAP
-This environment variable holds the name of a database with
-descriptions of different terminal types.  If you are familiar with the
-UNIX operating system, you probably know about TERMCAP.  For each
-terminal type, specified by TERM, the TERMCAP database holds an entry,
-which describes how to set the cursor, how to scroll, and many other
-things, for that particular terminal.  A small example TERMCAP file
-comes with JOVE.  If your terminal is not included there, you should ask a
-local UNIX guru for help.  If you don't have one, you can ask
-github.com/jonmacs/jove
-
 
 DIFFERENCES BETWEEN JOVE UNDER MSDOS AND UNIX JOVE:
 ===================================================
@@ -225,13 +222,13 @@ in 64kB; one consequence is that JOVE's tempfile cache is severely
 reduced.  The advantage of Medium Model is that JOVE's object code is
 somewhat smaller.
 
-JOVE has been compiled (2020 February) for DOS with the Open Watcom
-1.9.0 compiler (which can be downloaded from
-http://ftp.openwatcom.org/install/open-watcom-c-dos-1.9.exe)
-under FreeDOS 1.2 and the dosbox emulator 
+JOVE has been compiled (2023 February) for DOS with the Open Watcom
+1.9.0 compiler (which was downloaded circa 2020 from
+http://ftp.openwatcom.org/install/open-watcom-c-dos-1.9.exe), 
+tested under FreeDOS 1.2 and the dosbox emulator 
 (0.74-4.2+deb9u2build0.16.04.1 on Ubuntu 16.04) using
 	wmake -f Makefile.wat
-in the source unpacked from jovedoss.zip (make that on a
+in the source unpacked from jove417s.zip (made on a
 Unix/Linux machine) Since this is not a primary platform for
 current JOVE maintainers, new testers (and bug
 reports/patches) are welcome.
@@ -243,15 +240,10 @@ SET EDPATH=C:\WATCOM\EDDAT
 SET WIPFC=C:\WATCOM\WIPFC
 The following CONFIG.SYS was used:
 FILES=20
-A suitable wildargv.c file can be downloaded from https://tinyurl.com/ow-wildargv
+A wildargv.c file was downloaded from https://tinyurl.com/ow-wildargv
 a.k.a
- http://perforce.openwatcom.org:4000/@md=d&cd=//depot/openwatcom/bld/clib/startup/c/&cdf=//depot/openwatcom/bld/clib/startup/c/wildargv.c&sr=28826&c=7po@//depot/openwatcom/bld/clib/startup/c/wildargv.c 
-
-JOVE was once compiled (1994 July) with version 3.1 of
-Borland's C compiler. Extract relevant files/definitions from
- old/Makefile.bcc and old/sysdep.h, which will likely
-require some tweaking in order to be brought uptodate.
-Patches are welcome.
+http://perforce.openwatcom.org:4000/@md=d&cd=//depot/openwatcom/bld/clib/startup/c/&cdf=//depot/openwatcom/bld/clib/startup/c/wildargv.c&sr=28826&c=7po@//depot/openwatcom/bld/clib/startup/c/wildargv.c 
+though that link may not work after varioius acquisitions.
 
 JOVE was once compiled with version 8.0 of the Microsoft C compiler
 a.k.a. Visual C.  It might  have also compiled with versions 6 or 7
@@ -259,19 +251,60 @@ but that was never confirmed.  The makefile called Makefile.msc might
 be adaptable to this, patches are welcome.  Try
 	nmake /f Makefile.msc WIN32=0
 
-JOVE was once compiled (1996 May) with version 10 of
-Watcom's C compiler.  Makefile.wat might still work (but see
-the notes for wildargv.c), patches are welcome.
+JOVE was once compiled (1994 July) with version 3.1 of
+Borland's C compiler. Extract relevant files/definitions from
+ old/Makefile.bcc and old/sysdep.h, which will likely
+require some tweaking in order to be brought uptodate.
+Patches are welcome.
+Without newer build validation and test, this support
+is likely to be deleted from future versions of JOVE.
 
 JOVE was once compiled (1996 May) with version 3.0 of
 Zortech's C compiler.  If that is desired again, try
 old/Makefile.zor and definitions from old/sysdep.h, patches are welcome.
+Without newer build validation and test, this support
+is likely to be deleted from future versions of JOVE.
 
 JOVE once supported MSDOS on hardware that is not IBM PC compatible.
 In particular, use -DRAINBOW for the DEC Rainbow computer (this
 series hasn't been manufactured since the mid 1980s).  This hasn't
 been tested recently.  JOVE was once ported to TOS on the Atari ST,
 which is much like MSDOS but not at all like the IBM PC.
+Without newer build validation and test, this support
+is likely to be deleted from future versions of JOVE.
+
+MSDOS ON MACHINES NOT COMPATIBLE WITH THE IBM PC
+================================================
+
+JOVE was once ported to MSDOS machines that were not IBM PC clones.  One
+example for which there is special code is the DEC Rainbow.  Another was
+the Atari ST (although the specific code for it is not included in our
+current source).  Still others were generic MSDOS machines such as the
+Nabu 1600.  Although the source code still has provisions for these, it
+has not been tested for a very long time and so is probably no longer
+quite right.
+
+The next two variables are not used by the IBM PC version, and have to
+do with specifying the type of terminal in use on a generic MSDOS
+computer.
+
+TERM
+This variable should specify the name of the terminal you are using.
+For example, if you have a DEC vt-100 terminal attached to your MSDOS
+computer, you should give the command "set TERM=vt100" prior to
+starting JOVE.
+
+TERMCAP
+This environment variable holds the name of a database with
+descriptions of different terminal types.  If you are familiar with the
+UNIX operating system, you probably know about TERMCAP.  For each
+terminal type, specified by TERM, the TERMCAP database holds an entry,
+which describes how to set the cursor, how to scroll, and many other
+things, for that particular terminal.  A small example TERMCAP file
+comes with JOVE.  If your terminal is not included there, you should ask a
+local UNIX guru for help.  If you don't have one, you can ask
+github.com/jonmacs/jove
+
 
 The original port of JOVE to the IBM PC was done by Karl
 Gegenfurtner (karl@hipl.psych.nyu.edu).  Karl's port was modified
@@ -279,4 +312,5 @@ for Zortech C by D. Hugh Redelmeier).  Joe Smith
 (jes@mbio.med.upenn.edu) ported to Borland C.  Several others,
 including Jim Patterson (jimp@cognos.com) and Gary Puckering
 (garyp@cognos.com) updated the Microsoft port.
-Mark Moraes re-ported to Win32 and DOS in in Feb 2020.
+Mark Moraes re-ported to Win32 and DOS in in Feb 2020
+and continues to test sporadically on those platforms.

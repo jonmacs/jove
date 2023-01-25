@@ -11,6 +11,11 @@
 # build environments, or those who just prefer full control of config, 
 # just ignore this script, invoke make directly with
 # the flags you want (see last line for examples.
+# JMAKE_RELATIVE=1 to set SHAREDIR=doc LIBDIR= for a portable
+# install (can copy around  a directory with the jove, recover and portsrv
+# executables and a doc subdirectory with cmds.doc, teach-jove, jove.rc)
+# JMAKE_UNAME=i686-w64-mingw32 sets up a cross-compile for Win32
+
 u=${JMAKE_UNAME-`uname | tr -d -c '[a-zA-Z0-9_]'`}
 cc=${CC-cc}
 sysdefs="-D$u"	# see sysdep.h for symbols to define for porting Jove to various systems
@@ -19,7 +24,22 @@ optflags=${CFLAGS-"-g -Os -Wall -Werror -pedantic"}
 ldlibs=
 ldflags=	# special link flags, usually none needed
 extra=		# older UN*X (e.g Solaris, SunOS, etc, might need these)
+rel=
 case "$u" in
+*mingw*) # e.g i686-w64-mingw32
+	: ${JMAKE_RELATIVE=1}
+	cc=${CC-"$u-gcc"}
+	sysdefs="-DMINGW"
+	extra="LOCALCC=${LOCALCC-cc} XEXT=.exe WINDRES=$u-windres EXTRAOBJS=win32.o ICON=jjove.coff"
+	ldlibs=-lcomdlg32
+	;;
+*-linux-musl*)
+	: ${JMAKE_RELATIVE=1}
+	cc=${CC-"$u-gcc"}
+	sysdefs="-DLinux -DJTC"
+	optflags="$optflags -static"
+	extra="LOCALCC=${LOCALCC-cc}"
+	;;
 CYGWIN*)
 	sysdefs="-DCYGWIN"
 	;;
@@ -29,7 +49,7 @@ CYGWIN*)
 	;;
 SunOS)	optflags=-O # generally not gcc
 	ldlibs="-ltermcap"
-	extra="NROFF=nroff TROFF=troff"	
+	extra="$extra NROFF=nroff TROFF=troff"	
         xi=/usr/gnu/bin/install
         if test ! -x $xi; then
             xi=cp
@@ -68,4 +88,10 @@ GNU|Linux)
 	sysdefs="-DBSDPOSIX -DJTC"; optflags="-O"
 	;;
 esac
-exec make ${JMAKE_OPTS-} CC="$cc" SYSDEFS="$sysdefs" OPTFLAGS="$optflags" LDLIBS="$ldlibs" LDFLAGS="$ldflags" $extra "$@"
+case "${JMAKE_RELATIVE-}" in
+y*|1|t*)
+	# Use relative paths for share and bin, useful for mingw or personal
+	rel="DESTDIR=${DESTDIR-/none} JBINDIR= JSHAREDIR=doc JLIBDIR="
+	;;
+esac
+exec make ${JMAKE_OPTS-} CC="$cc" SYSDEFS="$sysdefs" OPTFLAGS="$optflags" LDLIBS="$ldlibs" LDFLAGS="$ldflags" $rel $extra "$@"

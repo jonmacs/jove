@@ -707,7 +707,7 @@ UnixToBuf(flags, bnm, InFName, cmd)
 	char	bc[6];	/* buffer column (big enough for any column) */
 #else /* MSDOS_PROCS */
 	char	cmdbuf[129];
-	int	status;
+	int	status = 0;
 	char	pipename[FILESIZE];
 #endif /* MSDOS_PROCS */
 	bool	eof;

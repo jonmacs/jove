@@ -42,7 +42,6 @@ bool	n;	/* also used as subscript! */
 {
 	CONSOLE_SCREEN_BUFFER_INFO info;
 	COORD bufsize;
-	DWORD version;
 
 	if (n) {
 		if (conout == NULL) {
@@ -65,11 +64,10 @@ bool	n;	/* also used as subscript! */
 			bufsize.X = info.srWindow.Right-info.srWindow.Left+1;
 			bufsize.Y = info.srWindow.Bottom-info.srWindow.Top+1;
 			CHECK(SetConsoleScreenBufferSize(conout, bufsize));
-			version = GetVersion();
 #ifdef DEBUG
 			{
 				char tracebuf[100];
-
+				DWORD version = GetVersion();
 				wsprintf(tracebuf, "%s Windows %d.%d Build %d\n",
 					(version > 0 ? "MS-DOS" : "NT"),
 					LOBYTE(LOWORD(version)), HIBYTE(LOWORD(version)),
@@ -291,12 +289,12 @@ MapKeyEventToChars(KEY_EVENT_RECORD* key, char *bptr)
 						(RIGHT_ALT_PRESSED|LEFT_ALT_PRESSED))
 				{
 					if (key->dwControlKeyState & SHIFT_PRESSED) {
-						bptr[cnt++] = 174;
+						bptr[cnt++] = (unsigned char)174;
 					} else {
 						bptr[cnt++] = 74;
 					}
 				} else {
-					bptr[cnt++] = 142;
+					bptr[cnt++] = (unsigned char)142;
 				}
 				break;
 			  case VK_LEFT:
@@ -313,12 +311,12 @@ MapKeyEventToChars(KEY_EVENT_RECORD* key, char *bptr)
 						(RIGHT_ALT_PRESSED|LEFT_ALT_PRESSED))
 				{
 					if (key->dwControlKeyState & SHIFT_PRESSED) {
-						bptr[cnt++] = 178;
+						bptr[cnt++] = (unsigned char)178;
 					} else {
 						bptr[cnt++] = 78;
 					}
 				} else {
-					bptr[cnt++] = 144;
+					bptr[cnt++] = (unsigned char)144;
 				}
 				break;
 			  case VK_END:
@@ -340,17 +338,17 @@ MapKeyEventToChars(KEY_EVENT_RECORD* key, char *bptr)
 			  case VK_DELETE:
 				if (key->dwControlKeyState & SHIFT_PRESSED) {
 					bptr[cnt++] = PCNONASCII;
-					bptr[cnt++] = 183;
+					bptr[cnt++] = (unsigned char)183;
 				} else if (key->dwControlKeyState &
 					(RIGHT_CTRL_PRESSED|LEFT_CTRL_PRESSED))
 				{
 					bptr[cnt++] = PCNONASCII;
-					bptr[cnt++] = 147;
+					bptr[cnt++] = (unsigned char)147;
 				} else if (key->dwControlKeyState &
 					(RIGHT_ALT_PRESSED|LEFT_ALT_PRESSED))
 				{
 					bptr[cnt++] = PCNONASCII;
-					bptr[cnt++] = 163;
+					bptr[cnt++] = (unsigned char)163;
 				} else {
 					bptr[cnt++] = '\177';	/* Mapped to ASCII DEL */
 				}
@@ -360,9 +358,9 @@ MapKeyEventToChars(KEY_EVENT_RECORD* key, char *bptr)
 				if (key->dwControlKeyState &
 						(RIGHT_ALT_PRESSED|LEFT_ALT_PRESSED))
 				{
-					bptr[cnt++] = 164;
+					bptr[cnt++] = (unsigned char)164;
 				} else {
-					bptr[cnt++] = 149;
+					bptr[cnt++] = (unsigned char)149;
 				}
 				break;
 			  case VK_MULTIPLY:	/* KEYPAD* */
@@ -372,12 +370,12 @@ MapKeyEventToChars(KEY_EVENT_RECORD* key, char *bptr)
 				{
 					bptr[cnt++] = 55;
 				} else {
-					bptr[cnt++] = 150;
+					bptr[cnt++] = (unsigned char)150;
 				}
 				break;
 			  case VK_NUMPAD5:
 				bptr[cnt++] = PCNONASCII;
-				bptr[cnt++] = 143;
+				bptr[cnt++] = (unsigned char)143;
 				break;
 			  case VK_PRINT:	/* PRINT SCREEN */
 				bptr[cnt++] = PCNONASCII;
@@ -582,17 +580,15 @@ ctrlHandler(DWORD type)
 }
 
 private WORD
-	c_attr = 0x07,	/* current attribute white on black */
-	c_row = 0,	/* current row */
-	c_col = 0;	/* current column */
+	c_attr = 0x07;	/* current attribute white on black */
 
 int
 	Txattr = 0x07,	/* VAR: text-attribute (white on black) */
 	Mlattr = 0x70,	/* VAR: mode-line-attribute (black on white) */
 	Hlattr = 0x10;	/* VAR: highlight-attribute */
 
-#define c_row curpos.Y
-#define c_col curpos.X
+#define c_row curpos.Y		/* current row */
+#define c_col curpos.X		/* current column */
 
 #define cur_mov(r, c)	{ \
 		curpos.X = (c); curpos.Y = (r); \
@@ -651,7 +647,7 @@ ConsoleFail(char *fdef)
 	char why[200];
 	char *reason = getLastErrorString();
 
-	wsprintf(why, "Console function \"%s\" failed", fdef);
+	wsprintf(why, "Console function \"%s\" failed: %s", fdef, reason);
 	if (MessageBox(NULL, getLastErrorString(), why, MB_OKCANCEL) == IDCANCEL)
 		abort();
 }
@@ -662,7 +658,6 @@ scr_win(int no, int ulr, int ulc, int lrr, int lrc)
 	SMALL_RECT r, clip;
 	COORD whereto;
 	CHAR_INFO charinfo;
-	short height = lrr - ulr + 1;
 
 	clip.Top = ulr;
 	clip.Left = ulc;
@@ -723,7 +718,7 @@ int top, bottom, num;
 void
 clr_page()
 {
-	long written;
+	DWORD written;
 
 	SO_off();
 	cur_mov(0, 0);

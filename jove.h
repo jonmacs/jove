@@ -334,9 +334,9 @@ typedef struct FileStruct	File;	/* fp.h */
 /* paths */
 
 extern char
-	ShareDir[FILESIZE],	/* VAR: directory path of machine-independent library */
-	LibDir[FILESIZE],	/* VAR: directory path of machine-dependenty libray */
-	TmpDir[FILESIZE];	/* VAR: directory path to store tmp files */
+	ShareDir[FILESIZE],	/* VAR: directory path of machine-independent support files */
+	LibDir[FILESIZE],	/* VAR: directory path of machine-dependent support programs */
+	TmpDir[FILESIZE];	/* VAR: directory path to store tmp files, must exist */
 
 #ifdef SUBSHELL
 extern char

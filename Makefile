@@ -22,12 +22,19 @@ CMP = cmp
 # JMANDIR is where the manual pages go for JOVE, RECOVER and TEACHJOVE.
 # MANEXT is the extension for the man pages, e.g., jove.1 or jove.l or jove.m.
 #	Must not be "nr".
+# JTEACHBASE is the basename of the installed teach-jove tutorial file,
+# which will be teachjov.txt on MSFILESYSTEM (and the zip file),
+# but teach-jove on Unix/Linux installs.
 #
 # If they don't exist, this makefile will try to create all *DIR directories
 # (prefixed with $DESTDIR, as most packaging systems desire)
 # All others must already exist.
+#
+# Hack for relocatable installs: set JSHAREDIR and JLIBDIR and JBINDIR to relative 
+# paths, and set DESTDIR to an empty directory.
 
 JOVEHOME = /usr/local
+JREL =
 JSHAREDIR = $(JOVEHOME)/share/jove
 DSHAREDIR = $(DESTDIR)$(JSHAREDIR)
 JLIBDIR = $(JOVEHOME)/lib/jove
@@ -38,6 +45,7 @@ XEXT=
 JMANDIR = $(JOVEHOME)/man/man$(MANEXT)
 DMANDIR = $(DESTDIR)$(JMANDIR)
 MANEXT = 1
+JTEACHBASE = teach-jove
 
 # Install permission for SHAREDIR, LIBDIR, BINDIR
 DPERM = 755
@@ -94,7 +102,7 @@ PORTSRV = $(DLIBDIR)/portsrv$(XEXT)
 JOVERC = $(DSHAREDIR)/jove.rc
 TERMSDIR = $(DSHAREDIR)
 CMDSDOC = $(DSHAREDIR)/cmds.doc
-TEACHJOVEDOC = $(DSHAREDIR)/teach-jove
+TEACHJOVEDOC = $(DSHAREDIR)/$(JTEACHBASE)
 JOVEM = $(DMANDIR)/jove.$(MANEXT)
 TEACHJOVEM = $(DMANDIR)/teachjove.$(MANEXT)
 XJOVEM = $(DMANDIR)/xjove.$(MANEXT)
@@ -183,7 +191,9 @@ OBJECTS = $(BASESEG) $(OVLAY1) $(OVLAY2) $(OVLAY3) $(OVLAY4) $(OVLAY5)
 
 # win32.o when cross-compiling with mingw for Win32
 EXTRAOBJS =
-WINDRES = i686-w64-mingw32-windres
+# jjove.coff for cross-compiling with mingw for Win32
+ICON = 
+WINDRES = windres # probably needs i686-w64-mingw32- prefix or similar
 
 ZIP=zip
 ZIPEXT=zip
@@ -256,7 +266,7 @@ MISC =	Makefile Makefile.msc Makefile.wat \
 	testbuild.sh testmailer.sh
 
 SUPPORT = recover.c setmaps.c portsrv.c keys.txt \
-	menumaps.txt mjovers.Hqx jjove.ico jjove.rc teachjov.bat
+	menumaps.txt mjovers.Hqx jjove.ico jjove.rc teachjove
 
 BACKUPS = $(HEADERS) $(C_SRC) $(SUPPORT) $(MISC)
 
@@ -264,8 +274,8 @@ BACKUPS = $(HEADERS) $(C_SRC) $(SUPPORT) $(MISC)
 # Builds everything that "install" needs.
 all:	jjove$(XEXT) recover$(XEXT) portsrv$(XEXT) $(CDOC) $(GEN)
 
-jjove$(XEXT):	$(OBJECTS) $(EXTRAOBJS)
-	$(LDCC) $(LDFLAGS) $(CFLAGS) -o jjove$(XEXT) $(OBJECTS) $(EXTRAOBJS) $(LDLIBS)
+jjove$(XEXT):	$(OBJECTS) $(EXTRAOBJS) $(ICON)
+	$(LDCC) $(LDFLAGS) $(CFLAGS) -o jjove$(XEXT) $(OBJECTS) $(EXTRAOBJS) $(ICON) $(LDLIBS)
 	@-size jjove$(XEXT)
 
 # For mingw icon
@@ -344,7 +354,7 @@ paths.h: .ALWAYS
 	echo \#define RECDIR \"$(JRECDIR)\"; \
 	echo \#define LIBDIR \"$(JLIBDIR)\"; \
 	echo \#define SHAREDIR \"$(JSHAREDIR)\"; \
-	echo \#define TEACHJOVE \"teach-jove\"; \
+	echo \#define TEACHJOVE \"$(JTEACHBASE)\"; \
 	echo \#define DFLTSHELL \"$(DFLTSHELL)\";) > $(TFILE); \
 	if ! $(CMP) -s $(TFILE) paths.h 2> /dev/null; then mv $(TFILE) paths.h; else rm $(TFILE); fi; rmdir $(TDIR)
 
@@ -434,7 +444,7 @@ $(RECOVER): $(DLIBDIR) recover$(XEXT)
 $(JOVE): $(DBINDIR) jjove$(XEXT)
 	$(XINSTALL) jjove$(XEXT) $(JOVE)
 
-$(TEACHJOVE): $(DBINDIR) teachjove
+$(TEACHJOVE): $(DBINDIR)
 	$(XINSTALL) teachjove $(TEACHJOVE)
 
 doc/jove.$(MANEXT): doc/jove.nr
@@ -568,7 +578,7 @@ signed:	.version tgz
 # tags
 
 DOSSRC = $(HEADERS) $(C_SRC) setmaps.c recover.c keys.txt \
-	Makefile.msc Makefile.wat teachjov.bat \
+	Makefile.msc Makefile.wat ChangeLog \
 	README README.dos README.win sysdep.doc tune.doc style.doc \
 	jjove.rc $(FDOCS) tags \
 	doc/teach-jove doc/jove.qref doc/jove.rc doc/example.rc
@@ -583,6 +593,8 @@ zip:	.version $(DOSSRC) jjove.ico Makefile
 	$(ZIP) $(ZIPOPTS) jovetmp$$$$.$(ZIPEXT) $$BN/jjove.ico && \
 	rm -f $$BN/jjove.ico && \
 	mv $$BN/doc/jove.man.ps $$BN/doc/joveman.ps && \
+	mv $$BN/doc/teach-jove $$BN/doc/$(JTEACHBASE) && \
+	mv $$BN/ChangeLog $$BN/changelg.txt && \
 	$(ZIP) $(ZIPOPTS) jovetmp$$$$.$(ZIPEXT) $(ZIPTXTOPT) $$BN/* && \
 	rm -f jove$${V}s.$(ZIPEXT) && \
 	mv jovetmp$$$$.$(ZIPEXT) jove$${V}s.$(ZIPEXT) && \

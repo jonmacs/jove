@@ -362,59 +362,69 @@ FILES
 -----
 
 In order to make the text you edit permanent, you must put it in a
-file.  Otherwise, it will go away when your invocation of JOVE goes
-away.  While you are editing a file in JOVE, your changes are actually
-being made to a private "scratch" copy of the file.  However, the
-changes still don't become permanent until you "save" the file.  This
-is so you can have control to avoid leaving a half-changed file around
-when you don't want to.
+file.  Otherwise, it will go away when your invocation of JOVE
+goes away.  While you are editing a file in JOVE, your changes are
+actually being made to a private "scratch" copy of the file that
+JOVE holds in temporary memory.  However, the changes still don't
+become permanent until you "save" the file.  This is so you can
+have control to avoid leaving a half-changed file around when you
+don't want to.
 
 If you look near the botton of the screen you will see a line that
 looks like this:
-    JOVE (Text) Buffer: teach-jove "teach-jove" *
+    JOVE (Text) [teach-jove:3] "~/teach-jove" *
 "teach-jove" is the name of the file you are editing.  This is the name
-of your own temporary copy of the text of the JOVE tutorial; the file
+of your own copy of the text of this JOVE tutorial, the file
 you are now editing.  Whatever file you edit, that file's name will
 appear in that precise spot.
 
-The commands for finding and saving files are unlike the other
-commands you have learned in that they consist of two characters.
-They both start with the character Control-X.  There is a whole series
-of commands that start with Control-X; many of them have to do with
-files, buffers, and related things, and all of them consist of
-Control-X followed by some other character.  As with M- the character
-interpreted the same regardless of case.
+The commands for finding (starting to edit) and saving files are a
+bit different from the commands you have learned so far, in that
+they consist of two characters.  They both start with the
+character Control-X.  There is a whole series of commands that
+start with Control-X; many of them have to do with files, buffers,
+and related things, and all of them consist of Control-X followed
+by some other character.  As with M- the character interpreted the
+same regardless of case.
 
-Another thing about the command for finding a file is that you have to
-say what file name you want.  We say the command "reads an argument
-from the terminal" (in this case, the argument is the name of the
-file).  After you type the command
+To save any changes you have made to a file you are editing,
+type the command
+	^X ^S   Save the file
+
+and your changes to will be saved to disk permanently.  Go ahead,
+it's safe to try that now.
+
+(Note: on some old systems JOVE will not be able to process the key ^S.
+In place of ^S, you should type ^\.  It is possible to make ^S work
+but ^\ is guaranteed always to work in place of ^S.)
+
+The old version of the file will be replaced.  When the operation is
+finished, JOVE prints the name and number of lines and characters
+saved in the bottom line.
+
+Another thing about the command for finding a file in order to
+start editing it is that you have to say what file name you want.
+We say the command "reads an argument from the terminal" (in this
+case, the argument is the name of the file).  After you type the command
 
 	^X ^F   Find a file
 
 JOVE will ask you for the file name.  You should end the name with
-the Return key.  After this command, you will see the contents of the
-file in your JOVE.  You can edit the contents.  When you wish to make
-the changes permanent, issue the command
+the Return key.  After this command, you will now see the contents
+of that file in your JOVE.  You can edit the contents.  When you
+wish to make the changes permanent, issue the command
 
 	^X ^S   Save the file
 
-Warning: on many systems JOVE will not be able to process the key ^S.
-In place of ^S, you should type ^\.  It is possible to make ^S work
-but ^\ is guaranteed always to work in place of ^S.
+If you forget to save and then edit a different file, and then try
+to exit, JOVE will remind you that you made changes that have not
+been saved and then ask you whether you really want to quit.  (If
+you don't save them, they will be thrown away.  That might be what
+you want, but likely not!)  You should answer with a "Y" to throw
+the changes away or "N" to abort quitting so you can then save the changes.
 
-The old version of the file will be replaced.  When the operation is
-finished, JOVE prints the name and number of lines and characters
-saved.
-
-If you forget to save and then edit a different file, JOVE will remind
-you that you made changes that have not been saved and then ask you
-whether you really want to quit.  (If you don't save them, they will
-be thrown away.  That might be what you want!)  You should answer with
-a "Y" to throw the changes away or "N" to abort quitting so you can
-then save the changes.
-
-To make a new file, just edit it "as if" it already existed.  Then
+To make a new file, just find it "as if" it already existed, JOVE
+will create an empty screen for you to start editing.  Then
 start typing in the text.  When you ask to "save" the file, JOVE will
 really create the file with the text that you have inserted.  From
 then on, you can consider yourself to be editing an already existing

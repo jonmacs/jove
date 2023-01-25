@@ -30,7 +30,6 @@ override_dh_auto_build:
 # are regenerated each time Makefile runs.
 override_dh_auto_install:
 	dh_auto_install -- \
-		DESTDIR=debian/jove \
 		SYSDEFS="-DLinux" \
 		OPTFLAGS="$(CFLAGS)" \
 		LDLIBS="$(LDLIBS)" \
@@ -38,8 +37,7 @@ override_dh_auto_install:
 		JOVEHOME=/usr \
 		JMANDIR=/usr/share/man/man1 \
 		LOCALCC=$(CC_FOR_BUILD) \
-		CC=$(CC) \
-		install
+		CC=$(CC)
 	cp debian/jem.rc debian/jem1.txt debian/jem1.hlp debian/jove/usr/share/jove
 	cp debian/jove.rc debian/jove/etc/jove/jove.rc
 

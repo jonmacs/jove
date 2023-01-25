@@ -7,7 +7,9 @@
 
 # Makefile for Microsoft C version 8.0 (Visual C)
 # should also work with earlier versions
-# Works for MS VisualC++ 5.0 and MS VisualStudio 97
+# Once worked for MS VisualC++ 5.0 and MS VisualStudio 97
+# Not recently tested (Windows and DOS packages now built with
+# mingw and Open Watcom C respectively).
 #
 # - supported targets:
 #   + jjove.exe (build JOVE, but don't install it)
@@ -88,9 +90,10 @@ ZIP			=	pkzip
 
 TMPDIR = c:/tmp
 RECDIR = c:/tmp
-LIBDIR = c:/jove
-SHAREDIR = $(LIBDIR)
 # BINDIR = c:/jove
+# LIBDIR and SHAREDIR are relative to BINDIR
+LIBDIR = 
+SHAREDIR = doc
 DFLTSHELL = command
 
 OBJECTS = keys.obj commands.obj abbrev.obj ask.obj buf.obj c.obj \
@@ -153,7 +156,7 @@ jove$(OS)x.zip:	paths.h jjove.exe
 	-del jove$(OS)x.zip
 	-del jove.exe
 	rename jjove.exe jove.exe
-	$(ZIP) -aP jove$(OS)x.zip jove.exe doc\*.* tags paths.h README.$(OS)
+	$(ZIP) -aP jove$(OS)x.zip jove.exe recover.exe doc\*.* paths.h README.$(OS) changelg.txt
 
 paths.h: makefile.msc
 	@echo Making <<paths.h
@@ -163,6 +166,7 @@ paths.h: makefile.msc
 #define RECDIR "$(RECDIR)"
 #define LIBDIR "$(LIBDIR)"
 #define SHAREDIR "$(SHAREDIR)"
+#define TEACHJOVE "teachjov.txt"
 #define DFLTSHELL "$(DFLTSHELL)"
 <<KEEP
 

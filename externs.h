@@ -110,8 +110,8 @@ extern char	*getcwd proto((char *, size_t));
 # endif
 
 # ifdef HAS_SYMLINKS
-/* bufsiz might be of type int in old systems */
-extern int readlink proto((const char */*path*/, char */*buf*/, size_t /*bufsiz*/));
+/* bufsiz might be of type int in old systems e.g. 4.3BSD and earlier */
+extern JSSIZE_T readlink proto((const char */*path*/, char */*buf*/, size_t /*bufsiz*/));
 # endif
 
 extern int	access proto((const char */*path*/, int /*mode*/));

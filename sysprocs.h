@@ -37,7 +37,9 @@
 
 #else /*!POSIX_PROCS*/
 
- typedef int	pid_t;
+# ifndef _PID_T_ /* MINGW, maybe WIN32 has sys/types.h with pid_t, it seems */
+   typedef int	pid_t;
+# endif
 
 # ifdef BSD_WAIT
 

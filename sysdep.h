@@ -19,6 +19,7 @@
 /* System: modern NetBSD, sigh, TIOCREMOTE does not work, see iproc.c comment */
 # define XBSD		1
 # define NO_TIOCREMOTE	1
+# define PNAME_SYSCTL_OID	{CTL_KERN,KERN_PROC_ARGS,-1,KERN_PROC_PATHNAME}
 #endif
 
 #if defined(FreeBSD) || defined(DragonFly)
@@ -26,6 +27,7 @@
 # define XBSD		1
 # define HAVE_LIBUTIL_H 1
 # define SPELL		"aspell list < %s | sort -u"
+# define PNAME_SYSCTL_OID	{CTL_KERN,KERN_PROC,KERN_PROC_PATHNAME,-1}
 #endif
 
 #if defined(OpenBSD) || defined(Darwin) || defined (XBSD)
@@ -37,6 +39,7 @@
 #if defined(SunOS)
 /* System: SunOS 5.1 aka Solaris 2.1 onwards, including Illumos/Joyent/OpenSolaris/OpenIndiana */
 # define SYSVR4		1
+# define PNAME_GETEXECNAME	1
 #endif
 
 #if defined(XLINUX)
@@ -52,6 +55,7 @@
 #  define _XOPEN_SOURCE	500
 # endif
 # define SPELL		"aspell list < %s | sort -u"
+# define PNAME_PROC_SELF    1
 #endif
 
 #if defined(CYGWIN) || defined(CYGWIN32)
@@ -71,6 +75,7 @@
 # define USE_OPENPTY	1	/* older Cygwin may not have openpty? */
 # define HAVE_PTY_H	1
 # define BSDPOSIX_STDC	1
+# define PNAME_PROC_SELF    1
 #endif
 
 #ifdef MINGW		/* System: MinGW cross-compilation for Windows WIN32 (see README.w32) */
@@ -214,7 +219,7 @@
 #ifdef WIN32	/* Common characteristics for WIN32 systems. */
 # define REALSTDC	1	/* MS C only defines __STDC__ if you use /Za */
 # define WINRESIZE	1
-# define PCNONASCII	0xFF	/* prefix for peculiar IBM PC key codes */
+# define PCNONASCII	((unsigned char)0xFF)	/* prefix for peculiar IBM PC key codes */
 # define NO_JSTDOUT	1	/* don't use jstdout */
 # define CODEPAGE437	1	/* Code Page 437 English display characters */
 # define PCSCRATTR	1	/* exploit IBMPC screen attributes */
@@ -224,6 +229,9 @@
 # define USE_CRLF	1
 # define DIRECTORY_ADD_SLASH 1
 # define MSFILESYSTEM	1
+# ifdef _WIN64 /* the only 64bit arch where unsigned long != unsigned long long */
+#  define DADDR		unsigned long long
+# endif
 #endif
 
 /* The operating system (MSDOS, WIN32, or MAC) must be defined by this point. */
@@ -348,7 +356,9 @@
    * too large, or Out of memory (for open files) at some
    * point, alas.
  */
-typedef unsigned short	daddr;    /* index of line contents in tmp file, see temp.h. */
+# ifndef DADDR
+#  define DADDR unsigned short
+# endif
 # define LG_FILESIZE	7	/* log2 maximum path length (including '\0'): currently, 2+1+64+3+1+3+1 == 80 ought to be OK */
 # define MAXCOLS	132	/* maximum number of columns */
 # define MAXTTYBUF	512	/* maximum size of output terminal buffer */
@@ -365,7 +375,9 @@ typedef unsigned short	daddr;    /* index of line contents in tmp file, see temp
    * slightly more generous buffer sizes to improve speed
    * and/or convenience.
    */
-typedef unsigned long	daddr;    /* index of line contents in tmp file, see temp.h. */
+# ifndef DADDR
+#  define DADDR unsigned long
+# endif
 # define LG_FILESIZE	8	/* log2 maximum path length (including '\0') */
 # define MAXCOLS	512	/* maximum number of columns */
 # define MAXTTYBUF	2048	/* maximum size of output terminal buffer */
@@ -378,5 +390,7 @@ typedef unsigned long	daddr;    /* index of line contents in tmp file, see temp.
 
 #endif /* !JSMALL */
 
+/* DADDR must be >= sizeof(void *), wish everyone had stdint and  intptr_t */
+typedef DADDR		daddr;  /* index of line contents in tmp file, see temp.h and disp.h. */
 #define JBUFSIZ			(1 << LG_JBUFSIZ)
 #define FILESIZE		(1 << LG_FILESIZE)

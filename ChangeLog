@@ -1,3 +1,36 @@
+    4.17.5.0 continued: If SHAREDIR or LIBDIR are relative paths, interpret them as
+    relative to the directory from which the jove binary was run
+    (i.e. BINDIR) which makes more sense in most situations, does
+    not get confused if one uses cd or pushd, and allows us to
+    create relocatable/portable Jove installations (particularly
+    useful on Windows or DOS)
+    increase 9 to 15 for MAXBASENAMELEN so that .exe and teach-jove fit.
+    ensure that SyncRec is called after a buffer is unmodified
+    (usually because it was saved) to avoid being asked to recover
+    buffers with contents older than the saved version after a
+    system or jove crash/kill.
+    Use jamstrcat instead of jamstrsub for features, also use
+    jamstr* to check some string ops in PathParse (though they are
+    probably ok)
+    Update teach-jove tutorial somewhat.
+    Remove redundant install and DESTDIR in Debian pkg sample, since
+    dh_auto_install adds those anyway.
+    Some tweaks to sysdep.h and tune.h
+    i686-w64-mingw and alpine static in testbuild use
+    relative SHAREDIR & LIBDIR so those can be copied and run
+    anywhere without installation.
+    JMAKE_RELATIVE=1 env var causes jmake.sh to set DESTDIR, JBINDIR,
+    JSHAREDIR, JLIBDIR appropriately to exploit relative
+    SHAREDIR, LIBDIR
+    Added mingw and musl-static builds to jmake.sh (both use
+    relative) and simplified testbuild.sh
+    Copy ChangeLog to DOS zip as changelg.txt, and doc/teach-jove
+    as teachjov.txt
+    teach-jove and relative features mean slightly smaller stack for DOS
+    Updated README.dos and README.win
+    Tried to make WIN64 (x86_64-w64-mingw32) build work, still does not work.
+    some cleanup reported by pedantic on win32.c, proc.c, 
+
 Author: Mark Moraes <moraes@computer.org>
 Date:   Mon Jan 9 22:34:02 2023 -0500
 
@@ -38,8 +71,8 @@ Date:   Mon Jan 9 22:34:02 2023 -0500
 
     added teach-jove command and -T option to Jove to invoke it,
     removed standalone teachjove executable which was a nuisance
-    (relied on cp so did not work on Windows/DOS). added
-    teachjov.bat and teachjove shell script for compatibility,
+    (relied on cp so did not work on Windows/DOS). replaced
+    teachjove.c with teachjove shell script for compatibility,
     but wonder if we can just get rid of those, less namespace
     pollution.
 

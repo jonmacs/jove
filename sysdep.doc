@@ -65,6 +65,19 @@ component must take account of symbolic links.  All modern UNIXes have
 symlinks.  We don't yet know how to support MAC or WIN32 aliases.
 HAS_SYMLINKS	use readlink(2) to handle symlinks
 
+In order to canonicalize SHAREDIR and LIBDIR paths relative to the
+executable directory, Jove needs to figure out where the exectutable
+ran from.
+PNAME_PROC_SELF	should be defined on Linux-like machines (or Debian Hurd)
+		since they have /proc/self/exe as a symlink to the
+		running executable path.
+PNAME_GETEXECNAME should be defined on Solaris-like machines which have the
+		getexecname() function to return the running executable path.
+PNAME_SYSCTL_OID should be defined on FreeBSD or NetBSD, with the oid
+		array that can be given to sysctl() to return the path
+		to the running executable.
+If the above do not exist, it will use argv[0] and hope for the best.
+
 Jove needs to make a number of temporary files.  The traditional ways
 of creating temp files are subject to race conditions allowing
 security to be compromised on multi-user systems.  The mkstemp library
@@ -406,7 +419,7 @@ NCURSES_BUG	Work around the non-standard meaning of insert character
 Jove has been built and tested on PC-compatible computers
 under a couple of compilers and environments, but is neither
 developed nor regression tested on them, so it might be in
-active use there.  The following defimanifests are primarily
+active use there.  The following defines are primarily
 used to tailor the characteristics of various PC
 environments and/or differentiate them from the Unix or MAC
 variants of Jove.

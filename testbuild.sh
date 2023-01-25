@@ -10,6 +10,7 @@ export PATH
 : ${TB_REV=$(uname -r)}
 : ${TB_NODE=$(uname -n)}
 : ${TB_OPTFLAGS=-O}
+: ${TB_MINGW=i686-w64-mingw32}
 
 dist=$TB_OS-$TB_MACH
 if test -e /etc/os-release; then
@@ -154,33 +155,32 @@ if test -e /etc/redhat-release; then
 	case "${1-}" in *install) rpm -i $HOME/rpmbuild/RPMS/$TB_MACH/jove-[4-9]*.rpm;; esac &&
 	rm -f $HOME/rpmbuild/*RPMS/$TB_MACH/jove-[4-9]*.rpm
 elif test -e /etc/alpine-release; then
-	# build statically compiled versions. use musl-cross-make to build 
-	# a very generic 32bit x86 binary that should run on just about
-	# on any PC hardware running a Linux, since native is likely x86_64.
-	for cross in i486-linux-musl-gcc cc; do
-		if type $cross 2> /dev/null ; then
-			CC=$cross
-			case "$CC" in cc) tag=$TB_MACH-linux;; *) tag=$cross;; esac
+	# build statically compiled versions using native alpine x86_64
+	# and musl-cross-make i486 to get very generic 32- and 64-bit x86
+	# tarballs that should run on just about on any Linux PC hardware
+	for tag in i486-linux-musl x86_64-alpine-linux-musl; do
+		if type ${tag}-gcc 2> /dev/null ; then
 			r=jove-$ver-$tag-static &&
-			make CC=$CC LOCALCC=cc SYSDEFS="-D$TB_OS -DJTC" OPTFLAGS="-Os -static" clobber all &&
 			if test ! -d $dist/$r; then mkdir $dist/$r; fi &&
-			strip jjove recover teachjove &&
+			JMAKE_UNAME=$tag ./jmake.sh clobber all &&
+			strip jjove recover &&
 			mv jjove $dist/$r/jove &&
-			mv recover teachjove $dist/$r &&
-			cp -pr README paths.h doc $dist/$r/ &&
-			tar -c -j -v -f $dist/$r.tar.bz2 -C $dist $r &&
+			mv recover $dist/$r &&
+			cp -pr README ChangeLog teachjove paths.h doc $dist/$r/ &&
+			tar -c -z -v -f $dist/$r.tar.gz -C $dist $r &&
 			rm -r $dist/$r
 		fi
 	done
 fi &&
-if type i686-w64-mingw32-gcc 2> /dev/null ; then
+if type ${TB_MINGW}-gcc 2> /dev/null ; then
 	# build a cross-compiled version for Windows
-	r=jove-$ver-mingw &&
-	make CC=i686-w64-mingw32-gcc SYSDEFS="-DMINGW" LOCALCC=cc XEXT=.exe EXTRAOBJS="win32.o jjove.coff" LDLIBS=-lcomdlg32 &&
+	r=jove-$ver-${TB_MINGW} &&
 	if test ! -d $dist/$r; then mkdir $dist/$r; fi &&
+	JMAKE_UNAME=${TB_MINGW} ./jmake.sh &&
+	${TB_MINGW}-strip jjove.exe recover.exe &&
 	mv jjove.exe $dist/$r/jove.exe &&
-	mv recover.exe teachjove.exe $dist/$r &&
-	cp -pr README paths.h doc $dist/$r &&
+	mv recover.exe $dist/$r &&
+	cp -pr README* paths.h ChangeLog doc $dist/$r &&
 	(cd $dist && zip -rm $r.zip $r) &&
 	make XEXT=.exe clobber
 fi &&

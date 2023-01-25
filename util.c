@@ -352,6 +352,18 @@ unmodify()
 	if (curbuf->b_modified) {
 		UpdModLine = YES;
 		curbuf->b_modified = NO;
+#ifdef RECOVER
+		/*
+		 * When a buffer transitions to unmodified
+		 * (most likely because it was saved, or if
+		 * the user invoked NotModified), then it
+		 * seems right to force a SyncRec (on the next
+		 * getch) so that any subsequent crash/recover
+		 * does not suggest recovery of this buffer.
+		 */
+		if (curbuf->b_type != B_SCRATCH)
+			ModCount = SyncFreq;
+#endif
 	}
 }
 

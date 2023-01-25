@@ -761,7 +761,8 @@ Pushlibd()
 {
 	char	dirbuf[FILESIZE];
 
-	PathParse(ShareDir, dirbuf);
+	/* Do we even need to make a copy of ShareDir? -- MM */
+	jamstrsub(dirbuf, ShareDir, sizeof(dirbuf));
 	doPushd(dirbuf);
 }
 
@@ -874,12 +875,17 @@ const char	*pre, *post;
  * Note: name and intobuf must not be aliases.
  * Note: because \~ is turned into ~, this routine is not idempotent.
  * ??? I suspect that there are places where in the code that presume
- * it is idempotent!  DHR
+ * it is idempotent!  -- DHR
+ * It seems that all callers of PathParse (or their callers) provide
+ * an intobuf of size FILESIZE, which is important, and it seems
+ * that the operations in PathParse or callees are careful to
+ * not go outside FILESIZE bounds, but I really wish I could feel
+ * more confident of that. -- MM
  */
 void
 PathParse(name, intobuf)
 const char	*name;
-char	*intobuf;
+char	*intobuf;   /* MUST BE at least FILESIZE */
 {
 	char	localbuf[FILESIZE];
 
@@ -891,7 +897,7 @@ char	*intobuf;
 
 	if (*name == '~') {
 		if (name[1] == '/' || name[1] == '\0') {
-			strcpy(localbuf, HomeDir);
+			jamstrsub(localbuf, HomeDir, sizeof(localbuf));
 			name += 1;
 		}
 #ifdef UNIX	/* may add for mac in future */
@@ -917,13 +923,13 @@ char	*intobuf;
 		name += 1;
 #endif /* MSFILESYSTEM */
 	}
-	(void) strcat(localbuf, name);
+	jamstrcat(localbuf, name, sizeof(localbuf));
 
 	/* Make path absolute, and prepare for processing each component
 	 * of the path by placing prefix in intobuf.
 	 */
 #ifndef MSFILESYSTEM
-	strcpy(intobuf, localbuf[0] == '/'? "/" : PWD);
+	jamstrsub(intobuf, localbuf[0] == '/'? "/" : PWD, FILESIZE);
 #else /* MSFILESYSTEM */
 	/* Convert to an absolute path, and then fudge thing so that the
 	 * generic code does not have to deal with drive specifications.
@@ -970,7 +976,7 @@ char	*intobuf;
 				 */
 #ifdef HAS_SYMLINKS
 				char	linkbuf[FILESIZE];
-				int	linklen;
+				JSSIZE_T	linklen;
 #endif
 
 				do {} while (dp > intobuf+1 && *--dp != '/');

@@ -8,7 +8,7 @@
 #define makedirty(line)	{ (line)->l_dline |= DDIRTY; }
 #define isdirty(line)	((line)->l_dline & DDIRTY)
 
-typedef unsigned long jwid_t;	/* must be > max(sizeof(daddr),sizeof(Buffer *)) */
+typedef DADDR jwid_t;	/* DADDR must be >= max(sizeof(daddr),sizeof(Buffer *)) */
 
 struct scrimage {
 	int	s_offset,	/* offset to start printing at */

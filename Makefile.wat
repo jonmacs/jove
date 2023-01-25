@@ -39,14 +39,15 @@
 # RECDIR is the directory in which RECOVER looks for JOVE's tempfiles.
 # LIBDIR is for the PORTSRV and RECOVER programs.
 # SHAREDIR is for online documentation, and the system-wide jove.rc file.
-## BINDIR is where to put the executables JOVE and TEACHJOVE.
-# DFLTSHELL is the default shell invoked by JOVE and TEACHJOVE.
+## BINDIR is where to put the executables JOVE
+# DFLTSHELL is the default shell invoked by JOVE.
 
 TMPDIR = c:/tmp
 RECDIR = c:/tmp
-LIBDIR = c:/jove
-SHAREDIR = $(LIBDIR)
 # BINDIR = c:/jove
+# LIBDIR and SHAREDIR are relative to executable directory
+LIBDIR = 
+SHAREDIR = doc
 DFLTSHELL = command
 
 # Compiler:
@@ -94,8 +95,11 @@ LD = wcl
 # -fm 		generate .map file
 # -kN		allocate N bytes for stack
 # -x		make case of names significant
+# N for stack may need to be lowered if linking complains that
+# DGROUP is too large (reduce it by the number of bytes in the 
+# complaint)
 
-STACKSIZE = 12000
+STACKSIZE = 11500
 LDFLAGS = $(CFLAGS) -x -k$(STACKSIZE)
 
 # ===================================================================
@@ -150,7 +154,7 @@ jovedosx.zip:	paths.h jjove.exe
 	-del jovedosx.zip
 	-del jove.exe
 	rename jjove.exe jove.exe
-	pkzip -aP jovedosx.zip jove.exe doc\*.* paths.h README.dos
+	pkzip -aP jovedosx.zip jove.exe recover.exe doc\*.* paths.h README.dos changelg.txt
 
 # Note that quotes are not stripped by the shell that will
 # execute the recipe for paths.h
@@ -163,6 +167,7 @@ paths.h:	Makefile.wat
 #define RECDIR "$(RECDIR)"
 #define LIBDIR "$(LIBDIR)"
 #define SHAREDIR "$(SHAREDIR)"
+#define TEACHJOVE "teachjov.txt"
 #define DFLTSHELL "$(DFLTSHELL)"
 <<KEEP
 

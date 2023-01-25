@@ -41,6 +41,14 @@
 #  include "select.h"
 #endif
 
+#ifdef PNAME_SYSCTL_OID
+# include <sys/sysctl.h> /* FreeBSD, NetBSD. */
+#endif
+
+#ifdef PNAME_DYLD
+# include <mach-o/dyld.h> /* MacOSX */
+#endif
+
 #ifdef SCO	/* ??? what is this for? */
 # include <sys/stream.h>
 # include <sys/ptem.h>
@@ -68,11 +76,26 @@
 # undef CR /* sigh, used as a field name in some windows header! */
 # include <windows.h>	/* ??? is this needed? */
 # undef FIONREAD	 /* This is defined but ioctl isn't so we cannot use it. */
+extern char *getLastErrorString(void);
 #endif
 
 #ifdef STACK_DECL	/* provision for setting up appropriate stack */
 STACK_DECL
 #endif
+
+/*
+ * This is the maximum length of the basename of files in
+ * ShareDir or LibDir (plus 1 for leading slash), as a check
+ * if the specified paths, even if they fit in FILESIZE, are
+ * too long to be used subsequently.  At the moment, in
+ * ShareDir, "teach-jove" at 10 chars is currently the longest
+ * filename, while in LibDir, "portsrv" or "recover" only go
+ * over to 11 chars if ".exe" is appended to them for
+ * MSFILESYSTEM (DOS or Windows), so 14 seems plenty (and is
+ * also a little tribute to the traditional early Unix
+ * filesystem maximum!)
+ */
+#define MAXBASENAMELEN (1+14+1)
 
 private void
 	UnsetTerm proto((bool)),
@@ -194,7 +217,7 @@ char
 
 /* VAR: directory path of machine-dependent library (for Portsrv and Recover) */
 
-#if defined(SUBSHELL) || defined(PIPEPROCS) || defined(RECOVER)
+#if defined(SUBSHELL) && (defined(PIPEPROCS) || defined(RECOVER))
 # define NEED_LIBDIR	1
 char	LibDir[FILESIZE] = LIBDIR;
 #endif
@@ -1585,116 +1608,225 @@ bool	dousr;
 private void
 setfeatures()
 {
-	size_t jlen = 0;
 	JoveFeatures[0] = '\0';
 #ifdef UNIX
-	jamstrsub(JoveFeatures + jlen, ":unix", sizeof(JoveFeatures) - jlen);
-	jlen = strlen(JoveFeatures);
+	jamstrcat(JoveFeatures, ":unix", sizeof(JoveFeatures));
 #endif
 #ifdef MSDOS
-	jamstrsub(JoveFeatures + jlen, ":msdos", sizeof(JoveFeatures) - jlen);
-	jlen = strlen(JoveFeatures);
+	jamstrcat(JoveFeatures, ":msdos", sizeof(JoveFeatures));
 #endif
 #ifdef WIN32
-	jamstrsub(JoveFeatures + jlen, ":win32", sizeof(JoveFeatures) - jlen);
-	jlen = strlen(JoveFeatures);
+	jamstrcat(JoveFeatures, ":win32", sizeof(JoveFeatures));
 #endif
 #ifdef MAC
-	jamstrsub(JoveFeatures + jlen, ":mac", sizeof(JoveFeatures) - jlen);
-	jlen = strlen(JoveFeatures);
+	jamstrcat(JoveFeatures, ":mac", sizeof(JoveFeatures));
 #endif
 #ifdef IBMPCDOS
-	jamstrsub(JoveFeatures + jlen, ":ibmpc", sizeof(JoveFeatures) - jlen);
-	jlen = strlen(JoveFeatures);
+	jamstrcat(JoveFeatures, ":ibmpc", sizeof(JoveFeatures));
 #endif
 #ifdef ABBREV
-	jamstrsub(JoveFeatures + jlen, ":abbr", sizeof(JoveFeatures) - jlen);
-	jlen = strlen(JoveFeatures);
+	jamstrcat(JoveFeatures, ":abbr", sizeof(JoveFeatures));
 #endif
 #ifdef BACKUPFILES
-	jamstrsub(JoveFeatures + jlen, ":bak", sizeof(JoveFeatures) - jlen);
-	jlen = strlen(JoveFeatures);
+	jamstrcat(JoveFeatures, ":bak", sizeof(JoveFeatures));
 #endif
 #ifdef BIFF
-	jamstrsub(JoveFeatures + jlen, ":biff", sizeof(JoveFeatures) - jlen);
-	jlen = strlen(JoveFeatures);
+	jamstrcat(JoveFeatures, ":biff", sizeof(JoveFeatures));
 #endif
 #ifdef CMT_FMT
-	jamstrsub(JoveFeatures + jlen, ":cmtfmt", sizeof(JoveFeatures) - jlen);
-	jlen = strlen(JoveFeatures);
+	jamstrcat(JoveFeatures, ":cmtfmt", sizeof(JoveFeatures));
 #endif
 #ifdef F_COMPLETION
-	jamstrsub(JoveFeatures + jlen, ":fcomp", sizeof(JoveFeatures) - jlen);
-	jlen = strlen(JoveFeatures);
+	jamstrcat(JoveFeatures, ":fcomp", sizeof(JoveFeatures));
 #endif
 #ifdef IPROCS
-	jamstrsub(JoveFeatures + jlen, ":iproc", sizeof(JoveFeatures) - jlen);
-	jlen = strlen(JoveFeatures);
+	jamstrcat(JoveFeatures, ":iproc", sizeof(JoveFeatures));
 #endif
 #ifdef PIPEPROCS
-	jamstrsub(JoveFeatures + jlen, ":pipe", sizeof(JoveFeatures) - jlen);
-	jlen = strlen(JoveFeatures);
+	jamstrcat(JoveFeatures, ":pipe", sizeof(JoveFeatures));
 #endif
 #ifdef PTYPROCS
-	jamstrsub(JoveFeatures + jlen, ":pty", sizeof(JoveFeatures) - jlen);
-	jlen = strlen(JoveFeatures);
+	jamstrcat(JoveFeatures, ":pty", sizeof(JoveFeatures));
 #endif
 #ifdef LISP
-	jamstrsub(JoveFeatures + jlen, ":lisp", sizeof(JoveFeatures) - jlen);
-	jlen = strlen(JoveFeatures);
+	jamstrcat(JoveFeatures, ":lisp", sizeof(JoveFeatures));
 #endif
 #ifdef SUBSHELL
-	jamstrsub(JoveFeatures + jlen, ":proc", sizeof(JoveFeatures) - jlen);
-	jlen = strlen(JoveFeatures);
+	jamstrsub(JoveFeatures, ":proc", sizeof(JoveFeatures));
 #endif
 #ifdef SPELL
-	jamstrsub(JoveFeatures + jlen, ":spell", sizeof(JoveFeatures) - jlen);
-	jlen = strlen(JoveFeatures);
+	jamstrcat(JoveFeatures, ":spell", sizeof(JoveFeatures));
 #endif
 #ifdef RECOVER
-	jamstrsub(JoveFeatures + jlen, ":rec", sizeof(JoveFeatures) - jlen);
-	jlen = strlen(JoveFeatures);
+	jamstrcat(JoveFeatures, ":rec", sizeof(JoveFeatures));
 #endif
 #ifdef JOB_CONTROL
-	jamstrsub(JoveFeatures + jlen, ":job", sizeof(JoveFeatures) - jlen);
-	jlen = strlen(JoveFeatures);
+	jamstrcat(JoveFeatures, ":job", sizeof(JoveFeatures));
 #endif
 #ifdef JSMALL
-	jamstrsub(JoveFeatures + jlen, ":jsmall", sizeof(JoveFeatures) - jlen);
-	jlen = strlen(JoveFeatures);
+	jamstrcat(JoveFeatures, ":jsmall", sizeof(JoveFeatures));
 #endif
 #ifdef ID_CHAR
-	jamstrsub(JoveFeatures + jlen, ":idchar", sizeof(JoveFeatures) - jlen);
-	jlen = strlen(JoveFeatures);
+	jamstrcat(JoveFeatures, ":idchar", sizeof(JoveFeatures));
 #endif
 #ifdef HIGHLIGHTING
-	jamstrsub(JoveFeatures + jlen, ":hl", sizeof(JoveFeatures) - jlen);
-	jlen = strlen(JoveFeatures);
+	jamstrcat(JoveFeatures, ":hl", sizeof(JoveFeatures));
 #endif
 #ifdef JTC
-	jamstrsub(JoveFeatures + jlen, ":jtc", sizeof(JoveFeatures) - jlen);
-	jlen = strlen(JoveFeatures);
+	jamstrcat(JoveFeatures, ":jtc", sizeof(JoveFeatures));
 #endif
 #ifdef TERMCAP
-	jamstrsub(JoveFeatures + jlen, ":tcap", sizeof(JoveFeatures) - jlen);
-	jlen = strlen(JoveFeatures);
+	jamstrcat(JoveFeatures, ":tcap", sizeof(JoveFeatures));
 #endif
 #ifdef TERMINFO
-	jamstrsub(JoveFeatures + jlen, ":tinfo", sizeof(JoveFeatures) - jlen);
-	jlen = strlen(JoveFeatures);
+	jamstrcat(JoveFeatures, ":tinfo", sizeof(JoveFeatures));
 #endif
 #ifdef USE_CTYPE
-	jamstrsub(JoveFeatures + jlen, ":ctype", sizeof(JoveFeatures) - jlen);
-	jlen = strlen(JoveFeatures);
+	jamstrcat(JoveFeatures, ":ctype", sizeof(JoveFeatures));
 #endif
 #ifdef ISO_8859_1
-	jamstrsub(JoveFeatures + jlen, ":iso88591", sizeof(JoveFeatures) - jlen);
-	jlen = strlen(JoveFeatures);
+	jamstrcat(JoveFeatures, ":iso88591", sizeof(JoveFeatures));
 #endif
-	jamstrsub(JoveFeatures + jlen, ":", sizeof(JoveFeatures) - jlen);
-	jdbg("jove-features=\"%s\"\n", JoveFeatures);
+	jamstrcat(JoveFeatures, ":", sizeof(JoveFeatures));
+	jdbg("setfeatures \"%s\n", JoveFeatures);
 }
 
+/* determine and return the directory in which the jove executable resides */
+private void
+jexecpath(namebuf, namebufsz)
+char *namebuf;
+size_t namebufsz;
+{
+	const char *cp;
+	namebuf[0] = '\0';
+#ifdef PNAME_GETEXECNAME
+	if (namebuf[0] == '\0') {
+		const char *ename = getexecname();
+		if (ename)
+			jamstrsub(namebuf, ename, namebufsz)
+		else
+			complain("getexecname failed: %s", strerror(errno));
+	}
+#endif
+#ifdef PNAME_SYSCTL_OID
+	/* FreeBSD, NetBSD */
+	if (namebuf[0] == '\0') {
+		static int oid = PROC_SYSCTL_OID;
+		size_t sz = namebufsz;
+		int rc = sysctl(oid, sizeof(oid)/sizeof(oid[0]), namebuf, &sz, NULL, 0);
+		if (rc < 0 || sz == 0)
+			complain("sysctl failed: %s", strerror(errno));
+	}
+#endif
+#ifdef PNAME_DYLD
+	/* MacOSX */
+	if (namebuf[0] == '\0') {
+		size_t sz = namebufsz;
+		int rc = _NSGetExecutablePath(namebuf, &sz);
+		if (rc < 0 || sz == 0)
+			complain("_NSGetExecutablePath failed: %s", strerror(errno));
+	}
+#endif	
+#ifdef WIN32
+	/* Windows */
+	if (namebuf[0] == '\0') {
+		DWORD nc = GetModuleFileNameA(NULL, namebuf, namebufsz);
+		if (nc == 0 || nc == namebufsz)
+			complain("GetModuleFileNameA failed: %s", getLastErrorString());
+	}
+#endif
+#ifdef PNAME_PROC_SELF
+	/* Linux */
+	if (namebuf[0] == '\0') {
+		JSSIZE_T linklen;
+		struct stat stbuf;
+		const char *procself = "/proc/self/exe";
+		if (lstat(procself, &stbuf) == 0) {
+		    linklen = readlink(procself, namebuf, namebufsz);
+		    if (linklen < 0)
+			    complain("readlink(%s) failed: %s", procself, strerror(errno));
+		    namebuf[linklen] = '\0';
+		}
+	}
+#endif
+	if (namebuf[0] == '\0') {
+		jamstrsub(namebuf, iniargv[0], namebufsz);
+	}
+	cp = jbasename(namebuf);
+	if (!cp)
+		complain("could not find basename for %s", namebuf);
+	namebuf[cp-namebuf] = '\0';
+}
+
+/*
+ * returns NULL if the input path is absolute, else returns a
+ * pointer to the start of the relative path, which will be
+ * the same as path for POSIX machines, or will strip off a
+ * leading drive: for MSFILESYSTEM
+ */
+private const char *
+relpathstart(path)
+const char *path;
+{
+	const char *cp = path, c = *cp;
+	jdbg("relpathstart \"%s\"\n", path);
+	if (c == '/'
+#ifdef MSFILESYSTEM
+	    || c == '\\'
+	    || (((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))
+		&& *++cp == ':' && (*++cp == '/' || *cp == '\\'))
+#endif
+	) {
+		jdbg("absolute \"%c\" \"%c\"\n", c, *cp);
+		return NULL;	/* absolute */
+	}
+#ifdef MSFILESYSTEM
+	if (cp > path && path[1] == ':') {
+	    /*
+	     * should we complain, having a drive spec on a
+	     * relative path for ShareDir, LibDir is
+	     * confusing?  For now, just skip it
+	     */
+		jdbg("relative-drive \"%s\"\n", path+2);
+		return path+2;
+	}
+#endif
+	jdbg("relative \"%s\"\n", path);
+	return path;
+}
+
+/*
+ * if val is non-NULL, it overrides current value of var,
+ * else uses var.  If relative, the path to the Jove binary is
+ * prepended to val, canonicalized with PathParse and stored
+ * in var.  Typically, var is either ShareDir or LibDir.
+ * varname holds the name to indicate which one, for error messages.
+ */
+private void
+fixrelpath(val, var, varname)
+const char *val;
+char *var; /* MUST BE FILESIZE */
+const char *varname;
+{
+	const char *rel;
+	char tempbuf[FILESIZE];
+	if (val == NULL)
+		val = var;
+	rel = relpathstart(val); /* NULL if not relative */
+	if (rel) {
+		jexecpath(tempbuf, sizeof(tempbuf));
+		jamstrcat(tempbuf, rel, sizeof(tempbuf));
+	} else {
+		jamstrsub(tempbuf, val, sizeof(tempbuf));
+	}
+	PathParse(tempbuf, var);
+	/*
+	 * check that there will be enough space for the
+	 * basename of the files in LibDir or ShareDir
+	 */
+	if (strlen(var) > FILESIZE-MAXBASENAMELEN)
+		complain("%s \"%s\" too long", varname, var);
+}
 
 int
 main(argc, argv)
@@ -1758,14 +1890,13 @@ char	*argv[];
 
 	/* Handle overrides for ShareDir and LibDir.
 	 * We take care to use the last specification.
-	 * Even if we don't use LibDir, we accept it.
+	 * LibDir is only accepted via -l, -sl, -ls, or
+	 * JOVELIB if NEED_LIBDIR is defined.
 	 */
 	 {
-		char
-			*so = getenv("JOVESHARE");
+		char *so = getenv("JOVESHARE");
 # ifdef NEED_LIBDIR
-		char
-			*lo = getenv("JOVELIB");
+		char *lo = getenv("JOVELIB");
 # endif
 
 		for (argp = argv; argp[0] != NULL && argp[1] != NULL; argp++) {
@@ -1778,17 +1909,15 @@ char	*argv[];
 				lo = so = *++argp;
 # endif
 		}
-		if (so != NULL)
-			if (!carefulcpy(ShareDir, so, sizeof(ShareDir)-9, "ShareDir", YES))
-				finish(0);
+		fixrelpath(so, ShareDir, "ShareDir");
 # ifdef NEED_LIBDIR
-		if (lo != NULL)
-			if (!carefulcpy(LibDir, lo, sizeof(LibDir)-9, "LibDir", YES))
-				finish(0);
-#  ifdef PIPEPROCS
-		PathCat(Portsrv, sizeof(Portsrv), LibDir, "portsrv");
-#  endif
+		fixrelpath(lo, LibDir, "LibDir");
 # endif /* NEED_LIBDIR */
+
+		
+# ifdef PIPEPROCS
+		PathCat(Portsrv, sizeof(Portsrv), LibDir, "portsrv");
+# endif
 	}
 
 	/* import the temporary file path from the environment
@@ -1920,12 +2049,14 @@ char	*argv[];
 
 	dojovercs(scanvec(argv, "-J") == NULL, scanvec(argv, "-j") == NULL);
 
-#ifdef UNIX
+#ifdef SIGINT
 	/*
 	 * Jove binds INTR to a key, typically ^], which can
 	 * sometimes get hit accidentally, but it prompts in the handler.
 	 */
 	(void) setsighandler(SIGINT, handle_sigint);
+#endif
+#ifdef UNIX
 	/*
 	 * always cleanup on HUP (terminal disconnected), or
 	 * TERM (typically, system going down)

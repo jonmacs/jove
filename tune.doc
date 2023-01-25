@@ -50,6 +50,8 @@ SPELL		Enables the spell-buffer and parse-spelling-errors commands.
 		They are nice especially if you have lots of paper writers.
 		Requires SUBSHELL (to run spell program).
 
-SUBSHELL	Enables various uses of sub-shells (eg. push-shell,
-		filter-region, shell-command-to-buffer) Somewhat easier to
-		port than IPROCS.
+SUBSHELL 	Enables various uses of sub-shells (eg. push-shell,
+		filter-region, shell-command-to-buffer, compile-it,
+		spell-buffer, ...) Somewhat easier to port than IPROCS.
+		If SUBSHELL is not defined, jove -r (for recovery) will
+		not work.

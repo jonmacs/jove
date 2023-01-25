@@ -119,16 +119,36 @@ Only for developers (or filing with bug reports on interactive-shell
 misbehaviour)
 .TP
 .BI \-l \ libdir
-Allows the user to specify the directory in which binary files required by
-JOVE can be found (default <LIBDIR>).
+Allows the user to specify the directory in which supporting
+programs (recover, portsrv) required by JOVE can be found
+(default <LIBDIR>).  Within JOVE, this setting will be visible
+as the 
+.I lib-dir-pathname
+variable.  If JOVE was built to fit on machines with
+very little memory, without the features for post-crash recovery
+or interactive processes, then this option is not relevant.
+If 
+.I libdir 
+is a relative path, then the directory from which the running JOVE
+binary was started will be prepended to it. 
 .TP
 .BI \-s \ sharedir
-Allows the user to specify the directory in which initialization files
-required by JOVE can be found (default <SHAREDIR>).
+Allows the user to specify the directory in which default
+initialization files, command help and primary JOVE tutorial 
+can be found (default <SHAREDIR>). Within JOVE, this setting
+will be visible as the
+.I share-dir-pathname
+variable.
+If 
+.I sharedir 
+is a relative path, then the directory from which the running Jove
+binary was started will be prepended to it.
 .TP
 .BI \-ls \ bothdir
 Allows the user to specify the directory in which binary files and
 initialization files required by JOVE can be found.
+.B \-sl
+is an alias for this option.
 .TP
 .B \-J
 Inhibits reading of the system-wide initialization file (<SHAREDIR>/jove.rc).
@@ -406,9 +426,9 @@ COMSPEC \(em (on MSDOS) used if SHELL is not defined
 .sp 0
 MAIL \(em to initialize the ``mailbox'' variable
 .sp 0
-JOVELIB \(em overrides <LIBDIR> unless overridden by \-l
+JOVELIB \(em overrides <LIBDIR> unless overridden by \-l or \-ls
 .sp 0
-JOVESHARE \(em overrides <SHAREDIR> unless overridden by \-s
+JOVESHARE \(em overrides <SHAREDIR> unless overridden by \-s or \-ls
 .sp 0
 TMPDIR \(em overrides <TMPDIR> as directory for temporary files
 .sp 0

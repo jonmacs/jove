@@ -60,9 +60,15 @@
 #  define SPELL		"spell %s"	/* spell words and buffer commands (requires SUBSHELL) */
 # endif
 
+/* NOTE that invoking recover via jove -r requires SUBSHELL */
 # define RECOVER	1	/* include code to attempt recovery from JOVE crashes */
 
 #endif /* !BAREBONES */
+
+#ifndef SUBSHELL
+# undef IPROCS		/* probably does not work */
+# undef SPELL		/* probably cannot execute spell checker */
+#endif
 
 #ifndef IPROCS
 # undef PIPEPROCS	/* defined only if IPROCS is */
