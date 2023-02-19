@@ -276,7 +276,7 @@ char	*buf;
 			strcpy(buf, linebuf);
 		Jr_Len = strlen(linebuf);
 	} else
-		getline(line->l_dline, buf);
+		jgetline(line->l_dline, buf);
 	return buf;
 }
 

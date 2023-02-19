@@ -37,7 +37,7 @@ extern void
 	close_file proto((struct FileStruct *fp)),
 	d_cache_init proto((void)),
 	file_write proto((char *fname, bool app)),
-	getline proto((daddr addr,char *buf)),
+	jgetline proto((daddr addr,char *buf)),
 	lsave proto((void)),
 	putreg proto((struct FileStruct *fp,struct line *line1,int char1,struct line *line2,int char2,bool makesure)),
 	read_file proto((char *file, bool is_insert)),

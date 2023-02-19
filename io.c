@@ -1128,7 +1128,7 @@ tmpremove()
 int	Jr_Len;		/* length of Just Read Line */
 
 void
-getline(addr, buf)
+jgetline(addr, buf)
 daddr	addr;
 register char	*buf;
 {

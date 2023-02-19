@@ -30,20 +30,20 @@ SHELL = /bin/sh
 TMPDIR = /tmp
 RECDIR = /usr/preserve
 
-JOVEHOME = /local
+JOVEHOME = /opt/oldjove/4.14
 SHAREDIR = $(JOVEHOME)/lib/jove
 LIBDIR = $(JOVEHOME)/lib/jove
 BINDIR = $(JOVEHOME)/bin
 MANDIR = $(JOVEHOME)/man/man$(MANEXT)
 MANEXT = 1
-DFLTSHELL = /bin/csh
+DFLTSHELL = /bin/sh
 
 # to install executable files
-XINSTALL=cp
-#XINSTALL=install -c -m 755 # -s
+#XINSTALL=cp
+XINSTALL=install -c -m 755 # -s
 # to install text files
-TINSTALL=cp
-#TINSTALL=install -c -m 644
+#TINSTALL=cp
+TINSTALL=install -c -m 644
 
 PROG = jove
 VERSION = 4.14
@@ -121,7 +121,7 @@ LDFLAGS =
 #
 # You can just say 'make SYSDEFS=-Dwhatever' on these systems.
 
-SYSDEFS = 
+SYSDEFS = -DBSDPOSIX
 
 # for SCO Xenix, set
 #	MEMFLAGS = -Mle
@@ -230,7 +230,7 @@ recover.o:	recover.c rectune.h rec.h temp.h
 teachjove:	teachjove.o
 	$(CC) $(LDFLAGS) $(OPTFLAGS) -o teachjove teachjove.o $(LIBS)
 
-teachjove.o:	teachjove.c /usr/include/sys/types.h /usr/include/sys/file.h
+teachjove.o:	teachjove.c
 	$(CC) -c $(CFLAGS) -DTEACHJOVE=\"$(TEACH-JOVE)\" teachjove.c
 
 # don't optimize setmaps.c because it produces bad code in some places

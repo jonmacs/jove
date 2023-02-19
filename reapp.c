@@ -183,7 +183,7 @@ reswitch:
 						goto reswitch;
 					}
 					if (UNDO_lp == NULL)
-						getline(UNDO_da, linebuf);	/* someone ought to */
+						jgetline(UNDO_da, linebuf);	/* someone ought to */
 					lp = UNDO_lp;
 					lp->l_dline = UNDO_da;
 					makedirty(lp);

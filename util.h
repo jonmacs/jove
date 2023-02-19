@@ -29,7 +29,7 @@ extern int	ModCount;
 #define eobp()		(lastp(curline) && eolp())
 #define eolp()		(linebuf[curchar] == '\0')
 #define firstp(line)	((line) == curbuf->b_first)
-#define getDOT()	getline(curline->l_dline, linebuf)
+#define getDOT()	jgetline(curline->l_dline, linebuf)
 #define lastp(line)	((line) == curbuf->b_last)
 
 extern UnivPtr

@@ -133,7 +133,7 @@ size_t	n;
 private char	*getblock proto((daddr atl));
 
 void
-getline(tl, buf)
+jgetline(tl, buf)
 daddr	tl;
 char	*buf;
 {
@@ -501,7 +501,7 @@ FILE	*out;
 	Nchars = Nlines = 0L;
 	while (--nlines >= 0) {
 		addr = getaddr(ptrs_fp);
-		getline(addr, buf);
+		jgetline(addr, buf);
 		Nlines += 1;
 		Nchars += 1 + strlen(buf);
 		fputs(buf, out);

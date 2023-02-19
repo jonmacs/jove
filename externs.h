@@ -28,7 +28,6 @@ extern void
 
 /*==== Declarations of Library/System Routines ====*/
 
-extern int	errno;	/* Redundant if declared in <errno.h> -- DHR */
 extern char *strerror proto((int));	/* errno.h or string.h? */
 
 /* General Utilities: <stdlib.h> */
@@ -50,7 +49,7 @@ extern void
 	free proto((UnivPtr));
 
 extern UnivPtr
-	calloc proto((unsigned int, unsigned int)),
+	calloc proto((size_t, size_t)),
 	malloc proto((size_t)),
 	realloc proto((UnivPtr, size_t));
 
@@ -68,8 +67,10 @@ extern char	*ctime proto((const time_t *));
 #ifdef	POSIX_UNISTD
 # include <unistd.h>
 # include <fcntl.h>
+# include <errno.h>
 #else	/* !POSIX_UNISTD */
 
+extern int	errno;	/* Redundant if declared in <errno.h> -- DHR */
 extern int	chdir proto((const char */*path*/));
 
 /* POSIX, System Vr4, MSDOS, and our Mac code specify getcwd.

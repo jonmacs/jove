@@ -155,7 +155,7 @@ main()
 			sp->first = ch;
 			sp->last = -1;
 			strcpy(sp->condition, line);
-			fprintf(of, line);
+			fputs(line, of);
 		} else if (StartsWith(line, "#else")) {
 			if (sp == stackspace || sp->last != -1) {
 				fprintf(stderr, "ifdef/endif mismatch at line %d!\n",
@@ -164,7 +164,7 @@ main()
 			}
 			sp->last = ch;
 			ch = sp->first;
-			fprintf(of, line);
+			fputs(line, of);
 		} else if (StartsWith(line, "#endif")) {
 			if (sp == stackspace) {
 				fprintf(stderr, "ifdef/endif mismatch at line %d!\n",
@@ -177,7 +177,7 @@ main()
 					lino);
 			}
 			sp -= 1;
-			fprintf(of, line);
+			fputs(line, of);
 #ifdef	MAC
 		} else if (StartsWith(line, "#MENU")) {
 			inmenu = YES;
@@ -226,7 +226,7 @@ main()
 			}
 		} else {
 			/* If unrecognized, pass and prepare to start new table */
-			fprintf(of, line);
+			fputs(line, of);
 			ch = 0;
 		}
 	}
