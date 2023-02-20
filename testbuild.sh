@@ -57,7 +57,7 @@ case $# in
 		TB_OPTFLAGS="-g -O2 -fstack-protector-strong -Wformat -Werror=format-security -Wdate-time -D_FORTIFY_SOURCE=2"
 	elif type apk 2> /dev/null; then
 		$SUDO apk update && apk add gcc make pkgconfig musl-dev ncurses-dev groff ctags zip
-		mingwapk="$($SUDO apk list *mingw*)"
+		mingwapk="$($SUDO apk list mingw-w64-gcc)"
 		case "$mingwapk" in '') ;; *) apk add $mingwapk;; esac
 	elif type yum 2> /dev/null; then
 		$SUDO yum install -y make gcc ncurses-devel groff ctags zip rpm-build
