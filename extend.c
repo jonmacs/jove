@@ -785,7 +785,7 @@ char	*oppat;
 {
 	int	len = strlen(verb);
 
-	if (caseeqn(inp, verb, (size_t)len) && LookingAt("[ \\t]\\|$", inp, len)) {
+	if (caseeqn(inp, verb, (size_t)len) && (inp[len] == '\0' || jiswhite(inp[len]))) {
 		if (!LookingAt(oppat, inp, len)) {
 			complain("[malformed %s]", verb);
 			/* NOTREACHED */
@@ -852,7 +852,7 @@ char	*file;
 				/* NOTREACHED */
 			}
 			putmatch(1, cmd, sizeof cmd);
-			jdbg("if finger=0x%x skipping=0x%x inelse=0x%x cmd=\"%s\"\n", finger, skipping, inelse, cmd);
+			jdbg("%s:%d:if finger=0x%x skipping=0x%x inelse=0x%x cmd=\"%s\"\n", file, lnum, finger, skipping, inelse, cmd);
 			if (skipping == 0 && !do_if(cmd))
 				skipping |= finger;
 #endif /* SUBSHELL */
@@ -863,7 +863,7 @@ char	*file;
 				complain("[`ifenv' nested too deeply]");
 				/* NOTREACHED */
 			}
-			jdbg("ifenv finger=0x%x skipping=0x%x inelse=0x%x\n", finger, skipping, inelse);
+			jdbg("%s:%d:ifenv finger=0x%x skipping=0x%x inelse=0x%x\n", file, lnum, finger, skipping, inelse);
 			if (skipping == 0) {
 				char	envname[128],
 					envpat[128],
@@ -882,7 +882,7 @@ char	*file;
 				complain("[`if' nested too deeply]");
 				/* NOTREACHED */
 			}
-			jdbg("ifvar finger=0x%x skipping=0x%x inelse=0x%x\n", finger, skipping, inelse);
+			jdbg("%s:%d:ifvar finger=0x%x skipping=0x%x inelse=0x%x\n", file, lnum, finger, skipping, inelse);
 			if (skipping == 0) {
 				char	vname[128],
 					vpat[128],
@@ -898,15 +898,15 @@ char	*file;
 					skipping |= finger;
 				jdbg("ifvar matched=%d skipping=0x%x\n", matched, skipping);
 			}
-		} else if (cmdmatch(Inputp, "else", "[ \\t]*$")) {
+		} else if (cmdmatch(Inputp, "else", "[ \t]*$")) {
 			if (finger == 1 || (inelse & finger)) {
 				complain("[Unexpected `else']");
 				/* NOTREACHED */
 			}
 			inelse |= finger;
 			skipping ^= finger;
-			jdbg("else finger=0x%x skipping=0x%x inelse 0x%x\n", finger, skipping, inelse);
-		} else if (cmdmatch(Inputp, "endif", "[ \\t]*$")) {
+			jdbg("%s:%d:else finger=0x%x skipping=0x%x inelse 0x%x\n", file, lnum, finger, skipping, inelse);
+		} else if (cmdmatch(Inputp, "endif", "[ \t]*$")) {
 			if (finger == 1) {
 				complain("[Unexpected `endif']");
 				/* NOTREACHED */
@@ -914,7 +914,7 @@ char	*file;
 			inelse &= ~finger;
 			skipping &= ~finger;
 			finger >>= 1;
-			jdbg("endif finger=0x%x skipping=0x%x inlse=0x%x\n", finger, skipping, inelse);
+			jdbg("%s:%d:endif finger=0x%x skipping=0x%x inelse=0x%x\n", file, lnum, finger, skipping, inelse);
 		} else if (skipping == 0) {
 			(void) strcat(Inputp, "\n");
 			for (;;) {
@@ -956,6 +956,8 @@ char	*file;
 					/* NOTREACHED */
 				}
 			}
+		} else {
+			jdprintf("%s:%d:skip finger=0x%x skipping=0x%x inelse=0x%x \"%s\"\n", file, lnum, finger, skipping, inelse, Inputp);
 		}
 	}
 

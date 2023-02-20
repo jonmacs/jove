@@ -16,10 +16,6 @@ extern int
 	unlink proto((const char *)),
 	chdir proto((const char *));
 
-extern JSSIZE_T
-	read proto((int /*fd*/, UnivPtr /*buf*/, size_t /*nbytes*/)),
-	write proto((int /*fd*/, UnivConstPtr /*buf*/, size_t /*nbytes*/));
-
 extern off_t	lseek proto((int /*fd*/, off_t /*offset*/, int /*whence*/));
 extern time_t	time proto((time_t *));
 
@@ -74,6 +70,12 @@ extern char	*ctime proto((const time_t *));
 
 #ifdef MSC51
 #define const	/* the const's in the following defs conflict with MSC 5.1 */
+#endif
+
+#if defined(WIN32)
+# define JRWSIZE_T unsigned int /* MSVC for 64bit uses this, not size_t */
+#else
+# define JRWSIZE_T size_t
 #endif
 
 #ifndef NO_FCNTL
@@ -135,19 +137,9 @@ extern char *mktemp proto((char */*template*/));
 extern int mkstemp proto((char */*template*/));
 # endif
 
-# ifdef MSC51
-extern JSSIZE_T	read proto((int /*fd*/, char * /*buf*/, size_t /*nbytes*/));
-extern JSSIZE_T	write proto((int /*fd*/, const char * /*buf*/, size_t /*nbytes*/));
-# else
-# if defined(WIN32)
-#  define JRWSIZE_T unsigned int /* MSVC for 64bit uses this, not size_t */
-# else
-#  define JRWSIZE_T size_t
-# endif
-extern JSSIZE_T	read proto((int /*fd*/, UnivPtr /*buf*/, JRWSIZE_T /*nbytes*/));
-extern JSSIZE_T	write proto((int /*fd*/, UnivConstPtr /*buf*/, JRWSIZE_T /*nbytes*/));
-# undef JRWSIZE_T
-# endif
+extern JSSIZE_T
+	read proto((int /*fd*/, UnivPtr /*buf*/, JRWSIZE_T /*nbytes*/)),
+	write proto((int /*fd*/, UnivConstPtr /*buf*/, JRWSIZE_T /*nbytes*/));
 
 # ifdef UNIX
 /* Zortech incorrectly defines argv as const char **.

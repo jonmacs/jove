@@ -89,6 +89,8 @@ pop_macro_stack()
 		return;
 
 	mac_stack = m->mt_prev;
+	jdprintf("pop_macro_stack \"%s\" newtop=\"%s\"\n", m->mt_mp->Name,
+		 mac_stack?mac_stack->mt_mp->Name : "");
 	free_mthread(m);
 }
 
@@ -99,9 +101,11 @@ int	count;
 {
 	register struct m_thread	*t;
 
+	jdprintf("push_macro_stack \"%s\" %d\n", m->Name, count);
 	for (t = mac_stack; t != NULL; t = t->mt_prev) {
+		jdprintf("stack \"%s\"\n", t->mt_mp->Name);
 		if (t->mt_mp == m) {
-			complain("[Cannot execute macro recusively]");
+			complain("[Cannot execute macro recursively]");
 			/* NOTREACHED */
 		}
 	}
@@ -115,6 +119,7 @@ int	count;
 	t->mt_offset = 0;
 	t->mt_mp = m;
 	t->mt_count = count;
+	jdprintf("push_macro_stack added \"%s\"\n", m->Name);
 }
 
 void
@@ -171,6 +176,8 @@ mac_getc()
 		return EOF;
 
 	m = mthread->mt_mp;
+	jdprintf("mac_getc \"%s\" len=%d off=%d count=%d \n", m->Name, m->m_len,
+		 mthread->mt_offset, mthread->mt_count);
 	if (mthread->mt_offset == m->m_len) {
 		mthread->mt_offset = 0;
 		if (--mthread->mt_count == 0)

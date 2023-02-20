@@ -1652,7 +1652,7 @@ setfeatures()
 	jamstrcat(JoveFeatures, ":lisp", sizeof(JoveFeatures));
 #endif
 #ifdef SUBSHELL
-	jamstrsub(JoveFeatures, ":proc", sizeof(JoveFeatures));
+	jamstrcat(JoveFeatures, ":proc", sizeof(JoveFeatures));
 #endif
 #ifdef SPELL
 	jamstrcat(JoveFeatures, ":spell", sizeof(JoveFeatures));

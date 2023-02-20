@@ -1,3 +1,18 @@
+Author: Mark Moraes <moraes@computer.org>
+Date:   Mon Feb 20 13:47:00 2023 -0500
+
+    4.17.5.0 continued: WIN64 (x86_64-w64-mingw32) should build and work
+    (JRWSIZE_T definition, avoid couple of ptr->unsigned long casts in
+    debug printf)
+    avoid "Unexpected" or "malformed" complaint when "else"
+    or "endif" is followed by whitespace in joverc
+    remove couple of dups in jove.qref
+    fix typo ('0' should be '\0' in getvar(), fixes ifvar)
+    adopt Debian jem* files if no .joverc or env var JOVENOEASY is not set to 1
+
+Author: Mark Moraes <moraes@computer.org>
+Date:   Wed Jan 25 00:16:41 2023 -0500
+
     4.17.5.0 continued: If SHAREDIR or LIBDIR are relative paths, interpret them as
     relative to the directory from which the jove binary was run
     (i.e. BINDIR) which makes more sense in most situations, does

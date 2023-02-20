@@ -1,5 +1,6 @@
 jove (4.17.5.0-1) unstable; urgency=low
   * New upstream release.
+    + upstream incorporates jem*
 
  -- Cord Beermann <cord@debian.org>  Sun, 08 Jan 2023 17:55:26 -0500
 jove (4.17.4.9-1) unstable; urgency=low

@@ -34,11 +34,10 @@ replace-string		ESC R		search-forward		^\		search-reverse		^R
 window-find-tag		^X 4 t
 
 --- MARKS AND REGIONS
-append-region				append-region				case-region-lower
-case-region-upper			copy-region		ESC W		exchange-point-and-mark	^X ^X
-filter-region				kill-region		^W		replace-in-region
-set-mark		^@ (^SPACE)	write-region				yank			^Y
-yank-pop		ESC Y
+append-region				case-region-lower			case-region-upper			
+copy-region		ESC W		exchange-point-and-mark	^X ^X		filter-region	
+kill-region		^W		replace-in-region			set-mark		^@ (^SPACE)
+write-region				yank			^Y		yank-pop		ESC Y
 
 --- TEXT PROCESSING
 auto-fill-mode				bind-macro-to-word-abbr			case-character-capitali
@@ -91,9 +90,9 @@ digit			ESC -		digit			ESC [0-9]	gather-numeric-argument	^U
 
 
 --- MACROS
-delete-macro				execute-keyboard-macro	^X E		make-macro-interactive
-make-macro-interactive	ESC I		read-macros-from-file			begin-kbd-macro	^X (
-end-kbd-macro		^X )		write-macros-to-file
+delete-macro				execute-keyboard-macro	^X E		make-macro-interactive	ESC I
+read-macros-from-file			begin-kbd-macro	^X (			end-kbd-macro		^X )
+write-macros-to-file
 
 --- SHELL
 exit-jove		^X ^C		i-shell-command				pause-jove		ESC S

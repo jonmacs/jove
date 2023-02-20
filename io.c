@@ -1582,12 +1582,12 @@ private Block
 private daddr	next_bno = 0;
 
 /* Needed to comfort MS Visual C */
-private void blkio proto((Block *, JSSIZE_T (*) ptrproto((int, UnivPtr, size_t))));
+private void blkio proto((Block *, JSSIZE_T (*) ptrproto((int, UnivPtr, JRWSIZE_T))));
 
 private void
 blkio(b, iofcn)
 register Block	*b;
-register JSSIZE_T	(*iofcn) ptrproto((int, UnivPtr, size_t));
+register JSSIZE_T	(*iofcn) ptrproto((int, UnivPtr, JRWSIZE_T));
 {
 	off_t boff = bno_to_seek_off(b->b_bno);
 	JSSIZE_T nb;
@@ -1602,7 +1602,7 @@ register JSSIZE_T	(*iofcn) ptrproto((int, UnivPtr, size_t));
 		      (long)boff, errno, strerror(errno));
 		/* NOTREACHED */
 	}
-	else if ((nb = (*iofcn)(tmpfd, (UnivPtr) b->b_buf, (size_t)JBUFSIZ)) != JBUFSIZ) {
+	else if ((nb = (*iofcn)(tmpfd, (UnivPtr) b->b_buf, (JRWSIZE_T)JBUFSIZ)) != JBUFSIZ) {
 		error("[Tmp file %s error got %D: %d %s: to continue editing would be dangerous]",
 			(iofcn == read) ? "READ" : "WRITE", (long)nb,
 			nb < 0 ? errno : 0, nb < 0 ? strerror(errno): "");
@@ -1658,14 +1658,14 @@ SyncTmp()
 	 */
 	for (bno = 0; bno < next_bno; bno++) {
 		if ((b = lookup_block(bno)) != NULL && b->b_dirty) {
-			blkio(b, (JSSIZE_T (*) ptrproto((int, UnivPtr, size_t)))write);
+			blkio(b, (JSSIZE_T (*) ptrproto((int, UnivPtr, JRWSIZE_T)))write);
 			b->b_dirty = NO;
 		}
 	}
 #else /* !MSDOS */
 	for (b = f_block; b != NULL; b = b->b_LRUnext)
 		if (b->b_dirty) {
-			blkio(b, (JSSIZE_T (*) ptrproto((int, UnivPtr, size_t)))write);
+			blkio(b, (JSSIZE_T (*) ptrproto((int, UnivPtr, JRWSIZE_T)))write);
 			b->b_dirty = NO;
 		}
 #endif /* !MSDOS */
@@ -1730,7 +1730,7 @@ register Block	*bp;
 		bht[B_HASH(bp->b_bno)] = hp->b_HASHnext;
 
 	if (bp->b_dirty) {	/* do, now, the delayed write */
-		blkio(bp, (JSSIZE_T (*) ptrproto((int, UnivPtr, size_t)))write);
+		blkio(bp, (JSSIZE_T (*) ptrproto((int, UnivPtr, JRWSIZE_T)))write);
 		bp->b_dirty = NO;
 	}
 

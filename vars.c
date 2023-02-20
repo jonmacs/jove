@@ -48,6 +48,7 @@ size_t		vbufsize;
 	size_t	vlen = strlen(name);
 	int ic;
 
+	vbuf[0] = '\0';
 	/* look it up (in the reduced search space) */
 	c = ZXC(name[0]);
 	ic = IDX(c);
@@ -61,7 +62,7 @@ size_t		vbufsize;
 					/* NOTREACHED */
 				}
 				which = vp;
-				if (vp->Name[vlen] == '0')
+				if (vp->Name[vlen] == '\0')
 				    break;
 			}
 		}

@@ -563,8 +563,9 @@ char	*dest;
 	FILE	*volatile outfile;	/* "volatile" to preserve outfile across setjmp */
 
 	if (src < 0 || src > Header.Nbuffers || src >= maxbufs || dest == NULL) {
-		fprintf(stderr, "internal error: get: src %ld nbuf %ld maxbuf %ld dest 0x%lx\n",
-			src, Header.Nbuffers, maxbufs, (unsigned long)dest);
+		const char *pdest = dest ? dest : "(NULL)";
+		fprintf(stderr, "internal error: get: src %ld nbuf %ld maxbuf %ld dest %s\n",
+			src, Header.Nbuffers, maxbufs, pdest);
 		return;
 	}
 
@@ -683,8 +684,10 @@ makblist()
 		maxbufs = nmax;
 	}
 	for (i = 1; i <= Header.Nbuffers; i++) {
-		if (Debug)
-			printf("i %ld 0x%lx\n",i, (unsigned long)buflist[i]);
+		if (Debug) {
+			/* XXX may end up truncating addr if unsigned long smaller than DADDR */
+			printf("i %ld 0x%lx\n",i, (unsigned long)((DADDR)buflist[i]));
+		}
 		if (buflist[i] == NULL)
 			buflist[i] = (struct rec_entry *) emalloc (sizeof (struct rec_entry));
 		read_rec(buflist[i]);
@@ -732,8 +735,10 @@ FILE	*out;
 	Nchars = Nlines = 0L;
 	while (--nlines >= 0) {
 		addr = getaddr(ptrs_fp);
-		if (Debug)
-			fprintf(dfp, "line %ld addr %lu\n", nlines, (unsigned long)addr);
+		if (Debug) {
+			/* XXX may end up truncating addr if unsigned long smaller than DADDR */
+			fprintf(dfp, "line %ld addr %lu\n", nlines, (unsigned long)((DADDR)addr));
+		}
 		jgetline(addr, buf);
 		Nlines += 1;
 		Nchars += 1 + strlen(buf);

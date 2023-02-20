@@ -258,7 +258,8 @@ GEN = 	doc/jove.rc doc/jove.$(MANEXT) \
 DOCS =	doc/README doc/teach-jove doc/jove.qref \
 	doc/intro.nr doc/cmds.macros.nr doc/cmds.nr doc/contents.nr \
 	doc/jove.nr doc/teachjove.nr doc/xjove.nr doc/jovetool.nr \
-	doc/jove.rc.in doc/example.rc $(DOCTERMS) $(FDOCS) $(GEN)
+	doc/jove.rc.in doc/example.rc doc/jem.rc doc/jem1.txt doc/jem1.hlp \
+	$(DOCTERMS) $(FDOCS) $(GEN)
 
 MISC =	Makefile Makefile.msc Makefile.wat \
 	README README.dos README.win ChangeLog LICENSE \
@@ -375,7 +376,7 @@ installjovetool: $(JOVETOOLM)
 # JOVEHOME pointing at a playpen where files are to be marshalled.
 # This property is fragile.
 install: $(DRECDIR) $(DETCDIR) \
-	$(TEACHJOVEDOC) $(CMDSDOC) $(TERMSDIR)docs $(JOVERC) \
+	$(TEACHJOVEDOC) $(CMDSDOC) $(TERMSDIR)/keychart. $(JOVERC) \
 	$(PORTSRVINST) $(RECOVER) $(JOVE) $(TEACHJOVE) $(MANUALS)
 	@echo See the README about changes to /etc/rc or /etc/rc.local
 	@echo so that the system recovers jove files on reboot after a crash
@@ -430,9 +431,9 @@ doc/jove.rc: doc/jove.rc.in
 	if ! $(CMP) -s $(TFILE) doc/jove.rc 2> /dev/null; then mv $(TFILE) doc/jove.rc; else rm $(TFILE); fi; rmdir $(TDIR)
 
 $(JOVERC): $(DSHAREDIR) doc/jove.rc
-	$(TINSTALL) doc/jove.rc $(JOVERC)
+	$(TINSTALL) doc/jove.rc doc/jem* $(DSHAREDIR)
 
-$(TERMSDIR)docs: $(TERMSDIR) $(DOCTERMS)
+$(TERMSDIR)/keychart.: $(TERMSDIR) $(DOCTERMS)
 	$(TINSTALL) $(DOCTERMS) $(TERMSDIR)
 
 $(PORTSRV): $(DLIBDIR) portsrv$(XEXT)
@@ -593,7 +594,7 @@ zip:	.version $(DOSSRC) jjove.ico Makefile
 	$(ZIP) $(ZIPOPTS) jovetmp$$$$.$(ZIPEXT) $$BN/jjove.ico && \
 	rm -f $$BN/jjove.ico && \
 	mv $$BN/doc/jove.man.ps $$BN/doc/joveman.ps && \
-	mv $$BN/doc/teach-jove $$BN/doc/$(JTEACHBASE) && \
+	mv $$BN/doc/teach-jove $$BN/doc/teachjov.txt && \
 	mv $$BN/ChangeLog $$BN/changelg.txt && \
 	$(ZIP) $(ZIPOPTS) jovetmp$$$$.$(ZIPEXT) $(ZIPTXTOPT) $$BN/* && \
 	rm -f jove$${V}s.$(ZIPEXT) && \

@@ -11,7 +11,7 @@
 ####################################################################
 # Macro definitions
 #
-define-macro help-window ^[xselect-buffer *hilfe*^M^[xpushlibd^M^[xinsert-file jem1.txt^M^[xmake-buffer-unmodified^M^[xread-only-mode^M^[xwindow-find^Mb^M^[8^[xgrow-window^M^[xpopd^M
+define-macro help-window ^[xselect-buffer *hilfe*^M^[xpushlibd^M^[xinsert-file jem1.txt^M^[xmake-buffer-unmodified^M^[xread-only-mode^M^[xwindow-find^Mb^M^[7^[xgrow-window^M^[xpopd^M
 #
 define-macro save-and-exit ^[xsave-file^M^[xexit-jove^M
 #

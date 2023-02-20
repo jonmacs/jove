@@ -15,23 +15,26 @@ some effort is been made to test JOVE on both.
 
 Jove can be built for WIN32 (that is, Windows versions after Windows/95)
 natively with Microsoft Visual C (MSVC), or cross-compiled with
-i686-w64-mingw32 on Linux (x86_64-w64-mingw32 does not work, alas,
-because of some JSSIZE_T definition mixups!).  The MSDOS source
-distribution zip is preferable for MSVC builds because it contains
-pre-built documentation files which must be created on a UNIX system, and
-excludes some things only of use on UNIX (for example, X Window System
-support).  The filename of the MSDOS source distribution is a name that
-includes the version number joveNNNs.zip (for example, jove417s.zip for
-version 4.17), created by running 'make zip' on a Unix/Linux/*BSD system,
+{i686,x86-64}-w64-mingw32 on Linux.  The MSDOS source distribution zip may
+be preferable for MSVC builds because it contains pre-built documentation
+files which must be created on a UNIX system, and excludes some things
+only of use on UNIX (for example, X Window System support).  The filename
+of the MSDOS source distribution is a name that includes the version
+number joveNNNs.zip (for example, jove417s.zip for version 4.17), created
+by running 'make zip' on a Unix/Linux/*BSD system,
 	make zip
 
 A pre-compiled (via MINGW) and ready-to-run copy of JOVE for WIN32 is
-distributed in archives with the name joveNNNw.zip (for example,
-jove417w.zip for version 4.17).
+distributed in archives with the names
+jove-N.N.N.N-x86_64-w64-mingw32.zip (64bit binaries, 4.17.0.5 on),
+jove-N.N.N.N-i686-w64-mingw32.zip (32bit binaries).  Older distributions
+(4.16, early 4.17) used joveNNNw.zip (for example, jove416w.zip for
+version 4.16).
 
-Jove for WIN32 has been tested on the Win7 platform, but is expected to
-work on older versions like Windows/95, 98, NT, 2000, XP, etc, and
-might work on newer versions like Win8 and Win10.
+Jove for WIN32 has usually been lightly tested on the Win7 platform, but
+is expected to work on older versions like Windows/95, 98, NT, 2000, XP,
+etc, and might work on newer versions like Win8 and Win10.  Test and bug
+reports are welcome, though the Jove developers are primarily from Unix-land.
 
 Jove for WIN32 does not function under the WIN32s environment (which is a
 special subsystem of Windows 3.1).  The primary reason is that WIN32s

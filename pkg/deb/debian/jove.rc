@@ -1,8 +1,1 @@
-# Debian config
-
-pushlibd
-
-if sh -c 'test ! -f $HOME/.joverc -a jem.rc'
-    source jem.rc
-    auto-execute-command delete-other-windows .*/teach-jove
-endif
+# Debian config, sourced from SHAREDIR/jove/jove.rc
