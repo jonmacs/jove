@@ -56,7 +56,9 @@ case $# in
 		# similar OPTFLAGS to what Cord uses for debian packaging
 		TB_OPTFLAGS="-g -O2 -fstack-protector-strong -Wformat -Werror=format-security -Wdate-time -D_FORTIFY_SOURCE=2"
 	elif type apk 2> /dev/null; then
-		$SUDO apk update && apk add gcc make pkgconfig musl-dev ncurses-dev groff ctags zip mingw-w64-gcc
+		$SUDO apk update && apk add gcc make pkgconfig musl-dev ncurses-dev groff ctags zip
+		mingwapk="$($SUDO apk list *mingw*)"
+		case "$mingwapk" in '') ;; *) apk add $mingwapk;; esac
 	elif type yum 2> /dev/null; then
 		$SUDO yum install -y make gcc ncurses-devel groff ctags zip rpm-build
 	elif type brew 2> /dev/null; then
