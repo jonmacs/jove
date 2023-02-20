@@ -58,7 +58,7 @@ case $# in
 	elif type apk 2> /dev/null; then
 		$SUDO apk update && apk add gcc make pkgconfig musl-dev ncurses-dev groff ctags zip
 		mingwapk="$($SUDO apk list mingw-w64-gcc)"
-		case "$mingwapk" in '') ;; *) apk add $mingwapk;; esac
+		case "$mingwapk" in '') ;; *) apk add mingw-w64-gcc;; esac
 	elif type yum 2> /dev/null; then
 		$SUDO yum install -y make gcc ncurses-devel groff ctags zip rpm-build
 	elif type brew 2> /dev/null; then
