@@ -41,14 +41,6 @@
 #  include "select.h"
 #endif
 
-#ifdef PNAME_SYSCTL_OID
-# include <sys/sysctl.h> /* FreeBSD, NetBSD. */
-#endif
-
-#ifdef PNAME_DYLD
-# include <mach-o/dyld.h> /* MacOSX */
-#endif
-
 #ifdef SCO	/* ??? what is this for? */
 # include <sys/stream.h>
 # include <sys/ptem.h>
@@ -100,7 +92,8 @@ STACK_DECL
 private void
 	UnsetTerm proto((bool)),
 	DoKeys proto((bool firsttime)),
-	ShowKeyStrokes proto((void));
+	ShowKeyStrokes proto((void)),
+	jexecpath proto((char *, size_t));
 
 #ifdef NONBLOCKINGREAD
 private void	setblock proto((bool on));
@@ -1691,73 +1684,6 @@ setfeatures()
 	jdbg("setfeatures \"%s\n", JoveFeatures);
 }
 
-/* determine and return the directory in which the jove executable resides */
-private void
-jexecpath(namebuf, namebufsz)
-char *namebuf;
-size_t namebufsz;
-{
-	const char *cp;
-	namebuf[0] = '\0';
-#ifdef PNAME_GETEXECNAME
-	if (namebuf[0] == '\0') {
-		const char *ename = getexecname();
-		if (ename)
-			jamstrsub(namebuf, ename, namebufsz)
-		else
-			complain("getexecname failed: %s", strerror(errno));
-	}
-#endif
-#ifdef PNAME_SYSCTL_OID
-	/* FreeBSD, NetBSD */
-	if (namebuf[0] == '\0') {
-		static int oid = PROC_SYSCTL_OID;
-		size_t sz = namebufsz;
-		int rc = sysctl(oid, sizeof(oid)/sizeof(oid[0]), namebuf, &sz, NULL, 0);
-		if (rc < 0 || sz == 0)
-			complain("sysctl failed: %s", strerror(errno));
-	}
-#endif
-#ifdef PNAME_DYLD
-	/* MacOSX */
-	if (namebuf[0] == '\0') {
-		size_t sz = namebufsz;
-		int rc = _NSGetExecutablePath(namebuf, &sz);
-		if (rc < 0 || sz == 0)
-			complain("_NSGetExecutablePath failed: %s", strerror(errno));
-	}
-#endif	
-#ifdef WIN32
-	/* Windows */
-	if (namebuf[0] == '\0') {
-		DWORD nc = GetModuleFileNameA(NULL, namebuf, namebufsz);
-		if (nc == 0 || nc == namebufsz)
-			complain("GetModuleFileNameA failed: %s", getLastErrorString());
-	}
-#endif
-#ifdef PNAME_PROC_SELF
-	/* Linux */
-	if (namebuf[0] == '\0') {
-		JSSIZE_T linklen;
-		struct stat stbuf;
-		const char *procself = "/proc/self/exe";
-		if (lstat(procself, &stbuf) == 0) {
-		    linklen = readlink(procself, namebuf, namebufsz);
-		    if (linklen < 0)
-			    complain("readlink(%s) failed: %s", procself, strerror(errno));
-		    namebuf[linklen] = '\0';
-		}
-	}
-#endif
-	if (namebuf[0] == '\0') {
-		jamstrsub(namebuf, iniargv[0], namebufsz);
-	}
-	cp = jbasename(namebuf);
-	if (!cp)
-		complain("could not find basename for %s", namebuf);
-	namebuf[cp-namebuf] = '\0';
-}
-
 /*
  * returns NULL if the input path is absolute, else returns a
  * pointer to the start of the relative path, which will be
@@ -1888,10 +1814,46 @@ char	*argv[];
 	if (getenv("METAKEY"))
 		MetaKey = YES;
 
+	if ((argp = scanvec(argv, "-d")) != NULL && chkCWD(argp[1]))
+		setCWD(argp[1]);
+	else
+		getCWD();	/* After we setup curbuf in case we have to getwd() */
+
+#ifdef MAC
+	HomeDir = gethome();
+#else /* !MAC */
+	HomeDir = getenv("HOME");
+	if (HomeDir == NULL) {
+# ifdef MSDOS
+		HomeDir = copystr(pwd());	/* guess at current (initial) directory */
+# else
+#  ifdef WIN32
+		/* Following are set up automatically by NT on logon. */
+		char *homedrive = getenv("HOMEDRIVE");
+		char *homepath = getenv("HOMEPATH");
+
+		if (homedrive != NULL && homepath != NULL) {
+			char *p = emalloc(strlen(homedrive) + strlen(homepath) + 1);
+
+			strcpy(p, homedrive);
+			strcat(p, homepath);
+			HomeDir = p;
+		} else {
+			HomeDir = copystr(pwd());
+		}
+#  else /* !WIN32 */
+		HomeDir = "/";
+#  endif /* !WIN32 */
+# endif /* !MSDOS */
+	}
+#endif /* !MAC */
+	HomeLen = strlen(HomeDir);
+
 	/* Handle overrides for ShareDir and LibDir.
 	 * We take care to use the last specification.
 	 * LibDir is only accepted via -l, -sl, -ls, or
-	 * JOVELIB if NEED_LIBDIR is defined.
+	 * JOVELIB if NEED_LIBDIR is defined.  PWD and HomeDir
+	 * must be setup before fixrelpath is called.
 	 */
 	 {
 		char *so = getenv("JOVESHARE");
@@ -1981,9 +1943,7 @@ char	*argv[];
 #ifdef MAC
 	InitEvents();
 #endif
-
 	d_cache_init();		/* initialize the disk buffer cache */
-
 	make_scr();
 	flushscreen();	/* kludge: prevent interleaving output with diagnostic */
 	mac_init();	/* Initialize Macros */
@@ -1999,56 +1959,15 @@ char	*argv[];
 	global_maxfd = 1;
 #endif
 	buf_init();
-
-	if ((argp = scanvec(argv, "-d")) != NULL && chkCWD(argp[1]))
-		setCWD(argp[1]);
-	else
-		getCWD();	/* After we setup curbuf in case we have to getwd() */
-
-#ifdef MAC
-	HomeDir = gethome();
-#else /* !MAC */
-	HomeDir = getenv("HOME");
-	if (HomeDir == NULL) {
-# ifdef MSDOS
-		HomeDir = copystr(pwd());	/* guess at current (initial) directory */
-# else
-#  ifdef WIN32
-		/* Following are set up automatically by NT on logon. */
-		char *homedrive = getenv("HOMEDRIVE");
-		char *homepath = getenv("HOMEPATH");
-
-		if (homedrive != NULL && homepath != NULL) {
-			char *p = emalloc(strlen(homedrive) + strlen(homepath) + 1);
-
-			strcpy(p, homedrive);
-			strcat(p, homepath);
-			HomeDir = p;
-		} else {
-			HomeDir = copystr(pwd());
-		}
-#  else /* !WIN32 */
-		HomeDir = "/";
-#  endif /* !WIN32 */
-# endif /* !MSDOS */
-	}
-#endif /* !MAC */
-	HomeLen = strlen(HomeDir);
-
 	InitKeymaps();
-
 	settout();	/* not until we know baudrate */
 	SetTerm();
 	setfeatures();
-
 	ShowVersion();	/* but the 'carefulcpy's which follow might overwrite it */
-
 #ifdef UNIX
 	envcpy(Mailbox, "MAIL");
 #endif
-
 	dojovercs(scanvec(argv, "-J") == NULL, scanvec(argv, "-j") == NULL);
-
 #ifdef SIGINT
 	/*
 	 * Jove binds INTR to a key, typically ^], which can
@@ -2087,3 +2006,84 @@ char	*argv[];
 	finish(0);
 	/* NOTREACHED */
 }
+
+#ifdef PNAME_SYSCTL_OID
+
+/*
+ * FreeBSD, NetBSD.  Includes stdbool, so must be after all
+ * the uses of the Jove bool type, sigh!
+ */
+# include <sys/sysctl.h>
+#endif
+
+#ifdef PNAME_DYLD
+# include <mach-o/dyld.h> /* MacOSX */
+#endif
+
+/* determine and return the directory in which the jove executable resides */
+private void
+jexecpath(namebuf, namebufsz)
+char *namebuf;
+size_t namebufsz;
+{
+	const char *cp;
+	namebuf[0] = '\0';
+#ifdef PNAME_GETEXECNAME
+	if (namebuf[0] == '\0') {
+		const char *ename = getexecname();
+		if (ename)
+			jamstrsub(namebuf, ename, namebufsz);
+		else
+			complain("getexecname failed: %s", strerror(errno));
+	}
+#endif
+#ifdef PNAME_SYSCTL_OID
+	/* FreeBSD, NetBSD */
+	if (namebuf[0] == '\0') {
+		static int oid[] = PNAME_SYSCTL_OID;
+		size_t sz = namebufsz;
+		int rc = sysctl(oid, sizeof(oid)/sizeof(oid[0]), namebuf, &sz, NULL, 0);
+		if (rc < 0 || sz == 0)
+			complain("sysctl failed: %s", strerror(errno));
+	}
+#endif
+#ifdef PNAME_DYLD
+	/* MacOSX */
+	if (namebuf[0] == '\0') {
+		size_t sz = namebufsz;
+		int rc = _NSGetExecutablePath(namebuf, &sz);
+		if (rc < 0 || sz == 0)
+			complain("_NSGetExecutablePath failed: %s", strerror(errno));
+	}
+#endif	
+#ifdef WIN32
+	/* Windows */
+	if (namebuf[0] == '\0') {
+		DWORD nc = GetModuleFileNameA(NULL, namebuf, namebufsz);
+		if (nc == 0 || nc == namebufsz)
+			complain("GetModuleFileNameA failed: %s", getLastErrorString());
+	}
+#endif
+#ifdef PNAME_PROC_SELF
+	/* Linux */
+	if (namebuf[0] == '\0') {
+		JSSIZE_T linklen;
+		struct stat stbuf;
+		const char *procself = "/proc/self/exe";
+		if (lstat(procself, &stbuf) == 0) {
+		    linklen = readlink(procself, namebuf, namebufsz);
+		    if (linklen < 0)
+			    complain("readlink(%s) failed: %s", procself, strerror(errno));
+		    namebuf[linklen] = '\0';
+		}
+	}
+#endif
+	if (namebuf[0] == '\0') {
+		jamstrsub(namebuf, iniargv[0], namebufsz);
+	}
+	cp = jbasename(namebuf);
+	if (!cp)
+		complain("could not find basename for %s", namebuf);
+	namebuf[cp-namebuf] = '\0';
+}
+

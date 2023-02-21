@@ -1,21 +1,12 @@
-# Jove Einsteiger Menue
-#
-# $Id: jem.rc,v 1.2 1995/03/03 16:46:44 gerold Exp $
-# $Log: jem.rc,v $
-# Revision 1.2  1995/03/03  16:46:44  gerold
-# Use "pushlibd" to locate JEM related files.
-#
-# Revision 1.1  1995/03/03  16:43:11  gerold
-# Initial revision
+# Jove Einsteiger Menue (Beginner mode help window, some easy bindings)
+# adopted from Debian package (original by Gerold Meerkoetter)
 #
 ####################################################################
 # Macro definitions
 #
-define-macro help-window ^[xselect-buffer *hilfe*^M^[xpushlibd^M^[xinsert-file jem1.txt^M^[xmake-buffer-unmodified^M^[xread-only-mode^M^[xwindow-find^Mb^M^[7^[xgrow-window^M^[xpopd^M
+define-macro help-window ^[xselect-buffer *hilfe*^M^[xpushlibd^M^[xinsert-file jem.txt^M^[xmake-buffer-unmodified^M^[xread-only-mode^M^[xwindow-find^Mb^M^[7^[xgrow-window^M^[xpopd^M
 #
 define-macro save-and-exit ^[xsave-file^M^[xexit-jove^M
-#
-define-macro about-jove ^[xpushlibd^M^[xshell-command-with-typeout cat jem1.hlp^M^[xpopd^M
 #
 define-macro abort-jove ^[xmake-buffer-unmodified^M^[xexit-jove^My^M
 #
@@ -27,20 +18,20 @@ bind-macro-to-key save-and-exit OP
 # F2
 bind-to-key save-file OQ
 # F3
-bind-macro-to-key about-jove OR
+bind-to-key teach-jove OR
 # F4
 bind-macro-to-key abort-jove OS
 #
 ####################################################################
 #
-# funktionkeys for xterm
+# functionkeys for xterm
 ifenv TERM xterm\|xterms
     # F1
     bind-macro-to-key save-and-exit [11~
     # F2
     bind-to-key save-file [12~
     # F3
-    bind-macro-to-key about-jove [13~
+    bind-to-key teach-jove [13~
     # F4
     bind-macro-to-key abort-jove [14~
 endif
@@ -53,9 +44,10 @@ ifenv TERM sun\|sun-cmd
     # F2
     bind-to-key save-file [225z
     # F3
-    bind-macro-to-key about-jove [226z
+    bind-to-key teach-jove [226z
     # F4
     bind-macro-to-key abort-jove [227z
 endif
 #
+define-macro help-window ^[xselect-buffer *hilfe*^M^[xpushlibd^M^[xinsert-file jem.txt^M^[xmake-buffer-unmodified^M^[xread-only-mode^M^[xwindow-find^Mb^M^[7^[xgrow-window^M^[xpopd^M
 execute-macro help-window

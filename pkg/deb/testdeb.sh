@@ -3,7 +3,7 @@
 # Mark Moraes, 20230108
 #
 : ${DEBVER=buster}
-: ${DEBARCHS="amd64 armhf arm64"}
+: ${DEBARCHS="i386 amd64 armhf arm64"}
 set -eux
 case "$#" in
 1) tar="$1";;

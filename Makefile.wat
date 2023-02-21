@@ -63,6 +63,7 @@ CC = wcc
 # -w<number>	set warning level number
 # -wx		generate all warnings
 # -zq		operate quietly (diagnostics are not suppressed)
+# -zt<number>	put objects greater than <number> bytes in far segments
 # -os		optimize for size over speed
 # -ot		optimize for speed over size
 # -s 		do not add stack overflow check code
@@ -83,7 +84,7 @@ CC = wcc
 # 640K ought to be enough for anyone!
 MODEL = -ml
 OPTFLAGS = -os	# optimize for size over speed
-CFLAGS = $(MODEL) $(OPTFLAGS) -wx -zq -dOWCDOS=1
+CFLAGS = $(MODEL) $(OPTFLAGS) -wx -zq -zt200 -dOWCDOS=1
 
 # Linker:
 
@@ -97,9 +98,11 @@ LD = wcl
 # -x		make case of names significant
 # N for stack may need to be lowered if linking complains that
 # DGROUP is too large (reduce it by the number of bytes in the 
-# complaint)
+# complaint).   Alternatively, maybe decrease CFLAGS zt (moves
+# more objects to far, presumably a tad slower, bigger code footprint?)
+# https://open-watcom.github.io/open-watcom-v2-wikidocs/pguide.html#What_does__size_of_DGROUP_exceeds_64K__mean_for_16Mbit_applications_
 
-STACKSIZE = 11500
+STACKSIZE = 18000
 LDFLAGS = $(CFLAGS) -x -k$(STACKSIZE)
 
 # ===================================================================

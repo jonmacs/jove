@@ -24,7 +24,7 @@ teach-jove	text used by teachjove program
 example.rc	sample user .joverc (startup file)
 
 jove.rc		standard system startup file
-jove-local.rc	(not supplied) local additional startup file.
+jem.txt		Jove Beginner Easy Menu help text file
 
 jove.rc.3022	startup files for specific terminals
 jove.rc.sun
@@ -53,13 +53,18 @@ and installing documentation and for installing the various startup
 files.
 
 The file jove.rc is intended to be 'source'd before each run of jove
-(except when the -j flag is given).  This file contains various
+(except when the -J flag is given).  This file contains various
 initializations, some of which are pretty well essential and some of which
 are suggestions for sysadmins to experiment with.  See the comments in
 this file.  Note that if you hack this file, you must take precautions to
 avoid your changes being lost if you upgrade Jove.  See jove-local.rc
-below for an alternative for performing local customizations.
+and /etc/jove/jove.rc below for alternatives for performing local
+customizations that should not be lost on new installs.
 
+jem.txt is a simple startup help window that is displayed (from jove.rc)
+if (on Un*x systems) the user does not have a.joverc file. It can also be
+suppressed by setting the environment JOVENOHELP=1 (useful for non-Un*x).
+ 
 A files jove.rc.$TERM, where $TERM is the value of the TERM environment
 variable, is 'source'd near the end the generic jove.rc, and provides
 suggested bindings for the function keys on the various terminals.  The
@@ -74,6 +79,8 @@ jove-local.rc may contain terminal bindings but is not terminal specific;
 if a site does a lot of terminal key binding customization for multiple
 terminal types, it should likely create a local terminal file and source
 it from this file (see jove.rc for an example of how to do this).
+Finally, if a file called /etc/jove/jove.rc is found, it is sourced.
+That file is expected to contain per-host or per-distro settings.
 
 The user's $HOME/.joverc will be 'source'd after jove.rc.$TERM and
 jove-local.rc .  User preferences belong in this file.

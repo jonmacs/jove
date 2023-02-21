@@ -104,6 +104,24 @@ bind-to-key backward-character ^[OD
 # source any TERMinal-specific rc file
 1 source jove.rc.$TERM
 
+
+# Beginner help window and bindings (adopted from Jove Einsteiger Menue
+# in Debian package, original by Gerold Meerkoetter)
+define-macro help-window ^[xselect-buffer *Beginner_Help*^M^[xpushlibd^M^[xinsert-file jem.txt^M^[xmake-buffer-unmodified^M^[xread-only-mode^M^[xwindow-find^Mb^M^[7^[xgrow-window^M^[xpopd^M
+auto-execute-command delete-other-windows .*/\{teach-jove\|teachjov.txt\}
+bind-to-key teach-jove ^[t
+bind-to-key apropos ^Xa
+ifenv JOVENOHELP 1
+else
+  ifvar jove-features .*:unix:.*:proc:
+    if sh -c 'test ! -f $HOME/.joverc'
+      execute-macro help-window
+    endif
+  else
+    execute-macro help-window
+  endif
+endif
+
 # source local custom rc file, if present
 # This might be convenient for system admins 
 # making customizations across their entire domain

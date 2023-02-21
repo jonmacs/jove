@@ -1,4 +1,24 @@
 Author: Mark Moraes <moraes@computer.org>
+Date:   Mon Feb 20 19:23:00 2023 -0500
+
+    4.17.5.0 continued: forgot to put Beginner_Help call in jove.rc.in,
+    (renamed jem1.txt to jem.text, and removed jem1.hlp, since new teach-jove
+    command can replace about-jove mini-description). No real need for full
+    jem.rc (those function key bindings clash with others, which would be
+    confusing, and don't work in modern window systems anyway, since many of
+    those function keys are intercepted by the desktop!)
+
+    install jove.qref and jem.txt in SHAREDIR
+
+    lower threshold to move objects from near to far in Makefile.wat so we can
+    raise stack DOS build from 11000 to 18000 (since 11000 caused a stack
+    overflow at least once -- 11500 did not, but seems worth some headroom;
+    still handles about 35000 lines in a 200K executable)
+
+    fix jexecpath bugs on NetBSD, FreeBSD (typos, stdbool clash),
+    OpenIndiana (need getCWD before fixrelpath is called)
+
+Author: Mark Moraes <moraes@computer.org>
 Date:   Mon Feb 20 13:47:00 2023 -0500
 
     4.17.5.0 continued: WIN64 (x86_64-w64-mingw32) should build and work
@@ -8,13 +28,13 @@ Date:   Mon Feb 20 13:47:00 2023 -0500
     or "endif" is followed by whitespace in joverc
     remove couple of dups in jove.qref
     fix typo ('0' should be '\0' in getvar(), fixes ifvar)
-    adopt Debian jem* files if no .joverc or env var JOVENOEASY is not set to 1
+    adopt Debian jem* files if no .joverc or env var JOVENOHELP is not set to 1
 
 Author: Mark Moraes <moraes@computer.org>
 Date:   Wed Jan 25 00:16:41 2023 -0500
 
-    4.17.5.0 continued: If SHAREDIR or LIBDIR are relative paths, interpret them as
-    relative to the directory from which the jove binary was run
+    4.17.5.0 continued: If SHAREDIR or LIBDIR are relative paths, interpret
+    them as relative to the directory from which the jove binary was run
     (i.e. BINDIR) which makes more sense in most situations, does
     not get confused if one uses cd or pushd, and allows us to
     create relocatable/portable Jove installations (particularly

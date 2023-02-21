@@ -255,11 +255,11 @@ FDOCS = $(CDOC) doc/jove.man doc/jove.man.ps doc/jove.doc
 GEN = 	doc/jove.rc doc/jove.$(MANEXT) \
 	doc/teachjove.$(MANEXT) doc/jovetool.$(MANEXT)
 
-DOCS =	doc/README doc/teach-jove doc/jove.qref \
-	doc/intro.nr doc/cmds.macros.nr doc/cmds.nr doc/contents.nr \
+DOSDOCS =  doc/README doc/teach-jove doc/jove.qref doc/example.rc doc/jem.txt
+
+DOCS =  doc/intro.nr doc/cmds.macros.nr doc/cmds.nr doc/contents.nr \
 	doc/jove.nr doc/teachjove.nr doc/xjove.nr doc/jovetool.nr \
-	doc/jove.rc.in doc/example.rc doc/jem.rc doc/jem1.txt doc/jem1.hlp \
-	$(DOCTERMS) $(FDOCS) $(GEN)
+	doc/jove.rc.in $(DOSDOCS) $(DOCTERMS) $(FDOCS) $(GEN)
 
 MISC =	Makefile Makefile.msc Makefile.wat \
 	README README.dos README.win ChangeLog LICENSE \
@@ -405,7 +405,7 @@ $(RPMHOME)::
 	if test ! -e $(RPMHOME); then mkdir -p $(RPMHOME) && chmod $(DPERM) $(RPMHOME); fi
 
 $(TEACHJOVEDOC): $(DSHAREDIR) doc/teach-jove
-	$(TINSTALL) doc/teach-jove $(TEACHJOVEDOC)
+	$(TINSTALL) doc/teach-jove doc/jove.qref $(DSHAREDIR)
 
 doc/cmds.doc:	doc/cmds.macros.nr doc/cmds.nr
 	@mkdir $(TDIR) && \
@@ -581,8 +581,7 @@ signed:	.version tgz
 DOSSRC = $(HEADERS) $(C_SRC) setmaps.c recover.c keys.txt \
 	Makefile.msc Makefile.wat ChangeLog \
 	README README.dos README.win sysdep.doc tune.doc style.doc \
-	jjove.rc $(FDOCS) tags \
-	doc/teach-jove doc/jove.qref doc/jove.rc doc/example.rc
+	jjove.rc $(FDOCS) tags doc/jove.rc $(DOSDOCS)
 
 zip:	.version $(DOSSRC) jjove.ico Makefile
 	set -u ; set -e ; \
