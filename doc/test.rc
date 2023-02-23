@@ -1,0 +1,97 @@
+# This is just a test file for joverc processing
+# not to be installed or considered an example.
+# numbers ending in 0 are the expected path, so
+# if this works, Main should have lines with
+# 10, 20, 30, ...
+select-buffer Main
+if true
+	set right-margin 10
+else	
+	set right-margin 11
+endif	
+insert-variable right-margin
+newline
+#
+if false
+	set right-margin 21
+else
+	set right-margin 20
+endif
+insert-variable right-margin
+newline
+#
+if true
+	if true
+		set right-margin 30
+	else
+		set right-margin 31
+	endif
+else	
+	if true
+		set right-margin 32
+	else
+		set right-margin 33
+	endif
+endif
+insert-variable right-margin
+newline
+#
+if false
+	if true
+		set right-margin 41
+	else
+		set right-margin 42
+	endif
+else	
+	if true
+		set right-margin 40
+	else
+		set right-margin 43
+	endif
+endif  	
+insert-variable right-margin
+newline
+#
+if true
+	if true
+		set right-margin 50
+	else
+		set right-margin 51
+	endif
+endif
+insert-variable right-margin
+newline
+#
+if true
+	if false
+		set right-margin 61
+	else
+		set right-margin 60
+	endif
+endif
+insert-variable right-margin
+newline
+#
+if false
+else
+	if true
+		set right-margin 70
+	else
+		set right-margin 71
+	endif
+endif
+insert-variable right-margin
+newline
+#
+if false
+else
+	if false
+		set right-margin 81
+	else
+		set right-margin 80
+	endif
+endif
+insert-variable right-margin
+newline
+#
+make-buffer-unmodified

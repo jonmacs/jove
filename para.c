@@ -501,12 +501,6 @@ bool
 		while (!eolp() && !jiswhite(linebuf[curchar]))
 			curchar += 1;
 
-		/* stop if we've run out of range */
-		if (curline == endmark->m_line && curchar >= endmark->m_char) {
-			curchar = endmark->m_char;
-			break;
-		}
-
 		if (word_start != curchar && okay_char != start_char
 		&& calc_pos(linebuf, curchar) > RMargin) {
 			/* This non-empty word won't fit in output line
@@ -534,6 +528,9 @@ bool
 		} else {
 			/* this word fits (it might be empty, but that's OK) */
 			okay_char = curchar;	/* nail down success */
+			/* stop if we've run out of range */
+			if (curline == endmark->m_line && curchar >= endmark->m_char)
+				break;
 
 			/* process word separator */
 			if (eolp() && !lastp(curline)) {

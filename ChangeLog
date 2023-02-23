@@ -1,5 +1,15 @@
 Author: Mark Moraes <moraes@computer.org>
-Date:   Mon Feb 20 19:23:00 2023 -0500
+Date:   Mon Feb 23 00:41:00 2023 -0500
+
+    4.17.5.1 remove doc/jem.rc, add doc/test.rc (some
+    regression tests for joverc processing)
+
+    fix https://github.com/jonmacs/jove/issues/17 and
+    https://github.com/jonmacs/jove/issues/18 (often fails
+    to fill last word in para) by reverting one change from 4.16.0.74.
+
+Author: Mark Moraes <moraes@computer.org>
+Date:   Mon Feb 20 19:19:35 2023 -0500
 
     4.17.5.0 continued: forgot to put Beginner_Help call in jove.rc.in,
     (renamed jem1.txt to jem.text, and removed jem1.hlp, since new teach-jove
@@ -19,7 +29,7 @@ Date:   Mon Feb 20 19:23:00 2023 -0500
     OpenIndiana (need getCWD before fixrelpath is called)
 
 Author: Mark Moraes <moraes@computer.org>
-Date:   Mon Feb 20 13:47:00 2023 -0500
+Date:   Mon Feb 20 13:55:43 2023 -0500
 
     4.17.5.0 continued: WIN64 (x86_64-w64-mingw32) should build and work
     (JRWSIZE_T definition, avoid couple of ptr->unsigned long casts in
