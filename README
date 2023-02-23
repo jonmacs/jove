@@ -47,7 +47,13 @@ helper programs in $JOVEHOME/lib/jove e.g. to put jove in
      ./jmake.sh JOVEHOME=/opt/jove # to build
      ./jmake.sh JOVEHOME=/opt/jove install # to install
 
-If that does not work, please do file a bug, indicating
+To build a relocatable version of Jove (i.e. an install
+directory that can be copied or moved freely to other paths)
+in /foo
+
+     ./jmake.sh DESTDIR=/foo/ JOVEHOME= JBINDIR= JSHAREDIR=doc JLIBDIR= clean install
+
+If jmake.sh does not work, please do file a bug, indicating
 your system.  One can also pass SYSDEFS, TERMCAPLIB and
 EXTRALIBS (and other variables in the Makefile) by hand.
 
@@ -105,12 +111,20 @@ Other systems:
 
 Cross-Compiling:
 
-The Jove Makefile has some support for cross-compiling.  You
-need to set CC to the cross-compiler, but please do not
-override CFLAGS, which consists of SYSDEFS,  
-(for any -I or -D cross-compiler options) and 
-OPTFLAGS (for any optimizer flags or special cross-compiler options
-e.g. target arch).
+If your cross-compiler for some target FOO is FOO-gcc, then
+you can probably cross-compile with
+	env JMAKE_UNAME=FOO-gcc ./jmake.sh
+e.g.
+	env JMAKE_UNAME=i686-w64-mingw32 ./jmake.sh
+or
+	env JMAKE_UNAME=i486-linux-musl ./jmake.sh
+
+More generally, the Jove Makefile has some support for
+cross-compiling.  You need to set CC to the cross-compiler,
+but please do not override CFLAGS, which consists of
+SYSDEFS, (for any -I or -D cross-compiler options) and
+OPTFLAGS (for any optimizer flags or special cross-compiler
+options e.g. target arch).
 
 For linking, you can set LDFLAGS (e.g. -L) or
 LDLIBS for the cross-linker for the target system, while you
