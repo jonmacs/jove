@@ -60,12 +60,12 @@ recover.exe	This is the recover program to pull data back out
 		if stored in a different location than the compiled-in
 		default (lib-dir-pathname variable in JOVE, LIBDIR
 		in paths.h, empty means same dir as jove.exe)
-doc\cmds.doc    contains text for the describe-command and describe-
+doc\cmds.txt    contains text for the describe-command and describe-
                 variable command.  If the compiled-in default does not work,
 		then may need to set the JOVESHARE environment variable
 		or use -s JOVE option
 doc\jove.man    the complete JOVE manual
-doc\jove.doc    the "manpage" for JOVE: describes how to run JOVE
+doc\jove.txt    the "manpage" for JOVE: describes how to run JOVE
 doc\jove.qre    a plain text quick reference card with JOVE commands/variables
 doc\joveman.ps  PostScript version of the JOVE manual for printing
 doc\jove.rc     a system-default startuup file, see JOVESHARE
@@ -105,7 +105,7 @@ usually have a temporary directory and set TEMP)
 JOVESHARE
 This variable specifies the path to the directory in which the
 documentation and support files for JOVE can be found
-(1) cmds.doc (the file of command and variable descriptions used by
+(1) cmds.txt (the file of command and variable descriptions used by
 the describe-command and desribe-variable commands) and (2) the
 system-wide jove.rc (the first file that is sourced (executed) by JOVE
 when it starts up) and (3) the TEACHJOV.TXT tutorial that

@@ -174,7 +174,7 @@ The Makefile describes suitable settings of SYSDEFS for many configurations.
 If yours isn't mentioned, use "grep System: sysdep.h" to find all
 currently supported system configurations.  If there is no canned
 configuration for your system, you will have to define a new symbol
-and edit sysdep.h suitably.  See "sysdep.doc" for the possible set of
+and edit sysdep.h suitably.  See "sysdep.txt" for the possible set of
 system-dependent aspects that you can select/tune. 
 
 On some systems, you may need to change the flags passed to
@@ -203,7 +203,7 @@ and may provide a guide to customization.
 #	Debian Hurd 0.9			SYSDEFS="-DGNU -DJTC" LDLIBS=-lutil  # LDLIBS="-lncursesw -lutil" might work, did not try
 
 Next you may edit "tune.h" to select the compile time features you care
-about.  See "tune.doc" for a description of all the compile time options.
+about.  See "tune.txt" for a description of all the compile time options.
 The default options are quite reasonable so, in most cases, you should
 leave them alone.  If you are really short on space, or are porting JOVE
 to a new system, you may want to define -DBAREBONES in SYSDEFS to avoid
@@ -345,7 +345,7 @@ but if you get link errors for tputs or tparm, try LDLIBS=-lcurses
 #
 Some systems based on System V release 4 have a bug affecting interactive
 processes.  This bug can be worked around by defining GRANTPT_BUG.
-Read the explanation of GRANTPT_BUG in sysdep.doc.
+Read the explanation of GRANTPT_BUG in sysdep.txt.
 
 Notes for invoking make:
 
@@ -515,7 +515,7 @@ The new command line flag -J inhibits the reading of the global
 jove.rc file.  Similarly, -j inhibits ~/.joverc.
 
 JOVE's auxiliary files are kept in two directories (actually, they can be
-the same directory).  The sharedir holds the system jove.rc and cmds.doc,
+the same directory).  The sharedir holds the system jove.rc and cmds.txt,
 the data used to implement the describe-command and describe-variable
 commands; these files are meant to be machine-independent.  The libdir
 holds portsrv and recover; these are compiled programs, and are

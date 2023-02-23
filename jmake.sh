@@ -13,7 +13,7 @@
 # the flags you want (see last line for examples.
 # JMAKE_RELATIVE=1 to set SHAREDIR=doc LIBDIR= for a portable
 # install (can copy around  a directory with the jove, recover and portsrv
-# executables and a doc subdirectory with cmds.doc, teach-jove, jove.rc)
+# executables and a doc subdirectory with cmds.txt, teach-jove, jove.rc)
 # JMAKE_UNAME=i686-w64-mingw32 sets up a cross-compile for Win32
 
 u=${JMAKE_UNAME-`uname | tr -d -c '[a-zA-Z0-9_]'`}
@@ -91,7 +91,7 @@ esac
 case "${JMAKE_RELATIVE-}" in
 y*|1|t*)
 	# Use relative paths for share and bin, useful for mingw or personal
-	rel="DESTDIR=${DESTDIR-/none} JBINDIR= JSHAREDIR=doc JLIBDIR="
+	rel="DESTDIR=${DESTDIR-/none/} JOVEHOME= JBINDIR= JSHAREDIR=doc JLIBDIR="
 	;;
 esac
 exec make ${JMAKE_OPTS-} CC="$cc" SYSDEFS="$sysdefs" OPTFLAGS="$optflags" LDLIBS="$ldlibs" LDFLAGS="$ldflags" $rel $extra "$@"

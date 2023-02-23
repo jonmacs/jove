@@ -8,6 +8,14 @@ Date:   Mon Feb 23 00:41:00 2023 -0500
     https://github.com/jonmacs/jove/issues/18 (often fails
     to fill last word in para) by reverting one change from 4.16.0.74.
 
+    remove keychart. (causes trouble on Windows/DOS, not needed)
+
+    rename *.doc to *.txt since everything expects .doc to
+    be Microsoft Word files. Delete generated file before copying
+    new one over it.  remove cleanall target, added distclean synonym
+    for clobber. install teach-jove and jove.qref with cmds.doc
+    target for simplicity.
+
 Author: Mark Moraes <moraes@computer.org>
 Date:   Mon Feb 20 19:19:35 2023 -0500
 

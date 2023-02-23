@@ -6,7 +6,7 @@
  **************************************************************************/
 
 /*
- * System Feature Selection: describe OS and C system to JOVE.  See sysdep.doc
+ * System Feature Selection: describe OS and C system to JOVE.  See sysdep.txt
  * for a better description of what the different #define feature symbols
  * mean.  If you add new ones, please keep the syntax of the first #ifdef, so
  * that "grep System: sysdep.h" catches the first line of all symbols.
@@ -152,7 +152,7 @@
 /* Note: some versions of System V Release 4 have a bug in that affects
  * interactive processes.  Examples include Consensys V4 and SunOS 5.0
  * also known as Solaris 5.0.  See the description of GRANTPT_BUG in
- * sysdep.doc.  It turns out that this bug is documented as a feature
+ * sysdep.txt.  It turns out that this bug is documented as a feature
  * in "The Single UNIX Specification", Version 2!
  */
 # define TERMIOS	1

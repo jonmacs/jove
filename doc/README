@@ -35,8 +35,7 @@ jove.rc.xterm
 jove.rc.xterm-256color
 jove.rc.z29
 
-keychart.		keyboard binding descriptions for specific terminals
-keychart.3022
+keychart.3022	keyboard binding descriptions for specific terminals
 keychart.sun
 keychart.sun-cmd
 keychart.vt100
@@ -89,9 +88,8 @@ The files keychart.TERM, where TERM is the value of the $TERM environment
 variable, are intended to display a map of the Function Keys on the
 particular keyboard showing what they are bound to.  This file will be
 displayed when the user gives the 'keychart' macro (which should usually
-be bound to the Help key, if there is one).  The file 'keychart.' is a
-dummy for unrecognized $TERMs.  Some of these files also contain setup
-information for the terminal.
+be bound to the Help key, if there is one).  Some of these files also
+contain setup information for the terminal.
 
 We welcome contributions to our collection of terminal support files.
 We don't have the resources to create more than a few ourselves.

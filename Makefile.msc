@@ -19,7 +19,7 @@
 #
 # - to install, do the following:
 #   + copy jjove.exe where you wish
-#   + copy doc/cmds.doc to <SHAREDIR>/cmds.doc
+#   + copy doc/cmds.txt to <SHAREDIR>/cmds.txt
 #   + optional: copy some jove rc (none supplied) file to <SHAREDIR>/jove.rc
 
 # Options (specify on MAKE command line with -D)

@@ -145,7 +145,7 @@ is solely for JOVE.
 
 JOVESHARE
 This variable specifies the path to the directory that contains
-(1) cmds.doc (the file of command and variable descriptions used by
+(1) cmds.txt (the file of command and variable descriptions used by
 the describe-command and describe-variable commands) (2) the
 system-wide jove.rc (the first file that is sourced (executed) by JOVE
 when it starts up) and (3) The teach-jove tutorial, which can be
@@ -234,7 +234,7 @@ fit for Windows, unfortunately.
 Jove for WIN32 and Jove for DOS share some code, but also have considerable
 OS-specific code.  The following manifests are used to flag code for the
 MS-DOS and/or WIN32 versions of Jove (they are explained more fully in
-sysdep.doc)
+sysdep.txt)
 
 IBMPCDOS - flags features specific to IBM PC hardware running DOS.
 MSDOS - describes code that is specific to the 16-bit DOS version of Jove.

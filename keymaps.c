@@ -758,10 +758,10 @@ const data_obj *dp;
 bool show_bindings;
 {
 	char pattern[100];
-	char	CmdDb[FILESIZE];	/* path for cmds.doc */
+	char	CmdDb[FILESIZE];
 	File *fp;
 
-	PathCat(CmdDb, sizeof(CmdDb), ShareDir, "cmds.doc");
+	PathCat(CmdDb, sizeof(CmdDb), ShareDir, "cmds.txt");
 	fp = open_file(CmdDb, iobuff, F_READ, YES);
 	Placur(ILI, 0);
 	flushscreen();

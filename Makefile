@@ -27,8 +27,8 @@ CMP = cmp
 # but teach-jove on Unix/Linux installs.
 #
 # If they don't exist, this makefile will try to create all *DIR directories
-# (prefixed with $DESTDIR, as most packaging systems desire)
-# All others must already exist.
+# (prefixed with $DESTDIR, as most packaging systems desire; DESTDIR must
+# end with a slash) All others must already exist.
 #
 # Hack for relocatable installs: set JSHAREDIR and JLIBDIR and JBINDIR to relative 
 # paths, and set DESTDIR to an empty directory.
@@ -101,8 +101,7 @@ RECOVER = $(DLIBDIR)/recover$(XEXT)
 PORTSRV = $(DLIBDIR)/portsrv$(XEXT)
 JOVERC = $(DSHAREDIR)/jove.rc
 TERMSDIR = $(DSHAREDIR)
-CMDSDOC = $(DSHAREDIR)/cmds.doc
-TEACHJOVEDOC = $(DSHAREDIR)/$(JTEACHBASE)
+CMDSDOC = $(DSHAREDIR)/cmds.txt
 JOVEM = $(DMANDIR)/jove.$(MANEXT)
 TEACHJOVEM = $(DMANDIR)/teachjove.$(MANEXT)
 XJOVEM = $(DMANDIR)/xjove.$(MANEXT)
@@ -118,7 +117,7 @@ JOVETOOLM = $(DMANDIR)/jovetool.$(MANEXT)
 # popular modern systems like Linux, *BSD, OpenIndiana.
 # If sysdep.h does not define a block for your system, or uname produces
 # an illegal symbol on your platform (Cygwin, GNU Hurd), use jmake
-# or see README, sysdep.h, sysdep.doc.
+# or see README, sysdep.h, sysdep.txt.
 # XXX Among modern systems, FreeBSD does not put CPPFLAGS in the default
 # .c.o make build rules, so we put it in SYSDEFS, which we then add
 # to CFLAGS.  This means the contents of CPPFLAGS will likely 
@@ -239,16 +238,16 @@ DOCTERMS =	doc/jove.rc.sun doc/keychart.sun \
 	doc/jove.rc.xterm-256color doc/keychart.xterm-256color \
 	doc/jove.rc.z29 doc/keychart.z29 \
 	doc/jove.rc.3022 doc/keychart.3022 \
-	doc/keychart. \
 	doc/XTermresource
 
-CDOC = doc/cmds.doc
+XDOCS = doc/teach-jove doc/jove.qref
+CDOCS = doc/cmds.txt
 
 # formatted docs, we ship these in the distrib to avoid groff dependency
 # and for non-Unix/Linux platforms.  NOTE: These will be removed by clobber.
 # Also note that jove.man and jove.man.ps require the ms macros
 # (tmac.s or s.tmac) which many systems do not install with base groff.
-FDOCS = $(CDOC) doc/jove.man doc/jove.man.ps doc/jove.doc
+FDOCS = $(CDOCS) doc/jove.man doc/jove.man.ps doc/jove.txt
 
 # files we generate that we also ship in distrib for platforms sans sed
 # NOTE: these will be removed by clobber.
@@ -263,7 +262,7 @@ DOCS =  doc/intro.nr doc/cmds.macros.nr doc/cmds.nr doc/contents.nr \
 
 MISC =	Makefile Makefile.msc Makefile.wat \
 	README README.dos README.win ChangeLog LICENSE \
-	sysdep.doc tune.doc style.doc jmake.sh \
+	sysdep.txt tune.txt style.txt jmake.sh \
 	testbuild.sh testmailer.sh
 
 SUPPORT = recover.c setmaps.c portsrv.c keys.txt \
@@ -273,7 +272,7 @@ BACKUPS = $(HEADERS) $(C_SRC) $(SUPPORT) $(MISC)
 
 # all: default target.
 # Builds everything that "install" needs.
-all:	jjove$(XEXT) recover$(XEXT) portsrv$(XEXT) $(CDOC) $(GEN)
+all:	jjove$(XEXT) recover$(XEXT) portsrv$(XEXT) $(CDOCS) $(GEN)
 
 jjove$(XEXT):	$(OBJECTS) $(EXTRAOBJS) $(ICON)
 	$(LDCC) $(LDFLAGS) $(CFLAGS) -o jjove$(XEXT) $(OBJECTS) $(EXTRAOBJS) $(ICON) $(LDLIBS)
@@ -330,7 +329,7 @@ keys.c:	setmaps$(LOCALEXT) keys.txt Makefile .ALWAYS
 	./setmaps$(LOCALEXT) < keys.txt > $(TFILE) && \
 	echo 'char JoveCompiled[sizeof(JoveCompiled)] = "'$(CC) $(CFLAGS)'";' >> $(TFILE) && \
 	echo 'char JoveLinked[sizeof(JoveLinked)] = "'$(LDCC) $(LDFLAGS) $(CFLAGS) $(EXTRAOBJS) $(LDLIBS)'";' >> $(TFILE) && \
-	if ! $(CMP) -s $(TFILE) keys.c 2> /dev/null; then mv $(TFILE) keys.c; else rm $(TFILE); fi; rmdir $(TDIR)
+	if ! $(CMP) -s $(TFILE) keys.c 2> /dev/null; then rm -f keys.c; mv $(TFILE) keys.c; else rm $(TFILE); fi; rmdir $(TDIR)
 
 keys.o:	keys.c tune.h sysdep.h jove.h keymaps.h dataobj.h commands.h
 
@@ -340,12 +339,12 @@ keys.o:	keys.c tune.h sysdep.h jove.h keymaps.h dataobj.h commands.h
 .version: .ALWAYS
 	@mkdir $(TDIR) && \
 	sed -n 's/# *define  *jversion  *"\([0-9\\.]*\)".*/\1/p' version.h > $(TFILE); \
-	if ! $(CMP) -s $(TFILE) .version 2> /dev/null; then mv $(TFILE) .version; else rm $(TFILE); fi; rmdir $(TDIR)
+	if ! $(CMP) -s $(TFILE) .version 2> /dev/null; then rm -f .version; mv $(TFILE) .version; else rm $(TFILE); fi; rmdir $(TDIR)
 
 jove.spec: .version
 	@mkdir $(TDIR) && \
 	v=`sed 's/_.*//' .version`; sed "s,__VERSION__,$$v,g" pkg/rpm/jspec.in > $(TFILE); \
-	if ! $(CMP) -s $(TFILE) jove.spec 2> /dev/null; then mv $(TFILE) jove.spec; else rm $(TFILE); fi; rmdir $(TDIR)
+	if ! $(CMP) -s $(TFILE) jove.spec 2> /dev/null; then rm -f jove.spec; mv $(TFILE) jove.spec; else rm $(TFILE); fi; rmdir $(TDIR)
 
 paths.h: .ALWAYS
 	@mkdir $(TDIR) && \
@@ -357,7 +356,7 @@ paths.h: .ALWAYS
 	echo \#define SHAREDIR \"$(JSHAREDIR)\"; \
 	echo \#define TEACHJOVE \"$(JTEACHBASE)\"; \
 	echo \#define DFLTSHELL \"$(DFLTSHELL)\";) > $(TFILE); \
-	if ! $(CMP) -s $(TFILE) paths.h 2> /dev/null; then mv $(TFILE) paths.h; else rm $(TFILE); fi; rmdir $(TDIR)
+	if ! $(CMP) -s $(TFILE) paths.h 2> /dev/null; then rm -f paths.h; mv $(TFILE) paths.h; else rm $(TFILE); fi; rmdir $(TDIR)
 
 makexjove:
 	( cd xjove ; make CC="$(CC)" OPTFLAGS="$(OPTFLAGS)" SYSDEFS="$(SYSDEFS)" $(TOOLMAKEEXTRAS) xjove )
@@ -375,8 +374,7 @@ installjovetool: $(JOVETOOLM)
 # Thus, if "all" is done first, "install" can be invoked with
 # JOVEHOME pointing at a playpen where files are to be marshalled.
 # This property is fragile.
-install: $(DRECDIR) $(DETCDIR) \
-	$(TEACHJOVEDOC) $(CMDSDOC) $(TERMSDIR)/keychart. $(JOVERC) \
+install: $(DRECDIR) $(DETCDIR) $(CMDSDOC) $(JOVERC) \
 	$(PORTSRVINST) $(RECOVER) $(JOVE) $(TEACHJOVE) $(MANUALS)
 	@echo See the README about changes to /etc/rc or /etc/rc.local
 	@echo so that the system recovers jove files on reboot after a crash
@@ -404,37 +402,31 @@ $(DRECDIR)::
 $(RPMHOME)::
 	if test ! -e $(RPMHOME); then mkdir -p $(RPMHOME) && chmod $(DPERM) $(RPMHOME); fi
 
-$(TEACHJOVEDOC): $(DSHAREDIR) doc/teach-jove
-	$(TINSTALL) doc/teach-jove doc/jove.qref $(DSHAREDIR)
-
-doc/cmds.doc:	doc/cmds.macros.nr doc/cmds.nr
+doc/cmds.txt:	doc/cmds.macros.nr doc/cmds.nr
 	@mkdir $(TDIR) && \
 	LANG=C $(NROFF) doc/cmds.macros.nr doc/cmds.nr > $(TFILE); \
-	if ! $(CMP) -s $(TFILE) doc/cmds.doc 2> /dev/null; then mv $(TFILE) doc/cmds.doc; else rm $(TFILE); fi; rmdir $(TDIR)
+	if ! $(CMP) -s $(TFILE) doc/cmds.txt 2> /dev/null; then rm -f doc/cmds.txt; mv $(TFILE) doc/cmds.txt; else rm $(TFILE); fi; rmdir $(TDIR)
 
 doc/jove.man:	doc/intro.nr doc/cmds.nr
 	@mkdir $(TDIR) && \
 	LANG=C; export LANG; cd doc && tbl intro.nr | $(NROFF) -ms - cmds.nr > $(TFILE); \
-	if ! $(CMP) -s $(TFILE) jove.man 2> /dev/null; then mv $(TFILE) jove.man; else rm $(TFILE); fi; rmdir $(TDIR)
+	if ! $(CMP) -s $(TFILE) jove.man 2> /dev/null; then rm -f jove.man; mv $(TFILE) jove.man; else rm $(TFILE); fi; rmdir $(TDIR)
 
 doc/jove.man.ps: doc/intro.nr doc/cmds.nr doc/contents.nr
 	@mkdir $(TDIR) && \
 	LANG=C; export LANG; cd doc && tbl intro.nr | $(TROFF) -ms - cmds.nr contents.nr $(TROFFPOST) > $(TFILE); \
-	if ! $(CMP) -s $(TFILE) jove.man.ps 2> /dev/null; then mv $(TFILE) jove.man.ps; else rm $(TFILE); fi; rmdir $(TDIR)
+	if ! $(CMP) -s $(TFILE) jove.man.ps 2> /dev/null; then rm -f jove.man.ps; mv $(TFILE) jove.man.ps; else rm $(TFILE); fi; rmdir $(TDIR)
 
-$(CMDSDOC): $(DSHAREDIR) $(CDOC)
-	$(TINSTALL) $(CDOC) $(CMDSDOC)
+$(CMDSDOC): $(DSHAREDIR) $(CDOCS) $(XDOCS)
+	$(TINSTALL) $(CDOCS) $(XDOCS) $(DSHAREDIR)
 
 doc/jove.rc: doc/jove.rc.in
 	@mkdir $(TDIR) && \
 	sed "s,__ETCDIR__,$(JETCDIR)," doc/jove.rc.in > $(TFILE); \
-	if ! $(CMP) -s $(TFILE) doc/jove.rc 2> /dev/null; then mv $(TFILE) doc/jove.rc; else rm $(TFILE); fi; rmdir $(TDIR)
+	if ! $(CMP) -s $(TFILE) doc/jove.rc 2> /dev/null; then rm -f doc/jove.rc; mv $(TFILE) doc/jove.rc; else rm $(TFILE); fi; rmdir $(TDIR)
 
-$(JOVERC): $(DSHAREDIR) doc/jove.rc
-	$(TINSTALL) doc/jove.rc doc/jem* $(DSHAREDIR)
-
-$(TERMSDIR)/keychart.: $(TERMSDIR) $(DOCTERMS)
-	$(TINSTALL) $(DOCTERMS) $(TERMSDIR)
+$(JOVERC): $(DSHAREDIR) doc/jove.rc $(TERMSDIR) $(DOCTERMS)
+	$(TINSTALL) doc/jove.rc doc/jem* $(DOCTERMS) $(DSHAREDIR)
 
 $(PORTSRV): $(DLIBDIR) portsrv$(XEXT)
 	$(XINSTALL) portsrv$(XEXT) $(PORTSRV)
@@ -454,20 +446,22 @@ doc/jove.$(MANEXT): doc/jove.nr
 	     -e 's;<LIBDIR>;$(JLIBDIR);' \
 	     -e 's;<SHAREDIR>;$(JSHAREDIR);' \
 	     -e 's;<SHELL>;$(DFLTSHELL);' doc/jove.nr > $(TFILE); \
-	if ! $(CMP) -s $(TFILE) doc/jove.$(MANEXT) 2> /dev/null; then mv $(TFILE) doc/jove.$(MANEXT); else rm $(TFILE); fi; rmdir $(TDIR)
+	if ! $(CMP) -s $(TFILE) doc/jove.$(MANEXT) 2> /dev/null; then rm -f doc.jove.$(MANEXT); mv $(TFILE) doc/jove.$(MANEXT); else rm $(TFILE); fi; rmdir $(TDIR)
 
 $(JOVEM): $(DMANDIR) doc/jove.$(MANEXT)
 	$(TINSTALL) doc/jove.$(MANEXT) $(JOVEM)
 
-# doc/jove.doc is the formatted manpage (only needed by DOS)
+# doc/jove.txt is the formatted manpage (for Windows and DOS src zip)
 # Building it should be like building $(JOVEM) except that we
 # don't know what to substitute for <TMPDIR> etc. because they
-# are not fixed yet, and because we must do the formatting.
+# will be presumably set later by the person who downloads and 
+# installs the src zip, but we must do the formatting to prepare the zip
+# since Windows/DOS will not have NROFF.
 
-doc/jove.doc: doc/jove.nr
+doc/jove.txt: doc/jove.nr
 	@mkdir $(TDIR) && \
 	LANG=C $(NROFF) -man doc/jove.nr > $(TFILE) && \
-	if ! $(CMP) -s $(TFILE) doc/jove.doc 2> /dev/null; then mv $(TFILE) doc/jove.doc; else rm $(TFILE); fi; rmdir $(TDIR)
+	if ! $(CMP) -s $(TFILE) doc/jove.txt 2> /dev/null; then rm -f doc/jove.txt; mv $(TFILE) doc/jove.txt; else rm $(TFILE); fi; rmdir $(TDIR)
 
 doc/teachjove.$(MANEXT): doc/teachjove.nr
 	@mkdir $(TDIR) && \
@@ -475,7 +469,7 @@ doc/teachjove.$(MANEXT): doc/teachjove.nr
 	     -e 's;<LIBDIR>;$(JLIBDIR);' \
 	     -e 's;<SHAREDIR>;$(JSHAREDIR);' \
 	     -e 's;<SHELL>;$(DFLTSHELL);' doc/teachjove.nr > $(TFILE); \
-	if ! $(CMP) -s $(TFILE) doc/teachjove.$(MANTXT) 2> /dev/null; then mv $(TFILE) doc/teachjove.$(MANEXT); else rm $(TFILE); fi; rmdir $(TDIR)
+	if ! $(CMP) -s $(TFILE) doc/teachjove.$(MANTXT) 2> /dev/null; then rm -f doc/teachjove.$(MANEXT); mv $(TFILE) doc/teachjove.$(MANEXT); else rm $(TFILE); fi; rmdir $(TDIR)
 
 $(TEACHJOVEM): $(DMANDIR) doc/teachjove.$(MANEXT)
 	$(TINSTALL) doc/teachjove.$(MANEXT) $(TEACHJOVEM)
@@ -487,7 +481,7 @@ doc/jovetool.$(MANEXT): doc/jovetool.nr
 	@mkdir $(TDIR) && \
 	sed -e 's;<MANDIR>;$(MANDIR);' \
 	     -e 's;<MANEXT>;$(MANEXT);' doc/jovetool.nr > $(TFILE); \
-	if ! $(CMP) -s $(TFILE) doc/jovetool.$(MANTXT) 2> /dev/null; then mv $(TFILE) doc/jovetool.$(MANEXT); else rm $(TFILE); fi; rmdir $(TDIR)
+	if ! $(CMP) -s $(TFILE) doc/jovetool.$(MANTXT) 2> /dev/null; then rm -f doc/jovetool.$(MANEXT); mv $(TFILE) doc/jovetool.$(MANEXT); else rm $(TFILE); fi; rmdir $(TDIR)
 
 $(JOVETOOLM): $(DMANDIR) doc/jovetool.$(MANEXT)
 	$(TINSTALL) doc/jovetool.$(MANEXT) $(JOVETOOLM)
@@ -534,7 +528,7 @@ extags:	$(C_SRC) $(HEADERS)
 	    find pkg old -print >> $(TFILE) && \
 	    (cd xjove ; make FLIST=$(TFILE).xj $(TFILE).xj) && \
 	    sed -e 's=^=xjove/=' $(TFILE).xj >> $(TFILE); \
-	if ! $(CMP) -s $(TFILE) .filelist 2> /dev/null; then mv $(TFILE) .filelist; else rm $(TFILE); fi; rm -f $(TFILE).xj; rmdir $(TDIR)
+	if ! $(CMP) -s $(TFILE) .filelist 2> /dev/null; then rm -f .filelist; mv $(TFILE) .filelist; else rm $(TFILE); fi; rm -f $(TFILE).xj; rmdir $(TDIR)
 
 # Build a distribution: a gzipped tar file with a name "jove-<version>.tgz"
 # The tar will unpack into a directory with the name jove-<version>
@@ -580,7 +574,7 @@ signed:	.version tgz
 
 DOSSRC = $(HEADERS) $(C_SRC) setmaps.c recover.c keys.txt \
 	Makefile.msc Makefile.wat ChangeLog \
-	README README.dos README.win sysdep.doc tune.doc style.doc \
+	README README.dos README.win sysdep.txt tune.txt style.txt \
 	jjove.rc $(FDOCS) tags doc/jove.rc $(DOSDOCS)
 
 zip:	.version $(DOSSRC) jjove.ico Makefile
@@ -609,13 +603,13 @@ clean:
 		setmaps$(XEXT) make.log *.map \#* *~ *.tmp \
 		jjove.pure_* ID *.exe jjove.coff */*.tmp \
 		.filelist xjove/.filelist .version
-
-cleanall: clean
 	( cd xjove ; make clean )
 
-# NOTE: deletes distrib
-clobber: cleanall
-	rm -f paths.h $(FDOCS) $(GEN) tags *.tgz *.$(ZIPEXT) *.orig *.rej
+# NOTE: deletes distrib (tgz, zip), formatted docs
+clobber: clean
+	rm -f paths.h jove.spec $(FDOCS) $(GEN) tags *.tgz *.$(ZIPEXT) *.orig *.rej
+
+distclean: clobber
 
 # This version only works under 4.3BSD
 dependbsd:
