@@ -63,15 +63,15 @@
 .nr LL 6.5i
 .nr LT 6.5i
 .nr Ww (\n(LL-30n-4n)/1n
-.EH '%'JOVE Manual for UNIX Users''
-.OH ''JOVE Manual for UNIX Users'%'
+.EH '%'JOVE User Manual''
+.OH ''JOVE User Manual'%'
 .TL
-JOVE Manual for UNIX Users
+JOVE User Manual
 .br
-Version 4.16
+Version 4.17
 .AU
 Jonathan Payne
-(with revisions by Doug Kingston, Mark Seiden and Charles Lindsey)
+(with revisions by Doug Kingston, Mark Seiden, D. Hugh Redelmeieir, Mark Moraes and Charles Lindsey)
 .AI
 .AB no
 .AE

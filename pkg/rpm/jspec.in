@@ -24,8 +24,7 @@ Unicode (or UTF-8 etc).
 %build
 # Keep both build and install make commands consistent, except for DESTDIR and targets.
 # JOVEHOME must be the ultimate path since it will be compiled into JOVE.
-make JOVEHOME=/usr JLIBDIR=%{_libdir}/jove JSHAREDIR=%{_datadir}/jove JETCDIR=%{_sysconfdir}/jove JMANDIR=%{_mandir}/man1 SYSDEFS=-DLinux OPTFLAGS="%{optflags}" LDLIBS="-lncurses -ltinfo -lutil" all doc/jove.man doc/jove.man.ps
-mv doc/jove.man doc/jove.man.txt
+make JOVEHOME=/usr JLIBDIR=%{_libdir}/jove JSHAREDIR=%{_datadir}/jove JETCDIR=%{_sysconfdir}/jove JMANDIR=%{_mandir}/man1 SYSDEFS=-DLinux OPTFLAGS="%{optflags}" LDLIBS="-lncurses -ltinfo -lutil" all
 
 %install
 # Keep both build and install make commands consistent, except for DESTDIR and targets.
@@ -36,7 +35,6 @@ mkdir -p $RPM_BUILD_ROOT%{_libdir}
 mkdir -p $RPM_BUILD_ROOT%{_datadir}
 mkdir -p $RPM_BUILD_ROOT%{_mandir}/man1
 make DESTDIR=$RPM_BUILD_ROOT JOVEHOME=/usr JLIBDIR=%{_libdir}/jove JSHAREDIR=%{_datadir}/jove JETCDIR=%{_sysconfdir}/jove JMANDIR=%{_mandir}/man1 SYSDEFS=-DLinux OPTFLAGS="%{optflags}" LDLIBS="-lncurses -ltinfo -lutil" install
-mv doc/README doc/README.doc
 
 %files
 %{_libdir}/jove/
@@ -46,7 +44,7 @@ mv doc/README doc/README.doc
 %{_bindir}/teachjove
 %{_mandir}/man1/jove.1*
 %{_mandir}/man1/teachjove.1*
-%doc README doc/jove.man.txt doc/jove.man.ps doc/jove.qref 
+%doc README doc/README doc/jove.man.txt doc/jove.man.pdf doc/cmds.txt doc/jove.qref 
 
 %changelog
 * Wed Jun 17 2015 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 4.16.0.73-9

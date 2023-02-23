@@ -650,10 +650,11 @@ in NROFF/TROFF form and can be formatted into a form readable on the
 terminal or line-printer with the command:
 
 	cd /local/src/jove
-	make doc/jove.man
+	make doc/jove.man.txt
 
-To get a typeset copy, use the make target troff-man.  You will have to
-adjust the makefile for your local facilities for TROFF output.
+To get a typeset copy, use the make target jove.man.pdf (PDF format)
+or jove.man.ps (PostScript format).  You will have to adjust the makefile
+for your local facilities for TROFF output.
 
 Besides, someone around you must have a printed version which you can borrow!
 There's also an old copy in the Berkeley Unix 4.3 manuals - in the User

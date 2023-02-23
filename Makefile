@@ -206,9 +206,10 @@ BACKUPDEV=/dev/rst8	# for tape-backup target!
 #	NROFF = nroff
 #	TROFF = troff
 #	TROFFPOST = | /usr/lib/lp/postscript/dpost -
-NROFF = nroff -Tascii
+NROFF = nroff
 TROFF = troff
-TROFFPOST = 
+TROFFPOST = |grops
+TROFFPDF = |gropdf
 
 MANUALS = $(JOVEM) $(TEACHJOVEM)
 
@@ -240,21 +241,23 @@ DOCTERMS =	doc/jove.rc.sun doc/keychart.sun \
 	doc/jove.rc.3022 doc/keychart.3022 \
 	doc/XTermresource
 
+# XDOCS require no formatting
 XDOCS = doc/teach-jove doc/jove.qref
-CDOCS = doc/cmds.txt
 
 # formatted docs, we ship these in the distrib to avoid groff dependency
 # and for non-Unix/Linux platforms.  NOTE: These will be removed by clobber.
-# Also note that jove.man and jove.man.ps require the ms macros
+# Also note that jove.man.* require the ms macros
 # (tmac.s or s.tmac) which many systems do not install with base groff.
-FDOCS = $(CDOCS) doc/jove.man doc/jove.man.ps doc/jove.txt
+# Now prefer doc/jove.man.pdf to doc/jove.man.ps (more universal)
+FDOCS = doc/cmds.txt doc/jove.man.txt doc/jove.man.pdf
 
 # files we generate that we also ship in distrib for platforms sans sed
 # NOTE: these will be removed by clobber.
 GEN = 	doc/jove.rc doc/jove.$(MANEXT) \
 	doc/teachjove.$(MANEXT) doc/jovetool.$(MANEXT)
 
-DOSDOCS =  doc/README doc/teach-jove doc/jove.qref doc/example.rc doc/jem.txt
+DOSDOCS =  doc/README doc/teach-jove doc/jove.qref doc/example.rc doc/jem.txt \
+	doc/jove.txt
 
 DOCS =  doc/intro.nr doc/cmds.macros.nr doc/cmds.nr doc/contents.nr \
 	doc/jove.nr doc/teachjove.nr doc/xjove.nr doc/jovetool.nr \
@@ -272,7 +275,7 @@ BACKUPS = $(HEADERS) $(C_SRC) $(SUPPORT) $(MISC)
 
 # all: default target.
 # Builds everything that "install" needs.
-all:	jjove$(XEXT) recover$(XEXT) portsrv$(XEXT) $(CDOCS) $(GEN)
+all:	jjove$(XEXT) recover$(XEXT) portsrv$(XEXT) $(FDOCS) $(GEN)
 
 jjove$(XEXT):	$(OBJECTS) $(EXTRAOBJS) $(ICON)
 	$(LDCC) $(LDFLAGS) $(CFLAGS) -o jjove$(XEXT) $(OBJECTS) $(EXTRAOBJS) $(ICON) $(LDLIBS)
@@ -407,18 +410,25 @@ doc/cmds.txt:	doc/cmds.macros.nr doc/cmds.nr
 	LANG=C $(NROFF) doc/cmds.macros.nr doc/cmds.nr > $(TFILE); \
 	if ! $(CMP) -s $(TFILE) doc/cmds.txt 2> /dev/null; then rm -f doc/cmds.txt; mv $(TFILE) doc/cmds.txt; else rm $(TFILE); fi; rmdir $(TDIR)
 
-doc/jove.man:	doc/intro.nr doc/cmds.nr
-	@mkdir $(TDIR) && \
+doc/jove.man.txt:	doc/intro.nr doc/cmds.nr
+	@-if type $(NROFF); then mkdir $(TDIR) && \
 	LANG=C; export LANG; cd doc && tbl intro.nr | $(NROFF) -ms - cmds.nr > $(TFILE); \
-	if ! $(CMP) -s $(TFILE) jove.man 2> /dev/null; then rm -f jove.man; mv $(TFILE) jove.man; else rm $(TFILE); fi; rmdir $(TDIR)
+	if ! $(CMP) -s $(TFILE) jove.man.txt 2> /dev/null; then rm -f jove.man.txt; mv $(TFILE) jove.man.txt; else rm $(TFILE); fi; rmdir $(TDIR); fi
 
 doc/jove.man.ps: doc/intro.nr doc/cmds.nr doc/contents.nr
-	@mkdir $(TDIR) && \
+	@-if type $(TROFF); then mkdir $(TDIR) && \
 	LANG=C; export LANG; cd doc && tbl intro.nr | $(TROFF) -ms - cmds.nr contents.nr $(TROFFPOST) > $(TFILE); \
-	if ! $(CMP) -s $(TFILE) jove.man.ps 2> /dev/null; then rm -f jove.man.ps; mv $(TFILE) jove.man.ps; else rm $(TFILE); fi; rmdir $(TDIR)
+	if ! $(CMP) -s $(TFILE) jove.man.ps 2> /dev/null; then rm -f jove.man.ps; mv $(TFILE) jove.man.ps; else rm $(TFILE); fi; rmdir $(TDIR); fi
 
-$(CMDSDOC): $(DSHAREDIR) $(CDOCS) $(XDOCS)
-	$(TINSTALL) $(CDOCS) $(XDOCS) $(DSHAREDIR)
+doc/jove.man.pdf: doc/intro.nr doc/cmds.nr doc/contents.nr
+	@-if type $(TROFF); then mkdir $(TDIR) && \
+	LANG=C; export LANG; cd doc && tbl intro.nr | $(TROFF) -ms - cmds.nr contents.nr $(TROFFPDF) > $(TFILE); \
+	if ! $(CMP) -s $(TFILE) jove.man.pdf 2> /dev/null; then rm -f jove.man.pdf; mv $(TFILE) jove.man.pdf; else rm $(TFILE); fi; rmdir $(TDIR); fi
+
+# FDOCS might not have been formatted if there is no nroff or troff
+$(CMDSDOC): $(DSHAREDIR) $(FDOCS)
+	$(TINSTALL) $(XDOCS) $(DSHAREDIR)
+	@-for i in $(FDOCS); do $(TINSTALL) $$i $(DSHAREDIR); done
 
 doc/jove.rc: doc/jove.rc.in
 	@mkdir $(TDIR) && \
@@ -586,7 +596,8 @@ zip:	.version $(DOSSRC) jjove.ico Makefile
 	$(TAR) cf - jjove.ico $(DOSSRC) | ( cd $$BN ; $(TAR) xf - ) && \
 	$(ZIP) $(ZIPOPTS) jovetmp$$$$.$(ZIPEXT) $$BN/jjove.ico && \
 	rm -f $$BN/jjove.ico && \
-	mv $$BN/doc/jove.man.ps $$BN/doc/joveman.ps && \
+	mv $$BN/doc/jove.man.txt $$BN/doc/joveman.txt && \
+	mv $$BN/doc/jove.man.pdf $$BN/doc/joveman.pdf && \
 	mv $$BN/doc/teach-jove $$BN/doc/teachjov.txt && \
 	mv $$BN/ChangeLog $$BN/changelg.txt && \
 	$(ZIP) $(ZIPOPTS) jovetmp$$$$.$(ZIPEXT) $(ZIPTXTOPT) $$BN/* && \

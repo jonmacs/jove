@@ -14,7 +14,9 @@ Date:   Mon Feb 23 00:41:00 2023 -0500
     be Microsoft Word files. Delete generated file before copying
     new one over it.  remove cleanall target, added distclean synonym
     for clobber. install teach-jove and jove.qref with cmds.doc
-    target for simplicity.
+    target for simplicity.  generate jove.man.pdf rather than jove.man.ps.
+    rename jove.man to jove.man.txt for consistency (redhat pkg did this
+    already)
 
 Author: Mark Moraes <moraes@computer.org>
 Date:   Mon Feb 20 19:19:35 2023 -0500
