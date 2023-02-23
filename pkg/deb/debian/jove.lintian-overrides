@@ -1,5 +1,5 @@
 jove: executable-in-usr-lib [usr/lib/jove/recover]
-jove: package-contains-documentation-outside-usr-share-doc [usr/share/jove/cmds.doc]
+jove: package-contains-documentation-outside-usr-share-doc [usr/share/jove/cmds.txt]
 jove: package-contains-documentation-outside-usr-share-doc [usr/share/jove/jem.txt]
 jove: package-contains-documentation-outside-usr-share-doc [usr/share/jove/teach-jove]
 jove: package-contains-documentation-outside-usr-share-doc [usr/share/jove/jove.qref]
