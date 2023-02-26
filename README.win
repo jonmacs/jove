@@ -66,8 +66,6 @@ and then use
 (DESTDIR=/none is a hack to avoid some Makefile
 complaints, it does not get used otherwise)
 
-Note that compiling with x86_64-w64-mingw32 DOES NOT WORK (yet?!).
-
 Advantages of WIN32 version (over DOS)
 ======================================
 

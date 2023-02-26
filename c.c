@@ -787,7 +787,6 @@ FillComment()
 	PopMark();	/* get back to the start of the comment; discard mark */
 
 	/* redecorate newly filled comment text */
-
 	for (;;) {
 		if (curline != open_c_mark->m_line->l_next) {
 			/* Not first line: insert line header.
@@ -798,10 +797,10 @@ FillComment()
 			ins_str(trimmed_header);
 			Bol();
 			n_indent(indent_pos + (int)(trimmed_header - l_header));
-			if (eolp() && trailer_len == 0)
-				DelWtSpace();
 		}
 		Eol();
+		if (trailer_len == 0)
+			DelWtSpace();
 
 		if (curline == close_c_mark->m_line)
 			break;
@@ -810,6 +809,7 @@ FillComment()
 		ins_str(l_trailer);
 		line_move(FORWARD, 1, NO);
 	}
+
 	if (nl_in_close_c) {
 		/* since NewLine is included in comment close,
 		 * add line trailer first

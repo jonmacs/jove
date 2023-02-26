@@ -21,6 +21,7 @@
 #include "proc.h"
 /* #include "util.h" */
 #include "vars.h"
+#include "macros.h"
 
 #ifdef MAC
 # include "mac.h"
@@ -799,7 +800,7 @@ bool
 joverc(file)
 char	*file;
 {
-	char	buf[LBSIZE],
+	char	fbuf[LBSIZE],
 		lbuf[LBSIZE];
 
 	jmp_buf	savejmp;
@@ -811,7 +812,33 @@ char	*file;
 			skipping = 0,
 			inelse = 0;
 
-	fp = open_file(file, buf, F_READ, NO);
+
+	/*
+	 * joverc is a weird quasi-event loop (reading a line, setting
+	 * Inputp to point to the line, doing some special hackery to handle
+	 * a number as a numeric arg, invoking Extend() to parse the line
+	 * (with getch() taking chars from from Inputp rather than from the
+	 * keyboard) and execute the parsed command.  If the command was
+	 * "execute-macro", then it will push the macro onto the stack, but
+	 * in order to run that macro immediately, we must perform a
+	 * mac_getc()+dispatch() loop immediately after each command (note
+	 * that a running macro might in-turn execute macros by pushing new
+	 * ones on the stack, so we must drain the macro stack fully before
+	 * proceeding to read the next line in the joverc).  However, this
+	 * macro dispatch would go badly wrong if it called "source"
+	 * recursively into joverc() because the new joverc() loop would
+	 * then pop all the remaining strokes of the invoking macro from the
+	 * outer joverc().  While we could generalize this by saving and
+	 * restoring macro_stack before/after each command in joverc, that
+	 * seems excessive for typical use-cases of joverc, so instead, we
+	 * just disallow joverc from being invoked from a macro. If someone
+	 * encounters a valid use case for this, we can reconsider.
+	 */
+	if (in_macro()) {
+		complain("cannot source file %s from within a macro", file);
+		/* NOTREACHED */
+	}
+	fp = open_file(file, fbuf, F_READ, NO);
 	if (fp == NULL)
 		return NO;
 
@@ -830,6 +857,7 @@ char	*file;
 		unmodify();
 		SetBuf(savebuf);
 		Asking = NO;
+		unwind_macro_stack();
 	}
 	while (!eof) {
 		/* This peculiar delayed EOF testing allows the last line to
@@ -928,11 +956,9 @@ char	*file;
 					Inputp += 1;
 					Digit();
 				} else {
-					Extend();
+					Extend(); /* run command, which might call getch, which might make Inputp NULL */
 				}
-
 				/* get any pending input hiding in the peek buffer */
-
 				if ((c = peekchar) != EOF) {
 					peekchar = EOF;
 					if (Inputp != NULL && ZXRC(Inputp[-1]) == c) {
@@ -943,13 +969,19 @@ char	*file;
 					}
 				}
 
-				if (Inputp == NULL)
-					break;
-
-				while (jiswhite(*Inputp))
+				while (Inputp && jiswhite(*Inputp))
 					Inputp += 1;	/* skip white space */
-				if (*Inputp == '\0' || *Inputp == '\n')
+
+				if (Inputp == NULL || *Inputp == '\0' || *Inputp == '\n') {
+					Inputp = NULL;
+					/*
+					 * processed the line, now finish
+					 * running any macros that might
+					 * have been executed by the line.
+					 */
+					dispatch_macros();
 					break;
+				}
 
 				if (this_cmd != ARG_CMD) {
 					complain("[junk at end of line, this_cmd = %d]", this_cmd);

@@ -2,8 +2,10 @@
 # not to be installed or considered an example.
 # numbers ending in 0 are the expected path, so
 # if this works, Main should have lines with
-# 10, 20, 30, ...
-select-buffer Main
+# 10, 20, 30, ... 100 followed by a line with 200 300
+define-macro testbegin ^[xselect-buffer^M*testlog*^[xend-of-file^M^M++^[xnewline^M
+define-macro testend --^[xnewline^M^[xmake-buffer-unmodified^M
+execute-macro testbegin
 if true
 	set right-margin 10
 else	
@@ -93,5 +95,6 @@ else
 endif
 insert-variable right-margin
 newline
+source doc/test1.rc
 #
-make-buffer-unmodified
+execute-macro testend

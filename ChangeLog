@@ -1,5 +1,26 @@
 Author: Mark Moraes <moraes@computer.org>
-Date:   Mon Feb 23 00:41:00 2023 -0500
+Date:   Sun Feb 26 17:31:00 2023 -0500
+
+    4.17.5.2 fix https://github.com/jonmacs/jove/issues/15
+    macros in joverc run immediately after the execute-macro
+    command is processed (disallow macros from sourcing joverc
+    to avoid a corner case that seems of low value), added
+    doc/test*.rc to test rc handling.
+
+    fix https://github.com/jonmacs/jove/issues/20 trims
+    trailing whitespace off empty lines between paragraphs
+    in comments
+
+    per @C0RD for Debian conventions (probably other Linux too),
+    Makefile now installs jove.man.pdf and jove.man.txt to
+    DOCDIR, defined as $JOVEHOME/share/doc/jove by default
+    (instead of SHAREDIR), fixed pkg/deb/debian/jove.docs to
+    match.
+
+    Added a few NOTREACHED after complain() and finish().
+
+Author: Mark Moraes <moraes@computer.org>
+Date:   Thu Feb 23 16:56:50 2023 -0500
 
     4.17.5.1 remove doc/jem.rc, add doc/test.rc (some
     regression tests for joverc processing)

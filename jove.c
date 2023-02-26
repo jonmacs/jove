@@ -508,6 +508,7 @@ kbd_getch()
 				if (n != sizeof(header)) {
 					raw_complain("\r\nError reading kbd process, expected %d, got %d bytes", sizeof header, n);
 					finish(SIGHUP);
+					/* NOTREACHED */
 				}
 				if (header.pid == kbd_pid) {
 					/* data is from the keyboard process */
@@ -515,6 +516,7 @@ kbd_getch()
 					if (nchars != header.nbytes) {
 						raw_complain("\r\nError reading kbd process, expected %d, got %d bytes.", header.nbytes, nchars);
 						finish(SIGHUP);
+						/* NOTREACHED */
 					}
 				} else {
 					/* data is from an interactive process */
@@ -1080,6 +1082,53 @@ ZXchar	c;
 	peekchar = c;
 }
 
+/*
+ * input from macro always needs to be preceded by a check for
+ * a character that may have been pushed back after a number
+ * was gathered into argcount.
+ */
+ZXchar
+peek_or_mac_getch() {
+	ZXchar c;
+	if ((c = peekchar) != EOF) {
+		/* got input from pushback */
+		peekchar = EOF;
+		LastKeyStruck = c;
+	} else if (!Interactive && (c = mac_getc()) != EOF) {
+		/* might be in an execute-macro! */
+		add_stroke(LastKeyStruck = c);
+	}
+	return c;
+}
+
+/*
+ * In joverc, or do_find, we need to run all macros to completion before
+ * processing the next line, or any other input, which means reading and
+ * dispatching mac_getc (while dealing with peekchar for numeric args)
+ *
+ * ??? This code (which was in do_find) is a fudge, and should be replaced
+ * by a more elegant solution.
+ */
+void
+dispatch_macros() {
+	ZXchar	c;
+	int	saved_tcmd = this_cmd;
+	int	saved_lcmd = last_cmd;
+	int	saved_as, saved_ac;
+
+	save_arg(saved_as, saved_ac);
+	last_cmd = this_cmd = OTHER_CMD;
+	for (;;) {
+		cmd_sync();
+		if ((c = peek_or_mac_getch()) == EOF)
+			break;
+		dispatch(c);
+	}
+	last_cmd = saved_lcmd;
+	this_cmd = saved_tcmd;
+	restore_arg(saved_as, saved_ac);
+}
+
 ZXchar
 getch()
 {
@@ -1088,13 +1137,12 @@ getch()
 	if (Inputp != NULL) {
 		if ((c = ZXC(*Inputp++)) != '\0')
 			return LastKeyStruck = c;
-
+		/* done with all faux input */
 		Inputp = NULL;
 	}
-
-	if (InJoverc) {
-		/* somethings wrong if Inputp runs out while
-		 * we're reading a .joverc file.
+	if (InJoverc && !in_macro()) {
+		/* something is wrong if Inputp ran out (and
+		 * nothing from a macro) while reading a .joverc file.
 		 */
 		complain("[command line too short]");
 		/* NOTREACHED */
@@ -1107,27 +1155,22 @@ getch()
 	}
 #endif /* RECOVER */
 
-	if ((c = peekchar) != EOF) {
-		/* got input from pushback */
-		peekchar = EOF;
-	} else {
-		if (!Interactive && (c = mac_getc()) != EOF) {
-			/* got input from macro */
-		} else {
+	if ((c = peek_or_mac_getch()) == EOF) {
+		if (!InJoverc) {
 			/* So messages that aren't error messages don't
-			 * hang around forever.
-			 * Note: this code is duplicated in SitFor()!
-			 */
+			* hang around forever.
+			* Note: this code is duplicated in SitFor()!
+			*/
 			if (!UpdMesg && !Asking && mesgbuf[0] != '\0' && !stickymsg)
 				message(NullStr);
 			redisplay();
 			c = kbd_getch();
 			if (!Interactive && InMacDefine)
 				mac_putc(c);
+			add_stroke(LastKeyStruck = c);
 		}
-		add_stroke(c);
 	}
-	return LastKeyStruck = c;
+	return c;
 }
 
 void
@@ -1750,8 +1793,11 @@ const char *varname;
 	 * check that there will be enough space for the
 	 * basename of the files in LibDir or ShareDir
 	 */
-	if (strlen(var) > FILESIZE-MAXBASENAMELEN)
+	if (strlen(var) > FILESIZE-MAXBASENAMELEN) {
 		complain("%s \"%s\" too long", varname, var);
+		/* NOTREACHED */
+	}
+
 }
 
 int
@@ -1963,11 +2009,11 @@ char	*argv[];
 	settout();	/* not until we know baudrate */
 	SetTerm();
 	setfeatures();
-	ShowVersion();	/* but the 'carefulcpy's which follow might overwrite it */
 #ifdef UNIX
 	envcpy(Mailbox, "MAIL");
 #endif
 	dojovercs(scanvec(argv, "-J") == NULL, scanvec(argv, "-j") == NULL);
+	ShowVersion();	/* but the 'carefulcpy's which follow might overwrite it */
 #ifdef SIGINT
 	/*
 	 * Jove binds INTR to a key, typically ^], which can
@@ -2031,10 +2077,12 @@ size_t namebufsz;
 #ifdef PNAME_GETEXECNAME
 	if (namebuf[0] == '\0') {
 		const char *ename = getexecname();
-		if (ename)
+		if (ename) {
 			jamstrsub(namebuf, ename, namebufsz);
-		else
+		} else {
 			complain("getexecname failed: %s", strerror(errno));
+			/* NOTREACHED */
+		}
 	}
 #endif
 #ifdef PNAME_SYSCTL_OID
@@ -2043,8 +2091,10 @@ size_t namebufsz;
 		static int oid[] = PNAME_SYSCTL_OID;
 		size_t sz = namebufsz;
 		int rc = sysctl(oid, sizeof(oid)/sizeof(oid[0]), namebuf, &sz, NULL, 0);
-		if (rc < 0 || sz == 0)
+		if (rc < 0 || sz == 0) {
 			complain("sysctl failed: %s", strerror(errno));
+			/* NOTREACHED */
+		}
 	}
 #endif
 #ifdef PNAME_DYLD
@@ -2052,16 +2102,20 @@ size_t namebufsz;
 	if (namebuf[0] == '\0') {
 		size_t sz = namebufsz;
 		int rc = _NSGetExecutablePath(namebuf, &sz);
-		if (rc < 0 || sz == 0)
+		if (rc < 0 || sz == 0) {
 			complain("_NSGetExecutablePath failed: %s", strerror(errno));
+			/* NOTREACHED */
+		}
 	}
 #endif	
 #ifdef WIN32
 	/* Windows */
 	if (namebuf[0] == '\0') {
 		DWORD nc = GetModuleFileNameA(NULL, namebuf, namebufsz);
-		if (nc == 0 || nc == namebufsz)
+		if (nc == 0 || nc == namebufsz) {
 			complain("GetModuleFileNameA failed: %s", getLastErrorString());
+			/* NOTREACHED */
+		}
 	}
 #endif
 #ifdef PNAME_PROC_SELF
@@ -2072,8 +2126,10 @@ size_t namebufsz;
 		const char *procself = "/proc/self/exe";
 		if (lstat(procself, &stbuf) == 0) {
 		    linklen = readlink(procself, namebuf, namebufsz);
-		    if (linklen < 0)
+		    if (linklen < 0) {
 			    complain("readlink(%s) failed: %s", procself, strerror(errno));
+			    /* NOTREACHED */
+		    }
 		    namebuf[linklen] = '\0';
 		}
 	}
@@ -2082,8 +2138,10 @@ size_t namebufsz;
 		jamstrsub(namebuf, iniargv[0], namebufsz);
 	}
 	cp = jbasename(namebuf);
-	if (!cp)
+	if (!cp) {
 		complain("could not find basename for %s", namebuf);
+		/* NOTREACHED */
+	}
 	namebuf[cp-namebuf] = '\0';
 }
 

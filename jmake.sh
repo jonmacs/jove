@@ -30,6 +30,9 @@ case "$u" in
 	: ${JMAKE_RELATIVE=1}
 	cc=${CC-"$u-gcc"}
 	sysdefs="-DMINGW"
+	case "$u" in
+	*x86_64*)	optflags="$optflags -Wno-long-long" # Win64 needs long long, and older gcc produce a C90 complaint;;
+	esac
 	extra="LOCALCC=${LOCALCC-cc} XEXT=.exe WINDRES=$u-windres EXTRAOBJS=win32.o ICON=jjove.coff"
 	ldlibs=-lcomdlg32
 	;;

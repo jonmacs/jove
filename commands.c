@@ -21,6 +21,7 @@
 #include "delete.h"
 #include "disp.h"
 /* #include "extend.h" */
+#include "fmt.h"
 #include "insert.h"
 /* #include "io.h" */
 #include "sysprocs.h"	/* needed for iproc.h */
@@ -75,6 +76,7 @@ const char	*prompt;
 		*cp = '\0';
 		cmdlen = cp - cmdbuf;
 
+		jdbg("findcom lookup \"%s\"\n", cmdbuf);
 		/* look it up (in the reduced search space) */
 		c = ZXC(cmdbuf[0]);
 		ic = IDX(c);
@@ -131,6 +133,7 @@ ExecCmd(cp)
 register const data_obj	*cp;
 {
 	LastCmd = cp;
+	jdprintf("ExecCmd \"%s\" 0x%x\n", cp->Name?cp->Name:"(NULL)", cp->Type);
 	if (cp->Type & MAJOR_MODE) {
 		SetMajor((cp->Type >> MAJOR_SHIFT));
 	} else if (cp->Type & MINOR_MODE) {

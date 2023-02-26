@@ -47,9 +47,11 @@ struct macro	*new;
 	new->Type = MACRO;
 }
 
-/* To execute a macro, we have a "stack" of running macros.  Whenever
- * we execute a macro, we push it on the stack, run it, then pop it
- * from the stack.
+/*
+ * Jove keeps a "stack" of running macros.  Whenever we
+ * execute a macro, we push it on the stack.  The main event
+ * loops (getch(), joverc(), do_find()) call mac_getc() and
+ * dispatch() to actually run whatever is on the macro stack.
  */
 struct m_thread {
 	struct m_thread	*mt_prev;
@@ -73,6 +75,7 @@ struct m_thread	*t;
 	free((UnivPtr) t);
 }
 
+/* abandon/drain any running macros */
 void
 unwind_macro_stack()
 {
@@ -171,6 +174,7 @@ mac_getc()
 {
 	struct m_thread	*mthread;
 	struct macro	*m;
+	ZXchar zc;
 
 	if ((mthread = mac_stack) == NULL)
 		return EOF;
@@ -184,7 +188,9 @@ mac_getc()
 			pop_macro_stack();
 		return mac_getc();
 	}
-	return ZXC(m->m_body[mthread->mt_offset++]);
+	zc = ZXC(m->m_body[mthread->mt_offset++]);
+	jdbg("mac_getc -> %d %c\n", zc, jisprint(zc)?zc:'~');
+	return zc;
 }
 
 private void
@@ -310,7 +316,7 @@ DefKBDMac()
 		if (c == '\\' || c == '^')
 			c = DecodePair(c, ZXC(*macro_body++));
 		if (len >= LBSIZE) {
-			complain("Macro to large");
+			complain("Macro too large");
 			/* NOTREACHED */
 		}
 		macro_buffer[len++] = c;
@@ -321,12 +327,13 @@ DefKBDMac()
 void
 Remember()
 {
-	/* We're already executing the macro; ignore any attempts
-	 * to define the keyboard macro while we are executing.
+	/* If we are already executing macros or in a joverc, disallow any
+	 * attempts to define the keyboard macro
 	 */
-	if (in_macro())
-		return;
-
+	if (in_macro() || InJoverc) {
+		complain("Cannot define keyboard macro from macro or joverc");
+		/* NOTREACHED */
+	}
 	if (InMacDefine)
 		message("[Already defining ... continue with definition]");
 	else {

@@ -35,6 +35,8 @@ jove.rc.xterm
 jove.rc.xterm-256color
 jove.rc.z29
 
+test*.rc	these are tests for JOVE's joverc code, developer use only
+
 keychart.3022	keyboard binding descriptions for specific terminals
 keychart.sun
 keychart.sun-cmd

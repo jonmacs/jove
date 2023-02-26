@@ -402,6 +402,7 @@ extern bool
 extern ZXchar
 	getch proto((void)),
 	kbd_getch proto((void)),
+	peek_or_mac_getch proto((void)),
 	waitchar proto((void)),
 	ask_ks proto((void));
 
@@ -416,7 +417,8 @@ extern void
 	pp_key_strokes proto((char *buffer, size_t size)),
 	tty_adjust proto ((void)),
 	Ungetc proto((ZXchar c)),
-	kbd_ungetch proto((ZXchar c));
+	kbd_ungetch proto((ZXchar c)),
+	dispatch_macros proto((void));
 
 /* Commands: */
 

@@ -31,10 +31,11 @@ CMP = cmp
 # end with a slash) All others must already exist.
 #
 # Hack for relocatable installs: set JSHAREDIR and JLIBDIR and JBINDIR to relative 
-# paths, and set DESTDIR to an empty directory.
+# paths, set JOVEHOME to an empty directory, and DESTDIR to the install
+# destination with a trailing slash (or to just /, and copy the jove and recover
+# binaries, and the doc subdirectory by hand)
 
 JOVEHOME = /usr/local
-JREL =
 JSHAREDIR = $(JOVEHOME)/share/jove
 DSHAREDIR = $(DESTDIR)$(JSHAREDIR)
 JLIBDIR = $(JOVEHOME)/lib/jove
@@ -46,10 +47,13 @@ JMANDIR = $(JOVEHOME)/man/man$(MANEXT)
 DMANDIR = $(DESTDIR)$(JMANDIR)
 MANEXT = 1
 JTEACHBASE = teach-jove
+TEACHDOC = $(DSHAREDIR)/$(JTEACHBASE)
+JDOCDIR = $(JOVEHOME)/share/doc/jove
+DDOCDIR = $(DESTDIR)$(JDOCDIR)
+REFDOC = $(DDOCDIR)/jove.qref
 
 # Install permission for SHAREDIR, LIBDIR, BINDIR
 DPERM = 755
-XPERM = 755
 
 # JTMPDIR is where the tmp files get stored, usually /tmp, /var/tmp, or
 # /usr/tmp.  If you wish to be able to recover buffers after a system
@@ -65,7 +69,6 @@ DETCDIR = $(DESTDIR)$(JETCDIR)
 JTMPDIR = /var/tmp
 JRECDIR = /var/lib/jove/preserve
 DRECDIR = $(DESTDIR)$(JRECDIR)
-
 # Install permission for DRECDIR
 RECPERM = 1777
 
@@ -199,7 +202,6 @@ ZIPEXT=zip
 ZIPOPTS=-q -k	# common options for both binary and code files
 ZIPTXTOPT=-l -r	# options for recursively adding code files
 TAR=tar
-BACKUPDEV=/dev/rst8	# for tape-backup target!
 
 # These NROFF, TROFF and TROFFPOST settings work with groff.
 # Classic Unix and derivatives used to have ditroff, for which use:
@@ -211,6 +213,7 @@ TROFF = troff
 TROFFPOST = |grops
 TROFFPDF = |gropdf
 
+# installed man pages
 MANUALS = $(JOVEM) $(TEACHJOVEM)
 
 C_SRC = commands.c commands.tab abbrev.c argcount.c ask.c buf.c c.c case.c jctype.c \
@@ -241,15 +244,13 @@ DOCTERMS =	doc/jove.rc.sun doc/keychart.sun \
 	doc/jove.rc.3022 doc/keychart.3022 \
 	doc/XTermresource
 
-# XDOCS require no formatting
-XDOCS = doc/teach-jove doc/jove.qref
-
 # formatted docs, we ship these in the distrib to avoid groff dependency
 # and for non-Unix/Linux platforms.  NOTE: These will be removed by clobber.
 # Also note that jove.man.* require the ms macros
 # (tmac.s or s.tmac) which many systems do not install with base groff.
-# Now prefer doc/jove.man.pdf to doc/jove.man.ps (more universal)
-FDOCS = doc/cmds.txt doc/jove.man.txt doc/jove.man.pdf
+# By default, generate & install doc/jove.man.pdf to doc/jove.man.ps.
+FREFDOCS = doc/jove.man.txt doc/jove.man.pdf
+FDOCS = doc/cmds.txt $(FREFDOCS)
 
 # files we generate that we also ship in distrib for platforms sans sed
 # NOTE: these will be removed by clobber.
@@ -377,8 +378,8 @@ installjovetool: $(JOVETOOLM)
 # Thus, if "all" is done first, "install" can be invoked with
 # JOVEHOME pointing at a playpen where files are to be marshalled.
 # This property is fragile.
-install: $(DRECDIR) $(DETCDIR) $(CMDSDOC) $(JOVERC) \
-	$(PORTSRVINST) $(RECOVER) $(JOVE) $(TEACHJOVE) $(MANUALS)
+install: $(DRECDIR) $(DETCDIR) $(DDOCDIR) $(CMDSDOC) $(TEACHDOC) $(JOVERC) \
+	$(PORTSRVINST) $(RECOVER) $(JOVE) $(TEACHJOVE) $(REFDOC) $(MANUALS)
 	@echo See the README about changes to /etc/rc or /etc/rc.local
 	@echo so that the system recovers jove files on reboot after a crash
 
@@ -390,6 +391,9 @@ $(DLIBDIR)::
 
 $(DSHAREDIR)::
 	if test ! -e $(DSHAREDIR); then mkdir -p $(DSHAREDIR) && chmod $(DPERM) $(DSHAREDIR); fi
+
+$(DDOCDIR)::
+	if test ! -e $(DDOCDIR); then mkdir -p $(DDOCDIR) && chmod $(DPERM) $(DDOCDIR); fi
 
 $(DETCDIR)::
 	-if test ! -e $(DETCDIR); then mkdir -p $(DETCDIR) && chmod $(DPERM) $(DETCDIR); fi
@@ -425,10 +429,15 @@ doc/jove.man.pdf: doc/intro.nr doc/cmds.nr doc/contents.nr
 	LANG=C; export LANG; cd doc && tbl intro.nr | $(TROFF) -ms - cmds.nr contents.nr $(TROFFPDF) > $(TFILE); \
 	if ! $(CMP) -s $(TFILE) jove.man.pdf 2> /dev/null; then rm -f jove.man.pdf; mv $(TFILE) jove.man.pdf; else rm $(TFILE); fi; rmdir $(TDIR); fi
 
-# FDOCS might not have been formatted if there is no nroff or troff
-$(CMDSDOC): $(DSHAREDIR) $(FDOCS)
-	$(TINSTALL) $(XDOCS) $(DSHAREDIR)
-	@-for i in $(FDOCS); do $(TINSTALL) $$i $(DSHAREDIR); done
+# might not have been formatted if there is no nroff or troff
+$(CMDSDOC): $(DSHAREDIR) doc/cmds.txt doc/teach-jove
+	-$(TINSTALL) doc/cmds.txt $(CMDSDOC)
+
+$(TEACHDOC): $(DSHAREDIR) doc/teach-jove
+	$(TINSTALL) doc/teach-jove $(TEACHDOC)
+
+$(REFDOC): $(DDOCDIR) doc/jove.qref $(FREFDOCS)
+	$(TINSTALL) $(FREFDOCS) $(DDOCDIR)
 
 doc/jove.rc: doc/jove.rc.in
 	@mkdir $(TDIR) && \
@@ -516,10 +525,10 @@ lint: keys.c
 CTAGSFLAGS = -w
 
 tags:	$(C_SRC) $(HEADERS)
-	-ctags $(CTAGSFLAGS) $(C_SRC) $(HEADERS)
+	-rm -f tags && ctags $(CTAGSFLAGS) $(C_SRC) $(HEADERS)
 
 extags:	$(C_SRC) $(HEADERS)
-	-ctags -N --format=1 $(C_SRC) $(HEADERS)
+	-rm -f tags && ctags -N --format=1 $(C_SRC) $(HEADERS)
 
 
 # .filelist is a trick to get around a make limit:

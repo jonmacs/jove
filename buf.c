@@ -15,7 +15,6 @@
 #include "extend.h"
 #include "fmt.h"
 #include "insert.h"
-#include "macros.h"	/* only for mac_getc(), used by do_find fudge */
 #include "marks.h"
 #include "move.h"
 #include "sysprocs.h"
@@ -741,34 +740,10 @@ bool	do_macros;
 		 * because b->b_ntbf will be false at this point.
 		 * One consequence will be that the macro will be executed
 		 * on the unfilled buffer -- somewhat surprising!
-		 *
-		 * ??? This code is a fudge, and should be replaced
-		 * by a more elegant solution.
 		 */
-		if (do_macros) {
-			ZXchar	c;
-			int	saved_tcmd = this_cmd;
-			int	saved_lcmd = last_cmd;
-			int	saved_as, saved_ac;
+		if (do_macros)
+			dispatch_macros();
 
-			save_arg(saved_as, saved_ac);
-			last_cmd = this_cmd = OTHER_CMD;
-			for (;;) {
-				cmd_sync();
-				if ((c = peekchar) != EOF) {
-					/* double ugh! */
-					peekchar = EOF;
-				} else if ((c = mac_getc()) != EOF) {
-					add_stroke(c);
-				} else {
-					break;
-				}
-				dispatch(LastKeyStruck=c);
-			}
-			last_cmd = saved_lcmd;
-			this_cmd = saved_tcmd;
-			restore_arg(saved_as, saved_ac);
-		}
 		/* ??? At this point, we make the rash assumption
 		 * that buffer oldb still exists, even though
 		 * the macro text could have deleted it.

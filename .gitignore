@@ -17,8 +17,8 @@ recover_*
 setmaps
 keys.c
 paths.h
-doc/cmds.doc
-doc/jove.doc
+doc/cmds.txt
+doc/jove.txt
 doc/jove.man*
 doc/*.1
 doc/jove.rc
