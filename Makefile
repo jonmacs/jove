@@ -207,11 +207,13 @@ TAR=tar
 # Classic Unix and derivatives used to have ditroff, for which use:
 #	NROFF = nroff
 #	TROFF = troff
-#	TROFFPOST = | /usr/lib/lp/postscript/dpost -
+#	TDEV = ps or TDEV = psc
+#	TROFFPOST = |/usr/lib/lp/postscript/dpost -
+#	or TROFFPOST = |psc
 NROFF = nroff
 TROFF = troff
-TROFFPOST = |grops
-TROFFPDF = |gropdf
+TDEV = pdf
+TROFFPOST = |gro$(TDEV)
 
 # installed man pages
 MANUALS = $(JOVEM) $(TEACHJOVEM)
@@ -248,8 +250,8 @@ DOCTERMS =	doc/jove.rc.sun doc/keychart.sun \
 # and for non-Unix/Linux platforms.  NOTE: These will be removed by clobber.
 # Also note that jove.man.* require the ms macros
 # (tmac.s or s.tmac) which many systems do not install with base groff.
-# By default, generate & install doc/jove.man.pdf to doc/jove.man.ps.
-FREFDOCS = doc/jove.man.txt doc/jove.man.pdf
+# By default, generate & install doc/jove.man.$(TDEV)
+FREFDOCS = doc/jove.man.txt doc/jove.man.$(TDEV)
 FDOCS = doc/cmds.txt $(FREFDOCS)
 
 # files we generate that we also ship in distrib for platforms sans sed
@@ -419,15 +421,10 @@ doc/jove.man.txt:	doc/intro.nr doc/cmds.nr
 	LANG=C; export LANG; cd doc && tbl intro.nr | $(NROFF) -ms - cmds.nr > $(TFILE); \
 	if ! $(CMP) -s $(TFILE) jove.man.txt 2> /dev/null; then rm -f jove.man.txt; mv $(TFILE) jove.man.txt; else rm $(TFILE); fi; rmdir $(TDIR); fi
 
-doc/jove.man.ps: doc/intro.nr doc/cmds.nr doc/contents.nr
+doc/jove.man.$(TDEV): doc/intro.nr doc/cmds.nr doc/contents.nr
 	@-if type $(TROFF); then mkdir $(TDIR) && \
-	LANG=C; export LANG; cd doc && tbl intro.nr | $(TROFF) -ms - cmds.nr contents.nr $(TROFFPOST) > $(TFILE); \
-	if ! $(CMP) -s $(TFILE) jove.man.ps 2> /dev/null; then rm -f jove.man.ps; mv $(TFILE) jove.man.ps; else rm $(TFILE); fi; rmdir $(TDIR); fi
-
-doc/jove.man.pdf: doc/intro.nr doc/cmds.nr doc/contents.nr
-	@-if type $(TROFF); then mkdir $(TDIR) && \
-	LANG=C; export LANG; cd doc && tbl intro.nr | $(TROFF) -ms - cmds.nr contents.nr $(TROFFPDF) > $(TFILE); \
-	if ! $(CMP) -s $(TFILE) jove.man.pdf 2> /dev/null; then rm -f jove.man.pdf; mv $(TFILE) jove.man.pdf; else rm $(TFILE); fi; rmdir $(TDIR); fi
+	LANG=C; export LANG; cd doc && tbl intro.nr | $(TROFF) -T$(TDEV) -ms - cmds.nr contents.nr $(TROFFPOST) > $(TFILE); \
+	if ! $(CMP) -s $(TFILE) jove.man.$(TDEV) 2> /dev/null; then rm -f jove.man.$(TDEV); mv $(TFILE) jove.man.$(TDEV); else rm $(TFILE); fi; rmdir $(TDIR); fi
 
 # might not have been formatted if there is no nroff or troff
 $(CMDSDOC): $(DSHAREDIR) doc/cmds.txt doc/teach-jove
