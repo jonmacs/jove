@@ -5,12 +5,25 @@
 # this notice is included in all the source files and documentation.     #
 ##########################################################################
 
-[Updated in 2022 May]
+[Updated in 2023 Mar]
 
 JOVE on UNIX/Linux/MacOS X/*BSD/CygWin Systems
 ----------------------------------------------
 
-For information about other systems, see the other README files:
+Getting JOVE
+------------
+
+JOVE releases are available at http://github.com/jonmacs/jove/ in
+various source (github's automatically packed tar.gz, or a manually
+packed .tgz which are essentialy identical, as well as a manually packed
+.zip or .exe for MS-DOS), and some binary forms for various OS architectures
+(Linux, DOS, Windows).  All distributions include formatted manuals
+(PDF, text) -- in the doc/ subdirectory for source and some binary,
+or in share/doc/jove, share/jove or man/man1 (relative to 
+a top-level installation directory, such as /usr or /usr/local)
+
+For information about other systems, see the other README files in
+the source, zip or exe distributions:
   README.dos for MS-DOS
   README.win for MS Win32
 
@@ -269,14 +282,19 @@ The files intro.nr and cmds.nr in the doc directory are the
 official JOVE manual.  Jonathan got permission from Richard
 Stallman to use his manual for the original EMACS, modifying
 it where necessary for JOVE.  Lots of work was done by Brian
-Harvey on this manual.
+Harvey on this manual.  When formatted, these are usually
+in some system doc directory, typically /usr/share/doc/jove/
+or /usr/local/share/doc/jove, as a PDF and a text form.
+There is also a quick-reference card with most JOVE key-bindings,
+commands and variables, best printed in landscape mode.
 
-There are Unix-style manual pages for jove and teachjove.
-Teachjove is for people who have never used EMACS style editors.
-It is an interactive tutorial, THE tutorial written by Stallman
-for the original EMACS, only slightly modified for JOVE in
-the appropriate places.  The man pages are completely up to
-date, thanks to Jon.
+There are Unix-style manual pages for jove and teachjove.  Teachjove is
+an interactive tutorial for people who have never used EMACS style
+editors -- it can be started from within JOVE as the "teach-jove"
+command, usually bound to ESC t or historically, using the special Unix
+command "teachjove".  It is THE tutorial written by Stallman for the
+original EMACS, only slightly modified for JOVE in the appropriate
+places.  The manual pages are hopefully up to date.
 
 Optionally, if you want to use Jove to work with C source code, and
 know/like tags, you will need ctags or etags on your system so that you

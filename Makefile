@@ -51,6 +51,7 @@ TEACHDOC = $(DSHAREDIR)/$(JTEACHBASE)
 JDOCDIR = $(JOVEHOME)/share/doc/jove
 DDOCDIR = $(DESTDIR)$(JDOCDIR)
 REFDOC = $(DDOCDIR)/jove.qref
+EGRC = $(DDOCDIR)/example.rc
 
 # Install permission for SHAREDIR, LIBDIR, BINDIR
 DPERM = 755
@@ -433,8 +434,8 @@ $(CMDSDOC): $(DSHAREDIR) doc/cmds.txt doc/teach-jove
 $(TEACHDOC): $(DSHAREDIR) doc/teach-jove
 	$(TINSTALL) doc/teach-jove $(TEACHDOC)
 
-$(REFDOC): $(DDOCDIR) doc/jove.qref $(FREFDOCS)
-	$(TINSTALL) $(FREFDOCS) $(DDOCDIR)
+$(REFDOC): $(DDOCDIR) doc/jove.qref doc/example.rc $(FREFDOCS)
+	$(TINSTALL) doc/jove.qref doc/example.rc $(FREFDOCS) $(DDOCDIR)
 
 doc/jove.rc: doc/jove.rc.in
 	@mkdir $(TDIR) && \

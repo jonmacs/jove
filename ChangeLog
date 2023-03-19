@@ -1,4 +1,10 @@
 Author: Mark Moraes <moraes@computer.org>
+Date:   Sun Mar 19 16:58:00 2023 -0500
+
+    4.17.5.3 put qref and example.rc in DDOCDIR (e.g
+    /usr/share/doc/jove), update README to mention docs.
+
+Author: Mark Moraes <moraes@computer.org>
 Date:   Sun Feb 26 17:31:00 2023 -0500
 
     4.17.5.2 fix https://github.com/jonmacs/jove/issues/15
