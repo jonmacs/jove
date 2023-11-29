@@ -1,4 +1,20 @@
 Author: Mark Moraes <moraes@computer.org>
+Date:   Tue Nov 28 22:52:00 2023 -0500
+
+    4.17.5.4 made jove compile and run on a BSD4.3 image
+    running under simh. A few modernisms had crept in,
+    but one bug (trying to use sg[].t_susp instead of ls[].t_susp
+    in kbd_sig, send_oxc in iproc.c) seems to date back to 4.16beta!
+    Fun things I had forgotten:
+    * mkdir -p, test -d did not exist
+    * ! and type did not exist in the shell
+    * UL suffix did not exist for constants
+    * ternary cannot have two different pointer types (void * vs char *)
+    * include files are not protected against double inclusion
+    * did not have S_ISDIR(x), use (x * S_IFMT) == S_IFDIR)
+    * recover.c used strerror
+
+Author: Mark Moraes <moraes@computer.org>
 Date:   Sun Mar 19 16:58:00 2023 -0500
 
     4.17.5.3 put qref and example.rc in DDOCDIR (e.g

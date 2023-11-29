@@ -285,7 +285,9 @@ char	**argv;
  * some verbosity to help with the bug report!
  */
 int
-main(int argc, char **argv)
+main(argc, argv)
+int	argc;
+char	**argv;
 {
 	int i;
 	fprintf(stderr, "%s not compiled for PIPEPROCS: argc=%d\n", argv[0],

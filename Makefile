@@ -96,6 +96,15 @@ INSTALLFLAGS = # -g bin -o root
 XINSTALL=install $(INSTALLFLAGS) -m 755
 TINSTALL=install $(INSTALLFLAGS) -m 444
 
+# old mkdir (4BSD and older Unix) did not have -p option, so will
+# need to set MKDIRP=mkdir and create top dirs by hand (or write a script
+# to emulate mkdir -p; 4BSD has basename but not dirname)
+MKDIRP=mkdir -p
+
+# WHICH shoiuld be a command that succeeds if the argument is found in the path
+# WHICH=which # for BSD
+WHICH=type # for sufficiently POSIX shells, not sure if Research Unix has this
+
 # These should all just be right if the above ones are.
 # You will confuse JOVE if you move anything from LIBDIR or SHAREDIR.
 
@@ -336,7 +345,7 @@ keys.c:	setmaps$(LOCALEXT) keys.txt Makefile .ALWAYS
 	./setmaps$(LOCALEXT) < keys.txt > $(TFILE) && \
 	echo 'char JoveCompiled[sizeof(JoveCompiled)] = "'$(CC) $(CFLAGS)'";' >> $(TFILE) && \
 	echo 'char JoveLinked[sizeof(JoveLinked)] = "'$(LDCC) $(LDFLAGS) $(CFLAGS) $(EXTRAOBJS) $(LDLIBS)'";' >> $(TFILE) && \
-	if ! $(CMP) -s $(TFILE) keys.c 2> /dev/null; then rm -f keys.c; mv $(TFILE) keys.c; else rm $(TFILE); fi; rmdir $(TDIR)
+	if $(CMP) -s $(TFILE) keys.c 2> /dev/null; then rm $(TFILE); else rm -f keys.c; mv $(TFILE) keys.c; fi; rmdir $(TDIR)
 
 keys.o:	keys.c tune.h sysdep.h jove.h keymaps.h dataobj.h commands.h
 
@@ -346,12 +355,12 @@ keys.o:	keys.c tune.h sysdep.h jove.h keymaps.h dataobj.h commands.h
 .version: .ALWAYS
 	@mkdir $(TDIR) && \
 	sed -n 's/# *define  *jversion  *"\([0-9\\.]*\)".*/\1/p' version.h > $(TFILE); \
-	if ! $(CMP) -s $(TFILE) .version 2> /dev/null; then rm -f .version; mv $(TFILE) .version; else rm $(TFILE); fi; rmdir $(TDIR)
+	if $(CMP) -s $(TFILE) .version 2> /dev/null; then rm $(TFILE); else rm -f .version; mv $(TFILE) .version; fi; rmdir $(TDIR)
 
 jove.spec: .version
 	@mkdir $(TDIR) && \
 	v=`sed 's/_.*//' .version`; sed "s,__VERSION__,$$v,g" pkg/rpm/jspec.in > $(TFILE); \
-	if ! $(CMP) -s $(TFILE) jove.spec 2> /dev/null; then rm -f jove.spec; mv $(TFILE) jove.spec; else rm $(TFILE); fi; rmdir $(TDIR)
+	if $(CMP) -s $(TFILE) jove.spec 2> /dev/null; then rm $(TFILE); else rm -f jove.spec; mv $(TFILE) jove.spec; fi; rmdir $(TDIR)
 
 paths.h: .ALWAYS
 	@mkdir $(TDIR) && \
@@ -363,7 +372,7 @@ paths.h: .ALWAYS
 	echo \#define SHAREDIR \"$(JSHAREDIR)\"; \
 	echo \#define TEACHJOVE \"$(JTEACHBASE)\"; \
 	echo \#define DFLTSHELL \"$(DFLTSHELL)\";) > $(TFILE); \
-	if ! $(CMP) -s $(TFILE) paths.h 2> /dev/null; then rm -f paths.h; mv $(TFILE) paths.h; else rm $(TFILE); fi; rmdir $(TDIR)
+	if $(CMP) -s $(TFILE) paths.h 2> /dev/null; then rm $(TFILE); else rm -f paths.h; mv $(TFILE) paths.h; fi; rmdir $(TDIR)
 
 makexjove:
 	( cd xjove ; make CC="$(CC)" OPTFLAGS="$(OPTFLAGS)" SYSDEFS="$(SYSDEFS)" $(TOOLMAKEEXTRAS) xjove )
@@ -387,45 +396,45 @@ install: $(DRECDIR) $(DETCDIR) $(DDOCDIR) $(CMDSDOC) $(TEACHDOC) $(JOVERC) \
 	@echo so that the system recovers jove files on reboot after a crash
 
 $(DBINDIR)::
-	if test ! -e $(DBINDIR); then mkdir -p $(DBINDIR) && chmod $(DPERM) $(DBINDIR); fi
+	if test ! -d $(DBINDIR); then $(MKDIRP) $(DBINDIR) && chmod $(DPERM) $(DBINDIR); else :; fi
 
 $(DLIBDIR)::
-	if test ! -e $(DLIBDIR); then mkdir -p $(DLIBDIR) && chmod $(DPERM) $(DLIBDIR); fi
+	if test ! -d $(DLIBDIR); then $(MKDIRP) $(DLIBDIR) && chmod $(DPERM) $(DLIBDIR); else :; fi
 
 $(DSHAREDIR)::
-	if test ! -e $(DSHAREDIR); then mkdir -p $(DSHAREDIR) && chmod $(DPERM) $(DSHAREDIR); fi
+	if test ! -d $(DSHAREDIR); then $(MKDIRP) $(DSHAREDIR) && chmod $(DPERM) $(DSHAREDIR); else :; fi
 
 $(DDOCDIR)::
-	if test ! -e $(DDOCDIR); then mkdir -p $(DDOCDIR) && chmod $(DPERM) $(DDOCDIR); fi
+	if test ! -d $(DDOCDIR); then $(MKDIRP) $(DDOCDIR) && chmod $(DPERM) $(DDOCDIR); else :; fi
 
 $(DETCDIR)::
-	-if test ! -e $(DETCDIR); then mkdir -p $(DETCDIR) && chmod $(DPERM) $(DETCDIR); fi
+	-if test ! -d $(DETCDIR); then $(MKDIRP) $(DETCDIR) && chmod $(DPERM) $(DETCDIR); fi
 
 $(DMANDIR)::
-	if test ! -e $(DMANDIR); then mkdir -p $(DMANDIR) && chmod $(DPERM) $(DMANDIR); fi
+	if test ! -d $(DMANDIR); then $(MKDIRP) $(DMANDIR) && chmod $(DPERM) $(DMANDIR); else :; fi
 
 $(DRECDIR)::
-	-if test ! -e $(DRECDIR); then mkdir -p $(DRECDIR) && chmod $(RECPERM) $(DRECDIR); fi
+	-if test ! -d $(DRECDIR); then $(MKDIRP) $(DRECDIR) && chmod $(RECPERM) $(DRECDIR); fi
 
 # first run of rpmbuild will mkdir other sibling directories in RPMHOME, but 
 # we need this before we run rpmbuild, so RPMHOME might not even exist.
 $(RPMHOME)::
-	if test ! -e $(RPMHOME); then mkdir -p $(RPMHOME) && chmod $(DPERM) $(RPMHOME); fi
+	if test ! -d $(RPMHOME); then mkdir -p $(RPMHOME) && chmod $(DPERM) $(RPMHOME); fi
 
 doc/cmds.txt:	doc/cmds.macros.nr doc/cmds.nr
 	@mkdir $(TDIR) && \
 	LANG=C $(NROFF) doc/cmds.macros.nr doc/cmds.nr > $(TFILE); \
-	if ! $(CMP) -s $(TFILE) doc/cmds.txt 2> /dev/null; then rm -f doc/cmds.txt; mv $(TFILE) doc/cmds.txt; else rm $(TFILE); fi; rmdir $(TDIR)
+	if $(CMP) -s $(TFILE) doc/cmds.txt 2> /dev/null; then rm $(TFILE); else rm -f doc/cmds.txt; mv $(TFILE) doc/cmds.txt; fi; rmdir $(TDIR)
 
 doc/jove.man.txt:	doc/intro.nr doc/cmds.nr
-	@-if type $(NROFF); then mkdir $(TDIR) && \
+	@-if $(WHICH) $(NROFF) > /dev/null; then mkdir $(TDIR) && \
 	LANG=C; export LANG; cd doc && tbl intro.nr | $(NROFF) -ms - cmds.nr > $(TFILE); \
-	if ! $(CMP) -s $(TFILE) jove.man.txt 2> /dev/null; then rm -f jove.man.txt; mv $(TFILE) jove.man.txt; else rm $(TFILE); fi; rmdir $(TDIR); fi
+	if $(CMP) -s $(TFILE) jove.man.txt 2> /dev/null; then rm $(TFILE); else rm -f jove.man.txt; mv $(TFILE) jove.man.txt; fi; rmdir $(TDIR); fi
 
 doc/jove.man.$(TDEV): doc/intro.nr doc/cmds.nr doc/contents.nr
-	@-if type $(TROFF); then mkdir $(TDIR) && \
+	@-if $(WHICH) $(TROFF) > /dev/null; then mkdir $(TDIR) && \
 	LANG=C; export LANG; cd doc && tbl intro.nr | $(TROFF) -T$(TDEV) -ms - cmds.nr contents.nr $(TROFFPOST) > $(TFILE); \
-	if ! $(CMP) -s $(TFILE) jove.man.$(TDEV) 2> /dev/null; then rm -f jove.man.$(TDEV); mv $(TFILE) jove.man.$(TDEV); else rm $(TFILE); fi; rmdir $(TDIR); fi
+	if $(CMP) -s $(TFILE) jove.man.$(TDEV) 2> /dev/null; then rm $(TFILE); else rm -f jove.man.$(TDEV); mv $(TFILE) jove.man.$(TDEV); fi; rmdir $(TDIR); fi
 
 # might not have been formatted if there is no nroff or troff
 $(CMDSDOC): $(DSHAREDIR) doc/cmds.txt doc/teach-jove
@@ -440,7 +449,7 @@ $(REFDOC): $(DDOCDIR) doc/jove.qref doc/example.rc $(FREFDOCS)
 doc/jove.rc: doc/jove.rc.in
 	@mkdir $(TDIR) && \
 	sed "s,__ETCDIR__,$(JETCDIR)," doc/jove.rc.in > $(TFILE); \
-	if ! $(CMP) -s $(TFILE) doc/jove.rc 2> /dev/null; then rm -f doc/jove.rc; mv $(TFILE) doc/jove.rc; else rm $(TFILE); fi; rmdir $(TDIR)
+	if $(CMP) -s $(TFILE) doc/jove.rc 2> /dev/null; then rm $(TFILE); else rm -f doc/jove.rc; mv $(TFILE) doc/jove.rc; fi; rmdir $(TDIR)
 
 $(JOVERC): $(DSHAREDIR) doc/jove.rc $(TERMSDIR) $(DOCTERMS)
 	$(TINSTALL) doc/jove.rc doc/jem* $(DOCTERMS) $(DSHAREDIR)
@@ -463,7 +472,7 @@ doc/jove.$(MANEXT): doc/jove.nr
 	     -e 's;<LIBDIR>;$(JLIBDIR);' \
 	     -e 's;<SHAREDIR>;$(JSHAREDIR);' \
 	     -e 's;<SHELL>;$(DFLTSHELL);' doc/jove.nr > $(TFILE); \
-	if ! $(CMP) -s $(TFILE) doc/jove.$(MANEXT) 2> /dev/null; then rm -f doc.jove.$(MANEXT); mv $(TFILE) doc/jove.$(MANEXT); else rm $(TFILE); fi; rmdir $(TDIR)
+	if $(CMP) -s $(TFILE) doc/jove.$(MANEXT) 2> /dev/null; then rm $(TFILE); else rm -f doc.jove.$(MANEXT); mv $(TFILE) doc/jove.$(MANEXT); fi; rmdir $(TDIR)
 
 $(JOVEM): $(DMANDIR) doc/jove.$(MANEXT)
 	$(TINSTALL) doc/jove.$(MANEXT) $(JOVEM)
@@ -478,7 +487,7 @@ $(JOVEM): $(DMANDIR) doc/jove.$(MANEXT)
 doc/jove.txt: doc/jove.nr
 	@mkdir $(TDIR) && \
 	LANG=C $(NROFF) -man doc/jove.nr > $(TFILE) && \
-	if ! $(CMP) -s $(TFILE) doc/jove.txt 2> /dev/null; then rm -f doc/jove.txt; mv $(TFILE) doc/jove.txt; else rm $(TFILE); fi; rmdir $(TDIR)
+	if $(CMP) -s $(TFILE) doc/jove.txt 2> /dev/null; then rm $(TFILE); else rm -f doc/jove.txt; mv $(TFILE) doc/jove.txt; fi; rmdir $(TDIR)
 
 doc/teachjove.$(MANEXT): doc/teachjove.nr
 	@mkdir $(TDIR) && \
@@ -486,7 +495,7 @@ doc/teachjove.$(MANEXT): doc/teachjove.nr
 	     -e 's;<LIBDIR>;$(JLIBDIR);' \
 	     -e 's;<SHAREDIR>;$(JSHAREDIR);' \
 	     -e 's;<SHELL>;$(DFLTSHELL);' doc/teachjove.nr > $(TFILE); \
-	if ! $(CMP) -s $(TFILE) doc/teachjove.$(MANTXT) 2> /dev/null; then rm -f doc/teachjove.$(MANEXT); mv $(TFILE) doc/teachjove.$(MANEXT); else rm $(TFILE); fi; rmdir $(TDIR)
+	if $(CMP) -s $(TFILE) doc/teachjove.$(MANTXT) 2> /dev/null; then rm $(TFILE); else rm -f doc/teachjove.$(MANEXT); mv $(TFILE) doc/teachjove.$(MANEXT); fi; rmdir $(TDIR)
 
 $(TEACHJOVEM): $(DMANDIR) doc/teachjove.$(MANEXT)
 	$(TINSTALL) doc/teachjove.$(MANEXT) $(TEACHJOVEM)
@@ -498,7 +507,7 @@ doc/jovetool.$(MANEXT): doc/jovetool.nr
 	@mkdir $(TDIR) && \
 	sed -e 's;<MANDIR>;$(MANDIR);' \
 	     -e 's;<MANEXT>;$(MANEXT);' doc/jovetool.nr > $(TFILE); \
-	if ! $(CMP) -s $(TFILE) doc/jovetool.$(MANTXT) 2> /dev/null; then rm -f doc/jovetool.$(MANEXT); mv $(TFILE) doc/jovetool.$(MANEXT); else rm $(TFILE); fi; rmdir $(TDIR)
+	if $(CMP) -s $(TFILE) doc/jovetool.$(MANTXT) 2> /dev/null; then rm $(TFILE); else rm -f doc/jovetool.$(MANEXT); mv $(TFILE) doc/jovetool.$(MANEXT); fi; rmdir $(TDIR)
 
 $(JOVETOOLM): $(DMANDIR) doc/jovetool.$(MANEXT)
 	$(TINSTALL) doc/jovetool.$(MANEXT) $(JOVETOOLM)
@@ -545,7 +554,7 @@ extags:	$(C_SRC) $(HEADERS)
 	    find pkg old -print >> $(TFILE) && \
 	    (cd xjove ; make FLIST=$(TFILE).xj $(TFILE).xj) && \
 	    sed -e 's=^=xjove/=' $(TFILE).xj >> $(TFILE); \
-	if ! $(CMP) -s $(TFILE) .filelist 2> /dev/null; then rm -f .filelist; mv $(TFILE) .filelist; else rm $(TFILE); fi; rm -f $(TFILE).xj; rmdir $(TDIR)
+	if $(CMP) -s $(TFILE) .filelist 2> /dev/null; then rm $(TFILE); else rm -f .filelist; mv $(TFILE) .filelist; fi; rm -f $(TFILE).xj; rmdir $(TDIR)
 
 # Build a distribution: a gzipped tar file with a name "jove-<version>.tgz"
 # The tar will unpack into a directory with the name jove-<version>

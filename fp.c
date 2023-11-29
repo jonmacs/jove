@@ -15,9 +15,6 @@
 #	include "mac.h"
 #else /* !MAC */
 #	include <sys/stat.h>
-#	ifndef MSFILESYSTEM
-#		include <sys/file.h>
-#	endif /* !MSFILESYSTEM */
 #endif /* !MAC */
 
 #ifdef RAINBOW

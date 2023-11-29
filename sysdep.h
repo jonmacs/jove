@@ -176,6 +176,36 @@
 # define USE_CTYPE	1
 #endif
 
+#ifdef BSD4	/* System: Berkeley BSD4.x, 2.x, MIPS RiscOS 4.x */
+/* MIPS needs -systype bsd43, older releases (before 4.50?) may need
+ * MIPS_CC_BUG defined as well.
+ */
+# define SGTTY		1
+# define USE_GETWD	1
+# define USE_SELECT	1
+# define PTYPROCS	1
+# define BSD_PTYS	1	/* beware security flaw! */
+# define BSD_WAIT	1
+# define WAIT3		1
+# define BSD_SIGS	1
+# define JOB_CONTROL	1
+# define USE_VFORK	1
+# define BSD_SETPGRP	1
+# define USE_KILLPG	1
+# define BSD_DIR	1
+# define HAS_SYMLINKS	1
+# define SIGRESTYPE	int
+# define SIGRESVALUE	0
+# define USE_GETHOSTNAME	1
+# define NO_STRERROR	1
+# define USE_FSYNC	1
+# define USE_FSTAT	1
+# define USE_FCHMOD	1
+# define USE_BCOPY	1
+# define USE_INDEX	1
+# define jmode_t	int
+#endif
+
 /**************** Common Characteristics ****************/
 
 #ifdef pdp11

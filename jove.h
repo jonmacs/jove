@@ -16,7 +16,7 @@
 #include <errno.h>
 
 #ifndef EWOULDBLOCK
-# /* older Unix, e.g. V7 */
+/* older Unix, e.g. V7 */
 # define RETRY_ERRNO(e)	((e) == EINTR || (e) == EAGAIN)
 #else
 # define RETRY_ERRNO(e) ((e) == EINTR || (e) == EAGAIN || (e) == EWOULDBLOCK)

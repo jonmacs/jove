@@ -616,7 +616,7 @@ long	a, b;
 	int v;
 	if (b == 0) {
 		v = 100;
-	} else if (a > (~(1UL << ((sizeof(long)*CHAR_BIT)-1)))/100) {
+	} else if (a > (~(1L << ((sizeof(long)*CHAR_BIT)-1)))/100) {
 		v = (int) (a / (b / 100));
 	} else {
 		v = (int) ((a * 100) / b);

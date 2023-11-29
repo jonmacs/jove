@@ -52,9 +52,7 @@ char	*argv[];
 #include "sysprocs.h"
 #include "rec.h"
 #include "paths.h"
-
 #include "recover.h"
-#include <sys/stat.h>
 
 #ifndef UNIX
 # define signal(x, y)	-1
@@ -64,7 +62,6 @@ char	*argv[];
 # endif
 #else /*UNIX */
 # include <signal.h>
-# include <sys/file.h>
 # include <pwd.h>
 # include <time.h>
 
@@ -135,6 +132,26 @@ private struct rec_entry	**buflist;	/* system initializes to 0 */
 #ifndef F_COMPLETION
 # define F_COMPLETION	/* since scandir.c is surrounded by an ifdef */
 #endif
+
+/* non-reentrant version of one in util.c since we do not have sprint */
+#ifdef NO_STRERROR
+extern int sys_nerr;
+extern char *sys_errlist[];
+
+/*
+ * Unix version of strerror - map error number to descriptive string.
+ * ANSI systems have this.
+ */
+char *
+strerror(errnum)
+int errnum;
+{
+	static char ebuf[SMALLSTRSIZE]; /* large enough for Error number NNNNN */
+	if (0 < errnum && errnum < sys_nerr) return sys_errlist[errnum];
+	(void) sprintf(ebuf, "Error number %d", (errnum % 10000)); /* errno is never larger, but avoid string overflow -- rarely reaches here */
+	return ebuf;
+}
+#endif /* NO_STRERROR */
 
 /* simpler version of one in util.c, needed by scandir.c */
 UnivPtr
@@ -1007,7 +1024,7 @@ savetmps()
 	if ((rc = stat(RecDir, &stbuf)) < 0)
 		if ((rc = mkdir(RecDir, 0755)) == 0)
 			rc = stat(RecDir, &stbuf);
-	if (rc < 0 || !S_ISDIR(stbuf.st_mode) || stbuf.st_uid != getuid() /*||
+	if (rc < 0 || (stbuf.st_mode & S_IFMT) != S_IFDIR || stbuf.st_uid != getuid() /*||
 	    access(buf, W_OK) != 0*/) {
 		fprintf(stderr, "%s: need writable directory \"%s\" owned by %u: got mode 0%o uid %u rc %d: %s\n",
 			progname, RecDir, getuid(), (unsigned)stbuf.st_mode,

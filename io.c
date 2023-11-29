@@ -25,10 +25,6 @@
 # include <sys/stat.h>
 #endif
 
-#ifdef UNIX
-# include <sys/file.h>
-#endif
-
 #ifdef MSFILESYSTEM
 # include <direct.h>
 # include <dos.h>

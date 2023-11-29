@@ -669,10 +669,12 @@ ProcCont()
 # ifdef NO_TIOCSIGNAL
 
 #  define kbd_sig(sig, tch, sch)	send_oxc(tch, sch)
+#  define kbd_sig_ls(sig, tch, sch)	send_oxc_ls(tch, sch)
 
 # else /* !NO_TIOCSIGNAL */
 
 #  define kbd_sig(sig, tch, sch)	send_sig(sig)
+#  define kbd_sig_ls(sig, tch, sch)	kbd_sig(sig, tch, sch)
 
 private void
 send_sig(sig)
@@ -715,8 +717,10 @@ int	sig;
 
 #  if defined(TERMIO) || defined(TERMIOS)
 #   define send_oxc(tch, sch)	send_xc(sg[NO].c_cc[tch])
+#   define send_oxc_ls(tch, sch)	send_oxc(tch, sch)
 #  else
 #   define send_oxc(tch, sfld)	send_xc(tc[NO].sfld)
+#   define send_oxc_ls(tch, sfld)	send_xc(ls[NO].sfld)
 #  endif
 
 private void
@@ -823,7 +827,7 @@ void
 ProcStop()
 {
 # if (!defined(TERMIO) && !defined(TERMIOS)) || defined(VSUSP)
-	kbd_sig(SIGTSTP, VSUSP, t_suspc);
+	kbd_sig_ls(SIGTSTP, VSUSP, t_suspc);
 # else
 	complain("[stop-process not supported]");
 	/* NOTREACHED */
@@ -835,7 +839,7 @@ ProcDStop()
 {
 	/* we don't know how to send a dstop via TIOCSIGNAL/TIOCSIG */
 # if (!defined(TERMIO) && !defined(TERMIOS)) || defined(VDSUSP)
-	send_oxc(VDSUSP, t_dsuspc);
+	send_oxc_ls(VDSUSP, t_dsuspc);
 # else
 	complain("[dstop-process not supported]");
 	/* NOTREACHED */
@@ -1785,7 +1789,7 @@ Iprocess()
 	Buffer	*bp;
 	char	fnspace[FILESIZE];
 	char	*fn = curbuf->b_fname == NULL
-		? NULL : strcpy(fnspace, pr_name(curbuf->b_fname, NO));
+		? (char *) NULL : strcpy(fnspace, pr_name(curbuf->b_fname, NO));
 
 	jamstr(ShcomBuf, ask(ShcomBuf, ProcFmt));
 	bnm = MakeName(ShcomBuf);

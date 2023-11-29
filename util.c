@@ -415,7 +415,7 @@ char *
 copystr(str)
 const char	*str;
 {
-	return str == NULL? NULL :
+	return str == NULL? (char *) NULL :
 		strcpy(emalloc(strlen(str) + 1), str);
 }
 
@@ -791,7 +791,7 @@ extern char *sys_errlist[];
 
 /*
  * Unix version of strerror - map error number to descriptive string.
- * ANSI systems should have this.
+ * ANSI systems have this.
  */
 char *
 strerror(errnum)

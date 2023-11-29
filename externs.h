@@ -66,6 +66,8 @@ extern char	*ctime proto((const time_t *));
 
 #ifdef MSFILESYSTEM
 # include <io.h>
+#else
+# include <sys/file.h>
 #endif
 
 #ifdef MSC51
@@ -82,7 +84,7 @@ extern char	*ctime proto((const time_t *));
 # include <fcntl.h>
 #endif
 
-#ifndef O_RDONLY	/* in POSIX <fcntl.h> */
+#ifndef O_RDONLY	/* in POSIX <fcntl.h> or Unix <sys/file.h> */
 # define O_RDONLY	0
 # define O_WRONLY	1
 # define O_RDWR		2
