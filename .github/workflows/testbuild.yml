@@ -9,13 +9,11 @@ jobs:
       fail-fast: false
       matrix:
         os:
-        - 'macos-10.15'
         - 'macos-11'
-        - 'macos-latest'
+        - 'macos-12'
+        - 'macos-13'
         - 'ubuntu-22.04'
         - 'ubuntu-20.04'
-        - 'ubuntu-18.04'
-        - 'ubuntu-latest'
     runs-on: ${{ matrix.os }}
     steps:
       - run: echo "event=${{ github.event_name }} runner=${{ runner.os }} os=${{ matrix.os }} branch=${{ github.ref }} repo=${{ github.repository }}."
@@ -30,16 +28,20 @@ jobs:
       fail-fast: false
       matrix:
         os:
+        - 'debian:8'
         - 'debian:9'
         - 'debian:11'
         - 'debian:testing'
         - 'alpine:3.9'
         - 'alpine:latest'
         - 'centos:7'
+        - 'rockylinux:9'
         - 'fedora:30'
         - 'fedora:latest'
         - 'archlinux:latest'
         - 'gentoo/stage3:latest'
+        - 'ubuntu-16.04'
+        - 'ubuntu-18.04'
     runs-on: ubuntu-latest
     container: ${{ matrix.os }}
     steps:

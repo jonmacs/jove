@@ -48,7 +48,13 @@ case $# in
 		;;
 	esac
 	if type apt-get 2> /dev/null; then
-		$SUDO apt-get update || true # security repo might fail on older debian
+		if ! $SUDO apt-get update; then
+  			# might be because debian moved these to archive
+			sed -i '/-updates/d;s/deb.debian/archive.debian/;s/security.debian/archive.debian/' /etc/apt/sources.list
+			for key in $(apt-key list | awk -v FS='[ /:]+' '/expired/ {print $3}'); do echo $key; apt-key adv --recv-keys --keyserver keyserver.ubuntu.com $key; done
+			# might still fail because of KEYEXPIRED etc so we ignore failure and hope for best in apt-get install
+			$SUDO apt-get update || true
+		fi
 		$SUDO env DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y --force-yes gcc make pkg-config ncurses-dev groff exuberant-ctags zip dpkg-dev bzip2
 		case "$TB_MACH" in
 		x86_64) $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y --force-yes mingw-w64;;
