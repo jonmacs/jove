@@ -1,3 +1,7 @@
+jove (4.17.5.4-1) unstable; urgency=low
+  * New upstream release.
+
+ -- Cord Beermann <cord@debian.org>  Thu, 30 Nov 2023 00:52:19 -0500
 jove (4.17.5.3-1) unstable; urgency=low
   * New upstream release.
 

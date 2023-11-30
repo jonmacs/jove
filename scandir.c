@@ -16,9 +16,13 @@
 
 #ifdef F_COMPLETION	/* the body is the rest of this file */
 
-#ifdef UNIX
-
+#ifdef MAC
+# include "mac.h"
+#else
 # include <sys/stat.h>
+#endif
+
+#ifdef UNIX
 
 # if defined(M_XENIX) && !defined(M_UNIX)
    /* XENIX, but not SCO UNIX, which pretends to be XENIX! */

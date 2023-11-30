@@ -48,7 +48,7 @@ case $# in
 		;;
 	esac
 	if type apt-get 2> /dev/null; then
-		$SUDO apt-get update
+		$SUDO apt-get update || true # security repo might fail on older debian
 		$SUDO env DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y --force-yes gcc make pkg-config ncurses-dev groff exuberant-ctags zip dpkg-dev bzip2
 		case "$TB_MACH" in
 		x86_64) $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y --force-yes mingw-w64;;
