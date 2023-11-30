@@ -40,8 +40,8 @@ jobs:
         - 'fedora:latest'
         - 'archlinux:latest'
         - 'gentoo/stage3:latest'
-        - 'ubuntu-16.04'
-        - 'ubuntu-18.04'
+        - 'ubuntu/16.04'
+        - 'ubuntu/18.04'
     runs-on: ubuntu-latest
     container: ${{ matrix.os }}
     steps:
