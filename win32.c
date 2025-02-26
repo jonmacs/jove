@@ -32,7 +32,7 @@ private BOOL WINAPI ctrlHandler proto((DWORD type));	/* Control handler */
 private void ConsoleFail(char *fdef);
 
 void
-getTERM()
+getTERM(NOARGS)
 {
 }
 
@@ -115,7 +115,7 @@ jbool	n;	/* also used as subscript! */
 }
 
 void
-ttsize()
+ttsize(NOARGS)
 {
 	/* ??? We really ought to wait until the screen is big enough:
 	 * at least three lines high (one line each for buffer, mode,
@@ -545,7 +545,7 @@ SaveBufferFile(Buffer *b)
 }
 
 private void
-MessageCloseFiles()
+MessageCloseFiles(NOARGS)
 {
 	/* We use a static buffer pointer so that we can detect if we
 	 * have been re-entered.  If so, we do nothing.  This can happen
@@ -622,7 +622,7 @@ freeReason(void)
 }
 
 char *
-getLastErrorString()
+getLastErrorString(NOARGS)
 {
 	static BOOL cleanupRegistered;
 	char *ptr;
@@ -716,7 +716,7 @@ int top, bottom, num;
 }
 
 void
-clr_page()
+clr_page(NOARGS)
 {
 	DWORD written;
 
@@ -727,7 +727,7 @@ clr_page()
 }
 
 void
-flushscreen()
+flushscreen(NOARGS)
 {
 	if (bufpos != 0) {
 		DWORD written;
@@ -741,7 +741,7 @@ flushscreen()
 }
 
 void
-clr_eoln()
+clr_eoln(NOARGS)
 {
 	DWORD written;
 
@@ -757,7 +757,7 @@ int	n;
 }
 
 void
-ResizeWindow()
+ResizeWindow(NOARGS)
 {
 	/* Must update window size to eliminate those ugly scroll bars */
 	SMALL_RECT newsize;
@@ -821,7 +821,7 @@ private jbool
 	doing_us = NO;
 
 private void
-doattr()
+doattr(NOARGS)
 {
 	flushscreen();
 	setcolor((doing_so? Mlattr : Txattr) ^ (doing_us? Hlattr : 0));

@@ -81,7 +81,7 @@ int	junk;
 }
 
 private void
-detach()
+detach(NOARGS)
 {
 #ifdef POSIX_PROCS
 	setsid();
@@ -109,7 +109,7 @@ detach()
 }
 
 private void
-kbd_process()
+kbd_process(NOARGS)
 {
 	int	pid,
 		n = -1;

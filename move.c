@@ -55,19 +55,19 @@ register long	n;
 }
 
 void
-ForChar()
+ForChar(NOARGS)
 {
 	f_char(arg_value());
 }
 
 void
-BackChar()
+BackChar(NOARGS)
 {
 	b_char(arg_value());
 }
 
 void
-NextLine()
+NextLine(NOARGS)
 {
 	if ((curline == curbuf->b_last) && eolp()) {
 		complain(NullStr);
@@ -77,7 +77,7 @@ NextLine()
 }
 
 void
-PrevLine()
+PrevLine(NOARGS)
 {
 	if ((curline == curbuf->b_first) && bolp()) {
 		complain(NullStr);
@@ -161,26 +161,26 @@ int	col;
 }
 
 void
-Bol()
+Bol(NOARGS)
 {
 	curchar = 0;
 }
 
 void
-Eol()
+Eol(NOARGS)
 {
 	curchar = length(curline);
 }
 
 void
-Eof()
+Eof(NOARGS)
 {
 	PushPntp(curbuf->b_last);
 	ToLast();
 }
 
 void
-Bof()
+Bof(NOARGS)
 {
 	PushPntp(curbuf->b_first);
 	ToFirst();
@@ -239,7 +239,7 @@ int	dir;
 }
 
 void
-Bos()
+Bos(NOARGS)
 {
 	register int	num = arg_value();
 
@@ -256,7 +256,7 @@ Bos()
 }
 
 void
-Eos()
+Eos(NOARGS)
 {
 	register int	num = arg_value();
 
@@ -300,13 +300,13 @@ register long	num;
 }
 
 void
-ForWord()
+ForWord(NOARGS)
 {
 	f_word(arg_value());
 }
 
 void
-BackWord()
+BackWord(NOARGS)
 {
 	f_word(-arg_value());
 }

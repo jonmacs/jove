@@ -41,7 +41,7 @@ private int
 	i_col;
 
 void
-make_scr()
+make_scr(NOARGS)
 {
 	register int	i;
 	register struct screenline	*ns;
@@ -156,7 +156,7 @@ private unsigned char sput_buf[255];
 private size_t sput_len = 0;
 
 private void
-sput_start()
+sput_start(NOARGS)
 {
 /*	if (i_line != CapLine || i_col != CapCol) */
 		NPlacur(i_line, i_col);
@@ -164,7 +164,7 @@ sput_start()
 }
 
 private void
-sput_end()
+sput_end(NOARGS)
 {
 	if (sput_len != 0) {
 		writetext(sput_buf, sput_len);
@@ -289,7 +289,7 @@ char c;
 #endif /* HIGHLIGHTING */
 
 void
-cl_eol()
+cl_eol(NOARGS)
 {
 	if (cursor == Curline->s_line)
 		LEclear(Curline);	/* in case swrite was not called (hack!) */
@@ -349,7 +349,7 @@ union LEspace {
 private union LEspace *LEfreeHead = NULL;
 
 private struct LErange *
-LEnew()
+LEnew(NOARGS)
 {
 	struct LErange	*ret;
 
@@ -544,7 +544,7 @@ register int	nline,
 }
 
 void
-SO_off()
+SO_off(NOARGS)
 {
 	SO_effect(NO);
 }

@@ -81,7 +81,7 @@ int	bit;
 private Buffer	*free_bufs = NULL;
 
 private Buffer *
-buf_alloc()
+buf_alloc(NOARGS)
 {
 	register Buffer	*b,
 			*lastbp;
@@ -112,7 +112,7 @@ buf_alloc()
 /* Make a buffer and initialize it. */
 
 private Buffer *
-mak_buf()
+mak_buf(NOARGS)
 {
 	register Buffer	*newb;
 	register int	i;
@@ -142,13 +142,13 @@ mak_buf()
 }
 
 void
-ReNamBuf()
+ReNamBuf(NOARGS)
 {
 	setbname(curbuf, ask_buf((Buffer *)NULL, ALLOW_NEW));
 }
 
 void
-FindFile()
+FindFile(NOARGS)
 {
 	char	fnamebuf[FILESIZE];
 
@@ -209,7 +209,7 @@ int	flags;
 }
 
 void
-BufSelect()
+BufSelect(NOARGS)
 {
 	register const char	*bname;
 
@@ -272,7 +272,7 @@ register Buffer *b;
 }
 
 private Buffer *
-getNMbuf()
+getNMbuf(NOARGS)
 {
 	register Buffer	*delbuf = buf_exists(ask_buf(curbuf,
 		ALLOW_OLD | ALLOW_INDEX));
@@ -283,7 +283,7 @@ getNMbuf()
 }
 
 void
-BufErase()
+BufErase(NOARGS)
 {
 	register Buffer	*delbuf = getNMbuf();
 
@@ -362,7 +362,7 @@ register Buffer	*delbuf;
 /* offer to kill some buffers */
 
 void
-KillSome()
+KillSome(NOARGS)
 {
 	register Buffer	*b,
 			*next;
@@ -386,7 +386,7 @@ KillSome()
 }
 
 void
-BufKill()
+BufKill(NOARGS)
 {
 	kill_buf(getNMbuf());
 }
@@ -399,7 +399,7 @@ private const char	*const TypeNames[] = {
 };
 
 void
-BufList()
+BufList(NOARGS)
 {
 	register const char	*fmt = "%2s %5s %-8s %-1s%-1s %-*s  %-s";
 	register Buffer	*b;
@@ -828,7 +828,7 @@ register const char	*name;
 }
 
 void
-buf_init()
+buf_init(NOARGS)
 {
 	SetBuf(do_select(curwind, Mainbuf));
 }

@@ -63,7 +63,7 @@ struct m_thread {
 private struct m_thread	*mac_stack = NULL;
 
 private struct m_thread *
-alloc_mthread()
+alloc_mthread(NOARGS)
 {
 	return (struct m_thread *) emalloc(sizeof (struct m_thread));
 }
@@ -77,14 +77,14 @@ struct m_thread	*t;
 
 /* abandon/drain any running macros */
 void
-unwind_macro_stack()
+unwind_macro_stack(NOARGS)
 {
 	while (mac_stack != NULL)
 		pop_macro_stack();
 }
 
 private void
-pop_macro_stack()
+pop_macro_stack(NOARGS)
 {
 	register struct m_thread	*m;
 
@@ -140,7 +140,7 @@ private int	kmac_len;
 private int	kmac_buflen = 0;
 
 void
-mac_init()
+mac_init(NOARGS)
 {
 	add_mac(&KeyMacro);
 }
@@ -157,20 +157,20 @@ DAPchar	c;
 }
 
 void
-note_dispatch()
+note_dispatch(NOARGS)
 {
 	if (kmac_len > 0)
 		KeyMacro.m_len = kmac_len - 1;
 }
 
 jbool
-in_macro()
+in_macro(NOARGS)
 {
 	return (mac_stack != NULL);
 }
 
 ZXchar
-mac_getc()
+mac_getc(NOARGS)
 {
 	struct m_thread	*mthread;
 	struct macro	*m;
@@ -220,7 +220,7 @@ char	*body;
 }
 
 void
-NameMac()
+NameMac(NOARGS)
 {
 	char	*name = NULL;
 	struct macro	*m;
@@ -243,7 +243,7 @@ NameMac()
 }
 
 void
-RunMacro()
+RunMacro(NOARGS)
 {
 	do_macro((struct macro *) findmac(ProcFmt));
 }
@@ -267,7 +267,7 @@ File	*fp;
 }
 
 void
-WriteMacs()
+WriteMacs(NOARGS)
 {
 	struct macro	*m;
 	char
@@ -293,7 +293,7 @@ WriteMacs()
 }
 
 void
-DefKBDMac()
+DefKBDMac(NOARGS)
 {
 	struct macro	*m = ask_macname(ProcFmt,
 		ALLOW_OLD | ALLOW_INDEX | ALLOW_NEW);
@@ -325,7 +325,7 @@ DefKBDMac()
 }
 
 void
-Remember()
+Remember(NOARGS)
 {
 	/* If we are already executing macros or in a joverc, disallow any
 	 * attempts to define the keyboard macro
@@ -345,7 +345,7 @@ Remember()
 }
 
 void
-Forget()
+Forget(NOARGS)
 {
 	UpdModLine = YES;
 	if (InMacDefine) {
@@ -358,20 +358,20 @@ Forget()
 }
 
 void
-ExecMacro()
+ExecMacro(NOARGS)
 {
 	do_macro(&KeyMacro);
 }
 
 void
-MacInter()
+MacInter(NOARGS)
 {
 	if (Asking)
 		Interactive = YES;
 }
 
 jbool
-ModMacs()
+ModMacs(NOARGS)
 {
 	return UnsavedMacros;
 }

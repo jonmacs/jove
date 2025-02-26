@@ -43,7 +43,7 @@ private int	mp_kind;
 #define MP_INCOMMENT	3
 
 void
-mp_error()
+mp_error(NOARGS)
 {
 	switch (mp_kind) {
 	case MP_MISMATCH:
@@ -245,7 +245,7 @@ jbool	skip_words;
 }
 
 void
-FSexpr()
+FSexpr(NOARGS)
 {
 	register int	num = arg_value();
 
@@ -258,7 +258,7 @@ FSexpr()
 }
 
 void
-FList()
+FList(NOARGS)
 {
 	register int	num = arg_value();
 
@@ -271,7 +271,7 @@ FList()
 }
 
 void
-BSexpr()
+BSexpr(NOARGS)
 {
 	register int	num = arg_value();
 
@@ -284,7 +284,7 @@ BSexpr()
 }
 
 void
-BList()
+BList(NOARGS)
 {
 	register int	num = arg_value();
 
@@ -297,7 +297,7 @@ BList()
 }
 
 void
-BUpList()
+BUpList(NOARGS)
 {
 	register int	num = arg_value();
 	Bufpos	*mp;
@@ -316,7 +316,7 @@ BUpList()
 }
 
 void
-FDownList()
+FDownList(NOARGS)
 {
 	register int	num = arg_value();
 	Bufpos	*sp;
@@ -493,13 +493,13 @@ int	incr;
 }
 
 void
-LRShift()
+LRShift(NOARGS)
 {
 	re_indent(-arg_or_default(CIndIncrmt));
 }
 
 void
-RRShift()
+RRShift(NOARGS)
 {
 	re_indent(arg_or_default(CIndIncrmt));
 }
@@ -547,7 +547,7 @@ private jbool	nl_in_close_c;
  * if there's trouble.
  */
 private void
-parse_cmt_fmt()
+parse_cmt_fmt(NOARGS)
 {
 
 	static char	*const component[] = {
@@ -621,7 +621,7 @@ parse_cmt_fmt()
 }
 
 void
-FillComment()
+FillComment(NOARGS)
 {
 	int	saveRMargin,
 		indent_pos;

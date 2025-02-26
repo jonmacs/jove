@@ -77,7 +77,7 @@ private struct error	*cur_error = NULL,
  * into the same buffer.
  */
 void
-ChkErrorLines()
+ChkErrorLines(NOARGS)
 {
 	register struct error	*e;
 	struct error	*prev = NULL;
@@ -154,7 +154,7 @@ char	*fname,
 /* Free up all the errors */
 
 void
-ErrFree()
+ErrFree(NOARGS)
 {
 	cur_error = NULL;
 	while (errorlist != NULL) {
@@ -171,7 +171,7 @@ ErrFree()
  * number on the same line.
  */
 void
-ErrParse()
+ErrParse(NOARGS)
 {
 	struct RE_block	re_blk;
 	Bufpos	*bp;
@@ -209,7 +209,7 @@ ErrParse()
 }
 
 private void
-NeedErrors()
+NeedErrors(NOARGS)
 {
 	if (cur_error == NULL) {
 		complain("No errors!");
@@ -218,7 +218,7 @@ NeedErrors()
 }
 
 private jbool
-ErrorHasReferents()
+ErrorHasReferents(NOARGS)
 {
 	return inlist(cur_error->er_buf->b_first, cur_error->er_text)
 		&& inlist(perr_buf->b_first, cur_error->er_mess);
@@ -251,13 +251,13 @@ jbool	forward;
 }
 
 void
-NextError()
+NextError(NOARGS)
 {
 	ToError(YES);
 }
 
 void
-PrevError()
+PrevError(NOARGS)
 {
 	ToError(NO);
 }
@@ -278,7 +278,7 @@ int	wsize;
  * window.
  */
 void
-ShowErr()
+ShowErr(NOARGS)
 {
 	Window	*err_wind,
 		*buf_wind;
@@ -370,7 +370,7 @@ private void
 private char	make_cmd[LBSIZE] = "make";
 
 void
-MakeErrors()
+MakeErrors(NOARGS)
 {
 	Window	*old = curwind;
 
@@ -449,7 +449,7 @@ const char	*bname;
 }
 
 void
-SpelBuffer()
+SpelBuffer(NOARGS)
 {
 	static const char	Spell[] = "Spell";
 	const char *cp;
@@ -482,7 +482,7 @@ SpelBuffer()
 }
 
 void
-SpelWords()
+SpelWords(NOARGS)
 {
 	Buffer	*wordsb = curbuf;
 	const char	*buftospel = ask_buf((Buffer *)NULL, ALLOW_OLD | ALLOW_INDEX);
@@ -494,7 +494,7 @@ SpelWords()
 # endif /* SPELL */
 
 void
-ShToBuf()
+ShToBuf(NOARGS)
 {
 	char	bnm[128],
 		cmd[LBSIZE];
@@ -505,14 +505,14 @@ ShToBuf()
 }
 
 void
-ShellCom()
+ShellCom(NOARGS)
 {
 	jamstr(ShcomBuf, ask(ShcomBuf, ProcFmt));
 	DoShell(MakeName(ShcomBuf), ShcomBuf);
 }
 
 void
-ShNoBuf()
+ShNoBuf(NOARGS)
 {
 	jamstr(ShcomBuf, ask(ShcomBuf, ProcFmt));
 	com_finish(UnixToBuf(UTB_SH|UTB_FILEARG, (char *)NULL, (char *)NULL,
@@ -520,7 +520,7 @@ ShNoBuf()
 }
 
 void
-Shtypeout()
+Shtypeout(NOARGS)
 {
 	wait_status_t	status;
 
@@ -646,14 +646,14 @@ private char PEnvExpBuf[LBSIZE];
 private char PEnvUnsetBuf[LBSIZE];
 
 void
-ProcEnvExport()
+ProcEnvExport(NOARGS)
 {
 	jamstr(PEnvExpBuf, ask(PEnvExpBuf, ProcFmt));
 	jputenv(&proc_env, PEnvExpBuf);
 }
 
 void
-ProcEnvShow()
+ProcEnvShow(NOARGS)
 {
 	const char **p;
 	TOstart("subshell environment");
@@ -664,7 +664,7 @@ ProcEnvShow()
 }
 
 void
-ProcEnvUnset()
+ProcEnvUnset(NOARGS)
 {
 	jamstr(PEnvUnsetBuf, ask(PEnvUnsetBuf, ProcFmt));
 	junsetenv(&proc_env, PEnvUnsetBuf);
@@ -1059,7 +1059,7 @@ jbool	wrap;
 }
 
 void
-FilterRegion()
+FilterRegion(NOARGS)
 {
 	static char FltComBuf[LBSIZE];
 

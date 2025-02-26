@@ -124,7 +124,7 @@ int	column;
 }
 
 void
-PopMark()
+PopMark(NOARGS)
 {
 	int	pmark;
 
@@ -143,7 +143,7 @@ PopMark()
 }
 
 void
-SetMark()
+SetMark(NOARGS)
 {
 	if (is_an_arg())
 		PopMark();
@@ -152,7 +152,7 @@ SetMark()
 }
 
 void
-set_mark()
+set_mark(NOARGS)
 {
 	do_set_mark(curline, curchar);
 }
@@ -202,7 +202,7 @@ Mark	*m;
 }
 
 Mark *
-CurMark()
+CurMark(NOARGS)
 {
 	if (curmark == NULL) {
 		complain("No mark.");
@@ -212,7 +212,7 @@ CurMark()
 }
 
 void
-ExchPtMark()
+ExchPtMark(NOARGS)
 {
 	LinePtr	mline;
 	int	mchar;

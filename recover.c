@@ -316,7 +316,7 @@ private const char	*CurDir;
 private jbool	add_name proto((char *));
 
 private void
-free_files() {
+free_files(NOARGS) {
 	while (First != NULL) {
 		struct file_pair	*p = First;
 
@@ -425,7 +425,7 @@ char *fname;
 }
 
 private void
-options()
+options(NOARGS)
 {
 	printf("Options are:\n");
 	printf("	?		list options.\n");
@@ -442,7 +442,7 @@ private void	tellme proto((const char *, char *, size_t)),
 	list proto((void));
 
 private long
-getsrc()
+getsrc(NOARGS)
 {
 	char	name[FILESIZE];
 	long	number;
@@ -469,7 +469,7 @@ getsrc()
 /* Get a destination file name. */
 
 private char *
-getdest()
+getdest(NOARGS)
 {
 	static char	filebuf[FILESIZE];
 
@@ -536,7 +536,7 @@ int	UNUSED(junk);
 private void	get proto((long src, char *dest));
 
 private void
-restore()
+restore(NOARGS)
 {
 	register long	i;
 	char	tofile[FILESIZE+1], /* leading # */
@@ -670,7 +670,7 @@ long	which;
 }
 
 private void
-freeblist()
+freeblist(NOARGS)
 {
 	long	i;
 	for (i = 0; i < maxbufs; i++) {
@@ -685,7 +685,7 @@ freeblist()
 }
 
 private void
-makblist()
+makblist(NOARGS)
 {
 	long	i, nmax;
 
@@ -772,7 +772,7 @@ FILE	*out;
 /* List all the buffers. */
 
 private void
-list()
+list(NOARGS)
 {
 	long	i;
 
@@ -928,7 +928,7 @@ struct file_pair	*fp;
 
 #ifdef UNIX
 private const char *
-hname()
+hname(NOARGS)
 {
 	const char *p = "unknown";
 #ifdef USE_UNAME
@@ -999,7 +999,7 @@ struct rec_head *rec;
 
 
 private void
-savetmps()
+savetmps(NOARGS)
 {
 	struct file_pair	*fp;
 	wait_status_t	status;

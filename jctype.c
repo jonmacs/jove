@@ -297,7 +297,7 @@ char	LcCtype[32] = "";	/* VAR: lc-ctype, for use in setlocale */
 /* adjust the locale to reflect possible change to LcCtype */
 
 void
-locale_adjust()
+locale_adjust(NOARGS)
 {
 	char	*res = setlocale(LC_CTYPE, LcCtype);
 

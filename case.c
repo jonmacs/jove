@@ -30,7 +30,7 @@ private void
 	case_reg proto((LinePtr line1,int char1,LinePtr line2,int char2,jbool up));
 
 void
-CapChar()
+CapChar(NOARGS)
 {
 	register int	num;
 	jbool	restore = NO;
@@ -62,7 +62,7 @@ CapChar()
 }
 
 void
-CapWord()
+CapWord(NOARGS)
 {
 	register int	num,
 			restore = NO;
@@ -161,13 +161,13 @@ jbool	up;
 }
 
 void
-CasRegLower()
+CasRegLower(NOARGS)
 {
 	CaseReg(NO);
 }
 
 void
-CasRegUpper()
+CasRegUpper(NOARGS)
 {
 	CaseReg(YES);
 }
@@ -185,13 +185,13 @@ jbool	up;
 }
 
 void
-UppWord()
+UppWord(NOARGS)
 {
 	case_word(YES);
 }
 
 void
-LowWord()
+LowWord(NOARGS)
 {
 	case_word(NO);
 }

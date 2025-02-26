@@ -110,7 +110,7 @@ Process	p;
 }
 
 void
-ProcKill()
+ProcKill(NOARGS)
 {
 	(void) proc_kill(
 		buf_exists(ask_buf(curbuf, ALLOW_OLD | ALLOW_INDEX))->b_process,
@@ -142,7 +142,7 @@ private char IEnvUnsetBuf[LBSIZE];
  * Only happens in child.
  */
 private void
-set_process_env()
+set_process_env(NOARGS)
 {
 	static const char tcn[] = "TERMCAP";
 	const char *tc = getenv(tcn);
@@ -153,14 +153,14 @@ set_process_env()
 }
 
 void
-IprocEnvExport()
+IprocEnvExport(NOARGS)
 {
 	jamstr(IEnvExpBuf, ask(IEnvExpBuf, ProcFmt));
 	jputenv(&iproc_env, IEnvExpBuf);
 }
 
 void
-IprocEnvShow()
+IprocEnvShow(NOARGS)
 {
 	const char **p;
 	TOstart("i-shell environment");
@@ -171,7 +171,7 @@ IprocEnvShow()
 }
 
 void
-IprocEnvUnset()
+IprocEnvUnset(NOARGS)
 {
 	jamstr(IEnvUnsetBuf, ask(IEnvUnsetBuf, ProcFmt));
 	junsetenv(&iproc_env, IEnvUnsetBuf);
@@ -252,13 +252,13 @@ register int	nbytes;
 }
 
 void
-ProcInt()
+ProcInt(NOARGS)
 {
 	(void) proc_kill(curbuf->b_process, SIGINT);
 }
 
 void
-ProcQuit()
+ProcQuit(NOARGS)
 {
 	(void) proc_kill(curbuf->b_process, SIGQUIT);
 }
@@ -390,7 +390,7 @@ proc_strt(bufname, clobber, procname, va_alist)
 }
 
 void
-closeiprocs()
+closeiprocs(NOARGS)
 {
 	Process	p;
 
@@ -402,7 +402,7 @@ closeiprocs()
 }
 
 private void
-kbd_init()
+kbd_init(NOARGS)
 {
 	/* Initiate the keyboard process.
 	 * We only get here after a portsrv process has been started
@@ -445,7 +445,7 @@ kbd_init()
 private jbool	kbd_state = NO;
 
 void
-kbd_strt()
+kbd_strt(NOARGS)
 {
 	jdbg("kbd_strt state %d pid %D NumProcs %d\n",
 	     kbd_state, (long) kbd_pid, NumProcs);
@@ -459,7 +459,7 @@ kbd_strt()
 }
 
 jbool
-kbd_stop()
+kbd_stop(NOARGS)
 {
 	jdbg("kbd_stop state %d pid %D NumProcs %d\n",
 	     kbd_state, (long) kbd_pid, NumProcs);
@@ -472,7 +472,7 @@ kbd_stop()
 }
 
 void
-kbd_kill()
+kbd_kill(NOARGS)
 {
 	jdbg("kbd_kill state %d pid %D Numprocs %d\n",
 	     kbd_state, (long) kbd_pid, NumProcs);
@@ -580,7 +580,7 @@ register int	fd;
 }
 
 void
-ProcCont()
+ProcCont(NOARGS)
 {
 	Process	p = curbuf->b_process;
 
@@ -785,7 +785,7 @@ char	c;
 # endif /* defined(NO_TIOCREMOTE) || defined(NO_TIOCSIGNAL) */
 
 void
-ProcEof()
+ProcEof(NOARGS)
 {
 # ifdef NO_TIOCREMOTE
 	/* we have to write a char */
@@ -812,19 +812,19 @@ ProcEof()
 }
 
 void
-ProcInt()
+ProcInt(NOARGS)
 {
 	kbd_sig(SIGINT, VINTR, t_intrc);
 }
 
 void
-ProcQuit()
+ProcQuit(NOARGS)
 {
 	kbd_sig(SIGQUIT, VQUIT, t_quitc);
 }
 
 void
-ProcStop()
+ProcStop(NOARGS)
 {
 # if (!defined(TERMIO) && !defined(TERMIOS)) || defined(VSUSP)
 	kbd_sig_ls(SIGTSTP, VSUSP, t_suspc);
@@ -835,7 +835,7 @@ ProcStop()
 }
 
 void
-ProcDStop()
+ProcDStop(NOARGS)
 {
 	/* we don't know how to send a dstop via TIOCSIGNAL/TIOCSIG */
 # if (!defined(TERMIO) && !defined(TERMIOS)) || defined(VDSUSP)
@@ -1362,7 +1362,7 @@ int	UNUSED(junk);	/* needed for signal handler; not used */
 }
 
 void
-reap_procs()
+reap_procs(NOARGS)
 {
 	wait_status_t	w;
 	register pid_t	pid;
@@ -1384,7 +1384,7 @@ reap_procs()
 }
 
 void
-closeiprocs()
+closeiprocs(NOARGS)
 {
 	Process	p;
 
@@ -1426,7 +1426,7 @@ Process	p;
 }
 
 jbool
-KillProcs()
+KillProcs(NOARGS)
 {
 	register Process	p;
 	jbool	asked = NO;
@@ -1604,7 +1604,7 @@ register Buffer	*b;
 }
 
 void
-ProcList()
+ProcList(NOARGS)
 {
 	register Process
 		p,
@@ -1665,7 +1665,7 @@ register Mark	*mp;
 }
 
 void
-ProcNewline()
+ProcNewline(NOARGS)
 {
 #ifdef ABBREV
 	MaybeAbbrevExpand();
@@ -1674,7 +1674,7 @@ ProcNewline()
 }
 
 void
-ProcSendData()
+ProcSendData(NOARGS)
 {
 #ifdef ABBREV
 	MaybeAbbrevExpand();
@@ -1763,7 +1763,7 @@ jbool	newlinep;
 }
 
 void
-ShellProc()
+ShellProc(NOARGS)
 {
 	char	shbuf[20];
 	register Buffer	*b;
@@ -1781,7 +1781,7 @@ ShellProc()
 }
 
 void
-Iprocess()
+Iprocess(NOARGS)
 {
 	char	scratch[64],
 		*bnm;

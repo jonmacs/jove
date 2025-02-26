@@ -20,14 +20,14 @@
 #include "para.h"
 
 void
-prCTIME()
+prCTIME(NOARGS)
 {
 	f_mess(": %f %s", get_time((time_t *)NULL, (char *)NULL, 0, -1));
 	stickymsg = YES;
 }
 
 void
-ChrToOct()
+ChrToOct(NOARGS)
 {
 	ZXchar	c = ask_ks();
 
@@ -41,7 +41,7 @@ ChrToOct()
 }
 
 void
-StrLength()
+StrLength(NOARGS)
 {
 	static const char	inquotes[] = "Where are the quotes?";
 	char	*cp;
@@ -88,7 +88,7 @@ StrLength()
 /* Transpose cur_char with cur_char - 1 */
 
 void
-TransChar()
+TransChar(NOARGS)
 {
 	char	before;
 
@@ -107,7 +107,7 @@ TransChar()
 /* Switch current line with previous one */
 
 void
-TransLines()
+TransLines(NOARGS)
 {
 	daddr	old_prev;
 
@@ -135,7 +135,7 @@ TransLines()
 /* exit-jove command */
 
 void
-Leave()
+Leave(NOARGS)
 {
 	longjmp(mainjmp, JMP_QUIT);
 	/* NOTREACHED */
@@ -147,7 +147,7 @@ Leave()
  * as if we were at the end of the line.
  */
 void
-KillEOL()
+KillEOL(NOARGS)
 {
 	LinePtr	line2;
 	int	char2;
@@ -180,7 +180,7 @@ KillEOL()
 /* kill to beginning of sentence */
 
 void
-KillBos()
+KillBos(NOARGS)
 {
 	negate_arg();
 	KillEos();
@@ -189,7 +189,7 @@ KillBos()
 /* Kill to end of sentence */
 
 void
-KillEos()
+KillEos(NOARGS)
 {
 	LinePtr	line1;
 	int	char1;
@@ -201,7 +201,7 @@ KillEos()
 }
 
 void
-KillExpr()
+KillExpr(NOARGS)
 {
 	LinePtr	line1;
 	int	char1;
@@ -213,7 +213,7 @@ KillExpr()
 }
 
 void
-Yank()
+Yank(NOARGS)
 {
 	LinePtr	line,
 		lp;
@@ -232,14 +232,14 @@ Yank()
 }
 
 void
-ToIndent()
+ToIndent(NOARGS)
 {
 	Bol();
 	skip_wht_space();
 }
 
 void
-skip_wht_space()
+skip_wht_space(NOARGS)
 {
 	register char	*cp = linebuf + curchar;
 
@@ -252,7 +252,7 @@ skip_wht_space()
  * If no argument is specified it asks for a line number.
  */
 void
-GoLine()
+GoLine(NOARGS)
 {
 	LinePtr	newline;
 
@@ -267,13 +267,13 @@ GoLine()
 }
 
 void
-NotModified()
+NotModified(NOARGS)
 {
 	unmodify();
 }
 
 void
-SetLMargin()
+SetLMargin(NOARGS)
 {
 	int	lmarg = calc_pos(linebuf, curchar);
 
@@ -285,7 +285,7 @@ SetLMargin()
 }
 
 void
-SetRMargin()
+SetRMargin(NOARGS)
 {
 	int	rmarg = calc_pos(linebuf, curchar);
 

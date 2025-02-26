@@ -168,7 +168,7 @@ const char
 }
 
 void
-getTERM()
+getTERM(NOARGS)
 {
 	char	termnmbuf[13],
 		*termname = getenv("TERM"),
@@ -359,7 +359,7 @@ int	n;
 }
 
 void
-clr_page()
+clr_page(NOARGS)
 {
 	putpad(CL, LI);
 }

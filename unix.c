@@ -407,7 +407,7 @@ jbool	n;	/* also used as subscript! */
  * number or chars, and initializes `jstdout'.
  */
 void
-settout()
+settout(NOARGS)
 {
 	int	speed_chars;
 
@@ -504,7 +504,7 @@ settout()
 }
 
 void
-ttsize()
+ttsize(NOARGS)
 {
 	/* ??? We really ought to wait until the screen is big enough:
 	 * at least three lines high (one line each for buffer, mode,

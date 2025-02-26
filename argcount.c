@@ -12,7 +12,7 @@ int	arg_state = AS_NONE;
 long	arg_count;
 
 void
-negate_arg()
+negate_arg(NOARGS)
 {
 	if (arg_count < 0) {
 		arg_count = -arg_count;
@@ -86,13 +86,13 @@ gather_argument(ns, nc)
 }
 
 void
-TimesFour()
+TimesFour(NOARGS)
 {
 	gather_argument(AS_TIMES, 4);
 }
 
 void
-Digit()
+Digit(NOARGS)
 {
 	if (LastKeyStruck == '-') {
 		gather_argument(AS_NEGSIGN, -1);
@@ -105,67 +105,67 @@ Digit()
 }
 
 void
-Digit0()
+Digit0(NOARGS)
 {
 	gather_argument(AS_NUMERIC, 0);
 }
 
 void
-Digit1()
+Digit1(NOARGS)
 {
 	gather_argument(AS_NUMERIC, 1);
 }
 
 void
-Digit2()
+Digit2(NOARGS)
 {
 	gather_argument(AS_NUMERIC, 2);
 }
 
 void
-Digit3()
+Digit3(NOARGS)
 {
 	gather_argument(AS_NUMERIC, 3);
 }
 
 void
-Digit4()
+Digit4(NOARGS)
 {
 	gather_argument(AS_NUMERIC, 4);
 }
 
 void
-Digit5()
+Digit5(NOARGS)
 {
 	gather_argument(AS_NUMERIC, 5);
 }
 
 void
-Digit6()
+Digit6(NOARGS)
 {
 	gather_argument(AS_NUMERIC, 6);
 }
 
 void
-Digit7()
+Digit7(NOARGS)
 {
 	gather_argument(AS_NUMERIC, 7);
 }
 
 void
-Digit8()
+Digit8(NOARGS)
 {
 	gather_argument(AS_NUMERIC, 8);
 }
 
 void
-Digit9()
+Digit9(NOARGS)
 {
 	gather_argument(AS_NUMERIC, 9);
 }
 
 void
-DigitMinus()
+DigitMinus(NOARGS)
 {
 	gather_argument(AS_NEGSIGN, -1);
 }

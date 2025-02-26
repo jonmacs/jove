@@ -102,7 +102,7 @@ volatile jbool
 	ResizePending = NO;	/* asynch request for screen resize */
 
 private void
-resize()
+resize(NOARGS)
 {
 	jbool	oldDisabledRedisplay = DisabledRedisplay;
 	int
@@ -181,7 +181,7 @@ private jbool	RingBell;	/* So if we have a lot of errors ...
 				  ring the bell only ONCE */
 
 void
-redisplay()
+redisplay(NOARGS)
 {
 	if (DisabledRedisplay)
 		return;
@@ -584,7 +584,7 @@ jbool	abortable;
  * correctly.
  */
 private void
-GotoDot()
+GotoDot(NOARGS)
 {
 	if (!CheapPreEmptOutput()) {
 		Placur(curwind->w_dotline,
@@ -1462,7 +1462,7 @@ int	linenum;
  * if that's possible.
  */
 void
-RedrawDisplay()
+RedrawDisplay(NOARGS)
 {
 	int	line;
 	LinePtr	newtop = prev_line((curwind->w_line = curline),
@@ -1477,13 +1477,13 @@ RedrawDisplay()
 }
 
 void
-ClAndRedraw()
+ClAndRedraw(NOARGS)
 {
 	cl_scr(YES);
 }
 
 void
-NextPage()
+NextPage(NOARGS)
 {
 	LinePtr	newline;
 
@@ -1507,7 +1507,7 @@ NextPage()
 }
 
 void
-PrevPage()
+PrevPage(NOARGS)
 {
 	LinePtr	newline;
 
@@ -1527,7 +1527,7 @@ PrevPage()
 }
 
 void
-UpScroll()
+UpScroll(NOARGS)
 {
 	SetTop(curwind, next_line(curwind->w_top, arg_value()));
 	if (curwind->w_bufp == curbuf
@@ -1536,7 +1536,7 @@ UpScroll()
 }
 
 void
-DownScroll()
+DownScroll(NOARGS)
 {
 	SetTop(curwind, prev_line(curwind->w_top, arg_value()));
 	if (curwind->w_bufp == curbuf
@@ -1547,7 +1547,7 @@ DownScroll()
 jbool	VisBell = NO;	/* VAR: use visible bell (if possible) */
 
 void
-rbell()
+rbell(NOARGS)
 {
 	RingBell = YES;
 }
@@ -1571,7 +1571,7 @@ const char	*str;
 /* End of Window */
 
 void
-Eow()
+Eow(NOARGS)
 {
 	if (Asking)
 		return;
@@ -1585,7 +1585,7 @@ Eow()
 /* Beginning of Window */
 
 void
-Bow()
+Bow(NOARGS)
 {
 	if (Asking)
 		return;
@@ -1684,7 +1684,7 @@ Typeout(fmt, va_alist)
 }
 
 void
-TOstop()
+TOstop(NOARGS)
 {
 	if (UseBuffers) {
 		ToFirst();
