@@ -133,7 +133,7 @@ main()
 #ifdef MAC
 	char	*which;
 	int	filecnt = 0;
-	bool	inmenu = NO;
+	jbool	inmenu = NO;
 	struct fname {
 		char	*in, *out;
 	};

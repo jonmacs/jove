@@ -33,7 +33,7 @@ gather_argument(ns, nc)
 {
 	for (;;) {
 		ZXchar	c;
-		bool	neg = NO;
+		jbool	neg = NO;
 
 		if (arg_count < 0) {
 			neg = YES;

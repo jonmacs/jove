@@ -88,8 +88,8 @@
  *   JOVE cannot work around this problem, the user must.
  */
 
-bool	XtermMouse = NO;	/* VAR: should we enable xterm mouse? */
-private bool	xtMouseState = NO;	/* have we enabled the mouse? */
+jbool	XtermMouse = NO;	/* VAR: should we enable xterm mouse? */
+private jbool	xtMouseState = NO;	/* have we enabled the mouse? */
 
 /* sequences to enable/disable mouse hilite tracking in xterm */
 private const char
@@ -198,7 +198,7 @@ ScrollToMouse()
 		SetLine(next_line(curwind->w_top, WSIZE(curwind)/2));
 }
 
-private bool
+private jbool
 ObeyProc(p)
 cmdproc_t p;
 {
@@ -271,7 +271,7 @@ int upb;
 
 /* get some X Y pair from xterm; return indication of success */
 
-private bool
+private jbool
 xtGetXY(xp, yp)
 int
 	*xp,
@@ -337,7 +337,7 @@ int	hl_setting, startx, starty, endx, endy;
 #endif
 }
 
-private bool
+private jbool
 MouseParams(mproto)
 int	mproto;
 {
@@ -347,9 +347,9 @@ int	mproto;
 	 */
 
 	static int	wind_pos;		/* reverse y-coordinate within window */
-	static bool	mode_mode = NO;		/* true while doing modeline */
+	static jbool	mode_mode = NO;		/* true while doing modeline */
 
-	/* up_expected is an extended bool: it can be YES, NO, and -1!
+	/* up_expected is an extended jbool: it can be YES, NO, and -1!
 	 * -1 signifies that we are in xterm mouse hilite tracking mode
 	 * which appears to fail to yield an up event if it deems the
 	 * event uninteresting (i.e. no motion).
@@ -357,7 +357,7 @@ int	mproto;
 	static int	up_expected = NO;	/* true while button held down */
 	static int	estartx, estarty;	/* from last enable */
 
-	bool	input_good = NO;
+	jbool	input_good = NO;
 
 	/* This switch reads and decodes the control sequence.
 	 * - input_good is set to YES if the sequence looks valid.
@@ -576,7 +576,7 @@ int	mproto;
 			 * When hilite tracking is used, apparently the up event is
 			 * elided if it would report no change in location.
 			 */
-			bool	use_hilite = !mode_mode;
+			jbool	use_hilite = !mode_mode;
 
 			if (use_hilite)
 				up_expected = -1;	/* half-expect an up */
@@ -755,7 +755,7 @@ xtMouseNull()
 private void
 startMouseWord()
 {
-	bool	in_id;
+	jbool	in_id;
 
 	if (eolp() && !bolp())
 		curchar -= 1;
@@ -767,7 +767,7 @@ startMouseWord()
 private void
 endMouseWord()
 {
-	bool	in_id;
+	jbool	in_id;
 
 	if (eolp() && !bolp())
 		curchar -= 1;
@@ -798,10 +798,10 @@ doMouseLine()
  * selected by dragging, single or double clicking).  If used to shrink the
  * region, it is the point end (not the mark end) that gets moved.
  */
-private bool
+private jbool
 doMouseExtend()
 {
-	bool	region_forward, new_forward;
+	jbool	region_forward, new_forward;
 
 	if (last_mouse_act == LMA_NONE)
 		return NO;	/* treat as xtMouseNull */

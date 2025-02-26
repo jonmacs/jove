@@ -23,10 +23,10 @@ private void
 private struct macro
 	*ask_macname proto((const char *, int));
 
-private bool	UnsavedMacros = NO;	/* are there any macros that need saving to a file? */
+private jbool	UnsavedMacros = NO;	/* are there any macros that need saving to a file? */
 
 struct macro	*macros = NULL;		/* macros */
-bool	InMacDefine = NO;
+jbool	InMacDefine = NO;
 
 private void
 add_mac(new)
@@ -163,7 +163,7 @@ note_dispatch()
 		KeyMacro.m_len = kmac_len - 1;
 }
 
-bool
+jbool
 in_macro()
 {
 	return (mac_stack != NULL);
@@ -370,7 +370,7 @@ MacInter()
 		Interactive = YES;
 }
 
-bool
+jbool
 ModMacs()
 {
 	return UnsavedMacros;

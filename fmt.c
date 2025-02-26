@@ -89,7 +89,7 @@ char	*cp;
 private struct fmt_state {
 	int	precision,
 		width;
-	bool	leftadj;
+	jbool	leftadj;
 	char	padc;
 	File	*iop;
 } current_fmt;
@@ -454,7 +454,7 @@ add_mess(fmt, va_alist)
 	message(mesgbuf);
 }
 
-bool jdebug	    = YES;  /* so that first jdprintf is called */
+jbool jdebug	    = YES;  /* so that first jdprintf is called */
 const char *jdpath  = NULL; /* if non-NULL, will be opened on first jdprintf */
 
 #ifdef STDARGS
@@ -467,7 +467,7 @@ jdprintf(fmt, va_alist)
 	va_dcl
 #endif
 {
-	static bool first_time = YES;
+	static jbool first_time = YES;
 	static File *dfp = NULL;
 	va_list	ap;
 

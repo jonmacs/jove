@@ -9,7 +9,7 @@ extern const char	*HomeDir;
 
 extern size_t	HomeLen;
 
-extern bool	DOLsave;	/* Do Lsave flag.  If lines aren't being saved
+extern jbool	DOLsave;	/* Do Lsave flag.  If lines aren't being saved
 				   when you think they should have been, this
 				   flag is probably not being set, or is being
 				   cleared before lsave() was called. */
@@ -26,11 +26,11 @@ extern int	MakeTemp proto((char *, const char *));
 
 extern char
 	*lbptr proto((LinePtr line)),
-	*pr_name proto((const char *fname,bool okay_home)),
+	*pr_name proto((const char *fname,jbool okay_home)),
 	*pwd proto((void));
 
 extern File
-	*open_file proto((char *fname,char *buf,int how,bool complainifbad));
+	*open_file proto((char *fname,char *buf,int how,jbool complainifbad));
 
 extern void
 	setCWD proto((char *d)),
@@ -40,16 +40,16 @@ extern void
 	SyncTmp proto((void)),
 	close_file proto((File *fp)),
 	d_cache_init proto((void)),
-	file_write proto((char *fname, bool app)),
+	file_write proto((char *fname, jbool app)),
 	jgetline proto((daddr addr, char *buf)),
 	lsave proto((void)),
-	putreg proto((File *fp,LinePtr line1,int char1,LinePtr line2,int char2,bool makesure)),
-	read_file proto((char *file, bool is_insert)),
-	put_bufs proto((bool askp)),
+	putreg proto((File *fp,LinePtr line1,int char1,LinePtr line2,int char2,jbool makesure)),
+	read_file proto((char *file, jbool is_insert)),
+	put_bufs proto((jbool askp)),
 	tmpclose proto((void)),
 	tmpremove proto((void));
 
-extern bool
+extern jbool
 	chkCWD proto((char *dn));
 
 extern daddr
@@ -76,7 +76,7 @@ extern void
 /* Variables: */
 
 #ifdef BACKUPFILES
-extern bool	BkupOnWrite;		/* VAR: make backup files when writing */
+extern jbool	BkupOnWrite;		/* VAR: make backup files when writing */
 #endif
 #ifdef UNIX
 extern int	CreatMode;		/* VAR: default mode for creat'ing files */
@@ -84,5 +84,5 @@ extern int	CreatMode;		/* VAR: default mode for creat'ing files */
 #ifdef MAC
 # define CreatMode	0	/* dummy */
 #endif
-extern bool	EndWNewline;		/* VAR: end files with a blank line */
-extern bool	OkayBadChars;		/* VAR: allow bad characters in files created by JOVE */
+extern jbool	EndWNewline;		/* VAR: end files with a blank line */
+extern jbool	OkayBadChars;		/* VAR: allow bad characters in files created by JOVE */

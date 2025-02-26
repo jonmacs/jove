@@ -278,7 +278,7 @@ BYTE	font;
 	get_c_attr();
 }
 
-private bool
+private jbool
 set_lines(lines)
 int	lines;
 {
@@ -301,7 +301,7 @@ int	lines;
 	return YES;
 }
 
-private bool	pc_set = NO;
+private jbool	pc_set = NO;
 private int	unsetLI;
 
 void
@@ -387,7 +387,7 @@ int	n;
 		 * I think it would use the timer channel we're already using.
 		 */
 		int	half_cycs = 200;	/* number of half-cycles to play */
-		bool	hi_is_0 = NO;	/* detect zero transitions; initial lie unimportant */
+		jbool	hi_is_0 = NO;	/* detect zero transitions; initial lie unimportant */
 
 		for (;;) {
 			(void) inp(TIME_P+2);	/* low-order counter 2 byte */
@@ -459,7 +459,7 @@ int line,
 	CapLine = line;
 }
 
-private bool
+private jbool
 	doing_so = NO,
 	doing_us = NO;
 
@@ -471,7 +471,7 @@ doattr()
 
 void
 SO_effect(f)
-bool f;
+jbool f;
 {
 	doing_so = f;
 	doattr();
@@ -479,7 +479,7 @@ bool f;
 
 void
 US_effect(f)
-bool	f;
+jbool	f;
 {
 	doing_us = f;
 	doattr();

@@ -94,7 +94,7 @@ void
 line_move(dir, n, line_cmd)
 int	dir;
 long	n;
-bool	line_cmd;
+jbool	line_cmd;
 {
 	LinePtr	(*proc) ptrproto((LinePtr, long)) =
 		(dir == FORWARD) ? next_line : prev_line;

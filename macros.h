@@ -14,12 +14,12 @@ struct macro {
 	struct macro	*m_nextm;
 };
 
-extern bool
+extern jbool
 	InMacDefine;	/* are we defining a macro right now? */
 
 extern struct macro	*macros;
 
-extern bool
+extern jbool
 	in_macro proto((void)),
 	ModMacs proto((void));
 

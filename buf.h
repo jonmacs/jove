@@ -68,7 +68,7 @@ struct line {
 struct mark {
 	LinePtr	m_line;
 	int	m_char;
-	bool	m_big_delete;	/* mark was within the range of a multi-line delete */
+	jbool	m_big_delete;	/* mark was within the range of a multi-line delete */
 	Mark	*m_next;	/* list of marks */
 };
 
@@ -103,10 +103,10 @@ struct buffer {
 		*b_marks;		/* all the marks for this buffer */
 	int	b_themark,		/* current mark (in b_markring) */
 		b_type;			/* file, scratch, process, iprocess */
-	char	b_ntbf,			/* (bool) needs to be found when we
+	char	b_ntbf,			/* (jbool) needs to be found when we
 					   first select? */
-		b_modified,		/* (bool) is the buffer modified? */
-		b_diverged;		/* (bool) has the underlying file been changed behind our back? */
+		b_modified,		/* (jbool) is the buffer modified? */
+		b_diverged;		/* (jbool) has the underlying file been changed behind our back? */
 	int	b_major;		/* major mode */
 	unsigned	b_minor;		/* and minor mode */
 	struct keymap	*b_map;		/* local bindings (if any) */
@@ -132,12 +132,12 @@ struct position {
 	int	p_char;
 };
 
-extern bool
+extern jbool
 	valid_bp proto((Buffer	*bp));
 
 extern Buffer
 	*buf_exists proto((const char *name)),
-	*do_find proto((Window *w, char *fname, bool force, bool do_macros)),
+	*do_find proto((Window *w, char *fname, jbool force, jbool do_macros)),
 	*do_select proto((Window *w, const char *name)),
 	*do_stat proto((const char *name, Buffer *target, int flags));
 
@@ -147,7 +147,7 @@ extern Buffer
 #define DS_REUSE	2	/* reuse result of last stat */
 #define DS_DIR	4	/* directory OK as result */
 
-extern bool
+extern jbool
 	was_dir,	/* do_stat found a directory */
 	was_file;	/* do_stat found a (plain) file */
 

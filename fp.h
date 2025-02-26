@@ -84,5 +84,5 @@ extern void
 	gc_openfiles proto((void)),
 	putstr proto((const char *s));
 
-extern bool
+extern jbool
 	f_gets proto((File *fp,char *buf,size_t max));

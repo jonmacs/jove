@@ -40,7 +40,7 @@ struct screenline
 	*Curline = NULL;	/* current line */
 
 private void
-	DeTab proto((char *, int, char *, char *, bool)),
+	DeTab proto((char *, int, char *, char *, jbool)),
 	DoIDline proto((int)),
 	do_cl_eol proto((int)),
 	ModeLine proto((Window *, char *, int)),
@@ -53,9 +53,9 @@ private void
 	DelChar proto((int, int, int)),
 	InsChar proto((int, int, int, char *));
 
-private bool
+private jbool
 	IDchar proto ((char *, int)),
-	OkayDelete proto ((int, int, bool)),
+	OkayDelete proto ((int, int, jbool)),
 	OkayInsert proto ((int, int));
 
 private int
@@ -63,11 +63,11 @@ private int
 	IDcomp proto ((char *, char *, int));
 #endif /* ID_CHAR */
 
-private bool
+private jbool
 	AddLines proto((int, int)),
 	DelLines proto((int, int));
 
-bool	DisabledRedisplay = NO;
+jbool	DisabledRedisplay = NO;
 
 /* Kludge windows gets called by the routines that delete lines from the
  * buffer.  If the w->w_line or w->w_top are deleted and this procedure
@@ -98,13 +98,13 @@ LinePtr	line1,
 
 #ifdef WINRESIZE
 
-volatile bool
+volatile jbool
 	ResizePending = NO;	/* asynch request for screen resize */
 
 private void
 resize()
 {
-	bool	oldDisabledRedisplay = DisabledRedisplay;
+	jbool	oldDisabledRedisplay = DisabledRedisplay;
 	int
 		oldILI = ILI,
 		oldCO = CO;
@@ -177,7 +177,7 @@ resize()
 
 #endif /* WINRESIZE */
 
-private bool	RingBell;	/* So if we have a lot of errors ...
+private jbool	RingBell;	/* So if we have a lot of errors ...
 				  ring the bell only ONCE */
 
 void
@@ -194,7 +194,7 @@ redisplay()
 		int
 			lineno,
 			i;
-		bool
+		jbool
 			done_ID = NO,
 			old_UpdModLine;
 		register struct scrimage
@@ -321,8 +321,8 @@ register int	c_char;
 	return pos;
 }
 
-volatile bool	UpdModLine = NO;
-bool	UpdMesg = NO;
+volatile jbool	UpdModLine = NO;
+jbool	UpdMesg = NO;
 
 private void
 DoIDline(start)
@@ -385,7 +385,7 @@ int	start;
  * with the redisplay.  This deals with horizontal scrolling.  Also makes
  * sure the current line of the Window is in the window.
  */
-bool	ScrollAll = NO;	/* VAR: when current line scrolls, scroll whole window? */
+jbool	ScrollAll = NO;	/* VAR: when current line scrolls, scroll whole window? */
 int	ScrollWidth = 10;	/* VAR: unit of horizontal scrolling */
 
 private void
@@ -561,7 +561,7 @@ int	start;
  */
 void
 DrawMesg(abortable)
-bool	abortable;
+jbool	abortable;
 {
 	char	outbuf[MAXCOLS + PPWIDTH];	/* assert(CO <= MAXCOLS); */
 
@@ -612,7 +612,7 @@ register int	start;
 /* Calls the routine to do the physical changes, and changes PhysScreen to
  * reflect those changes.
  */
-private bool
+private jbool
 AddLines(at, num)
 register int	at,
 		num;
@@ -634,7 +634,7 @@ register int	at,
 	return YES;					/* we did something */
 }
 
-private bool
+private jbool
 DelLines(at, num)
 register int	at,
 		num;
@@ -654,7 +654,7 @@ register int	at,
 	return YES;
 }
 
-bool	MarkHighlighting = YES;	/* VAR: highlight mark when visible */
+jbool	MarkHighlighting = YES;	/* VAR: highlight mark when visible */
 
 /* Update line linenum in window w.  Only set PhysScreen to DesiredScreen
  * if the swrite or cl_eol works, that is nothing is interrupted by
@@ -677,7 +677,7 @@ register int	linenum;
 #ifdef HIGHLIGHTING
 		static struct LErange lr = {0, 0, LENULLPROC, US_effect};
 		Mark	*mark = b_curmark(w->w_bufp);
-		bool	marked_line = (MarkHighlighting
+		jbool	marked_line = (MarkHighlighting
 # ifdef TERMCAP
 			       && US != NULL
 # endif
@@ -783,7 +783,7 @@ char	*src;
 int	start_offset;
 char	*dst;
 char	*dst_limit;
-bool	visspace;
+jbool	visspace;
 {
 	ZXchar	c;
 	int	offset = start_offset;
@@ -838,11 +838,11 @@ bool	visspace;
  * and not so well written code, AND there is a lot of it.  You may want
  * to use the space for something else.
  */
-bool	IN_INSmode = NO;
+jbool	IN_INSmode = NO;
 
 void
 INSmode(on)
-bool	on;
+jbool	on;
 {
 	if (on != IN_INSmode) {
 		putpad(on? IM : EI, 1);
@@ -855,7 +855,7 @@ bool	on;
  *
  * Returns Non-Zero if you are finished (no differences left).
  */
-private bool
+private jbool
 IDchar(new, lineno)
 register char	*new;
 int	lineno;
@@ -958,11 +958,11 @@ int	len;
 	return num;
 }
 
-private bool
+private jbool
 OkayDelete(Saved, num, samelength)
 int	Saved,
 	num;
-bool	samelength;
+jbool	samelength;
 {
 	/* If the old and the new have different lengths, then the competition
 	 * will have to clear to end of line.  We take that into consideration.
@@ -972,7 +972,7 @@ bool	samelength;
 		jmin(MDClen, DC != NULL? DClen * num : INFINITY);
 }
 
-private bool
+private jbool
 OkayInsert(Saved, num)
 int	Saved,
 	num;
@@ -1102,12 +1102,12 @@ char	*new;
 char	Mailbox[FILESIZE];	/* VAR: mailbox name */
 int	MailInt = 60;		/* VAR: mail check interval (seconds) */
 
-bool
+jbool
 chkmail(force)
-bool	force;
+jbool	force;
 {
 	time_t	now;
-	static bool	state = NO;	/* assume unknown */
+	static jbool	state = NO;	/* assume unknown */
 	static time_t	last_chk = 0,
 			mbox_time = 0;
 	struct stat	stbuf;
@@ -1144,7 +1144,7 @@ bool	force;
 
 private char	*mode_p,
 		*mend_p;
-bool	BriteMode = YES;		/* VAR: make the mode line inverse? */
+jbool	BriteMode = YES;		/* VAR: make the mode line inverse? */
 
 private void
 mode_app(str)
@@ -1177,8 +1177,8 @@ int	linenum;
 {
 	int	n,
 		glue = 0;
-	bool	ign_some = NO;
-	bool	td = NO;	/* is time (kludge: or mail status) displayed? */
+	jbool	ign_some = NO;
+	jbool	td = NO;	/* is time (kludge: or mail status) displayed? */
 	char
 		*fmt = ModeFmt,
 		fillc,
@@ -1544,7 +1544,7 @@ DownScroll()
 		SetLine(curwind->w_top);
 }
 
-bool	VisBell = NO;	/* VAR: use visible bell (if possible) */
+jbool	VisBell = NO;	/* VAR: use visible bell (if possible) */
 
 void
 rbell()
@@ -1595,7 +1595,7 @@ Bow()
 
 /* Typeout Mechanism */
 
-bool	UseBuffers = NO,	/* VAR: use buffers with Typeout() */
+jbool	UseBuffers = NO,	/* VAR: use buffers with Typeout() */
 	TOabort = NO;
 
 private int	LineNo;	/* screen line for Typeout (if not UseBuffers) */

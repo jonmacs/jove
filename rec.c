@@ -123,7 +123,7 @@ void
 SyncRec()
 {
 	register Buffer	*b;
-	static bool	beenhere = NO;
+	static jbool	beenhere = NO;
 	time_t		tupd;
 
 	/* Count number of interesting buffers.  If none, don't bother syncing. */

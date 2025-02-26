@@ -47,9 +47,9 @@ private void
 
 private struct block	*lookup_block proto((daddr));
 
-private char	*getblock proto((daddr, bool));
+private char	*getblock proto((daddr, jbool));
 
-private bool	f_getputl proto((LinePtr line,File *fp));
+private jbool	f_getputl proto((LinePtr line,File *fp));
 
 #ifdef BACKUPFILES
 private void
@@ -60,7 +60,7 @@ long	io_chars;		/* number of chars in this open_file */
 long	io_lines;		/* number of lines in this open_file */
 
 #ifdef BACKUPFILES
-bool	BkupOnWrite = NO;	/* VAR: make backup files when writing */
+jbool	BkupOnWrite = NO;	/* VAR: make backup files when writing */
 #endif
 
 #ifndef MSFILESYSTEM
@@ -349,7 +349,7 @@ File	*fp;
 /* Write the region from line1/char1 to line2/char2 to FP.  This
  * never CLOSES the file since we don't know if we want to.
  */
-bool	EndWNewline = 1;	/* VAR: end files with a blank line */
+jbool	EndWNewline = 1;	/* VAR: end files with a blank line */
 
 void
 putreg(fp, line1, char1, line2, char2, makesure)
@@ -358,7 +358,7 @@ LinePtr	line1,
 	line2;
 int	char1,
 	char2;
-bool	makesure;
+jbool	makesure;
 {
 	if (makesure)
 		(void) fixorder(&line1, &char1, &line2, &char2);
@@ -395,7 +395,7 @@ dofread(fp)
 register File	*fp;
 {
 	char	end[LBSIZE];
-	bool	xeof;
+	jbool	xeof;
 	LinePtr	savel = curline;
 	int	savec = curchar;
 
@@ -415,11 +415,11 @@ register File	*fp;
 void
 read_file(file, is_insert)
 char	*file;
-bool	is_insert;
+jbool	is_insert;
 {
 	Bufpos	save;
 	File	*fp;
-	bool	err;
+	jbool	err;
 	int	save_type;
 	char	*save_fname;
 
@@ -538,7 +538,7 @@ pwd()
 char *
 pr_name(fname, okay_home)
 const char	*fname;
-bool	okay_home;
+jbool	okay_home;
 {
 	if (fname == NULL) {
 		return NULL;
@@ -637,7 +637,7 @@ size_t	bufsize;
  * and that it is in cannonical form
  */
 
-bool
+jbool
 chkCWD(dn)
 char	*dn;
 {
@@ -1024,7 +1024,7 @@ int	CreatMode = DFLT_MODE;	/* VAR: default mode for creat'ing files */
 
 private void
 DoWriteReg(app)
-bool	app;
+jbool	app;
 {
 	char	fnamebuf[FILESIZE];
 	Mark	*mp = CurMark();
@@ -1059,7 +1059,7 @@ AppReg()
 	DoWriteReg(YES);
 }
 
-bool	OkayBadChars = NO;	/* VAR: allow bad characters in filenames created by JOVE */
+jbool	OkayBadChars = NO;	/* VAR: allow bad characters in filenames created by JOVE */
 
 void
 JWriteFile()
@@ -1119,7 +1119,7 @@ WtModBuf()
 
 void
 put_bufs(askp)
-bool	askp;
+jbool	askp;
 {
 	register Buffer	*oldb = curbuf,
 			*b;
@@ -1164,7 +1164,7 @@ open_file(fname, buf, how, complainifbad)
 register char	*fname;
 char	*buf;
 register int	how;
-bool	complainifbad;
+jbool	complainifbad;
 {
 	register File	*fp;
 
@@ -1250,7 +1250,7 @@ const char	*fname,
 void
 file_write(fname, app)
 char	*fname;
-bool	app;
+jbool	app;
 {
 	File	*fp;
 
@@ -1281,7 +1281,7 @@ JReadFile()
 {
 	char
 		fnamebuf[FILESIZE];
-	bool
+	jbool
 		reloading;
 	Window
 		*wp;
@@ -1351,7 +1351,7 @@ InsFile()
 
 #include "temp.h"
 
-bool	DOLsave = NO;	/* Do Lsave flag.  If lines aren't being saved
+jbool	DOLsave = NO;	/* Do Lsave flag.  If lines aren't being saved
 			 * when you think they should have been, this
 			 * flag is probably not being set, or is being
 			 * cleared before lsave() was called.
@@ -1470,7 +1470,7 @@ char	*buf;
 #define lockblock(addr)
 #define unlockblock(addr)
 
-private bool
+private jbool
 f_getputl(line, fp)
 LinePtr	line;
 register File	*fp;
@@ -1552,7 +1552,7 @@ register File	*fp;
 }
 
 typedef struct block {
-	char	b_dirty;	/* (bool) */
+	char	b_dirty;	/* (jbool) */
 	daddr	b_bno;
 	char	b_buf[JBUFSIZ];
 	struct block
@@ -1587,7 +1587,7 @@ register JSSIZE_T	(*iofcn) ptrproto((int, UnivPtr, JRWSIZE_T));
 {
 	off_t boff = bno_to_seek_off(b->b_bno);
 	JSSIZE_T nb;
-	static bool first_time = YES;
+	static jbool first_time = YES;
 
 	if (first_time) {
 		tmpinit();
@@ -1744,11 +1744,11 @@ register Block	*bp;
 
 private char *
 #ifdef USE_PROTOTYPES
-getblock proto((daddr atl, bool IsWrite))
+getblock proto((daddr atl, jbool IsWrite))
 #else
 getblock(atl, IsWrite)
 daddr	atl;
-bool	IsWrite;
+jbool	IsWrite;
 #endif
 {
 	register daddr	bno,

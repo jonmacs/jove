@@ -38,7 +38,7 @@ getTERM()
 
 void
 ttysetattr(n)
-bool	n;	/* also used as subscript! */
+jbool	n;	/* also used as subscript! */
 {
 	CONSOLE_SCREEN_BUFFER_INFO info;
 	COORD bufsize;
@@ -816,7 +816,7 @@ int	line,
 	CapLine = line;
 }
 
-private bool
+private jbool
 	doing_so = NO,
 	doing_us = NO;
 
@@ -829,7 +829,7 @@ doattr()
 
 void
 SO_effect(f)
-bool f;
+jbool f;
 {
 	doing_so = f;
 	doattr();
@@ -837,7 +837,7 @@ bool f;
 
 void
 US_effect(f)
-bool	f;
+jbool	f;
 {
 	doing_us = f;
 	doattr();

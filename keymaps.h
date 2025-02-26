@@ -34,7 +34,7 @@ extern int last_cmd;		/* last command ... to implement appending to kill buffer 
 
 extern void InitKeymaps proto((void));
 extern void dispatch proto((ZXchar c));
-extern bool IsPrefixChar proto((ZXchar c));
+extern jbool IsPrefixChar proto((ZXchar c));
 
 extern void	DelObjRef proto((data_obj *));
 

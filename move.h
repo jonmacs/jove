@@ -9,7 +9,7 @@ extern void
 	b_char proto((long n)),
 	f_char proto((long n)),
 	f_word proto((long num)),
-	line_move proto((int dir, long n, bool line_cmd));
+	line_move proto((int dir, long n, jbool line_cmd));
 
 extern int
 	how_far proto((LinePtr line,int col));

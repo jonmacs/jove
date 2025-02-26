@@ -113,8 +113,8 @@ private long	Nchars,
 private char	tty[] = "/dev/tty";
 private const char	*tmp_dir = TMPDIR;
 private uid_t	UserID;
-private bool	Verbose = NO;
-private bool	Debug = NO;
+private jbool	Verbose = NO;
+private jbool	Debug = NO;
 private FILE	*dfp;
 private const char *RecDir = RECDIR;
 
@@ -313,7 +313,7 @@ private const char	*CurDir;
  * out of them.
  */
 
-private bool	add_name proto((char *));
+private jbool	add_name proto((char *));
 
 private void
 free_files() {
@@ -344,7 +344,7 @@ const char	*dirname;
 		freedir(&nmptr, nentries);
 }
 
-private bool
+private jbool
 add_name(fname)
 char *fname;
 {
@@ -620,11 +620,11 @@ char	*dest;
 	}
 }
 
-private bool
+private jbool
 isopt(args, str, needval)
 register char	**args,
 		*str;
-bool		needval;
+jbool		needval;
 {
 	char *cp = *args;
 	if (Debug)

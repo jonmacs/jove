@@ -66,7 +66,7 @@ int	lmword[2];		/* local mode word */
  * emulators) are generally fine with ^S and ^Q, so follow GNU
  * Emacs lead and assume that by default.
  */
-bool	OKXonXoff = YES;	/* VAR: XON/XOFF can be used as ordinary chars */
+jbool	OKXonXoff = YES;	/* VAR: XON/XOFF can be used as ordinary chars */
 ZXchar	IntChar = CTL(']');	/* VAR: ttysetattr sets this to generate SIGINT */
 
 #ifdef BIFF
@@ -74,14 +74,14 @@ ZXchar	IntChar = CTL(']');	/* VAR: ttysetattr sets this to generate SIGINT */
  * Ancient UNIXes can mess up the screen with biff when mail
  * arrives, and it does no harm to turn this on anyway.
  */
-bool	DisBiff = YES;		/* VAR: turn off/on biff with entering/exiting jove */
+jbool	DisBiff = YES;		/* VAR: turn off/on biff with entering/exiting jove */
 #endif /* BIFF */
 
 void
 ttysetattr(n)
-bool	n;	/* also used as subscript! */
+jbool	n;	/* also used as subscript! */
 {
-	static bool	keep_saved = NO;
+	static jbool	keep_saved = NO;
 
 	if (!keep_saved) {
 		/* Save the current tty settings:

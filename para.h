@@ -7,8 +7,8 @@
 
 extern void
 	DoJustify proto((LinePtr l1, int c1,
-		LinePtr l2, int c2, bool scrunch, int indent)),
-	do_rfill proto((bool ulm));
+		LinePtr l2, int c2, jbool scrunch, int indent)),
+	do_rfill proto((jbool ulm));
 
 /* Commands: */
 
@@ -20,7 +20,7 @@ extern void
 
 /* Variables: */
 
-extern bool
+extern jbool
 	SpaceSent2;		/* VAR: space-sentence-2 */
 
 extern int

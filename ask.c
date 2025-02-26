@@ -30,9 +30,9 @@
 #endif /* !MAC */
 
 ZXchar	AbortChar = CTL('G');	/* VAR: cancels command input */
-bool	DispDefFs = YES;	/* VAR: display default filenames in prompt? */
+jbool	DispDefFs = YES;	/* VAR: display default filenames in prompt? */
 
-bool	Asking = NO;
+jbool	Asking = NO;
 int	AskingWidth;
 
 char	Minibuf[LBSIZE];
@@ -66,7 +66,7 @@ get_minibuf()
 void
 minib_add(str, movedown)
 char	*str;
-bool	movedown;
+jbool	movedown;
 {
 	register Buffer	*saveb = curbuf;
 
@@ -78,14 +78,14 @@ bool	movedown;
 	SetBuf(saveb);
 }
 
-bool	InRealAsk = NO;
+jbool	InRealAsk = NO;
 
 private const char *
 real_ask(delim, d_proc, def, prompt)
 const char	*delim,
 	*def,
 	*prompt;
-bool	(*d_proc) ptrproto((ZXchar));
+jbool	(*d_proc) ptrproto((ZXchar));
 {
 	jmp_buf	savejmp;
 	ZXchar	c;
@@ -95,8 +95,8 @@ bool	(*d_proc) ptrproto((ZXchar));
 	const char	*prompt_leftchar = "",
 			*line_leftchar = "";
 	Buffer	*saveb = curbuf;
-	volatile bool	aborted = NO;
-	bool	no_typed = NO;
+	volatile jbool	aborted = NO;
+	jbool	no_typed = NO;
 	const data_obj	*push_cmd = LastCmd;
 	int	saved_as, saved_ac;
 
@@ -266,12 +266,12 @@ ask(def, fmt, va_alist)
 
 #ifdef STDARGS
 const char *
-do_ask(const char *delim, bool (*d_proc) ptrproto((ZXchar)), const char *def, const char *fmt, ...)
+do_ask(const char *delim, jbool (*d_proc) ptrproto((ZXchar)), const char *def, const char *fmt, ...)
 #else
 /*VARARGS4*/ const char *
 do_ask(delim, d_proc, def, fmt, va_alist)
 	const char	*delim;
-	bool	(*d_proc) ptrproto((ZXchar));
+	jbool	(*d_proc) ptrproto((ZXchar));
 	const char	*def;
 	const char	*fmt;
 	va_dcl
@@ -286,13 +286,13 @@ do_ask(delim, d_proc, def, fmt, va_alist)
 	return real_ask(delim, d_proc, def, prompt);
 }
 
-bool	OneKeyConfirmation = NO;	/* VAR: single y or n keystroke sufficient? */
+jbool	OneKeyConfirmation = NO;	/* VAR: single y or n keystroke sufficient? */
 
 #ifdef STDARGS
-bool
+jbool
 yes_or_no_p(const char *fmt, ...)
 #else
-/*VARARGS1*/ bool
+/*VARARGS1*/ jbool
 yes_or_no_p(fmt, va_alist)
 	const char	*fmt;
 	va_dcl
@@ -355,7 +355,7 @@ yes_or_no_p(fmt, va_alist)
  */
 # ifndef MAC	/* no environment in MacOS */
 
-bool	DoEVexpand = YES;	/* VAR: should we expand evironment variables? */
+jbool	DoEVexpand = YES;	/* VAR: should we expand evironment variables? */
 
 private void
 EVexpand()
@@ -399,7 +399,7 @@ EVexpand()
 # endif /* !MAC */
 
 private char	*fc_filebase;
-bool	DispBadFs = YES;	/* VAR: display filenames with bad extensions? */
+jbool	DispBadFs = YES;	/* VAR: display filenames with bad extensions? */
 char	BadExtensions[sizeof(BadExtensions)] =	/* VAR: extensions to ignore */
 
 # ifndef MSFILESYSTEM
@@ -420,7 +420,7 @@ char	BadExtensions[sizeof(BadExtensions)] =	/* VAR: extensions to ignore */
 ".obj .lib .exe .com .dll .arc .zip .zoo .bmp .gif .jpg .mpg .tif .pcx .wks .wk1 .xls";
 # endif /* MSFILESYSTEM */
 
-private bool
+private jbool
 bad_extension(name)
 char	*name;
 {
@@ -453,9 +453,9 @@ char	*name;
 	return NO;
 }
 
-private bool f_match proto((char* file));	/* needed to comfort MS Visual C */
+private jbool f_match proto((char* file));	/* needed to comfort MS Visual C */
 
-private bool
+private jbool
 f_match(file)
 char	*file;
 {
@@ -473,7 +473,7 @@ char	*file;
 }
 
 # ifndef DIRECTORY_ADD_SLASH
-private bool
+private jbool
 isdir(name)
 char	*name;
 {
@@ -487,7 +487,7 @@ fill_in(dir_vec, n)
 register char	**dir_vec;
 int	n;
 {
-	bool	filter;
+	jbool	filter;
 
 	for (filter = DispBadFs; ; filter = NO) {
 		int
@@ -522,7 +522,7 @@ int	n;
 				break;
 			}
 		} else {
-			bool
+			jbool
 				the_same = YES; /* After filling in, are we the same
 							as when we were called? */
 
@@ -557,7 +557,7 @@ int	n;
 /* called from do_ask() when one of "\r\n ?" is typed.  Does the right
  * thing, depending on which.
  */
-private bool
+private jbool
 f_complete(c)
 ZXchar	c;
 {
@@ -643,7 +643,7 @@ ZXchar	c;
 
 			for (col = 0; col < ncols; col++) {
 				if (which < nentries) {
-					bool	isbad = DispBadFs && bad_extension(dir_vec[which]);
+					jbool	isbad = DispBadFs && bad_extension(dir_vec[which]);
 
 					swritef(buf+bufcol, sizeof(buf) - bufcol, "%s%-*s",
 						isbad ? "!" : NullStr,

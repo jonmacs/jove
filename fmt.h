@@ -23,7 +23,7 @@ extern void
 extern char
 	*sprint proto((const char *, ...));
 
-extern bool jdebug;
+extern jbool jdebug;
 extern const char *jdpath;
 extern void jdprintf proto((const char *, ...));
 

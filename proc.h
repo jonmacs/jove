@@ -67,8 +67,8 @@ extern void
 extern int	EWSize;			/* VAR: percentage of screen to make the error window */
 extern char	ErrFmtStr[256];		/* VAR: format string for parse errors */
 #ifdef SUBSHELL
-extern bool	WtOnMk;			/* VAR: write files on compile-it command */
-extern bool	WrapProcessLines;	/* VAR: wrap process lines at CO-1 chars */
+extern jbool	WtOnMk;			/* VAR: write files on compile-it command */
+extern jbool	WrapProcessLines;	/* VAR: wrap process lines at CO-1 chars */
 #endif
 #ifdef SPELL
 extern char	SpellCmdFmt[FILESIZE];		/* VAR: command to use for spell check */

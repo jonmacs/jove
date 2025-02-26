@@ -42,7 +42,7 @@ struct process {
 	int	p_toproc;	/* write end of pipe to process */
 	pid_t	p_portpid,	/* pid of direct child (the portsrv) */
 		p_pid;		/* pid of real child i.e. not portsrv */
-	bool	p_portlive;	/* is portsrv still live? */
+	jbool	p_portlive;	/* is portsrv still live? */
 #else
 	int	p_fd;		/* file descriptor of pty? opened r/w */
 # define	p_portpid	p_pid	/* pid of direct child (the shell) */
@@ -68,16 +68,16 @@ struct process {
 private void
 	proc_rec proto((Process, char *, size_t)),
 	proc_close proto ((Process)),
-	SendData proto((bool)),
+	SendData proto((jbool)),
 	obituary proto((register Process child, wait_status_t w));
 
-private bool
+private jbool
 	proc_kill proto((Process, int));
 
 #define child_dead(p)	((p)->p_child_state >= C_EXITED)
 #define io_eofed(p)	((p)->p_io_state == IO_EOFED)
 
-private bool
+private jbool
 dead(p)
 Process	p;
 {
@@ -302,12 +302,12 @@ size_t	nbytes;
 
 # ifdef STDARGS
 private void
-proc_strt(char *bufname, bool clobber, char *procname, ...)
+proc_strt(char *bufname, jbool clobber, char *procname, ...)
 # else
 private /*VARARGS3*/ void
 proc_strt(bufname, clobber, procname, va_alist)
 	char	*bufname;
-	bool	clobber;
+	jbool	clobber;
 	char	*procname;
 	va_dcl
 # endif
@@ -442,7 +442,7 @@ kbd_init()
  * the keyboard process.  This is so kbd stopping and starting in
  * pairs works - see finish() in jove.c.
  */
-private bool	kbd_state = NO;
+private jbool	kbd_state = NO;
 
 void
 kbd_strt()
@@ -458,7 +458,7 @@ kbd_strt()
 	}
 }
 
-bool
+jbool
 kbd_stop()
 {
 	jdbg("kbd_stop state %d pid %D NumProcs %d\n",
@@ -880,12 +880,12 @@ size_t	nbytes;
 
 # ifdef STDARGS
 private void
-proc_strt(char *bufname, bool clobber, const char *procname, ...)
+proc_strt(char *bufname, jbool clobber, const char *procname, ...)
 # else
 private /*VARARGS2*/ void
 proc_strt(bufname, clobber, procname, va_alist)
 	char	*bufname;
-	bool	clobber;
+	jbool	clobber;
 	const char	*procname;
 	va_dcl
 # endif
@@ -1350,7 +1350,7 @@ fail:
  * defer the re-establishment until reap_procs is done.
  */
 
-volatile bool	procs_to_reap = NO;
+volatile jbool	procs_to_reap = NO;
 
 /*ARGSUSED*/
 SIGRESTYPE
@@ -1425,11 +1425,11 @@ Process	p;
 	}
 }
 
-bool
+jbool
 KillProcs()
 {
 	register Process	p;
-	bool	asked = NO;
+	jbool	asked = NO;
 
 	for (p = procs; p != NULL; p = p->p_next) {
 		if (!dead(p)) {
@@ -1485,7 +1485,7 @@ size_t	len;
 	Buffer	*saveb = curbuf;
 	register Window	*w;
 	register Mark	*savepoint;
-	bool	sameplace,
+	jbool	sameplace,
 		do_disp;
 
 	if (curwind->w_bufp == p->p_buffer)
@@ -1532,7 +1532,7 @@ size_t	len;
 	SetBuf(saveb);
 }
 
-private bool
+private jbool
 proc_kill(p, sig)
 register Process	p;
 int	sig;
@@ -1684,7 +1684,7 @@ ProcSendData()
 
 private void
 SendData(newlinep)
-bool	newlinep;
+jbool	newlinep;
 {
 	register Process	p = curbuf->b_process;
 	register char	*lp,

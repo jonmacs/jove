@@ -291,7 +291,7 @@ register File	*fp;
 	}
 }
 
-bool
+jbool
 f_gets(fp, buf, max)
 register File	*fp;
 char	*buf;

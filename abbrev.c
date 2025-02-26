@@ -37,7 +37,7 @@ private	void
 #define GLOBAL	NMAJORS
 private struct abbrev	*A_tables[NMAJORS + 1][HASHSIZE];	/* Must be zeroed! */
 
-bool AutoCaseAbbrev = YES;	/* VAR: automatically do case on abbreviations */
+jbool AutoCaseAbbrev = YES;	/* VAR: automatically do case on abbreviations */
 
 private unsigned int
 hash(a)

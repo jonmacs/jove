@@ -28,7 +28,7 @@ extern const unsigned char	CharTable[NCHARS];
 
 #define	jiswhite(c)	((c) == ' ' || (c) == '\t')	/* NOT isspace! */
 
-extern bool	jisident proto((DAPchar));
+extern jbool	jisident proto((DAPchar));
 
 #ifdef USE_CTYPE
 

@@ -217,7 +217,7 @@ NeedErrors()
 	}
 }
 
-private bool
+private jbool
 ErrorHasReferents()
 {
 	return inlist(cur_error->er_buf->b_first, cur_error->er_text)
@@ -230,7 +230,7 @@ ErrorHasReferents()
  */
 private void
 ToError(forward)
-bool	forward;
+jbool	forward;
 {
 	register struct error	*e = cur_error;
 	int	num = arg_value();
@@ -360,8 +360,8 @@ char	*command;
 /* Run make, first writing all the modified buffers (if the WtOnMk flag is
  * on), parse the errors, and go the first error.
  */
-bool	WtOnMk = YES;		/* VAR: write files on compile-it command */
-bool	WrapProcessLines = NO;	/* VAR: wrap process lines at CO-1 chars */
+jbool	WtOnMk = YES;		/* VAR: write files on compile-it command */
+jbool	WrapProcessLines = NO;	/* VAR: wrap process lines at CO-1 chars */
 
 private void
 	DoShell proto((char *, char *)),
@@ -710,7 +710,7 @@ UnixToBuf(flags, bnm, InFName, cmd)
 	int	status = 0;
 	char	pipename[FILESIZE];
 #endif /* MSDOS_PROCS */
-	bool	eof;
+	jbool	eof;
 	char	*argv[9];	/* worst case: /bin/sh sh -cf "echo $1" $1 $1 $2 $3 NULL */
 	char	**ap = argv;
 	File	*fp;
@@ -893,7 +893,7 @@ UnixToBuf(flags, bnm, InFName, cmd)
 		int	oldi = dup(0),
 			oldo = dup(1),
 			olde = dup(2);
-		bool	InFailure = NO;
+		jbool	InFailure = NO;
 		int	ph, pinh, saverrno = 0;
 		const	char *op = "";
 
@@ -1021,14 +1021,14 @@ private void
 RegToUnix(outbuf, cmd, wrap)
 Buffer	*outbuf;
 char	*cmd;
-bool	wrap;
+jbool	wrap;
 {
 	Mark	*m = CurMark();
 	static char	tname[FILESIZE];
 	Window	*save_wind = curwind;
 	volatile wait_status_t	status;
-	volatile bool	err = NO;
-	bool	old_wrap = WrapProcessLines;
+	volatile jbool	err = NO;
+	jbool	old_wrap = WrapProcessLines;
 	File	*volatile fp;
 	jmp_buf	sav_jmp;
 

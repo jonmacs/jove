@@ -106,7 +106,7 @@ int
 jscandir(dir, nmptr, qualify, sorter)
 const char	*dir;
 char	***nmptr;
-bool	(*qualify) ptrproto((char *));
+jbool	(*qualify) ptrproto((char *));
 int	(*sorter) ptrproto((UnivConstPtr, UnivConstPtr));
 {
 	DIR	*dirp;
@@ -146,7 +146,7 @@ int	(*sorter) ptrproto((UnivConstPtr, UnivConstPtr));
  * - the recover program (which never touches MatchDir)
  * - descendants of ask_file or ask_dir (which always set it)
  */
-bool	MatchDir = NO;
+jbool	MatchDir = NO;
 #endif
 
 #ifdef MSDOS
@@ -163,7 +163,7 @@ int
 jscandir(dir, nmptr, qualify, sorter)
 const char	*dir;
 char	***nmptr;
-bool	(*qualify) ptrproto((char *));
+jbool	(*qualify) ptrproto((char *));
 int	(*sorter) ptrproto((UnivConstPtr, UnivConstPtr));
 {
 	struct find_t entry;
@@ -227,7 +227,7 @@ int
 jscandir(dir, nmptr, qualify, sorter)
 const char	*dir;
 char	***nmptr;
-bool	(*qualify) ptrproto((char *));
+jbool	(*qualify) ptrproto((char *));
 int	(*sorter) ptrproto((UnivConstPtr, UnivConstPtr));
 {
 	WIN32_FIND_DATA entry;

@@ -51,7 +51,7 @@ SIGHANDLERTYPE	handler;
 #endif
 
 private SIGRESTYPE strt_read proto((int));
-private volatile bool wait_for_sig = NO;
+private volatile jbool wait_for_sig = NO;
 
 private SIGRESTYPE
 hold_read(junk)

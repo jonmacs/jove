@@ -151,11 +151,11 @@ Extend()
  * in the string must be integers or we return NO (failure); otherwise
  * we stop reading at the first nondigit and return YES (success).
  */
-bool
+jbool
 chr_to_long(cp, base, allints, result)
 register const char	*cp;
 int	base;
-bool	allints;
+jbool	allints;
 register long	*result;
 {
 	register char	c;
@@ -190,15 +190,15 @@ register long	*result;
  * in the string must be integers or we return NO (failure); otherwise
  * we stop reading at the first nondigit and return YES (success).
  */
-bool
+jbool
 chr_to_int(cp, base, allints, result)
 register const char	*cp;
 int	base;
-bool	allints;
+jbool	allints;
 register int	*result;
 {
 	long	value;
-	bool ret = chr_to_long(cp, base, allints, &value);
+	jbool ret = chr_to_long(cp, base, allints, &value);
 	if (ret == YES)
 	    *result = (int)(value & ~0); /* XXX but no worse than before */
 	return ret;
@@ -324,8 +324,8 @@ char	*prompt;
 
 	case V_BOOL:
 	    {
-		static const char	*possible[/*bool*/] = {"off", "on", NULL };
-		bool	*valp = (bool *) vp->v_value;
+		static const char	*possible[/*jbool*/] = {"off", "on", NULL };
+		jbool	*valp = (jbool *) vp->v_value;
 		int	newval = complete(possible, possible[!*valp], prompt,
 			CASEIND | ALLOW_OLD | ALLOW_EMPTY);
 
@@ -441,9 +441,9 @@ private int
 	comp_flags,	/* flags arg of complete */
 	comp_value;	/* return value for complete; set by aux_complete */
 
-private bool aux_complete proto((ZXchar c));	/* needed to comfort dumb MS Visual C */
+private jbool aux_complete proto((ZXchar c));	/* needed to comfort dumb MS Visual C */
 
-private bool
+private jbool
 aux_complete(c)
 ZXchar	c;
 {
@@ -590,7 +590,7 @@ Source()
 {
 	char
 		fnamebuf[FILESIZE];
-	bool	silence = is_an_arg();
+	jbool	silence = is_an_arg();
 
 	PathCat(fnamebuf, sizeof(fnamebuf), HomeDir,
 #ifdef MSFILESYSTEM
@@ -653,7 +653,7 @@ BufPos()
 
 #ifdef SUBSHELL
 
-private bool
+private jbool
 do_if(cmd)
 char	*cmd;
 {
@@ -778,7 +778,7 @@ char	*cmd;
 }
 #endif /* SUBSHELL */
 
-private bool
+private jbool
 cmdmatch(inp, verb, oppat)
 char	*inp;
 char	*verb;
@@ -796,7 +796,7 @@ char	*oppat;
 	return NO;
 }
 
-bool
+jbool
 joverc(file)
 char	*file;
 {
@@ -806,7 +806,7 @@ char	*file;
 	jmp_buf	savejmp;
 	volatile int	lnum = 0;
 	File	*volatile fp;
-	volatile bool	eof = NO;
+	volatile jbool	eof = NO;
 	volatile unsigned int	/* bitstrings */
 			finger = 1,
 			skipping = 0,
@@ -916,7 +916,7 @@ char	*file;
 					vpat[128],
 					vbuf[128],
 					*val;
-				bool	matched = NO;
+				jbool	matched = NO;
 
 				putmatch(1, vname, sizeof vname);
 				putmatch(2, vpat, sizeof vpat);

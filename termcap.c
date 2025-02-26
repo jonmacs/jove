@@ -64,7 +64,7 @@ int
 	phystab = 8,	/* ("it") terminal's tabstop settings */
 	UG;		/* number of magic cookies left by US and UE */
 
-bool
+jbool
 	Hazeltine,	/* Hazeltine tilde kludge */
 	UL,		/* underscores don't replace chars already on screen */
 	NP;		/* there is No Pad character */
@@ -81,7 +81,7 @@ const char
 short	ospeed;
 #  endif /* DEFINE_PC_BC_UP_OSPEED */
 
-bool	CanScroll;	/* can this terminal scroll? */
+jbool	CanScroll;	/* can this terminal scroll? */
 
 #  ifdef ID_CHAR
 
@@ -94,7 +94,7 @@ const char
 	*M_IC,	/* Insert char with arg */
 	*M_DC;	/* Delete char with arg */
 
-bool	UseIC = NO;	/* VAR: whether or not to use i/d char processesing */
+jbool	UseIC = NO;	/* VAR: whether or not to use i/d char processesing */
 
 int
 #   ifdef NCURSES_BUG
@@ -109,7 +109,7 @@ int
 	MDClen = INFINITY,	/* length of delete char with arg */
 	CElen = INFINITY;	/* length of clear to end of line */
 
-bool
+jbool
 	MI;		/* okay to move while in insert mode */
 
 #  endif /* ID_CHAR */

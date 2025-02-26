@@ -27,6 +27,6 @@ extern void
 	xtMouseNull proto((void)),
 	xtMousePoint proto((void));
 
-extern bool	XtermMouse;	/* VAR: should we enable xterm mouse? */
+extern jbool	XtermMouse;	/* VAR: should we enable xterm mouse? */
 
 #endif /* MOUSE */

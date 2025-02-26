@@ -27,7 +27,7 @@
 #include "wind.h"
 
 private void
-	DoNewline proto((bool indentp));
+	DoNewline proto((jbool indentp));
 
 #ifdef LISP
 private Bufpos
@@ -296,7 +296,7 @@ DoParen()
 {
 	Bufpos	*bp = NULL;	/* avoid uninitialized complaint from gcc -W */
 	ZXchar	c = LastKeyStruck;
-	bool	tried = NO;
+	jbool	tried = NO;
 
 	if (!jisclosep(c)) {
 		SelfInsert();
@@ -356,7 +356,7 @@ Newline()
 
 private void
 DoNewline(indentp)
-bool	indentp;
+jbool	indentp;
 {
 	Bufpos	save;
 	int	indent;
@@ -410,7 +410,7 @@ const char *str;
 void
 ins_str_wrap(str, ok_nl, wrap_off)
 const char *str;
-bool ok_nl;
+jbool ok_nl;
 int wrap_off;
 {
 	register char c;
@@ -658,14 +658,14 @@ register LinePtr	line1,
 	}
 }
 
-private bool
+private jbool
 newchunk()
 {
 	register LinePtr	newline;
 	register long	i;
 	ChunkPtr	f;
 	long	nlines = CHUNKSIZE;
-	bool	done_gc = NO;
+	jbool	done_gc = NO;
 
 	for (;;) {
 		f = CHUNKMALLOC(sizeof(struct chunk) + sizeof(struct line) * (nlines-1));

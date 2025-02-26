@@ -119,7 +119,7 @@ private int	get_indent proto((LinePtr));
  * End of Algorithm.  I implemented rule 6+ because it seemed nicer.
  */
 
-bool
+jbool
 	SpaceSent2 = YES;	/* VAR: space-sentence-2 */
 
 int
@@ -137,23 +137,23 @@ private int
 	head_indent,
 	body_indent;
 
-private bool	use_lmargin;
+private jbool	use_lmargin;
 
 /* some defines for paragraph boundary checking */
 #define I_DELIM		(-1)	/* line matched by paragraph-delimiter-pattern */
 #define I_BUFEDGE	(-2)	/* line is nonexistent (edge of buffer) */
 
-private bool	bslash;		/* Nonzero if get_indent finds line starting
+private jbool	bslash;		/* Nonzero if get_indent finds line starting
 				   with backslash */
 
-private bool
+private jbool
 i_blank(lp)
 LinePtr	lp;
 {
 	return get_indent(lp) < 0;
 }
 
-private bool
+private jbool
 i_bsblank(lp)
 LinePtr	lp;
 {
@@ -376,7 +376,7 @@ FillRegion()
 
 void
 do_rfill(ulm)
-bool	ulm;
+jbool	ulm;
 {
 	Mark	*mp = CurMark(),
 		*endmark;
@@ -424,7 +424,7 @@ do_space()
 		c1,
 		diff,
 		nspace = 0;
-	bool
+	jbool
 		funny_space = NO;
 
 	skip_wht_space();
@@ -472,7 +472,7 @@ LinePtr	l1,
 int	c1,
 	c2,
 	indent;
-bool
+jbool
 	scrunch;
 {
 	Mark	*savedot = MakeMark(curline, curchar),
@@ -562,7 +562,7 @@ DoPara(dir)
 int	dir;
 {
 	register int	num = arg_value();
-	bool	first_time = YES;
+	jbool	first_time = YES;
 
 	if (num < 0) {
 		num = -num;

@@ -21,19 +21,19 @@
  *	UppWord
  */
 
-private	bool
+private	jbool
 	lower proto((char *)),
 	upper proto((char *));
 
 private void
-	CaseReg proto((bool up)),
-	case_reg proto((LinePtr line1,int char1,LinePtr line2,int char2,bool up));
+	CaseReg proto((jbool up)),
+	case_reg proto((LinePtr line1,int char1,LinePtr line2,int char2,jbool up));
 
 void
 CapChar()
 {
 	register int	num;
-	bool	restore = NO;
+	jbool	restore = NO;
 	Bufpos	b;
 
 	DOTsave(&b);
@@ -99,7 +99,7 @@ CapWord()
 
 private void
 case_word(up)
-bool	up;
+jbool	up;
 {
 	Bufpos	before;
 
@@ -110,7 +110,7 @@ bool	up;
 
 /* Convert *p to upper case.  Return YES iff it was changed. */
 
-private bool
+private jbool
 upper(p)
 register char	*p;
 {
@@ -123,7 +123,7 @@ register char	*p;
 
 /* Convert *p to lower case.  Return YES iff it was changed. */
 
-private bool
+private jbool
 lower(p)
 char	*p;
 {
@@ -142,7 +142,7 @@ LinePtr	line1,
 	line2;
 int	char1,
 	char2;
-bool	up;
+jbool	up;
 {
 	(void) fixorder(&line1, &char1, &line2, &char2);
 	DotTo(line1, char1);
@@ -174,7 +174,7 @@ CasRegUpper()
 
 private void
 CaseReg(up)
-bool	up;
+jbool	up;
 {
 	register Mark	*mp = CurMark();
 	Bufpos	savedot;

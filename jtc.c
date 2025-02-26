@@ -199,7 +199,7 @@ void (*putfunc) proto((int));
 {
 	const char *cp = str;
 	ZXchar c;
-	bool needflush = NO;
+	jbool needflush = NO;
 	while (cp && (c = ZXC(*cp++)) != '\0') {
 		if (c == '$') {
 			flushscreen();

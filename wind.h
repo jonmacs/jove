@@ -59,7 +59,7 @@ extern void
 	SetWind proto((Window *new)),
 	WindSize proto((Window *w,int inc)),
 	del_wind proto((Window *wp)),
-	pop_wind proto((const char *name, bool clobber, int btype)),
+	pop_wind proto((const char *name, jbool clobber, int btype)),
 	tiewind proto((Window *w, Buffer *bp)),	/* util.c!! */
 	winit proto((void));
 
@@ -86,5 +86,5 @@ extern void
 extern int	ScrollStep;		/* VAR: how should we scroll */
 
 #ifdef HIGHLIGHTING
-extern bool	ScrollBar;		/* VAR: whether the scrollbar is used */
+extern jbool	ScrollBar;		/* VAR: whether the scrollbar is used */
 #endif

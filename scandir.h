@@ -7,7 +7,7 @@
 
 extern int
 	jscandir proto((const char *dir, char ***nmptr,
-		bool (*qualify) ptrproto((char *)),
+		jbool (*qualify) ptrproto((char *)),
 		int (*sorter) ptrproto((UnivConstPtr, UnivConstPtr))));
 
 extern void
@@ -15,5 +15,5 @@ extern void
 
 #ifdef MSFILESYSTEM
 /* NOTE: MatchDir affects any call to jscandir */
-extern bool	MatchDir;
+extern jbool	MatchDir;
 #endif

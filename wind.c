@@ -23,7 +23,7 @@ private const char
 	toosmall[] = "Resulting window would be too small.";
 
 #ifdef HIGHLIGHTING
-bool	ScrollBar = NO;	/* VAR: whether the scrollbar is used */
+jbool	ScrollBar = NO;	/* VAR: whether the scrollbar is used */
 #endif
 
 Window
@@ -163,7 +163,7 @@ tiewind(w, bp)
 register Window	*w;
 register Buffer	*bp;
 {
-	bool	not_tied = (w->w_bufp != bp);
+	jbool	not_tied = (w->w_bufp != bp);
 
 	UpdModLine = YES;	/* kludge ... but speeds things up considerably */
 	w->w_line = bp->b_dot;
@@ -419,7 +419,7 @@ int	type;
 void
 pop_wind(name, clobber, btype)
 register const char	*name;
-bool	clobber;
+jbool	clobber;
 int	btype;
 {
 	register Window	*wp;

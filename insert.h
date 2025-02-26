@@ -15,7 +15,7 @@ extern Bufpos *DoYank proto((
 
 extern void
 	ins_str proto((const char *str)),
-	ins_str_wrap proto((const char *str, bool ok_nl, int wrap_off)),
+	ins_str_wrap proto((const char *str, jbool ok_nl, int wrap_off)),
 	LineInsert proto((long num)),
 	open_lines proto((long n)),
 	overwrite proto((DAPchar c, int n)),

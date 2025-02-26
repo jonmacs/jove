@@ -11,7 +11,7 @@ extern void	AbbrevExpand proto((void));
 
 /* Variables: */
 
-extern bool	AutoCaseAbbrev;		/* VAR: automatically do case on abbreviations */
+extern jbool	AutoCaseAbbrev;		/* VAR: automatically do case on abbreviations */
 
 /* Commands: */
 extern void

@@ -87,8 +87,8 @@ struct keymap {
 	int	Type;		/* keymap type (sparse or full) */
 	char	*Name;		/* keymap name */
 	struct keymap	*next_map;
-	bool	unfreeable;
-	bool	mark;	/* used for cycle avoidance */
+	jbool	unfreeable;
+	jbool	mark;	/* used for cycle avoidance */
 	union {
 		struct {
 			data_obj **map;	/* keys array indexed by key */
@@ -350,7 +350,7 @@ struct keymap **km_buf;
 	return nmaps;
 }
 
-bool
+jbool
 IsPrefixChar(c)
 ZXchar	c;
 {
@@ -567,7 +567,7 @@ KeyDesc()
 	s_mess(ProcFmt);
 	while (YES) {
 		int i;
-		bool	still_hope = NO;
+		jbool	still_hope = NO;
 		ZXchar	key = addgetc();
 
 		for (i = 0; i < nmaps; i++) {
@@ -755,7 +755,7 @@ private void
 ShowDoc(doc_type, dp, show_bindings)
 char *doc_type;
 const data_obj *dp;
-bool show_bindings;
+jbool show_bindings;
 {
 	char pattern[100];
 	char	CmdDb[FILESIZE];
@@ -820,7 +820,7 @@ Apropos()
 	register struct macro *m;
 	register const struct variable *v;
 	const char *ans;
-	bool
+	jbool
 		anyfs = NO,
 		anyvs = NO,
 		anyms = NO;
@@ -920,7 +920,7 @@ ZXchar c;
 
 	while (YES) {
 		int	i;
-		bool	still_hope = NO;
+		jbool	still_hope = NO;
 
 		for (i = 0; i < nmaps; i++) {
 			if (maps[i] != NULL) {

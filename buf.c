@@ -405,7 +405,7 @@ BufList()
 	register Buffer	*b;
 	int	bcount = 1,		/* To give each buffer a number */
 		buf_width = 11;
-	bool
+	jbool
 		any_needsaving = NO,
 		any_tempmodified = NO,
 		any_ntbf = NO,
@@ -543,7 +543,7 @@ register const char	*name;
  * with care!
  */
 
-bool
+jbool
 	was_dir,	/* do_stat found a directory */
 	was_file;	/* do_stat found a (plain) file */
 
@@ -709,8 +709,8 @@ Buffer *
 do_find(w, fname, force, do_macros)
 register Window	*w;
 register char	*fname;
-bool	force;
-bool	do_macros;
+jbool	force;
+jbool	do_macros;
 {
 	register Buffer *b;
 	Buffer	*oldb = curbuf;
@@ -776,7 +776,7 @@ Buffer	*b;
 
 
 /* check to see if BP is a valid buffer pointer */
-bool
+jbool
 valid_bp(bp)
 register Buffer	*bp;
 {

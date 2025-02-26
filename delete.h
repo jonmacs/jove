@@ -6,8 +6,8 @@
  **************************************************************************/
 
 extern void
-	del_char proto((int dir,int num,bool OK_kill)),
-	reg_kill proto((LinePtr line2, int char2, bool dot_moved));
+	del_char proto((int dir,int num,jbool OK_kill)),
+	reg_kill proto((LinePtr line2, int char2, jbool dot_moved));
 
 extern LinePtr
 	reg_delete proto((LinePtr line1,int char1,LinePtr line2,int char2)),

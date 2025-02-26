@@ -275,7 +275,7 @@ private const unsigned char IdChartable[NCHARS] = {
 #undef wL
 #undef w
 
-bool
+jbool
 jisident(c)
 DAPchar	c;
 {

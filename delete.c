@@ -146,11 +146,11 @@ void
 del_char(dir, num, OK_kill)
 int	dir,
 	num;
-bool	OK_kill;
+jbool	OK_kill;
 {
 	Bufpos	before,
 		after;
-	bool	killp = (OK_kill && (abs(num) > 1));
+	jbool	killp = (OK_kill && (abs(num) > 1));
 
 	DOTsave(&before);
 	if (dir == FORWARD)
@@ -225,12 +225,12 @@ void
 reg_kill(line2, char2, dot_moved)
 LinePtr	line2;
 int	char2;
-bool	dot_moved;
+jbool	dot_moved;
 {
 	LinePtr	nl,
 		line1 = curline;
 	int	char1 = curchar;
-	bool	backwards;
+	jbool	backwards;
 
 	backwards = !fixorder(&line1, &char1, &line2, &char2);
 	/* This is a kludge!  But it possible for commands that don't
@@ -337,7 +337,7 @@ void
 DelBlnkLines()
 {
 	register Mark	*dot;
-	bool	all;
+	jbool	all;
 
 	if (!blnkp(&linebuf[curchar]))
 		return;
@@ -362,7 +362,7 @@ DelBlnkLines()
 
 private void
 dword(forward)
-bool	forward;
+jbool	forward;
 {
 	Bufpos	savedot;
 

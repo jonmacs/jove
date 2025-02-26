@@ -35,7 +35,7 @@ private int
 private char
 	searchstr[128];		/* global search string */
 
-bool
+jbool
 	UseRE = NO;		/* VAR: use regular expressions in search */
 
 private void
@@ -54,7 +54,7 @@ getsearch()
 private void
 search(dir, re, setdefault)
 int	dir;
-bool	re,
+jbool	re,
 	setdefault;
 {
 	Bufpos	*newdot;
@@ -108,7 +108,7 @@ substitute(re_blk, query, l1, char1, l2, char2)
 struct RE_block	*re_blk;
 LinePtr	l1,
 	l2;
-bool	query;
+jbool	query;
 int	char1,
 	char2;
 {
@@ -116,7 +116,7 @@ int	char1,
 	int	numdone = 0,
 		UNDO_nd = 0,
 		offset = char1;
-	bool	stop = NO;
+	jbool	stop = NO;
 	daddr	UNDO_da = NULL_DADDR;
 	LinePtr	UNDO_lp = NULL;
 
@@ -124,7 +124,7 @@ int	char1,
 
 	for (lp = l1; lp != l2->l_next; lp = lp->l_next) {
 		int	crater = -1;	/* end of last substitution on this line */
-		bool	LineDone = NO;	/* already replaced last empty string on line? */
+		jbool	LineDone = NO;	/* already replaced last empty string on line? */
 
 		while (!LineDone
 		&& re_lindex(lp, offset, FORWARD, re_blk, NO, crater)
@@ -242,7 +242,7 @@ message("Space or Y, Period, Delete or N, ^R or R, ^W, ^U or U, P or !, Return."
 /* prompt for search and replacement strings and do the substitution */
 private void
 replace(query, inreg)
-bool	query,
+jbool	query,
 	inreg;
 {
 	LinePtr	l1 = curline,
@@ -311,9 +311,9 @@ RepSearch()
  * labeled), delete the marked test in the sequential loop, and
  * everything else will just work.
  */
-private bool
+private jbool
 lookup_tag(ispat, searchbuf, sbsize, filebuf, tag, file)
-bool	*ispat;
+jbool	*ispat;
 char	*searchbuf;
 size_t	sbsize;
 char	*filebuf,
@@ -325,7 +325,7 @@ char	*filebuf,
 		pattern[200];
 	register File	*fp;
 	struct stat	stbuf;
-	bool	success = NO;
+	jbool	success = NO;
 
 	fp = open_file(file, iobuff, F_READ, NO);
 	if (fp == NULL) {
@@ -465,14 +465,14 @@ char	TagFile[FILESIZE] = "tags";	/* VAR: default tag file */
 void
 find_tag(tag, localp)
 char	*tag;
-bool	localp;
+jbool	localp;
 {
 	char	filebuf[FILESIZE],
 		sstr[200],	/* 100 wasn't big enough */
 		tfbuf[FILESIZE];
 	register Bufpos	*bp;
 	register Buffer	*b;
-	bool ispat;
+	jbool ispat;
 
 	if (lookup_tag(&ispat, sstr, sizeof(sstr), filebuf, tag,
 	  localp? TagFile : ask_file("With tag file ", TagFile, tfbuf)))
@@ -507,7 +507,7 @@ bool	localp;
 void
 FindTag()
 {
-	bool	localp = !is_an_arg();
+	jbool	localp = !is_an_arg();
 	char	tag[128];
 
 	jamstr(tag, ask((char *)NULL, ProcFmt));
@@ -565,7 +565,7 @@ private Bufpos *
 doisearch(dir, c, failing)
 register ZXchar	c;
 register int	dir;
-bool		failing;
+jbool		failing;
 {
 	static Bufpos	buf;
 	Bufpos	*bp;
@@ -633,7 +633,7 @@ Bufpos	*bp;
 	Bufpos	pushbp;
 	ZXchar	c;
 	int	ndir;
-	bool	failing;
+	jbool	failing;
 	char	*orig_incp;
 
 	if (bp != NULL) {		/* Move to the new position. */

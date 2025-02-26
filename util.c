@@ -22,7 +22,7 @@
 # include "mac.h"
 #endif
 
-bool
+jbool
 blnkp(buf)
 register char	*buf;
 {
@@ -34,7 +34,7 @@ register char	*buf;
 	return c == '\0';	/* It's NUL if we got to the end of the Line */
 }
 
-bool
+jbool
 within_indent()
 {
 	register int	i;
@@ -68,7 +68,7 @@ void
 SetDot(bp)
 register Bufpos	*bp;
 {
-	register bool	notequal;
+	register jbool	notequal;
 
 	if (bp == NULL)
 		return;
@@ -229,9 +229,9 @@ register int	dir;
 /* Are there any modified buffers?  Allp means include B_PROCESS
  * buffers in the check.
  */
-bool
+jbool
 ModBufs(allp)
-bool	allp;
+jbool	allp;
 {
 	register Buffer	*b;
 
@@ -298,7 +298,7 @@ Bufpos *buf;
 
 /* Return YES iff we had to rearrange the order. */
 
-bool
+jbool
 fixorder(line1, char1, line2, char2)
 register LinePtr	*line1,
 		*line2;
@@ -321,7 +321,7 @@ register int	*char1,
 	return YES;
 }
 
-bool
+jbool
 inlist(first, what)
 LinePtr	first,
 		what;
@@ -377,7 +377,7 @@ unmodify()
 void
 diverge(buf, d)
 Buffer	*buf;
-bool	d;
+jbool	d;
 {
 	if (buf->b_diverged != d) {
 		UpdModLine = YES;
@@ -482,7 +482,7 @@ int	atchar,
 		*--to = c;
 }
 
-bool
+jbool
 TwoBlank()
 {
 	register LinePtr	next = curline->l_next;
@@ -656,7 +656,7 @@ int	from,
 
 /* Are s1 and s2 equal, at least for the first n chars, ignoring case? */
 
-bool
+jbool
 caseeqn(s1, s2, n)
 register const char	*s1,
 		*s2;
@@ -741,7 +741,7 @@ size_t bufsz;
 	jamstrsub(buf + bstrsz, str, bufsz - bstrsz);
 }
 
-bool
+jbool
 sindex(pattern, string)
 register const char	*pattern,
 		*string;

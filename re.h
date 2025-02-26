@@ -22,7 +22,7 @@ struct RE_block {
 		r_nparens;
 	ZXchar
 		r_firstc;
-	bool
+	jbool
 		r_anchored;
 };
 
@@ -35,27 +35,27 @@ extern int
 	REeom,
 	REdelta;	/* increase in line length due to last re_dosub */
 
-extern bool	okay_wrap;	/* Do a wrap search ... not when we're
+extern jbool	okay_wrap;	/* Do a wrap search ... not when we're
 				   parsing errors ... */
 
-extern bool
+extern jbool
 	re_lindex proto((LinePtr line, int offset, int dir,
-		struct RE_block *re_blk, bool lbuf_okay, int crater)),
+		struct RE_block *re_blk, jbool lbuf_okay, int crater)),
 	LookingAt proto((const char *pattern,char *buf,int offset)),
 	look_at proto((char *expr));
 
 extern Bufpos
 	*docompiled proto((int dir, struct RE_block *re_blk)),
-	*dosearch proto((const char *pattern, int dir, bool re));
+	*dosearch proto((const char *pattern, int dir, jbool re));
 
 extern void
-	REcompile proto((const char *pattern, bool re, struct RE_block *re_blk)),
+	REcompile proto((const char *pattern, jbool re, struct RE_block *re_blk)),
 	putmatch proto((int which, char *buf,size_t size)),
-	re_dosub proto((struct RE_block *re_blk, char *tobuf, bool delp)),
+	re_dosub proto((struct RE_block *re_blk, char *tobuf, jbool delp)),
 	RErecur proto((void));
 
 /* Variables: */
 
-extern bool
+extern jbool
 	CaseIgnore,		/* VAR: ignore case in search */
 	WrapScan;		/* VAR: make searches wrap */

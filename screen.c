@@ -190,7 +190,7 @@ register char c;
 # ifdef HIGHLIGHTING
 #  define	CharChanged(c)	(*cursor != (char) (c))
 # else /* !HIGHLIGHTING */
-private bool	ChangeEffect = NO;
+private jbool	ChangeEffect = NO;
 #  define	CharChanged(c)	(ChangeEffect || *cursor != (char) (c))
 # endif /* !HIGHLIGHTING */
 
@@ -237,7 +237,7 @@ register char	c;
 
 #ifdef HIGHLIGHTING
 
-private void	(*real_effect) ptrproto((bool));
+private void	(*real_effect) ptrproto((jbool));
 
 private void
 do_hlsputc(hl, oldhl, c)
@@ -253,9 +253,9 @@ char c;
 	 * properties of unsigneds to make an efficient range test.
 	 */
 	void
-		(*virtual_effect) ptrproto((bool)) =
+		(*virtual_effect) ptrproto((jbool)) =
 			(unsigned)i_col - hl->start < hl->width? hl->high : hl->norm,
-		(*underlying_effect) ptrproto((bool)) =
+		(*underlying_effect) ptrproto((jbool)) =
 			(unsigned)i_col - oldhl->start < oldhl->width? oldhl->high : oldhl->norm;
 
 	if (*cursor != c || virtual_effect != underlying_effect) {
@@ -319,7 +319,7 @@ cl_eol()
 
 void
 cl_scr(doit)
-bool doit;
+jbool doit;
 {
 	register int	i;
 	register struct screenline	*sp = Screen;
@@ -386,14 +386,14 @@ struct screenline *sl;
  * displayable characters.
  */
 
-bool
+jbool
 swrite(line, hl, abortable)
 register char	*line;
 LineEffects	hl;
-bool	abortable;
+jbool	abortable;
 {
 	register int	n = cursend - cursor;
-	bool	aborted = NO;
+	jbool	aborted = NO;
 	/* Unfortunately, neither of our LineEffects representation
 	 * is suitable for representing the state of a partially
 	 * updated line.  Consequently, this routine unconditionally
@@ -553,7 +553,7 @@ SO_off()
 
 void
 SO_effect(on)
-bool	on;
+jbool	on;
 {
 	/* If there are magic cookies, then WHERE the SO string is
 	 * printed decides where the SO actually starts on the screen.
@@ -572,7 +572,7 @@ bool	on;
 # ifdef HIGHLIGHTING
 void
 US_effect(on)
-bool	on;
+jbool	on;
 {
 	if (UG == 0)	/* not used if magic cookies */
 		putpad(on? US : UE, 1);

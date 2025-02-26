@@ -6,7 +6,7 @@
  **************************************************************************/
 
 extern void
-	find_tag proto((char *tag,bool localp));
+	find_tag proto((char *tag,jbool localp));
 
 /* Commands: */
 
@@ -27,4 +27,4 @@ extern void
 
 extern ZXchar	SExitChar;		/* VAR: type this to stop i-search */
 extern char	TagFile[FILESIZE];	/* VAR: default tag file */
-extern bool	UseRE;			/* VAR: use regular expressions in search */
+extern jbool	UseRE;			/* VAR: use regular expressions in search */

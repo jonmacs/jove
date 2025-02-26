@@ -14,7 +14,7 @@
 
 extern int	InJoverc;	/* depth in sourcing */
 
-extern bool	joverc proto((char *file));
+extern jbool	joverc proto((char *file));
 
 #ifdef USE_PROTOTYPES
 struct variable;	/* forward declaration preventing prototype scoping */
@@ -35,9 +35,9 @@ extern int
 	ask_int proto((const char *def, const char *prompt, int base)),
 	complete proto((const char *const *possible, const char *def, const char *prompt, int flags));
 
-extern bool
-	chr_to_int proto((const char *cp, int base, bool allints, int *result)),
-	chr_to_long proto((const char *cp, int base, bool allints, long *result));
+extern jbool
+	chr_to_int proto((const char *cp, int base, jbool allints, int *result)),
+	chr_to_long proto((const char *cp, int base, jbool allints, long *result));
 
 /* Commands: */
 extern void

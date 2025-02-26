@@ -51,7 +51,7 @@ extern int
 extern ZXchar
 	DecodePair proto((ZXchar first, ZXchar second));
 
-extern bool
+extern jbool
 	caseeqn proto((const char *s1, const char *s2, size_t n)),
 	TwoBlank proto((void)),
 	blnkp proto((char *buf)),
@@ -59,7 +59,7 @@ extern bool
 	fixorder proto((LinePtr  *line1,int *char1,LinePtr  *line2,int *char2)),
 	inlist proto((LinePtr first,LinePtr what)),
 	sindex proto((const char *pattern, const char *string)),
-	ModBufs proto((bool allp));
+	ModBufs proto((jbool allp));
 
 extern void
 	DOTsave proto((Bufpos *buf)),
@@ -72,7 +72,7 @@ extern void
 	len_error proto((int flag)) NEVER_RETURNS,
 	linecopy proto((char *onto,int atchar,char *from)),
 	modify proto((void)),
-	diverge proto((Buffer *buf, bool d)),
+	diverge proto((Buffer *buf, jbool d)),
 	null_ncpy proto((char *to, const char *from, size_t n)),
 #ifdef UNIX
 	dopipe proto((int *p)),
@@ -104,7 +104,7 @@ extern char **environ;	/* <unistd.h> */
 
 typedef struct {
 	const char **e_data;
-	bool e_malloced;
+	jbool e_malloced;
 	int e_headroom;	/* remaining room in e_data array */
 } Env;
 

@@ -12,7 +12,7 @@
  */
 
 extern void
-	ttysetattr proto((bool n)),
+	ttysetattr proto((jbool n)),
 	ttsize proto((void)),
 	getTERM proto((void)),
 	settout proto((void)),
@@ -30,11 +30,11 @@ extern void
 	pcSetTerm proto((void)),
 	pcUnsetTerm proto((void));
 
-extern bool enhanced_keybrd;	/* VAR: exploit "enhanced" keyboard? */
+extern jbool enhanced_keybrd;	/* VAR: exploit "enhanced" keyboard? */
 # endif /* IBMPCDOS */
 
 extern ZXchar	getrawinchar proto((void));
-extern bool	rawkey_ready proto((void));
+extern jbool	rawkey_ready proto((void));
 
 #endif /* MSDOS */
 
@@ -105,7 +105,7 @@ extern int
 	phystab,	/* ("it") terminal's tabstop settings */
 	UG;		/* number of magic cookies left by US and UE */
 
-extern bool
+extern jbool
 	Hazeltine,		/* Hazeltine tilde kludge */
 	UL,		/* underscores don't replace chars already on screen */
 	NP;		/* there is No Pad character */
@@ -119,7 +119,7 @@ extern const char
 
 extern short	ospeed;
 
-extern bool	CanScroll;	/* can this terminal scroll? */
+extern jbool	CanScroll;	/* can this terminal scroll? */
 
 # ifdef ID_CHAR
 
@@ -132,7 +132,7 @@ extern const char
 	*M_IC,	/* Insert char with arg */
 	*M_DC;	/* Delete char with arg */
 
-extern bool	UseIC;	/* VAR: whether or not to use i/d char processesing */
+extern jbool	UseIC;	/* VAR: whether or not to use i/d char processesing */
 
 extern int
 	IMEIlen,	/* length of insert mode + end insert mode strings */
@@ -142,7 +142,7 @@ extern int
 	MDClen,	/* length of delete char with arg */
 	CElen;	/* length of clear to end of line */
 
-extern bool
+extern jbool
 	MI;		/* okay to move while in insert mode */
 
 # endif /* ID_CHAR */

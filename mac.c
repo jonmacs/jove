@@ -94,7 +94,7 @@ private	EventRecord the_Event;
 private void SetBounds proto((void));
 private void Set_std proto((void));
 private void Reset_std proto((void));
-private bool findtext proto((void));
+private jbool findtext proto((void));
 
 
 /* tn.h Modified for variable screen size 11/21/87. K. Mitchum */
@@ -126,8 +126,8 @@ private bool findtext proto((void));
 /***************************************************/
 
 private void
-	putcurs proto((unsigned row, unsigned col, bool vis)),
-	curset proto((bool desired)),
+	putcurs proto((unsigned row, unsigned col, jbool vis)),
+	curset proto((jbool desired)),
 	dellines proto((int n, int bot)),
 	inslines proto((int n, int bot));
 
@@ -142,14 +142,14 @@ struct wind_config {
 
 private WindowPtr theScreen;
 
-bool
+jbool
 	Windchange,
 	EventCmd,
 	Keyonly,
 	Bufchange,
 	Modechange;
 
-bool
+jbool
 	Macmode = NO;	/* VAR: use Mac file selector */
 
 /* Initialization Routines. */
@@ -227,7 +227,7 @@ MacInit()
 
 void
 ttysetattr(n)
-bool	n;	/* also used as subscript! */
+jbool	n;	/* also used as subscript! */
 {
 }
 
@@ -243,7 +243,7 @@ private long cur_dir;	/* Directory number */
 private int cur_vref;	/* ugh.. Vref for volume + directory */
 
 struct ftab {
-	bool inuse;
+	jbool inuse;
 	int refnum;	/* Mac file reference number */
 } ft[NFILES];
 
@@ -763,7 +763,7 @@ long	dir;
 	return 0;
 }
 
-private bool
+private jbool
 lookupdir(dir, d)
 const char	*dir;	/* UNIX-like pathname for directory */
 CInfoPBPtr	d;	/* info from directory */
@@ -820,7 +820,7 @@ int
 jscandir(dir, nmptr, qualify, sorter)
 const char	*dir;
 char	***nmptr;
-bool	(*qualify) ptrproto((char *));
+jbool	(*qualify) ptrproto((char *));
 int	(*sorter) ptrproto((UnivConstPtr, UnivConstPtr));
 {
 	long DirID;
@@ -1174,7 +1174,7 @@ void
 do_events()
 {
 	short item;
-	bool done = NO;
+	jbool done = NO;
 	Point p;
 
 	while (!done) {
@@ -1204,7 +1204,7 @@ do_events()
 #define EVENTLIST (mDownMask | keyDownMask )
 
 private Point p;
-private bool wc_adjust proto((int, int, struct wind_config *, int));
+private jbool wc_adjust proto((int, int, struct wind_config *, int));
 
 private void
 	MakeScrollBar proto((Window *w)),
@@ -1368,7 +1368,7 @@ WindowPtr window;
 		Window
 			*jwind,
 			*cwind;
-		bool	notcurwind = NO;
+		jbool	notcurwind = NO;
 		int	cpart;	/* control part */
 
 		if ((cpart = FindControl(p, window, &whichControl)) == 0)
@@ -1524,7 +1524,7 @@ int row;
 
 private int	ptoxy proto((Point, int *, int *));	/* convert Point to terminal x, y coordinate */
 
-private bool
+private jbool
 findtext()		/* locate and move the point to match the mouse */
 {
 	int row, col;
@@ -1943,7 +1943,7 @@ rawgetc()
 	return c;
 }
 
-bool
+jbool
 rawchkc()
 {
 	if (EventCmd) {
@@ -2174,7 +2174,7 @@ struct menu *M;
 			AppendMenu(M->Mn, ps=CtoPstr(d->Name));
 			PtoCstr(ps);
 			if ((((struct variable *)d)->v_flags & V_TYPEMASK) == V_BOOL
-			&& *(bool *)(((struct variable *)d)->v_value))
+			&& *(jbool *)(((struct variable *)d)->v_value))
 				CheckItem(M->Mn, i + 1, YES);
 			break;
 		case COMMAND:
@@ -2351,7 +2351,7 @@ int mnu, itm;
 {
 	if ((vp->v_flags & V_TYPEMASK) == V_BOOL) {
 		/* toggle the value */
-		*((bool *) vp->v_value) = !*((bool *) vp->v_value);
+		*((jbool *) vp->v_value) = !*((jbool *) vp->v_value);
 		MarkVar(vp, mnu, itm);
 	} else {
 		char	prompt[128];
@@ -2376,7 +2376,7 @@ MarkModes()
 			if ((d->Type & (MAJOR_MODE | MINOR_MODE))
 			|| ((d->Type & TYPEMASK) == BUFFER))
 			{
-				bool	checked;
+				jbool	checked;
 
 				if (d->Type & (MAJOR_MODE))
 					checked = curbuf->b_major == (d->Type >> 8);
@@ -2408,7 +2408,7 @@ int mnu, itm;
 				break;
 		}
 	}
-	CheckItem(Menus[mnu].Mn, itm + 1, *(bool *)vp->v_value);
+	CheckItem(Menus[mnu].Mn, itm + 1, *(jbool *)vp->v_value);
 }
 
 /* Screen routines and driver. The Macinitosh Text Edit routines are not utilized,
@@ -2473,9 +2473,9 @@ private height, width, theight, twidth, descent;
 #endif
 
 private int trow, tcol;
-private bool	cursvis;
+private jbool	cursvis;
 #ifdef NEVER
-private bool insert;
+private jbool insert;
 #endif
 private Rect cursor_rect;
 private char *p_scr, *p_curs;	/* physical screen and cursor */
@@ -2498,7 +2498,7 @@ int	row,
 #ifdef NEVER
 private void
 INSmode(new)
-bool new;
+jbool new;
 {
 	insert = new;
 }
@@ -2506,7 +2506,7 @@ bool new;
 
 void
 SO_effect(new)
-bool new;
+jbool new;
 {
 	theScreen->txMode = new? notSrcCopy : srcCopy;
 }
@@ -2540,7 +2540,7 @@ clr_page()	/* clear and home function */
 private void
 putcurs(row, col, vis)
 unsigned	row, col;
-bool	vis;
+jbool	vis;
 {
 	active();
 	curset(NO);
@@ -2551,7 +2551,7 @@ bool	vis;
 
 private void
 curset(invert)
-bool	invert;
+jbool	invert;
 {
 	int
 		colpix = tcol * width,
@@ -2753,7 +2753,7 @@ p_refresh()
 }
 
 
-private bool
+private jbool
 wc_adjust(w, h, wcf, init)		/* adjust window config to look nice */
 int w, h;
 struct wind_config *wcf;

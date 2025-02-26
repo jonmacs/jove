@@ -6,8 +6,8 @@
  **************************************************************************/
 
 extern Bufpos
-	*c_indent proto((bool brace)),
-	*m_paren proto((DAPchar p_type, int dir, bool can_mismatch, bool can_stop));
+	*c_indent proto((jbool brace)),
+	*m_paren proto((DAPchar p_type, int dir, jbool can_mismatch, jbool can_stop));
 
 extern void	mp_error proto((void));
 

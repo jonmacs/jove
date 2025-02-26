@@ -23,7 +23,7 @@
 private void
 	FindMatch proto((int));
 
-private bool
+private jbool
 backslashed(lp, cpos)
 register char	*lp;
 register int	cpos;
@@ -79,8 +79,8 @@ Bufpos *
 m_paren(p_type, dir, can_mismatch, can_stop)
 DAPchar	p_type;
 register int	dir;
-bool	can_mismatch;
-bool	can_stop;
+jbool	can_mismatch;
+jbool	can_stop;
 {
 	static Bufpos	ret;
 	Bufpos	savedot;
@@ -92,7 +92,7 @@ bool	can_stop;
 		quote_c = '\0';
 	register int	c_char;
 	int	in_comment = -1;	/* -1, YES, or NO */
-	bool	stopped = NO;
+	jbool	stopped = NO;
 
 	REcompile(MajorMode(CMODE)? "[(){}[\\]/\"']" : "[(){}[\\]\"]",
 		YES, &re_blk);
@@ -207,7 +207,7 @@ bool	can_stop;
 private void
 do_expr(dir, skip_words)
 register int	dir;
-bool	skip_words;
+jbool	skip_words;
 {
 	register char	syntax = (dir == FORWARD) ? C_BRA : C_KET;
 
@@ -377,7 +377,7 @@ int	CArgIndent = ALIGN_ARGS;	/* VAR: how to indent arguments to C functions */
 /* indent for C code */
 Bufpos *
 c_indent(brace)
-bool	brace;
+jbool	brace;
 {
 	Bufpos	*bp;
 	int	new_indent = 0,
@@ -541,7 +541,7 @@ private char	open_c[CMT_STR_BOUND],	/* the open comment format string */
 		close_c[CMT_STR_BOUND],
 		close_pat[CMT_STR_BOUND];
 
-private bool	nl_in_close_c;
+private jbool	nl_in_close_c;
 
 /* Fill in the data structures above from the format string.  Don't return
  * if there's trouble.
@@ -625,7 +625,7 @@ FillComment()
 {
 	int	saveRMargin,
 		indent_pos;
-	bool	found_close;
+	jbool	found_close;
 	char	*trimmed_header;	/* l_header without leading spaces */
 	int	trimmed_header_len,	/* length without leading or trailing spaces */
 		trailer_len;

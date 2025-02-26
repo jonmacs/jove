@@ -37,7 +37,7 @@ extern File	*ProcInput;
 extern pid_t	kbd_pid;
 
 extern void	kbd_strt proto((void));
-extern bool	kbd_stop proto((void));
+extern jbool	kbd_stop proto((void));
 extern void	read_pipe_proc proto((pid_t, int));
 extern void	kbd_kill proto((void));
 
@@ -46,7 +46,7 @@ extern void	kbd_kill proto((void));
 extern void	read_pty_proc proto((int));
 
 extern SIGRESTYPE	sigchld_handler proto((int));
-extern volatile bool	procs_to_reap;
+extern volatile jbool	procs_to_reap;
 extern void	reap_procs proto((void));
 
 # endif /* !PIPEPROCS */
@@ -55,7 +55,7 @@ extern void
 	closeiprocs proto((void)),
 	untieDeadProcess proto((Buffer *));
 
-extern bool
+extern jbool
 	KillProcs proto((void));
 
 extern const char

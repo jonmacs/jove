@@ -23,7 +23,7 @@ private void rawkey_wait proto((void));
 #ifdef IBMPCDOS
 private ZXchar	last = EOF;
 
-bool enhanced_keybrd;	/* VAR: exploit "enhanced" keyboard? */
+jbool enhanced_keybrd;	/* VAR: exploit "enhanced" keyboard? */
 
 /* Unlike the other _NKEYBRD services, the _NKEYBRD_READY service
  * *requires* specific support within _bios_keybrd.  In particular
@@ -173,9 +173,9 @@ getrawinchar()
 #endif /* !IBMPCDOS */
 }
 
-private bool	waiting = NO;
+private jbool	waiting = NO;
 
-bool
+jbool
 rawkey_ready()
 {
 #ifdef IBMPCDOS
@@ -231,7 +231,7 @@ rawkey_wait()
 
 void
 ttysetattr(n)
-bool	n;	/* also used as subscript! */
+jbool	n;	/* also used as subscript! */
 {
 	static char break_state;
 
