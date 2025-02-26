@@ -1,4 +1,4 @@
-#!/bin/sh -eux
+#!/bin/sh -ex
 # NOTE: Jove does not use autotools/configure.  This is 
 # a minimal convenience wrapper that crudely auto-detects the OS on 
 # a few of the most common modern (2020+) open-source
@@ -17,18 +17,18 @@
 # JMAKE_UNAME=i686-w64-mingw32 sets up a cross-compile for Win32
 
 u=${JMAKE_UNAME-`uname | tr -d -c '[a-zA-Z0-9_]'`}
-cc=${CC-cc}
+defcc=cc
 sysdefs="-D$u"	# see sysdep.h for symbols to define for porting Jove to various systems
 # most modern compilers are gcc-compatible (even if called cc)
-optflags=${CFLAGS-"-g -Os -Wall -Werror -pedantic"}
+optflags=${CFLAGS-"-g -Os -Wall -Werror -pedantic -std=c89 -D_DEFAULT_SOURCE=1"}
 ldlibs=
 ldflags=	# special link flags, usually none needed
 extra=		# older UN*X (e.g Solaris, SunOS, etc, might need these)
 rel=
 case "$u" in
-*mingw*) # e.g i686-w64-mingw32
+*mingw*) # presumably set via something like JMAKE_UNAME=i686-w64-mingw32
 	: ${JMAKE_RELATIVE=1}
-	cc=${CC-"$u-gcc"}
+	defcc="$u-gcc"
 	sysdefs="-DMINGW"
 	case "$u" in
 	*x86_64*)	optflags="$optflags -Wno-long-long" # Win64 needs long long, and older gcc produce a C90 complaint;;
@@ -36,12 +36,12 @@ case "$u" in
 	extra="LOCALCC=${LOCALCC-cc} XEXT=.exe WINDRES=$u-windres EXTRAOBJS=win32.o ICON=jjove.coff"
 	ldlibs=-lcomdlg32
 	;;
-*-linux-musl*)
+*-linux-musl*) # presumably set via something like JMAKE_UNAME=i486-linux-musl
 	: ${JMAKE_RELATIVE=1}
-	cc=${CC-"$u-gcc"}
+	defcc="$u-gcc"
 	sysdefs="-DLinux -DJTC"
 	optflags="$optflags -static"
-	extra="LOCALCC=${LOCALCC-cc}"
+	extra="LOCALCC=${LOCALCC-cc}" # for setmaps
 	;;
 CYGWIN*)
 	sysdefs="-DCYGWIN"
@@ -50,7 +50,16 @@ CYGWIN*)
 	# openpty on BSD requires libutil
 	ldlibs="-ltermcap -lutil"
 	;;
-SunOS)	optflags=-O # generally not gcc
+SunOS)	for dx in /usr/bin /usr/sfw/bin; do
+		if test -e $dx/gcc; then
+			defcc=$dx/gcc
+			break
+		fi
+	done
+	case "${CC-$defcc}" in
+	*gcc|*clang)	;;
+	*) optflags=-O;; # generally not gcc, perhaps Sunpro or classic Unix cc
+	esac
 	ldlibs="-ltermcap"
 	extra="$extra NROFF=nroff TROFF=troff"	
         xi=/usr/gnu/bin/install
@@ -97,4 +106,4 @@ y*|1|t*)
 	rel="DESTDIR=${DESTDIR-/none/} JOVEHOME= JBINDIR= JSHAREDIR=doc JLIBDIR="
 	;;
 esac
-exec make ${JMAKE_OPTS-} CC="$cc" SYSDEFS="$sysdefs" OPTFLAGS="$optflags" LDLIBS="$ldlibs" LDFLAGS="$ldflags" $rel $extra "$@"
+exec make ${JMAKE_OPTS-} CC="${CC-$defcc}" SYSDEFS="$sysdefs" OPTFLAGS="$optflags" LDLIBS="$ldlibs" LDFLAGS="$ldflags" $rel $extra "$@"
