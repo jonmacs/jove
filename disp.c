@@ -1266,13 +1266,17 @@ int	linenum;
 #endif
 			};
 
+			/*
+			 * Minor mode names clue to the command needed * to turn
+			 * them off
+			 */
 			static const char	*const minname[] = {
-				" Fill",
-				" Abbrev",
-				" OvrWt",
-				" Indent",
-				" RO",
-				"",		/* not worth reporting ShowMatch */
+				" AuFill",
+				" WoAbbr",
+				" OvWrt",
+				" AuInd",
+				" ReadO",
+				" ShoMat",
 #ifdef IPROCS
 				" DBX",
 #endif
