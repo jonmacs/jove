@@ -17,24 +17,24 @@
 #define	save_arg(as,ac)	{ (ac) = arg_count; (as) = arg_state; }
 #define	restore_arg(as,ac)	{ arg_count = (ac); arg_state = (as); }
 
-extern void	negate_arg proto((void));
+extern void	negate_arg(void);
 
 /* Commands: */
 
 extern void
-	Digit proto((void)),
-	DigitMinus proto((void)),
-	Digit0 proto((void)),
-	Digit1 proto((void)),
-	Digit2 proto((void)),
-	Digit3 proto((void)),
-	Digit4 proto((void)),
-	Digit5 proto((void)),
-	Digit6 proto((void)),
-	Digit7 proto((void)),
-	Digit8 proto((void)),
-	Digit9 proto((void)),
-	TimesFour proto((void));
+	Digit(void),
+	DigitMinus(void),
+	Digit0(void),
+	Digit1(void),
+	Digit2(void),
+	Digit3(void),
+	Digit4(void),
+	Digit5(void),
+	Digit6(void),
+	Digit7(void),
+	Digit8(void),
+	Digit9(void),
+	TimesFour(void);
 
 /* private to macros */
 

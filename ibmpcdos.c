@@ -47,7 +47,7 @@ int
 	Hlattr = 0x10;	/* VAR: highlight-attribute */
 
 void
-getTERM()
+getTERM(void)
 {
 	/* Check if 101- or 102-key keyboard is installed.
 	 * This test is apparently unreliable, so we allow override.
@@ -59,14 +59,13 @@ getTERM()
 }
 
 private void
-setcolor(attr)
-BYTE attr;
+setcolor(BYTE attr)
 {
 	c_attr = attr;
 }
 
 private void
-set_cur()
+set_cur(void)
 {
 	union REGS vr;
 
@@ -78,7 +77,7 @@ set_cur()
 }
 
 private void
-get_cur()
+get_cur(void)
 {
 	union REGS vr;
 
@@ -90,7 +89,7 @@ get_cur()
 }
 
 private BYTE
-chpl()
+chpl(void)
 {
 	union REGS vr;
 
@@ -102,8 +101,7 @@ chpl()
 #define cur_mov(r, c)	{ c_row = (r); c_col = (c); set_cur(); }
 
 private void
-scr_win(op, no, ur, lr)
-int op, no, ur, lr;
+scr_win(int op, int no, int ur, int lr)
 {
 	union REGS vr;
 
@@ -120,21 +118,19 @@ int op, no, ur, lr;
 }
 
 void
-i_lines(top, bottom, num)
-int top, bottom, num;
+i_lines(int top, int bottom, int num)
 {
 	scr_win(VBS_scroll_window_down, num, top, bottom);
 }
 
 void
-d_lines(top, bottom, num)
-int top, bottom, num;
+d_lines(int top, int bottom, int num)
 {
 	scr_win(VBS_scroll_window_up, num, top, bottom);
 }
 
 void
-clr_page()
+clr_page(void)
 {
 	SO_off();
 	/* Note: VBS_scroll_window_up with a count of 0 clears the screen! */
@@ -143,8 +139,7 @@ clr_page()
 }
 
 private void
-ch_out(c, n)
-BYTE c, n;
+ch_out(BYTE c, BYTE n)
 {
 	union REGS vr;
 
@@ -157,7 +152,7 @@ BYTE c, n;
 }
 
 void
-clr_eoln()
+clr_eoln(void)
 {
 	ch_out(' ', CO-c_col);
 }
@@ -167,7 +162,7 @@ clr_eoln()
  */
 
 private BYTE
-lpp()
+lpp(void)
 {
 	union REGS vr;
 	int	lines;
@@ -193,7 +188,7 @@ lpp()
 /* discover current video attribute */
 
 private void
-get_c_attr()
+get_c_attr(void)
 {
 	union REGS vr;
 
@@ -242,9 +237,7 @@ get_c_attr()
 #define	EGA8x16	0x14	/* not 0x04 or 0x24 */
 
 private void
-EGAsetup(scanlines, font)
-BYTE	scanlines;
-BYTE	font;
+EGAsetup(BYTE scanlines, BYTE font)
 {
 	union REGS vr;
 	vr.h.ah = VBS_select_active_display_page;
@@ -278,9 +271,8 @@ BYTE	font;
 	get_c_attr();
 }
 
-private bool
-set_lines(lines)
-int	lines;
+private jbool
+set_lines(int lines)
 {
 	switch (lines) {
 	case 25:
@@ -301,11 +293,11 @@ int	lines;
 	return YES;
 }
 
-private bool	pc_set = NO;
+private jbool	pc_set = NO;
 private int	unsetLI;
 
 void
-pcSetTerm()
+pcSetTerm(void)
 {
 	char	*t = getenv("TERM");
 
@@ -335,12 +327,12 @@ pcSetTerm()
 }
 
 void
-ttsize()
+ttsize(void)
 {
 }
 
 void
-pcUnsetTerm()
+pcUnsetTerm(void)
 {
 	if (pc_set) {
 		pc_set = NO;
@@ -349,7 +341,7 @@ pcUnsetTerm()
 }
 
 private void
-line_feed()
+line_feed(void)
 {
 	if (++c_row > ILI) {
 		c_row = ILI;
@@ -364,8 +356,7 @@ line_feed()
 #define TINI   182			/* 10110110b timer initialization */
 
 void
-dobell(n)	/* declared in term.h */
-int	n;
+dobell(int n)	/* declared in term.h */
 {
 	unsigned char	spkr_state = inp(BELL_P);
 
@@ -387,7 +378,7 @@ int	n;
 		 * I think it would use the timer channel we're already using.
 		 */
 		int	half_cycs = 200;	/* number of half-cycles to play */
-		bool	hi_is_0 = NO;	/* detect zero transitions; initial lie unimportant */
+		jbool	hi_is_0 = NO;	/* detect zero transitions; initial lie unimportant */
 
 		for (;;) {
 			(void) inp(TIME_P+2);	/* low-order counter 2 byte */
@@ -408,15 +399,9 @@ int	n;
 
 /* scr_putchar: put char on screen.  Declared in fp.h */
 
-#ifdef USE_PROTOTYPES
 /* char is subject to default argument promotions */
 void
 scr_putchar(char c)
-#else
-void
-scr_putchar(c)
-char c;
-#endif
 {
 	switch (c) {
 	case LF:
@@ -450,36 +435,32 @@ char c;
  */
 
 void
-Placur(line, col)
-int line,
-    col;
+Placur(int line, int col)
 {
 	cur_mov(line, col);
 	CapCol = col;
 	CapLine = line;
 }
 
-private bool
+private jbool
 	doing_so = NO,
 	doing_us = NO;
 
 private void
-doattr()
+doattr(void)
 {
 	setcolor((doing_so? Mlattr : Txattr) ^ (doing_us? Hlattr : 0));
 }
 
 void
-SO_effect(f)
-bool f;
+SO_effect(jbool f)
 {
 	doing_so = f;
 	doattr();
 }
 
 void
-US_effect(f)
-bool	f;
+US_effect(jbool f)
 {
 	doing_us = f;
 	doattr();

@@ -46,45 +46,45 @@ extern Window
 #define WSIZE(wp)	((wp)->w_height - 1)	/* window lines, without modeline */
 
 extern int
-	in_window proto((Window *windes,LinePtr line));
+	in_window(Window *windes,LinePtr line);
 
 extern Window
-	*div_wind proto((Window *wp,int n)),
-	*windbp proto((Buffer *bp));
+	*div_wind(Window *wp,int n),
+	*windbp(Buffer *bp);
 
 extern void
-	CalcWind proto((Window *w)),
-	CentWind proto((Window *w)),
-	SetTop proto((Window *w,LinePtr line)),
-	SetWind proto((Window *new)),
-	WindSize proto((Window *w,int inc)),
-	del_wind proto((Window *wp)),
-	pop_wind proto((const char *name, bool clobber, int btype)),
-	tiewind proto((Window *w, Buffer *bp)),	/* util.c!! */
-	winit proto((void));
+	CalcWind(Window *w),
+	CentWind(Window *w),
+	SetTop(Window *w,LinePtr line),
+	SetWind(Window *new),
+	WindSize(Window *w,int inc),
+	del_wind(Window *wp),
+	pop_wind(const char *name, jbool clobber, int btype),
+	tiewind(Window *w, Buffer *bp),	/* util.c!! */
+	winit(void);
 
 /* Commands: */
 
 extern void
-	DelCurWindow proto((void)),
-	GotoWind proto((void)),
-	GrowWindowCmd proto((void)),
-	NextWindow proto((void)),
-	OneWindow proto((void)),
-	PageNWind proto((void)),
-	PrevWindow proto((void)),
-	ScrollLeft proto((void)),
-	ScrollRight proto((void)),
-	ShrWindow proto((void)),
-	SplitWind proto((void)),
-	WNumLines proto((void)),
-	WVisSpace proto((void)),
-	WindFind proto((void));
+	DelCurWindow(void),
+	GotoWind(void),
+	GrowWindowCmd(void),
+	NextWindow(void),
+	OneWindow(void),
+	PageNWind(void),
+	PrevWindow(void),
+	ScrollLeft(void),
+	ScrollRight(void),
+	ShrWindow(void),
+	SplitWind(void),
+	WNumLines(void),
+	WVisSpace(void),
+	WindFind(void);
 
 /* Variables: */
 
 extern int	ScrollStep;		/* VAR: how should we scroll */
 
 #ifdef HIGHLIGHTING
-extern bool	ScrollBar;		/* VAR: whether the scrollbar is used */
+extern jbool	ScrollBar;		/* VAR: whether the scrollbar is used */
 #endif

@@ -5,7 +5,7 @@
  * this notice is included in all the source files and documentation.     *
  **************************************************************************/
 
-typedef void(*cmdproc_t)  ptrproto((void));
+typedef void(*cmdproc_t) (void);
 
 struct cmd {
 	/* Type and Name must match data_obj */
@@ -22,7 +22,7 @@ extern const struct cmd	commands[];
 extern const struct cmd	*cmdidx[IDXSZ];
 
 extern const struct cmd
-	*FindCmd proto((cmdproc_t));
+	*FindCmd(cmdproc_t);
 
 extern void
-	ExecCmd proto((const data_obj *cp));
+	ExecCmd(const data_obj *cp);

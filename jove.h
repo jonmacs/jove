@@ -14,13 +14,13 @@
 #include <setjmp.h>
 #include <string.h>
 #include <errno.h>
+#include <time.h>
 
-#ifndef EWOULDBLOCK
+#ifdef EWOULDBLOCK
+# define RETRY_ERRNO(e) ((e) == EINTR || (e) == EAGAIN || (e) == EWOULDBLOCK)
+#else
 /* older Unix, e.g. V7 */
 # define RETRY_ERRNO(e)	((e) == EINTR || (e) == EAGAIN)
-#else
-# define RETRY_ERRNO(e) ((e) == EINTR || (e) == EAGAIN || (e) == EWOULDBLOCK)
-
 #endif
 
 #ifdef USE_STDIO_H
@@ -32,27 +32,6 @@
 #else
 # include <types.h>
 # include <time.h>	/* for time_t */
-#endif
-
-/* proto: macro to allow us to prototype any function declaration
- * without upsetting old compilers.
- */
-
-#ifdef REALSTDC
-# define    USE_PROTOTYPES  1
-#endif
-
-#ifdef USE_PROTOTYPES
-# define proto(x)        x
-# ifdef NO_PTRPROTO
-   /* on these systems, a prototype cannot be used for a pointer to function */
-#  define ptrproto(x)		()
-# else
-#  define ptrproto(x)		x
-# endif
-#else
-# define proto(x)		()
-# define ptrproto(x)		()
 #endif
 
 /* There are two ways to handle functions with a variable number of args.
@@ -82,29 +61,7 @@
  *    and a longjmp(), and we wish it to have the correct value after
  *    the longjmp().  This second meaning is an X3J11 abomination.
  * So far, only the second meaning is used.
- *
- * UnivPtr: universal pointer type
- *
- * UnivConstPtr: universal pointer to const
  */
-
-#ifdef REALSTDC
-
-  typedef void	*UnivPtr;
-  typedef const void	*UnivConstPtr;
-
-#else /* !REALSTDC */
-
-# ifndef const
-#  define	const	/* Only in ANSI C.  Pity */
-# endif
-# ifndef volatile
-#  define	volatile
-# endif
-  typedef char	*UnivPtr;
-  typedef const char	*UnivConstPtr;
-
-#endif /* !REALSTDC */
 
 /* According to the ANSI standard for C, any library routine may
  * be defined as a macro with parameters.  In order to prevent
@@ -113,17 +70,14 @@
  * and legal approach, even for K&R C.
  *
  * A bug in the MIPS compiler used on MIPS, IRIS, and probably other
- * MIPS R[23]000 based systems, causes the compiler to reject
- * these declarations (at least at the current time, 1989 August).
- * To avoid this bug, we conditionally define and use UNMACRO.
+ * MIPS R[23]000 based systems, caused the compiler to reject
+ * these declarations (at least at that time, 1989 August).
+ * To avoid this bug, we had conditionally defined and used UNMACRO.
  */
-#ifdef MIPS_CC_BUG
-# define UNMACRO(proc)	proc
-#else
-# define UNMACRO(proc)	(proc)
-#endif
 
-/* Since Jove does not use stdio.h (recover and setmaps do), we may have to define NULL and EOF */
+/* Since Jove does not use stdio.h (recover and setmaps do),
+ * we may have to define NULL and EOF.
+ */
 
 #ifndef NULL
 #define NULL	(void *)0
@@ -148,7 +102,7 @@
 
 #define private		static
 
-typedef int	bool;
+typedef int		jbool;
 #define NO		0
 #define YES		1
 
@@ -161,10 +115,10 @@ typedef int	bool;
  * resetsighandler: the best way to re-establish a signal handler
  */
 
-typedef SIGRESTYPE (*SIGHANDLERTYPE) ptrproto((int));
+typedef SIGRESTYPE (*SIGHANDLERTYPE)(int);
 
 #ifdef POSIX_SIGS
-extern SIGHANDLERTYPE setsighandler proto((int, SIGHANDLERTYPE));
+extern SIGHANDLERTYPE setsighandler(int, SIGHANDLERTYPE);
 # define resetsighandler(signo, handler)	/* nothing */
 #else /* !POSIX_SIGS */
 # ifdef USE_SIGSET
@@ -289,7 +243,7 @@ typedef int ZXchar;	/* type for expanded char (possibly EOF) */
 /* Pervasive exports of other modules */
 
 /* disp.c */
-extern volatile bool	UpdModLine;	/* Does the mode line need to be updated? */
+extern volatile jbool	UpdModLine;	/* Does the mode line need to be updated? */
 
 /* term.c: universal termcap-like declarations */
 
@@ -299,7 +253,7 @@ extern int
 	ILI,		/* number of internal lines (LI - 1) */
 	CO;		/* number of columns (CO <= MAXCOLS) */
 
-extern bool
+extern jbool
 	TABS;		/* terminal supports tabs */
 
 /* typedef pervasive structure definitions */
@@ -367,14 +321,14 @@ extern int
 	RecDepth,	/* recursion depth (used by disp.c for modeline) */
 	SlowCmd;	/* depth of nesting of slow commands */
 
-extern bool
+extern jbool
 	TOabort,	/* flag set by Typeout() */
 	stickymsg,	/* the last message should stick around */
 	InputPending,	/* is there input waiting to be processed? */
 	Interactive;
 
 #ifdef UNIX
-extern bool
+extern jbool
 	InSlowRead;	/* Can we do a redisplay in a signal handler? */
 #endif
 
@@ -389,54 +343,54 @@ extern char	*Inputp;
 #endif
 
 #ifdef SUBSHELL
-extern void	jcloseall proto((void));
+extern void	jcloseall(void);
 #endif
 
 extern SIGRESTYPE
-	finish proto((int code)) NEVER_RETURNS,	/* doesn't return at all! */
-	win_reshape proto((int /*junk*/));
+	finish(int code) NEVER_RETURNS,	/* doesn't return at all! */
+	win_reshape(int UNUSED(junk));
 
-extern bool
-	charp proto((void));
+extern jbool
+	charp(void);
 
 extern ZXchar
-	getch proto((void)),
-	kbd_getch proto((void)),
-	peek_or_mac_getch proto((void)),
-	waitchar proto((void)),
-	ask_ks proto((void));
+	getch(void),
+	kbd_getch(void),
+	peek_or_mac_getch(void),
+	waitchar(void),
+	ask_ks(void);
 
 extern void
-	cmd_sync proto((void)),
-	add_stroke proto((ZXchar)),
-	error proto((const char *, ...)) NEVER_RETURNS,
-	complain proto((const char *, ...)) NEVER_RETURNS,
-	raw_complain proto((const char *, ...)),
-	confirm proto((const char *, ...)),
-	SitFor proto((int delay)),
-	pp_key_strokes proto((char *buffer, size_t size)),
-	tty_adjust proto ((void)),
-	Ungetc proto((ZXchar c)),
-	kbd_ungetch proto((ZXchar c)),
-	dispatch_macros proto((void));
+	cmd_sync(void),
+	add_stroke(ZXchar),
+	error(const char *, ...) NEVER_RETURNS,
+	complain(const char *, ...) NEVER_RETURNS,
+	raw_complain(const char *, ...),
+	confirm(const char *, ...),
+	SitFor(int delay),
+	pp_key_strokes(char *buffer, size_t size),
+	tty_adjust(void),
+	Ungetc(ZXchar c),
+	kbd_ungetch(ZXchar c),
+	dispatch_macros(void);
 
 /* Commands: */
 
 extern void
 #ifdef JOB_CONTROL
-	PauseJove proto((void)),
+	PauseJove(void),
 #endif
 #ifdef SUBSHELL
-	Push proto((void)),
+	Push(void),
 #endif
-	Recur proto((void)),
-	TeachJove proto((void)),
-	ShowVersion proto((void));
+	Recur(void),
+	TeachJove(void),
+	ShowVersion(void);
 
 /* Variables: */
 
-extern bool	MetaKey;		/* VAR: this terminal has a meta key */
-extern bool	TimeDisplayed;		/* is time actually displayed in modeline? */
+extern jbool	MetaKey;		/* VAR: this terminal has a meta key */
+extern jbool	TimeDisplayed;		/* is time actually displayed in modeline? */
 extern char	JoveFeatures[MAXCOLS];	/* VAR: list of compiled-in features */
 
 #if defined(UNIX) || defined(MINGW)
@@ -446,7 +400,7 @@ extern char	JoveLinked[MAXCOLS];	/* VAR: link flags used to build this */
 
 #ifdef UNIX
 extern int	UpdFreq;		/* VAR: how often to update modeline */
-extern void	SetClockAlarm proto((bool unset));
+extern void	SetClockAlarm(jbool unset);
 #endif /* UNIX */
 
-extern bool	SaveOnExit;		/* VAR: offer to save buffers on exit */
+extern jbool	SaveOnExit;		/* VAR: offer to save buffers on exit */

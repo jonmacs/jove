@@ -50,15 +50,15 @@ private struct winsize jtwin;
 #endif
 
 #ifdef TEST_STANDALONE
-extern int strncasecmp proto((const char *, const char *, size_t));
-extern int snprintf proto((char *, size_t, const char *, ...));
-extern int printf(const char *, ...);
+extern int strncasecmp(const char *, const char *, size_t);
+extern int snprintf(char *, size_t, const char *, ...);
+extern intintf(const char *, ...;
 extern int putchar(int);
 extern void fflush(void *); /* XXX */
 extern void *stdout; /* XXX */
 #define flushscreen() fflush(stdout)
 #define caseeqn(s1, s2, n) (strncasecmp(s1, s2, n) == 0)
-#define swritef snprintf
+#define swritefintf
 #undef jisdigit
 #define jisdigit(c) (c >= '0' && c <= '9')
 #endif
@@ -139,9 +139,7 @@ private JTLevel jtc_emu[] = {
 };
 
 char *
-jtcarg1(fmt, p)
-const char *fmt;
-int p;
+jtcarg1(const char *fmt, int p)
 {
 	if (fmt)
 		swritef(jtarg, sizeof jtarg, fmt, p);
@@ -157,9 +155,7 @@ int p;
  * hardwires the %i behaviour from terminfo/termcap
  */
 char *
-jtcarg2(fmt, destcol, destline)
-const char *fmt;
-int destcol, destline;
+jtcarg2(const char *fmt, int destcol, int destline)
 {
 	if (fmt)
 		swritef(jtarg, sizeof jtarg, fmt, destline+1, destcol+1);
@@ -175,8 +171,7 @@ int destcol, destline;
  * and moved to unix.c, ibmpcdos.c, win32.c, mac.c.
  */
 void
-jdelay(delay)
-int delay;
+jdelay(int delay)
 {
 	struct timeval	timer;
 	fd_set	readfds;
@@ -191,14 +186,11 @@ int delay;
 }
 
 void
-tputs(str, lines, putfunc)
-const char *str;
-int lines;
-void (*putfunc) proto((int));
+tputs(const char *str, int lines, void (*putfunc)(char))
 {
 	const char *cp = str;
 	ZXchar c;
-	bool needflush = NO;
+	jbool needflush = NO;
 	while (cp && (c = ZXC(*cp++)) != '\0') {
 		if (c == '$') {
 			flushscreen();
@@ -212,9 +204,7 @@ void (*putfunc) proto((int));
 }
 
 int
-tgetent(buf, tenv)
-char *buf;
-const char *tenv;
+tgetent(char *buf, const char *tenv)
 {
 	const char *jtcenv = getenv("JOVEVT");
 	if (jtcenv != NULL) {
@@ -242,7 +232,7 @@ const char *tenv;
 		}
 	}
 #ifdef TIOCGWINSZ
-	if (ioctl(0, TIOCGWINSZ, (UnivPtr) &jtwin) < 0)
+	if (ioctl(0, TIOCGWINSZ, &jtwin) < 0)
 		return -1;
 #endif
 	return jtlev >= 0;
@@ -252,8 +242,7 @@ const char *tenv;
 			 cap[2] == val[2] && cap[2] == '\0')
 
 int
-tgetflag(capname)
-const char *capname;
+tgetflag(const char *capname)
 {
 	if (capeq(capname, "mi") && jtlev >= VT125)
 		return YES; /* terminfo for vt102 does not have move-in-insert */
@@ -269,8 +258,7 @@ const char *capname;
 
 
 int
-tgetnum(capname)
-const char *capname;
+tgetnum(const char *capname)
 {
 	if (capeq(capname, "co")) {
 		return JVTCOLS;
@@ -285,9 +273,7 @@ const char *capname;
 }
 
 const char *
-tgetstr(capname, area)
-const char *capname;
-char **area;
+tgetstr(const char *capname, char **area)
 {
 	JTermcap *j;
 	for (j = jtc; j < jtc + (sizeof(jtc)/sizeof(jtc[0])); j++) {

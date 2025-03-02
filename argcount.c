@@ -12,7 +12,7 @@ int	arg_state = AS_NONE;
 long	arg_count;
 
 void
-negate_arg()
+negate_arg(void)
 {
 	if (arg_count < 0) {
 		arg_count = -arg_count;
@@ -26,14 +26,11 @@ negate_arg()
 }
 
 private void
-gather_argument(ns, nc)
-	int
-	    ns,		/* new state */
-	    nc;		/* new count */
+gather_argument(int ns, int nc)		/* new state, new count. */
 {
 	for (;;) {
 		ZXchar	c;
-		bool	neg = NO;
+		jbool	neg = NO;
 
 		if (arg_count < 0) {
 			neg = YES;
@@ -86,13 +83,13 @@ gather_argument(ns, nc)
 }
 
 void
-TimesFour()
+TimesFour(void)
 {
 	gather_argument(AS_TIMES, 4);
 }
 
 void
-Digit()
+Digit(void)
 {
 	if (LastKeyStruck == '-') {
 		gather_argument(AS_NEGSIGN, -1);
@@ -105,67 +102,67 @@ Digit()
 }
 
 void
-Digit0()
+Digit0(void)
 {
 	gather_argument(AS_NUMERIC, 0);
 }
 
 void
-Digit1()
+Digit1(void)
 {
 	gather_argument(AS_NUMERIC, 1);
 }
 
 void
-Digit2()
+Digit2(void)
 {
 	gather_argument(AS_NUMERIC, 2);
 }
 
 void
-Digit3()
+Digit3(void)
 {
 	gather_argument(AS_NUMERIC, 3);
 }
 
 void
-Digit4()
+Digit4(void)
 {
 	gather_argument(AS_NUMERIC, 4);
 }
 
 void
-Digit5()
+Digit5(void)
 {
 	gather_argument(AS_NUMERIC, 5);
 }
 
 void
-Digit6()
+Digit6(void)
 {
 	gather_argument(AS_NUMERIC, 6);
 }
 
 void
-Digit7()
+Digit7(void)
 {
 	gather_argument(AS_NUMERIC, 7);
 }
 
 void
-Digit8()
+Digit8(void)
 {
 	gather_argument(AS_NUMERIC, 8);
 }
 
 void
-Digit9()
+Digit9(void)
 {
 	gather_argument(AS_NUMERIC, 9);
 }
 
 void
-DigitMinus()
+DigitMinus(void)
 {
 	gather_argument(AS_NEGSIGN, -1);
 }

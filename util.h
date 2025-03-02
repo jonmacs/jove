@@ -8,7 +8,7 @@
 /* some utility functions, as macros, to be included by jove.h */
 
 extern int
-	fnamecomp proto((UnivConstPtr, UnivConstPtr));	/* order file names */
+	fnamecomp(const void *, const void *);	/* order file names */
 
 #define IsModified(b)	((b)->b_modified)
 #define SavLine(a, b)	((a)->l_dline = jputline((b)))
@@ -21,70 +21,70 @@ extern int
 #define getDOT()	jgetline(curline->l_dline, linebuf)
 #define lastp(line)	((line) == curbuf->b_last)
 
-extern UnivPtr
-	emalloc proto((size_t size)),
-	erealloc proto((UnivPtr ptr, size_t size));
+extern void
+	*emalloc(size_t size),
+	*erealloc(void *ptr, size_t size);
 
 extern char
-	*IOerr proto((const char *err, const char *file)),
-	*copystr proto((const char *str)),
-	*get_time proto((time_t *timep,char *buf,int from,int to)),
-	*lcontents proto((LinePtr line)),
-	*ltobuf proto((LinePtr line,char *buf));
+	*IOerr(const char *err, const char *file),
+	*copystr(const char *str),
+	*get_time(time_t *timep,char *buf,int from,int to),
+	*lcontents(LinePtr line),
+	*ltobuf(LinePtr line,char *buf);
 
 extern const char
-	*jbasename proto((const char *f)),
-	*filename proto((const Buffer *b));
+	*jbasename(const char *f),
+	*filename(const Buffer *b);
 
 extern long
-	inorder proto((LinePtr nextp,int char1,LinePtr endp,int char2)),
-	LineDist proto((LinePtr nextp,LinePtr endp)),
-	LinesTo proto((LinePtr from, LinePtr to));
+	inorder(LinePtr nextp,int char1,LinePtr endp,int char2),
+	LineDist(LinePtr nextp,LinePtr endp),
+	LinesTo(LinePtr from, LinePtr to);
 
 extern int
-	length proto((LinePtr line)),
-	jmax proto((int a,int b)),
-	jmin proto((int a,int b)),
-	numcomp proto((const char *s1, const char *s2)),
-	numcompcase proto((const char *s1, const char *s2));
+	length(LinePtr line),
+	jmax(int a,int b),
+	jmin(int a,int b),
+	numcomp(const char *s1, const char *s2),
+	numcompcase(const char *s1, const char *s2);
 
 extern ZXchar
-	DecodePair proto((ZXchar first, ZXchar second));
+	DecodePair(ZXchar first, ZXchar second);
 
-extern bool
-	caseeqn proto((const char *s1, const char *s2, size_t n)),
-	TwoBlank proto((void)),
-	blnkp proto((char *buf)),
-	within_indent proto((void)),
-	fixorder proto((LinePtr  *line1,int *char1,LinePtr  *line2,int *char2)),
-	inlist proto((LinePtr first,LinePtr what)),
-	sindex proto((const char *pattern, const char *string)),
-	ModBufs proto((bool allp));
+extern jbool
+	caseeqn(const char *s1, const char *s2, size_t n),
+	TwoBlank(void),
+	blnkp(char *buf),
+	within_indent(void),
+	fixorder(LinePtr  *line1,int *char1,LinePtr  *line2,int *char2),
+	inlist(LinePtr first,LinePtr what),
+	sindex(const char *pattern, const char *string),
+	ModBufs(jbool allp);
 
 extern void
-	DOTsave proto((Bufpos *buf)),
-	DotTo proto((LinePtr line,int col)),
-	PushPntp proto((LinePtr line)),
-	SetDot proto((Bufpos *bp)),
-	ToFirst proto((void)),
-	ToLast proto((void)),
-	ins_c proto((DAPchar c,char *buf,int atchar,int num,int max)),
-	len_error proto((int flag)) NEVER_RETURNS,
-	linecopy proto((char *onto,int atchar,char *from)),
-	modify proto((void)),
-	diverge proto((Buffer *buf, bool d)),
-	null_ncpy proto((char *to, const char *from, size_t n)),
+	DOTsave(Bufpos *buf),
+	DotTo(LinePtr line,int col),
+	PushPntp(LinePtr line),
+	SetDot(Bufpos *bp),
+	ToFirst(void),
+	ToLast(void),
+	ins_c(DAPchar c,char *buf,int atchar,int num,int max),
+	len_error(int flag) NEVER_RETURNS,
+	linecopy(char *onto,int atchar,char *from),
+	modify(void),
+	diverge(Buffer *buf, jbool d),
+	null_ncpy(char *to, const char *from, size_t n),
 #ifdef UNIX
-	dopipe proto((int *p)),
-	pipeclose proto((int *p)),
+	dopipe(int p[2]),
+	pipeclose(int p[2]),
 #endif
-	pop_env proto((jmp_buf)),
-	push_env proto((jmp_buf)),
-	to_word proto((int dir)),
-	unmodify proto((void));
+	pop_env(jmp_buf),
+	push_env(jmp_buf),
+	to_word(int dir),
+	unmodify(void);
 
-extern UnivPtr
-	freealloc proto((UnivPtr obj, size_t size));
+extern void *
+	freealloc(void *obj, size_t size);
 
 #if defined(IPROCS) || defined(SUBSHELL)
 
@@ -104,15 +104,15 @@ extern char **environ;	/* <unistd.h> */
 
 typedef struct {
 	const char **e_data;
-	bool e_malloced;
+	jbool e_malloced;
 	int e_headroom;	/* remaining room in e_data array */
 } Env;
 
 extern const char **
-	jenvdata proto((Env *envp));
+	jenvdata(Env *envp);
 extern void
-	jputenv proto((Env *envp, const char *def)),
-	junsetenv proto((Env *envp, const char *name));
+	jputenv(Env *envp, const char *def),
+	junsetenv(Env *envp, const char *name);
 #endif /* defined(IPROCS) */
 
 /* copy a string into a possibly-too-small buffer
@@ -122,9 +122,9 @@ extern void
 #define truncstr(buf, str)	truncstrsub(buf, str, sizeof(buf))
 #define jamstr(buf, str)	jamstrsub(buf, str, sizeof(buf))
 extern void
-	truncstrsub proto((char *buf, const char *str, size_t bufsz)),
-	jamstrsub proto((char *buf, const char *str, size_t bufsz)),
-	jamstrcat proto((char *buf, const char *str, size_t bufsz));
+	truncstrsub(char *buf, const char *str, size_t bufsz),
+	jamstrsub(char *buf, const char *str, size_t bufsz),
+	jamstrcat(char *buf, const char *str, size_t bufsz);
 
 /* Variables: */
 

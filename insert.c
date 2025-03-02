@@ -27,22 +27,20 @@
 #include "wind.h"
 
 private void
-	DoNewline proto((bool indentp));
+	DoNewline(jbool indentp);
 
 #ifdef LISP
 private Bufpos
-	*lisp_indent proto((void));
+	*lisp_indent(void);
 #endif
 
 /* Make a new line after "after" in buffer "buf", unless "after" is NULL,
  * in which case we insert the new line before first line.
  */
 LinePtr
-listput(buf, after)
-register Buffer	*buf;
-register LinePtr	after;
+listput(Buffer *buf, LinePtr after)
 {
-	register LinePtr	newline = nbufline();
+	LinePtr	newline = nbufline();
 
 	newline->l_prev = after;
 	if (after == NULL) {	/* Before the first line */
@@ -64,12 +62,11 @@ register LinePtr	after;
 /* Divide the current line and move the current line to the next one */
 
 void
-LineInsert(num)
-register long	num;
+LineInsert(long num)
 {
 	char	newline[LBSIZE];
-	register LinePtr	newdot,
-			olddot;
+	LinePtr	newdot,
+		olddot;
 	int	oldchar;
 
 	olddot = curline;
@@ -104,8 +101,7 @@ register long	num;
  * was there beforehand.
  */
 void
-n_indent(goal)
-register int	goal;
+n_indent(int goal)
 {
 	int	dotcol;
 
@@ -129,17 +125,16 @@ register int	goal;
 
 #ifdef ABBREV
 void
-MaybeAbbrevExpand()
+MaybeAbbrevExpand(void)
 {
 	if (MinorMode(Abbrev) && !jisident(LastKeyStruck)
-	&& !bolp() && jisident(linebuf[curchar - 1]))
+	    && !bolp() && jisident(linebuf[curchar - 1]))
 		AbbrevExpand();
 }
 #endif
 
 private void
-Insert(c)
-char	c;
+Insert(char c)
 {
 	if (c == CTL('J'))
 		LineInsert(arg_value());
@@ -148,18 +143,16 @@ char	c;
 }
 
 void
-overwrite(c, n)
-DAPchar	c;
-int	n;
+overwrite(DAPchar c, int n)
 {
-	register int	i;
+	int	i;
 
 	for (i = 0; i < n; i++) {
 		/* Delete one *column* forward (except that we don't
 		 * notice that control characters take two columns).
 		 */
 		if (!eolp() && (linebuf[curchar] != '\t' || tabstop == 0
-		  || TABDIST(calc_pos(linebuf, curchar)) == 1))
+				|| TABDIST(calc_pos(linebuf, curchar)) == 1))
 		{
 			del_char(FORWARD, 1, NO);
 		}
@@ -168,7 +161,7 @@ int	n;
 }
 
 void
-SelfInsert()
+SelfInsert(void)
 {
 #ifdef ABBREV
 	MaybeAbbrevExpand();
@@ -204,9 +197,7 @@ SelfInsert()
 
 /* insert character C N times at point */
 void
-insert_c(c, n)
-DAPchar	c;
-int	n;
+insert_c(DAPchar c, int n)
 {
 	if (n > 0) {
 		modify();
@@ -220,7 +211,7 @@ int	n;
 /* Tab in to the right place for C mode */
 
 void
-Tab()
+Tab(void)
 {
 #ifdef LISP
 	if (MajorMode(LISPMODE) && (bolp() || !eolp())) {
@@ -257,7 +248,7 @@ Tab()
 }
 
 void
-QuotChar()
+QuotChar(void)
 {
 	ZXchar	c = ask_ks();
 
@@ -292,11 +283,11 @@ int	PDelay = 5,		/* VAR: paren flash delay in tenths of a second */
 	CIndIncrmt = 8;	/* VAR: how much each indentation level pushes over in C mode */
 
 void
-DoParen()
+DoParen(void)
 {
 	Bufpos	*bp = NULL;	/* avoid uninitialized complaint from gcc -W */
 	ZXchar	c = LastKeyStruck;
-	bool	tried = NO;
+	jbool	tried = NO;
 
 	if (!jisclosep(c)) {
 		SelfInsert();
@@ -317,9 +308,9 @@ DoParen()
 
 	if (MinorMode(ShowMatch)
 #ifndef MAC
-	&& !PreEmptOutput()
+	    && !PreEmptOutput()
 #endif
-	&& !in_macro())
+	    && !in_macro())
 	{
 		b_char(1);	/* Back onto the ')' */
 		if (!tried)
@@ -343,20 +334,19 @@ DoParen()
 }
 
 void
-LineAI()
+LineAI(void)
 {
 	DoNewline(YES);
 }
 
 void
-Newline()
+Newline(void)
 {
 	DoNewline(MinorMode(Indent));
 }
 
 private void
-DoNewline(indentp)
-bool	indentp;
+DoNewline(jbool indentp)
 {
 	Bufpos	save;
 	int	indent;
@@ -401,21 +391,17 @@ bool	indentp;
 }
 
 void
-ins_str(str)
-const char *str;
+ins_str(const char *str)
 {
 	ins_str_wrap(str, NO, LBSIZE-1);
 }
 
 void
-ins_str_wrap(str, ok_nl, wrap_off)
-const char *str;
-bool ok_nl;
-int wrap_off;
+ins_str_wrap(const char *str, jbool ok_nl, int wrap_off)
 {
-	register char c;
-	Bufpos save;
-	int llen;
+	char	c;
+	Bufpos	save;
+	int	llen;
 
 	if (*str == '\0')
 		return;		/* ain't nothing to insert! */
@@ -444,8 +430,7 @@ int wrap_off;
 }
 
 void
-open_lines(n)
-long	n;
+open_lines(long n)
 {
 	Bufpos	dot;
 
@@ -455,7 +440,7 @@ long	n;
 }
 
 void
-OpenLine()
+OpenLine(void)
 {
 	open_lines(arg_value());
 }
@@ -464,21 +449,18 @@ OpenLine()
  * ATLINE/ATCHAR in WHATBUF.
  */
 Bufpos *
-DoYank(fline, fchar, tline, tchar, atline, atchar, whatbuf)
-LinePtr	fline,
-	tline,
-	atline;
-int	fchar,
-	tchar,
-	atchar;
-Buffer	*whatbuf;
+DoYank(LinePtr fline, int fchar,
+       LinePtr tline, int tchar,
+       LinePtr atline, int atchar,
+       Buffer *whatbuf)
 {
-	register LinePtr	newline;
-	static Bufpos	bp;
+	LinePtr	newline,
+		startline = atline;
+	int	startchar = atchar;
+	static Bufpos
+		bp;
 	char	save[LBSIZE],
 		buf[LBSIZE];
-	LinePtr	startline = atline;
-	int	startchar = atchar;
 
 	lsave();
 	if (whatbuf != NULL)
@@ -519,7 +501,7 @@ Buffer	*whatbuf;
 }
 
 void
-YankPop()
+YankPop(void)
 {
 	Mark	*mp = CurMark();
 	LinePtr	line,
@@ -582,7 +564,7 @@ typedef struct chunk _far	*ChunkPtr;
 #else
 typedef struct chunk	*ChunkPtr;
 # define CHUNKMALLOC(s)	((ChunkPtr) malloc(s))
-# define CHUNKFREE(c)	free((UnivPtr) (c))
+# define CHUNKFREE(c)	free(c)
 #endif
 
 struct chunk {
@@ -597,8 +579,7 @@ private LinePtr	ffline = NULL;	/* First free line */
 private LinePtr	faline = NULL;	/* First available line */
 
 private void
-freeline(line)
-register LinePtr	line;
+freeline(LinePtr line)
 {
 	line->l_dline = NULL_DADDR;
 	line->l_next = ffline;
@@ -613,7 +594,7 @@ register LinePtr	line;
  */
 
 private void
-RecycleLines()
+RecycleLines(void)
 {
 	if (ffline == NULL)
 		return;	/* nothing to do */
@@ -634,8 +615,7 @@ RecycleLines()
 }
 
 void
-lfreelist(first)
-register LinePtr	first;
+lfreelist(LinePtr first)
 {
 	if (first != NULL)
 		lfreereg(first, lastline(first));
@@ -644,12 +624,10 @@ register LinePtr	first;
 /* Append region from line1 to line2 onto the free list of lines */
 
 void
-lfreereg(line1, line2)
-register LinePtr	line1,
-		line2;
+lfreereg(LinePtr line1, LinePtr line2)
 {
-	register LinePtr	next,
-			last = line2->l_next;
+	LinePtr	next,
+		last = line2->l_next;
 
 	while (line1 != last) {
 		next = line1->l_next;
@@ -658,14 +636,15 @@ register LinePtr	line1,
 	}
 }
 
-private bool
-newchunk()
+private jbool
+newchunk(void)
 {
-	register LinePtr	newline;
-	register long	i;
-	ChunkPtr	f;
+	LinePtr	newline;
+	long	i;
+	ChunkPtr
+		f;
 	long	nlines = CHUNKSIZE;
-	bool	done_gc = NO;
+	jbool	done_gc = NO;
 
 	for (;;) {
 		f = CHUNKMALLOC(sizeof(struct chunk) + sizeof(struct line) * (nlines-1));
@@ -699,9 +678,9 @@ newchunk()
 /* New BUFfer LINE */
 
 LinePtr
-nbufline()
+nbufline(void)
 {
-	register LinePtr	newline;
+	LinePtr	newline;
 
 	if (faline == NULL) {
 		RecycleLines();
@@ -723,11 +702,10 @@ nbufline()
  * no longer free.
  */
 private void
-remfreelines(c)
-register ChunkPtr	c;
+remfreelines(ChunkPtr c)
 {
-	register LinePtr	lp;
-	register long	i;
+	LinePtr	lp;
+	long	i;
 
 	for (lp = c->c_block, i = c->c_nlines; i != 0 ; lp++, i--) {
 		if (lp->l_prev == NULL)
@@ -749,13 +727,13 @@ register ChunkPtr	c;
  */
 
 void
-GCchunks()
+GCchunks(void)
 {
-	register ChunkPtr	cp;
+	ChunkPtr	cp;
 	ChunkPtr	prev = NULL,
 			next;
-	register long	i;
-	register LinePtr	newline;
+	long	i;
+	LinePtr	newline;
 
 	RecycleLines();
 	for (cp = fchunk; cp != NULL; cp = next) {
@@ -787,7 +765,7 @@ GCchunks()
 /* Grind S-Expr */
 
 void
-GSexpr()
+GSexpr(void)
 {
 	Bufpos	dot,
 		end;
@@ -817,7 +795,7 @@ GSexpr()
 private List	*specials = NULL;
 
 private void
-init_specials()
+init_specials(void)
 {
 	static const char *const words[] = {
 		"case",
@@ -837,7 +815,7 @@ init_specials()
 	const char	*const *wordp = words;
 
 	while (*wordp != NULL)
-		list_push(&specials, (UnivPtr) *wordp++);
+		list_push(&specials, strdup(*wordp++));
 }
 
 void
@@ -852,7 +830,7 @@ AddSpecial()
 	for (lp = specials; lp != NULL; lp = list_next(lp))
 		if (strcmp((char *) list_data(lp), word) == 0)
 			return;		/* already in list */
-	(void) list_push(&specials, (UnivPtr) copystr(word));
+	(void) list_push(&specials, copystr(word));
 }
 
 private Bufpos *

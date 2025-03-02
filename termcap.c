@@ -17,11 +17,11 @@
 #include "jctype.h"
 #include "screen.h"
 
-extern int	UNMACRO(tgetent) proto((char */*buf*/, const char */*name*/));
-extern int	UNMACRO(tgetflag) proto((const char */*id*/));
-extern int	UNMACRO(tgetnum) proto((const char */*id*/));
-extern char	*UNMACRO(tgetstr) proto((const char */*id*/, char **/*area*/));
-extern void	UNMACRO(tputs) proto((const char *, int, void (*) proto((int))));
+extern int	(tgetent)(char */*buf*/, const char */*name*/);
+extern int	(tgetflag)(const char */*id*/);
+extern int	(tgetnum)(const char */*id*/);
+extern char	*(tgetstr)(const char */*id*/, char **/*area*/);
+extern void	(tputs)(const char *, int, void (*)(char));
 
 /* Termcap definitions */
 
@@ -64,7 +64,7 @@ int
 	phystab = 8,	/* ("it") terminal's tabstop settings */
 	UG;		/* number of magic cookies left by US and UE */
 
-bool
+jbool
 	Hazeltine,	/* Hazeltine tilde kludge */
 	UL,		/* underscores don't replace chars already on screen */
 	NP;		/* there is No Pad character */
@@ -81,7 +81,7 @@ const char
 short	ospeed;
 #  endif /* DEFINE_PC_BC_UP_OSPEED */
 
-bool	CanScroll;	/* can this terminal scroll? */
+jbool	CanScroll;	/* can this terminal scroll? */
 
 #  ifdef ID_CHAR
 
@@ -94,7 +94,7 @@ const char
 	*M_IC,	/* Insert char with arg */
 	*M_DC;	/* Delete char with arg */
 
-bool	UseIC = NO;	/* VAR: whether or not to use i/d char processesing */
+jbool	UseIC = NO;	/* VAR: whether or not to use i/d char processesing */
 
 int
 #   ifdef NCURSES_BUG
@@ -109,7 +109,7 @@ int
 	MDClen = INFINITY,	/* length of delete char with arg */
 	CElen = INFINITY;	/* length of clear to end of line */
 
-bool
+jbool
 	MI;		/* okay to move while in insert mode */
 
 #  endif /* ID_CHAR */
@@ -157,10 +157,7 @@ private const struct CapLen	CapLenTab[] = {
 };
 
 private void
-tcbad(termname, why)
-const char
-	*termname,
-	*why;
+tcbad(const char *termname, const char *why)
 {
 	writef("You can't run JOVE on a %s terminal: %s\n", termname, why);
 	flushscreen();
@@ -168,7 +165,7 @@ const char
 }
 
 void
-getTERM()
+getTERM(void)
 {
 	char	termnmbuf[13],
 		*termname = getenv("TERM"),
@@ -183,7 +180,7 @@ getTERM()
 		int	len;
 		putstr("Enter terminal type (e.g, vt100): ");
 		flushscreen();
-		len = read(0, (UnivPtr) termnmbuf, sizeof(termnmbuf));
+		len = read(0, termnmbuf, sizeof termnmbuf);
 		termnmbuf[len > 1? len - 1 : 0] = '\0';
 		termname = termnmbuf;
 	}
@@ -309,20 +306,13 @@ getTERM()
 /* Put multi-unit or multiple single-unit strings, as appropriate. */
 
 private void
-tputc(c)
-char	c;
+tputc(char c)
 {
 	scr_putchar(c);
 }
 
 void
-putmulti(ss, ms, num, lines)
-const char
-	*ss,	/* single line */
-	*ms;	/* multiline */
-int
-	num,	/* number of iterations */
-	lines;	/* lines affected (for padding) */
+putmulti(const char *ss, const char *ms, int num, int lines)
 {
 	if (ms && (num > 1 || !ss)) {
 		/* use the multi string */
@@ -337,17 +327,14 @@ int
 /* put a string with padding */
 
 void
-putpad(str, lines)
-const char	*str;
-int	lines;
+putpad(const char *str, int lines)
 {
 	if (str != NULL)
 		tputs(str, lines, tputc);
 }
 
 void
-dobell(n)	/* declared in term.h */
-int	n;
+dobell(int n)	/* declared in term.h */
 {
 	while (--n >= 0) {
 		if (VisBell && VB)
@@ -359,7 +346,7 @@ int	n;
 }
 
 void
-clr_page()
+clr_page(void)
 {
 	putpad(CL, LI);
 }

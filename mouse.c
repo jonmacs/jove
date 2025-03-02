@@ -88,8 +88,8 @@
  *   JOVE cannot work around this problem, the user must.
  */
 
-bool	XtermMouse = NO;	/* VAR: should we enable xterm mouse? */
-private bool	xtMouseState = NO;	/* have we enabled the mouse? */
+jbool	XtermMouse = NO;	/* VAR: should we enable xterm mouse? */
+private jbool	xtMouseState = NO;	/* have we enabled the mouse? */
 
 /* sequences to enable/disable mouse hilite tracking in xterm */
 private const char
@@ -118,7 +118,7 @@ private int last_mouse_act = LMA_NONE;
 private const char *saved_M_SR = NULL;	/* KLUDGE for xterm/termcap bug */
 
 void
-MouseOn()
+MouseOn(void)
 {
 	if (XtermMouse != xtMouseState) {
 		/* KLUDGE for xterm/termcap bug */
@@ -136,7 +136,7 @@ MouseOn()
 }
 
 void
-MouseOff()
+MouseOff(void)
 {
 	if (xtMouseState) {
 		putstr(xtMouseDisable);
@@ -148,7 +148,7 @@ MouseOff()
 /* Set cursor position to that of mouse pointer. */
 
 private void
-SetCursor()
+SetCursor(void)
 {
 	int	line_pos = in_window(curwind, curline);
 	int	offset = PhysScreen[y_coord].s_offset;
@@ -170,10 +170,12 @@ SetCursor()
 }
 
 private void
-ScrollToMouse()
+ScrollToMouse(void)
 {
-	register int	lc;
-	const int	width = (CO - 1 - (4 * SG)) * font_width;	/* must match size in ModeLine */
+	int	lc;
+	const int
+		width = (CO - 1 - (4 * SG)) * font_width;
+		/* `width' must match size in ModeLine */
 	int	top;
 
 	/* This code ought to match the scroll-bar layout computed by
@@ -198,9 +200,8 @@ ScrollToMouse()
 		SetLine(next_line(curwind->w_top, WSIZE(curwind)/2));
 }
 
-private bool
-ObeyProc(p)
-cmdproc_t p;
+private jbool
+ObeyProc(cmdproc_t p)
 {
 	if (BufMinorMode(curbuf, BReadOnly)) {
 		rbell();
@@ -215,7 +216,7 @@ cmdproc_t p;
 /* Get next value in number sequence */
 
 private int
-NextValue()
+NextValue(void)
 {
 	int val;
 
@@ -229,10 +230,9 @@ NextValue()
 /* Select appropriate window */
 
 private int
-SelectWind(winforce)
-Window	*winforce;	/* if non-null, must be within this window */
+SelectWind(Window *winforce)	/* if non-null, must be within this window */
 {
-	register Window *wp = fwind;
+	Window	*wp = fwind;
 	int	total_lines = wp->w_height;
 
 	/* Find which window mouse pointer is in. */
@@ -253,8 +253,7 @@ Window	*winforce;	/* if non-null, must be within this window */
 /* get an origin-0 coordinate in funny representation used by xterm */
 
 private int
-xtGetCoord(upb)
-int upb;
+xtGetCoord(int upb)
 {
 	ZXchar	c = waitchar();	/* coordinate */
 
@@ -271,11 +270,8 @@ int upb;
 
 /* get some X Y pair from xterm; return indication of success */
 
-private bool
-xtGetXY(xp, yp)
-int
-	*xp,
-	*yp;
+private jbool
+xtGetXY(int *xp, int *yp)
 {
 	int x = xtGetCoord(CO);
 
@@ -324,8 +320,7 @@ int
 #define XTERMHLBUG	1	/* always enable: we think that it is safe */
 
 static void
-hl_mode(hl_setting, startx, starty, endx, endy)
-int	hl_setting, startx, starty, endx, endy;
+hl_mode(int hl_setting, int startx, int starty, int endx, int endy)
 {
 	static const char	hl_fmt[] = "\033[%d;%d;%d;%d;%dT";
 	char	buf[sizeof(hl_fmt) + 4*(5-2)];
@@ -337,9 +332,8 @@ int	hl_setting, startx, starty, endx, endy;
 #endif
 }
 
-private bool
-MouseParams(mproto)
-int	mproto;
+private jbool
+MouseParams(int mproto)
 {
 	/* The mouse commands will be invoked by hitting a mouse
 	 * button but can also be invoked by typing the escape sequence
@@ -347,9 +341,9 @@ int	mproto;
 	 */
 
 	static int	wind_pos;		/* reverse y-coordinate within window */
-	static bool	mode_mode = NO;		/* true while doing modeline */
+	static jbool	mode_mode = NO;		/* true while doing modeline */
 
-	/* up_expected is an extended bool: it can be YES, NO, and -1!
+	/* up_expected is an extended jbool: it can be YES, NO, and -1!
 	 * -1 signifies that we are in xterm mouse hilite tracking mode
 	 * which appears to fail to yield an up event if it deems the
 	 * event uninteresting (i.e. no motion).
@@ -357,7 +351,7 @@ int	mproto;
 	static int	up_expected = NO;	/* true while button held down */
 	static int	estartx, estarty;	/* from last enable */
 
-	bool	input_good = NO;
+	jbool	input_good = NO;
 
 	/* This switch reads and decodes the control sequence.
 	 * - input_good is set to YES if the sequence looks valid.
@@ -576,7 +570,7 @@ int	mproto;
 			 * When hilite tracking is used, apparently the up event is
 			 * elided if it would report no change in location.
 			 */
-			bool	use_hilite = !mode_mode;
+			jbool	use_hilite = !mode_mode;
 
 			if (use_hilite)
 				up_expected = -1;	/* half-expect an up */
@@ -651,8 +645,7 @@ int	mproto;
 }
 
 private void
-MousePoint(mproto)
-int	mproto;
+MousePoint(int mproto)
 {
 	last_mouse_act = LMA_NONE;
 	if (MouseParams(mproto))
@@ -672,8 +665,7 @@ xtMousePoint()
 }
 
 private void
-MouseMark(mproto)
-int	mproto;
+MouseMark(int mproto)
 {
 	last_mouse_act = LMA_NONE;
 	if (MouseParams(mproto)) {
@@ -755,7 +747,7 @@ xtMouseNull()
 private void
 startMouseWord()
 {
-	bool	in_id;
+	jbool	in_id;
 
 	if (eolp() && !bolp())
 		curchar -= 1;
@@ -767,7 +759,7 @@ startMouseWord()
 private void
 endMouseWord()
 {
-	bool	in_id;
+	jbool	in_id;
 
 	if (eolp() && !bolp())
 		curchar -= 1;
@@ -798,10 +790,10 @@ doMouseLine()
  * selected by dragging, single or double clicking).  If used to shrink the
  * region, it is the point end (not the mark end) that gets moved.
  */
-private bool
+private jbool
 doMouseExtend()
 {
-	bool	region_forward, new_forward;
+	jbool	region_forward, new_forward;
 
 	if (last_mouse_act == LMA_NONE)
 		return NO;	/* treat as xtMouseNull */
@@ -1004,7 +996,7 @@ xjMouseYank()
 void
 xjMouseCopyCut()
 {
-	register Mark	*mp = curmark;
+	Mark	*mp = curmark;
 
 	if (MouseParams(MPROTO_JOVETOOL)) {
 		if (mp!=NULL

@@ -9,7 +9,7 @@ extern const char	*HomeDir;
 
 extern size_t	HomeLen;
 
-extern bool	DOLsave;	/* Do Lsave flag.  If lines aren't being saved
+extern jbool	DOLsave;	/* Do Lsave flag.  If lines aren't being saved
 				   when you think they should have been, this
 				   flag is probably not being set, or is being
 				   cleared before lsave() was called. */
@@ -22,61 +22,61 @@ extern long
 		io_chars,
 		io_lines;
 
-extern int	MakeTemp proto((char *, const char *));
+extern int	MakeTemp(char *, const char *);
 
 extern char
-	*lbptr proto((LinePtr line)),
-	*pr_name proto((const char *fname,bool okay_home)),
-	*pwd proto((void));
+	*lbptr(LinePtr),
+	*pr_name(const char *, jbool),
+	*pwd(void);
 
 extern File
-	*open_file proto((char *fname,char *buf,int how,bool complainifbad));
+	*open_file(char *, char *, int, jbool);
 
 extern void
-	setCWD proto((char *d)),
-	getCWD proto((void)),
-	PathCat proto((char *buf, size_t, const char *pre, const char *post)),
-	PathParse proto((const char *name, char *intobuf)),
-	SyncTmp proto((void)),
-	close_file proto((File *fp)),
-	d_cache_init proto((void)),
-	file_write proto((char *fname, bool app)),
-	jgetline proto((daddr addr, char *buf)),
-	lsave proto((void)),
-	putreg proto((File *fp,LinePtr line1,int char1,LinePtr line2,int char2,bool makesure)),
-	read_file proto((char *file, bool is_insert)),
-	put_bufs proto((bool askp)),
-	tmpclose proto((void)),
-	tmpremove proto((void));
+	setCWD(char *),
+	getCWD(void),
+	PathCat(char *, size_t, const char *, const char *),
+	PathParse(const char *, char *),
+	SyncTmp(void),
+	close_file(File *),
+	d_cache_init(void),
+	file_write(char *, jbool),
+	jgetline(daddr, char *),
+	lsave(void),
+	putreg(File *, LinePtr, int, LinePtr, int, jbool),
+	read_file(char *, jbool),
+	put_bufs(jbool),
+	tmpclose(void),
+	tmpremove(void);
 
-extern bool
-	chkCWD proto((char *dn));
+extern jbool
+	chkCWD(char *);
 
 extern daddr
-	jputline proto((char *buf));
+	jputline(char *);
 
 /* Commands: */
 
 extern void
-	AppReg proto((void)),
-	Chdir proto((void)),
-	InsFile proto((void)),
-	Popd proto((void)),
-	Pushd proto((void)),
-	Pushlibd proto((void)),
-	JReadFile proto((void)), /* ReadFile conflicts with Win32 library */
-	SaveFile proto((void)),
-	JWriteFile proto((void)), /* WriteFile conflicts with Win32 library */
-	WtModBuf proto((void)),
-	WrtReg proto((void)),
-	prCWD proto((void)),
-	prDIRS proto((void)),
-	backup_name proto((const char *fname, const char *btype, char *bfname, size_t bfnamesize));
+	AppReg(void),
+	Chdir(void),
+	InsFile(void),
+	Popd(void),
+	Pushd(void),
+	Pushlibd(void),
+	JReadFile(void),
+	SaveFile(void),
+	JWriteFile(void),
+	WtModBuf(void),
+	WrtReg(void),
+	prCWD(void),
+	prDIRS(void),
+	backup_name(const char *, const char *, char *, size_t);
 
 /* Variables: */
 
 #ifdef BACKUPFILES
-extern bool	BkupOnWrite;		/* VAR: make backup files when writing */
+extern jbool	BkupOnWrite;		/* VAR: make backup files when writing */
 #endif
 #ifdef UNIX
 extern int	CreatMode;		/* VAR: default mode for creat'ing files */
@@ -84,5 +84,5 @@ extern int	CreatMode;		/* VAR: default mode for creat'ing files */
 #ifdef MAC
 # define CreatMode	0	/* dummy */
 #endif
-extern bool	EndWNewline;		/* VAR: end files with a blank line */
-extern bool	OkayBadChars;		/* VAR: allow bad characters in files created by JOVE */
+extern jbool	EndWNewline;		/* VAR: end files with a blank line */
+extern jbool	OkayBadChars;		/* VAR: allow bad characters in files created by JOVE */

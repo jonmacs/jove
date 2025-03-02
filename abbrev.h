@@ -7,19 +7,19 @@
 
 #ifdef ABBREV	/* the body is the rest of this file */
 
-extern void	AbbrevExpand proto((void));
+extern void	AbbrevExpand(void);
 
 /* Variables: */
 
-extern bool	AutoCaseAbbrev;		/* VAR: automatically do case on abbreviations */
+extern jbool	AutoCaseAbbrev;		/* VAR: automatically do case on abbreviations */
 
 /* Commands: */
 extern void
-	BindMtoW proto((void)),
-	DefMAbbrev proto((void)),
-	DefGAbbrev proto((void)),
-	SaveAbbrevs proto((void)),
-	RestAbbrevs proto((void)),
-	EditAbbrevs proto((void));
+	BindMtoW(void),
+	DefMAbbrev(void),
+	DefGAbbrev(void),
+	SaveAbbrevs(void),
+	RestAbbrevs(void),
+	EditAbbrevs(void);
 
 #endif /* ABBREV */

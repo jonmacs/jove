@@ -18,12 +18,12 @@ int
 	ILI,		/* number of internal lines (LI - 1) */
 	CO;		/* number of columns (CO <= MAXCOLS) */
 
-bool
+jbool
 	TABS = NO;		/* terminal supports tabs */
 
 #ifndef UNIX
 void
-settout()
+settout(void)
 {
 # ifndef NO_JSTDOUT
 	flushscreen();		/* flush the one character buffer */

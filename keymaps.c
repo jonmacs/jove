@@ -87,8 +87,8 @@ struct keymap {
 	int	Type;		/* keymap type (sparse or full) */
 	char	*Name;		/* keymap name */
 	struct keymap	*next_map;
-	bool	unfreeable;
-	bool	mark;	/* used for cycle avoidance */
+	jbool	unfreeable;
+	jbool	mark;	/* used for cycle avoidance */
 	union {
 		struct {
 			data_obj **map;	/* keys array indexed by key */
@@ -120,12 +120,9 @@ private struct keymap *procsmap;
  */
 
 private void
-km_init(km, kind, keys)
-struct keymap *km;
-int kind;
-data_obj **keys;
+km_init(struct keymap *km, int kind, data_obj **keys)
 {
-	byte_zero((UnivPtr) &km->u, sizeof(km->u));	/* zero integral fields */
+	byte_zero(&km->u, sizeof km->u);	/* zero integral fields */
 	if ((km->Type = kind) == FULL_KEYMAP) {
 		if (keys == NULL) {
 			data_obj	**p;
@@ -143,10 +140,7 @@ data_obj **keys;
 }
 
 private struct keymap *
-km_new(kind, keys, name)
-int kind;
-data_obj **keys;
-char	*name;
+km_new(int kind, data_obj **keys, char *name)
 {
 	struct keymap	*km = (struct keymap *) emalloc(sizeof(struct keymap));
 
@@ -168,9 +162,7 @@ char	*name;
 private int	km_sparsepos;
 
 private data_obj *
-km_getkey(km, key)
-struct keymap *km;
-ZXchar key;
+km_getkey(struct keymap *km, ZXchar key)
 {
 	if (km->Type == FULL_KEYMAP) {
 		return (km->u.full.map[key]);
@@ -206,9 +198,7 @@ ZXchar key;
 }
 
 private ZXchar
-km_nextkey(km, key)
-struct keymap *km;
-ZXchar key;
+km_nextkey(struct keymap *km, ZXchar key)
 {
 	if (km->Type == FULL_KEYMAP) {
 		while (key != NCHARS && km->u.full.map[key] == NULL)
@@ -229,8 +219,7 @@ ZXchar key;
  */
 
 void
-DelObjRef(value)
-data_obj	*value;
+DelObjRef(data_obj *value)
 {
 	if (IsKeymap(value)) {
 		struct keymap	*km = (struct keymap *)value;
@@ -243,10 +232,10 @@ data_obj	*value;
 
 			switch (km->Type) {
 			case FULL_KEYMAP:
-				free((UnivPtr) km->u.full.map);
+				free(km->u.full.map);
 				break;
 			case SPARSE_KEYMAP:
-				free((UnivPtr) km->u.sparse.bindings);
+				free(km->u.sparse.bindings);
 				break;
 			}
 			{
@@ -257,16 +246,13 @@ data_obj	*value;
 					;
 				*p = (*p)->next_map;
 			}
-			free((UnivPtr) km);
+			free(km);
 		}
 	}
 }
 
 private void
-km_setkey(km, key, d)
-struct keymap *km;
-ZXchar key;
-data_obj *d;
+km_setkey(struct keymap *km, ZXchar key, data_obj *d)
 {
 	if (km->Type == FULL_KEYMAP) {
 		DelObjRef(km->u.full.map[key]);
@@ -297,12 +283,12 @@ data_obj *d;
 					km_init(km, FULL_KEYMAP, (data_obj **) NULL);
 					while (nused-- != 0)
 						km->u.full.map[b[nused].key] = b[nused].value;
-					free((UnivPtr) b);
+					free(b);
 					km->u.full.map[key] = d;
 					return;
 				} else {
 					km->u.sparse.bindings = b = (struct keybinding *) erealloc(
-						(UnivPtr) km->u.sparse.bindings,
+						km->u.sparse.bindings,
 						(km->u.sparse.nalloc += KEYMAP_QUANTUM)
 							* sizeof(struct keybinding));
 				}
@@ -317,7 +303,7 @@ data_obj *d;
 }
 
 private void
-UnmarkMaps()
+UnmarkMaps(void)
 {
 	struct keymap	*km;
 
@@ -330,8 +316,7 @@ UnmarkMaps()
 #define MAX_KEYMAPS	3	/* bound on number of keymaps found by get_keymaps */
 
 private int
-get_keymaps(km_buf)
-struct keymap **km_buf;
+get_keymaps(struct keymap **km_buf)
 {
 	int nmaps = 0;
 
@@ -350,17 +335,14 @@ struct keymap **km_buf;
 	return nmaps;
 }
 
-bool
-IsPrefixChar(c)
-ZXchar	c;
+jbool
+IsPrefixChar(ZXchar c)
 {
 	return IsKeymap(km_getkey(mainmap, c));
 }
 
 private struct keymap *
-GetKeymap(m, key)
-struct keymap *m;
-ZXchar key;
+GetKeymap(struct keymap *m, ZXchar key)
 {
 	data_obj *val = km_getkey(m, key);
 
@@ -368,8 +350,7 @@ ZXchar key;
 }
 
 private const data_obj *
-findmap(fmt)
-const char	*fmt;
+findmap(const char *fmt)
 {
 	struct keymap	*km;
 	const char	*strings[128];
@@ -391,11 +372,7 @@ const char	*fmt;
 }
 
 private void
-BindSequence(m, keys, k_len, obj)
-struct keymap *m;
-char *keys;
-int k_len;
-data_obj *obj;
+BindSequence(struct keymap *m, char *keys, int k_len, data_obj *obj)
 {
 	int i;
 
@@ -436,9 +413,8 @@ data_obj *obj;
 }
 
 private void
-DoBind(findproc, map)
-const data_obj *(*findproc) ptrproto((const char *));
-struct keymap *map;
+DoBind(const data_obj *(*findproc)(const char *),
+       struct keymap *map)
 {
 	const data_obj *d = (*findproc) (ProcFmt);
 	char keys[64];
@@ -482,8 +458,7 @@ struct keymap *map;
 }
 
 private void
-DoLBind(findproc)
-const data_obj *(*findproc) ptrproto((const char *));
+DoLBind(const data_obj *(*findproc)(const char *))
 {
 	if (curbuf->b_map == NULL)
 		curbuf->b_map = km_new(SPARSE_KEYMAP, (data_obj **)NULL, (char *)NULL);
@@ -492,38 +467,38 @@ const data_obj *(*findproc) ptrproto((const char *));
 
 /* bind a command to a key in the buffer's local keymap. */
 void
-LBindAKey()
+LBindAKey(void)
 {
 	DoLBind(findcom);
 }
 
 /* bind a macro to a key in the buffers local keymap. */
 void
-LBindMac()
+LBindMac(void)
 {
 	DoLBind(findmac);
 }
 
 void
-LBindMap()
+LBindMap(void)
 {
 	DoLBind(findmap);
 }
 
 void
-BindAKey()
+BindAKey(void)
 {
 	DoBind(findcom, mainmap);
 }
 
 void
-BindMac()
+BindMac(void)
 {
 	DoBind(findmac, mainmap);
 }
 
 void
-BindMap()
+BindMap(void)
 {
 	DoBind(findmap, mainmap);
 }
@@ -531,19 +506,19 @@ BindMap()
 #ifdef IPROCS
 
 void
-PBindAKey()
+PBindAKey(void)
 {
 	DoBind(findcom, procsmap);
 }
 
 void
-PBindMac()
+PBindMac(void)
 {
 	DoBind(findmac, procsmap);
 }
 
 void
-PBindMap()
+PBindMap(void)
 {
 	DoBind(findmap, procsmap);
 }
@@ -551,14 +526,14 @@ PBindMap()
 #endif
 
 void
-Unbound()
+Unbound(void)
 {
 	complain("%f");
 	/* NOTREACHED */
 }
 
 void
-KeyDesc()
+KeyDesc(void)
 {
 	struct keymap *maps[MAX_KEYMAPS];
 	int nmaps;
@@ -567,7 +542,7 @@ KeyDesc()
 	s_mess(ProcFmt);
 	while (YES) {
 		int i;
-		bool	still_hope = NO;
+		jbool	still_hope = NO;
 		ZXchar	key = addgetc();
 
 		for (i = 0; i < nmaps; i++) {
@@ -592,9 +567,7 @@ KeyDesc()
 }
 
 private void
-DescMap(map, pref)
-struct keymap *map;
-char *pref;
+DescMap(struct keymap *map, char *pref)
 {
 	if (map != NULL && !map->mark) {
 		ZXchar	c1, c2;
@@ -647,7 +620,7 @@ char *pref;
 }
 
 void
-DescBindings()
+DescBindings(void)
 {
 	TOstart("Key Bindings");
 	UnmarkMaps();
@@ -660,12 +633,10 @@ DescBindings()
 }
 
 private char *
-fb_aux(cp, map, prefix, buf, room)
-register const data_obj	*cp;
-struct keymap	*map;
-char	*prefix,
-	*buf;
-size_t	room;
+fb_aux(const data_obj *cp,
+       struct keymap *map,
+       char *prefix, char *buf,
+       size_t room)
 {
 	char	*bufp = buf;
 
@@ -733,10 +704,7 @@ size_t	room;
 }
 
 private void
-find_binds(dp, buf, size)
-const data_obj *dp;
-char *buf;
-size_t size;
+find_binds(const data_obj *dp, char *buf, size_t size)
 {
 	char	*endp;
 
@@ -752,10 +720,7 @@ size_t size;
 }
 
 private void
-ShowDoc(doc_type, dp, show_bindings)
-char *doc_type;
-const data_obj *dp;
-bool show_bindings;
+ShowDoc(char *doc_type, const data_obj *dp, jbool show_bindings)
 {
 	char pattern[100];
 	char	CmdDb[FILESIZE];
@@ -802,25 +767,29 @@ bool show_bindings;
 }
 
 void
-DescCom()
+DescCom(void)
 {
 	ShowDoc("Command", findcom(ProcFmt), YES);
 }
 
 void
-DescVar()
+DescVar(void)
 {
 	ShowDoc("Variable", findvar(ProcFmt), NO);
 }
 
 void
-Apropos()
+Apropos(void)
 {
-	register const struct cmd *cp;
-	register struct macro *m;
-	register const struct variable *v;
-	const char *ans;
-	bool
+	const struct cmd
+		*cp;
+	struct macro
+		*m;
+	const struct variable
+		*v;
+	const char
+		*ans;
+	jbool
 		anyfs = NO,
 		anyvs = NO,
 		anyms = NO;
@@ -874,7 +843,7 @@ Apropos()
 }
 
 void
-InitKeymaps()
+InitKeymaps(void)
 {
 	struct keymap *km;
 
@@ -907,8 +876,7 @@ InitKeymaps()
  * won't return before completing a key sequence.
  */
 void
-dispatch(c)
-ZXchar c;
+dispatch(ZXchar c)
 {
 	struct keymap *maps[MAX_KEYMAPS];
 	int nmaps;
@@ -920,7 +888,7 @@ ZXchar c;
 
 	while (YES) {
 		int	i;
-		bool	still_hope = NO;
+		jbool	still_hope = NO;
 
 		for (i = 0; i < nmaps; i++) {
 			if (maps[i] != NULL) {

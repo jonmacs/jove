@@ -324,18 +324,18 @@
  * because they're dependent on the things defined earlier in the file.
  */
 #ifdef USE_BCOPY
-# define byte_copy(from, to, len)	bcopy((UnivConstPtr)(from), (UnivPtr)(to), (size_t)(len))
+# define byte_copy(from, to, len)	bcopy((const void *)(from), (void *)(to), (size_t)(len))
 # define byte_move(from, to, len)	byte_copy(from, to, len)
-# define byte_zero(s, n)	bzero((UnivPtr)(s), (size_t)(n))
+# define byte_zero(s, n)		bzero((void *)(s), (size_t)(n))
 #endif
 
 #ifndef byte_copy
 # ifdef USE_MEMORY_H
 #  include <memory.h>
 # endif
-# define byte_copy(from, to, count)	memcpy((UnivPtr)(to), (UnivConstPtr)(from), (size_t)(count))
-# define byte_move(from, to, count)	memmove((UnivPtr)(to), (UnivConstPtr)(from), (size_t)(count))
-# define byte_zero(s, n)		memset((UnivPtr)(s), 0, (size_t)(n))
+# define byte_copy(from, to, count)	memcpy((void *)(to), (const void *)(from), (size_t)(count))
+# define byte_move(from, to, count)	memmove((void *)(to), (const void *)(from), (size_t)(count))
+# define byte_zero(s, n)		memset((void *)(s), 0, (size_t)(n))
 #endif
 
 #ifdef USE_INDEX
@@ -345,15 +345,6 @@
 
 #ifdef FULL_UNISTD
 # define POSIX_UNISTD	1
-#endif
-
-/* JSSIZE_T: result type of read() and write() */
-#ifdef FULL_UNISTD
-# define JSSIZE_T    ssize_t
-#endif
-
-#ifndef JSSIZE_T
-# define JSSIZE_T    int
 #endif
 
 /* jmode_t: the type for file modes

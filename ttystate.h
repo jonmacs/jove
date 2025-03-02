@@ -96,11 +96,11 @@ extern int	lmword[2];		/* local mode word */
 
 /* Variables: */
 
-extern bool	OKXonXoff;		/* VAR: XON/XOFF can be used as ordinary chars */
+extern jbool	OKXonXoff;		/* VAR: XON/XOFF can be used as ordinary chars */
 extern ZXchar	IntChar;		/* VAR: ttysetattr sets this to generate QUIT */
 
 #endif /* UNIX */
 
 #ifdef BIFF
-extern bool	DisBiff;		/* VAR: turn off/on biff with entering/exiting jove */
+extern jbool	DisBiff;		/* VAR: turn off/on biff with entering/exiting jove */
 #endif

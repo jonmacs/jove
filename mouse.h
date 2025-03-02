@@ -8,25 +8,25 @@
 #ifdef MOUSE	/* the body is the rest of this file */
 
 extern void
-	MouseOn proto((void)),
-	MouseOff proto((void)),
+	MouseOn(void),
+	MouseOff(void),
 
-	xjMousePoint proto((void)),
-	xjMouseMark proto((void)),
-	xjMouseWord proto((void)),
-	xjMouseLine proto((void)),
-	xjMouseYank proto((void)),
-	xjMouseCopyCut proto((void)),
+	xjMousePoint(void),
+	xjMouseMark(void),
+	xjMouseWord(void),
+	xjMouseLine(void),
+	xjMouseYank(void),
+	xjMouseCopyCut(void),
 
-	xtMouseYank proto((void)),
-	xtMousePointYank proto((void)),
-	xtMouseCutPointYank proto((void)),
-	xtMouseExtend proto((void)),
-	xtMouseMark proto((void)),
-	xtMouseMarkDragPointCopy proto((void)),
-	xtMouseNull proto((void)),
-	xtMousePoint proto((void));
+	xtMouseYank(void),
+	xtMousePointYank(void),
+	xtMouseCutPointYank(void),
+	xtMouseExtend(void),
+	xtMouseMark(void),
+	xtMouseMarkDragPointCopy(void),
+	xtMouseNull(void),
+	xtMousePoint(void);
 
-extern bool	XtermMouse;	/* VAR: should we enable xterm mouse? */
+extern jbool	XtermMouse;	/* VAR: should we enable xterm mouse? */
 
 #endif /* MOUSE */

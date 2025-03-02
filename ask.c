@@ -30,9 +30,9 @@
 #endif /* !MAC */
 
 ZXchar	AbortChar = CTL('G');	/* VAR: cancels command input */
-bool	DispDefFs = YES;	/* VAR: display default filenames in prompt? */
+jbool	DispDefFs = YES;	/* VAR: display default filenames in prompt? */
 
-bool	Asking = NO;
+jbool	Asking = NO;
 int	AskingWidth;
 
 char	Minibuf[LBSIZE];
@@ -47,10 +47,10 @@ private Buffer	*AskBuffer = NULL;	/* Askbuffer points to actual structure */
  * is somewhere in the mini-buffer).
  */
 private Buffer *
-get_minibuf()
+get_minibuf(void)
 {
 	if (AskBuffer) {		/* make sure it still exists */
-		register Buffer	*b;
+		Buffer	*b;
 
 		for (b = world; b != NULL; b = b->b_next)
 			if (b == AskBuffer)
@@ -64,11 +64,9 @@ get_minibuf()
 /* Add a string to the mini-buffer. */
 
 void
-minib_add(str, movedown)
-char	*str;
-bool	movedown;
+minib_add(char *str, jbool movedown)
 {
-	register Buffer	*saveb = curbuf;
+	Buffer	*saveb = curbuf;
 
 	SetBuf(get_minibuf());
 	LineInsert(1);
@@ -78,14 +76,11 @@ bool	movedown;
 	SetBuf(saveb);
 }
 
-bool	InRealAsk = NO;
+jbool	InRealAsk = NO;
 
 private const char *
-real_ask(delim, d_proc, def, prompt)
-const char	*delim,
-	*def,
-	*prompt;
-bool	(*d_proc) ptrproto((ZXchar));
+real_ask(const char *delim, jbool (*d_proc)(ZXchar),
+	 const char *def, const char *prompt)
 {
 	jmp_buf	savejmp;
 	ZXchar	c;
@@ -95,8 +90,8 @@ bool	(*d_proc) ptrproto((ZXchar));
 	const char	*prompt_leftchar = "",
 			*line_leftchar = "";
 	Buffer	*saveb = curbuf;
-	volatile bool	aborted = NO;
-	bool	no_typed = NO;
+	volatile jbool	aborted = NO;
+	jbool	no_typed = NO;
 	const data_obj	*push_cmd = LastCmd;
 	int	saved_as, saved_ac;
 
@@ -235,22 +230,14 @@ cleanup:
 	return Minibuf;
 }
 
-#ifdef STDARGS
 const char *
 ask(const char *def, const char *fmt, ...)
-#else
-/*VARARGS2*/ const char *
-ask(def, fmt, va_alist)
-	const char	*def;
-	const char	*fmt;
-	va_dcl
-#endif
 {
-	char	prompt[128];
+	char		prompt[128];
 	const char	*ans;
-	va_list	ap;
+	va_list		ap;
 
-	va_init(ap, fmt);
+	va_start(ap, fmt);
 	format(prompt, sizeof prompt, fmt, ap);
 	va_end(ap);
 	ans = real_ask("\r\n", NULL_ASK_EXT, def, prompt);
@@ -264,44 +251,27 @@ ask(def, fmt, va_alist)
 	return ans;
 }
 
-#ifdef STDARGS
 const char *
-do_ask(const char *delim, bool (*d_proc) ptrproto((ZXchar)), const char *def, const char *fmt, ...)
-#else
-/*VARARGS4*/ const char *
-do_ask(delim, d_proc, def, fmt, va_alist)
-	const char	*delim;
-	bool	(*d_proc) ptrproto((ZXchar));
-	const char	*def;
-	const char	*fmt;
-	va_dcl
-#endif
+do_ask(const char *delim, jbool (*d_proc)(ZXchar), const char *def, const char *fmt, ...)
 {
-	char	prompt[128];
-	va_list	ap;
+	char		prompt[128];
+	va_list		ap;
 
-	va_init(ap, fmt);
+	va_start(ap, fmt);
 	format(prompt, sizeof prompt, fmt, ap);
 	va_end(ap);
 	return real_ask(delim, d_proc, def, prompt);
 }
 
-bool	OneKeyConfirmation = NO;	/* VAR: single y or n keystroke sufficient? */
+jbool	OneKeyConfirmation = NO;	/* VAR: single y or n keystroke sufficient? */
 
-#ifdef STDARGS
-bool
+jbool
 yes_or_no_p(const char *fmt, ...)
-#else
-/*VARARGS1*/ bool
-yes_or_no_p(fmt, va_alist)
-	const char	*fmt;
-	va_dcl
-#endif
 {
-	char	prompt[128];
-	va_list	ap;
+	char		prompt[128];
+	va_list		ap;
 
-	va_init(ap, fmt);
+	va_start(ap, fmt);
 	format(prompt, sizeof prompt, fmt, ap);
 	va_end(ap);
 
@@ -355,15 +325,15 @@ yes_or_no_p(fmt, va_alist)
  */
 # ifndef MAC	/* no environment in MacOS */
 
-bool	DoEVexpand = YES;	/* VAR: should we expand evironment variables? */
+jbool	DoEVexpand = YES;	/* VAR: should we expand evironment variables? */
 
 private void
-EVexpand()
+EVexpand(void)
 {
-	register char	c;
-	register char	*lp = linebuf,
-			*ep;
-	char	varname[128],
+	char	c,
+		*lp = linebuf,
+		*ep,
+		varname[128],
 		*vp,
 		*lp_start;
 	Mark	*m = MakeMark(curline, curchar);
@@ -399,7 +369,7 @@ EVexpand()
 # endif /* !MAC */
 
 private char	*fc_filebase;
-bool	DispBadFs = YES;	/* VAR: display filenames with bad extensions? */
+jbool	DispBadFs = YES;	/* VAR: display filenames with bad extensions? */
 char	BadExtensions[sizeof(BadExtensions)] =	/* VAR: extensions to ignore */
 
 # ifndef MSFILESYSTEM
@@ -420,9 +390,8 @@ char	BadExtensions[sizeof(BadExtensions)] =	/* VAR: extensions to ignore */
 ".obj .lib .exe .com .dll .arc .zip .zoo .bmp .gif .jpg .mpg .tif .pcx .wks .wk1 .xls";
 # endif /* MSFILESYSTEM */
 
-private bool
-bad_extension(name)
-char	*name;
+private jbool
+bad_extension(char *name)
 {
 	char	*ip,
 		*bads;
@@ -453,11 +422,10 @@ char	*name;
 	return NO;
 }
 
-private bool f_match proto((char* file));	/* needed to comfort MS Visual C */
+private jbool f_match(char* file);	/* needed to comfort MS Visual C */
 
-private bool
-f_match(file)
-char	*file;
+private jbool
+f_match(char *file)
 {
 	size_t	len = strlen(fc_filebase);
 
@@ -473,9 +441,8 @@ char	*file;
 }
 
 # ifndef DIRECTORY_ADD_SLASH
-private bool
-isdir(name)
-char	*name;
+private jbool
+isdir(char *name)
 {
 	(void) do_stat(name, (Buffer *) NULL, DS_DIR);
 	return was_dir;
@@ -483,11 +450,9 @@ char	*name;
 # endif /* !DIRECTORY_ADD_SLASH */
 
 private void
-fill_in(dir_vec, n)
-register char	**dir_vec;
-int	n;
+fill_in(char **dir_vec, int n)
 {
-	bool	filter;
+	jbool	filter;
 
 	for (filter = DispBadFs; ; filter = NO) {
 		int
@@ -522,8 +487,7 @@ int	n;
 				break;
 			}
 		} else {
-			bool
-				the_same = YES; /* After filling in, are we the same
+			jbool	the_same = YES; /* After filling in, are we the same
 							as when we were called? */
 
 			if (minmatch > (int)strlen(fc_filebase)) {
@@ -557,9 +521,8 @@ int	n;
 /* called from do_ask() when one of "\r\n ?" is typed.  Does the right
  * thing, depending on which.
  */
-private bool
-f_complete(c)
-ZXchar	c;
+private jbool
+f_complete(ZXchar c)
 {
 	char
 		dir[FILESIZE],
@@ -643,7 +606,7 @@ ZXchar	c;
 
 			for (col = 0; col < ncols; col++) {
 				if (which < nentries) {
-					bool	isbad = DispBadFs && bad_extension(dir_vec[which]);
+					jbool	isbad = DispBadFs && bad_extension(dir_vec[which]);
 
 					swritef(buf+bufcol, sizeof(buf) - bufcol, "%s%-*s",
 						isbad ? "!" : NullStr,
@@ -671,11 +634,7 @@ ZXchar	c;
 private
 #endif
 char *
-ask_ford(prmt, def, buf)
-const char	*prmt;
-char
-	*def,
-	*buf;
+ask_ford(const char *prmt, char *def, char *buf)
 {
 	/* Note: pr_name yields a pointer into its static buffer so
 	 * pretty_name will not be a pointer into def.  This allows

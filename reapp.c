@@ -27,35 +27,31 @@
 #endif
 
 private void
-	IncSearch proto((int));
+	IncSearch(int);
 
 private int
-	isearch proto((int, Bufpos *));
+	isearch(int, Bufpos *);
 
 private char
 	searchstr[128];		/* global search string */
 
-bool
+jbool
 	UseRE = NO;		/* VAR: use regular expressions in search */
 
 private void
-setsearch(str)
-const char	*str;
+setsearch(const char *str)
 {
 	jamstr(searchstr, str);
 }
 
 private char *
-getsearch()
+getsearch(void)
 {
 	return searchstr;
 }
 
 private void
-search(dir, re, setdefault)
-int	dir;
-bool	re,
-	setdefault;
+search(int dir, jbool re, jbool setdefault)
 {
 	Bufpos	*newdot;
 	const char	*s = ask(searchstr, ProcFmt);
@@ -80,43 +76,39 @@ bool	re,
 }
 
 void
-ForSearch()
+ForSearch(void)
 {
 	search(FORWARD, UseRE, YES);
 }
 
 void
-RevSearch()
+RevSearch(void)
 {
 	search(BACKWARD, UseRE, YES);
 }
 
 void
-FSrchND()
+FSrchND(void)
 {
 	search(FORWARD, UseRE, NO);
 }
 
 void
-RSrchND()
+RSrchND(void)
 {
 	search(BACKWARD, UseRE, NO);
 }
 
 private int
-substitute(re_blk, query, l1, char1, l2, char2)
-struct RE_block	*re_blk;
-LinePtr	l1,
-	l2;
-bool	query;
-int	char1,
-	char2;
+substitute(struct RE_block *re_blk, jbool query,
+	   LinePtr l1, int char1,
+	   LinePtr l2, int char2)
 {
 	LinePtr	lp;
 	int	numdone = 0,
 		UNDO_nd = 0,
 		offset = char1;
-	bool	stop = NO;
+	jbool	stop = NO;
 	daddr	UNDO_da = NULL_DADDR;
 	LinePtr	UNDO_lp = NULL;
 
@@ -124,7 +116,7 @@ int	char1,
 
 	for (lp = l1; lp != l2->l_next; lp = lp->l_next) {
 		int	crater = -1;	/* end of last substitution on this line */
-		bool	LineDone = NO;	/* already replaced last empty string on line? */
+		jbool	LineDone = NO;	/* already replaced last empty string on line? */
 
 		while (!LineDone
 		&& re_lindex(lp, offset, FORWARD, re_blk, NO, crater)
@@ -241,9 +233,7 @@ message("Space or Y, Period, Delete or N, ^R or R, ^W, ^U or U, P or !, Return."
 
 /* prompt for search and replacement strings and do the substitution */
 private void
-replace(query, inreg)
-bool	query,
-	inreg;
+replace(jbool query, jbool inreg)
 {
 	LinePtr	l1 = curline,
 		l2 = curbuf->b_last;
@@ -287,19 +277,19 @@ bool	query,
 }
 
 void
-RegReplace()
+RegReplace(void)
 {
 	replace(NO, YES);
 }
 
 void
-QRepSearch()
+QRepSearch(void)
 {
 	replace(YES, NO);
 }
 
 void
-RepSearch()
+RepSearch(void)
 {
 	replace(NO, NO);
 }
@@ -311,21 +301,17 @@ RepSearch()
  * labeled), delete the marked test in the sequential loop, and
  * everything else will just work.
  */
-private bool
-lookup_tag(ispat, searchbuf, sbsize, filebuf, tag, file)
-bool	*ispat;
-char	*searchbuf;
-size_t	sbsize;
-char	*filebuf,
-	*tag,
-	*file;
+private jbool
+lookup_tag(jbool *ispat, char *searchbuf, size_t sbsize,
+	   char *filebuf, char *tag, char *file)
 {
-	register size_t	taglen = strlen(tag);
+	size_t	taglen = strlen(tag);
 	char	line[JBUFSIZ],
 		pattern[200];
-	register File	*fp;
-	struct stat	stbuf;
-	bool	success = NO;
+	File	*fp;
+	struct stat
+		stbuf;
+	jbool	success = NO;
 
 	fp = open_file(file, iobuff, F_READ, NO);
 	if (fp == NULL) {
@@ -392,8 +378,8 @@ char	*filebuf,
 		 * past the next newline (unless lower is 0), and fall
 		 * into the sequential search.
 		 */
-		register off_t	lower = 0;
-		register off_t	upper = stbuf.st_size;
+		off_t	lower = 0,
+			upper = stbuf.st_size;
 
 		for (;;) {
 			off_t	mid;
@@ -463,16 +449,14 @@ char	*filebuf,
 char	TagFile[FILESIZE] = "tags";	/* VAR: default tag file */
 
 void
-find_tag(tag, localp)
-char	*tag;
-bool	localp;
+find_tag(char *tag, jbool localp)
 {
 	char	filebuf[FILESIZE],
 		sstr[200],	/* 100 wasn't big enough */
 		tfbuf[FILESIZE];
-	register Bufpos	*bp;
-	register Buffer	*b;
-	bool ispat;
+	Bufpos	*bp;
+	Buffer	*b;
+	jbool	ispat;
 
 	if (lookup_tag(&ispat, sstr, sizeof(sstr), filebuf, tag,
 	  localp? TagFile : ask_file("With tag file ", TagFile, tfbuf)))
@@ -505,9 +489,9 @@ bool	localp;
 }
 
 void
-FindTag()
+FindTag(void)
 {
-	bool	localp = !is_an_arg();
+	jbool	localp = !is_an_arg();
 	char	tag[128];
 
 	jamstr(tag, ask((char *)NULL, ProcFmt));
@@ -517,7 +501,7 @@ FindTag()
 /* Find Tag at Dot. */
 
 void
-FDotTag()
+FDotTag(void)
 {
 	int	c1 = curchar,
 		c2 = c1;
@@ -562,10 +546,7 @@ private char
 ZXchar	SExitChar = CR;	/* VAR: type this to stop i-search */
 
 private Bufpos *
-doisearch(dir, c, failing)
-register ZXchar	c;
-register int	dir;
-bool		failing;
+doisearch(int dir, ZXchar c, jbool failing)
 {
 	static Bufpos	buf;
 	Bufpos	*bp;
@@ -594,20 +575,19 @@ bool		failing;
 }
 
 void
-IncFSearch()
+IncFSearch(void)
 {
 	IncSearch(FORWARD);
 }
 
 void
-IncRSearch()
+IncRSearch(void)
 {
 	IncSearch(BACKWARD);
 }
 
 private void
-IncSearch(dir)
-int	dir;
+IncSearch(int dir)
 {
 	Bufpos	save_env;
 
@@ -626,14 +606,12 @@ int	dir;
 /* Nicely recursive. */
 
 private int
-isearch(dir, bp)
-int	dir;
-Bufpos	*bp;
+isearch(int dir, Bufpos *bp)
 {
 	Bufpos	pushbp;
 	ZXchar	c;
 	int	ndir;
-	bool	failing;
+	jbool	failing;
 	char	*orig_incp;
 
 	if (bp != NULL) {		/* Move to the new position. */

@@ -14,38 +14,36 @@
 
 extern int	InJoverc;	/* depth in sourcing */
 
-extern bool	joverc proto((char *file));
+extern jbool	joverc(char *file);
 
-#ifdef USE_PROTOTYPES
 struct variable;	/* forward declaration preventing prototype scoping */
-#endif /* USE_PROTOTYPES */
 
 extern void
-	DoAutoExec proto((char *new, char *old)),
-	vpr_aux proto((const struct variable *, char *, size_t)),
-	vset_aux proto((const struct variable *, char *));
+	DoAutoExec(char *new, char *old),
+	vpr_aux(const struct variable *, char *, size_t),
+	vset_aux(const struct variable *, char *);
 
 extern ZXchar
-	addgetc proto((void));
+	addgetc(void);
 
 extern long
-	ask_long proto((const char *def, const char *prompt, int base));
+	ask_long(const char *def, const char *prompt, int base);
 
 extern int
-	ask_int proto((const char *def, const char *prompt, int base)),
-	complete proto((const char *const *possible, const char *def, const char *prompt, int flags));
+	ask_int(const char *def, const char *prompt, int base),
+	complete(const char *const *possible, const char *def, const char *prompt, int flags);
 
-extern bool
-	chr_to_int proto((const char *cp, int base, bool allints, int *result)),
-	chr_to_long proto((const char *cp, int base, bool allints, long *result));
+extern jbool
+	chr_to_int(const char *cp, int base, jbool allints, int *result),
+	chr_to_long(const char *cp, int base, jbool allints, long *result);
 
 /* Commands: */
 extern void
-	BufPos proto((void)),
-	CAutoExec proto((void)),
-	Extend proto((void)),
-	MAutoExec proto((void)),
-	PrVar proto((void)),
-	InsVar proto((void)),
-	SetVar proto((void)),
-	Source proto((void));
+	BufPos(void),
+	CAutoExec(void),
+	Extend(void),
+	MAutoExec(void),
+	PrVar(void),
+	InsVar(void),
+	SetVar(void),
+	Source(void);

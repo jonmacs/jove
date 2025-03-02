@@ -1,3 +1,5 @@
+CC= gcc-15
+
 ##########################################################################
 # This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    #
 # provided by Jonathan and Jovehacks without charge and without          #
@@ -140,7 +142,7 @@ SYSDEFS = -D`uname` -DJTC $(CPPFLAGS)
 
 # OPTFLAGS: compiler flags that are passed to both the compiling & linking steps
 # e.g. -g for debugging, -O for optimization.
-OPTFLAGS = -O
+OPTFLAGS = -O -Wall
 
 # CFLAGS (i.e compile flags for the target compiler) are OPTFLAGS and SYSDEFS,
 # DO NOT OVERRIDE

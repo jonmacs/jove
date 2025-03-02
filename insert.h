@@ -7,46 +7,46 @@
 
 /* ??? Why, for example, are GCchunks, lfreelist, and lfreereg here? -- DHR */
 
-extern Bufpos *DoYank proto((
+extern Bufpos *DoYank(
 	LinePtr fline, int fchar,
 	LinePtr tline, int tchar,
 	LinePtr atline, int atchar,
-	Buffer *whatbuf));
+	Buffer *whatbuf);
 
 extern void
-	ins_str proto((const char *str)),
-	ins_str_wrap proto((const char *str, bool ok_nl, int wrap_off)),
-	LineInsert proto((long num)),
-	open_lines proto((long n)),
-	overwrite proto((DAPchar c, int n)),
-	insert_c proto((DAPchar c,int n)),
-	GCchunks proto((void)),
-	lfreelist proto((LinePtr first)),
-	lfreereg proto((LinePtr line1,LinePtr line2)),
-	n_indent proto((int goal));
+	ins_str(const char *str),
+	ins_str_wrap(const char *str, jbool ok_nl, int wrap_off),
+	LineInsert(long num),
+	open_lines(long n),
+	overwrite(DAPchar c, int n),
+	insert_c(DAPchar c,int n),
+	GCchunks(void),
+	lfreelist(LinePtr first),
+	lfreereg(LinePtr line1,LinePtr line2),
+	n_indent(int goal);
 
 #ifdef ABBREV
-extern void	MaybeAbbrevExpand proto((void));
+extern void	MaybeAbbrevExpand(void);
 #endif
 
 extern LinePtr
-	nbufline proto((void));
+	nbufline(void);
 
 /* Commands: */
 
 extern void
 #ifdef LISP
-	AddSpecial proto((void)),	/* add lisp special form */
-	GSexpr proto((void)),	/* Grind S Expression. */
+	AddSpecial(void),	/* add lisp special form */
+	GSexpr(void),	/* Grind S Expression. */
 #endif
-	DoParen proto((void)),
-	LineAI proto((void)),
-	Newline proto((void)),
-	OpenLine proto((void)),
-	QuotChar proto((void)),
-	SelfInsert proto((void)),
-	Tab proto((void)),
-	YankPop proto((void));
+	DoParen(void),
+	LineAI(void),
+	Newline(void),
+	OpenLine(void),
+	QuotChar(void),
+	SelfInsert(void),
+	Tab(void),
+	YankPop(void);
 
 
 /* Variables: */

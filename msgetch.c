@@ -18,12 +18,12 @@
 #include <dos.h>
 
 
-private void rawkey_wait proto((void));
+private void rawkey_wait(void);
 
 #ifdef IBMPCDOS
 private ZXchar	last = EOF;
 
-bool enhanced_keybrd;	/* VAR: exploit "enhanced" keyboard? */
+jbool enhanced_keybrd;	/* VAR: exploit "enhanced" keyboard? */
 
 /* Unlike the other _NKEYBRD services, the _NKEYBRD_READY service
  * *requires* specific support within _bios_keybrd.  In particular
@@ -94,7 +94,7 @@ static const char scanToAsciiUpper[] = {
 #endif /* IBMPCDOS */
 
 ZXchar
-getrawinchar()
+getrawinchar(void)
 {
 #ifdef IBMPCDOS
 	unsigned scan;
@@ -173,10 +173,11 @@ getrawinchar()
 #endif /* !IBMPCDOS */
 }
 
-private bool	waiting = NO;
+private jbool
+	waiting = NO;
 
-bool
-rawkey_ready()
+jbool
+rawkey_ready(void)
 {
 #ifdef IBMPCDOS
 	return !waiting && (last != EOF || jkbready());
@@ -204,7 +205,7 @@ rawkey_ready()
  * NOTE: this is a busy wait.
  */
 private void
-rawkey_wait()
+rawkey_wait(void)
 {
 	while (!rawkey_ready()) {
 		if (UpdModLine) {
@@ -230,8 +231,8 @@ rawkey_wait()
 }
 
 void
-ttysetattr(n)
-bool	n;	/* also used as subscript! */
+ttysetattr(jbool n)
+/* `n' is also used as subscript! */
 {
 	static char break_state;
 

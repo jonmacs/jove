@@ -74,26 +74,9 @@ char	*argv[];
  * it for OSF.
  */
 #ifndef	_OSF_SOURCE
-extern FILE	*popen proto((const char *, const char *));
+extern FILE	*popen(const char *, const char *);
 #endif
 
-# ifndef FULL_UNISTD
-
-/* The parameter of getpwuid is widened uid_t,
- * but there no easy portable way to write this
- */
-extern struct passwd *getpwuid(/*widened uid_t*/);
-
-#  ifdef USE_UNAME
-extern int	uname proto((struct utsname *));
-#  endif
-
-#  ifdef USE_GETHOSTNAME
-extern int	gethostname proto((const char *, size_t));
-#  endif
-
-extern int	mkdir proto((const char *, jmode_t));
-# endif /* !FULL_UNISTD */
 #endif /* UNIX */
 
 #ifndef L_SET
@@ -113,8 +96,8 @@ private long	Nchars,
 private char	tty[] = "/dev/tty";
 private const char	*tmp_dir = TMPDIR;
 private uid_t	UserID;
-private bool	Verbose = NO;
-private bool	Debug = NO;
+private jbool	Verbose = NO;
+private jbool	Debug = NO;
 private FILE	*dfp;
 private const char *RecDir = RECDIR;
 
@@ -154,11 +137,10 @@ int errnum;
 #endif /* NO_STRERROR */
 
 /* simpler version of one in util.c, needed by scandir.c */
-UnivPtr
-emalloc(size)
-size_t size;
+void *
+emalloc(size_t size)
 {
-	register UnivPtr ptr;
+	void *ptr;
 
 	if ((ptr = malloc(size)) == NULL) {
 		fprintf(stderr, "couldn't malloc(%ld)\n", (long)size);
@@ -168,10 +150,8 @@ size_t size;
 }
 
 /* simpler version of one in util.c, needed by scandir.c */
-UnivPtr
-erealloc(ptr, size)
-UnivPtr ptr;
-size_t size;
+void *
+erealloc(void *ptr, size_t size)
 {
 	if (ptr == NULL)
 		return emalloc(size); /* some realloc do not like ptr == NULL */
@@ -187,10 +167,7 @@ size_t size;
  * Duplicated from util.c: needed by scandir.c
  */
 void
-null_ncpy(to, from, n)
-char	*to;
-const char	*from;
-size_t	n;
+null_ncpy(char *to, const char *from, size_t n)
 {
 	(void) strncpy(to, from, n);
 	to[n] = '\0';
@@ -198,8 +175,7 @@ size_t	n;
 
 /* strdup s, and if t is not-NULL, concatenate space and t */
 char *
-copystrs(s, t)
-const char	*s, *t;
+copystrs(const char *s, const char *t)
 {
 	char	*str, *sp;
 	size_t	ns = strlen(s) + 1, nt = 0;
@@ -226,20 +202,14 @@ const char	*s, *t;
  * long.
  */
 
-private char	*getblock proto((daddr atl));
+private char	*getblock(daddr atl);
 
 void
-jgetline(tl, buf)
-daddr	tl;
-char	*buf;
+jgetline(daddr tl, char *buf)
 {
-	register char	*bp,
-			*lp;
-	register long	nl;
-
-	lp = buf;
-	bp = getblock(tl);
-	nl = nleft;
+	char	*bp = getblock(tl),
+		*lp = buf;
+	long	nl = nleft;
 
 	while ((*lp++ = *bp++) != '\0') {
 		if (--nl == 0) {
@@ -255,8 +225,7 @@ char	*buf;
 private jmp_buf	int_env;
 
 private char *
-getblock(atl)
-daddr	atl;
+getblock(daddr atl)
 {
 	daddr	bno,
 		off;
@@ -270,10 +239,10 @@ daddr	atl;
 		    (long)atl, (long)bno, (long)off, (long)nleft);
 
 	if (bno != curblock) {
-		JSSIZE_T nb;
-		const char *what;
-		off_t	    r,
-			    boff = bno_to_seek_off(bno);
+		ssize_t		nb;
+		const char	*what;
+		off_t		r,
+				boff = bno_to_seek_off(bno);
 
 		if (Debug)
 			fprintf(dfp, "lseek %d to bno %lu 0x%lx boff %ld 0x%lx\n", data_fd, (unsigned long)bno, (unsigned long) bno, (long)boff, (long)boff);
@@ -281,7 +250,7 @@ daddr	atl;
 		r = lseek(data_fd, boff, L_SET);
 		if (r >= 0) {
 			what = "read";
-			nb = read(data_fd, (UnivPtr)blk_buf, (size_t)JBUFSIZ);
+			nb = read(data_fd, blk_buf, (size_t)JBUFSIZ);
 			if (nb >= 0 && nb != JBUFSIZ) {
 				if (nshort == 0)
 					fprintf(stderr, "short read from JOVE tempfile %ld\n", (long)nb);
@@ -313,23 +282,22 @@ private const char	*CurDir;
  * out of them.
  */
 
-private bool	add_name proto((char *));
+private jbool	add_name(char *);
 
 private void
-free_files() {
+free_files(void) {
 	while (First != NULL) {
 		struct file_pair	*p = First;
 
 		First = p->file_next;
-		free((UnivPtr) p->file_data);
-		free((UnivPtr) p->file_rec);
-		free((UnivPtr) p);
+		free(p->file_data);
+		free(p->file_rec);
+		free(p);
 	}
 }
 
 private void
-get_files(dirname)
-const char	*dirname;
+get_files(const char *dirname)
 {
 	char	**nmptr;
 	int	nentries;
@@ -339,14 +307,13 @@ const char	*dirname;
 
 	CurDir = dirname;
 	nentries = jscandir(dirname, &nmptr, add_name,
-		(int (*) ptrproto((UnivConstPtr, UnivConstPtr)))NULL);
+		(int (*)(const void *, const void *))NULL);
 	if (nentries != -1)
 		freedir(&nmptr, nentries);
 }
 
-private bool
-add_name(fname)
-char *fname;
+private jbool
+add_name(char *fname)
 {
 	char	dfile[FILESIZE*2+2], /* CurDir/filename */
 		rfile[FILESIZE*2+2];
@@ -382,7 +349,7 @@ char *fname;
 	if (Debug)
 		fprintf(dfp, "checking %s\n", rfile);
 	if ((fd = open(rfile, O_RDONLY | O_BINARY | O_CLOEXEC)) != -1) {
-		if (read(fd, (UnivPtr) &header, sizeof header) != sizeof header) {
+		if (read(fd, &header, sizeof header) != sizeof header) {
 			close(fd);
 			fprintf(stderr, "%s: could not read complete header from %s, skipping\n",
 				progname, rfile);
@@ -425,7 +392,7 @@ char *fname;
 }
 
 private void
-options()
+options(void)
 {
 	printf("Options are:\n");
 	printf("	?		list options.\n");
@@ -438,11 +405,11 @@ options()
 
 /* Returns a legitimate buffer # */
 
-private void	tellme proto((const char *, char *, size_t)),
-	list proto((void));
+private void	tellme(const char *, char *, size_t),
+	list(void);
 
 private long
-getsrc()
+getsrc(void)
 {
 	char	name[FILESIZE];
 	long	number;
@@ -469,7 +436,7 @@ getsrc()
 /* Get a destination file name. */
 
 private char *
-getdest()
+getdest(void)
 {
 	static char	filebuf[FILESIZE];
 
@@ -482,9 +449,7 @@ getdest()
 #include "jctype.h"
 
 private char *
-readword(buf, buflen)
-char	*buf;
-size_t	buflen;
+readword(char *buf, size_t buflen)
 {
 	int	c;
 	char	*bp = buf,
@@ -513,10 +478,7 @@ size_t	buflen;
 }
 
 private void
-tellme(quest, answer, anslen)
-const char	*quest;
-char	*answer;
-size_t	anslen;
+tellme(const char *quest, char *answer, size_t anslen)
 {
 	printf("%s", quest);
 	fflush(stdout);
@@ -525,20 +487,19 @@ size_t	anslen;
 
 #ifdef UNIX
 private SIGRESTYPE
-catch(junk)
-int	UNUSED(junk);
+catch(int UNUSED(junk))
 {
 	longjmp(int_env, 1);
 	/*NOTREACHED*/
 }
 #endif /* UNIX */
 
-private void	get proto((long src, char *dest));
+private void	get(long src, char *dest);
 
 private void
-restore()
+restore(void)
 {
-	register long	i;
+	long	i;
 	char	tofile[FILESIZE+1], /* leading # */
 		answer[SMALLSTRSIZE];
 	int	nrecovered = 0;
@@ -570,12 +531,10 @@ tryagain:
 	printf("Recovered %d buffers.\n", nrecovered);
 }
 
-private void	dump_file proto((long which, FILE *out));
+private void	dump_file(long which, FILE *out);
 
 private void
-get(src, dest)
-long	src;
-char	*dest;
+get(long src, char *dest)
 {
 	FILE	*volatile outfile;	/* "volatile" to preserve outfile across setjmp */
 
@@ -620,11 +579,8 @@ char	*dest;
 	}
 }
 
-private bool
-isopt(args, str, needval)
-register char	**args,
-		*str;
-bool		needval;
+private jbool
+isopt(char **args, char *str, jbool needval)
 {
 	char *cp = *args;
 	if (Debug)
@@ -649,16 +605,14 @@ bool		needval;
 
 
 private void
-read_rec(recptr)
-struct rec_entry	*recptr;
+read_rec(struct rec_entry *recptr)
 {
-	if (fread((UnivPtr) recptr, sizeof *recptr, (size_t)1, ptrs_fp) != 1)
+	if (fread(recptr, sizeof *recptr, (size_t)1, ptrs_fp) != 1)
 		fprintf(stderr, "%s: cannot read record. %s\n", progname, strerror(errno));
 }
 
 private void
-seekto(which)
-long	which;
+seekto(long which)
 {
 	long	offset,
 		i;
@@ -670,22 +624,22 @@ long	which;
 }
 
 private void
-freeblist()
+freeblist(void)
 {
 	long	i;
 	for (i = 0; i < maxbufs; i++) {
 		if (buflist[i]) {
-			free((UnivPtr) buflist[i]);
+			free(buflist[i]);
 			buflist[i] = NULL;
 		}
 	}
-	free((UnivPtr) buflist);
+	free(buflist);
 	buflist = NULL;
 	maxbufs = 0;
 }
 
 private void
-makblist()
+makblist(void)
 {
 	long	i, nmax;
 
@@ -725,12 +679,11 @@ makblist()
 }
 
 private daddr
-getaddr(fp)
-register FILE	*fp;
+getaddr(FILE *fp)
 {
-	register int	nchars = sizeof (daddr);
+	int	nchars = sizeof (daddr);
 	daddr	addr;
-	register char	*cp = (char *) &addr;
+	char	*cp = (char *) &addr;
 
 	while (--nchars >= 0)
 		*cp++ = getc(fp);
@@ -739,12 +692,10 @@ register FILE	*fp;
 }
 
 private void
-dump_file(which, out)
-long	which;
-FILE	*out;
+dump_file(long which, FILE *out)
 {
-	register long	nlines; /* XXX lnum_t */
-	register daddr	addr;
+	long	nlines; /* XXX lnum_t */
+	daddr	addr;
 	char	buf[JBUFSIZ];
 
 	seekto(which);
@@ -772,7 +723,7 @@ FILE	*out;
 /* List all the buffers. */
 
 private void
-list()
+list(void)
 {
 	long	i;
 
@@ -783,11 +734,10 @@ list()
 			buflist[i]->r_nlines);
 }
 
-private void	ask_del proto((const char *prompt, struct file_pair *fp));
+private void	ask_del(const char *prompt, struct file_pair *fp);
 
 private int
-doit(fp)
-struct file_pair	*fp;
+doit(struct file_pair *fp)
 {
 	char	answer[SMALLSTRSIZE];
 	char	*datafile = fp->file_data,
@@ -801,7 +751,7 @@ struct file_pair	*fp;
 	}
 	if (Debug)
 		fprintf(dfp, "opened %s\n", pntrfile);
-	if (fread((UnivPtr) &Header, sizeof Header, (size_t)1, ptrs_fp) != 1) {
+	if (fread(&Header, sizeof Header, (size_t)1, ptrs_fp) != 1) {
 		fprintf(stderr, "%s: cannot read header from rec file (%s).\n", progname, pntrfile);
 		return 0;
 	}
@@ -903,12 +853,10 @@ struct file_pair	*fp;
 	}
 }
 
-private void	del_files proto((struct file_pair *fp));
+private void	del_files(struct file_pair *fp);
 
 private void
-ask_del(prompt, fp)
-const char	*prompt;
-struct file_pair	*fp;
+ask_del(const char *prompt, struct file_pair *fp)
 {
 	char	yorn[SMALLSTRSIZE];
 
@@ -918,8 +866,7 @@ struct file_pair	*fp;
 }
 
 private void
-del_files(fp)
-struct file_pair	*fp;
+del_files(struct file_pair *fp)
 {
 	(void) unlink(fp->file_data);
 	(void) unlink(fp->file_rec);
@@ -928,7 +875,7 @@ struct file_pair	*fp;
 
 #ifdef UNIX
 private const char *
-hname()
+hname(void)
 {
 	const char *p = "unknown";
 #ifdef USE_UNAME
@@ -947,8 +894,7 @@ hname()
 }
 
 private void
-MailUser(rec)
-struct rec_head *rec;
+MailUser(struct rec_head *rec)
 {
 	char *last_update, *mail_cmd;
 	const char *buf_string, *mail_prog;
@@ -999,7 +945,7 @@ struct rec_head *rec;
 
 
 private void
-savetmps()
+savetmps(void)
 {
 	struct file_pair	*fp;
 	wait_status_t	status;
@@ -1051,7 +997,7 @@ savetmps()
 
 		case 0:
 			if ((fd = open(fp->file_rec, O_RDONLY | O_BINARY | O_CLOEXEC)) != -1) {
-				if ((read(fd, (UnivPtr) &header, sizeof header) != sizeof header)) {
+				if ((read(fd, &header, sizeof header) != sizeof header)) {
 					close(fd);
 					return;
 				} else
@@ -1105,8 +1051,7 @@ savetmps()
 #endif /* UNIX */
 
 private int
-lookup(dir)
-const char	*dir;
+lookup(const char *dir)
 {
 	struct file_pair	*fp;
 	int	nfound = 0;
@@ -1129,9 +1074,7 @@ const char	*dir;
 }
 
 int
-main(argc, argv)
-int	UNUSED(argc);
-char	*argv[];
+main(int UNUSED(argc), char *argv[])
 {
 	int	nfound;
 	char	**argvp;

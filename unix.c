@@ -66,7 +66,7 @@ int	lmword[2];		/* local mode word */
  * emulators) are generally fine with ^S and ^Q, so follow GNU
  * Emacs lead and assume that by default.
  */
-bool	OKXonXoff = YES;	/* VAR: XON/XOFF can be used as ordinary chars */
+jbool	OKXonXoff = YES;	/* VAR: XON/XOFF can be used as ordinary chars */
 ZXchar	IntChar = CTL(']');	/* VAR: ttysetattr sets this to generate SIGINT */
 
 #ifdef BIFF
@@ -74,14 +74,13 @@ ZXchar	IntChar = CTL(']');	/* VAR: ttysetattr sets this to generate SIGINT */
  * Ancient UNIXes can mess up the screen with biff when mail
  * arrives, and it does no harm to turn this on anyway.
  */
-bool	DisBiff = YES;		/* VAR: turn off/on biff with entering/exiting jove */
+jbool	DisBiff = YES;		/* VAR: turn off/on biff with entering/exiting jove */
 #endif /* BIFF */
 
 void
-ttysetattr(n)
-bool	n;	/* also used as subscript! */
+ttysetattr(jbool n)	/* `n' is also used as subscript! */
 {
-	static bool	keep_saved = NO;
+	static jbool	keep_saved = NO;
 
 	if (!keep_saved) {
 		/* Save the current tty settings:
@@ -96,7 +95,7 @@ bool	n;	/* also used as subscript! */
 #endif
 
 #ifdef TERMIO
-		(void) ioctl(0, TCGETA, (UnivPtr) &sg[NO]);
+		(void) ioctl(0, TCGETA, &sg[NO]);
 #endif
 
 #ifdef TERMIOS
@@ -104,17 +103,17 @@ bool	n;	/* also used as subscript! */
 #endif
 
 #ifdef USE_TIOCSLTC
-		(void) ioctl(0, TIOCGLTC, (UnivPtr) &ls[NO]);
+		(void) ioctl(0, TIOCGLTC, &ls[NO]);
 #endif /* USE_TIOCSLTC */
 
 #ifdef SGTTY
 
 # ifdef TIOCGETC
-		(void) ioctl(0, TIOCGETC, (UnivPtr) &tc[NO]);
+		(void) ioctl(0, TIOCGETC, &tc[NO]);
 # endif
 
 # ifdef LPASS8	/* use 4.3BSD's LPASS8 instead of raw for meta-key */
-		(void) ioctl(0, TIOCLGET, (UnivPtr) &lmword[NO]);
+		(void) ioctl(0, TIOCLGET, &lmword[NO]);
 # endif
 
 #endif /* SGTTY */
@@ -292,14 +291,14 @@ bool	n;	/* also used as subscript! */
 
 #ifdef SGTTY
 #  ifdef TIOCSETN
-	(void) ioctl(0, TIOCSETN, (UnivPtr) &sg[n]);
+	(void) ioctl(0, TIOCSETN, &sg[n]);
 #  else
 	(void) stty(0, &sg[n]);
 #  endif
 #endif
 
 #ifdef TERMIO
-	do {} while (ioctl(0, TCSETAW, (UnivPtr) &sg[n]) < 0 && errno == EINTR);
+	do {} while (ioctl(0, TCSETAW, &sg[n]) < 0 && errno == EINTR);
 #endif
 
 #ifdef TERMIOS
@@ -307,17 +306,17 @@ bool	n;	/* also used as subscript! */
 #endif
 
 #ifdef USE_TIOCSLTC
-	(void) ioctl(0, TIOCSLTC, (UnivPtr) &ls[n]);
+	(void) ioctl(0, TIOCSLTC, &ls[n]);
 #endif /* USE_TIOCSLTC */
 
 #ifdef SGTTY
 
 # ifdef TIOCGETC
-	(void) ioctl(0, TIOCSETC, (UnivPtr) &tc[n]);
+	(void) ioctl(0, TIOCSETC, &tc[n]);
 # endif
 
 # ifdef LPASS8	/* use 4.3BSD's LPASS8 instead of raw for meta-key */
-	(void) ioctl(0, TIOCLSET, (UnivPtr) &lmword[n]);	/* local mode word */
+	(void) ioctl(0, TIOCLSET, &lmword[n]);	/* local mode word */
 # endif
 
 #endif /* SGTTY */
@@ -345,7 +344,7 @@ bool	n;	/* also used as subscript! */
 		static struct stat	tt_stat;
 # if !defined(USE_FSTAT) || !defined(USE_FCHMOD)
 		static char	*tt_name = NULL;	/* name of the control tty */
-		extern char	*ttyname proto((int));	/* for systems w/o fstat */
+		extern char	*ttyname(int);		/* for systems w/o fstat */
 # endif
 
 		if (n && DisBiff) {
@@ -407,7 +406,7 @@ bool	n;	/* also used as subscript! */
  * number or chars, and initializes `jstdout'.
  */
 void
-settout()
+settout(void)
 {
 	int	speed_chars;
 
@@ -504,7 +503,7 @@ settout()
 }
 
 void
-ttsize()
+ttsize(void)
 {
 	/* ??? We really ought to wait until the screen is big enough:
 	 * at least three lines high (one line each for buffer, mode,
@@ -515,9 +514,9 @@ ttsize()
 #ifdef TIOCGWINSZ
 	struct winsize win;
 
-	if (ioctl(0, TIOCGWINSZ, (UnivPtr) &win) == 0
-	&& win.ws_col >= 12
-	&& win.ws_row >= 3)
+	if (ioctl(0, TIOCGWINSZ, &win) == 0
+	    && win.ws_col >= 12
+	    && win.ws_row >= 3)
 	{
 		CO = jmin(win.ws_col, MAXCOLS);
 		LI = win.ws_row;
@@ -526,9 +525,9 @@ ttsize()
 # ifdef BTL_BLIT
 	struct jwinsize jwin;
 
-	if (ioctl(0, JWINSIZE, (UnivPtr) &jwin) == 0
-	&& jwin.bytesx >= 12
-	&& jwin.bytesy >= 3)
+	if (ioctl(0, JWINSIZE, &jwin) == 0
+	    && jwin.bytesx >= 12
+	    && jwin.bytesy >= 3)
 	{
 		CO = jmin(jwin.bytesx, MAXCOLS);
 		LI = jwin.bytesy;

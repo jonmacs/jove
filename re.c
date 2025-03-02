@@ -15,14 +15,14 @@
 #include "fmt.h"
 #include "marks.h"
 
-private bool
-	do_comp proto((struct RE_block *,int));
+private jbool
+	do_comp(struct RE_block *,int);
 
 char
 	rep_search[128],	/* replace search string */
 	rep_str[128];		/* contains replacement string */
 
-bool
+jbool
 	CaseIgnore = NO,	/* VAR: ignore case in search */
 	WrapScan = NO;		/* VAR: make searches wrap */
 
@@ -30,7 +30,7 @@ private ZXchar	REpeekc;
 private const char	*REptr;
 
 private ZXchar
-REgetc()
+REgetc(void)
 {
 	ZXchar	c;
 
@@ -82,10 +82,7 @@ private char	*comp_ptr,
 		**alt_endp;
 
 void
-REcompile(pattern, re, re_blk)
-const char	*pattern;
-bool	re;
-struct RE_block	*re_blk;
+REcompile(const char *pattern, jbool re, struct RE_block *re_blk)
 {
 	REptr = pattern;
 	REpeekc = EOF;
@@ -136,10 +133,8 @@ struct RE_block	*re_blk;
 
 /* compile the pattern into an internal code */
 
-private bool
-do_comp(re_blk, kind)
-struct RE_block	*re_blk;
-int	kind;
+private jbool
+do_comp(struct RE_block *re_blk, int kind)
 {
 	char	*this_verb,
 		*prev_verb,
@@ -149,7 +144,7 @@ int	kind;
 		*parenp,
 		outer_max_paren = -1;
 	ZXchar	c;
-	bool	done_cb = NO;
+	jbool	done_cb = NO;
 
 	parenp = parens;
 	this_verb = NULL;
@@ -202,7 +197,7 @@ toolong:
 				*comp_ptr++ = 0;	/* initialize alt-count */
 				for (;;) {
 					char	*comp_len = comp_ptr;
-					bool	done;
+					jbool	done;
 					long	len;
 
 					comp_ptr += ALT_LEN_LEN;
@@ -486,38 +481,29 @@ int	REbom,		/* beginning and end columns of match */
 	REeom,
 	REdelta;	/* increase in line length due to last re_dosub */
 
-private bool
-backref(n, linep)
-int	n;
-register char	*linep;
+private jbool
+backref(int n, char *linep)
 {
-	register char	*backsp,
-			*backep;
+	char	*backsp = pstrtlst[n],
+		*backep = pendlst[n];
 
-	backsp = pstrtlst[n];
-	backep = pendlst[n];
 	while (*backsp++ == *linep++)
 		if (backsp >= backep)
 			return YES;
 	return NO;
 }
 
-private bool
-member(comp_ptr, c, af)
-register char	*comp_ptr;
-register ZXchar	c;
-bool		af;
+private jbool
+member(char *comp_ptr, ZXchar c, jbool af)
 {
 	return c != '\0' && ((comp_ptr[SETBYTE(c)] & SETBIT(c))? af : !af);
 }
 
-private bool
-REmatch(linep, comp_ptr)
-register char	*linep,
-		*comp_ptr;
+private jbool
+REmatch(char *linep, char *comp_ptr)
 {
 	char	*first_p;
-	register int	n;
+	int	n;
 
 	for (;;) switch (*comp_ptr++) {
 	case NORMC:
@@ -599,7 +585,7 @@ register char	*linep,
 	case CURLYB:
 	    {
 		int	altcnt = *comp_ptr++;
-		bool	any = NO;
+		jbool	any = NO;
 
 		while (--altcnt >= 0) {
 			if (!any)
@@ -668,9 +654,9 @@ star:
 }
 
 private void
-REreset()
+REreset(void)
 {
-	register int	i;
+	int	i;
 
 	for (i = 0; i < NPAR; i++)
 		pstrtlst[i] = pendlst[i] = NULL;
@@ -688,19 +674,15 @@ REreset()
  * search is a must as far as I am concerned.
  */
 
-bool
-re_lindex(line, offset, dir, re_blk, lbuf_okay, crater)
-LinePtr	line;
-int	offset;
-int	dir;
-struct RE_block	*re_blk;
-bool	lbuf_okay;
-int	crater;	/* offset of previous substitute (or -1) */
+jbool
+re_lindex(LinePtr line, int offset, int dir,
+	  struct RE_block *re_blk, jbool lbuf_okay,
+	  int crater)	/* offset of previous substitute (or -1). */
 {
-	register char	*p;
-	register ZXchar	firstc = re_blk->r_firstc;
-	register bool	anchored = re_blk->r_anchored;
-	char		**alts = re_blk->r_alternates;
+	char	*p;
+	ZXchar	firstc = re_blk->r_firstc;
+	jbool	anchored = re_blk->r_anchored;
+	char	**alts = re_blk->r_alternates;
 
 	REreset();
 	if (lbuf_okay) {
@@ -740,7 +722,7 @@ int	crater;	/* offset of previous substitute (or -1) */
 		}
 	} else {
 		for (;;) {
-			register char	**altp = alts;
+			char	**altp = alts;
 
 			while (*altp != NULL)
 				if (REmatch(p, *altp++))
@@ -757,14 +739,11 @@ success:;
 	return YES;
 }
 
-bool	okay_wrap = NO;	/* Do a wrap search ... not when we're
+jbool	okay_wrap = NO;	/* Do a wrap search ... not when we're
 			   parsing errors ... */
 
 Bufpos *
-dosearch(pattern, dir, re)
-const char	*pattern;
-int	dir;
-bool	re;
+dosearch(const char *pattern, int dir, jbool re)
 {
 	Bufpos	*pos;
 	struct RE_block	re_blk;		/* global re-compiled buffer */
@@ -779,14 +758,13 @@ bool	re;
 }
 
 Bufpos *
-docompiled(dir, re_blk)
-int dir;
-register struct RE_block	*re_blk;
+docompiled(int dir, struct RE_block *re_blk)
 {
-	static Bufpos	ret;
-	register LinePtr	lp;
-	register int	offset;
-	bool	we_wrapped = NO;
+	static Bufpos
+		ret;
+	LinePtr	lp;
+	int	offset;
+	jbool	we_wrapped = NO;
 
 	lsave();
 	/* Search now lsave()'s so it doesn't make any assumptions on
@@ -846,13 +824,10 @@ doit:
 }
 
 private char *
-insert(off, endp, which)
-char	*off,
-	*endp;
-int which;
+insert(char *off, char *endp, int which)
 {
-	register char	*pp = pstrtlst[which];
-	register int	n;
+	char	*pp = pstrtlst[which];
+	int	n;
 
 	if (pp == NULL) {
 		complain("\\%d not defined", which);
@@ -874,14 +849,11 @@ int which;
  * deleted, i.e., the substitution string is not inserted.
  */
 void
-re_dosub(re_blk, tobuf, delp)
-struct RE_block	*re_blk;
-char	*tobuf;
-bool delp;
+re_dosub(struct RE_block *re_blk, char *tobuf, jbool delp)
 {
-	register char	*tp,
-			*rp;
-	char	*endp;
+	char	*tp,
+		*rp,
+		*endp;
 
 	tp = tobuf;
 	endp = tp + LBSIZE;
@@ -891,7 +863,7 @@ bool delp;
 		*tp++ = *rp++;
 
 	if (!delp) {
-		register char	c;
+		char	c;
 
 		rp = rep_str;
 		while ((c = *rp++) != '\0') {
@@ -936,16 +908,13 @@ bool delp;
 }
 
 void
-putmatch(which, buf, size)
-int which;
-char	*buf;
-size_t size;
+putmatch(int which, char *buf, size_t size)
 {
 	*(insert(buf, buf + size, which)) = '\0';
 }
 
 void
-RErecur()
+RErecur(void)
 {
 	char	repbuf[sizeof rep_str];
 	Mark	*m = MakeMark(curline, REbom);
@@ -962,11 +931,8 @@ RErecur()
 
 /* Do we match PATTERN at OFFSET in BUF? */
 
-bool
-LookingAt(pattern, buf, offset)
-const char	*pattern;
-char	*buf;
-int offset;
+jbool
+LookingAt(const char *pattern, char *buf, int offset)
 {
 	struct RE_block	re_blk;
 	char	**alt = re_blk.r_alternates;
@@ -982,9 +948,8 @@ int offset;
 	return NO;
 }
 
-bool
-look_at(expr)
-char	*expr;
+jbool
+look_at(char *expr)
 {
 	struct RE_block	re_blk;
 

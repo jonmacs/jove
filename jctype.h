@@ -28,7 +28,7 @@ extern const unsigned char	CharTable[NCHARS];
 
 #define	jiswhite(c)	((c) == ' ' || (c) == '\t')	/* NOT isspace! */
 
-extern bool	jisident proto((DAPchar));
+extern jbool	jisident(DAPchar);
 
 #ifdef USE_CTYPE
 
@@ -43,7 +43,7 @@ extern bool	jisident proto((DAPchar));
 
 #ifndef NO_SETLOCALE
 extern char	LcCtype[32];		/* VAR: lc-ctype, for use in setlocale */
-extern void		locale_adjust proto ((void));
+extern void		locale_adjust(void);
 #endif
 
 #else /* !USE_CTYPE */

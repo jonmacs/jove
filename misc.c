@@ -20,14 +20,14 @@
 #include "para.h"
 
 void
-prCTIME()
+prCTIME(void)
 {
 	f_mess(": %f %s", get_time((time_t *)NULL, (char *)NULL, 0, -1));
 	stickymsg = YES;
 }
 
 void
-ChrToOct()
+ChrToOct(void)
 {
 	ZXchar	c = ask_ks();
 
@@ -41,7 +41,7 @@ ChrToOct()
 }
 
 void
-StrLength()
+StrLength(void)
 {
 	static const char	inquotes[] = "Where are the quotes?";
 	char	*cp;
@@ -88,7 +88,7 @@ StrLength()
 /* Transpose cur_char with cur_char - 1 */
 
 void
-TransChar()
+TransChar(void)
 {
 	char	before;
 
@@ -107,7 +107,7 @@ TransChar()
 /* Switch current line with previous one */
 
 void
-TransLines()
+TransLines(void)
 {
 	daddr	old_prev;
 
@@ -135,7 +135,7 @@ TransLines()
 /* exit-jove command */
 
 void
-Leave()
+Leave(void)
 {
 	longjmp(mainjmp, JMP_QUIT);
 	/* NOTREACHED */
@@ -147,7 +147,7 @@ Leave()
  * as if we were at the end of the line.
  */
 void
-KillEOL()
+KillEOL(void)
 {
 	LinePtr	line2;
 	int	char2;
@@ -180,7 +180,7 @@ KillEOL()
 /* kill to beginning of sentence */
 
 void
-KillBos()
+KillBos(void)
 {
 	negate_arg();
 	KillEos();
@@ -189,7 +189,7 @@ KillBos()
 /* Kill to end of sentence */
 
 void
-KillEos()
+KillEos(void)
 {
 	LinePtr	line1;
 	int	char1;
@@ -201,7 +201,7 @@ KillEos()
 }
 
 void
-KillExpr()
+KillExpr(void)
 {
 	LinePtr	line1;
 	int	char1;
@@ -213,7 +213,7 @@ KillExpr()
 }
 
 void
-Yank()
+Yank(void)
 {
 	LinePtr	line,
 		lp;
@@ -232,16 +232,16 @@ Yank()
 }
 
 void
-ToIndent()
+ToIndent(void)
 {
 	Bol();
 	skip_wht_space();
 }
 
 void
-skip_wht_space()
+skip_wht_space(void)
 {
-	register char	*cp = linebuf + curchar;
+	char	*cp = linebuf + curchar;
 
 	while (jiswhite(*cp))
 		cp += 1;
@@ -252,7 +252,7 @@ skip_wht_space()
  * If no argument is specified it asks for a line number.
  */
 void
-GoLine()
+GoLine(void)
 {
 	LinePtr	newline;
 
@@ -267,13 +267,13 @@ GoLine()
 }
 
 void
-NotModified()
+NotModified(void)
 {
 	unmodify();
 }
 
 void
-SetLMargin()
+SetLMargin(void)
 {
 	int	lmarg = calc_pos(linebuf, curchar);
 
@@ -285,7 +285,7 @@ SetLMargin()
 }
 
 void
-SetRMargin()
+SetRMargin(void)
 {
 	int	rmarg = calc_pos(linebuf, curchar);
 

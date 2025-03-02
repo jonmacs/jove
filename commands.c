@@ -44,8 +44,7 @@ const data_obj	*LastCmd;
 const char	*ProcFmt = ": %f ";
 
 const data_obj *
-findcom(prompt)
-const char	*prompt;
+findcom(const char *prompt)
 {
 	if (InJoverc) {
 		/* For faster rc file processing on startup, read until a space
@@ -53,13 +52,13 @@ const char	*prompt;
 		 * semi-indexedlookup on that string.  This should be much faster
 		 * than minibuffer completion for each line.
 		 */
-		char	cmdbuf[128];
-		register const struct cmd	*cmd;
-		register char	*cp = cmdbuf;
-		register ZXchar	c;
-		const struct cmd	*which = NULL;
-		size_t	cmdlen;
-		int ic;
+		char		cmdbuf[128],
+				*cp = cmdbuf;
+		const struct cmd *cmd,
+				*which = NULL;
+		ZXchar		c;
+		size_t		cmdlen;
+		int		ic;
 
 #ifdef MAC
 		/* ??? Is this necessary?  The input is comming from a file! */
@@ -105,8 +104,8 @@ const char	*prompt;
 		static int	last = -1;
 
 		if (strings[0] == NULL) {
-			register const char	**strs = strings;
-			register const struct cmd	*c = commands;
+			const char		**strs = strings;
+			const struct cmd	*c = commands;
 
 			do {} while ((*strs++ = (*c++).Name) != NULL);
 		}
@@ -117,10 +116,9 @@ const char	*prompt;
 }
 
 const struct cmd *
-FindCmd(proc)
-register cmdproc_t proc;
+FindCmd(cmdproc_t proc)
 {
-	register const struct cmd	*cp;
+	const struct cmd	*cp;
 
 	for (cp = commands; cp->Name; cp++)
 		if (cp->c_proc == proc)
@@ -129,8 +127,7 @@ register cmdproc_t proc;
 }
 
 void
-ExecCmd(cp)
-register const data_obj	*cp;
+ExecCmd(const data_obj *cp)
 {
 	LastCmd = cp;
 	jdprintf("ExecCmd \"%s\" 0x%x\n", cp->Name?cp->Name:"(NULL)", cp->Type);
@@ -145,7 +142,7 @@ register const data_obj	*cp;
 
 		case COMMAND:
 		    {
-			register struct cmd	*cmd = (struct cmd *) cp;
+			struct cmd	*cmd = (struct cmd *) cp;
 
 			if (cmd->c_proc != NULL) {
 				if ((cmd->Type & MODIFIER)

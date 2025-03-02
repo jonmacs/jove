@@ -6,10 +6,10 @@
  **************************************************************************/
 
 extern Bufpos
-	*c_indent proto((bool brace)),
-	*m_paren proto((DAPchar p_type, int dir, bool can_mismatch, bool can_stop));
+	*c_indent(jbool brace),
+	*m_paren(DAPchar p_type, int dir, jbool can_mismatch, jbool can_stop);
 
-extern void	mp_error proto((void));
+extern void	mp_error(void);
 
 /* Variables: */
 
@@ -20,14 +20,14 @@ extern char	CmtFmt[80];		/* VAR: comment format */
 
 /* Commands: */
 extern void
-	BList proto((void)),
-	BSexpr proto((void)),
-	BUpList proto((void)),
+	BList(void),
+	BSexpr(void),
+	BUpList(void),
 #ifdef CMT_FMT
-	FillComment proto((void)),
+	FillComment(void),
 #endif
-	FDownList proto((void)),
-	FList proto((void)),
-	FSexpr proto((void)),
-	LRShift proto((void)),
-	RRShift proto((void));
+	FDownList(void),
+	FList(void),
+	FSexpr(void),
+	LRShift(void),
+	RRShift(void);
