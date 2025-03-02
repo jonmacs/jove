@@ -26,13 +26,11 @@
 
 #ifndef FULL_UNISTD
 
-# ifdef USE_PROTOTYPES
 struct timeval;	/* forward declaration preventing prototype scoping */
-# endif
 
-extern int	UNMACRO(select) proto((int /*width*/,
+extern int	(select)(int /*width*/,
 	fd_set * /*readfds*/, fd_set * /*writefds*/, fd_set * /*exceptfds*/,
-	struct timeval * /*timeout*/));
+	struct timeval * /*timeout*/);
 
 #endif
 

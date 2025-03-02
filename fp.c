@@ -18,7 +18,7 @@
 #endif /* !MAC */
 
 #ifdef RAINBOW
-private int rbwrite proto((int, char *, int));
+private int rbwrite(int, char *, int);
 #endif
 
 #ifndef L_SET
@@ -30,15 +30,10 @@ private int rbwrite proto((int, char *, int));
 private File	openfiles[MAXFILES];	/* must be zeroed initially */
 
 File *
-fd_open(name, flags, fd, buffer, buf_size)
-const char	*name;
-char	*buffer;
-int	flags,
-	fd,
-	buf_size;
+fd_open(const char *name, int flags, int fd, char *buffer, int buf_size)
 {
-	register File	*fp;
-	register int	i;
+	File	*fp;
+	int	i;
 
 	for (fp = openfiles, i = 0; i < MAXFILES; i++, fp++)
 		if (fp->f_flags == 0)
@@ -63,9 +58,9 @@ int	flags,
 }
 
 void
-gc_openfiles()
+gc_openfiles(void)
 {
-	register File	*fp;
+	File	*fp;
 
 	for (fp = openfiles; fp < &openfiles[MAXFILES]; fp++)
 		if (fp->f_flags != 0 && (fp->f_flags & F_LOCKED) == 0)
@@ -73,13 +68,9 @@ gc_openfiles()
 }
 
 File *
-f_open(name, flags, buffer, buf_size)
-const char	*name;
-char	*buffer;
-int	flags,
-	buf_size;
+f_open(const char *name, int flags, char *buffer, int buf_size)
 {
-	register int	fd;
+	int	fd;
 
 	switch (F_MODE(flags)) {
 	case F_READ:
@@ -134,8 +125,7 @@ int	flags,
 }
 
 void
-f_close(fp)
-File	*fp;
+f_close(File *fp)
 {
 	const char *what = "close";
 	int	err = 0;
@@ -154,8 +144,8 @@ File	*fp;
 	if (close(fp->f_fd) != 0 && err == 0)
 		err = errno;
 	if (fp->f_flags & F_MYBUF)
-		free((UnivPtr) fp->f_base);
-	free((UnivPtr) fp->f_name);
+		free(fp->f_base);
+	free(fp->f_name);
 	fp->f_flags = 0;	/* indicates that we're available */
 	if (err != 0) {
 		/* It would be nice to print fp->f_name, but it's gone.
@@ -168,8 +158,7 @@ File	*fp;
 }
 
 ZXchar
-f_filbuf(fp)
-File	*fp;
+f_filbuf(File *fp)
 {
 	if (fp->f_flags & (F_EOF|F_ERR))
 		return EOF;
@@ -178,7 +167,7 @@ File	*fp;
 #ifndef MSDOS
 	do {
 #endif /* MSDOS */
-		fp->f_cnt = read(fp->f_fd, (UnivPtr) fp->f_base, (size_t) fp->f_bufsize);
+		fp->f_cnt = read(fp->f_fd, fp->f_base, (size_t) fp->f_bufsize);
 #ifndef MSDOS
 	} while (fp->f_cnt == -1 && errno == EINTR);
 #endif /* MSDOS */
@@ -197,20 +186,16 @@ File	*fp;
 }
 
 void
-putstr(s)
-register const char	*s;
+putstr(const char *s)
 {
-	register char	c;
+	char	c;
 
 	while ((c = *s++) != '\0')
 		scr_putchar(c);
 }
 
 void
-fputnchar(s, n, fp)
-register char	*s;
-register int	n;
-register File	*fp;
+fputnchar(char *s, int n, File *fp)
 {
 	while (--n >= 0)
 		f_putc(*s++, fp);
@@ -218,16 +203,14 @@ register File	*fp;
 
 #ifndef NO_JSTDOUT
 void
-flushscreen()
+flushscreen(void)
 {
 	flushout(jstdout);
 }
 #endif /* !NO_JSTDOUT */
 
 void
-f_seek(fp, offset)
-register File	*fp;
-off_t	offset;
+f_seek(File *fp, off_t offset)
 {
 	if (fp->f_flags & (F_WRITE|F_APPEND))
 		flushout(fp);
@@ -237,8 +220,7 @@ off_t	offset;
 }
 
 void
-flushout(fp)
-register File	*fp;
+flushout(File *fp)
 {
 	if (fp->f_flags & (F_READ | F_STRING | F_ERR)) {
 		if (fp->f_flags != F_STRING)
@@ -254,17 +236,16 @@ register File	*fp;
 		char	*p = fp->f_base;
 
 		for (;;) {
-			JSSIZE_T
-				n = fp->f_ptr - p,
+			ssize_t	n = fp->f_ptr - p,
 				wr;
 
 			if (n <= 0)
 				break;
 
 #ifdef RAINBOW
-			wr = rbwrite(fp->f_fd, (UnivPtr) p, (size_t)n);
+			wr = rbwrite(fp->f_fd, p, (size_t)n);
 #else
-			wr = write(fp->f_fd, (UnivPtr) p, (size_t)n);
+			wr = write(fp->f_fd, p, (size_t)n);
 #endif
 			if (wr >= 0) {
 				p += wr;
@@ -292,14 +273,11 @@ register File	*fp;
 }
 
 jbool
-f_gets(fp, buf, max)
-register File	*fp;
-char	*buf;
-size_t	max;
+f_gets(File *fp, char *buf, size_t max)
 {
-	register char	*cp = buf;
-	register ZXchar	c;
-	char	*endp = buf + max - 1;
+	char	*cp = buf,
+		*endp = buf + max - 1;
+	ZXchar	c;
 
 	if (fp->f_flags & F_EOF)
 		return YES;
@@ -346,8 +324,7 @@ size_t	max;
  * character of new line
  */
 void
-f_toNL(fp)
-register File	*fp;
+f_toNL(File *fp)
 {
 	if (fp->f_flags & F_EOF)
 		return;
@@ -365,12 +342,9 @@ register File	*fp;
 
 #ifdef PIPEPROCS
 size_t
-f_readn(fp, addr, n)
-register File	*fp;
-register char	*addr;
-size_t	n;
+f_readn(File *fp, char *addr, size_t n)
 {
-	register size_t	nleft;
+	size_t	nleft;
 
 	for (nleft = n; nleft > 0; nleft--) {
 		ZXchar	c = f_getc(fp);

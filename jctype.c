@@ -276,8 +276,7 @@ private const unsigned char IdChartable[NCHARS] = {
 #undef w
 
 jbool
-jisident(c)
-DAPchar	c;
+jisident(DAPchar c)
 {
 #ifdef USE_CTYPE
 	return (IdChartable[ZXC(c)] & (1 << curbuf->b_major)) != 0 || jisword(c);
@@ -297,7 +296,7 @@ char	LcCtype[32] = "";	/* VAR: lc-ctype, for use in setlocale */
 /* adjust the locale to reflect possible change to LcCtype */
 
 void
-locale_adjust()
+locale_adjust(void)
 {
 	char	*res = setlocale(LC_CTYPE, LcCtype);
 

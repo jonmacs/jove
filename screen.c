@@ -26,7 +26,7 @@ struct scrimage
 
 private struct screenline	*Savelines = NULL;	/* scratch entries (LI of them) */
 
-private void LEclear proto((struct screenline *));	/* free s_effects component */
+private void LEclear(struct screenline *);	/* free s_effects component */
 
 private char	*cursor;			/* offset into current Line */
 
@@ -41,36 +41,39 @@ private int
 	i_col;
 
 void
-make_scr()
+make_scr(void)
 {
-	register int	i;
-	register struct screenline	*ns;
-	register char	*nsp;
-	static char	*screenchars = NULL;
-	static volatile int	oldLI = 0;
+	int	i;
+	struct screenline
+		*ns;
+	char	*nsp;
+	static char
+		*screenchars = NULL;
+	static volatile int
+		oldLI = 0;
 
 	/* In case we are RESHAPING the window! */
 	if (DesiredScreen != NULL)
-		free((UnivPtr) DesiredScreen);
+		free(DesiredScreen);
 	if (PhysScreen != NULL)
-		free((UnivPtr) PhysScreen);
+		free(PhysScreen);
 	i = oldLI;
 	oldLI = 0;
 	if (Savelines != NULL) {
 		/* Note: each screenline in Savelines has a null s_effects
 		 * (or is uninitialized).  LEclear must not be applied.
 		 */
-		free((UnivPtr) Savelines);
+		free(Savelines);
 	}
 	if (Screen != NULL) {
 #ifdef HIGHLIGHTING
 		for (ns = Screen; ns != &Screen[i]; ns++)
 			LEclear(ns);
 #endif
-		free((UnivPtr) Screen);
+		free(Screen);
 	}
 	if (screenchars != NULL)
-		free((UnivPtr) screenchars);	/* free all the screen data */
+		free(screenchars);	/* free all the screen data */
 
 	DesiredScreen = (struct scrimage *) malloc((unsigned) LI * sizeof (struct scrimage));
 	PhysScreen = (struct scrimage *) malloc((unsigned) LI * sizeof (struct scrimage));
@@ -105,7 +108,7 @@ make_scr()
 		 * a sledge hammer.  What is the correct fix?
 		 */
 		{
-			register struct scrimage	*p;
+			struct scrimage	*p;
 
 			p = &PhysScreen[i];
 			p->s_offset = 0;
@@ -133,9 +136,7 @@ make_scr()
 }
 
 void
-clrline(cp1, cp2)
-register char	*cp1,
-		*cp2;
+clrline(char *cp1, char *cp2)
 {
 	while (cp1 < cp2)
 		*cp1++ = ' ';
@@ -156,7 +157,7 @@ private unsigned char sput_buf[255];
 private size_t sput_len = 0;
 
 private void
-sput_start()
+sput_start(void)
 {
 /*	if (i_line != CapLine || i_col != CapCol) */
 		NPlacur(i_line, i_col);
@@ -164,7 +165,7 @@ sput_start()
 }
 
 private void
-sput_end()
+sput_end(void)
 {
 	if (sput_len != 0) {
 		writetext(sput_buf, sput_len);
@@ -173,8 +174,7 @@ sput_end()
 }
 
 private void
-sputc(c)
-register char c;
+sputc(char c)
 {
 	/* if line gets too long for sput_buf, ignore subsequent chars */
 	if (sput_len < sizeof(sput_buf)) {
@@ -211,8 +211,7 @@ private jbool	ChangeEffect = NO;
 # endif /* !IBMPCDOS */
 
 private void
-do_sputc(c)
-register char	c;
+do_sputc(char c)
 {
 	if (CharChanged(c)) {
 # ifdef ID_CHAR
@@ -237,13 +236,12 @@ register char	c;
 
 #ifdef HIGHLIGHTING
 
-private void	(*real_effect) ptrproto((jbool));
+private void	(*real_effect)(jbool);
 
 private void
-do_hlsputc(hl, oldhl, c)
-register const struct LErange *hl;	/* desired highlighting */
-register const struct LErange *oldhl;	/* previous highlighting */
-char c;
+do_hlsputc(const struct LErange *hl,	/* desired highlighting */
+	   const struct LErange *oldhl,	/* previous highlighting */
+	   char c)
 {
 	/* assert: hl != NULL && oldhl != NULL
 	 * In other words, hl and oldhl must point to real LErange structs.
@@ -253,9 +251,9 @@ char c;
 	 * properties of unsigneds to make an efficient range test.
 	 */
 	void
-		(*virtual_effect) ptrproto((jbool)) =
+		(*virtual_effect)(jbool) =
 			(unsigned)i_col - hl->start < hl->width? hl->high : hl->norm,
-		(*underlying_effect) ptrproto((jbool)) =
+		(*underlying_effect)(jbool) =
 			(unsigned)i_col - oldhl->start < oldhl->width? oldhl->high : oldhl->norm;
 
 	if (*cursor != c || virtual_effect != underlying_effect) {
@@ -289,7 +287,7 @@ char c;
 #endif /* HIGHLIGHTING */
 
 void
-cl_eol()
+cl_eol(void)
 {
 	if (cursor == Curline->s_line)
 		LEclear(Curline);	/* in case swrite was not called (hack!) */
@@ -302,7 +300,7 @@ cl_eol()
 			clrline(cursor, Curline->s_roof);
 		} else {
 			/* Ugh.  The slow way for dumb terminals. */
-			register char *savecp = cursor;
+			char *savecp = cursor;
 
 			while (cursor < Curline->s_roof)
 				sputc(' ');
@@ -318,11 +316,11 @@ cl_eol()
 }
 
 void
-cl_scr(doit)
-jbool doit;
+cl_scr(jbool doit)
 {
-	register int	i;
-	register struct screenline	*sp = Screen;
+	int	i;
+	struct screenline
+		*sp = Screen;
 
 	for (i = 0; i < LI; i++, sp++) {
 		LEclear(sp);
@@ -349,7 +347,7 @@ union LEspace {
 private union LEspace *LEfreeHead = NULL;
 
 private struct LErange *
-LEnew()
+LEnew(void)
 {
 	struct LErange	*ret;
 
@@ -365,8 +363,7 @@ LEnew()
 #endif /* HIGHLIGHTING */
 
 private void
-LEclear(sl)
-struct screenline *sl;
+LEclear(struct screenline *sl)
 {
 #ifdef HIGHLIGHTING
 	if (sl->s_effects != NOEFFECT) {
@@ -387,12 +384,9 @@ struct screenline *sl;
  */
 
 jbool
-swrite(line, hl, abortable)
-register char	*line;
-LineEffects	hl;
-jbool	abortable;
+swrite(char *line, LineEffects hl, jbool abortable)
 {
-	register int	n = cursend - cursor;
+	int	n = cursend - cursor;
 	jbool	aborted = NO;
 	/* Unfortunately, neither of our LineEffects representation
 	 * is suitable for representing the state of a partially
@@ -445,7 +439,7 @@ jbool	abortable;
 #endif /* !HIGHLIGHTING */
 
 	if (n > 0) {
-		register ZXchar	c;
+		ZXchar	c;
 
 #ifdef HIGHLIGHTING
 		/* nnhl: non-NULL version of hl (possibly
@@ -532,9 +526,7 @@ jbool	abortable;
 }
 
 void
-i_set(nline, ncol)
-register int	nline,
-		ncol;
+i_set(int nline, int ncol)
 {
 	Curline = &Screen[nline];
 	cursor = Curline->s_line + ncol;
@@ -544,7 +536,7 @@ register int	nline,
 }
 
 void
-SO_off()
+SO_off(void)
 {
 	SO_effect(NO);
 }
@@ -552,8 +544,7 @@ SO_off()
 #ifdef TERMCAP
 
 void
-SO_effect(on)
-jbool	on;
+SO_effect(jbool on)
 {
 	/* If there are magic cookies, then WHERE the SO string is
 	 * printed decides where the SO actually starts on the screen.
@@ -571,8 +562,7 @@ jbool	on;
 
 # ifdef HIGHLIGHTING
 void
-US_effect(on)
-jbool	on;
+US_effect(jbool on)
 {
 	if (UG == 0)	/* not used if magic cookies */
 		putpad(on? US : UE, 1);
@@ -586,12 +576,9 @@ jbool	on;
  * This changes the screen array AND does the physical changes.
  */
 void
-v_ins_line(num, top, bottom)
-int num,
-    top,
-    bottom;
+v_ins_line(int num, int top, int bottom)
 {
-	register int	i;
+	int	i;
 
 	/* assert(num <= bottom-top+1) */
 
@@ -623,12 +610,9 @@ int num,
  * alone.  This updates the internal image as well as the physical image.
  */
 void
-v_del_line(num, top, bottom)
-int num,
-    top,
-    bottom;
+v_del_line(int num, int top, int bottom)
 {
-	register int	i;
+	int	i;
 
 	/* assert(num <= bottom-top+1) */
 
@@ -664,7 +648,7 @@ int num,
  */
 struct cursaddr {
 	int	cm_numchars;
-	void	(*cm_proc) ();
+	void	(*cm_proc)(int, int);
 };
 
 private char	*Cmstr;
@@ -673,13 +657,13 @@ private struct cursaddr	*HorMin,
 			*DirectMin;
 
 private void
-	ForTab proto((int)),
-	RetTab proto((int)),
-	DownMotion proto((int)),
-	UpMotion proto((int)),
-	GoDirect proto((int, int)),
-	HomeGo proto((int, int)),
-	BottomUp proto((int, int));
+	ForTab(int, int),
+	RetTab(int, int),
+	DownMotion(int, int),
+	UpMotion(int, int),
+	GoDirect(int, int),
+	HomeGo(int, int),
+	BottomUp(int, int);
 
 
 private struct cursaddr	WarpHor[] = {
@@ -716,9 +700,7 @@ private struct cursaddr	WarpDirect[] = {
 # define PrintHo()	{ putpad(HO, 1); CapLine = CapCol = 0; }
 
 private void
-GoDirect(line, col)
-register int	line,
-		col;
+GoDirect(int line, int col)
 {
 	putpad(Cmstr, 1);
 	CapLine = line;
@@ -726,32 +708,27 @@ register int	line,
 }
 
 private void
-RetTab(col)
-register int	col;
+RetTab(int UNUSED(line), int col)
 {
 	scr_putchar('\r');
 	CapCol = 0;
-	ForTab(col);
+	ForTab(-1, col);
 }
 
 private void
-HomeGo(line, col)
-int line,
-    col;
+HomeGo(int line, int col)
 {
 	PrintHo();
-	DownMotion(line);
-	ForTab(col);
+	DownMotion(line, -1);
+	ForTab(-1, col);
 }
 
 private void
-BottomUp(line, col)
-register int	line,
-		col;
+BottomUp(int line, int col)
 {
 	LowLine();
-	UpMotion(line);
-	ForTab(col);
+	UpMotion(line, -1);
+	ForTab(-1, col);
 }
 
 /* Tries to move forward using tabs (if possible).  It tabs to the
@@ -760,15 +737,14 @@ register int	line,
  * Note: changes to this routine must be matched by changes in ForNum.
  */
 private void
-ForTab(to)
-int	to;
+ForTab(int UNUSED(line), int col)
 {
-	if ((to > CapCol+1) && TABS && (phystab > 0)) {
-		register int	tabgoal,
-				ntabs,
-				pts = phystab;
+	if ((col > CapCol+1) && TABS && (phystab > 0)) {
+		int	tabgoal,
+			ntabs,
+			pts = phystab;
 
-		tabgoal = to + (pts / 2);
+		tabgoal = col + (pts / 2);
 		tabgoal -= (tabgoal % pts);
 
 		/* Don't tab to last place or else it is likely to screw up. */
@@ -782,7 +758,7 @@ int	to;
 		 * original motion would have been backwards, tab loses too,
 		 * so we need not write abs(to-CapCol).
 		 */
-		if (tabgoal > to && tabgoal-to >= to-CapCol)
+		if (tabgoal > col && tabgoal-col >= col-CapCol)
 			ntabs = 0;
 		while (--ntabs >= 0) {
 			scr_putchar('\t');
@@ -790,59 +766,55 @@ int	to;
 		}
 	}
 
-	if (to > CapCol) {
-		register char	*cp = &Screen[CapLine].s_line[CapCol];
+	if (col > CapCol) {
+		char	*cp = &Screen[CapLine].s_line[CapCol];
 
 # ifdef ID_CHAR
 		INSmode(NO);	/* we're not just a motion */
 # endif
-		while (to > CapCol) {
+		while (col > CapCol) {
 			scr_putchar(*cp++);
 			CapCol++;
 		}
 	}
 
-	while (to < CapCol) {
+	while (col < CapCol) {
 		putpad(BC, 1);
 		CapCol--;
 	}
 }
 
 private void
-DownMotion(destline)
-register int	destline;
+DownMotion(int line, int UNUSED(col))
 {
-	register int	nlines = destline - CapLine;
+	int	nlines = line - CapLine;
 
 	while (--nlines >= 0) {
 		putpad(DO, 1);
-		CapLine = destline;	/* idempotent */
+		CapLine = line;	/* idempotent */
 	}
 }
 
 private void
-UpMotion(destline)
-register int	destline;
+UpMotion(int line, int UNUSED(col))
 {
-	register int	nchars = CapLine - destline;
+	int	nchars = CapLine - line;
 
 	while (--nchars >= 0) {
 		putpad(UP, 1);
-		CapLine = destline;	/* idempotent */
+		CapLine = line;	/* idempotent */
 	}
 }
 
-private int ForNum proto((int from, int to));
+private int ForNum(int from, int to);
 
 void
-Placur(line, col)
-int line,
-    col;
+Placur(int line, int col)
 {
 # define CursMin(which,addrs,max)	{ \
-	register int	best = 0, \
-			i; \
-	register struct cursaddr	*cp; \
+	int	best = 0, \
+		i; \
+	struct cursaddr	*cp; \
 	for (cp = &(addrs)[1], i = 1; i < (max); i++, cp++) \
 		if (cp->cm_numchars < (addrs)[best].cm_numchars) \
 			best = i; \
@@ -922,19 +894,19 @@ int line,
 
 	if (HorMin->cm_numchars + VertMin->cm_numchars < DirectMin->cm_numchars) {
 		if (line != CapLine)
-			(*(void (*)ptrproto((int)))VertMin->cm_proc)(line);
+			(VertMin->cm_proc)(line, -1);
 		if (col != CapCol) {
 # ifdef ID_CHAR
 			INSmode(NO);	/* We may use real characters ... */
 # endif
-			(*(void (*)ptrproto((int)))HorMin->cm_proc)(col);
+			HorMin->cm_proc(-1, col);
 		}
 	} else {
 # ifdef ID_CHAR
 		if (IN_INSmode && !MI)
 			INSmode(NO);
 # endif
-		(*(void (*)ptrproto((int, int)))DirectMin->cm_proc)(line, col);
+		(*(void (*)(int, int))DirectMin->cm_proc)(line, col);
 	}
 }
 
@@ -946,13 +918,11 @@ int line,
  * accounted for by our caller.
  */
 private int
-ForNum(from, to)
-register int	from;
-int to;
+ForNum(int from, int to)
 {
-	register int	tabgoal,
-			pts = phystab;
-	int		ntabs = 0;
+	int	tabgoal,
+		pts = phystab;
+	int	ntabs = 0;
 
 	if ((to > from+1) && TABS && (pts > 0)) {
 		tabgoal = to + (pts / 2);
@@ -975,10 +945,7 @@ int to;
 }
 
 void
-i_lines(top, bottom, num)
-int top,
-    bottom,
-    num;
+i_lines(int top, int bottom, int num)
 {
 	if (CS) {
 		putpad(targ2(CS, bottom, top), 1);
@@ -996,10 +963,7 @@ int top,
 }
 
 void
-d_lines(top, bottom, num)
-int top,
-    bottom,
-    num;
+d_lines(int top, int bottom, int num)
 {
 	if (CS) {
 		putpad(targ2(CS, bottom, top), 1);

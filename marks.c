@@ -19,11 +19,9 @@ private Mark	*FreeMarksList = NULL;
 }
 
 Mark *
-MakeMark(line, column)
-register LinePtr	line;
-int	column;
+MakeMark(LinePtr line, int column)
 {
-	register Mark	*newmark;
+	Mark	*newmark;
 
 	if ((newmark = FreeMarksList) != NULL)
 		FreeMarksList = newmark->m_next;
@@ -37,11 +35,10 @@ int	column;
 }
 
 void
-flush_marks(b)
-Buffer	*b;
+flush_marks(Buffer *b)
 {
-	register Mark	*m,
-			*next;
+	Mark	*m,
+		*next;
 
 	for (m = b->b_marks; m != NULL; m = next) {
 		next = m->m_next;
@@ -50,11 +47,9 @@ Buffer	*b;
 }
 
 private void
-DelBufMark(b, m)
-Buffer	*b;
-register Mark	*m;
+DelBufMark(Buffer *b, Mark *m)
 {
-	register Mark	*mp = b->b_marks;
+	Mark	*mp = b->b_marks;
 
 	if (MarkHighlighting)
 		makedirty(m->m_line);
@@ -73,8 +68,7 @@ register Mark	*m;
 }
 
 void
-DelMark(m)
-register Mark	*m;
+DelMark(Mark *m)
 {
 	DelBufMark(curbuf, m);
 }
@@ -86,12 +80,10 @@ register Mark	*m;
  */
 
 void
-AllMarkReset(b, line)
-Buffer	*b;
-register LinePtr	line;
+AllMarkReset(Buffer *b, LinePtr line)
 {
 	{
-		register Mark	**mpp;
+		Mark	**mpp;
 
 		for (mpp = &b->b_markring[0]; mpp != &b->b_markring[NMARKS]; mpp++) {
 			if (*mpp != NULL) {
@@ -103,7 +95,7 @@ register LinePtr	line;
 	}
 
 	{
-		register Mark	*mp;
+		Mark	*mp;
 
 		for (mp = b->b_marks; mp != NULL; mp = mp->m_next)
 			MarkSet(mp, line, 0);
@@ -111,10 +103,7 @@ register LinePtr	line;
 }
 
 void
-MarkSet(m, line, column)
-Mark	*m;
-LinePtr	line;
-int	column;
+MarkSet(Mark *m, LinePtr line, int column)
 {
 	m->m_line = line;
 	m->m_char = column;
@@ -124,7 +113,7 @@ int	column;
 }
 
 void
-PopMark()
+PopMark(void)
 {
 	int	pmark;
 
@@ -143,7 +132,7 @@ PopMark()
 }
 
 void
-SetMark()
+SetMark(void)
 {
 	if (is_an_arg())
 		PopMark();
@@ -152,15 +141,13 @@ SetMark()
 }
 
 void
-set_mark()
+set_mark(void)
 {
 	do_set_mark(curline, curchar);
 }
 
 void
-do_set_mark(l, c)
-LinePtr	l;
-int	c;
+do_set_mark(LinePtr l, int c)
 {
 	Mark	**mr = curbuf->b_markring;
 	int	tm = curbuf->b_themark;
@@ -188,8 +175,7 @@ int	c;
 /* Move point to Mark */
 
 void
-ToMark(m)
-Mark	*m;
+ToMark(Mark *m)
 {
 	int	len;
 
@@ -202,7 +188,7 @@ Mark	*m;
 }
 
 Mark *
-CurMark()
+CurMark(void)
 {
 	if (curmark == NULL) {
 		complain("No mark.");
@@ -212,7 +198,7 @@ CurMark()
 }
 
 void
-ExchPtMark()
+ExchPtMark(void)
 {
 	LinePtr	mline;
 	int	mchar;
@@ -230,13 +216,9 @@ ExchPtMark()
 /* Fix marks after a deletion. */
 
 void
-DFixMarks(line1, char1, line2, char2)
-register LinePtr	line1,
-		line2;
-int	char1,
-	char2;
+DFixMarks(LinePtr line1, int char1, LinePtr line2, int char2)
 {
-	register Mark	*m;
+	Mark	*m;
 	LinePtr	lp;
 
 	if (curbuf->b_marks == NULL)
@@ -263,13 +245,9 @@ int	char1,
 /* Fix marks after an insertion. */
 
 void
-IFixMarks(line1, char1, line2, char2)
-register LinePtr	line1,
-		line2;
-int	char1,
-	char2;
+IFixMarks(LinePtr line1, int char1, LinePtr line2, int char2)
 {
-	register Mark	*m;
+	Mark	*m;
 
 	for (m = curbuf->b_marks; m != NULL; m = m->m_next) {
 		if (m->m_line == line1 && m->m_char > char1) {

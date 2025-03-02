@@ -8,9 +8,9 @@
 /* Commands: */
 
 extern void
-	CasRegLower proto((void)),
-	CasRegUpper proto((void)),
-	CapChar proto((void)),
-	CapWord proto((void)),
-	LowWord proto((void)),
-	UppWord proto((void));
+	CasRegLower(void),
+	CasRegUpper(void),
+	CapChar(void),
+	CapWord(void),
+	LowWord(void),
+	UppWord(void);

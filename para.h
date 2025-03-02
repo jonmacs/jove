@@ -1,22 +1,23 @@
 /**************************************************************************
- * This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    *
+ * This program is Copyright (C 1986-2002 by Jonathan Payne.  JOVE is    *
  * provided by Jonathan and Jovehacks without charge and without          *
  * warranty.  You may copy, modify, and/or distribute JOVE, provided that *
  * this notice is included in all the source files and documentation.     *
  **************************************************************************/
 
 extern void
-	DoJustify proto((LinePtr l1, int c1,
-		LinePtr l2, int c2, jbool scrunch, int indent)),
-	do_rfill proto((jbool ulm));
+	DoJustify(LinePtr l1, int c1,
+		  LinePtr l2, int c2,
+		  jbool scrunch, int indent),
+	do_rfill(jbool ulm);
 
 /* Commands: */
 
 extern void
-	BackPara proto((void)),
-	ForPara proto((void)),
-	FillParagraph proto((void)),
-	FillRegion proto((void));
+	BackPara(void),
+	ForPara(void),
+	FillParagraph(void),
+	FillRegion(void);
 
 /* Variables: */
 

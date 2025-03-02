@@ -33,11 +33,10 @@ Window
 /* First line in a Window */
 
 private int
-FLine(w)
-register Window	*w;
+FLine(Window *w)
 {
-	register Window	*wp = fwind;
-	register int	lineno = -1;
+	Window	*wp = fwind;
+	int	lineno = -1;
 
 	while (wp != w) {
 		lineno += wp->w_height;
@@ -56,11 +55,9 @@ register Window	*w;
  * window gets the body.
  */
 void
-del_wind(wp)
-register Window	*wp;
+del_wind(Window *wp)
 {
-	register Window
-		*prev = wp->w_prev,
+	Window	*prev = wp->w_prev,
 		*heir = prev;	/* default: previous window inherits space */
 
 	if (one_windp()) {
@@ -82,16 +79,14 @@ register Window	*wp;
 	RemoveScrollBar(wp);
 	Windchange = YES;
 #endif
-	free((UnivPtr) wp);
+	free(wp);
 }
 
 /* Divide the window WP N times, or at least once.  Complains if WP is too
  * small to be split into that many pieces.  It returns the new window.
  */
 Window *
-div_wind(wp, n)
-register Window	*wp;
-int	n;
+div_wind(Window *wp, int n)
 {
 	Window	*latest = wp;
 	int	amt;
@@ -104,7 +99,7 @@ int	n;
 		/* NOTREACHED */
 	}
 	do {
-		register Window	*new = (Window *) emalloc(sizeof (Window));
+		Window	*new = (Window *) emalloc(sizeof (Window));
 
 		new->w_flags = 0;
 		new->w_LRscroll = 0;
@@ -140,9 +135,9 @@ int	n;
  * setting of this window.
  */
 void
-winit()
+winit(void)
 {
-	register Window	*w;
+	Window	*w;
 
 	w = curwind = fwind = (Window *) emalloc(sizeof (Window));
 	w->w_line = w->w_top = NULL;
@@ -159,9 +154,7 @@ winit()
 }
 
 void
-tiewind(w, bp)
-register Window	*w;
-register Buffer	*bp;
+tiewind(Window *w, Buffer *bp)
 {
 	jbool	not_tied = (w->w_bufp != bp);
 
@@ -177,9 +170,9 @@ register Buffer	*bp;
 /* Change to previous window. */
 
 void
-PrevWindow()
+PrevWindow(void)
 {
-	register Window	*new = curwind->w_prev;
+	Window	*new = curwind->w_prev;
 
 	if (Asking) {
 		complain((char *)NULL);
@@ -195,8 +188,7 @@ PrevWindow()
 /* Make NEW the current Window */
 
 void
-SetWind(new)
-register Window	*new;
+SetWind(Window *new)
 {
 	if (!Asking && curbuf!=NULL) {		/* can you say kludge? */
 		curwind->w_line = curline;
@@ -220,7 +212,7 @@ register Window	*new;
 /* delete the current window if it isn't the only one left */
 
 void
-DelCurWindow()
+DelCurWindow(void)
 {
 	SetABuf(curwind->w_bufp);
 	del_wind(curwind);
@@ -229,8 +221,7 @@ DelCurWindow()
 /* put the current line of `w' in the middle of the window */
 
 void
-CentWind(w)
-register Window	*w;
+CentWind(Window *w)
 {
 	SetTop(w, prev_line(w->w_line, WSIZE(w)/2));
 }
@@ -241,11 +232,10 @@ int	ScrollStep = 0;	/* VAR: how should we scroll (full scrolling) */
  * it means we should center the current line in the window.
  */
 void
-CalcWind(w)
-register Window	*w;
+CalcWind(Window *w)
 {
-	register int	up;
-	int	scr_step;
+	int	up,
+		scr_step;
 	LinePtr	newtop;
 
 	if (ScrollStep == 0) {	/* Means just center it */
@@ -274,10 +264,9 @@ register Window	*w;
  * terms of do_find(), do_select() which manipulate the windows.
  */
 void
-WindFind()
+WindFind(void)
 {
-	register Buffer
-		*obuf = curbuf,
+	Buffer	*obuf = curbuf,
 		*nbuf;
 	LinePtr	ltop = curwind->w_top;
 	Bufpos
@@ -331,18 +320,17 @@ WindFind()
 /* Go into one window mode by deleting all the other windows */
 
 void
-OneWindow()
+OneWindow(void)
 {
 	while (curwind->w_next != curwind)
 		del_wind(curwind->w_next);
 }
 
 Window *
-windbp(bp)
-register Buffer	*bp;
+windbp(Buffer *bp)
 {
 
-	register Window	*wp = fwind;
+	Window	*wp = fwind;
 
 	if (bp == NULL)
 		return NULL;
@@ -358,9 +346,9 @@ register Buffer	*bp;
 /* Change window into the next window.  Curwind becomes the new window. */
 
 void
-NextWindow()
+NextWindow(void)
 {
-	register Window	*new = curwind->w_next;
+	Window	*new = curwind->w_next;
 
 	if (Asking) {
 		complain((char *)NULL);
@@ -376,7 +364,7 @@ NextWindow()
 /* Scroll the next Window */
 
 void
-PageNWind()
+PageNWind(void)
 {
 	if (one_windp()) {
 		complain(onlyone);
@@ -388,12 +376,10 @@ PageNWind()
 }
 
 private Window *
-w_nam_typ(name, type)
-register const char	*name;
-int	type;
+w_nam_typ(const char *name, int type)
 {
-	register Window *w;
-	register Buffer	*b;
+	Window	*w;
+	Buffer	*b;
 
 	b = buf_exists(name);
 	w = fwind;
@@ -417,13 +403,10 @@ int	type;
  * `clobber' is YES.
  */
 void
-pop_wind(name, clobber, btype)
-register const char	*name;
-jbool	clobber;
-int	btype;
+pop_wind(const char *name, jbool clobber, int btype)
 {
-	register Window	*wp;
-	register Buffer	*newb;
+	Window	*wp;
+	Buffer	*newb;
 
 	if ((newb = buf_exists(name)) != NULL)
 		btype = -1;	/* if the buffer exists, don't change
@@ -446,13 +429,13 @@ int	btype;
 }
 
 void
-GrowWindowCmd()
+GrowWindowCmd(void)
 {
 	WindSize(curwind, abs((int)arg_value()));
 }
 
 void
-ShrWindow()
+ShrWindow(void)
 {
 	WindSize(curwind, -abs((int)arg_value()));
 }
@@ -461,9 +444,7 @@ ShrWindow()
  * second is the increment.
  */
 void
-WindSize(w, inc)
-register Window	*w;
-register int	inc;
+WindSize(Window *w, int inc)
 {
 	if (one_windp()) {
 		complain(onlyone);
@@ -501,9 +482,7 @@ register int	inc;
  */
 
 void
-SetTop(w, line)
-Window	*w;
-register LinePtr	line;
+SetTop(Window *w, LinePtr line)
 {
 #ifdef HIGHLIGHTING
 	if (ScrollBar)
@@ -515,14 +494,14 @@ register LinePtr	line;
 }
 
 void
-WNumLines()
+WNumLines(void)
 {
 	curwind->w_flags ^= W_NUMLINES;
 	SetTop(curwind, curwind->w_top);
 }
 
 void
-WVisSpace()
+WVisSpace(void)
 {
 	curwind->w_flags ^= W_VISSPACE;
 	ClAndRedraw();
@@ -532,12 +511,10 @@ WVisSpace()
  * otherwise return -1.
  */
 int
-in_window(windes, line)
-register Window	*windes;
-register LinePtr	line;
+in_window(Window *windes, LinePtr line)
 {
-	register int	i;
-	register LinePtr	lp = windes->w_top;
+	int	i;
+	LinePtr	lp = windes->w_top;
 
 	for (i = 0; lp != NULL && i < windes->w_height - 1; i++, lp = lp->l_next)
 		if (lp == line)
@@ -546,7 +523,7 @@ register LinePtr	line;
 }
 
 void
-SplitWind()
+SplitWind(void)
 {
 	SetWind(div_wind(curwind, arg_or_default(2) - 1));
 }
@@ -555,7 +532,7 @@ SplitWind()
  * exists, pop one and attach the buffer to it.
  */
 void
-GotoWind()
+GotoWind(void)
 {
 	const char	*bname = ask_buf(lastbuf, ALLOW_OLD | ALLOW_INDEX | ALLOW_NEW);
 	Window	*w;
@@ -574,7 +551,7 @@ GotoWind()
 }
 
 void
-ScrollRight()
+ScrollRight(void)
 {
 	int	amt = arg_or_default(ScrollWidth);
 
@@ -586,7 +563,7 @@ ScrollRight()
 }
 
 void
-ScrollLeft()
+ScrollLeft(void)
 {
 	int	amt = arg_or_default(ScrollWidth);
 
@@ -595,15 +572,14 @@ ScrollLeft()
 }
 
 LineEffects
-WindowRange(w)
-Window *w;
+WindowRange(Window *w)
 {
 #ifdef HIGHLIGHTING
 	static struct LErange range = {0-0, 0-0, SO_effect, US_effect};
 
 	range.start = range.width = 0;	/* default: no highlighting */
 	if (ScrollBar) {
-		register int	/* line counts of various portions -- slow! */
+		int	/* line counts of various portions -- slow! */
 			above = LinesTo(w->w_bufp->b_first, w->w_top),
 			below = LinesTo(w->w_top, (LinePtr)NULL),
 			total = above + below,

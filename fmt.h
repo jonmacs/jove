@@ -11,20 +11,20 @@ extern char	mesgbuf[MESG_SIZE];
 #define PPWIDTH	5	/* maximum width of PPchar output: "\\000\0" */
 
 extern void
-	format proto((char *buf, size_t len, const char *fmt, va_list ap)),
-	PPchar proto((ZXchar c, char *cp)),
-	add_mess proto((const char *, ...)),
-	f_mess proto((const char *, ...)),
-	fwritef proto((File *, const char *, ...)),
-	writef proto((const char *, ...)),
-	s_mess proto((const char *, ...)),
-	swritef proto((char *, size_t, const char *, ...));
+	format(char *buf, size_t len, const char *fmt, va_list ap),
+	PPchar(ZXchar c, char *cp),
+	add_mess(const char *, ...),
+	f_mess(const char *, ...),
+	fwritef(File *, const char *, ...),
+	writef(const char *, ...),
+	s_mess(const char *, ...),
+	swritef(char *, size_t, const char *, ...);
 
 extern char
-	*sprint proto((const char *, ...));
+	*sprint(const char *, ...);
 
 extern jbool jdebug;
 extern const char *jdpath;
-extern void jdprintf proto((const char *, ...));
+extern void jdprintf(const char *, ...);
 
 #define jdbg if (!jdebug) ; else jdprintf

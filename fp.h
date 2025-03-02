@@ -6,16 +6,16 @@
  **************************************************************************/
 
 #ifdef NO_JSTDOUT
-extern void	scr_putchar proto((char c));	/* defined in win32.c */
+extern void	scr_putchar(char c);	/* defined in win32.c */
 # ifdef IBMPCDOS
 #  define flushscreen()	{ }
 # else /* !IBMPCDOS */
-extern void flushscreen proto((void));
+extern void flushscreen(void);
 # endif /* !IBMPCDOS */
 #else /* !NO_JSTDOUT */
 extern File	*jstdout;
 # define scr_putchar(c)	f_putc((c), jstdout)
-extern void		flushscreen proto((void));
+extern void		flushscreen(void);
 #endif /* !NO_JSTDOUT */
 
 #define f_putc(c, fp)	{ while (--(fp)->f_cnt < 0) flushout(fp); *(fp)->f_ptr++ = (c); }
@@ -57,15 +57,15 @@ struct FileStruct {
 extern int	ScrBufSize;
 
 extern File
-	*f_open proto((const char *name, int flags, char *buffer, int buf_size)),
-	*fd_open proto((const char *name, int flags, int fd, char *buffer, int bsize));
+	*f_open(const char *name, int flags, char *buffer, int buf_size),
+	*fd_open(const char *name, int flags, int fd, char *buffer, int bsize);
 
 extern int
-	f_filbuf proto((File *fp));
+	f_filbuf(File *fp);
 
 #ifdef PIPEPROCS
 extern size_t
-	f_readn proto((File *fp,char *addr,size_t n));
+	f_readn(File *fp,char *addr,size_t n);
 #endif
 
 #if defined(ZTCDOS) || defined(__BORLANDC__)
@@ -76,13 +76,13 @@ typedef long	off_t;
 #endif
 
 extern void
-	f_close proto((File *fp)),
-	f_seek proto((File *fp, off_t offset)),
-	f_toNL proto((File *fp)),
-	flushout proto((File *fp)),
-	fputnchar proto((char *s,int n,File *fp)),
-	gc_openfiles proto((void)),
-	putstr proto((const char *s));
+	f_close(File *fp),
+	f_seek(File *fp, off_t offset),
+	f_toNL(File *fp),
+	flushout(File *fp),
+	fputnchar(char *s,int n,File *fp),
+	gc_openfiles(void),
+	putstr(const char *s);
 
 extern jbool
-	f_gets proto((File *fp,char *buf,size_t max));
+	f_gets(File *fp,char *buf,size_t max);

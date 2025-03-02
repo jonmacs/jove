@@ -32,28 +32,28 @@ extern data_obj	*NonASCIIKeys[NCHARS];
 extern int this_cmd;		/* ... */
 extern int last_cmd;		/* last command ... to implement appending to kill buffer */
 
-extern void InitKeymaps proto((void));
-extern void dispatch proto((ZXchar c));
-extern jbool IsPrefixChar proto((ZXchar c));
+extern void InitKeymaps(void);
+extern void dispatch(ZXchar c);
+extern jbool IsPrefixChar(ZXchar c);
 
-extern void	DelObjRef proto((data_obj *));
+extern void	DelObjRef(data_obj *);
 
 /* Commands: */
-extern void Apropos proto((void));
-extern void LBindAKey proto((void));
-extern void LBindMac proto((void));
-extern void LBindMap proto((void));
-extern void BindAKey proto((void));
-extern void BindMac proto((void));
-extern void BindMap proto((void));
-extern void DescBindings proto((void));
-extern void DescCom proto((void));
-extern void DescVar proto((void));
-extern void KeyDesc proto((void));
-extern void Unbound proto((void));
+extern void Apropos(void);
+extern void LBindAKey(void);
+extern void LBindMac(void);
+extern void LBindMap(void);
+extern void BindAKey(void);
+extern void BindMac(void);
+extern void BindMap(void);
+extern void DescBindings(void);
+extern void DescCom(void);
+extern void DescVar(void);
+extern void KeyDesc(void);
+extern void Unbound(void);
 
 #ifdef IPROCS
-extern void PBindAKey proto((void));
-extern void PBindMac proto((void));
-extern void PBindMap proto((void));
+extern void PBindAKey(void);
+extern void PBindMac(void);
+extern void PBindMap(void);
 #endif

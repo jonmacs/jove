@@ -55,7 +55,7 @@ closedir(dp)
 DIR	*dp;
 {
 	(void) close(dp->d_fd);
-	free((UnivPtr) dp);
+	free(dp);
 	return 0;	/* don't know how to fail */
 }
 
@@ -90,7 +90,7 @@ DIR	*dp;
 	static dirent	dir;
 
 	do {
-		if (read(dp->d_fd, (UnivPtr) &dir, sizeof dir) != sizeof dir)
+		if (read(dp->d_fd, &dir, sizeof dir) != sizeof dir)
 			return NULL;
 	} while (dir.d_ino == 0);
 
@@ -103,11 +103,9 @@ DIR	*dp;
  * be opened or malloc fails.
  */
 int
-jscandir(dir, nmptr, qualify, sorter)
-const char	*dir;
-char	***nmptr;
-jbool	(*qualify) ptrproto((char *));
-int	(*sorter) ptrproto((UnivConstPtr, UnivConstPtr));
+jscandir(const char *dir, char ***nmptr,
+	 jbool (*qualify)(char *),
+	 int (*sorter)(const void *, const void *))
 {
 	DIR	*dirp;
 	struct  dirent	*entry;
@@ -125,14 +123,15 @@ int	(*sorter) ptrproto((UnivConstPtr, UnivConstPtr));
 
 		/* note: test ensures one space left in ourarray for NULL */
 		if (nentries+1 == nalloc)
-			ourarray = (char **) erealloc((UnivPtr) ourarray, (nalloc += 10) * sizeof (char *));
+			ourarray = (char **) erealloc(ourarray,
+						      (nalloc += 10) * sizeof (char *));
 		ourarray[nentries++] = copystr(entry->d_name);
 	}
 	closedir(dirp);
 	ourarray[nentries] = NULL;
 
 	if (sorter != NULL)
-		qsort((UnivPtr) ourarray, nentries, sizeof (char **), sorter);
+		qsort((void *) ourarray, nentries, sizeof (char **), sorter);
 	*nmptr = ourarray;
 
 	return nentries;
@@ -160,14 +159,11 @@ jbool	MatchDir = NO;
  * be opened or malloc fails.
  */
 int
-jscandir(dir, nmptr, qualify, sorter)
-const char	*dir;
-char	***nmptr;
-jbool	(*qualify) ptrproto((char *));
-int	(*sorter) ptrproto((UnivConstPtr, UnivConstPtr));
+jscandir(const char *dir, char ***nmptr, jbool (*qualify)(char *),
+	 int (*sorter)(const void *, const void *))
 {
-	struct find_t entry;
-	char	**ourarray;
+	struct find_t	entry;
+	char		**ourarray;
 	unsigned int	nalloc = 10,
 			nentries = 0;
 
@@ -207,7 +203,7 @@ int	(*sorter) ptrproto((UnivConstPtr, UnivConstPtr));
 	} while (_dos_findnext(&entry) == 0);
 	ourarray[nentries] = NULL;
 
-	if (sorter != (int (*) ptrproto((UnivConstPtr, UnivConstPtr)))NULL)
+	if (sorter != (int (*)(const void *, const void *))NULL)
 		qsort((char *) ourarray, nentries, sizeof (char **), sorter);
 	*nmptr = ourarray;
 
@@ -226,11 +222,8 @@ int	(*sorter) ptrproto((UnivConstPtr, UnivConstPtr));
  * be opened or malloc fails.
  */
 int
-jscandir(dir, nmptr, qualify, sorter)
-const char	*dir;
-char	***nmptr;
-jbool	(*qualify) ptrproto((char *));
-int	(*sorter) ptrproto((UnivConstPtr, UnivConstPtr));
+jscandir(const char *dir, char ***nmptr, jbool (*qualify)(char *),
+	 int (*sorter)(const void *, const void *))
 {
 	WIN32_FIND_DATA entry;
 	HANDLE findHand;
@@ -275,7 +268,7 @@ int	(*sorter) ptrproto((UnivConstPtr, UnivConstPtr));
 	FindClose(findHand);
 	ourarray[nentries] = NULL;
 
-	if (sorter != (int (*)ptrproto((UnivConstPtr, UnivConstPtr)))NULL)
+	if (sorter != (int (*)(const void *, const void *))NULL)
 		qsort((char *) ourarray, nentries, sizeof (char **), sorter);
 	*nmptr = ourarray;
 
@@ -285,15 +278,13 @@ int	(*sorter) ptrproto((UnivConstPtr, UnivConstPtr));
 #endif /* WIN32 */
 
 void
-freedir(nmptr, nentries)
-char	***nmptr;
-int	nentries;
+freedir(char ***nmptr, int nentries)
 {
 	char	**ourarray = *nmptr;
 
 	while (--nentries >= 0)
-		free((UnivPtr) *ourarray++);
-	free((UnivPtr) *nmptr);
+		free(*ourarray++);
+	free(*nmptr);
 	*nmptr = NULL;
 }
 #endif /* F_COMPLETION */

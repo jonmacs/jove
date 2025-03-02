@@ -9,16 +9,16 @@
 
 extern char	ShcomBuf[LBSIZE];
 
-extern char	*MakeName proto((char *command));
+extern char	*MakeName(char *command);
 
 extern void
-	isprocbuf proto((const char *bufname)),
-	get_FL_info proto((char *, char *)),
-	ChkErrorLines proto((void)),
-	ErrFree proto((void));
+	isprocbuf(const char *bufname),
+	get_FL_info(char *, char *),
+	ChkErrorLines(void),
+	ErrFree(void);
 
 extern wait_status_t
-	UnixToBuf proto((int, const char *, const char *, const char *));
+	UnixToBuf(int, const char *, const char *, const char *);
 
 /* flags for UnixToBuf: */
 #define UTB_DISP	1	/* Display output? */
@@ -29,37 +29,37 @@ extern wait_status_t
 
 #ifndef MSDOS_PROCS
 extern pid_t	ChildPid;	/* pid of any outstanding non-iproc process */
-extern void	dowait proto((wait_status_t *status));
+extern void	dowait(wait_status_t *status);
 #endif
 
 /* Commands: */
 
 #ifdef SUBSHELL
 extern void
-	MakeErrors proto((void)),
-	FilterRegion proto((void)),
-	ShNoBuf proto((void)),
-	ShToBuf proto((void)),
-	ShellCom proto((void)),
-	Shtypeout proto((void)),
-	ProcEnvExport proto((void)),
-	ProcEnvShow proto((void)),
-	ProcEnvUnset proto((void));
+	MakeErrors(void),
+	FilterRegion(void),
+	ShNoBuf(void),
+	ShToBuf(void),
+	ShellCom(void),
+	Shtypeout(void),
+	ProcEnvExport(void),
+	ProcEnvShow(void),
+	ProcEnvUnset(void);
 #endif
 /*
  * Even if we don't have MakeErrors, the following are useful because we can
  * load an error file and parse it with these.
  */
 extern void
-	ErrParse proto((void)),
-	ShowErr proto((void)),
-	NextError proto((void)),
-	PrevError proto((void));
+	ErrParse(void),
+	ShowErr(void),
+	NextError(void),
+	PrevError(void);
 
 #ifdef SPELL
 extern void
-	SpelBuffer proto((void)),
-	SpelWords proto((void));
+	SpelBuffer(void),
+	SpelWords(void);
 #endif
 
 /* Variables: */

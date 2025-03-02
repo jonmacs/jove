@@ -10,13 +10,13 @@
 typedef struct cons	List;
 
 struct cons {
-	UnivPtr	car;	/* pointer to element */
+	void *	car;	/* pointer to element */
 	List	*cdr;
 };
 
 #define list_next(lp)	((lp)->cdr)
 #define list_data(lp)	((lp)->car)
 
-extern UnivPtr
-	list_push proto((List **, UnivPtr)),
-	list_pop proto((List **));
+extern void
+	*list_push(List **, void *),
+	*list_pop(List **);

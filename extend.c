@@ -28,7 +28,7 @@
 #endif
 
 private void
-	DefAutoExec proto((const data_obj *(*proc) ptrproto((const char *))));
+	DefAutoExec(const data_obj *(*)(const char *));
 
 int	InJoverc = 0;
 
@@ -48,7 +48,7 @@ private int	ExecIndex = 0;
 /* Command auto-execute. */
 
 void
-CAutoExec()
+CAutoExec(void)
 {
 	DefAutoExec(findcom);
 }
@@ -56,18 +56,17 @@ CAutoExec()
 /* Macro auto-execute. */
 
 void
-MAutoExec()
+MAutoExec(void)
 {
 	DefAutoExec(findmac);
 }
 
 private void
-DefAutoExec(proc)
-const data_obj	*(*proc) ptrproto((const char *));
+DefAutoExec(const data_obj *(*proc)(const char *))
 {
 	const data_obj	*d = (*proc)(ProcFmt);
 	const char	*pattern;
-	register struct AutoExec	*p;
+	struct AutoExec	*p;
 
 	pattern = do_ask("\r\n", NULL_ASK_EXT, (char *) NULL, ": %f %s ", d->Name);
 	for (p = AutoExecs; p != &AutoExecs[ExecIndex]; p++)
@@ -95,11 +94,9 @@ const data_obj	*(*proc) ptrproto((const char *));
  * the command associated with that kind of file.
  */
 void
-DoAutoExec(new, old)
-register char	*new,
-		*old;
+DoAutoExec(char *new, char *old)
 {
-	register struct AutoExec	*p;
+	struct AutoExec	*p;
 
 	for (p = AutoExecs; p != &AutoExecs[ExecIndex]; p++) {
 		if (p->a_pattern == NULL
@@ -115,7 +112,7 @@ register char	*new,
 }
 
 ZXchar
-addgetc()	/* NOTE: can return EOF */
+addgetc(void)	/* NOTE: can return EOF */
 {
 	ZXchar	c;
 
@@ -141,7 +138,7 @@ addgetc()	/* NOTE: can return EOF */
 }
 
 void
-Extend()
+Extend(void)
 {
 	ExecCmd(findcom(": "));
 }
@@ -152,13 +149,9 @@ Extend()
  * we stop reading at the first nondigit and return YES (success).
  */
 jbool
-chr_to_long(cp, base, allints, result)
-register const char	*cp;
-int	base;
-jbool	allints;
-register long	*result;
+chr_to_long(const char *cp, int base, jbool allints, long *result)
 {
-	register char	c;
+	char	c;
 	long	value = 0;
 	int	sign;
 
@@ -191,24 +184,18 @@ register long	*result;
  * we stop reading at the first nondigit and return YES (success).
  */
 jbool
-chr_to_int(cp, base, allints, result)
-register const char	*cp;
-int	base;
-jbool	allints;
-register int	*result;
+chr_to_int(const char *cp, int base, jbool allints, int *result)
 {
 	long	value;
-	jbool ret = chr_to_long(cp, base, allints, &value);
+	jbool	ret = chr_to_long(cp, base, allints, &value);
+
 	if (ret == YES)
-	    *result = (int)(value & ~0); /* XXX but no worse than before */
+		*result = (int)(value & ~0); /* XXX but no worse than before */
 	return ret;
 }
 
 long
-ask_long(def, prompt, base)
-const char	*def;
-const char	*prompt;
-int	base;
+ask_long(const char *def, const char *prompt, int base)
 {
 	const char	*val = ask(def, prompt);
 	long	value;
@@ -221,10 +208,7 @@ int	base;
 }
 
 int
-ask_int(def, prompt, base)
-const char	*def;
-const char	*prompt;
-int	base;
+ask_int(const char *def, const char *prompt, int base)
 {
 	const char	*val = ask(def, prompt);
 	int		value = 0;	/* avoid gcc complaint */
@@ -237,10 +221,7 @@ int	base;
 }
 
 void
-vpr_aux(vp, buf, size)
-register const struct variable	*vp;
-char	*buf;
-size_t	size;
+vpr_aux(const struct variable *vp, char	*buf, size_t size)
 {
 	switch (vp->v_flags & V_TYPEMASK) {
 	case V_INT:
@@ -267,7 +248,7 @@ size_t	size;
 }
 
 void
-PrVar()
+PrVar(void)
 {
 	struct variable	*vp = (struct variable *) findvar(ProcFmt);
 	char	prbuf[MAXCOLS];
@@ -278,7 +259,7 @@ PrVar()
 }
 
 void
-InsVar()
+InsVar(void)
 {
 	struct variable	*vp = (struct variable *) findvar(ProcFmt);
 	char	prbuf[MAXCOLS];
@@ -289,9 +270,7 @@ InsVar()
 }
 
 void
-vset_aux(vp, prompt)
-const struct variable	*vp;
-char	*prompt;
+vset_aux(const struct variable *vp, char *prompt)
 {
 	if (vp->v_flags & V_READONLY)
 		complain("[cannot set readonly variable %s]", vp->Name);
@@ -324,7 +303,8 @@ char	*prompt;
 
 	case V_BOOL:
 	    {
-		static const char	*possible[/*jbool*/] = {"off", "on", NULL };
+		static const char
+			*possible[/*jbool*/] = {"off", "on", NULL };
 		jbool	*valp = (jbool *) vp->v_value;
 		int	newval = complete(possible, possible[!*valp], prompt,
 			CASEIND | ALLOW_OLD | ALLOW_EMPTY);
@@ -384,7 +364,7 @@ char	*prompt;
 }
 
 void
-SetVar()
+SetVar(void)
 {
 	struct variable	*vp = (struct variable *) findvar(ProcFmt);
 	char	prompt[128];
@@ -441,11 +421,11 @@ private int
 	comp_flags,	/* flags arg of complete */
 	comp_value;	/* return value for complete; set by aux_complete */
 
-private jbool aux_complete proto((ZXchar c));	/* needed to comfort dumb MS Visual C */
+private jbool
+	aux_complete(ZXchar c);	/* needed to comfort dumb MS Visual C */
 
 private jbool
-aux_complete(c)
-ZXchar	c;
+aux_complete(ZXchar c)
 {
 	if (comp_flags & CASEIND) {
 		char	lc;
@@ -568,15 +548,13 @@ ZXchar	c;
 }
 
 int
-complete(possible, def, prompt, flags)
-register const char	*const *possible;
-const char	*def;
-const char	*prompt;
-int	flags;
+complete(const char *const *possible,
+	 const char *def, const char *prompt,
+	 int flags)
 {
 	/* protect static "Possible" etc. from being overwritten due to recursion */
 	if (InRealAsk) {
-		complain((char *) NULL);
+		complain(NULL);
 		/* NOTREACHED */
 	}
 	Possible = possible;
@@ -586,7 +564,7 @@ int	flags;
 }
 
 void
-Source()
+Source(void)
 {
 	char
 		fnamebuf[FILESIZE];
@@ -599,10 +577,10 @@ Source()
 		".joverc"
 #endif
 		);
-	(void) ask_file((char *)NULL, fnamebuf, fnamebuf);
+	(void) ask_file(NULL, fnamebuf, fnamebuf);
 	if (!joverc(fnamebuf) && !silence) {
 		message(IOerr("read", fnamebuf));
-		complain((char *)NULL);
+		complain(NULL);
 		/* NOTREACHED */
 	}
 }
@@ -610,8 +588,7 @@ Source()
 /* TODO: Make this unsigned long when we dump support for pre-ANSI C */
 /* calculate percentage without float and no overflow */
 private int
-calc_percent(a, b)
-long	a, b;
+calc_percent(long a, long b)
 {
 	int v;
 	if (b == 0) {
@@ -624,16 +601,14 @@ long	a, b;
 	return v;
 }
 	
-/* TODO: Make dotchar, nchars unsigned long when we dump support for pre-ANSI C */
 void
-BufPos()
+BufPos(void)
 {
-	register LinePtr	lp = curbuf->b_first;
-	register long
-		i,
-		dotline = 0;	/* avoid uninitialized complaint from gcc -W */
-	long	dotchar = 0;	/* avoid uninitialized complaint from gcc -W */
-	long	nchars;
+	LinePtr		lp = curbuf->b_first;
+	long		i,
+			dotline = 0;
+	unsigned long	dotchar = 0,
+			nchars;
 
 	for (i = nchars = 0; lp != NULL; i++, lp = lp->l_next) {
 		if (lp == curline) {
@@ -654,8 +629,7 @@ BufPos()
 #ifdef SUBSHELL
 
 private jbool
-do_if(cmd)
-char	*cmd;
+do_if(char *cmd)
 {
 	char	*args[12];
 
@@ -779,10 +753,7 @@ char	*cmd;
 #endif /* SUBSHELL */
 
 private jbool
-cmdmatch(inp, verb, oppat)
-char	*inp;
-char	*verb;
-char	*oppat;
+cmdmatch(char *inp, char *verb, char *oppat)
 {
 	int	len = strlen(verb);
 
@@ -797,20 +768,22 @@ char	*oppat;
 }
 
 jbool
-joverc(file)
-char	*file;
+joverc(char *file)
 {
 	char	fbuf[LBSIZE],
 		lbuf[LBSIZE];
-
-	jmp_buf	savejmp;
-	volatile int	lnum = 0;
-	File	*volatile fp;
-	volatile jbool	eof = NO;
+	jmp_buf
+		savejmp;
+	volatile int
+		lnum = 0;
+	File
+		*volatile fp;
+	volatile jbool
+		eof = NO;
 	volatile unsigned int	/* bitstrings */
-			finger = 1,
-			skipping = 0,
-			inelse = 0;
+		finger = 1,
+		skipping = 0,
+		inelse = 0;
 
 
 	/*

@@ -9,18 +9,18 @@
 /* UNIX Library/System Routine Emulations for old Macintosh (mac.c) */
 
 extern int
-	creat proto((const char *, jmode_t)),
+	(creat)(const char *, jmode_t),
 	/* open may have an optional third argument, promo(jmode_t) mode */
-	open proto((const char */*path*/, int /*flags*/, ...)),
-	close proto((int)),
-	unlink proto((const char *)),
-	chdir proto((const char *));
+	(open)(const char */*path*/, int /*flags*/, ...),
+	(close)(int),
+	(unlink)(const char *),
+	(chdir)(const char *);
 
-extern off_t	lseek proto((int /*fd*/, off_t /*offset*/, int /*whence*/));
-extern time_t	time proto((time_t *));
+extern off_t	(lseek)(int /*fd*/, off_t /*offset*/, int /*whence*/);
+extern time_t	(time)(time_t *);
 
 extern void
-	menus_off proto((void));	/* called by real_ask, findcom, waitchar */
+	menus_off(void);	/* called by real_ask, findcom, waitchar */
 
 #endif /* MAC */
 
@@ -29,7 +29,7 @@ extern void
 #ifndef REALSTDC
 extern int	errno;	/* Redundant if declared in <errno.h> -- DHR */
 #endif
-extern char *strerror proto((int));	/* errno.h or string.h? */
+extern char *(strerror)(int);	/* errno.h or string.h? */
 
 /* General Utilities: <stdlib.h> */
 
@@ -37,30 +37,30 @@ extern char *strerror proto((int));	/* errno.h or string.h? */
 #include <stdlib.h>
 #endif
 
-extern int	abs proto((int));
+extern int	(abs)(int);
 
-extern void	abort proto((void));
-extern void	exit proto((int));
+extern void	(abort)(void);
+extern void	(exit)(int);
 
-extern int	atoi proto((const char */*nptr*/));
+extern int	(atoi)(const char */*nptr*/);
 
-extern void	qsort proto((UnivPtr /*base*/, size_t /*nmemb*/,
-	size_t /*size*/, int (*/*compar*/) ptrproto((UnivConstPtr, UnivConstPtr))));
-extern char	*getenv proto((const char *));
-extern int	system proto((const char *));
+extern void	(qsort)(void * /*base*/, size_t /*nmemb*/, size_t /*size*/,
+			int (*/*compar*/)(const void *, const void *));
+extern char	*(getenv)(const char *);
+extern int	(system)(const char *);
 
 extern void
-	free proto((UnivPtr));
+	free(void *);
 
-extern UnivPtr
-	calloc proto((size_t, size_t)),
-	malloc proto((size_t)),
-	realloc proto((UnivPtr, size_t));
+extern void
+	*calloc(size_t, size_t),
+	*malloc(size_t),
+	*realloc(void *, size_t);
 
 /* Date and Time <time.h> */
 
-extern time_t	time proto((time_t */*tloc*/));
-extern char	*ctime proto((const time_t *));
+extern time_t	time(time_t */*tloc*/);
+extern char	*ctime(const time_t *);
 
 /* UNIX */
 
@@ -101,7 +101,7 @@ extern char	*ctime proto((const time_t *));
 # include <unistd.h>
 #else /* !POSIX_UNISTD */
 
-extern int	chdir proto((const char */*path*/));
+extern int	(chdir)(const char */*path*/);
 
 /* POSIX, System Vr4, MSDOS have getcwd() of this form.
  * System Vr4 (sometimes?) types the second argument "int"!!
@@ -110,15 +110,15 @@ extern int	chdir proto((const char */*path*/));
  * Our old mac.c code provides a getcwd() replacement.
  */
 # ifdef USE_GETCWD
-extern char	*getcwd proto((char *, size_t));
+extern char	(*getcwd)(char *, size_t);
 # endif
 
 # ifdef HAS_SYMLINKS
 /* bufsiz might be of type int in old systems e.g. 4.3BSD and earlier */
-extern JSSIZE_T readlink proto((const char */*path*/, char */*buf*/, size_t /*bufsiz*/));
+extern ssize_t (readlink)(const char *, char *, size_t);
 # endif
 
-extern int	access proto((const char */*path*/, int /*mode*/));
+extern int	(access)(const char */*path*/, int /*mode*/);
 # ifndef F_OK	/* in POSIX <unistd.h> */
 #  define F_OK	0	/* does file exist? */
 #  define X_OK	1	/* is it executable by caller? */
@@ -126,22 +126,22 @@ extern int	access proto((const char */*path*/, int /*mode*/));
 #  define R_OK	4	/* readable by caller? */
 # endif
 
-extern int	creat proto((const char */*path*/, jmode_t /*mode*/));
+extern int	(creat)(const char */*path*/, jmode_t /*mode*/);
 	/* open may have an optional third argument, promo(jmode_t) mode */
-extern int	open proto((const char */*path*/, int /*flags*/, ...));
+extern int	(open)(const char */*path*/, int /*flags*/, ...);
 
-extern jmode_t umask proto((jmode_t));
+extern jmode_t (umask)(jmode_t);
 # ifdef NO_MKSTEMP
 #  ifndef NO_MKTEMP
-extern char *mktemp proto((char */*template*/));
+extern char (*mktemp)(char */*template*/);
 #  endif
 # else
-extern int mkstemp proto((char */*template*/));
+extern int (mkstemp)(char */*template*/);
 # endif
 
-extern JSSIZE_T
-	read proto((int /*fd*/, UnivPtr /*buf*/, JRWSIZE_T /*nbytes*/)),
-	write proto((int /*fd*/, UnivConstPtr /*buf*/, JRWSIZE_T /*nbytes*/));
+extern ssize_t
+	read(int /*fd*/, void * /*buf*/, JRWSIZE_T /*nbytes*/),
+	write(int /*fd*/, const void * /*buf*/, JRWSIZE_T /*nbytes*/);
 
 # ifdef UNIX
 /* Zortech incorrectly defines argv as const char **.
@@ -151,31 +151,30 @@ extern JSSIZE_T
  * on some or all exec*() prototype declarations that they supply.
  * Jove uses spawn on these platforms anyway.
  */
-extern int	execl proto((const char * /*path*/, const char * /*arg*/, ...));
-extern int	execlp proto((const char * /*file*/, const char * /*arg*/, ...));
-extern int	execv proto((const char * /*path*/, char *const /*argv*/[]));
-extern int	execve proto((const char * /*path*/, char *const /*argv*/[],
-			      char *const /*envp*/[]));
-extern int	execvp proto((const char * /*file*/, char *const /*argv*/[]));
+extern int	(execl)(const char * /*path*/, const char * /*arg*/, ...);
+extern int	(execlp)(const char * /*file*/, const char * /*arg*/, ...);
+extern int	(execv)(const char * /*path*/, char *const /*argv*/[]);
+extern int	(execve)(const char * /*path*/, char *const /*argv*/[],
+			 char *const /*envp*/[]);
+extern int	(execvp)(const char * /*file*/, char *const /*argv*/[]);
 # endif
 
 # ifdef MSC51
 #  undef const
 # endif
 
-extern void	_exit proto((int));	/* exit(), without flush, etc. */
+extern void	_exit(int);	/* exit(), without flush, etc. */
 
-extern unsigned	alarm proto((unsigned /*seconds*/));
+extern unsigned	alarm(unsigned /*seconds*/);
 
-extern int	pipe proto((int *));
-extern int	close proto((int));
-extern int	dup proto((int));
-extern int	dup2 proto((int /*old_fd*/, int /*new_fd*/));
-extern off_t	lseek proto((int /*fd*/, off_t /*offset*/, int /*whence*/));
-extern int	fchmod proto((int /*fd*/, jmode_t /*mode*/));
-extern int	chown proto((const char *, int, int));
-
-extern int	unlink proto((const char */*path*/));
+extern int	(pipe)(int *);
+extern int	(close)(int);
+extern int	(dup)(int);
+extern int	(dup2)(int /*old_fd*/, int /*new_fd*/);
+extern off_t	(lseek)(int /*fd*/, off_t /*offset*/, int /*whence*/);
+extern int	(fchmod)(int /*fd*/, jmode_t /*mode*/);
+extern int	(chown)(const char *, int, int);
+extern int	(unlink)(const char */*path*/);
 
 #endif /* !POSIX_UNISTD */
 
@@ -195,7 +194,7 @@ extern int	unlink proto((const char */*path*/));
 
 #ifndef FULL_UNISTD
 
-extern int	fsync proto((int));
+extern int	fsync(int);
 
 /* BSD UNIX
  *
@@ -206,8 +205,8 @@ extern int	fsync proto((int));
  */
 
 # ifdef USE_BCOPY
-extern void	UNMACRO(bcopy) proto((UnivConstPtr, UnivPtr, size_t));
-extern void	UNMACRO(bzero) proto((UnivPtr, size_t));
+extern void	(bcopy)(const void *, void *, size_t);
+extern void	(bzero)(void *, size_t);
 # endif
 
 #endif /* !FULL_UNISTD */
@@ -216,17 +215,17 @@ extern void	UNMACRO(bzero) proto((UnivPtr, size_t));
 #ifdef TERMCAP
 # ifdef JTC
 #define DEFINE_PC_BC_UP_OSPEED 1 /* curses declares these, jtc does not! should it?*/
-extern char *	UNMACRO(jtcarg1) proto((const char *, int /* parm */));
-extern char *	UNMACRO(jtcarg2) proto((const char *, int /*destcol*/, int /*destline*/));
+extern char *	(jtcarg1)(const char *, int /* parm */);
+extern char *	(jtcarg2)(const char *, int /*destcol*/, int /*destline*/);
 #  define	targ1(s, i)	jtcarg1(s, i)
 #  define	targ2(s, c, l)	jtcarg2(s, c, l)
 # else /* !JTC */
 #  ifdef TERMINFO
-extern char	*UNMACRO(tparm) proto((const char *, ...));
+extern char	(*tparm)(const char *, ...);
 #   define	targ1(s, i)	tparm(s, i)
 #   define	targ2(s, c, l)	tparm(s, l, c)
 #  else /* !TERMINFO */
-extern char	*UNMACRO(tgoto) proto((const char *, int /*destcol*/, int /*destline*/));
+extern char	(*tgoto)(const char *, int /*destcol*/, int /*destline*/);
 #   define	targ1(s, i)	tgoto(s, 0, i)
 #   define	targ2(s, c, l)	tgoto(s, c, l)
 #  endif /* TERMINFO */

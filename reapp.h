@@ -6,22 +6,22 @@
  **************************************************************************/
 
 extern void
-	find_tag proto((char *tag,jbool localp));
+	find_tag(char *tag, jbool localp);
 
 /* Commands: */
 
 extern void
-	FDotTag proto((void)),
-	FindTag proto((void)),
-	IncFSearch proto((void)),
-	IncRSearch proto((void)),
-	QRepSearch proto((void)),
-	RegReplace proto((void)),
-	RepSearch proto((void)),
-	FSrchND proto((void)),
-	ForSearch proto((void)),
-	RSrchND proto((void)),
-	RevSearch proto((void));
+	FDotTag(void),
+	FindTag(void),
+	IncFSearch(void),
+	IncRSearch(void),
+	QRepSearch(void),
+	RegReplace(void),
+	RepSearch(void),
+	FSrchND(void),
+	ForSearch(void),
+	RSrchND(void),
+	RevSearch(void);
 
 /* Variables: */
 

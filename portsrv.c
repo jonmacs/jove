@@ -21,7 +21,7 @@
 #include <sys/ioctl.h>
 #include "sysprocs.h"
 #include "iproc.h"
-extern int pause proto((void));
+extern int pause(void);
 
 private struct lump	lump;
 
@@ -34,9 +34,7 @@ private struct lump	lump;
 
 #ifdef POSIX_SIGS
 SIGHANDLERTYPE
-setsighandler(signo, handler)
-int	signo;
-SIGHANDLERTYPE	handler;
+setsighandler(int signo, SIGHANDLERTYPE handler)
 {
 	static struct sigaction	act;	/* static so unspecified fields are 0 */
 	struct sigaction	oact;
@@ -50,12 +48,13 @@ SIGHANDLERTYPE	handler;
 # define setsighandler(signo, handler) signal((signo), (handler))
 #endif
 
-private SIGRESTYPE strt_read proto((int));
-private volatile jbool wait_for_sig = NO;
+private SIGRESTYPE
+	strt_read(int);
+private volatile jbool
+	wait_for_sig = NO;
 
 private SIGRESTYPE
-hold_read(junk)
-int	junk;	/* passed in when invoked by a signal; of no interest */
+hold_read(int UNUSED(junk))
 {
 	setsighandler(KBDSIG, strt_read);
 #if defined(BSD_SIGS)||defined(POSIX_SIGS)
@@ -72,8 +71,7 @@ int	junk;	/* passed in when invoked by a signal; of no interest */
 }
 
 private SIGRESTYPE
-strt_read(junk)
-int	junk;
+strt_read(int UNUSED(junk))
 {
 	setsighandler(KBDSIG, hold_read);
 	wait_for_sig = NO;
@@ -81,7 +79,7 @@ int	junk;
 }
 
 private void
-detach()
+detach(void)
 {
 #ifdef POSIX_PROCS
 	setsid();
@@ -100,7 +98,7 @@ detach()
 		 * controlling terminal.
 		 */
 		if (fd >= 0) {
-		    (void) ioctl(fd, TIOCNOTTY, (UnivPtr)0);
+		    (void) ioctl(fd, TIOCNOTTY, NULL);
 		    (void) close(fd);
 		}
 	}
@@ -109,7 +107,7 @@ detach()
 }
 
 private void
-kbd_process()
+kbd_process(void)
 {
 	int	pid,
 		n = -1;
@@ -124,7 +122,7 @@ kbd_process()
 		if (wait_for_sig) {
 		    pause();
 		}
-		n = read(0, (UnivPtr) lump.data, sizeof(lump.data));
+		n = read(0, lump.data, sizeof(lump.data));
 		if (n < 0) {
 			if (!RETRY_ERRNO(errno))
 				break;	/* something unfortunate hapened?! */
@@ -133,8 +131,8 @@ kbd_process()
 		}
 		lump.header.nbytes = n;
 		/* It is not clear what we can do if this write fails */
-		do {} while (write(1, (UnivPtr) &lump, sizeof(struct header) + n) < 0
-			&& RETRY_ERRNO(errno));
+		do {} while (write(1, &lump, sizeof(struct header) + n) < 0
+			     && RETRY_ERRNO(errno));
 	}
 }
 
@@ -143,36 +141,32 @@ kbd_process()
  */
 
 private void
-proc_write(ptr, n)
-UnivConstPtr	ptr;
-size_t	n;
+proc_write(const void *ptr, size_t n)
 {
 	/* It is not clear what we can do if this write fails */
 	do {} while (write(1, ptr, n) < 0 && RETRY_ERRNO(errno));
 }
 
 private void
-read_pipe(fd)
-int	fd;
+read_pipe(int fd)
 {
-	register size_t	n;
+	size_t	n;
 
-	while ((lump.header.nbytes = read(fd, (UnivPtr) lump.data, sizeof lump.data)) > 0) {
+	while ((lump.header.nbytes = read(fd, lump.data, sizeof lump.data)) > 0) {
 		n = sizeof(struct header) + lump.header.nbytes;
-		proc_write((UnivConstPtr) &lump, n);
+		proc_write(&lump, n);
 	}
 }
 
-private void proc_error proto((const char * /* str */)) NEVER_RETURNS;
+private void proc_error(const char * /* str */) NEVER_RETURNS;
 
 private void
-proc_error(str)
-const char	*str;
+proc_error(const char *str)
 {
 	lump.header.pid = getpid();
 	lump.header.nbytes = strlen(str);
 	strcpy(lump.data, str);
-	proc_write((UnivConstPtr) &lump, sizeof(struct header) + lump.header.nbytes);
+	proc_write(&lump, sizeof(struct header) + lump.header.nbytes);
 	/* It is not clear what we can do if this write fails */
 #ifndef TIOCNOTTY
 	{
@@ -183,7 +177,7 @@ const char	*str;
 		 */
 		int tfd = open("/dev/tty", O_WRONLY | O_BINARY);
 		if (tfd >= 0)
-		do {} while (write(tfd, (UnivConstPtr)str, strlen(str)) < 0 &&
+		do {} while (write(tfd, str, strlen(str)) < 0 &&
 			     RETRY_ERRNO(errno));
 	}
 #endif
@@ -191,9 +185,7 @@ const char	*str;
 }
 
 private void
-portsrv_process(argc, argv)
-int	argc;
-char	**argv;
+portsrv_process(int argc, char **argv)
 {
 	int	p[2];
 	pid_t	pid;
@@ -227,10 +219,10 @@ char	**argv;
 		/* tell jove the pid of the real child as opposed to us */
 		lump.header.pid = getpid();
 		lump.header.nbytes = sizeof (pid_t);
-		byte_copy((UnivConstPtr) &pid, (UnivPtr) lump.data, sizeof(pid_t));
+		byte_copy(&pid, lump.data, sizeof(pid_t));
 		/* It is not clear what we can do if this write fails */
-		do {} while (write(1, (UnivConstPtr) &lump, sizeof(struct header) + sizeof(pid_t)) < 0
-			&& RETRY_ERRNO(errno));
+		do {} while (write(1, &lump, sizeof(struct header) + sizeof(pid_t)) < 0
+			     && RETRY_ERRNO(errno));
 
 		/* read proc's output and send it to jove */
 		read_pipe(p[0]);
@@ -251,20 +243,17 @@ char	**argv;
 			wait_status_t	status;
 
 			do {} while (wait(&status) != pid);
-			byte_copy((UnivPtr)&status, (UnivPtr)lump.data,
-				sizeof(status));
+			byte_copy(&status, lump.data, sizeof(status));
 		}
 		/* It is not clear what we can do if this write fails */
-		do {} while (write(1, (UnivConstPtr) &lump,
-			sizeof(struct header) + sizeof(wait_status_t)) < 0
-				&& errno == EINTR);
+		do {} while (write(1, &lump,
+				   sizeof(struct header) + sizeof(wait_status_t)) < 0
+					&& errno == EINTR);
 	}
 }
 
 int
-main(argc, argv)
-int	argc;
-char	**argv;
+main(int argc, char **argv)
 {
 	if (argc == 2 && strcmp(argv[1], "--kbd") == 0) {
 		kbd_process();
@@ -285,9 +274,7 @@ char	**argv;
  * some verbosity to help with the bug report!
  */
 int
-main(argc, argv)
-int	argc;
-char	**argv;
+main(int argc, char *argv[])
 {
 	int i;
 	fprintf(stderr, "%s not compiled for PIPEPROCS: argc=%d\n", argv[0],

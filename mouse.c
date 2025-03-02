@@ -118,7 +118,7 @@ private int last_mouse_act = LMA_NONE;
 private const char *saved_M_SR = NULL;	/* KLUDGE for xterm/termcap bug */
 
 void
-MouseOn()
+MouseOn(void)
 {
 	if (XtermMouse != xtMouseState) {
 		/* KLUDGE for xterm/termcap bug */
@@ -136,7 +136,7 @@ MouseOn()
 }
 
 void
-MouseOff()
+MouseOff(void)
 {
 	if (xtMouseState) {
 		putstr(xtMouseDisable);
@@ -148,7 +148,7 @@ MouseOff()
 /* Set cursor position to that of mouse pointer. */
 
 private void
-SetCursor()
+SetCursor(void)
 {
 	int	line_pos = in_window(curwind, curline);
 	int	offset = PhysScreen[y_coord].s_offset;
@@ -170,10 +170,12 @@ SetCursor()
 }
 
 private void
-ScrollToMouse()
+ScrollToMouse(void)
 {
-	register int	lc;
-	const int	width = (CO - 1 - (4 * SG)) * font_width;	/* must match size in ModeLine */
+	int	lc;
+	const int
+		width = (CO - 1 - (4 * SG)) * font_width;
+		/* `width' must match size in ModeLine */
 	int	top;
 
 	/* This code ought to match the scroll-bar layout computed by
@@ -199,8 +201,7 @@ ScrollToMouse()
 }
 
 private jbool
-ObeyProc(p)
-cmdproc_t p;
+ObeyProc(cmdproc_t p)
 {
 	if (BufMinorMode(curbuf, BReadOnly)) {
 		rbell();
@@ -215,7 +216,7 @@ cmdproc_t p;
 /* Get next value in number sequence */
 
 private int
-NextValue()
+NextValue(void)
 {
 	int val;
 
@@ -229,10 +230,9 @@ NextValue()
 /* Select appropriate window */
 
 private int
-SelectWind(winforce)
-Window	*winforce;	/* if non-null, must be within this window */
+SelectWind(Window *winforce)	/* if non-null, must be within this window */
 {
-	register Window *wp = fwind;
+	Window	*wp = fwind;
 	int	total_lines = wp->w_height;
 
 	/* Find which window mouse pointer is in. */
@@ -253,8 +253,7 @@ Window	*winforce;	/* if non-null, must be within this window */
 /* get an origin-0 coordinate in funny representation used by xterm */
 
 private int
-xtGetCoord(upb)
-int upb;
+xtGetCoord(int upb)
 {
 	ZXchar	c = waitchar();	/* coordinate */
 
@@ -272,10 +271,7 @@ int upb;
 /* get some X Y pair from xterm; return indication of success */
 
 private jbool
-xtGetXY(xp, yp)
-int
-	*xp,
-	*yp;
+xtGetXY(int *xp, int *yp)
 {
 	int x = xtGetCoord(CO);
 
@@ -324,8 +320,7 @@ int
 #define XTERMHLBUG	1	/* always enable: we think that it is safe */
 
 static void
-hl_mode(hl_setting, startx, starty, endx, endy)
-int	hl_setting, startx, starty, endx, endy;
+hl_mode(int hl_setting, int startx, int starty, int endx, int endy)
 {
 	static const char	hl_fmt[] = "\033[%d;%d;%d;%d;%dT";
 	char	buf[sizeof(hl_fmt) + 4*(5-2)];
@@ -338,8 +333,7 @@ int	hl_setting, startx, starty, endx, endy;
 }
 
 private jbool
-MouseParams(mproto)
-int	mproto;
+MouseParams(int mproto)
 {
 	/* The mouse commands will be invoked by hitting a mouse
 	 * button but can also be invoked by typing the escape sequence
@@ -651,8 +645,7 @@ int	mproto;
 }
 
 private void
-MousePoint(mproto)
-int	mproto;
+MousePoint(int mproto)
 {
 	last_mouse_act = LMA_NONE;
 	if (MouseParams(mproto))
@@ -672,8 +665,7 @@ xtMousePoint()
 }
 
 private void
-MouseMark(mproto)
-int	mproto;
+MouseMark(int mproto)
 {
 	last_mouse_act = LMA_NONE;
 	if (MouseParams(mproto)) {
@@ -1004,7 +996,7 @@ xjMouseYank()
 void
 xjMouseCopyCut()
 {
-	register Mark	*mp = curmark;
+	Mark	*mp = curmark;
 
 	if (MouseParams(MPROTO_JOVETOOL)) {
 		if (mp!=NULL

@@ -6,24 +6,24 @@
  **************************************************************************/
 
 extern void
-	skip_wht_space proto((void));
+	skip_wht_space(void);
 
 /* Commands: */
 
 extern void
-	ChrToOct proto((void)),
-	GoLine proto((void)),
-	KillBos proto((void)),
-	KillEOL proto((void)),
-	KillEos proto((void)),
-	KillExpr proto((void)),
-	Leave proto((void)),
-	NotModified proto((void)),
-	SetLMargin proto((void)),
-	SetRMargin proto((void)),
-	StrLength proto((void)),
-	ToIndent proto((void)),
-	TransChar proto((void)),
-	TransLines proto((void)),
-	Yank proto((void)),
-	prCTIME proto((void));
+	ChrToOct(void),
+	GoLine(void),
+	KillBos(void),
+	KillEOL(void),
+	KillEos(void),
+	KillExpr(void),
+	Leave(void),
+	NotModified(void),
+	SetLMargin(void),
+	SetRMargin(void),
+	StrLength(void),
+	ToIndent(void),
+	TransChar(void),
+	TransLines(void),
+	Yank(void),
+	prCTIME(void);

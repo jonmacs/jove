@@ -16,8 +16,7 @@
 private int	line_pos;
 
 void
-f_char(n)
-register long	n;
+f_char(long n)
 {
 	if (n < 0) {
 		b_char(-n);
@@ -35,8 +34,7 @@ register long	n;
 }
 
 void
-b_char(n)
-register long	n;
+b_char(long n)
 {
 	if (n < 0) {
 		f_char(-n);
@@ -55,19 +53,19 @@ register long	n;
 }
 
 void
-ForChar()
+ForChar(void)
 {
 	f_char(arg_value());
 }
 
 void
-BackChar()
+BackChar(void)
 {
 	b_char(arg_value());
 }
 
 void
-NextLine()
+NextLine(void)
 {
 	if ((curline == curbuf->b_last) && eolp()) {
 		complain(NullStr);
@@ -77,7 +75,7 @@ NextLine()
 }
 
 void
-PrevLine()
+PrevLine(void)
 {
 	if ((curline == curbuf->b_first) && bolp()) {
 		complain(NullStr);
@@ -91,12 +89,9 @@ PrevLine()
  * to line up the column with the column of the current line
  */
 void
-line_move(dir, n, line_cmd)
-int	dir;
-long	n;
-jbool	line_cmd;
+line_move(int dir, long n, jbool line_cmd)
 {
-	LinePtr	(*proc) ptrproto((LinePtr, long)) =
+	LinePtr	(*proc)(LinePtr, long) =
 		(dir == FORWARD) ? next_line : prev_line;
 	LinePtr	line;
 
@@ -131,17 +126,12 @@ jbool	line_cmd;
  */
 
 int
-how_far(line, col)
-LinePtr	line;
-int	col;
+how_far(LinePtr line, int col)
 {
-	register char	*lp;
-	register int	pos;
-	register ZXchar	c;
-	char	*base;
-
-	base = lp = lcontents(line);
-	pos = 0;
+	char	*lp = lcontents(line),
+		*base = lp;
+	int	pos = 0;
+	ZXchar	c;
 
 	do {
 		if ((c = ZXC(*lp)) == '\t' && tabstop != 0) {
@@ -161,26 +151,26 @@ int	col;
 }
 
 void
-Bol()
+Bol(void)
 {
 	curchar = 0;
 }
 
 void
-Eol()
+Eol(void)
 {
 	curchar = length(curline);
 }
 
 void
-Eof()
+Eof(void)
 {
 	PushPntp(curbuf->b_last);
 	ToLast();
 }
 
 void
-Bof()
+Bof(void)
 {
 	PushPntp(curbuf->b_first);
 	ToFirst();
@@ -191,8 +181,7 @@ Bof()
  * is particularly yucky.
  */
 private void
-to_sent(dir)
-int	dir;
+to_sent(int dir)
 {
 	for (;;) {
 		Bufpos
@@ -239,9 +228,9 @@ int	dir;
 }
 
 void
-Bos()
+Bos(void)
 {
-	register int	num = arg_value();
+	int	num = arg_value();
 
 	if (num < 0) {
 		negate_arg();
@@ -256,9 +245,9 @@ Bos()
 }
 
 void
-Eos()
+Eos(void)
 {
-	register int	num = arg_value();
+	int	num = arg_value();
 
 	if (num < 0) {
 		negate_arg();
@@ -273,8 +262,7 @@ Eos()
 }
 
 void
-f_word(num)
-register long	num;
+f_word(long num)
 {
 	if (num < 0) {
 		while (++num <= 0) {
@@ -286,7 +274,7 @@ register long	num;
 		}
 	} else {
 		while (--num >= 0) {
-			register char	c;
+			char	c;
 
 			to_word(FORWARD);
 			while ((c = linebuf[curchar]) != '\0' && jisword(c))
@@ -300,13 +288,13 @@ register long	num;
 }
 
 void
-ForWord()
+ForWord(void)
 {
 	f_word(arg_value());
 }
 
 void
-BackWord()
+BackWord(void)
 {
 	f_word(-arg_value());
 }

@@ -77,7 +77,7 @@
 
 #   define wait_opt(stat_loc, options)		wait(stat_loc)
     /* should be correct if all preceding typedefs or includes worked out */
-    extern pid_t wait proto((wait_status_t *));
+    extern pid_t wait(wait_status_t *);
 
 #  endif /* UNIX */
 
@@ -90,16 +90,16 @@
 /* ??? pid_t may be changed by default argument promotions.
  * If so, this prototype might be wrong.
  */
-extern int	kill proto((pid_t /*pid*/, int /*sig*/));	/* signal.h */
+extern int	(kill)(pid_t /*pid*/, int /*sig*/);	/* signal.h */
 
-extern pid_t	fork proto((void));
-extern pid_t	getpid proto((void));
-extern int	getuid proto((void));
-extern int	setuid proto((int));
+extern pid_t	(fork)(void);
+extern pid_t	(getpid)(void);
+extern int	(getuid)(void);
+extern int	(setuid)(int);
 # endif /* !POSIX_UNISTD */
 
 # ifdef USE_VFORK
-extern int	UNMACRO(vfork) proto((void));
+extern int	(vfork)(void);
 # endif
 #endif /* !FULL_UNISTD */
 
@@ -110,19 +110,19 @@ extern int	UNMACRO(vfork) proto((void));
  */
 #ifdef POSIX_PROCS
 # ifndef FULL_UNISTD
-   extern int	UNMACRO(setpgid) proto((pid_t /*pid*/, pid_t /*pgid*/));
-   extern pid_t UNMACRO(setsid) proto((void));
+   extern int	(setpgid)(pid_t /*pid*/, pid_t /*pgid*/);
+   extern pid_t (setsid)(void);
 # endif
 # define NEWPG()	setpgid(0, getpid())
 #else /* !POSIX_PROCS */
 # ifdef BSD_SETPGRP
 #  ifndef FULL_UNISTD
-   extern int	UNMACRO(setpgrp) proto((pid_t /*pid*/, pid_t /*pgrp*/));
+   extern int	(setpgrp)(pid_t /*pid*/, pid_t /*pgrp*/);
 #  endif
 #  define NEWPG()	setpgrp(0, getpid())
 # else /* !(defined(BSD_SETPGRP) || defined(POSIX_PROCS)) */
 #  ifndef FULL_UNISTD
-   extern int	UNMACRO(setpgrp) proto((void));
+   extern int	(setpgrp)(void));
 #  endif
 #  define NEWPG()	setpgrp()
 # endif /* !(defined(BSD_SETPGRP) || defined(POSIX_PROCS)) */

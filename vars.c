@@ -34,19 +34,17 @@
 #include "wind.h"
 
 
-#define VAR(v)	(UnivPtr)(v), sizeof(v)
+#define VAR(v)	(v), sizeof(v)
 #include "vars.tab"
 
 const char *
-getvar(name, vbuf, vbufsize)
-const char	*name;
-char		*vbuf;
-size_t		vbufsize;
+getvar(const char *name, char *vbuf, size_t vbufsize)
 {
-	register ZXchar	c;
-	const struct variable	*vp, *which = NULL;
+	ZXchar	c;
+	const struct variable
+		*vp, *which = NULL;
 	size_t	vlen = strlen(name);
-	int ic;
+	int	ic;
 
 	vbuf[0] = '\0';
 	/* look it up (in the reduced search space) */
@@ -76,15 +74,14 @@ size_t		vbufsize;
 }
 
 const data_obj *
-findvar(prompt)
-const char	*prompt;
+findvar(const char *prompt)
 {
 	static const char	*strings[elemsof(variables)];
 	static int	last = -1;
 
 	if (strings[0] == NULL) {
-		register const char	**strs = strings;
-		register const struct variable	*v = variables;
+		const char		**strs = strings;
+		const struct variable	*v = variables;
 
 		for (; v->Name; v++)
 			*strs++ = v->Name;

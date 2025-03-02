@@ -9,7 +9,7 @@ struct variable {
 	/* Type and Name must match data_obj */
 	int	Type;		/* in this case a variable */
 	const char	*Name;		/* name is always second */
-	UnivPtr	v_value;
+	void *	v_value;
 	size_t	v_size;
 	int	v_flags;	/* type and attributes */
 };
@@ -41,4 +41,4 @@ struct variable {
 
 extern const struct variable	variables[];
 extern const struct variable	*varidx[IDXSZ];
-extern const char		*getvar proto((const char * /*name*/, char * /*vbuf*/, size_t /*vbufsize*/));
+extern const char		*getvar(const char * /*name*/, char * /*vbuf*/, size_t /*vbufsize*/);

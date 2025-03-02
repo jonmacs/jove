@@ -28,14 +28,6 @@
 #include "proc.h"
 #include "wind.h"
 
-#ifdef USE_KILLPG
-# ifndef FULL_UNISTD
-extern int	UNMACRO(killpg) proto((int /*pgrp*/, int /*sig*/));
-# endif
-#else /* !USE_KILLPG */
-#define killpg(pid, sig)	kill(-(pid), (sig))
-#endif /* USE_KILLPG */
-
 struct process {
 	Process	p_next;
 #ifdef PIPEPROCS
@@ -66,20 +58,19 @@ struct process {
 };
 
 private void
-	proc_rec proto((Process, char *, size_t)),
-	proc_close proto ((Process)),
-	SendData proto((jbool)),
-	obituary proto((register Process child, wait_status_t w));
+	proc_rec(Process, char *, size_t),
+	proc_close(Process),
+	SendData(jbool),
+	obituary(Process child, wait_status_t w);
 
 private jbool
-	proc_kill proto((Process, int));
+	proc_kill(Process, int);
 
 #define child_dead(p)	((p)->p_child_state >= C_EXITED)
 #define io_eofed(p)	((p)->p_io_state == IO_EOFED)
 
 private jbool
-dead(p)
-Process	p;
+dead(Process p)
 {
 	return p == NULL || (io_eofed(p) && child_dead(p));
 }
@@ -90,10 +81,9 @@ Process	p;
 private Process	procs = NULL;
 
 private Process
-proc_pid(pid)
-pid_t	pid;
+proc_pid(pid_t pid)
 {
-	register Process	p;
+	Process	p;
 
 	for (p = procs; ; p = p->p_next)
 		if (p == NULL || p->p_portpid == pid)
@@ -101,8 +91,7 @@ pid_t	pid;
 }
 
 private const char *
-proc_bufname(p)
-Process	p;
+proc_bufname(Process p)
 {
 	Buffer	*b = p->p_buffer;
 
@@ -110,7 +99,7 @@ Process	p;
 }
 
 void
-ProcKill()
+ProcKill(void)
 {
 	(void) proc_kill(
 		buf_exists(ask_buf(curbuf, ALLOW_OLD | ALLOW_INDEX))->b_process,
@@ -118,11 +107,9 @@ ProcKill()
 }
 
 private void
-make_argv(argv, ap)
-register char	*argv[];
-va_list	ap;
+make_argv(char *argv[], va_list ap)
 {
-	register int	i = 0;
+	int	i = 0;
 
 	argv[i++] = va_arg(ap, char *);
 	argv[i++] = (char *)jbasename(argv[0]);	/* lose const (but it's safe) */
@@ -142,7 +129,7 @@ private char IEnvUnsetBuf[LBSIZE];
  * Only happens in child.
  */
 private void
-set_process_env()
+set_process_env(void)
 {
 	static const char tcn[] = "TERMCAP";
 	const char *tc = getenv(tcn);
@@ -153,14 +140,14 @@ set_process_env()
 }
 
 void
-IprocEnvExport()
+IprocEnvExport(void)
 {
 	jamstr(IEnvExpBuf, ask(IEnvExpBuf, ProcFmt));
 	jputenv(&iproc_env, IEnvExpBuf);
 }
 
 void
-IprocEnvShow()
+IprocEnvShow(void)
 {
 	const char **p;
 	TOstart("i-shell environment");
@@ -171,7 +158,7 @@ IprocEnvShow()
 }
 
 void
-IprocEnvUnset()
+IprocEnvUnset(void)
 {
 	jamstr(IEnvUnsetBuf, ask(IEnvUnsetBuf, ProcFmt));
 	junsetenv(&iproc_env, IEnvUnsetBuf);
@@ -197,11 +184,9 @@ private int	ProcOutput = -1;
 pid_t	kbd_pid = -1;
 
 void
-read_pipe_proc(pid, nbytes)
-pid_t	pid;
-register int	nbytes;
+read_pipe_proc(pid_t pid, int nbytes)
 {
-	register Process	p = proc_pid(pid);
+	Process	p = proc_pid(pid);
 
 	jdbg("read_pipe_proc pid %D %d\n", (long) pid, nbytes);
 	if (p == NULL) {
@@ -252,20 +237,19 @@ register int	nbytes;
 }
 
 void
-ProcInt()
+ProcInt(void)
 {
 	(void) proc_kill(curbuf->b_process, SIGINT);
 }
 
 void
-ProcQuit()
+ProcQuit(void)
 {
 	(void) proc_kill(curbuf->b_process, SIGQUIT);
 }
 
 private void
-proc_close(p)
-Process	p;
+proc_close(Process p)
 {
 	if (p->p_toproc >= 0) {
 		jdbg("closing proc fd %d pid %D NumProcs %d\n",
@@ -279,14 +263,11 @@ Process	p;
 }
 
 private void
-proc_write(p, buf, nbytes)
-Process	p;
-char	*buf;
-size_t	nbytes;
+proc_write(Process p, char *buf, size_t	nbytes)
 {
 	if (p->p_toproc >= 0) {
 		while (nbytes != 0) {
-			JSSIZE_T	wr = write(p->p_toproc, (UnivConstPtr)buf, nbytes);
+			ssize_t	wr = write(p->p_toproc, buf, nbytes);
 
 			if (wr >= 0) {
 				nbytes -= wr;
@@ -300,17 +281,8 @@ size_t	nbytes;
 }
 
 
-# ifdef STDARGS
 private void
 proc_strt(char *bufname, jbool clobber, char *procname, ...)
-# else
-private /*VARARGS3*/ void
-proc_strt(bufname, clobber, procname, va_alist)
-	char	*bufname;
-	jbool	clobber;
-	char	*procname;
-	va_dcl
-# endif
 {
 	Window	*owind = curwind;
 	int	toproc[2];
@@ -344,7 +316,7 @@ proc_strt(bufname, clobber, procname, va_alist)
 
 	case 0:
 		argv[0] = (char*)procarg0;
-		va_init(ap, procname);
+		va_start(ap, procname);
 		make_argv(&argv[1], ap);
 		va_end(ap);
 		(void) dup2(toproc[0], 0);
@@ -390,7 +362,7 @@ proc_strt(bufname, clobber, procname, va_alist)
 }
 
 void
-closeiprocs()
+closeiprocs(void)
 {
 	Process	p;
 
@@ -402,7 +374,7 @@ closeiprocs()
 }
 
 private void
-kbd_init()
+kbd_init(void)
 {
 	/* Initiate the keyboard process.
 	 * We only get here after a portsrv process has been started
@@ -442,10 +414,11 @@ kbd_init()
  * the keyboard process.  This is so kbd stopping and starting in
  * pairs works - see finish() in jove.c.
  */
-private jbool	kbd_state = NO;
+private jbool
+	kbd_state = NO;
 
 void
-kbd_strt()
+kbd_strt(void)
 {
 	jdbg("kbd_strt state %d pid %D NumProcs %d\n",
 	     kbd_state, (long) kbd_pid, NumProcs);
@@ -459,7 +432,7 @@ kbd_strt()
 }
 
 jbool
-kbd_stop()
+kbd_stop(void)
 {
 	jdbg("kbd_stop state %d pid %D NumProcs %d\n",
 	     kbd_state, (long) kbd_pid, NumProcs);
@@ -472,7 +445,7 @@ kbd_stop()
 }
 
 void
-kbd_kill()
+kbd_kill(void)
 {
 	jdbg("kbd_kill state %d pid %D Numprocs %d\n",
 	     kbd_state, (long) kbd_pid, NumProcs);
@@ -509,7 +482,7 @@ kbd_kill()
 #  else
 #   include <sys/stropts.h>
 #  endif
-  extern char	*ptsname proto((int /*filedes*/));	/* get name of slave */
+  extern char	*ptsname(int /*filedes*/);	/* get name of slave */
 # endif
 
 # ifdef IRIX_PTYS
@@ -518,10 +491,9 @@ kbd_kill()
 # endif
 
 void
-read_pty_proc(fd)
-register int	fd;
+read_pty_proc(int fd)
 {
-	register Process	p;
+	Process	p;
 	int	n;
 	char	ibuf[1024+1];	/* NOTE: room for added NUL */
 
@@ -534,7 +506,7 @@ register int	fd;
 			break;
 	}
 
-	n = read(fd, (UnivPtr) ibuf, sizeof(ibuf) - 1);
+	n = read(fd, ibuf, sizeof ibuf - 1);
 	jdbg("pty read %d returned %d errno %d from %s\n", fd, n, errno, 
 	     p->p_name);
 	if (n <= 0) {
@@ -580,7 +552,7 @@ register int	fd;
 }
 
 void
-ProcCont()
+ProcCont(void)
 {
 	Process	p = curbuf->b_process;
 
@@ -677,8 +649,7 @@ ProcCont()
 #  define kbd_sig_ls(sig, tch, sch)	kbd_sig(sig, tch, sch)
 
 private void
-send_sig(sig)
-int	sig;
+send_sig(int sig)
 {
 	Process	p;
 
@@ -724,8 +695,7 @@ int	sig;
 #  endif
 
 private void
-send_xc(c)
-char	c;
+send_xc(char c)
 {
 	Process	p;
 
@@ -748,14 +718,14 @@ char	c;
 				on = 1;
 
 			jdbg("TIOCREMOTE off pid %d %s\n", p->p_pid, p->p_name);
-			while (ioctl(p->p_fd, TIOCREMOTE, (UnivPtr) &off) < 0)
+			while (ioctl(p->p_fd, TIOCREMOTE, &off) < 0)
 				if (errno != EINTR) {
 					complain("TIOCREMOTE OFF failed: %d %s", errno, strerror(errno));
 					/* NOTREACHED */
 				}
 #  endif /* !NO_TIOCREMOTE */
 			for (;;) {
-				switch (write(p->p_fd, (UnivPtr) &c, sizeof(c))) {
+				switch (write(p->p_fd, &c, sizeof c)) {
 				case -1: /* error: consider ERRNO */
 					if (errno == EINTR)
 						continue;	/* interrupted: try again */
@@ -771,7 +741,7 @@ char	c;
 			}
 #  ifndef NO_TIOCREMOTE
 			jdbg("TIOCREMOTE on pid %d %s\n", p->p_pid, p->p_name);
-			while (ioctl(p->p_fd, TIOCREMOTE, (UnivPtr) &on) < 0) {
+			while (ioctl(p->p_fd, TIOCREMOTE, &on) < 0) {
 				if (errno != EINTR) {
 					complain("TIOCREMOTE ON failed: %d %s", errno, strerror(errno));
 					/* NOTREACHED */
@@ -785,7 +755,7 @@ char	c;
 # endif /* defined(NO_TIOCREMOTE) || defined(NO_TIOCSIGNAL) */
 
 void
-ProcEof()
+ProcEof(void)
 {
 # ifdef NO_TIOCREMOTE
 	/* we have to write a char */
@@ -802,7 +772,7 @@ ProcEof()
 	ToLast();
 	proc_rec(p, mess, sizeof(mess)-1);
 	jdbg("ProcEof pid %d %s\n", p->p_pid, p->p_name);
-	while (write(p->p_fd, (UnivPtr) mess, (size_t)0) < 0) {
+	while (write(p->p_fd, mess, (size_t)0) < 0) {
 		if (errno != EINTR) {
 			complain("[error writing EOF to iproc: %d %s]", errno, strerror(errno));
 			/* NOTREACHED */
@@ -812,19 +782,19 @@ ProcEof()
 }
 
 void
-ProcInt()
+ProcInt(void)
 {
 	kbd_sig(SIGINT, VINTR, t_intrc);
 }
 
 void
-ProcQuit()
+ProcQuit(void)
 {
 	kbd_sig(SIGQUIT, VQUIT, t_quitc);
 }
 
 void
-ProcStop()
+ProcStop(void)
 {
 # if (!defined(TERMIO) && !defined(TERMIOS)) || defined(VSUSP)
 	kbd_sig_ls(SIGTSTP, VSUSP, t_suspc);
@@ -835,7 +805,7 @@ ProcStop()
 }
 
 void
-ProcDStop()
+ProcDStop(void)
 {
 	/* we don't know how to send a dstop via TIOCSIGNAL/TIOCSIG */
 # if (!defined(TERMIO) && !defined(TERMIOS)) || defined(VDSUSP)
@@ -847,8 +817,7 @@ ProcDStop()
 }
 
 private void
-proc_close(p)
-Process p;
+proc_close(Process p)
 {
 	jdbg("proc_close %d %s\n", p->p_pid, p->p_name);
 	if (p->p_fd >= 0) {
@@ -861,10 +830,7 @@ Process p;
 }
 
 private void
-proc_write(p, buf, nbytes)
-Process p;
-char	*buf;
-size_t	nbytes;
+proc_write(Process p, char *buf, size_t nbytes)
 {
 	jdbg("proc_write %d bytes to pid %d %s\n", nbytes, p->p_pid, p->p_name);
 	if (p->p_fd >= 0) {
@@ -872,23 +838,14 @@ size_t	nbytes;
 
 		FD_ZERO(&mask);
 		FD_SET(p->p_fd, &mask);
-		while (write(p->p_fd, (UnivPtr) buf, nbytes) <  0)
+		while (write(p->p_fd, buf, nbytes) <  0)
 			(void) select(p->p_fd + 1, (fd_set *)NULL, &mask, (fd_set *)NULL,
 				(struct timeval *)NULL);
 	}
 }
 
-# ifdef STDARGS
 private void
 proc_strt(char *bufname, jbool clobber, const char *procname, ...)
-# else
-private /*VARARGS2*/ void
-proc_strt(bufname, clobber, procname, va_alist)
-	char	*bufname;
-	jbool	clobber;
-	const char	*procname;
-	va_dcl
-# endif
 {
 	va_list	ap;
 	char	*argv[32];
@@ -931,7 +888,7 @@ proc_strt(bufname, clobber, procname, va_alist)
 	untieDeadProcess(buf_exists(bufname));
 	isprocbuf(bufname);	/* make sure BUFNAME is either nonexistant
 				   or is of type B_PROCESS */
-	va_init(ap, procname);
+	va_start(ap, procname);
 	make_argv(argv, ap);
 	va_end(ap);
 	if (access(argv[0], J_X_OK) != 0) {
@@ -947,7 +904,7 @@ proc_strt(bufname, clobber, procname, va_alist)
 	 * prepared to catch a SIGCHLD for an unknown child and ignore it ...
 	 */
 	{
-		register char	*s = _getpty(&ptyfd, O_RDWR | O_NDELAY, 0600, 0);
+		char	*s = _getpty(&ptyfd, O_RDWR | O_NDELAY, 0600, 0);
 
 		if (s == NULL) {
 			message("[No pty from getpty!]");
@@ -991,7 +948,7 @@ proc_strt(bufname, clobber, procname, va_alist)
 	jdbg("SVR4_PTYS TIOCGPTPEER ptyfd %d slv %d\n", ptyfd, slvptyfd);
 #endif
 	{
-		register char	*s = ptsname(ptyfd);
+		char	*s = ptsname(ptyfd);
 
 		if (s == NULL) {
 			message("[ptsname failed]");
@@ -1002,7 +959,7 @@ proc_strt(bufname, clobber, procname, va_alist)
 	}
 #  ifdef TIOCFLUSH
 	jdbg("TIOCFLUSH ptyfd %d\n", ptyfd);
-	(void) ioctl(ptyfd, TIOCFLUSH, (UnivPtr) NULL);	/* ??? why? */
+	(void) ioctl(ptyfd, TIOCFLUSH, NULL);	/* ??? why? */
 #  endif
 # endif /* SVR4_PTYS */
 # ifdef BSD_PTYS
@@ -1015,10 +972,10 @@ proc_strt(bufname, clobber, procname, va_alist)
 	jdbg("openpty ptyfd %d slv %d %s\n", ptyfd, slvptyfd, ttybuf);
 #  else /* !USE_OPENPTY */
 	{
-		register const char	*s;
+		const char	*s;
 
 		for (s = "pqrs"; ptyfd<0; s++) {
-			register const char	*t;
+			const char	*t;
 
 			if (*s == '\0') {
 				message("[Out of ptys in /dev/pty*!]");
@@ -1058,21 +1015,21 @@ proc_strt(bufname, clobber, procname, va_alist)
 # if !defined(TERMIO) && !defined(TERMIOS)
 #  ifdef TIOCGETD
 	jdbg("TIOCGETD %s\n", ttybuf);
-	(void) ioctl(0, TIOCGETD, (UnivPtr) &ldisc);
+	(void) ioctl(0, TIOCGETD, &ldisc);
 #  endif
 #  ifdef TIOCLGET
 	jdbg("TIOCLGET %s\n", ttybuf);
-	(void) ioctl(0, TIOCLGET, (UnivPtr) &lmode);
+	(void) ioctl(0, TIOCLGET, &lmode);
 #  endif
 # endif /* !defined(TERMIO) && !defined(TERMIOS) */
 
 # ifdef TIOCGWINSZ
 	jdbg("TIOCGWINSZ %s\n", ttybuf);
-	(void) ioctl(0, TIOCGWINSZ, (UnivPtr) &win);
+	(void) ioctl(0, TIOCGWINSZ, &win);
 # else
 #  ifdef BTL_BLIT
 	jdbg("JWINSIZE %s\n", ttybuf);
-	(void) ioctl(0, JWINSIZE, (UnivPtr) &jwin);
+	(void) ioctl(0, JWINSIZE, &jwin);
 #  endif /* BTL_BLIT */
 # endif
 
@@ -1143,7 +1100,7 @@ proc_strt(bufname, clobber, procname, va_alist)
 
 			jdbg("child TIOCNOTTY %d %s\n", i, ttybuf);
 			if (i >= 0) {
-				(void) ioctl(i, TIOCNOTTY, (UnivPtr)NULL);
+				(void) ioctl(i, TIOCNOTTY, NULL);
 				(void) close(i);
 			}
 		}
@@ -1166,9 +1123,9 @@ proc_strt(bufname, clobber, procname, va_alist)
 # ifdef SVR4_PTYS
 #  ifdef I_PUSH		/* LINUX/glibc no longer even pretends to support this (2008) */
 		jdbg("child SVR4_PTYS I_PUSH ptem ldterm ttcompat %s\n", ttybuf);
-		(void) ioctl(0, I_PUSH, (UnivPtr) "ptem");
-		(void) ioctl(0, I_PUSH, (UnivPtr) "ldterm");
-		(void) ioctl(0, I_PUSH, (UnivPtr) "ttcompat");
+		(void) ioctl(0, I_PUSH, "ptem");
+		(void) ioctl(0, I_PUSH, "ldterm");
+		(void) ioctl(0, I_PUSH, "ttcompat");
 #  endif
 # endif
 
@@ -1200,7 +1157,7 @@ proc_strt(bufname, clobber, procname, va_alist)
 			int	on = 1;
 
 			jdbg("child TIOCREMOTE on %d %s\n", ptyfd, ttybuf);
-			if (ioctl(ptyfd, TIOCREMOTE, (UnivPtr) &on) < 0)
+			if (ioctl(ptyfd, TIOCREMOTE, &on) < 0)
 				_exit(errno+1);	/* no good way to signal user */
 		}
 # endif
@@ -1210,30 +1167,30 @@ proc_strt(bufname, clobber, procname, va_alist)
 # if !defined(TERMIO) && !defined(TERMIOS)
 #  ifdef TIOCSETD
 		jdbg("child TIOCSETD %s\n", ttybuf);
-		(void) ioctl(0, TIOCSETD, (UnivPtr) &ldisc);
+		(void) ioctl(0, TIOCSETD, &ldisc);
 #  endif
 #  ifdef TIOCLSET
 		jdbg("child TIOCLSET %s\n", ttybuf);
-		(void) ioctl(0, TIOCLSET, (UnivPtr) &lmode);
+		(void) ioctl(0, TIOCLSET, &lmode);
 #  endif
 #  ifdef TIOCSETC
-		(void) ioctl(0, TIOCSETC, (UnivPtr) &tc[NO]);
+		(void) ioctl(0, TIOCSETC, &tc[NO]);
 #  endif
 #  ifdef USE_TIOCSLTC
 		jdbg("child TIOCSLTC %s\n", ttybuf);
-		(void) ioctl(0, TIOCSLTC, (UnivPtr) &ls[NO]);
+		(void) ioctl(0, TIOCSLTC, &ls[NO]);
 #  endif
 # endif /* !defined(TERMIO) && !defined(TERMIOS) */
 
 # ifdef TIOCGWINSZ
 		jdbg("child TIOCSWINSZ %s\n", ttybuf);
 		win.ws_row = curwind->w_height;
-		(void) ioctl(0, TIOCSWINSZ, (UnivPtr) &win);
+		(void) ioctl(0, TIOCSWINSZ, &win);
 # else /* !TIOCGWINSZ */
 #  ifdef BTL_BLIT
 		jdbg("child JSWINSIZE %s\n", ttybuf);
 		jwin.bytesy = curwind->w_height;
-		(void) ioctl(0, JSWINSIZE, (UnivPtr) &jwin);
+		(void) ioctl(0, JSWINSIZE, &jwin);
 #  endif
 # endif /* !TIOCGWINSZ */
 
@@ -1249,7 +1206,7 @@ proc_strt(bufname, clobber, procname, va_alist)
 		sgt.c_oflag &= ~(ONLCR | TABDLY);
 #  ifdef TERMIO
 		jdbg("child TCSETAW %s\n", ttybuf);
-		do {} while (ioctl(0, TCSETAW, (UnivPtr) &sgt) < 0 && errno == EINTR);
+		do {} while (ioctl(0, TCSETAW, &sgt) < 0 && errno == EINTR);
 #  endif
 #  ifdef TERMIOS
 		jdbg("child TCSADRAIN %s\n", ttybuf);
@@ -1272,7 +1229,7 @@ proc_strt(bufname, clobber, procname, va_alist)
 			tcsetpgrp(0, getpid());
 # else /* !POSIX_PROCS */
 			jdbg("child TIOCSPGRP %d %s\n", i, ttybuf);
-			(void) ioctl(0, TIOCSPGRP, (UnivPtr) &i);
+			(void) ioctl(0, TIOCSPGRP, &i);
 # endif /* POSIX_PROCS */
 		}
 
@@ -1350,22 +1307,23 @@ fail:
  * defer the re-establishment until reap_procs is done.
  */
 
-volatile jbool	procs_to_reap = NO;
+volatile jbool
+	procs_to_reap = NO;
 
 /*ARGSUSED*/
 SIGRESTYPE
-sigchld_handler(junk)
-int	UNUSED(junk);	/* needed for signal handler; not used */
+sigchld_handler(int UNUSED(junk))
 {
 	procs_to_reap = YES;
 	return SIGRESVALUE;
 }
 
 void
-reap_procs()
+reap_procs(void)
 {
-	wait_status_t	w;
-	register pid_t	pid;
+	wait_status_t
+		w;
+	pid_t	pid;
 
 	for (;;) {
 		pid = wait_opt(&w, (WNOHANG | WUNTRACED));
@@ -1384,7 +1342,7 @@ reap_procs()
 }
 
 void
-closeiprocs()
+closeiprocs(void)
 {
 	Process	p;
 
@@ -1399,8 +1357,7 @@ closeiprocs()
 char	proc_prompt[128] = "^[^%$#]*[%$#] ";	/* VAR: process prompt */
 
 const char *
-pstate(p)
-Process	p;
+pstate(Process p)
 {
 	static const char	*const ios_name[] = { "New", "Running", "EOFed" };
 
@@ -1426,9 +1383,9 @@ Process	p;
 }
 
 jbool
-KillProcs()
+KillProcs(void)
 {
-	register Process	p;
+	Process	p;
 	jbool	asked = NO;
 
 	for (p = procs; p != NULL; p = p->p_next) {
@@ -1450,8 +1407,7 @@ KillProcs()
 char	dbx_parse_fmt[128] = "line \\([0-9]*\\) in \\{file\\|\\} *\"\\([^\"]*\\)\"";
 
 private void
-watch_input(m)
-Mark	*m;
+watch_input(Mark *m)
 {
 	Bufpos	save;
 	char	fname[FILESIZE],
@@ -1477,14 +1433,11 @@ Mark	*m;
  * the buffer associated with p.
  */
 private void
-proc_rec(p, buf, len)
-register Process	p;
-char	*buf;
-size_t	len;
+proc_rec(Process p, char *buf, size_t len)
 {
 	Buffer	*saveb = curbuf;
-	register Window	*w;
-	register Mark	*savepoint;
+	Window	*w;
+	Mark	*savepoint;
 	jbool	sameplace,
 		do_disp;
 
@@ -1533,9 +1486,7 @@ size_t	len;
 }
 
 private jbool
-proc_kill(p, sig)
-register Process	p;
-int	sig;
+proc_kill(Process p, int sig)
 {
 	if (p == NULL) {
 		complain("[no process]");
@@ -1554,11 +1505,9 @@ int	sig;
  * etc.).
  */
 private void
-free_proc(child)
-Process	child;
+free_proc(Process child)
 {
-	register Process
-		p,
+	Process	p,
 		prev = NULL;
 
 	if (!dead(child))
@@ -1575,16 +1524,15 @@ Process	child;
 		prev->p_next = child->p_next;
 	proc_close(child);		/* if not already closed */
 
-	free((UnivPtr) child->p_name);
-	free((UnivPtr) child);
+	free(child->p_name);
+	free(child);
 }
 
 void
-untieDeadProcess(b)
-register Buffer	*b;
+untieDeadProcess(Buffer *b)
 {
 	if (b != NULL) {
-		register Process	p = b->b_process;
+		Process	p = b->b_process;
 
 		if (p != NULL) {
 			Buffer	*old = curbuf;
@@ -1604,12 +1552,12 @@ register Buffer	*b;
 }
 
 void
-ProcList()
+ProcList(void)
 {
-	register Process
-		p,
+	Process	p,
 		next;
-	const char	*fmt = "%-15s  %-15s  %-8s %s";
+	const char
+		fmt[] = "%-15s  %-15s  %-8s %s";
 	char
 		pidstr[16];
 
@@ -1634,10 +1582,9 @@ ProcList()
 }
 
 private void
-do_rtp(mp)
-register Mark	*mp;
+do_rtp(Mark *mp)
 {
-	register Process	p = curbuf->b_process;
+	Process	p = curbuf->b_process;
 	LinePtr	line1 = curline,
 		line2 = mp->m_line;
 	int	char1 = curchar,
@@ -1665,7 +1612,7 @@ register Mark	*mp;
 }
 
 void
-ProcNewline()
+ProcNewline(void)
 {
 #ifdef ABBREV
 	MaybeAbbrevExpand();
@@ -1674,7 +1621,7 @@ ProcNewline()
 }
 
 void
-ProcSendData()
+ProcSendData(void)
 {
 #ifdef ABBREV
 	MaybeAbbrevExpand();
@@ -1683,12 +1630,11 @@ ProcSendData()
 }
 
 private void
-SendData(newlinep)
-jbool	newlinep;
+SendData(jbool newlinep)
 {
-	register Process	p = curbuf->b_process;
-	register char	*lp,
-			*gp;	/* JF fix for better prompt handling */
+	Process	p = curbuf->b_process;
+	char	*lp,
+		*gp;	/* JF fix for better prompt handling */
 
 	if (dead(p))
 		return;
@@ -1763,10 +1709,10 @@ jbool	newlinep;
 }
 
 void
-ShellProc()
+ShellProc(void)
 {
 	char	shbuf[20];
-	register Buffer	*b;
+	Buffer	*b;
 
 	swritef(shbuf, sizeof(shbuf), "[shell-%d]", arg_value());
 	b = buf_exists(shbuf);
@@ -1781,7 +1727,7 @@ ShellProc()
 }
 
 void
-Iprocess()
+Iprocess(void)
 {
 	char	scratch[64],
 		*bnm;
@@ -1802,17 +1748,10 @@ Iprocess()
 pid_t	DeadPid;	/* info about ChildPid, if reaped by kill_off */
 wait_status_t	DeadStatus;
 
-#ifdef USE_PROTOTYPES
 void
 kill_off(pid_t pid, wait_status_t w)
-#else
-void
-kill_off(pid, w)
-register pid_t	pid;
-wait_status_t	w;
-#endif
 {
-	register Process	child;
+	Process	child;
 
 	if (pid == ChildPid) {
 		/* we are reaping the non-iproc process: record info */
@@ -1867,15 +1806,8 @@ wait_status_t	w;
 	}
 }
 
-#ifdef USE_PROTOTYPES
 private void
-obituary(register Process child, wait_status_t w)
-#else
-private void
-obituary(child, w)
-register Process	child;
-wait_status_t	w;
-#endif
+obituary(Process child, wait_status_t w)
 {
 	UpdModLine = YES;		/* we're changing state ... */
 	if (WIFEXITED(w)) {

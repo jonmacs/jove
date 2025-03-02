@@ -7,7 +7,7 @@
 
 #ifdef HIGHLIGHTING
 
-typedef void(*LEproc) ptrproto((jbool));
+typedef void(*LEproc)(jbool);
 #define LENULLPROC (LEproc)0
 
 typedef struct LErange {
@@ -19,7 +19,7 @@ typedef struct LErange {
 } *LineEffects;
 
 #define	NOEFFECT	((LineEffects) NULL)
-extern void US_effect proto((jbool));
+extern void US_effect(jbool);
 
 #else /* !HIGHLIGHTING */
 
@@ -48,25 +48,25 @@ extern int
 	CapCol;
 
 extern jbool
-	BufSwrite proto((int linenum)),
-	swrite proto((char *line, LineEffects hl, jbool abortable));
+	BufSwrite(int linenum),
+	swrite(char *line, LineEffects hl, jbool abortable);
 
 extern LineEffects
-	WindowRange proto((Window *w));
+	WindowRange(Window *w);
 
 extern void
-	Placur proto((int line,int col)),
-	cl_eol proto((void)),
-	cl_scr proto((jbool doit)),
-	clrline proto((char *cp1,char *cp2)),
-	i_set proto((int nline,int ncol)),
-	make_scr proto((void)),
-	v_ins_line proto ((int num, int top, int bottom)),
-	v_del_line proto ((int num, int top, int bottom)),
-	SO_effect proto((jbool)),
-	SO_off proto((void));
+	Placur(int line,int col),
+	cl_eol(void),
+	cl_scr(jbool doit),
+	clrline(char *cp1, char *cp2),
+	i_set(int nline, int ncol),
+	make_scr(void),
+	v_ins_line(int num, int top, int bottom),
+	v_del_line(int num, int top, int bottom),
+	SO_effect(jbool),
+	SO_off(void);
 
-#define	TABDIST(col)	(tabstop - (col)%tabstop)	/* cols to next tabstop */
+#define	TABDIST(col)	 - (col)%tabstop	/* cols to next tabstop */
 
 /* Variables: */
 
