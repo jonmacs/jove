@@ -66,7 +66,7 @@ extern void
 	SO_effect(jbool),
 	SO_off(void);
 
-#define	TABDIST(col)	 - (col)%tabstop	/* cols to next tabstop */
+#define	TABDIST(col)	(tabstop - (col)%tabstop)	/* cols to next tabstop */
 
 /* Variables: */
 
