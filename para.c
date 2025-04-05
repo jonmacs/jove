@@ -341,8 +341,7 @@ FillParagraph(void)
 	find_para(BACKWARD);
 	nl = new_kill();
 	lenparatail = length(para_tail);
-	(void) DoYank(para_head, 0, para_tail, lenparatail,
-		      nl, 0, (Buffer *)NULL);
+	(void) DoYank(para_head, 0, para_tail, lenparatail, nl, 0, NULL);
 	DoJustify(para_head, 0, para_tail, lenparatail, NO,
 		  use_lmargin ? LMargin : body_indent);
 }
@@ -486,8 +485,9 @@ DoJustify(LinePtr l1, int c1, LinePtr l2, int c2, jbool scrunch, int indent)
 		while (!eolp() && !jiswhite(linebuf[curchar]))
 			curchar += 1;
 
-		if (word_start != curchar && okay_char != start_char
-		&& calc_pos(linebuf, curchar) > RMargin) {
+		if (word_start != curchar && okay_char != start_char &&
+		    calc_pos(linebuf, curchar) > RMargin)
+		{
 			/* This non-empty word won't fit in output line
 			 * (the first word on a line is always considered to fit).
 			 */

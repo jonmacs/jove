@@ -65,7 +65,7 @@ extern void
 	DOTsave(Bufpos *buf),
 	DotTo(LinePtr line,int col),
 	PushPntp(LinePtr line),
-	SetDot(Bufpos *bp),
+	SetDot(const Bufpos *bp),
 	ToFirst(void),
 	ToLast(void),
 	ins_c(DAPchar c,char *buf,int atchar,int num,int max),

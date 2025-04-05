@@ -448,7 +448,7 @@ OpenLine(void)
 /* Take the region FLINE/FCHAR to TLINE/TCHAR and insert it at
  * ATLINE/ATCHAR in WHATBUF.
  */
-Bufpos *
+const Bufpos *
 DoYank(LinePtr fline, int fchar,
        LinePtr tline, int tchar,
        LinePtr atline, int atchar,
@@ -503,10 +503,9 @@ DoYank(LinePtr fline, int fchar,
 void
 YankPop(void)
 {
-	Mark	*mp = CurMark();
-	LinePtr	line,
-		last;
-	Bufpos	*dot;
+	Mark		*mp = CurMark();
+	LinePtr		line, last;
+	const Bufpos	*dot;
 
 	switch (last_cmd) {
 	case YANKCMD:
@@ -815,7 +814,7 @@ init_specials(void)
 	const char	*const *wordp = words;
 
 	while (*wordp != NULL)
-		list_push(&specials, strdup(*wordp++));
+		list_push(&specials, copystr(*wordp++));
 }
 
 void
