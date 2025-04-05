@@ -142,7 +142,7 @@ SYSDEFS = -D`uname` -DJTC $(CPPFLAGS)
 
 # OPTFLAGS: compiler flags that are passed to both the compiling & linking steps
 # e.g. -g for debugging, -O for optimization.
-OPTFLAGS = -g -Wall
+OPTFLAGS = -O
 
 # CFLAGS (i.e compile flags for the target compiler) are OPTFLAGS and SYSDEFS,
 # DO NOT OVERRIDE
