@@ -111,7 +111,7 @@ mak_buf(void)
 
 	newb = buf_alloc();
 	newb->b_fname = NULL;
-	newb->b_name = strdup(NoName);
+	newb->b_name = copystr(NoName);
 	newb->b_marks = NULL;
 	newb->b_themark = 0;		/* Index into markring */
 	/* No marks yet */

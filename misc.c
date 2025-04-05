@@ -215,9 +215,8 @@ KillExpr(void)
 void
 Yank(void)
 {
-	LinePtr	line,
-		lp;
-	Bufpos	*dot;
+	LinePtr		line, lp;
+	const Bufpos	*dot;
 
 	if (killbuf[killptr] == NULL) {
 		complain("[Nothing to yank!]");

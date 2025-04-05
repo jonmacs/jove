@@ -7,7 +7,7 @@
 
 /* ??? Why, for example, are GCchunks, lfreelist, and lfreereg here? -- DHR */
 
-extern Bufpos *DoYank(
+extern const Bufpos *DoYank(
 	LinePtr fline, int fchar,
 	LinePtr tline, int tchar,
 	LinePtr atline, int atchar,

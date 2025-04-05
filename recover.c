@@ -173,7 +173,7 @@ null_ncpy(char *to, const char *from, size_t n)
 	to[n] = '\0';
 }
 
-/* strdup s, and if t is not-NULL, concatenate space and t */
+/* duplicate s, and if t is not-NULL, concatenate space and t */
 char *
 copystrs(const char *s, const char *t)
 {
