@@ -398,7 +398,6 @@ len_error(int flag)
 {
 	static const char	mesg[] = "[line too long]";
 
-	abort();
 	if (flag == JMP_COMPLAIN) {
 		complain(mesg);
 		/* NOTREACHED */
