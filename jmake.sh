@@ -1,4 +1,4 @@
-#!/bin/sh -eux
+#!/bin/sh -ex
 # NOTE: Jove does not use autotools/configure.  This is 
 # a minimal convenience wrapper that crudely auto-detects the OS on 
 # a few of the most common modern (2020+) open-source
