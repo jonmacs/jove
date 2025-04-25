@@ -110,7 +110,7 @@ extern int	(chdir)(const char */*path*/);
  * Our old mac.c code provides a getcwd() replacement.
  */
 # ifdef USE_GETCWD
-extern char	(*getcwd)(char *, size_t);
+extern char	*(getcwd)(char *, size_t);
 # endif
 
 # ifdef HAS_SYMLINKS
@@ -133,7 +133,7 @@ extern int	(open)(const char */*path*/, int /*flags*/, ...);
 extern jmode_t (umask)(jmode_t);
 # ifdef NO_MKSTEMP
 #  ifndef NO_MKTEMP
-extern char (*mktemp)(char */*template*/);
+extern char *(mktemp)(char */*template*/);
 #  endif
 # else
 extern int (mkstemp)(char */*template*/);
@@ -221,11 +221,11 @@ extern char *	(jtcarg2)(const char *, int /*destcol*/, int /*destline*/);
 #  define	targ2(s, c, l)	jtcarg2(s, c, l)
 # else /* !JTC */
 #  ifdef TERMINFO
-extern char	(*tparm)(const char *, ...);
+extern char	*(tparm)(const char *, ...);
 #   define	targ1(s, i)	tparm(s, i)
 #   define	targ2(s, c, l)	tparm(s, l, c)
 #  else /* !TERMINFO */
-extern char	(*tgoto)(const char *, int /*destcol*/, int /*destline*/);
+extern char	*(tgoto)(const char *, int /*destcol*/, int /*destline*/);
 #   define	targ1(s, i)	tgoto(s, 0, i)
 #   define	targ2(s, c, l)	tgoto(s, c, l)
 #  endif /* TERMINFO */
