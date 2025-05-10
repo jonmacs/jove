@@ -17,9 +17,7 @@
 #include "fmt.h"
 #include "insert.h"
 #include "move.h"
-#include "sysprocs.h"
 #include "proc.h"
-/* #include "util.h" */
 #include "vars.h"
 #include "macros.h"
 

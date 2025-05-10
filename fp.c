@@ -236,7 +236,7 @@ flushout(File *fp)
 		char	*p = fp->f_base;
 
 		for (;;) {
-			ssize_t	n = fp->f_ptr - p,
+			JSSIZE_T n = fp->f_ptr - p,
 				wr;
 
 			if (n <= 0)

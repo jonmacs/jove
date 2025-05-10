@@ -17,6 +17,7 @@
 #include "disp.h"	/* for redisplay() */
 
 #undef CR /* sigh, used as field name in some windows header */
+#undef Fill /* sigh, used as a field name in some windows header! */
 #include <windows.h>
 
 INPUT_RECORD in_event[NCHARS], *eventp = in_event;	/* Input events e.g. keyboard, mouse-click */

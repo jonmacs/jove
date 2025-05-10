@@ -22,7 +22,6 @@
 #include "move.h"
 #include "para.h"
 #include "screen.h"	/* for tabstop */
-#include "sysprocs.h"
 #include "proc.h"
 #include "wind.h"
 

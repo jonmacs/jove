@@ -344,7 +344,7 @@ ttysetattr(jbool n)	/* `n' is also used as subscript! */
 		static struct stat	tt_stat;
 # if !defined(USE_FSTAT) || !defined(USE_FCHMOD)
 		static char	*tt_name = NULL;	/* name of the control tty */
-		extern char	*ttyname(int);		/* for systems w/o fstat */
+		extern char	*(ttyname)(int);		/* for systems w/o fstat */
 # endif
 
 		if (n && DisBiff) {

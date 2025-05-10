@@ -17,7 +17,6 @@
 #include "jctype.h"
 #include "disp.h"
 #include "fp.h"
-#include "sysprocs.h"
 #include "iproc.h"
 #include "ask.h"
 #include "extend.h"
@@ -267,7 +266,7 @@ proc_write(Process p, char *buf, size_t	nbytes)
 {
 	if (p->p_toproc >= 0) {
 		while (nbytes != 0) {
-			ssize_t	wr = write(p->p_toproc, buf, nbytes);
+			JSSIZE_T wr = write(p->p_toproc, buf, nbytes);
 
 			if (wr >= 0) {
 				nbytes -= wr;
@@ -486,7 +485,6 @@ kbd_kill(void)
 # endif
 
 # ifdef IRIX_PTYS
-#  include <sys/types.h>
 #  include <sys/stat.h>
 # endif
 

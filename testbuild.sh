@@ -125,6 +125,7 @@ GNU|Linux)  t=-lncurses
             lib=GLIBC;
         fi
         jv=_NPROCESSORS_ONLN
+	x="$x CC=gcc"
         ;;
 esac
 if test -x /usr/bin/getconf; then j=-j$(getconf $jv); else j=; fi
@@ -135,7 +136,7 @@ if test -x /usr/bin/getconf; then j=-j$(getconf $jv); else j=; fi
 make clean &&
 JMAKE_OPTS=$j ./jmake.sh $dd/t10-$TB_OS install &&
 make clean &&
-make $j OPTFLAGS="$o" SYSDEFS="-DPIPEPROCS $d" TERMCAPLIB=$t EXTRALIBS= $x $dd/t20-pipeprocs install &&
+make $j OPTFLAGS="$o" PORTSRVINST=1 SYSDEFS="-DPIPEPROCS $d" TERMCAPLIB=$t EXTRALIBS= $x $dd/t20-pipeprocs install &&
 make clean &&
 make $j OPTFLAGS="$o" SYSDEFS="-DBSDPOSIX $d" LDLIBS=$t $x $dd/t30-bsdposix install &&
 make clean &&

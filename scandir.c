@@ -213,7 +213,8 @@ jscandir(const char *dir, char ***nmptr, jbool (*qualify)(char *),
 #endif /* MSDOS */
 
 #ifdef WIN32
-
+# undef CR /* sigh, used as a field name in some windows header! */
+# undef Fill /* sigh, used as a field name in some windows header! */
 # include <windows.h>
 
 /* Scandir returns the number of entries or -1 if the directory cannot

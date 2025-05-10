@@ -12,15 +12,12 @@
  * provides, but those may not be appropriate for the host,
  * which, might be a very different compiler.
  */
- 
-#define USE_STDIO_H 1
-#define NO_EXTERNS 1
+
+#define NO_EXTERNS
 #include "jove.h"
 #include "chars.h"
 #include "commands.h"
 #include "vars.h"
-
-extern void	exit(int);
 
 #define LINESIZE	100	/* hope this is big enough */
 #define STACKLIMIT	10	/* max conditional depth */

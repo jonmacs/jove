@@ -11,7 +11,6 @@
 #include "fp.h"
 #include "re.h"
 #include "disp.h"
-#include "sysprocs.h"
 #include "ask.h"
 #include "delete.h"
 #include "extend.h"

@@ -19,7 +19,6 @@
 
 #include <signal.h>
 #include <sys/ioctl.h>
-#include "sysprocs.h"
 #include "iproc.h"
 extern int pause(void);
 

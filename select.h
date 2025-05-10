@@ -24,17 +24,5 @@
 
 #endif /* FD_SET */
 
-#ifndef FULL_UNISTD
-
-struct timeval;	/* forward declaration preventing prototype scoping */
-
-extern int	(select)(int /*width*/,
-	fd_set * /*readfds*/, fd_set * /*writefds*/, fd_set * /*exceptfds*/,
-	struct timeval * /*timeout*/);
-
-#endif
-
-#ifdef USE_SELECT
 extern fd_set	global_fd;
 extern int	global_maxfd;
-#endif
