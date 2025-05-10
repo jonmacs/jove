@@ -53,8 +53,6 @@
 # define O_CLOEXEC	0
 #endif
 
-extern void	_exit(int);	/* exit(), without flush, etc. */
-
 #if defined(IBMPCDOS) || defined(WIN32)
   /*
    * At least as of 2007, perhaps earlier, the Microsoft runtime has
