@@ -245,7 +245,7 @@ HEADERS = abbrev.h argcount.h ask.h buf.h c.h case.h chars.h commands.h \
 	keymaps.h list.h mac.h macros.h marks.h \
 	misc.h mouse.h move.h para.h proc.h \
 	re.h reapp.h rec.h recover.h scandir.h screen.h \
-	select.h sysdep.h sysprocs.h temp.h term.h ttystate.h \
+	select.h sysdep.h temp.h term.h ttystate.h \
 	tune.h util.h vars.h version.h wind.h
 
 DOCTERMS =	doc/jove.rc.sun doc/keychart.sun \
@@ -681,23 +681,23 @@ depend:
 # DO NOT DELETE THIS LINE -- "make depend" uses it
 TUNE_H = tune.h sysdep.h
 JOVE_H = jove.h $(TUNE_H) buf.h io.h dataobj.h keymaps.h argcount.h util.h externs.h
-commands.o: $(JOVE_H) jctype.h extend.h macros.h mouse.h abbrev.h c.h case.h commands.h delete.h disp.h insert.h sysprocs.h iproc.h marks.h misc.h move.h para.h proc.h reapp.h wind.h commands.tab
+commands.o: $(JOVE_H) jctype.h extend.h macros.h mouse.h abbrev.h c.h case.h commands.h delete.h disp.h insert.h iproc.h marks.h misc.h move.h para.h proc.h reapp.h wind.h commands.tab
 abbrev.o: $(JOVE_H) fp.h jctype.h abbrev.h ask.h commands.h delete.h insert.h disp.h fmt.h move.h wind.h
 argcount.o: $(JOVE_H) jctype.h
 ask.o: $(JOVE_H) jctype.h chars.h disp.h fp.h scandir.h screen.h ask.h delete.h insert.h extend.h fmt.h marks.h move.h wind.h mac.h
-buf.o: $(JOVE_H) jctype.h disp.h ask.h extend.h fmt.h insert.h macros.h marks.h move.h sysprocs.h proc.h wind.h fp.h iproc.h mac.h
+buf.o: $(JOVE_H) jctype.h disp.h ask.h extend.h fmt.h insert.h macros.h marks.h move.h proc.h wind.h fp.h iproc.h mac.h
 c.o: $(JOVE_H) re.h c.h jctype.h disp.h delete.h insert.h fmt.h marks.h misc.h move.h para.h
 case.o: $(JOVE_H) disp.h case.h jctype.h marks.h move.h
 jctype.o: $(JOVE_H) jctype.h
 delete.o: $(JOVE_H) jctype.h disp.h delete.h insert.h marks.h move.h
-disp.o: $(JOVE_H) jctype.h chars.h fp.h disp.h ask.h extend.h fmt.h insert.h sysprocs.h iproc.h move.h macros.h screen.h term.h wind.h mac.h
-extend.o: $(JOVE_H) fp.h jctype.h chars.h commands.h disp.h re.h ask.h extend.h fmt.h insert.h move.h sysprocs.h proc.h vars.h mac.h
+disp.o: $(JOVE_H) jctype.h chars.h fp.h disp.h ask.h extend.h fmt.h insert.h iproc.h move.h macros.h screen.h term.h wind.h mac.h
+extend.o: $(JOVE_H) fp.h jctype.h chars.h commands.h disp.h re.h ask.h extend.h fmt.h insert.h move.h proc.h vars.h mac.h
 fp.o: $(JOVE_H) fp.h jctype.h disp.h fmt.h mac.h
 fmt.o: $(JOVE_H) chars.h fp.h jctype.h disp.h extend.h fmt.h mac.h
-insert.o: $(JOVE_H) jctype.h list.h chars.h disp.h abbrev.h ask.h c.h delete.h insert.h fmt.h macros.h marks.h misc.h move.h para.h screen.h sysprocs.h proc.h wind.h re.h
-io.o: $(JOVE_H) list.h fp.h jctype.h disp.h ask.h fmt.h insert.h marks.h sysprocs.h proc.h wind.h rec.h mac.h re.h temp.h
-iproc.o: $(JOVE_H) re.h jctype.h disp.h fp.h sysprocs.h iproc.h ask.h extend.h fmt.h insert.h marks.h move.h proc.h wind.h ttystate.h select.h
-jove.o: $(JOVE_H) fp.h jctype.h chars.h disp.h re.h reapp.h sysprocs.h rec.h ask.h extend.h fmt.h macros.h marks.h mouse.h paths.h proc.h screen.h term.h version.h wind.h iproc.h select.h mac.h
+insert.o: $(JOVE_H) jctype.h list.h chars.h disp.h abbrev.h ask.h c.h delete.h insert.h fmt.h macros.h marks.h misc.h move.h para.h screen.h proc.h wind.h re.h
+io.o: $(JOVE_H) list.h fp.h jctype.h disp.h ask.h fmt.h insert.h marks.h proc.h wind.h rec.h mac.h re.h temp.h
+iproc.o: $(JOVE_H) re.h jctype.h disp.h fp.h iproc.h ask.h extend.h fmt.h insert.h marks.h move.h proc.h wind.h ttystate.h select.h
+jove.o: $(JOVE_H) fp.h jctype.h chars.h disp.h re.h reapp.h rec.h ask.h extend.h fmt.h macros.h marks.h mouse.h paths.h proc.h screen.h term.h version.h wind.h iproc.h select.h mac.h
 jtc.o: $(JOVE_H) jctype.h fmt.h fp.h select.h
 list.o: $(JOVE_H) list.h
 macros.o: $(JOVE_H) jctype.h fp.h chars.h disp.h ask.h commands.h macros.h extend.h fmt.h
@@ -705,26 +705,26 @@ marks.o: $(JOVE_H) fmt.h marks.h disp.h
 misc.o: $(JOVE_H) jctype.h disp.h ask.h c.h delete.h insert.h extend.h fmt.h marks.h misc.h move.h para.h
 move.o: $(JOVE_H) re.h chars.h jctype.h disp.h move.h screen.h
 para.o: $(JOVE_H) jctype.h disp.h delete.h insert.h fmt.h marks.h misc.h move.h para.h re.h
-proc.o: $(JOVE_H) jctype.h fp.h re.h disp.h sysprocs.h ask.h delete.h extend.h fmt.h insert.h iproc.h marks.h misc.h move.h proc.h wind.h
+proc.o: $(JOVE_H) jctype.h fp.h re.h disp.h ask.h delete.h extend.h fmt.h insert.h iproc.h marks.h misc.h move.h proc.h wind.h
 re.o: $(JOVE_H) re.h jctype.h ask.h disp.h fmt.h marks.h
 reapp.o: $(JOVE_H) fp.h re.h jctype.h chars.h disp.h ask.h extend.h fmt.h marks.h reapp.h wind.h mac.h
-rec.o: $(JOVE_H) fp.h sysprocs.h rec.h fmt.h recover.h
+rec.o: $(JOVE_H) fp.h rec.h fmt.h recover.h
 scandir.o: $(JOVE_H) scandir.h
 screen.o: $(JOVE_H) fp.h chars.h jctype.h disp.h extend.h fmt.h term.h mac.h screen.h wind.h
 term.o: $(JOVE_H) term.h fp.h
 termcap.o: $(JOVE_H) term.h disp.h fmt.h fp.h jctype.h screen.h
 unix.o: $(JOVE_H) fp.h chars.h term.h ttystate.h
 util.o: $(JOVE_H) jctype.h disp.h fp.h ask.h chars.h fmt.h insert.h macros.h marks.h move.h rec.h mac.h
-vars.o: $(JOVE_H) extend.h vars.h abbrev.h ask.h c.h jctype.h disp.h insert.h sysprocs.h iproc.h mac.h mouse.h para.h proc.h re.h reapp.h rec.h screen.h term.h ttystate.h wind.h vars.tab
+vars.o: $(JOVE_H) extend.h vars.h abbrev.h ask.h c.h jctype.h disp.h insert.h iproc.h mac.h mouse.h para.h proc.h re.h reapp.h rec.h screen.h term.h ttystate.h wind.h vars.tab
 wind.o: $(JOVE_H) chars.h disp.h ask.h extend.h commands.h mac.h reapp.h wind.h screen.h
 msgetch.o: $(JOVE_H) chars.h disp.h
 mac.o: $(TUNE_H) $(JOVE_H) mac.h ask.h chars.h disp.h extend.h fp.h commands.h fmt.h marks.h misc.h move.h screen.h scandir.h term.h vars.h version.h wind.h
-keymaps.o: $(JOVE_H) list.h fp.h jctype.h chars.h disp.h re.h ask.h commands.h macros.h extend.h fmt.h screen.h vars.h sysprocs.h iproc.h
+keymaps.o: $(JOVE_H) list.h fp.h jctype.h chars.h disp.h re.h ask.h commands.h macros.h extend.h fmt.h screen.h vars.h iproc.h
 ibmpcdos.o: $(JOVE_H) fp.h chars.h screen.h term.h
 mouse.o: $(JOVE_H) commands.h disp.h misc.h ask.h chars.h delete.h fmt.h insert.h marks.h move.h wind.h term.h fp.h jctype.h mouse.h xjove/mousemsg.h
 win32.o: $(JOVE_H) fp.h chars.h screen.h disp.h
-portsrv.o: $(JOVE_H) sysprocs.h iproc.h
-recover.o: $(JOVE_H) sysprocs.h rec.h paths.h recover.h scandir.c jctype.h
+portsrv.o: $(JOVE_H) iproc.h
+recover.o: $(JOVE_H) rec.h paths.h recover.h scandir.c jctype.h
 setmaps.o: $(JOVE_H) chars.h commands.h vars.h commands.tab vars.tab
 # DEPENDENCIES MUST END AT END OF FILE
 # IF YOU PUT STUFF HERE IT WILL GO AWAY

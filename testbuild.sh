@@ -138,6 +138,7 @@ GNU|Linux)  t=-lncurses
             lib=GLIBC;
         fi
         jv=_NPROCESSORS_ONLN
+	x="$x CC=gcc"
         ;;
 esac
 

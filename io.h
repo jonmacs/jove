@@ -78,11 +78,6 @@ extern void
 #ifdef BACKUPFILES
 extern jbool	BkupOnWrite;		/* VAR: make backup files when writing */
 #endif
-#ifdef UNIX
 extern int	CreatMode;		/* VAR: default mode for creat'ing files */
-#endif
-#ifdef MAC
-# define CreatMode	0	/* dummy */
-#endif
 extern jbool	EndWNewline;		/* VAR: end files with a blank line */
 extern jbool	OkayBadChars;		/* VAR: allow bad characters in files created by JOVE */

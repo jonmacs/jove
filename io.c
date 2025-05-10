@@ -14,7 +14,6 @@
 #include "fmt.h"
 #include "insert.h"
 #include "marks.h"
-#include "sysprocs.h"
 #include "proc.h"
 #include "wind.h"	/* only used by JReadFile for fixup */
 #include "rec.h"
@@ -28,8 +27,6 @@
 #ifdef MSFILESYSTEM
 # include <direct.h>
 # include <dos.h>
-# include <stdlib.h>	/* _splitpath, _makepath */
-extern int UNMACRO(rename)(const char *old, const char *new);	/* <stdin.h> */
 # ifndef _MAX_DIR
 #  define _MAX_DIR FILESIZE
 # endif
@@ -946,7 +943,7 @@ PathParse(const char *name, char *intobuf)
 				 */
 #ifdef HAS_SYMLINKS
 				char	linkbuf[FILESIZE];
-				ssize_t	linklen;
+				JSSIZE_T linklen;
 #endif
 
 				do {} while (dp > intobuf+1 && *--dp != '/');
@@ -992,9 +989,7 @@ PathParse(const char *name, char *intobuf)
 	}
 }
 
-#ifdef UNIX
 int	CreatMode = DFLT_MODE;	/* VAR: default mode for creat'ing files */
-#endif
 
 private void
 DoWriteReg(jbool app)
@@ -1526,13 +1521,13 @@ private Block
 private daddr	next_bno = 0;
 
 /* Needed to comfort MS Visual C */
-private void blkio(Block *, ssize_t (*)(int, void *, JRWSIZE_T));
+private void blkio(Block *, JSSIZE_T (*)(int, void *, JRWSIZE_T));
 
 private void
-blkio(Block *b, ssize_t (*iofcn)(int, void *, JRWSIZE_T))
+blkio(Block *b, JSSIZE_T (*iofcn)(int, void *, JRWSIZE_T))
 {
 	off_t		boff = bno_to_seek_off(b->b_bno);
-	ssize_t		nb;
+	JSSIZE_T		nb;
 	static jbool	first_time = YES;
 
 	if (first_time) {
@@ -1546,7 +1541,7 @@ blkio(Block *b, ssize_t (*iofcn)(int, void *, JRWSIZE_T))
 	}
 	else if ((nb = (*iofcn)(tmpfd, b->b_buf, (JRWSIZE_T)JBUFSIZ)) != JBUFSIZ) {
 		error("[Tmp file %s error got %D: %d %s: to continue editing would be dangerous]",
-			(iofcn == read) ? "READ" : "WRITE", (long)nb,
+			(iofcn == (JSSIZE_T (*)(int, void *, JRWSIZE_T))read) ? "READ" : "WRITE", (long)nb,
 			nb < 0 ? errno : 0, nb < 0 ? strerror(errno): "");
 		/* NOTREACHED */
 	}
@@ -1600,14 +1595,14 @@ SyncTmp(void)
 	 */
 	for (bno = 0; bno < next_bno; bno++) {
 		if ((b = lookup_block(bno)) != NULL && b->b_dirty) {
-			blkio(b, (jssize_t (*)(int, void *, JRWSIZE_T))write);
+			blkio(b, (JSSIZE_T (*)(int, void *, JRWSIZE_T))write);
 			b->b_dirty = NO;
 		}
 	}
 #else /* !MSDOS */
 	for (b = f_block; b != NULL; b = b->b_LRUnext)
 		if (b->b_dirty) {
-			blkio(b, (ssize_t (*)(int, void *, JRWSIZE_T))write);
+			blkio(b, (JSSIZE_T (*)(int, void *, JRWSIZE_T))write);
 			b->b_dirty = NO;
 		}
 #endif /* !MSDOS */
@@ -1661,7 +1656,7 @@ b_unlink(Block *bp)
 		bht[B_HASH(bp->b_bno)] = hp->b_HASHnext;
 
 	if (bp->b_dirty) {	/* do, now, the delayed write */
-		blkio(bp, (ssize_t (*)(int, void *, JRWSIZE_T))write);
+		blkio(bp, (JSSIZE_T (*)(int, void *, JRWSIZE_T))write);
 		bp->b_dirty = NO;
 	}
 
@@ -1787,7 +1782,7 @@ private void
 file_backup(char *fname)
 {
 # ifndef MSFILESYSTEM
-	ssize_t	rr;
+	JSSIZE_T	rr;
 	int
 		ffd,
 		bffd = 0;	/* avoid uninitialized complaint from gcc -W */
@@ -1837,7 +1832,7 @@ file_backup(char *fname)
 		char	*p = buf;
 
 		while (rr > 0) {
-			ssize_t	wr = write(bffd, p, (size_t) rr);
+			JSSIZE_T	wr = write(bffd, p, (size_t) rr);
 
 			if (wr < 0) {
 				int e = errno;

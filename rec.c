@@ -10,7 +10,6 @@
 #ifdef RECOVER	/* the body is the rest of this file */
 
 #include "fp.h"
-#include "sysprocs.h"
 #include "rec.h"
 #include "fmt.h"
 #include "recover.h"

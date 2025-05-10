@@ -16,10 +16,7 @@
 #include "jctype.h"
 #include "disp.h"
 #include "insert.h"
-/* #include "io.h" */
-#include "sysprocs.h"	/* needed for iproc.h */
 #include "iproc.h"
-/* #include "jove.h" */
 #include "mac.h"
 #include "mouse.h"
 #include "para.h"
@@ -30,9 +27,7 @@
 #include "screen.h"
 #include "term.h"
 #include "ttystate.h"
-/* #include "util.h" */
 #include "wind.h"
-
 
 #define VAR(v)	(v), sizeof(v)
 #include "vars.tab"

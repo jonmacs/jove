@@ -20,7 +20,6 @@
 #include <conio.h>
 
 typedef unsigned char	BYTE;
-typedef unsigned int	WORD;
 
 #define VBS_set_cursor_position	0x02
 #define VBS_get_cursor_position_and_size	0x03

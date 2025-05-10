@@ -28,7 +28,7 @@ included in sysdep.h, just use it.  If not, select a symbol to define your
 system (e.g. SOMEOS) and choose the appropriate system-dependent options that
 characterize your systems terminal handling, process handling, header files,
 etc from the list below.  Using an existing system, or common group of
-characteristics (XBSD, BSDPOSIX_REALSTDC, etc) is often a good start.
+characteristics (XBSD, BSDPOSIX, etc) is often a good start.
 
 NOTE: We've removed almost all the "#ifdef system-type" ifdefs from the body
 of Jove code, replacing those with the feature ifdefs documented below.
@@ -104,23 +104,6 @@ MIPS_CC_BUG	avoid function definition syntax that provokes a MIPS cc bug.
 		externs.h, line 145: ccom: Internal: compiler takes size of function
 		MIPS-based Ultrix upto 4.2 at least, RiscOS and IRIX (upto 3.3
 		at least) need this.
-
-Newer systems tend to have header files with more system calls defined,
-sometimes with prototypes.  Choose one of the following, depending on your
-system.  If neither of the following is defined, then the declarations in
-externs.h are used.
-POSIX_UNISTD	Have POSIX P1003.1 compliant unistd.h with declarations.
-FULL_UNISTD	Have fully-prototyped header files, superset of POSIX P1003.1
-
-Some really old systems may not have a header <fcntl.h>.  To stop JOVE
-trying to #include it, define
-NO_FCNTL	no <fcntl.h> header provided by system
-
-Usually, the result type returned by read() and write() is int.
-POSIX carefully defines a type name for this type: ssize_t (it logically
-is a size_t, but it must be signed because -1 is a possible value).
-We use SSIZE_T which defaults to ssize_t if FULL_UNISTD, otherwise int.
-This can be overridden by defining SSIZE_T.
 
 In modern systems, the type mode_t is used for permission bits (in
 creat(2), stat(2), and open(2)).  In ancient systems, this was just int;

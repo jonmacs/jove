@@ -5,8 +5,6 @@
  * this notice is included in all the source files and documentation.     *
  **************************************************************************/
 
-/* note: sysprocs.h must be included first */
-
 extern char	ShcomBuf[LBSIZE];
 
 extern char	*MakeName(char *command);

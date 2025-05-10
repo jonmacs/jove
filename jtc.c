@@ -52,13 +52,9 @@ private struct winsize jtwin;
 #ifdef TEST_STANDALONE
 extern int strncasecmp(const char *, const char *, size_t);
 extern int snprintf(char *, size_t, const char *, ...);
-extern intintf(const char *, ...;
-extern int putchar(int);
-extern void fflush(void *); /* XXX */
-extern void *stdout; /* XXX */
 #define flushscreen() fflush(stdout)
 #define caseeqn(s1, s2, n) (strncasecmp(s1, s2, n) == 0)
-#define swritefintf
+#define swritef snprintf
 #undef jisdigit
 #define jisdigit(c) (c >= '0' && c <= '9')
 #endif
@@ -326,7 +322,7 @@ xtputs(delay, s, li)
 int delay, li;
 const char *s;
 {
-	tputs(s, li, putchar);
+	tputs(s, li, (void (*)(char)) putchar);
 	fflush(stdout);
 	jdelay(delay);
 }
@@ -393,7 +389,7 @@ char **argv;
 		xtputs(10, jtcarg1(cp, 2), 2);
 	else {
 		xtputs(5, jtcarg1(tgetstr("sf", NULL),1), 1);
-		xtputs(5, jtcarg1(tgetstr("sf"),1), 1);
+		xtputs(5, jtcarg1(tgetstr("sf", NULL),1), 1);
 	}
 	j = tgetnum("li");
 	xtputs(5, tgetstr("dl", NULL), 1);

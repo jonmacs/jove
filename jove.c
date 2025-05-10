@@ -15,7 +15,6 @@
 #include "disp.h"
 #include "re.h"	/* for dosearch() */
 #include "reapp.h"	/* for find_tag(), UseRE */
-#include "sysprocs.h"
 #include "rec.h"
 #include "ask.h"
 #include "extend.h"
@@ -67,7 +66,8 @@
 #ifdef WIN32
 # undef Fill /* sigh, used as a field name in some windows header! */
 # undef CR /* sigh, used as a field name in some windows header! */
-# include <windows.h>	/* ??? is this needed? */
+# undef Fill /* sigh, used as a field name in some windows header! */
+# include <windows.h>	/* needed for CreateProcess */
 # undef FIONREAD	 /* This is defined but ioctl isn't so we cannot use it. */
 extern char *getLastErrorString(void);
 #endif
@@ -1374,14 +1374,14 @@ raw_complain(const char *fmt, ...)
 	va_list		ap;
 	const char	*bp;
 	size_t		rem;
-	ssize_t		r;
+	JSSIZE_T	r;
 
 	va_start(ap, fmt);
 	format(buf, sizeof(buf) - 2, fmt, ap);
 	va_end(ap);
 	strcat(buf, "\r\n");	/* \r *may* be redundant */
 	for (bp = buf, rem = strlen(buf)
-	     ; rem > 0 && (r = write(2, bp, rem)) != (ssize_t)rem
+	     ; rem > 0 && (r = write(2, bp, rem)) != (JSSIZE_T)rem
 	     ; bp += r, rem -= r) {
 		if (r < 0 && !RETRY_ERRNO(errno))
 		    break;	/* give up */
@@ -2050,7 +2050,7 @@ jexecpath(char *namebuf, size_t namebufsz)
 #ifdef PNAME_PROC_SELF
 	/* Linux */
 	if (namebuf[0] == '\0') {
-		ssize_t		linklen;
+		JSSIZE_T	linklen;
 		struct stat	stbuf;
 		const char	*procself = "/proc/self/exe";
 
