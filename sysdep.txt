@@ -89,22 +89,6 @@ balk at symlinks).
 NO_MKSTEMP	work around lack of mkstemp
 NO_MKTEMP	work around lack of mktemp
 
-If the compiler is ANSI C, then prototyping will be supported
-automatically (this is determined by checking that __STDC__ is
-defined (by the system), and it is greater than 0).  For other
-systems, you may define:
-USE_PROTOTYPES	for non-ANSI systems that nevertheless support prototypes
-NO_PTRPROTO	for systems that botch prototypes in function pointer decls.
-STDARGS		for non-ANSI systems that nevertheless support stdargs.h,
-		as opposed to varargs.h
-MIPS_CC_BUG	avoid function definition syntax that provokes a MIPS cc bug.
-		This bug manifests itself as compiler complaints around the
-		extern declarations that have parentheses around them.
-		(e.g. select).  One version of the error looks like this:
-		externs.h, line 145: ccom: Internal: compiler takes size of function
-		MIPS-based Ultrix upto 4.2 at least, RiscOS and IRIX (upto 3.3
-		at least) need this.
-
 In modern systems, the type mode_t is used for permission bits (in
 creat(2), stat(2), and open(2)).  In ancient systems, this was just int;
 unsigned would have been better.  Jove uses the macro jmode_t.  If you
@@ -122,7 +106,7 @@ LG_JBUFSIZ	log-base-2(sizeof buffer block).  Generally 9 or 10,
 		transferred and more efficiently use cache memory
 		(there would be more blocks in an identically sized cache).
 JSMALL		Intended for machines with small address spaces, for example
-		the PDP-11 and  DOS 8086/8088.  It drastically
+		the PDP-11 and DOS 8086/8088.  It drastically
 		reduces NBUF, cuts down LG_JBUFSIZ, and makes daddr an
 		unsigned short.
 MALLOC_CACHE	Causes the in-core cache for disk blocks to be malloced
@@ -132,12 +116,6 @@ MALLOC_CACHE	Causes the in-core cache for disk blocks to be malloced
 		in separate segments.  Examples include MAC and large
 		model x86.  Remember that NBUF * ((1<<LG_JBUFSIZ) + overhead)
 		will probably have to fit within a single segment.
-AUTO_BUFS	Allocate several of the fixed buffers on the stack
-		instead of statically.  On the PDP-11, this exploits
-		memory that would be otherwise wasted due to the
-		granularity of the MMU.  On the Macintosh under Think C,
-		this reduces the size of the static data segment enough
-		to avoid "far data".
 
 IPROCS is defined if interactive processes are to be supported.  It
 is defined in tune.h, implying that it is a matter of preference, at
