@@ -35,15 +35,14 @@ extern int avoid_pedantic_complaints_about_empty_translation_unit;
 #include <sys/time.h>
 #include "select.h"
 
-#ifdef TERMIOS
-# include <termios.h>
-# include <sys/ioctl.h>
-# ifdef TIOCGWINSZ
+#include <termios.h>
+#include <sys/ioctl.h>
+#ifdef TIOCGWINSZ
 private struct winsize jtwin;
-#  define JVTCOLS jtwin.ws_col
-#  define JVTROWS jtwin.ws_row
-# endif /* TIOCGWINSZ */
-#endif /* TERMIOS */
+# define JVTCOLS jtwin.ws_col
+# define JVTROWS jtwin.ws_row
+#endif /* TIOCGWINSZ */
+
 #ifndef JVTCOLS
 # define JVTCOLS 80
 # define JVTROWS 24
@@ -288,7 +287,7 @@ tgetstr(const char *capname, char **area)
 
 #ifdef TEST_STANDALONE
 /* To test, build with
- * LANG=C gcc -o testjtc jtc.c -g -O -Wall -DTEST_STANDALONE -DJTC -DTERMIOS
+ * LANG=C gcc -o testjtc jtc.c -g -O -Wall -DTEST_STANDALONE -DJTC
  */
 
 /* make terminfo string printable */

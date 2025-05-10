@@ -7,10 +7,6 @@
 
 /* As of 5.x, Jove requires C89 and POSIX.1-conforming prototyped headers */
 
-#ifdef USE_MEMORY_H
-# include <memory.h>
-#endif
-
 #ifdef EWOULDBLOCK
 # define RETRY_ERRNO(e) ((e) == EINTR || (e) == EAGAIN || (e) == EWOULDBLOCK)
 #else
@@ -109,74 +105,15 @@ extern char	*tgoto(const char *, int /*destcol*/, int /*destline*/); /* BSD term
  * - WTERMSIG
  */
 
+typedef int	wait_status_t; /* used to be union in some UNIX once */
+
 #ifdef MSDOS_PROCS
 # include <process.h>
 #endif
 
-#ifdef POSIX_PROCS
+#if defined(POSIX_PROCS) || defined(PIPEPROCS)
 # include <sys/wait.h>
-  typedef int	wait_status_t;
 # define wait_opt(stat_loc, options)	waitpid(-1, stat_loc, options)
-
-#else /*!POSIX_PROCS*/
-
-# ifndef _PID_T_ /* MINGW, maybe WIN32 has sys/types.h with pid_t, it seems */
-   typedef int	pid_t;
-# endif
-
-# ifdef BSD_WAIT
-#  include <sys/wait.h>
-  typedef union wait	wait_status_t;
-
-#  ifndef WEXITSTATUS
-#   define WEXITSTATUS(w)	((w).w_retcode)
-#  endif
-
-#  ifndef WTERMSIG
-#   define WTERMSIG(w)	((w).w_termsig)
-#  endif
-
-#  ifndef WAIT3
-#   define wait_opt(stat_loc, options)	wait2(stat_loc, options)
-#  else
-#   define wait_opt(stat_loc, options)	wait3(stat_loc, options, (struct rusage *)NULL)
-#  endif
-
-# else /*!BSD_WAIT*/
-
-  typedef int	wait_status_t;
-
-#  ifdef UNIX
-
-#   ifndef WIFSTOPPED
-#    define WIFSTOPPED(w)	((w & 0377) == 0177)
-#    define WIFEXITED(w)	((w & 0377) == 0)
-#    define WIFSIGNALED(w)	(((w >> 8) & 0377) == 0)
-#    define WEXITSTATUS(w)	((w >> 8) & 0377)
-#    define WTERMSIG(w)	(w & 0177)
-#   endif
-
-#   define wait_opt(stat_loc, options)		wait(stat_loc)
-    /* should be correct if all preceding typedefs or includes worked out */
-    extern pid_t wait(wait_status_t *);
-
-#  endif /* UNIX */
-
-# endif /*!BSD_WAIT*/
-#endif /*!POSIX_PROCS*/
-
-/* This nest of #ifdefs is simply to define NEWPG() which makes
- * the current process a process group leader of a new process group.
- * ??? pid_t may be changed by default argument promotions.
- * If so, this prototype might be wrong.
- */
-#ifdef POSIX_PROCS
 # define NEWPG()	setpgid(0, getpid())
-#else /* !POSIX_PROCS */
-# ifdef BSD_SETPGRP
-#  define NEWPG()	setpgrp(0, getpid())
-# else /* !(defined(BSD_SETPGRP) || defined(POSIX_PROCS)) */
-#  define NEWPG()	setpgrp()
-# endif /* !(defined(BSD_SETPGRP) || defined(POSIX_PROCS)) */
-#endif /* !POSIX_PROCS */
+#endif /*!MSDOS_PROCS*/
 

@@ -109,7 +109,7 @@ o=${TB_OPTFLAGS}
 e=
 d=
 x=
-d=-DTERMIOS
+d=
 t=-ltermcap
 lib=
 jv=NPROCESSORS_ONLN
@@ -131,7 +131,7 @@ SunOS)  x="NROFF=nroff TROFF=troff"
         ;;
 GNU|Linux)  t=-lncurses
         if test -e /etc/alpine-release; then
-            d="$d -DUSE_GETCWD"; lib=MUSL;
+            d="$d"; lib=MUSL;
         elif test -e /etc/gentoo-release; then
             t="-ltinfo"; lib=GLIBC;
         else
