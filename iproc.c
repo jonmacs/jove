@@ -682,15 +682,10 @@ send_sig(int sig)
 
 # endif /* !NO_TIOCSIGNAL */
 
-# if defined(NO_TIOCREMOTE) || defined(NO_TIOCSIGNAL) || (!defined(TERMIO) && !defined(TERMIOS)) || defined(VDSUSP)
+# if defined(NO_TIOCREMOTE) || defined(NO_TIOCSIGNAL) || defined(VDSUSP)
 
-#  if defined(TERMIO) || defined(TERMIOS)
-#   define send_oxc(tch, sch)	send_xc(sg[NO].c_cc[tch])
-#   define send_oxc_ls(tch, sch)	send_oxc(tch, sch)
-#  else
-#   define send_oxc(tch, sfld)	send_xc(tc[NO].sfld)
-#   define send_oxc_ls(tch, sfld)	send_xc(ls[NO].sfld)
-#  endif
+#  define send_oxc(tch, sch)	send_xc(sg[NO].c_cc[tch])
+#  define send_oxc_ls(tch, sch)	send_oxc(tch, sch)
 
 private void
 send_xc(char c)
@@ -794,7 +789,7 @@ ProcQuit(void)
 void
 ProcStop(void)
 {
-# if (!defined(TERMIO) && !defined(TERMIOS)) || defined(VSUSP)
+# if defined(VSUSP)
 	kbd_sig_ls(SIGTSTP, VSUSP, t_suspc);
 # else
 	complain("[stop-process not supported]");
@@ -806,7 +801,7 @@ void
 ProcDStop(void)
 {
 	/* we don't know how to send a dstop via TIOCSIGNAL/TIOCSIG */
-# if (!defined(TERMIO) && !defined(TERMIOS)) || defined(VDSUSP)
+# if defined(VDSUSP)
 	send_oxc_ls(VDSUSP, t_dsuspc);
 # else
 	complain("[dstop-process not supported]");
@@ -853,25 +848,8 @@ proc_strt(char *bufname, jbool clobber, const char *procname, ...)
 	Buffer	*newbuf;
 	int	ptyfd = -1;
 	int	slvptyfd = -1;
-
-# if !defined(TERMIO) && !defined(TERMIOS)
-#  ifdef TIOCSETD
-	int	ldisc;	/* tty line discipline */
-#  endif
-#  ifdef TIOCLSET
-	int	lmode;	/* tty local flags */
-#  endif
-# endif
 	char	ttybuf[32];
-# ifdef TERMIO
-	struct termio sgt;
-# endif
-# ifdef TERMIOS
 	struct termios sgt;
-# endif
-# ifdef SGTTY
-	struct sgttyb sgt;
-# endif
 
 # ifdef TIOCGWINSZ
 	struct winsize win;
@@ -1010,17 +988,6 @@ proc_strt(char *bufname, jbool clobber, const char *procname, ...)
 	jdbg("can access pty %s\n", ttybuf);
 # endif /* !GRANTPT_BUG */
 
-# if !defined(TERMIO) && !defined(TERMIOS)
-#  ifdef TIOCGETD
-	jdbg("TIOCGETD %s\n", ttybuf);
-	(void) ioctl(0, TIOCGETD, &ldisc);
-#  endif
-#  ifdef TIOCLGET
-	jdbg("TIOCLGET %s\n", ttybuf);
-	(void) ioctl(0, TIOCLGET, &lmode);
-#  endif
-# endif /* !defined(TERMIO) && !defined(TERMIOS) */
-
 # ifdef TIOCGWINSZ
 	jdbg("TIOCGWINSZ %s\n", ttybuf);
 	(void) ioctl(0, TIOCGWINSZ, &win);
@@ -1087,23 +1054,8 @@ proc_strt(char *bufname, jbool clobber, const char *procname, ...)
 		(void) close(1);
 		(void) close(2);
 
-# ifdef TERMIOS
 		jdbg("child setsid %s\n", ttybuf);
 		setsid();
-# else /* !TERMIOS */
-#  ifdef TIOCNOTTY
-		/* get rid of controlling tty */
-		{
-			int	i = open("/dev/tty", O_RDWR | O_BINARY);
-
-			jdbg("child TIOCNOTTY %d %s\n", i, ttybuf);
-			if (i >= 0) {
-				(void) ioctl(i, TIOCNOTTY, NULL);
-				(void) close(i);
-			}
-		}
-#  endif /* TIOCNOTTY */
-# endif /* !TERMIOS */
 		jdbg("child ptyfd %d slv %d buf %s\n", ptyfd, slvptyfd, ttybuf);
 		if (slvptyfd < 0) {
 			if ((slvptyfd = open(ttybuf, O_RDWR | O_BINARY)) != 0)
@@ -1162,24 +1114,6 @@ proc_strt(char *bufname, jbool clobber, const char *procname, ...)
 		jdbg("child closing %d %s\n", ptyfd, ttybuf);
 		close(ptyfd);
 
-# if !defined(TERMIO) && !defined(TERMIOS)
-#  ifdef TIOCSETD
-		jdbg("child TIOCSETD %s\n", ttybuf);
-		(void) ioctl(0, TIOCSETD, &ldisc);
-#  endif
-#  ifdef TIOCLSET
-		jdbg("child TIOCLSET %s\n", ttybuf);
-		(void) ioctl(0, TIOCLSET, &lmode);
-#  endif
-#  ifdef TIOCSETC
-		(void) ioctl(0, TIOCSETC, &tc[NO]);
-#  endif
-#  ifdef USE_TIOCSLTC
-		jdbg("child TIOCSLTC %s\n", ttybuf);
-		(void) ioctl(0, TIOCSLTC, &ls[NO]);
-#  endif
-# endif /* !defined(TERMIO) && !defined(TERMIOS) */
-
 # ifdef TIOCGWINSZ
 		jdbg("child TIOCSWINSZ %s\n", ttybuf);
 		win.ws_row = curwind->w_height;
@@ -1192,7 +1126,6 @@ proc_strt(char *bufname, jbool clobber, const char *procname, ...)
 #  endif
 # endif /* !TIOCGWINSZ */
 
-# if defined(TERMIO) || defined(TERMIOS)
 		jdbg("child set termio(s)%s\n", ttybuf);
 		sgt = sg[NO];
 		sgt.c_iflag &= ~(IGNBRK | BRKINT | ISTRIP | INLCR | IGNCR | ICRNL
@@ -1202,21 +1135,8 @@ proc_strt(char *bufname, jbool clobber, const char *procname, ...)
 			| IXON | IXOFF);
 		sgt.c_lflag &= ~(ECHO);
 		sgt.c_oflag &= ~(ONLCR | TABDLY);
-#  ifdef TERMIO
-		jdbg("child TCSETAW %s\n", ttybuf);
-		do {} while (ioctl(0, TCSETAW, &sgt) < 0 && errno == EINTR);
-#  endif
-#  ifdef TERMIOS
 		jdbg("child TCSADRAIN %s\n", ttybuf);
 		do {} while (tcsetattr(0, TCSADRAIN, &sgt) < 0 && errno == EINTR);
-#  endif
-# else /* !(defined(TERMIO) || defined(TERMIOS)) */
-		jdbg("child set sgt %s\n", ttybuf);
-		sgt = sg[NO];
-		sgt.sg_flags &= ~(ECHO | CRMOD | ANYP | ALLDELAY | RAW | LCASE | CBREAK | TANDEM);
-		(void) stty(0, &sgt);
-# endif /* !(defined(TERMIO) || defined(TERMIOS)) */
-
 		jdbg("child newpg %s\n", ttybuf);
 		NEWPG();
 		{

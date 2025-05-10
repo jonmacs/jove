@@ -36,29 +36,7 @@ This sort of approach is necessary in this day & age of hybrid systems.
 If you're porting Jove to a new system, please follow the feature-based
 approach and don't put "#ifdef system-type" ifdefs in the code.
 
-For terminal handling under Unix, define one of the following, in
-decreasing order of preference.
-TERMIOS		Have "struct termios" and termios.h.  POSIX systems,
-		most modern UNIXes.
-SGTTY		Have stty() and gtty() for tty characteristics.
-		BSD4.3 and precursors, including V7.
-TERMIO		Have "struct termio" and termio.h for tty characteristics.
-		System V derivatives.  Warning: if your system supports
-		BSD-style Job Control, don't use TERMIO: it cannot
-		suppress the action of some magic characters.
-
-SunOS4 sys/ioctl.h conflicts seriously with termios.h, so it needs
-NO_IOCTL_H_TTY
-
-Jove needs to know the current working directory for pathname optimization
-and the directory functions that it provides ("cd", "pushd", etc).
-Define one of the following, in order of decreasing preference:
-USE_GETCWD	have the getcwd() routine for the name of the current
-		directory.  POSIX.
-USE_GETWD	have the getwd() routine for the name of the current dir.
-		BSD4.2 and derivatives (SunOS3, old Ultrix)
-USE_PWD		Run the 'pwd' program to find the name of the current
-		directory.  Old UNIXes.
+From 5.x, Jove supports only POSIX termios.h
 
 When Jove is tries to make file pathnames canonical.  Handling of a ..
 component must take account of symbolic links.  All modern UNIXes have
@@ -209,12 +187,7 @@ NO_EOF_FROM_PTY	Define this if your system fails to signal EOF to pty master
 To deal with SUBSHELL and IPROCS (both in tune.h), define one of the
 following:
 POSIX_PROCS	Supports POSIX processes, waitpid()
-BSD_WAIT	Has sys/wait.h and "union wait".
-If neither POSIX_PROCS nor BSD_WAIT is defined, Jove uses wait().  (old UNIXes)
-
-If BSD_WAIT was defined, also consider defining
-WAIT3		use wait3() on systems that have it.  (BSD4.2 and modern
-		non-POSIX UNIXes).  If this is not defined, we try wait2().
+If POSIX_PROCS is not defined, Jove uses wait().  (old UNIXes)
 
 Signal handling varies between systems.  The original UNIX signal mechanism
 is unsafe -- if a second signal is received soon enough, the program will
@@ -320,16 +293,6 @@ DEFINE_PC_BC_UP_OSPEED
 		and possibly other SysV Rel.2 machines.  If you get
 		messages like "ospeed undefined" when linking, try
 		this.
-
-USE_MEMORY_H	include memory.h for declarations of memcpy() et al.
-		Older SysV, IBMPCs, XENIX.
-
-
-USE_BCOPY	use bcopy in place of missing memcpy.
-		BSD4.2 and precursors from Berkeley.
-
-USE_INDEX	use index in place of missing strchr.
-		BSD4.2 and precursors, including V7.
 
 USE_INO		use the inode number (and device number) to tell if two
 		paths refer to the same file or directory.  Automatically

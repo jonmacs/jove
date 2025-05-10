@@ -576,43 +576,6 @@ Chdir(void)
 #endif
 }
 
-#ifdef USE_GETWD
-extern char	*getwd(char *);
-
-char *
-getcwd(char *buffer, size_t UNUSED(bufsize))
-{
-	return getwd(buffer);
-}
-#endif
-
-#ifdef USE_PWD
-char *
-getcwd(char *buffer, size_t UNUSED(bufsize))
-{
-	Buffer	*old = curbuf;
-	char	*ret_val;
-
-	/* ??? The use of a buffer ought to be more polite --
-	 * what if it were already in use?  (a) the buffer contents
-	 * might be valuable, so we should ask whether we can clobber,
-	 * and (b) we don't have any code to empty the buffer anyway.
-	 * Luckily, this is only called once, at the beginning of time,
-	 * so things ought to be OK.  Perhaps we should delete this buffer
-	 * after we are finished with it.
-	 * (MSDOS calls its own version of this routine more often,
-	 * but that version is quite different.)
-	 */
-	SetBuf(do_select((Window *)NULL, "pwd-output"));
-	curbuf->b_type = B_PROCESS;
-	(void) UnixToBuf(0, "pwd-output", (char *)NULL, "/bin/pwd");
-	ToFirst();
-	jamstrsub(buffer, linebuf, bufsize);
-	SetBuf(old);
-	return buffer;
-}
-#endif /* USE_PWD */
-
 /* Check if dn is the name of the current working directory
  * and that it is in cannonical form
  */
