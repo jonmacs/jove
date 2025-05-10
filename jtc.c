@@ -129,6 +129,7 @@ private JTLevel jtc_emu[] = {
 	{"putty", VTALT},
 	{"linux", VT125},
 	{"screen", VTALT},
+	{"tmux", VTALT},
 	{"gnome", VTALT},
 	{"konsole", VTALT},
 	{"eterm", VTALT},
