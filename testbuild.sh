@@ -77,7 +77,8 @@ case $# in
 		esac
 		$SUDO yum install -y make gcc ncurses-devel groff $ctags zip rpm-build
 	elif type brew 2> /dev/null; then
-		brew install make ctags zip ncurses
+		brew install make ncurses ctags zip groff
+		TB_OPTFLAGS="-g -Os --std=c89 -D_DEFAULT_SOURCE=1"
 	elif type pacman 2> /dev/null; then
 		$SUDO pacman -Sy --noconfirm gcc make pkgconf ncurses groff ctags zip
 	elif type nix-shell 2> /dev/null; then
