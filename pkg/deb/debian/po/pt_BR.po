@@ -2,22 +2,22 @@
 # Copyright (C) 2007 jove'S PACKAGE COPYRIGHT HOLDER
 # This file is distributed under the same license as the jove package.
 # Eder L. Marques (frolic) <frolic@debian-ce.org>, 2007.
+# Paulo Henrique de Lima Santana (phls) <phls@debian.org>, 2025.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: jove 4.16.0.70-3\n"
+"Project-Id-Version: jove_4.17.5.3-1\n"
 "Report-Msgid-Bugs-To: jove@packages.debian.org\n"
 "POT-Creation-Date: 2020-02-04 22:52+0100\n"
-"PO-Revision-Date: 2007-10-19 16:53-0300\n"
-"Last-Translator: Eder L. Marques (frolic) <frolic@debian-ce.org>\n"
+"PO-Revision-Date: 2025-02-22 16:51-0300\n"
+"Last-Translator: Paulo Henrique de Lima Santana (phls) <phls@debian.org>\n"
 "Language-Team: l10n Portuguese <debian-l10n-portuguese@lists.debian.org>\n"
-"Language: \n"
+"Language: pt_BR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"pt_BR utf-8\n"
-"X-Generator: KBabel 1.11.4\n"
-"Plural-Forms:  nplurals=2; plural=(n > 1);\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"X-Generator: Poedit 3.5\n"
 
 #. Type: note
 #. Description
@@ -45,19 +45,19 @@ msgstr "Movendo a versão antiga para /etc/jove/jove.rc.old"
 #. Description
 #: ../jove.templates:3001
 msgid "Removed obsolete /etc/init.d/jove script"
-msgstr ""
+msgstr "Removido script obsoleto /etc/init.d/jove"
 
 #. Type: note
 #. Description
 #: ../jove.templates:3001
 msgid "Check NEWS.Debian for more information"
-msgstr ""
+msgstr "Leia NEWS.Debian para mais informações"
 
 #. Type: note
 #. Description
 #: ../jove.templates:4001
 msgid "Found old files in /var/lib/jove/preserve/"
-msgstr ""
+msgstr "Arquivos antigos encontrados em /var/lib/jove/preserve/"
 
 #. Type: note
 #. Description
@@ -66,3 +66,5 @@ msgid ""
 "You can recover those by running jove -r Check NEWS.Debian for more "
 "information."
 msgstr ""
+"Você pode recuperá-los executando jove -r. Leia NEWS.Debian para mais "
+"informações."
