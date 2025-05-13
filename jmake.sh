@@ -30,7 +30,7 @@ locflags=	# for LOCALCC
 # temporary hackery because new gcc/clang complain about old-style K&R
 # classic declarations/definitions without prototypes. c2x aka 5.0
 # will not need this. May as well compile setmaps with this too.
-locflags="-Wno-old-style-definition -Wno-strict-prototypes -Wno-deprecated-non-prototype -Wincompatible-pointer-types"
+locflags="-Wno-old-style-definition -Wno-strict-prototypes -Wno-deprecated-non-prototype -Wno-incompatible-pointer-types"
 optflags="$optflags $locflags"
 
 case "$u" in
