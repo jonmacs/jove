@@ -12,7 +12,7 @@ export PATH
 : ${TB_OS=$(uname)}
 : ${TB_REV=$(uname -r)}
 : ${TB_NODE=$(uname -n)}
-: ${TB_OPTFLAGS=-O}
+: ${TB_OPTFLAGS=-Os}
 : ${TB_MINGW=i686-w64-mingw32 x86_64-w64-mingw32}
 
 dist=$TB_OS-$TB_MACH
@@ -88,7 +88,9 @@ case $# in
 	else
 		# not a packaging system we know, hope it already has minimal testbuild needs
 		type cc make mktemp
+		TB_OPTFLAGS=-O
 	fi
+	cc --version || true
 	case "$1" in
 	*only) exit 0;;
 	esac
@@ -182,7 +184,8 @@ elif test -e /etc/alpine-release; then
 		if type ${tag}-gcc 2> /dev/null ; then
 			r=jove-$ver-$tag-static &&
 			if test ! -d $dist/$r; then mkdir $dist/$r; fi &&
-			JMAKE_UNAME=$tag ./jmake.sh clobber all &&
+			make clobber &&
+			JMAKE_UNAME=$tag ./jmake.sh all &&
 			strip jjove recover &&
 			mv jjove $dist/$r/jove &&
 			mv recover $dist/$r &&
@@ -197,7 +200,9 @@ for tag in ${TB_MINGW}; do
 	# build a cross-compiled version for Windows
 	r=jove-$ver-$tag &&
 	if test ! -d $dist/$r; then mkdir $dist/$r; fi &&
-	JMAKE_UNAME=$tag ./jmake.sh clobber all &&
+	make clobber &&
+	make XEXT=.exe clobber &&
+	JMAKE_UNAME=$tag ./jmake.sh $j all &&
 	${tag}-strip jjove.exe recover.exe &&
 	mv jjove.exe $dist/$r/jove.exe &&
 	mv recover.exe $dist/$r &&
@@ -208,7 +213,7 @@ for tag in ${TB_MINGW}; do
 done &&
 if type pbuilder 2> /dev/null; then
 	# if a developer has pbuilder, test debian package builds
-	$SUDO make deb
+	$SUDO make $j deb
 	cp -av /var/cache/pbuilder/result/*$(cat .version)*.deb $dist/
 fi
 ret=$?
