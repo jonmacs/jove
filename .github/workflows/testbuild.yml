@@ -9,11 +9,13 @@ jobs:
       fail-fast: false
       matrix:
         os:
-        - 'macos-11'
         - 'macos-12'
         - 'macos-13'
+        - 'macos-14'
+        - 'macos-15'
         - 'ubuntu-22.04'
-        - 'ubuntu-20.04'
+        - 'ubuntu-24.04'
+        - 'ubuntu-24.04-arm'
     runs-on: ${{ matrix.os }}
     steps:
       - run: echo "event=${{ github.event_name }} runner=${{ runner.os }} os=${{ matrix.os }} branch=${{ github.ref }} repo=${{ github.repository }}."
