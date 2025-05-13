@@ -1,8 +1,11 @@
 #!/bin/sh
 # Automated builds with various configs, should work on 
-# range of Linux, SunOS (OpenIndiana), FreeBSD.
+# range of Linux, SunOS (OpenIndiana), *BSD, Darwin(MacOS).
+# Used in github actions workflow for automated builds,
+# see .github/workflows/testbuild.yml
+# Author: Mark Moraes
 
-PATH=/bin:/usr/bin:/usr/gnu/bin:/opt/SUNWspro/bin:/usr/sfw/bin:/usr/local/bin:/usr/local/sbin:/usr/sbin:/sbin:/bin
+PATH=/bin:/usr/bin:/usr/gnu/bin:/opt/SUNWspro/bin:/usr/sfw/bin:/usr/local/bin:/opt/homebrew/bin:/usr/local/sbin:/usr/sbin:/sbin:/bin
 export PATH
 
 : ${TB_MACH=$(uname -m)}
@@ -210,6 +213,6 @@ if type pbuilder 2> /dev/null; then
 fi
 ret=$?
 # portable for older Unix/SunOS!
-(cd "$td" && tar cvf - .) | gzip > $dist/$ver-builds.tar.gz
+(cd "$td" && tar cf - .) | gzip > $dist/$ver-builds.tar.gz
 rm -rf "$td"
 exit $ret

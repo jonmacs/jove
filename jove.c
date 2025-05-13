@@ -65,6 +65,7 @@
 #endif /* MSDOS */
 
 #ifdef WIN32
+# undef Fill /* sigh, used as a field name in some windows header! */
 # undef CR /* sigh, used as a field name in some windows header! */
 # include <windows.h>	/* ??? is this needed? */
 # undef FIONREAD	 /* This is defined but ioctl isn't so we cannot use it. */
