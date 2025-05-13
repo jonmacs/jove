@@ -664,7 +664,7 @@ int num,
  */
 struct cursaddr {
 	int	cm_numchars;
-	void	(*cm_proc) ();
+	void	(*cm_proc) (NOARGS);
 };
 
 private char	*Cmstr;
