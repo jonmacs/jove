@@ -9,7 +9,7 @@
 #include "list.h"
 
 private List *
-list_new(NOARGS)
+list_new()
 {
 	List	*new;
 

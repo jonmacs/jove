@@ -140,7 +140,7 @@ int	n;
  * setting of this window.
  */
 void
-winit(NOARGS)
+winit()
 {
 	register Window	*w;
 
@@ -177,7 +177,7 @@ register Buffer	*bp;
 /* Change to previous window. */
 
 void
-PrevWindow(NOARGS)
+PrevWindow()
 {
 	register Window	*new = curwind->w_prev;
 
@@ -220,7 +220,7 @@ register Window	*new;
 /* delete the current window if it isn't the only one left */
 
 void
-DelCurWindow(NOARGS)
+DelCurWindow()
 {
 	SetABuf(curwind->w_bufp);
 	del_wind(curwind);
@@ -274,7 +274,7 @@ register Window	*w;
  * terms of do_find(), do_select() which manipulate the windows.
  */
 void
-WindFind(NOARGS)
+WindFind()
 {
 	register Buffer
 		*obuf = curbuf,
@@ -331,7 +331,7 @@ WindFind(NOARGS)
 /* Go into one window mode by deleting all the other windows */
 
 void
-OneWindow(NOARGS)
+OneWindow()
 {
 	while (curwind->w_next != curwind)
 		del_wind(curwind->w_next);
@@ -358,7 +358,7 @@ register Buffer	*bp;
 /* Change window into the next window.  Curwind becomes the new window. */
 
 void
-NextWindow(NOARGS)
+NextWindow()
 {
 	register Window	*new = curwind->w_next;
 
@@ -376,7 +376,7 @@ NextWindow(NOARGS)
 /* Scroll the next Window */
 
 void
-PageNWind(NOARGS)
+PageNWind()
 {
 	if (one_windp()) {
 		complain(onlyone);
@@ -446,13 +446,13 @@ int	btype;
 }
 
 void
-GrowWindowCmd(NOARGS)
+GrowWindowCmd()
 {
 	WindSize(curwind, abs((int)arg_value()));
 }
 
 void
-ShrWindow(NOARGS)
+ShrWindow()
 {
 	WindSize(curwind, -abs((int)arg_value()));
 }
@@ -515,14 +515,14 @@ register LinePtr	line;
 }
 
 void
-WNumLines(NOARGS)
+WNumLines()
 {
 	curwind->w_flags ^= W_NUMLINES;
 	SetTop(curwind, curwind->w_top);
 }
 
 void
-WVisSpace(NOARGS)
+WVisSpace()
 {
 	curwind->w_flags ^= W_VISSPACE;
 	ClAndRedraw();
@@ -546,7 +546,7 @@ register LinePtr	line;
 }
 
 void
-SplitWind(NOARGS)
+SplitWind()
 {
 	SetWind(div_wind(curwind, arg_or_default(2) - 1));
 }
@@ -555,7 +555,7 @@ SplitWind(NOARGS)
  * exists, pop one and attach the buffer to it.
  */
 void
-GotoWind(NOARGS)
+GotoWind()
 {
 	const char	*bname = ask_buf(lastbuf, ALLOW_OLD | ALLOW_INDEX | ALLOW_NEW);
 	Window	*w;
@@ -574,7 +574,7 @@ GotoWind(NOARGS)
 }
 
 void
-ScrollRight(NOARGS)
+ScrollRight()
 {
 	int	amt = arg_or_default(ScrollWidth);
 
@@ -586,7 +586,7 @@ ScrollRight(NOARGS)
 }
 
 void
-ScrollLeft(NOARGS)
+ScrollLeft()
 {
 	int	amt = arg_or_default(ScrollWidth);
 

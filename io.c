@@ -487,7 +487,7 @@ jbool	is_insert;
 }
 
 void
-SaveFile(NOARGS)
+SaveFile()
 {
 	if (!IsModified(curbuf) && !curbuf->b_diverged) {
 		if (curbuf->b_fname != NULL)
@@ -524,7 +524,7 @@ private List		*DirStack = NULL;
 #define PWD		((char *) PWD_PTR)
 
 char *
-pwd(NOARGS)
+pwd()
 {
 	return PWD;
 }
@@ -572,7 +572,7 @@ jbool	okay_home;
 }
 
 void
-Chdir(NOARGS)
+Chdir()
 {
 	char	dirbuf[FILESIZE];
 
@@ -670,7 +670,7 @@ char	*d;
 }
 
 void
-getCWD(NOARGS)
+getCWD()
 {
 	char	*cwd;
 	char	pathname[FILESIZE];
@@ -697,7 +697,7 @@ getCWD(NOARGS)
 }
 
 void
-prDIRS(NOARGS)
+prDIRS()
 {
 	register List	*lp;
 
@@ -707,7 +707,7 @@ prDIRS(NOARGS)
 }
 
 void
-prCWD(NOARGS)
+prCWD()
 {
 	f_mess(": %f => \"%s\"", PWD);
 	stickymsg = YES;
@@ -744,7 +744,7 @@ doPushd(newdir)
 }
 
 void
-Pushd(NOARGS)
+Pushd()
 {
 	char	dirbuf[FILESIZE];
 
@@ -753,7 +753,7 @@ Pushd(NOARGS)
 }
 
 void
-Pushlibd(NOARGS)
+Pushlibd()
 {
 	char	dirbuf[FILESIZE];
 
@@ -763,7 +763,7 @@ Pushlibd(NOARGS)
 }
 
 void
-Popd(NOARGS)
+Popd()
 {
 	char *newdir;
 
@@ -1048,13 +1048,13 @@ jbool	app;
 }
 
 void
-WrtReg(NOARGS)
+WrtReg()
 {
 	DoWriteReg(NO);
 }
 
 void
-AppReg(NOARGS)
+AppReg()
 {
 	DoWriteReg(YES);
 }
@@ -1062,7 +1062,7 @@ AppReg(NOARGS)
 jbool	OkayBadChars = NO;	/* VAR: allow bad characters in filenames created by JOVE */
 
 void
-JWriteFile(NOARGS)
+JWriteFile()
 {
 	char
 		fnamebuf[FILESIZE];
@@ -1109,7 +1109,7 @@ JWriteFile(NOARGS)
 }
 
 void
-WtModBuf(NOARGS)
+WtModBuf()
 {
 	if (!ModBufs(NO))
 		message("[No buffers need saving]");
@@ -1277,7 +1277,7 @@ jbool	app;
 }
 
 void
-JReadFile(NOARGS)
+JReadFile()
 {
 	char
 		fnamebuf[FILESIZE];
@@ -1335,7 +1335,7 @@ JReadFile(NOARGS)
 }
 
 void
-InsFile(NOARGS)
+InsFile()
 {
 	char
 		fnamebuf[FILESIZE];
@@ -1363,7 +1363,7 @@ daddr	DFree = 1;	/* pointer to end of tmp file */
 private char	*tfname;	/* pathname of tempfile where buffer lines go */
 
 private void
-tmpinit(NOARGS)
+tmpinit()
 {
 	char	buf[FILESIZE];
 
@@ -1386,7 +1386,7 @@ tmpinit(NOARGS)
  * (in particular tmpfd).
  */
 void
-tmpclose(NOARGS)
+tmpclose()
 {
 	if (tmpfd != -1)
 		(void) close(tmpfd);
@@ -1395,7 +1395,7 @@ tmpclose(NOARGS)
 /* Close and remove tempfile before exiting. */
 
 void
-tmpremove(NOARGS)
+tmpremove()
 {
 	if (tmpfd != -1) {
 		tmpclose();
@@ -1607,7 +1607,7 @@ register JSSIZE_T	(*iofcn) ptrproto((int, UnivPtr, JRWSIZE_T));
 }
 
 void
-d_cache_init(NOARGS)
+d_cache_init()
 {
 	register Block	*bp,	/* Block pointer */
 			**hp;	/* Hash pointer */
@@ -1643,7 +1643,7 @@ d_cache_init(NOARGS)
 }
 
 void
-SyncTmp(NOARGS)
+SyncTmp()
 {
 	register Block	*b;
 #ifdef MSDOS
@@ -1835,7 +1835,7 @@ LinePtr	line;
 /* save the current contents of linebuf, if it has changed */
 
 void
-lsave(NOARGS)
+lsave()
 {
 	if (curbuf == NULL || !DOLsave)	/* Nothing modified recently */
 		return;

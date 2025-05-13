@@ -335,7 +335,7 @@ strt:
 }
 
 void
-FillParagraph(NOARGS)
+FillParagraph()
 {
 	LinePtr nl;
 	int lenparatail;
@@ -367,7 +367,7 @@ LinePtr	l1,
 }
 
 void
-FillRegion(NOARGS)
+FillRegion()
 {
 	CopyRegion();	/* enable yank-pop for undo */
 	do_rfill(is_an_arg());
@@ -418,7 +418,7 @@ jbool	ulm;
 }
 
 private void
-do_space(NOARGS)
+do_space()
 {
 	int
 		c1,
@@ -598,13 +598,13 @@ tryagain:
 }
 
 void
-BackPara(NOARGS)
+BackPara()
 {
 	DoPara(BACKWARD);
 }
 
 void
-ForPara(NOARGS)
+ForPara()
 {
 	DoPara(FORWARD);
 }

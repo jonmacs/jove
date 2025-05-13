@@ -111,7 +111,7 @@ char	*into,
 
 
 int
-main(NOARGS)
+main()
 {
 	FILE
 		*ifile,

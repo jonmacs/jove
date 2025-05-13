@@ -47,7 +47,7 @@ private Buffer	*AskBuffer = NULL;	/* Askbuffer points to actual structure */
  * is somewhere in the mini-buffer).
  */
 private Buffer *
-get_minibuf(NOARGS)
+get_minibuf()
 {
 	if (AskBuffer) {		/* make sure it still exists */
 		register Buffer	*b;
@@ -358,7 +358,7 @@ yes_or_no_p(fmt, va_alist)
 jbool	DoEVexpand = YES;	/* VAR: should we expand evironment variables? */
 
 private void
-EVexpand(NOARGS)
+EVexpand()
 {
 	register char	c;
 	register char	*lp = linebuf,

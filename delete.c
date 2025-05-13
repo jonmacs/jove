@@ -111,7 +111,7 @@ register LinePtr	line1,
 /* delete character forward */
 
 void
-DelNChar(NOARGS)
+DelNChar()
 {
 	del_char(FORWARD, arg_value(), YES);
 }
@@ -119,7 +119,7 @@ DelNChar(NOARGS)
 /* Delete character backward */
 
 void
-DelPChar(NOARGS)
+DelPChar()
 {
 	if (MinorMode(OverWrite) && !eolp()) {
 		/* Overwrite with spaces.
@@ -180,7 +180,7 @@ LinePtr	killbuf[NUMKILLS];
 int	killptr = 0;	/* index of newest entry (if any) */
 
 void
-DelKillRing(NOARGS)	/* delete newest entry */
+DelKillRing()	/* delete newest entry */
 {
 	int	i;
 
@@ -263,7 +263,7 @@ jbool	dot_moved;
 }
 
 void
-DelReg(NOARGS)
+DelReg()
 {
 	register Mark	*mp = CurMark();
 
@@ -272,7 +272,7 @@ DelReg(NOARGS)
 
 /* get a new line buffer and add it to the kill ring */
 LinePtr
-new_kill(NOARGS)
+new_kill()
 {
 	register LinePtr	nl = nbufline();
 
@@ -285,7 +285,7 @@ new_kill(NOARGS)
 /* Save a region.  A pretend kill. */
 
 void
-CopyRegion(NOARGS)
+CopyRegion()
 {
 	register LinePtr	nl;
 	register Mark	*mp;
@@ -312,7 +312,7 @@ CopyRegion(NOARGS)
 }
 
 void
-DelWtSpace(NOARGS)
+DelWtSpace()
 {
 	register char	*ep = &linebuf[curchar],
 			*sp = &linebuf[curchar];
@@ -334,7 +334,7 @@ DelWtSpace(NOARGS)
 }
 
 void
-DelBlnkLines(NOARGS)
+DelBlnkLines()
 {
 	register Mark	*dot;
 	jbool	all;
@@ -375,13 +375,13 @@ jbool	forward;
 }
 
 void
-DelNWord(NOARGS)
+DelNWord()
 {
 	dword(YES);
 }
 
 void
-DelPWord(NOARGS)
+DelPWord()
 {
 	dword(NO);
 }

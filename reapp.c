@@ -46,7 +46,7 @@ const char	*str;
 }
 
 private char *
-getsearch(NOARGS)
+getsearch()
 {
 	return searchstr;
 }
@@ -80,25 +80,25 @@ jbool	re,
 }
 
 void
-ForSearch(NOARGS)
+ForSearch()
 {
 	search(FORWARD, UseRE, YES);
 }
 
 void
-RevSearch(NOARGS)
+RevSearch()
 {
 	search(BACKWARD, UseRE, YES);
 }
 
 void
-FSrchND(NOARGS)
+FSrchND()
 {
 	search(FORWARD, UseRE, NO);
 }
 
 void
-RSrchND(NOARGS)
+RSrchND()
 {
 	search(BACKWARD, UseRE, NO);
 }
@@ -287,19 +287,19 @@ jbool	query,
 }
 
 void
-RegReplace(NOARGS)
+RegReplace()
 {
 	replace(NO, YES);
 }
 
 void
-QRepSearch(NOARGS)
+QRepSearch()
 {
 	replace(YES, NO);
 }
 
 void
-RepSearch(NOARGS)
+RepSearch()
 {
 	replace(NO, NO);
 }
@@ -505,7 +505,7 @@ jbool	localp;
 }
 
 void
-FindTag(NOARGS)
+FindTag()
 {
 	jbool	localp = !is_an_arg();
 	char	tag[128];
@@ -517,7 +517,7 @@ FindTag(NOARGS)
 /* Find Tag at Dot. */
 
 void
-FDotTag(NOARGS)
+FDotTag()
 {
 	int	c1 = curchar,
 		c2 = c1;
@@ -594,13 +594,13 @@ jbool		failing;
 }
 
 void
-IncFSearch(NOARGS)
+IncFSearch()
 {
 	IncSearch(FORWARD);
 }
 
 void
-IncRSearch(NOARGS)
+IncRSearch()
 {
 	IncSearch(BACKWARD);
 }

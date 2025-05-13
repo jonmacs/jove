@@ -39,7 +39,7 @@ char *tfname;
 }
 
 private void
-recinit(NOARGS)
+recinit()
 {
 	char	buf[FILESIZE];
 
@@ -66,7 +66,7 @@ recinit(NOARGS)
  * (in particular rec_fd).
  */
 void
-recclose(NOARGS)
+recclose()
 {
 	if (rec_fd != -1)
 		(void) close(rec_fd);
@@ -76,7 +76,7 @@ recclose(NOARGS)
 
 
 void
-recremove(NOARGS)
+recremove()
 {
 	if (rec_fd != -1) {
 		recclose();
@@ -120,7 +120,7 @@ int	ModCount = 0;	/* number of buffer mods since last sync */
 int	SyncFreq = 50;	/* VAR: how often to sync the file pointers */
 
 void
-SyncRec(NOARGS)
+SyncRec()
 {
 	register Buffer	*b;
 	static jbool	beenhere = NO;

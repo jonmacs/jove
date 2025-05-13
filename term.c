@@ -23,7 +23,7 @@ jbool
 
 #ifndef UNIX
 void
-settout(NOARGS)
+settout()
 {
 # ifndef NO_JSTDOUT
 	flushscreen();		/* flush the one character buffer */

@@ -422,7 +422,7 @@ ZXchar	c;
 }
 
 ZXchar
-kbd_getch(NOARGS)
+kbd_getch()
 {
 	register ZXchar	c;
 
@@ -563,7 +563,7 @@ kbd_getch(NOARGS)
 /* Returns YES if a character waiting (excluding macro body) */
 
 jbool
-charp(NOARGS)
+charp()
 {
 	if (InJoverc != 0 || kbdpeek != EOF || nchars > 0 || Inputp != NULL)
 		return InputPending = YES;
@@ -756,7 +756,7 @@ private jbool	in_ask_ks;
 private volatile jbool	slow_keying = NO;	/* for waitchar() */
 
 void
-cmd_sync(NOARGS)
+cmd_sync()
 {
 	if (this_cmd != ARG_CMD) {
 		clr_arg_value();
@@ -768,7 +768,7 @@ cmd_sync(NOARGS)
 }
 
 ZXchar
-ask_ks(NOARGS)
+ask_ks()
 {
 	in_ask_ks = YES;
 	keys_p = key_strokes;
@@ -800,7 +800,7 @@ size_t	size;
 }
 
 private void
-ShowKeyStrokes(NOARGS)
+ShowKeyStrokes()
 {
 	char	buffer[100];
 
@@ -816,7 +816,7 @@ ShowKeyStrokes(NOARGS)
 #define N_SEC	1	/* will be precisely 1 second on 4.2 */
 
 ZXchar
-waitchar(NOARGS)
+waitchar()
 {
 	ZXchar	c;
 #ifdef WAITCHAR_CURSOR_DOWN
@@ -892,7 +892,7 @@ waitchar(NOARGS)
 }
 
 private void
-SetTerm(NOARGS)
+SetTerm()
 {
 #ifdef IBMPCDOS
 	pcSetTerm();
@@ -942,7 +942,7 @@ jbool	WarnUnwritten;
 
 #ifdef JOB_CONTROL
 void
-PauseJove(NOARGS)
+PauseJove()
 {
 	UnsetTerm(YES);
 	(void) kill(0, SIGTSTP);
@@ -961,7 +961,7 @@ PauseJove(NOARGS)
 
 # ifndef MSDOS
 void
-jcloseall(NOARGS)
+jcloseall()
 {
 	tmpclose();
 #  ifdef RECOVER
@@ -974,7 +974,7 @@ jcloseall(NOARGS)
 # endif /* !MSDOS */
 
 void
-Push(NOARGS)
+Push()
 {
 # ifdef MSDOS_PROCS
 #  ifdef MSDOS
@@ -1058,7 +1058,7 @@ Push(NOARGS)
 
 /* adjust the tty to reflect possible change to JOVE variables */
 void
-tty_adjust(NOARGS)
+tty_adjust()
 {
 	ttysetattr(YES);
 #ifdef MOUSE
@@ -1088,7 +1088,7 @@ ZXchar	c;
  * was gathered into argcount.
  */
 ZXchar
-peek_or_mac_getch(NOARGS) {
+peek_or_mac_getch() {
 	ZXchar c;
 	if ((c = peekchar) != EOF) {
 		/* got input from pushback */
@@ -1110,7 +1110,7 @@ peek_or_mac_getch(NOARGS) {
  * by a more elegant solution.
  */
 void
-dispatch_macros(NOARGS) {
+dispatch_macros() {
 	ZXchar	c;
 	int	saved_tcmd = this_cmd;
 	int	saved_lcmd = last_cmd;
@@ -1130,7 +1130,7 @@ dispatch_macros(NOARGS) {
 }
 
 ZXchar
-getch(NOARGS)
+getch()
 {
 	register ZXchar	c;
 
@@ -1174,7 +1174,7 @@ getch(NOARGS)
 }
 
 void
-TeachJove(NOARGS)
+TeachJove()
 {
 	char tnamebuf[FILESIZE];
 	PathCat(tnamebuf, sizeof(tnamebuf), HomeDir, TEACHJOVE);
@@ -1188,7 +1188,7 @@ TeachJove(NOARGS)
 }
 
 void
-ShowVersion(NOARGS)
+ShowVersion()
 {
 	s_mess("Jonathan's Own Version of Emacs (%s)", jversion);
 }
@@ -1447,7 +1447,7 @@ confirm(fmt, va_alist)
 int	RecDepth = 0;
 
 void
-Recur(NOARGS)
+Recur()
 {
 	Buffer	*b = curbuf;
 	Mark	*m;
@@ -1642,7 +1642,7 @@ jbool	dousr;
 }
 
 private void
-setfeatures(NOARGS)
+setfeatures()
 {
 	JoveFeatures[0] = '\0';
 #ifdef UNIX

@@ -155,7 +155,7 @@ jbool
 /* Initialization Routines. */
 
 void
-getTERM(NOARGS)
+getTERM()
 {
 }
 
@@ -187,7 +187,7 @@ char	kmc;
 }
 
 private void
-InitBinds(NOARGS)
+InitBinds()
 {
 	InitMapBinds(MainKeys, F_MAINMAP);
 	InitMapBinds(EscKeys, F_PREF1MAP);
@@ -201,7 +201,7 @@ private CursHandle cross;
 private void InitSysMenu proto((void));
 
 void
-InitEvents(NOARGS)
+InitEvents()
 {
 	window = theScreen;
 	InitSysMenu();
@@ -216,7 +216,7 @@ private void	tn_init proto((void));
 private int	getdir proto((void));
 
 void
-MacInit(NOARGS)
+MacInit()
 {
 	tn_init();
 	getdir();
@@ -726,7 +726,7 @@ struct stat *buf;
  * Numbers", which are confusing.
  */
 private int
-getdir(NOARGS)	/* call this only once, during startup. */
+getdir()	/* call this only once, during startup. */
 {
 	WDPBRec p;
 
@@ -940,7 +940,7 @@ size_t	size;
 }
 
 char *
-gethome(NOARGS)		/* this will be startup directory */
+gethome()		/* this will be startup directory */
 {
 	static char *ret = NULL;
 	char	space[FILESIZE];
@@ -989,7 +989,7 @@ private ListHandle
 	makelist proto((void));
 
 private void
-about_j(NOARGS)
+about_j()
 {
 	WindowPtr OldWindow;
 
@@ -1012,7 +1012,7 @@ about_j(NOARGS)
 
 
 private WindowPtr
-makedisplay(NOARGS)
+makedisplay()
 {
 	static short dlogid = 0;
 
@@ -1057,7 +1057,7 @@ makedisplay(NOARGS)
 }
 
 private void
-do_display(NOARGS)		/* draw necessary controls, lines */
+do_display()		/* draw necessary controls, lines */
 {
 	Rect rViewF;		/* framing rect for list */
 	int offset;
@@ -1074,7 +1074,7 @@ do_display(NOARGS)		/* draw necessary controls, lines */
 }
 
 private ListHandle
-makelist(NOARGS)
+makelist()
 {
 	Point csize;
 	Rect dataBounds, rView;	/* list boundaries */
@@ -1122,7 +1122,7 @@ char *buf;
 }
 
 private void
-do_list(NOARGS)
+do_list()
 {
 	int row, col;
 	const struct cmd *f;
@@ -1171,7 +1171,7 @@ short *itemHit;
 
 
 void
-do_events(NOARGS)
+do_events()
 {
 	short item;
 	jbool done = NO;
@@ -1212,7 +1212,7 @@ private void
 	drawfluff proto((void));
 
 void
-docontrols(NOARGS)	/* called from redisplay routines */
+docontrols()	/* called from redisplay routines */
 {
 	Window *w;
 	int top;
@@ -1286,7 +1286,7 @@ Window *w;
 }
 
 private void
-drawfluff(NOARGS)		/* draw controls and dividers */
+drawfluff()		/* draw controls and dividers */
 {
 	Window *w = fwind;
 
@@ -1340,7 +1340,7 @@ int part;
 private long npos;	/* number of lines in buffer */
 
 private int
-ltoc(NOARGS)	/* calculate ctlvalue for line position */
+ltoc()	/* calculate ctlvalue for line position */
 {
 	long ipos = LinesTo(curbuf->b_first, curline) + 1;
 
@@ -1525,7 +1525,7 @@ int row;
 private int	ptoxy proto((Point, int *, int *));	/* convert Point to terminal x, y coordinate */
 
 private jbool
-findtext(NOARGS)		/* locate and move the point to match the mouse */
+findtext()		/* locate and move the point to match the mouse */
 {
 	int row, col;
 	int offset;
@@ -1634,7 +1634,7 @@ private void
 	MarkModes proto((void));
 
 private void
-CheckEvents(NOARGS)
+CheckEvents()
 {
 	EventRecord theEvent;
 	static long time = 0;
@@ -1675,7 +1675,7 @@ CheckEvents(NOARGS)
 private void InitLocalMenus proto((void));
 
 private void
-InitSysMenu(NOARGS)
+InitSysMenu()
 {
 	SysMenu = NewMenu(SYS_ID, "\p\24");
 	AppendMenu(SysMenu, "\pAbout Jove");
@@ -1917,7 +1917,7 @@ EventRecord *event;
 }
 
 private ZXchar
-rawgetc(NOARGS)
+rawgetc()
 {
 	static int cptr = 0;
 	ZXchar c;
@@ -1944,7 +1944,7 @@ rawgetc(NOARGS)
 }
 
 jbool
-rawchkc(NOARGS)
+rawchkc()
 {
 	if (EventCmd) {
 		longjmp(auxjmp, 1);
@@ -2000,7 +2000,7 @@ ParmBlkPtr p;
 }
 
 private void
-check_dir(NOARGS)
+check_dir()
 {
 	if (cur_vol != 0 - SFSaveDisk || cur_dir != CurDirStore) {
 		char	space[FILESIZE];
@@ -2135,7 +2135,7 @@ private void
 	make_edits proto((int menu));
 
 private void
-InitLocalMenus(NOARGS)
+InitLocalMenus()
 {
 	int i;
 
@@ -2234,7 +2234,7 @@ int menu;
 }
 
 void
-menus_off(NOARGS)
+menus_off()
 {
 	int i;
 
@@ -2252,7 +2252,7 @@ menus_off(NOARGS)
 }
 
 void
-menus_on(NOARGS)
+menus_on()
 {
 	int i;
 
@@ -2305,7 +2305,7 @@ int	i;
 }
 
 private void
-SetBufMenu(NOARGS)
+SetBufMenu()
 {
 	Buffer *b;
 	int i, j, stop;
@@ -2362,7 +2362,7 @@ int mnu, itm;
 }
 
 private void
-MarkModes(NOARGS)
+MarkModes()
 {
 	int mnu, itm;
 	data_obj *d;
@@ -2514,7 +2514,7 @@ jbool new;
 private void	init_slate proto((void));
 
 private void
-tn_init(NOARGS)
+tn_init()
 {
 #ifdef NEVER
 	INSmode(NO);
@@ -2525,7 +2525,7 @@ tn_init(NOARGS)
 }
 
 void
-clr_page(NOARGS)	/* clear and home function */
+clr_page()	/* clear and home function */
 {
 	Rect r;
 
@@ -2572,7 +2572,7 @@ jbool	invert;
 }
 
 void
-clr_eoln(NOARGS)
+clr_eoln()
 {
 		Rect r;
 
@@ -2587,7 +2587,7 @@ clr_eoln(NOARGS)
 
 #ifdef NEVER
 private void
-delchars(NOARGS)
+delchars()
 {
 	Rect r;
 	RgnHandle updateRgn;
@@ -2675,7 +2675,7 @@ size_t	len;
 private Rect myBoundsRect;
 
 private void
-init_slate(NOARGS)
+init_slate()
 {
 	FontInfo f;
 
@@ -2731,7 +2731,7 @@ init_slate(NOARGS)
 }
 
 private void
-p_refresh(NOARGS)
+p_refresh()
 {
 	int lineno;
 
@@ -2779,19 +2779,19 @@ int init;
 }
 
 private int
-getCO(NOARGS)	/* so that jove knows params */
+getCO()	/* so that jove knows params */
 {
 	return wc->w_cols;
 }
 
 private int
-getLI(NOARGS)
+getLI()
 {
 	return wc->w_rows;
 }
 
 void
-ttsize(NOARGS)
+ttsize()
 {
 	/* ??? We really ought to wait until the screen is big enough:
 	 * at least three lines high (one line each for buffer, mode,
@@ -2810,7 +2810,7 @@ ttsize(NOARGS)
 }
 
 private void
-SetBounds(NOARGS)
+SetBounds()
 {
 	SetRect(&myBoundsRect,
 		qd.screenBits.bounds.left + 3,
@@ -2820,7 +2820,7 @@ SetBounds(NOARGS)
 }
 
 private void
-Set_std(NOARGS)
+Set_std()
 {
 	(void) wc_adjust(qd.screenBits.bounds.right - qd.screenBits.bounds.left - 6,
 		qd.screenBits.bounds.bottom - qd.screenBits.bounds.top - 42,
@@ -2828,7 +2828,7 @@ Set_std(NOARGS)
 }
 
 private void
-Reset_std(NOARGS)
+Reset_std()
 {
 	Set_std();
 	std_state(theScreen) = myBoundsRect;

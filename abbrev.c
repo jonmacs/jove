@@ -104,7 +104,7 @@ char	*abbrev,
 }
 
 void
-AbbrevExpand(NOARGS)
+AbbrevExpand()
 {
 	char	wordbuf[100];
 	register char
@@ -219,19 +219,19 @@ char	*file;
 }
 
 void
-DefGAbbrev(NOARGS)
+DefGAbbrev()
 {
 	def_abbrev(A_tables[GLOBAL]);
 }
 
 void
-DefMAbbrev(NOARGS)
+DefMAbbrev()
 {
 	def_abbrev(A_tables[curbuf->b_major]);
 }
 
 void
-SaveAbbrevs(NOARGS)
+SaveAbbrevs()
 {
 	char	filebuf[FILESIZE];
 
@@ -239,7 +239,7 @@ SaveAbbrevs(NOARGS)
 }
 
 void
-RestAbbrevs(NOARGS)
+RestAbbrevs()
 {
 	char	filebuf[FILESIZE];
 
@@ -247,7 +247,7 @@ RestAbbrevs(NOARGS)
 }
 
 void
-EditAbbrevs(NOARGS)
+EditAbbrevs()
 {
 	char	tname[128];
 	static const char	EditName[] = "Abbreviation Edit";
@@ -290,7 +290,7 @@ EditAbbrevs(NOARGS)
 }
 
 void
-BindMtoW(NOARGS)
+BindMtoW()
 {
 	struct abbrev	*ap;
 	const char	*word = ask((char *)NULL, "Word: ");

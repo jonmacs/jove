@@ -94,7 +94,7 @@ static const char scanToAsciiUpper[] = {
 #endif /* IBMPCDOS */
 
 ZXchar
-getrawinchar(NOARGS)
+getrawinchar()
 {
 #ifdef IBMPCDOS
 	unsigned scan;
@@ -176,7 +176,7 @@ getrawinchar(NOARGS)
 private jbool	waiting = NO;
 
 jbool
-rawkey_ready(NOARGS)
+rawkey_ready()
 {
 #ifdef IBMPCDOS
 	return !waiting && (last != EOF || jkbready());
@@ -204,7 +204,7 @@ rawkey_ready(NOARGS)
  * NOTE: this is a busy wait.
  */
 private void
-rawkey_wait(NOARGS)
+rawkey_wait()
 {
 	while (!rawkey_ready()) {
 		if (UpdModLine) {

@@ -47,7 +47,7 @@ int
 	Hlattr = 0x10;	/* VAR: highlight-attribute */
 
 void
-getTERM(NOARGS)
+getTERM()
 {
 	/* Check if 101- or 102-key keyboard is installed.
 	 * This test is apparently unreliable, so we allow override.
@@ -66,7 +66,7 @@ BYTE attr;
 }
 
 private void
-set_cur(NOARGS)
+set_cur()
 {
 	union REGS vr;
 
@@ -78,7 +78,7 @@ set_cur(NOARGS)
 }
 
 private void
-get_cur(NOARGS)
+get_cur()
 {
 	union REGS vr;
 
@@ -90,7 +90,7 @@ get_cur(NOARGS)
 }
 
 private BYTE
-chpl(NOARGS)
+chpl()
 {
 	union REGS vr;
 
@@ -134,7 +134,7 @@ int top, bottom, num;
 }
 
 void
-clr_page(NOARGS)
+clr_page()
 {
 	SO_off();
 	/* Note: VBS_scroll_window_up with a count of 0 clears the screen! */
@@ -157,7 +157,7 @@ BYTE c, n;
 }
 
 void
-clr_eoln(NOARGS)
+clr_eoln()
 {
 	ch_out(' ', CO-c_col);
 }
@@ -167,7 +167,7 @@ clr_eoln(NOARGS)
  */
 
 private BYTE
-lpp(NOARGS)
+lpp()
 {
 	union REGS vr;
 	int	lines;
@@ -193,7 +193,7 @@ lpp(NOARGS)
 /* discover current video attribute */
 
 private void
-get_c_attr(NOARGS)
+get_c_attr()
 {
 	union REGS vr;
 
@@ -305,7 +305,7 @@ private jbool	pc_set = NO;
 private int	unsetLI;
 
 void
-pcSetTerm(NOARGS)
+pcSetTerm()
 {
 	char	*t = getenv("TERM");
 
@@ -335,12 +335,12 @@ pcSetTerm(NOARGS)
 }
 
 void
-ttsize(NOARGS)
+ttsize()
 {
 }
 
 void
-pcUnsetTerm(NOARGS)
+pcUnsetTerm()
 {
 	if (pc_set) {
 		pc_set = NO;
@@ -349,7 +349,7 @@ pcUnsetTerm(NOARGS)
 }
 
 private void
-line_feed(NOARGS)
+line_feed()
 {
 	if (++c_row > ILI) {
 		c_row = ILI;
@@ -464,7 +464,7 @@ private jbool
 	doing_us = NO;
 
 private void
-doattr(NOARGS)
+doattr()
 {
 	setcolor((doing_so? Mlattr : Txattr) ^ (doing_us? Hlattr : 0));
 }

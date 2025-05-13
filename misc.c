@@ -20,14 +20,14 @@
 #include "para.h"
 
 void
-prCTIME(NOARGS)
+prCTIME()
 {
 	f_mess(": %f %s", get_time((time_t *)NULL, (char *)NULL, 0, -1));
 	stickymsg = YES;
 }
 
 void
-ChrToOct(NOARGS)
+ChrToOct()
 {
 	ZXchar	c = ask_ks();
 
@@ -41,7 +41,7 @@ ChrToOct(NOARGS)
 }
 
 void
-StrLength(NOARGS)
+StrLength()
 {
 	static const char	inquotes[] = "Where are the quotes?";
 	char	*cp;
@@ -88,7 +88,7 @@ StrLength(NOARGS)
 /* Transpose cur_char with cur_char - 1 */
 
 void
-TransChar(NOARGS)
+TransChar()
 {
 	char	before;
 
@@ -107,7 +107,7 @@ TransChar(NOARGS)
 /* Switch current line with previous one */
 
 void
-TransLines(NOARGS)
+TransLines()
 {
 	daddr	old_prev;
 
@@ -135,7 +135,7 @@ TransLines(NOARGS)
 /* exit-jove command */
 
 void
-Leave(NOARGS)
+Leave()
 {
 	longjmp(mainjmp, JMP_QUIT);
 	/* NOTREACHED */
@@ -147,7 +147,7 @@ Leave(NOARGS)
  * as if we were at the end of the line.
  */
 void
-KillEOL(NOARGS)
+KillEOL()
 {
 	LinePtr	line2;
 	int	char2;
@@ -180,7 +180,7 @@ KillEOL(NOARGS)
 /* kill to beginning of sentence */
 
 void
-KillBos(NOARGS)
+KillBos()
 {
 	negate_arg();
 	KillEos();
@@ -189,7 +189,7 @@ KillBos(NOARGS)
 /* Kill to end of sentence */
 
 void
-KillEos(NOARGS)
+KillEos()
 {
 	LinePtr	line1;
 	int	char1;
@@ -201,7 +201,7 @@ KillEos(NOARGS)
 }
 
 void
-KillExpr(NOARGS)
+KillExpr()
 {
 	LinePtr	line1;
 	int	char1;
@@ -213,7 +213,7 @@ KillExpr(NOARGS)
 }
 
 void
-Yank(NOARGS)
+Yank()
 {
 	LinePtr	line,
 		lp;
@@ -232,14 +232,14 @@ Yank(NOARGS)
 }
 
 void
-ToIndent(NOARGS)
+ToIndent()
 {
 	Bol();
 	skip_wht_space();
 }
 
 void
-skip_wht_space(NOARGS)
+skip_wht_space()
 {
 	register char	*cp = linebuf + curchar;
 
@@ -252,7 +252,7 @@ skip_wht_space(NOARGS)
  * If no argument is specified it asks for a line number.
  */
 void
-GoLine(NOARGS)
+GoLine()
 {
 	LinePtr	newline;
 
@@ -267,13 +267,13 @@ GoLine(NOARGS)
 }
 
 void
-NotModified(NOARGS)
+NotModified()
 {
 	unmodify();
 }
 
 void
-SetLMargin(NOARGS)
+SetLMargin()
 {
 	int	lmarg = calc_pos(linebuf, curchar);
 
@@ -285,7 +285,7 @@ SetLMargin(NOARGS)
 }
 
 void
-SetRMargin(NOARGS)
+SetRMargin()
 {
 	int	rmarg = calc_pos(linebuf, curchar);
 

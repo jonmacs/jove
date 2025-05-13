@@ -30,7 +30,7 @@ private ZXchar	REpeekc;
 private const char	*REptr;
 
 private ZXchar
-REgetc(NOARGS)
+REgetc()
 {
 	ZXchar	c;
 
@@ -668,7 +668,7 @@ star:
 }
 
 private void
-REreset(NOARGS)
+REreset()
 {
 	register int	i;
 
@@ -945,7 +945,7 @@ size_t size;
 }
 
 void
-RErecur(NOARGS)
+RErecur()
 {
 	char	repbuf[sizeof rep_str];
 	Mark	*m = MakeMark(curline, REbom);

@@ -63,7 +63,7 @@ int	flags,
 }
 
 void
-gc_openfiles(NOARGS)
+gc_openfiles()
 {
 	register File	*fp;
 
@@ -218,7 +218,7 @@ register File	*fp;
 
 #ifndef NO_JSTDOUT
 void
-flushscreen(NOARGS)
+flushscreen()
 {
 	flushout(jstdout);
 }

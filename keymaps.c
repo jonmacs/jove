@@ -317,7 +317,7 @@ data_obj *d;
 }
 
 private void
-UnmarkMaps(NOARGS)
+UnmarkMaps()
 {
 	struct keymap	*km;
 
@@ -492,38 +492,38 @@ const data_obj *(*findproc) ptrproto((const char *));
 
 /* bind a command to a key in the buffer's local keymap. */
 void
-LBindAKey(NOARGS)
+LBindAKey()
 {
 	DoLBind(findcom);
 }
 
 /* bind a macro to a key in the buffers local keymap. */
 void
-LBindMac(NOARGS)
+LBindMac()
 {
 	DoLBind(findmac);
 }
 
 void
-LBindMap(NOARGS)
+LBindMap()
 {
 	DoLBind(findmap);
 }
 
 void
-BindAKey(NOARGS)
+BindAKey()
 {
 	DoBind(findcom, mainmap);
 }
 
 void
-BindMac(NOARGS)
+BindMac()
 {
 	DoBind(findmac, mainmap);
 }
 
 void
-BindMap(NOARGS)
+BindMap()
 {
 	DoBind(findmap, mainmap);
 }
@@ -531,19 +531,19 @@ BindMap(NOARGS)
 #ifdef IPROCS
 
 void
-PBindAKey(NOARGS)
+PBindAKey()
 {
 	DoBind(findcom, procsmap);
 }
 
 void
-PBindMac(NOARGS)
+PBindMac()
 {
 	DoBind(findmac, procsmap);
 }
 
 void
-PBindMap(NOARGS)
+PBindMap()
 {
 	DoBind(findmap, procsmap);
 }
@@ -551,14 +551,14 @@ PBindMap(NOARGS)
 #endif
 
 void
-Unbound(NOARGS)
+Unbound()
 {
 	complain("%f");
 	/* NOTREACHED */
 }
 
 void
-KeyDesc(NOARGS)
+KeyDesc()
 {
 	struct keymap *maps[MAX_KEYMAPS];
 	int nmaps;
@@ -647,7 +647,7 @@ char *pref;
 }
 
 void
-DescBindings(NOARGS)
+DescBindings()
 {
 	TOstart("Key Bindings");
 	UnmarkMaps();
@@ -802,19 +802,19 @@ jbool show_bindings;
 }
 
 void
-DescCom(NOARGS)
+DescCom()
 {
 	ShowDoc("Command", findcom(ProcFmt), YES);
 }
 
 void
-DescVar(NOARGS)
+DescVar()
 {
 	ShowDoc("Variable", findvar(ProcFmt), NO);
 }
 
 void
-Apropos(NOARGS)
+Apropos()
 {
 	register const struct cmd *cp;
 	register struct macro *m;
@@ -874,7 +874,7 @@ Apropos(NOARGS)
 }
 
 void
-InitKeymaps(NOARGS)
+InitKeymaps()
 {
 	struct keymap *km;
 

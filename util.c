@@ -35,7 +35,7 @@ register char	*buf;
 }
 
 jbool
-within_indent(NOARGS)
+within_indent()
 {
 	register int	i;
 
@@ -86,7 +86,7 @@ register Bufpos	*bp;
 }
 
 void
-ToLast(NOARGS)
+ToLast()
 {
 	SetLine(curbuf->b_last);
 	Eol();
@@ -178,7 +178,7 @@ register LinePtr	line;
 }
 
 void
-ToFirst(NOARGS)
+ToFirst()
 {
 	SetLine(curbuf->b_first);
 }
@@ -333,7 +333,7 @@ LinePtr	first,
  * if it will need to be changed.
  */
 void
-modify(NOARGS)
+modify()
 {
 	if (!curbuf->b_modified) {
 		UpdModLine = YES;
@@ -347,7 +347,7 @@ modify(NOARGS)
 }
 
 void
-unmodify(NOARGS)
+unmodify()
 {
 	if (curbuf->b_modified) {
 		UpdModLine = YES;
@@ -483,7 +483,7 @@ int	atchar,
 }
 
 jbool
-TwoBlank(NOARGS)
+TwoBlank()
 {
 	register LinePtr	next = curline->l_next;
 

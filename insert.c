@@ -129,7 +129,7 @@ register int	goal;
 
 #ifdef ABBREV
 void
-MaybeAbbrevExpand(NOARGS)
+MaybeAbbrevExpand()
 {
 	if (MinorMode(Abbrev) && !jisident(LastKeyStruck)
 	&& !bolp() && jisident(linebuf[curchar - 1]))
@@ -168,7 +168,7 @@ int	n;
 }
 
 void
-SelfInsert(NOARGS)
+SelfInsert()
 {
 #ifdef ABBREV
 	MaybeAbbrevExpand();
@@ -220,7 +220,7 @@ int	n;
 /* Tab in to the right place for C mode */
 
 void
-Tab(NOARGS)
+Tab()
 {
 #ifdef LISP
 	if (MajorMode(LISPMODE) && (bolp() || !eolp())) {
@@ -257,7 +257,7 @@ Tab(NOARGS)
 }
 
 void
-QuotChar(NOARGS)
+QuotChar()
 {
 	ZXchar	c = ask_ks();
 
@@ -292,7 +292,7 @@ int	PDelay = 5,		/* VAR: paren flash delay in tenths of a second */
 	CIndIncrmt = 8;	/* VAR: how much each indentation level pushes over in C mode */
 
 void
-DoParen(NOARGS)
+DoParen()
 {
 	Bufpos	*bp = NULL;	/* avoid uninitialized complaint from gcc -W */
 	ZXchar	c = LastKeyStruck;
@@ -343,13 +343,13 @@ DoParen(NOARGS)
 }
 
 void
-LineAI(NOARGS)
+LineAI()
 {
 	DoNewline(YES);
 }
 
 void
-Newline(NOARGS)
+Newline()
 {
 	DoNewline(MinorMode(Indent));
 }
@@ -455,7 +455,7 @@ long	n;
 }
 
 void
-OpenLine(NOARGS)
+OpenLine()
 {
 	open_lines(arg_value());
 }
@@ -519,7 +519,7 @@ Buffer	*whatbuf;
 }
 
 void
-YankPop(NOARGS)
+YankPop()
 {
 	Mark	*mp = CurMark();
 	LinePtr	line,
@@ -613,7 +613,7 @@ register LinePtr	line;
  */
 
 private void
-RecycleLines(NOARGS)
+RecycleLines()
 {
 	if (ffline == NULL)
 		return;	/* nothing to do */
@@ -659,7 +659,7 @@ register LinePtr	line1,
 }
 
 private jbool
-newchunk(NOARGS)
+newchunk()
 {
 	register LinePtr	newline;
 	register long	i;
@@ -699,7 +699,7 @@ newchunk(NOARGS)
 /* New BUFfer LINE */
 
 LinePtr
-nbufline(NOARGS)
+nbufline()
 {
 	register LinePtr	newline;
 
@@ -749,7 +749,7 @@ register ChunkPtr	c;
  */
 
 void
-GCchunks(NOARGS)
+GCchunks()
 {
 	register ChunkPtr	cp;
 	ChunkPtr	prev = NULL,
@@ -787,7 +787,7 @@ GCchunks(NOARGS)
 /* Grind S-Expr */
 
 void
-GSexpr(NOARGS)
+GSexpr()
 {
 	Bufpos	dot,
 		end;
@@ -817,7 +817,7 @@ GSexpr(NOARGS)
 private List	*specials = NULL;
 
 private void
-init_specials(NOARGS)
+init_specials()
 {
 	static const char *const words[] = {
 		"case",
@@ -841,7 +841,7 @@ init_specials(NOARGS)
 }
 
 void
-AddSpecial(NOARGS)
+AddSpecial()
 {
 	const char	*word;
 	register List	*lp;
@@ -856,7 +856,7 @@ AddSpecial(NOARGS)
 }
 
 private Bufpos *
-lisp_indent(NOARGS)
+lisp_indent()
 {
 	Bufpos	*bp,
 		savedot;

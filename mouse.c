@@ -118,7 +118,7 @@ private int last_mouse_act = LMA_NONE;
 private const char *saved_M_SR = NULL;	/* KLUDGE for xterm/termcap bug */
 
 void
-MouseOn(NOARGS)
+MouseOn()
 {
 	if (XtermMouse != xtMouseState) {
 		/* KLUDGE for xterm/termcap bug */
@@ -136,7 +136,7 @@ MouseOn(NOARGS)
 }
 
 void
-MouseOff(NOARGS)
+MouseOff()
 {
 	if (xtMouseState) {
 		putstr(xtMouseDisable);
@@ -148,7 +148,7 @@ MouseOff(NOARGS)
 /* Set cursor position to that of mouse pointer. */
 
 private void
-SetCursor(NOARGS)
+SetCursor()
 {
 	int	line_pos = in_window(curwind, curline);
 	int	offset = PhysScreen[y_coord].s_offset;
@@ -170,7 +170,7 @@ SetCursor(NOARGS)
 }
 
 private void
-ScrollToMouse(NOARGS)
+ScrollToMouse()
 {
 	register int	lc;
 	const int	width = (CO - 1 - (4 * SG)) * font_width;	/* must match size in ModeLine */
@@ -215,7 +215,7 @@ cmdproc_t p;
 /* Get next value in number sequence */
 
 private int
-NextValue(NOARGS)
+NextValue()
 {
 	int val;
 
@@ -660,13 +660,13 @@ int	mproto;
 }
 
 void
-xjMousePoint(NOARGS)
+xjMousePoint()
 {
 	MousePoint(MPROTO_JOVETOOL);
 }
 
 void
-xtMousePoint(NOARGS)
+xtMousePoint()
 {
 	MousePoint(MPROTO_XTERM);
 }
@@ -683,13 +683,13 @@ int	mproto;
 }
 
 void
-xjMouseMark(NOARGS)
+xjMouseMark()
 {
 	MouseMark(MPROTO_JOVETOOL);
 }
 
 void
-xtMouseMark(NOARGS)
+xtMouseMark()
 {
 	MouseMark(MPROTO_XTERM);
 }
@@ -699,7 +699,7 @@ xtMouseMark(NOARGS)
  * xtMouseYank is more like XTerm's native behavior.
  */
 void
-xtMouseYank(NOARGS)
+xtMouseYank()
 {
 	last_mouse_act = LMA_NONE;
 	if (MouseParams(MPROTO_XTERM)) {
@@ -709,7 +709,7 @@ xtMouseYank(NOARGS)
 }
 
 void
-xtMousePointYank(NOARGS)
+xtMousePointYank()
 {
 	last_mouse_act = LMA_NONE;
 	if (MouseParams(MPROTO_XTERM)) {
@@ -720,7 +720,7 @@ xtMousePointYank(NOARGS)
 }
 
 void
-xtMouseCutPointYank(NOARGS)
+xtMouseCutPointYank()
 {
 	Mark *m;
 
@@ -740,7 +740,7 @@ xtMouseCutPointYank(NOARGS)
 }
 
 void
-xtMouseNull(NOARGS)
+xtMouseNull()
 {
 	MouseParams(MPROTO_XTERM);
 }
@@ -753,7 +753,7 @@ xtMouseNull(NOARGS)
  * empty.
  */
 private void
-startMouseWord(NOARGS)
+startMouseWord()
 {
 	jbool	in_id;
 
@@ -765,7 +765,7 @@ startMouseWord(NOARGS)
 }
 
 private void
-endMouseWord(NOARGS)
+endMouseWord()
 {
 	jbool	in_id;
 
@@ -777,7 +777,7 @@ endMouseWord(NOARGS)
 }
 
 private void
-doMouseWord(NOARGS)
+doMouseWord()
 {
 	startMouseWord();
 	set_mark();
@@ -785,7 +785,7 @@ doMouseWord(NOARGS)
 }
 
 private void
-doMouseLine(NOARGS)
+doMouseLine()
 {
 	Bol();
 	set_mark();
@@ -799,7 +799,7 @@ doMouseLine(NOARGS)
  * region, it is the point end (not the mark end) that gets moved.
  */
 private jbool
-doMouseExtend(NOARGS)
+doMouseExtend()
 {
 	jbool	region_forward, new_forward;
 
@@ -866,7 +866,7 @@ doMouseExtend(NOARGS)
  *   be slightly surprising when no drag was done.
  */
 void
-xtMouseMarkDragPointCopy(NOARGS)
+xtMouseMarkDragPointCopy()
 {
 	if (MouseParams(MPROTO_XTDRAG)) {
 		/* assert((but_state & JT_EVENTMASK) == JT_DRAGEVENT) */
@@ -935,7 +935,7 @@ xtMouseMarkDragPointCopy(NOARGS)
  * selects and copies a region (e.g. xtMouseMarkDragPointCop).
  */
 void
-xtMouseExtend(NOARGS)
+xtMouseExtend()
 {
 	if (MouseParams(MPROTO_XTERM)) {
 		if (doMouseExtend()) {
@@ -947,7 +947,7 @@ xtMouseExtend(NOARGS)
 
 /* undo effect of preceding MouseCopyCut, if any */
 private void
-MouseUndo(NOARGS)
+MouseUndo()
 {
 	if (last_mouse_act & LMA_PASTE) {
 		ObeyProc(DelReg);	/* at old curwind/line/char */
@@ -972,7 +972,7 @@ MouseUndo(NOARGS)
 }
 
 void
-xjMouseWord(NOARGS)
+xjMouseWord()
 {
 	if (MouseParams(MPROTO_JOVETOOL)) {
 		MouseUndo();
@@ -981,7 +981,7 @@ xjMouseWord(NOARGS)
 }
 
 void
-xjMouseLine(NOARGS)
+xjMouseLine()
 {
 	if (MouseParams(MPROTO_JOVETOOL)) {
 		MouseUndo();
@@ -991,7 +991,7 @@ xjMouseLine(NOARGS)
 }
 
 void
-xjMouseYank(NOARGS)
+xjMouseYank()
 {
 	last_mouse_act = LMA_NONE;
 	if (MouseParams(MPROTO_JOVETOOL)) {
@@ -1002,7 +1002,7 @@ xjMouseYank(NOARGS)
 }
 
 void
-xjMouseCopyCut(NOARGS)
+xjMouseCopyCut()
 {
 	register Mark	*mp = curmark;
 

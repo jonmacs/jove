@@ -48,7 +48,7 @@ private int	ExecIndex = 0;
 /* Command auto-execute. */
 
 void
-CAutoExec(NOARGS)
+CAutoExec()
 {
 	DefAutoExec(findcom);
 }
@@ -56,7 +56,7 @@ CAutoExec(NOARGS)
 /* Macro auto-execute. */
 
 void
-MAutoExec(NOARGS)
+MAutoExec()
 {
 	DefAutoExec(findmac);
 }
@@ -115,7 +115,7 @@ register char	*new,
 }
 
 ZXchar
-addgetc(NOARGS)	/* NOTE: can return EOF */
+addgetc()	/* NOTE: can return EOF */
 {
 	ZXchar	c;
 
@@ -141,7 +141,7 @@ addgetc(NOARGS)	/* NOTE: can return EOF */
 }
 
 void
-Extend(NOARGS)
+Extend()
 {
 	ExecCmd(findcom(": "));
 }
@@ -267,7 +267,7 @@ size_t	size;
 }
 
 void
-PrVar(NOARGS)
+PrVar()
 {
 	struct variable	*vp = (struct variable *) findvar(ProcFmt);
 	char	prbuf[MAXCOLS];
@@ -278,7 +278,7 @@ PrVar(NOARGS)
 }
 
 void
-InsVar(NOARGS)
+InsVar()
 {
 	struct variable	*vp = (struct variable *) findvar(ProcFmt);
 	char	prbuf[MAXCOLS];
@@ -384,7 +384,7 @@ char	*prompt;
 }
 
 void
-SetVar(NOARGS)
+SetVar()
 {
 	struct variable	*vp = (struct variable *) findvar(ProcFmt);
 	char	prompt[128];
@@ -586,7 +586,7 @@ int	flags;
 }
 
 void
-Source(NOARGS)
+Source()
 {
 	char
 		fnamebuf[FILESIZE];
@@ -626,7 +626,7 @@ long	a, b;
 	
 /* TODO: Make dotchar, nchars unsigned long when we dump support for pre-ANSI C */
 void
-BufPos(NOARGS)
+BufPos()
 {
 	register LinePtr	lp = curbuf->b_first;
 	register long

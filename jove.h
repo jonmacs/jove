@@ -44,13 +44,6 @@
 
 #ifdef USE_PROTOTYPES
 # define proto(x)		x
-/*
- * ANSI/ISO C compilers treat functions with no arguments declared in the
- * old-style i.e. foo() as being varargs, and require foo(void) if they truly
- * have no arguments. This avoid a teensy bit of object code in some cases, and
- * ensures checking that calls to such functions have no args.
- */
-# define NOARGS			void
 # ifdef NO_PTRPROTO
    /* on these systems, a prototype cannot be used for a pointer to function */
 #  define ptrproto(x)		()
