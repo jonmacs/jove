@@ -24,7 +24,7 @@ jobs:
       - run: echo "status=${{ job.status }}."
       - uses: actions/upload-artifact@v4
         with:
-          path: DIST
+          path: DIST/*
   for-containers:
     strategy:
       fail-fast: false
@@ -51,4 +51,4 @@ jobs:
       - run: echo "status=${{ job.status }}."
       - uses: actions/upload-artifact@v4
         with:
-          path: DIST
+          path: DIST/*
