@@ -66,7 +66,13 @@ case $# in
 		mingwapk="$($SUDO apk list mingw-w64-gcc)"
 		case "$mingwapk" in '') ;; *) apk add mingw-w64-gcc;; esac
 	elif type yum 2> /dev/null; then
-		case "$ID" in rocky) ctags=;; *) ctags=ctags;; esac
+	        ctags=ctags
+		case "$ID" in
+		rocky) ctags=;;
+		centos)	sed -i -e 's/mirror.centos.org/vault.centos.org/g'
+				-e 's/^#.*baseurl=http/baseurl=http/g'
+				-e 's/^mirrorlist=http/#mirrorlist=http/g' /etc/yum.repos.d/CentOS-*.repo;;
+		esac
 		$SUDO yum install -y make gcc ncurses-devel groff $ctags zip rpm-build
 	elif type brew 2> /dev/null; then
 		brew install make ctags zip ncurses
