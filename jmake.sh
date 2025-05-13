@@ -46,7 +46,7 @@ case "$u" in
 CYGWIN*)
 	sysdefs="-DCYGWIN"
 	;;
-*BSD|DragonFly)
+*BSD|DragonFly|Darwin)
 	# openpty on BSD requires libutil
 	ldlibs="-ltermcap -lutil"
 	;;

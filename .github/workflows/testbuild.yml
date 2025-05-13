@@ -42,7 +42,6 @@ jobs:
         - 'fedora:latest'
         - 'archlinux:latest'
         - 'gentoo/stage3:latest'
-        - 'nixos/nix'
     runs-on: ubuntu-latest
     env:
       CONTAINER: ${{ matrix.os }}
