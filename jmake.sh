@@ -20,7 +20,7 @@ u=${JMAKE_UNAME-`uname | tr -d -c '[a-zA-Z0-9_]'`}
 defcc=cc
 sysdefs="-D$u"	# see sysdep.h for symbols to define for porting Jove to various systems
 # most modern compilers are gcc-compatible (even if called cc)
-optflags=${CFLAGS-"-g -Os -Wall -Werror -pedantic -Wno-deprecated-non-prototype"}
+optflags=${CFLAGS-"-g -Os -Wall -Werror -pedantic"}
 ldlibs=
 ldflags=	# special link flags, usually none needed
 extra=		# older UN*X (e.g Solaris, SunOS, etc, might need these)
@@ -46,9 +46,12 @@ case "$u" in
 CYGWIN*)
 	sysdefs="-DCYGWIN"
 	;;
-*BSD|DragonFly|Darwin)
+*BSD|DragonFly)
 	# openpty on BSD requires libutil
 	ldlibs="-ltermcap -lutil"
+	;;
+Darwin)
+	optflags="$optflags -Wno-strict-prototypes -Wno-deprecated-non-prototype"
 	;;
 SunOS)	for dx in /usr/bin /usr/sfw/bin; do
 		if test -e $dx/gcc; then
