@@ -49,7 +49,7 @@ jobs:
       - run: echo "event=${{ github.event_name }} runner=${{ runner.os }} branch=${{ github.ref }} repo=${{ github.repository }} index=${{ strategy.job-index}} os=${{ matrix.os }} node=${{ matrix.node }} ."
       - uses: actions/checkout@v4
       - run: docker pull $CONTAINER
-      - run: docker run --name container-"${CONTAINER//[:/]/.}" -v ${{ github.workspace }}:/workspace -w /workspace $CONTAINER ./testbuild.sh --preinstall
+      - run: docker run --name container-"${CONTAINER//[:\/]/.}" -v ${{ github.workspace }}:/workspace -w /workspace $CONTAINER ./testbuild.sh --preinstall
       - run: echo "status=${{ job.status }}."
       - uses: actions/upload-artifact@v4
         with:
