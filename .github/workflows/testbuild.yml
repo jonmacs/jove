@@ -24,7 +24,7 @@ jobs:
       - run: echo "status=${{ job.status }}."
       - uses: actions/upload-artifact@v4
         with:
-          name: DIST/${{ matrix.os }}-${{ strategy.job-index }}
+          name: DIST-${{ matrix.os }}-${{ strategy.job-index }}
           path: DIST/*
   for-containers:
     strategy:
@@ -52,5 +52,5 @@ jobs:
       - run: echo "status=${{ job.status }}."
       - uses: actions/upload-artifact@v4
         with:
-          name: DIST/${{ matrix.os }}-${{ strategy.job-index }}
+          name: DIST-${{ matrix.os }}-${{ strategy.job-index }}
           path: DIST
