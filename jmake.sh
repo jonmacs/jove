@@ -17,7 +17,7 @@
 # JMAKE_UNAME=i686-w64-mingw32 sets up a cross-compile for Win32
 
 u=${JMAKE_UNAME-`uname | tr -d -c '[a-zA-Z0-9_]'`}
-defcc=cc
+defcc=${CC-cc}
 sysdefs="-D$u"	# see sysdep.h for symbols to define for porting Jove to various systems
 # most modern compilers are gcc-compatible (even if called cc)
 optflags=${CFLAGS-"-g -Os -Wall -Werror -pedantic"}
@@ -25,13 +25,7 @@ ldlibs=
 ldflags=	# special link flags, usually none needed
 extra=		# older UN*X (e.g Solaris, SunOS, etc, might need these)
 rel=
-locflags=	# for LOCALCC
-
-# temporary hackery because new gcc/clang complain about old-style K&R
-# classic declarations/definitions without prototypes. c2x aka 5.0
-# will not need this. May as well compile setmaps with this too.
-locflags="-Wno-old-style-definition -Wno-strict-prototypes -Wno-deprecated-non-prototype -Wno-incompatible-pointer-types"
-optflags="$optflags $locflags"
+locc=${LOCALCC-$defcc}
 
 case "$u" in
 *mingw*) # presumably set via something like JMAKE_UNAME=i686-w64-mingw32
@@ -41,7 +35,7 @@ case "$u" in
 	case "$u" in
 	*x86_64*)	optflags="$optflags -Wno-long-long" # Win64 needs long long, and older gcc produce a C90 complaint;;
 	esac
-	extra="LOCALCC=${LOCALCC-cc} XEXT=.exe WINDRES=$u-windres EXTRAOBJS=win32.o ICON=jjove.coff"
+	extra="LOCALCC=$locc XEXT=.exe WINDRES=$u-windres EXTRAOBJS=win32.o ICON=jjove.coff"
 	ldlibs=-lcomdlg32
 	;;
 *-linux-musl*) # presumably set via something like JMAKE_UNAME=i486-linux-musl
@@ -49,7 +43,7 @@ case "$u" in
 	defcc="$u-gcc"
 	sysdefs="-DLinux -DJTC"
 	optflags="$optflags -static"
-	extra="LOCALCC=${LOCALCC-cc}" # for setmaps
+	extra="LOCALCC=$locc" # for setmaps
 	;;
 CYGWIN*)
 	sysdefs="-DCYGWIN"
@@ -115,4 +109,17 @@ y*|1|t*)
 	rel="DESTDIR=${DESTDIR-/none/} JOVEHOME= JBINDIR= JSHAREDIR=doc JLIBDIR="
 	;;
 esac
-exec make ${JMAKE_OPTS-} CC="${CC-$defcc}" LOCALCFLAGS="$locflags" SYSDEFS="$sysdefs" OPTFLAGS="$optflags" LDLIBS="$ldlibs" LDFLAGS="$ldflags" $rel $extra "$@"
+
+# awful hack to turn off warnings for old-style K&R definitions in
+# newish versions of gcc/clang
+# TO-DO: remove this for jove 5.x when we move to c89-style prototypes
+skipwarn="-Wno-unknown-warning -Wno-unknown-warning-option -Wno-old-style-definition -Wno-strict-prototypes -Wno-deprecated-non-prototype -Wno-incompatible-pointer-types"
+case "$optflags" in
+-O)	locflags=
+	;;
+*)	optflags="$optflags $skipwarn"
+	locflags="$skipwarn"
+	;;
+esac
+
+exec make ${JMAKE_OPTS-} CC="${CC-$defcc}" LOCALCC="$locc" LOCALCFLAGS="$locflags" SYSDEFS="$sysdefs" OPTFLAGS="$optflags" LDLIBS="$ldlibs" LDFLAGS="$ldflags" $rel $extra "$@"
