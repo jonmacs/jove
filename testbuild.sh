@@ -69,9 +69,11 @@ case $# in
 	        ctags=ctags
 		case "$ID" in
 		rocky) ctags=;;
-		centos)	sed -i -e 's/mirror.centos.org/vault.centos.org/g'
-				-e 's/^#.*baseurl=http/baseurl=http/g'
-				-e 's/^mirrorlist=http/#mirrorlist=http/g' /etc/yum.repos.d/CentOS-*.repo;;
+		centos)	sed -i -e 's/mirror.centos.org/vault.centos.org/g' \
+				-e 's/^#.*baseurl=http/baseurl=http/g' \
+				-e 's/^mirrorlist=http/#mirrorlist=http/g' \
+			    	/etc/yum.repos.d/CentOS-*.repo
+				;;
 		esac
 		$SUDO yum install -y make gcc ncurses-devel groff $ctags zip rpm-build
 	elif type brew 2> /dev/null; then
