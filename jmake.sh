@@ -20,7 +20,7 @@ u=${JMAKE_UNAME-`uname | tr -d -c '[a-zA-Z0-9_]'`}
 defcc=cc
 sysdefs="-D$u"	# see sysdep.h for symbols to define for porting Jove to various systems
 # most modern compilers are gcc-compatible (even if called cc)
-optflags=${CFLAGS-"-g -Os -Wall -Werror -pedantic -std=c89 -D_DEFAULT_SOURCE=1"}
+optflags=${CFLAGS-"-g -Os -Wall -Werror -pedantic -Wno-deprecated-non-prototype"}
 ldlibs=
 ldflags=	# special link flags, usually none needed
 extra=		# older UN*X (e.g Solaris, SunOS, etc, might need these)
