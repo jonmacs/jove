@@ -238,16 +238,16 @@ int	n;
 	/* NOTREACHED */
 }
 
-void Buf1Select() { BufNSelect(1); }
-void Buf2Select() { BufNSelect(2); }
-void Buf3Select() { BufNSelect(3); }
-void Buf4Select() { BufNSelect(4); }
-void Buf5Select() { BufNSelect(5); }
-void Buf6Select() { BufNSelect(6); }
-void Buf7Select() { BufNSelect(7); }
-void Buf8Select() { BufNSelect(8); }
-void Buf9Select() { BufNSelect(9); }
-void Buf10Select() { BufNSelect(10); }
+void Buf1Select(NOARGS) { BufNSelect(1); }
+void Buf2Select(NOARGS) { BufNSelect(2); }
+void Buf3Select(NOARGS) { BufNSelect(3); }
+void Buf4Select(NOARGS) { BufNSelect(4); }
+void Buf5Select(NOARGS) { BufNSelect(5); }
+void Buf6Select(NOARGS) { BufNSelect(6); }
+void Buf7Select(NOARGS) { BufNSelect(7); }
+void Buf8Select(NOARGS) { BufNSelect(8); }
+void Buf9Select(NOARGS) { BufNSelect(9); }
+void Buf10Select(NOARGS) { BufNSelect(10); }
 
 private void
 delb_wind(b)

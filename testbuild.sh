@@ -208,6 +208,8 @@ if type pbuilder 2> /dev/null; then
 	$SUDO make deb
 	cp -av /var/cache/pbuilder/result/*$(cat .version)*.deb $dist/
 fi
+ret=$?
 # portable for older Unix/SunOS!
 (cd "$td" && tar cvf - .) | gzip > $dist/$ver-builds.tar.gz
 rm -rf "$td"
+exit $ret
