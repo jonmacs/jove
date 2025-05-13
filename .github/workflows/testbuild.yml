@@ -24,9 +24,8 @@ jobs:
       - run: echo "status=${{ job.status }}."
       - uses: actions/upload-artifact@v4
         with:
-          pattern: DIST/*
-          merge-multiple: true
-          path: DIST
+          name: DIST/${{ matrix.os }}-${{ strategy.job-index }}
+          path: DIST/*
   for-containers:
     strategy:
       fail-fast: false
@@ -44,7 +43,7 @@ jobs:
         - 'fedora:latest'
         - 'archlinux:latest'
         - 'gentoo/stage3:latest'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     container: ${{ matrix.os }}
     steps:
       - run: echo "event=${{ github.event_name }} runner=${{ runner.os }} os=${{ matrix.container }} branch=${{ github.ref }} repo=${{ github.repository }}."
@@ -53,6 +52,5 @@ jobs:
       - run: echo "status=${{ job.status }}."
       - uses: actions/upload-artifact@v4
         with:
-          pattern: DIST/*
-          merge-multiple: true
+          name: DIST/${{ matrix.os }}-${{ strategy.job-index }}
           path: DIST
