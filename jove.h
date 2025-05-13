@@ -440,8 +440,8 @@ extern jbool	TimeDisplayed;		/* is time actually displayed in modeline? */
 extern char	JoveFeatures[MAXCOLS];	/* VAR: list of compiled-in features */
 
 #if defined(UNIX) || defined(MINGW)
-extern char	JoveCompiled[MAXCOLS];	/* VAR: compile flags used to build this */
-extern char	JoveLinked[MAXCOLS];	/* VAR: link flags used to build this */
+extern char	JoveCompiled[];	/* VAR: compile flags used to build this */
+extern char	JoveLinked[];	/* VAR: link flags used to build this */
 #endif /* UNIX || MINGW */
 
 #ifdef UNIX

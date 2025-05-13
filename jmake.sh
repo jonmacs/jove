@@ -20,11 +20,19 @@ u=${JMAKE_UNAME-`uname | tr -d -c '[a-zA-Z0-9_]'`}
 defcc=cc
 sysdefs="-D$u"	# see sysdep.h for symbols to define for porting Jove to various systems
 # most modern compilers are gcc-compatible (even if called cc)
-optflags=${CFLAGS-"-g -Os -Wall -Werror -pedantic -Wno-old-style-definition -Wno-strict-prototypes -Wno-deprecated-non-prototype"}
+optflags=${CFLAGS-"-g -Os -Wall -Werror -pedantic"}
 ldlibs=
 ldflags=	# special link flags, usually none needed
 extra=		# older UN*X (e.g Solaris, SunOS, etc, might need these)
 rel=
+locflags=	# for LOCALCC
+
+# temporary hackery because new gcc/clang complain about old-style K&R
+# classic declarations/definitions without prototypes. c2x aka 5.0
+# will not need this. May as well compile setmaps with this too.
+locflags="-Wno-old-style-definition -Wno-strict-prototypes -Wno-deprecated-non-prototype -Wincompatible-pointer-types"
+optflags="$optflags $locflags"
+
 case "$u" in
 *mingw*) # presumably set via something like JMAKE_UNAME=i686-w64-mingw32
 	: ${JMAKE_RELATIVE=1}
@@ -46,11 +54,9 @@ case "$u" in
 CYGWIN*)
 	sysdefs="-DCYGWIN"
 	;;
-*BSD|DragonFly)
-	# openpty on BSD requires libutil
+*BSD|DragonFly|Darwin)
+	# openpty on *BSD requires libutil
 	ldlibs="-ltermcap -lutil"
-	;;
-Darwin)
 	optflags="$optflags"
 	;;
 SunOS)	for dx in /usr/bin /usr/sfw/bin; do
@@ -109,4 +115,4 @@ y*|1|t*)
 	rel="DESTDIR=${DESTDIR-/none/} JOVEHOME= JBINDIR= JSHAREDIR=doc JLIBDIR="
 	;;
 esac
-exec make ${JMAKE_OPTS-} CC="${CC-$defcc}" SYSDEFS="$sysdefs" OPTFLAGS="$optflags" LDLIBS="$ldlibs" LDFLAGS="$ldflags" $rel $extra "$@"
+exec make ${JMAKE_OPTS-} CC="${CC-$defcc}" LOCALCFLAGS="$locflags" SYSDEFS="$sysdefs" OPTFLAGS="$optflags" LDLIBS="$ldlibs" LDFLAGS="$ldflags" $rel $extra "$@"

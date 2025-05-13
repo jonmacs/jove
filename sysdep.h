@@ -408,9 +408,9 @@
 # ifndef DADDR
 #  define DADDR unsigned long
 # endif
-# define LG_FILESIZE	8	/* log2 maximum path length (including '\0') */
-# define MAXCOLS	512	/* maximum number of columns */
-# define MAXTTYBUF	2048	/* maximum size of output terminal buffer */
+# define LG_FILESIZE	9	/* log2 maximum path length (including '\0') */
+# define MAXCOLS	1024	/* maximum number of columns */
+# define MAXTTYBUF	4096	/* maximum size of output terminal buffer */
 # ifndef LG_JBUFSIZ
 #  define LG_JBUFSIZ	15	/* temp file block size, also maximum line length, 32K seems better for modern VM machines */
 # endif
