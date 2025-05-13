@@ -43,12 +43,14 @@ jobs:
         - 'fedora:latest'
         - 'archlinux:latest'
         - 'gentoo/stage3:latest'
-    runs-on: ubuntu-22.04
-    container: ${{ matrix.os }}
+    runs-on: ubuntu-latest
+    env:
+      CONTAINER: ${{ matrix.os }}
     steps:
       - run: echo "event=${{ github.event_name }} runner=${{ runner.os }} os=${{ matrix.container }} branch=${{ github.ref }} repo=${{ github.repository }}."
       - uses: actions/checkout@v4
-      - run: ./testbuild.sh --preinstall
+      - run: docker pull $CONTAINER
+      - run: docker run --name container-${{ matrix.os }} -v {{ $github.workspace }}:/workspace ./testbuild.sh --preinstall
       - run: echo "status=${{ job.status }}."
       - uses: actions/upload-artifact@v4
         with:
