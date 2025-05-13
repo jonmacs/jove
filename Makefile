@@ -328,7 +328,7 @@ recover$(XEXT):	recover.o
 # compile is better than faster executable (also urban legend that 
 # optimization produced bad code for setmaps!)
 setmaps$(LOCALEXT):	setmaps.o
-	$(LOCALCC) $(LOCALLDFLAGS) $(LOCALCFLAGS)-o setmaps$(LOCALEXT) setmaps.o $(LOCALEXTRALIBS)
+	$(LOCALCC) $(LOCALLDFLAGS) $(LOCALCFLAGS) -o setmaps$(LOCALEXT) setmaps.o $(LOCALEXTRALIBS)
 
 # Critical that setmaps be compiled with same SYSDEFS
 setmaps.o:	setmaps.c
