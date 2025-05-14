@@ -312,10 +312,8 @@ ovjove:	$(OBJECTS)
 	@-size jjove$(XEXT)
 
 # portsrv is only needed if IPROCS are implemented using PIPEPROCS
-# (modern systems use PTYPROCS).
-# Making PORTSRVINST null suppresses installing portsrv.
-
-# PORTSRVINST=$(PORTSRV)
+# (modern systems use PTYPROCS). To install portsrv, set
+# PORTSRVINST=1
 PORTSRVINST=
 
 portsrv$(XEXT):	portsrv.o
@@ -391,7 +389,7 @@ installjovetool: $(JOVETOOLM)
 # JOVEHOME pointing at a playpen where files are to be marshalled.
 # This property is fragile.
 install: $(DRECDIR) $(DETCDIR) $(DDOCDIR) $(CMDSDOC) $(TEACHDOC) $(JOVERC) \
-	$(PORTSRVINST) $(RECOVER) $(JOVE) $(TEACHJOVE) $(REFDOC) $(MANUALS)
+	$(PORTSRV) $(RECOVER) $(JOVE) $(TEACHJOVE) $(REFDOC) $(MANUALS)
 	@echo See the README about changes to /etc/rc or /etc/rc.local
 	@echo so that the system recovers jove files on reboot after a crash
 
@@ -455,7 +453,7 @@ $(JOVERC): $(DSHAREDIR) doc/jove.rc $(TERMSDIR) $(DOCTERMS)
 	$(TINSTALL) doc/jove.rc doc/jem* $(DOCTERMS) $(DSHAREDIR)
 
 $(PORTSRV): $(DLIBDIR) portsrv$(XEXT)
-	$(XINSTALL) portsrv$(XEXT) $(PORTSRV)
+	case "$(PORTSRVINST)" in 1|y) $(XINSTALL) portsrv$(XEXT) $(PORTSRV);; esac
 
 $(RECOVER): $(DLIBDIR) recover$(XEXT)
 	$(XINSTALL) recover$(XEXT) $(RECOVER)

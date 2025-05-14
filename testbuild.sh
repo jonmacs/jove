@@ -161,7 +161,7 @@ if test -x /usr/bin/getconf; then j=-j$(getconf $jv); else j=; fi
 make clean &&
 JMAKE_OPTS=$j ./jmake.sh $dd/t10-$TB_OS install OPTFLAGS="$o" LOCALCFLAGS="$w" &&
 make clean &&
-make $j OPTFLAGS="$o" LOCALCFLAGS="$w" SYSDEFS="-DPIPEPROCS $d" TERMCAPLIB=$t EXTRALIBS= $x $dd/t20-pipeprocs install &&
+make $j OPTFLAGS="$o" LOCALCFLAGS="$w" PORTSRVINST=1 SYSDEFS="-DPIPEPROCS $d" TERMCAPLIB=$t EXTRALIBS= $x $dd/t20-pipeprocs install &&
 make clean &&
 make $j OPTFLAGS="$o" LOCALCFLAGS="$w" SYSDEFS="-DBSDPOSIX $d" LDLIBS=$t $x $dd/t30-bsdposix install &&
 make clean &&
