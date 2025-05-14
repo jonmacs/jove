@@ -444,7 +444,7 @@ $(TEACHDOC): $(DSHAREDIR) doc/teach-jove
 	$(TINSTALL) doc/teach-jove $(TEACHDOC)
 
 $(REFDOC): $(DDOCDIR) doc/jove.qref doc/example.rc $(FREFDOCS)
-	$(TINSTALL) doc/jove.qref doc/example.rc $(FREFDOCS) $(DDOCDIR)
+	$(TINSTALL) README doc/jove.qref doc/example.rc $(FREFDOCS) $(DDOCDIR)
 
 doc/jove.rc: doc/jove.rc.in
 	@mkdir $(TDIR) && \

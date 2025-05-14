@@ -20,7 +20,7 @@ u=${JMAKE_UNAME-`uname | tr -d -c '[a-zA-Z0-9_]'`}
 defcc=${CC-cc}
 sysdefs="-D$u"	# see sysdep.h for symbols to define for porting Jove to various systems
 # most modern compilers are gcc-compatible (even if called cc)
-optflags=${CFLAGS-"-g -Os -Wall -Werror -pedantic"}
+optflags=${OPTFLAGS-${CFLAGS-"-g -Os -Wall -Werror -pedantic"}}
 ldlibs=
 ldflags=	# special link flags, usually none needed
 extra=		# older UN*X (e.g Solaris, SunOS, etc, might need these)
@@ -110,16 +110,4 @@ y*|1|t*)
 	;;
 esac
 
-# awful hack to turn off warnings for old-style K&R definitions in
-# newish versions of gcc/clang
-# TO-DO: remove this for jove 5.x when we move to c89-style prototypes
-skipwarn="-Wno-unknown-warning -Wno-unknown-warning-option -Wno-old-style-definition -Wno-strict-prototypes -Wno-deprecated-non-prototype -Wno-incompatible-pointer-types"
-case "$optflags" in
--O)	locflags=
-	;;
-*)	optflags="$optflags $skipwarn"
-	locflags="$skipwarn"
-	;;
-esac
-
-exec make ${JMAKE_OPTS-} CC="${CC-$defcc}" LOCALCC="$locc" LOCALCFLAGS="$locflags" SYSDEFS="$sysdefs" OPTFLAGS="$optflags" LDLIBS="$ldlibs" LDFLAGS="$ldflags" $rel $extra "$@"
+exec make ${JMAKE_OPTS-} CC="${CC-$defcc}" LOCALCC="$locc" SYSDEFS="$sysdefs" OPTFLAGS="$optflags" LDLIBS="$ldlibs" LDFLAGS="$ldflags" $rel $extra "$@"

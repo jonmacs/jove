@@ -140,25 +140,38 @@ GNU|Linux)  t=-lncurses
         jv=_NPROCESSORS_ONLN
         ;;
 esac
+
+# awful hack to turn off warnings for old-style K&R definitions in
+# newish versions of gcc/clang
+# TO-DO: remove this for jove 5.x when we move to c89-style prototypes
+skipwarn="-Wno-unknown-warning -Wno-unknown-warning-option -Wno-old-style-definition -Wno-strict-prototypes -Wno-deprecated-non-prototype -Wno-incompatible-pointer-types"
+case "$o" in
+-O)	w=
+	;;
+*)	o="$o $skipwarn"
+	w="$skipwarn"
+	;;
+esac
+
 if test -x /usr/bin/getconf; then j=-j$(getconf $jv); else j=; fi
 # other than the first "make install" with $TB_OS, some of the others
 # (e.g. PIPEPROCS, TERMINFO) may produce warnings (e.g. no declaration for
 # ioctl) because we are just testing somewhat abnormal non-POSIX sysdefs.
 # Try using either old-style TERMCAPLIB, EXTRALIBS or new-style LDLIBS
 make clean &&
-JMAKE_OPTS=$j ./jmake.sh $dd/t10-$TB_OS install &&
+JMAKE_OPTS=$j ./jmake.sh $dd/t10-$TB_OS install OPTFLAGS="$o" LOCALCFLAGS="$w" &&
 make clean &&
-make $j OPTFLAGS="$o" SYSDEFS="-DPIPEPROCS $d" TERMCAPLIB=$t EXTRALIBS= $x $dd/t20-pipeprocs install &&
+make $j OPTFLAGS="$o" LOCALCFLAGS="$w" SYSDEFS="-DPIPEPROCS $d" TERMCAPLIB=$t EXTRALIBS= $x $dd/t20-pipeprocs install &&
 make clean &&
-make $j OPTFLAGS="$o" SYSDEFS="-DBSDPOSIX $d" LDLIBS=$t $x $dd/t30-bsdposix install &&
+make $j OPTFLAGS="$o" LOCALCFLAGS="$w" SYSDEFS="-DBSDPOSIX $d" LDLIBS=$t $x $dd/t30-bsdposix install &&
 make clean &&
-make $j OPTFLAGS="$o" SYSDEFS="-DBAREBONES -DSMALL -DJTC $d" LDLIBS= $x $dd/t60-small install &&
+make $j OPTFLAGS="$o" LOCALCFLAGS="$w" SYSDEFS="-DBAREBONES -DSMALL -DJTC $d" LDLIBS= $x $dd/t60-small install &&
 make clean &&
 case "$lib" in
 GLIBC)
-    make $j OPTFLAGS="$o" SYSDEFS="-DXLINUX" TERMCAPLIB=$t EXTRALIBS= $x $dd/t40-xlinux install &&
+    make $j OPTFLAGS="$o" LOCALCFLAGS="$w" SYSDEFS="-DXLINUX" TERMCAPLIB=$t EXTRALIBS= $x $dd/t40-xlinux install &&
     make clean &&
-    make $j OPTFLAGS="$o" SYSDEFS="-DTERMINFO -DUSE_VFORK" TERMCAPLIB=$t $x $dd/t50-vfork &&
+    make $j OPTFLAGS="$o" LOCALCFLAGS="$w" SYSDEFS="-DTERMINFO -DUSE_VFORK" TERMCAPLIB=$t $x $dd/t50-vfork &&
     make clean
     ;;
 esac &&
@@ -185,7 +198,7 @@ elif test -e /etc/alpine-release; then
 			r=jove-$ver-$tag-static &&
 			if test ! -d $dist/$r; then mkdir $dist/$r; fi &&
 			make clobber &&
-			JMAKE_UNAME=$tag ./jmake.sh all &&
+			JMAKE_UNAME=$tag ./jmake.sh OPTFLAGS="$o" LOCALCFLAGS="$w" all &&
 			strip jjove recover &&
 			mv jjove $dist/$r/jove &&
 			mv recover $dist/$r &&
@@ -202,7 +215,7 @@ for tag in ${TB_MINGW}; do
 	if test ! -d $dist/$r; then mkdir $dist/$r; fi &&
 	make clobber &&
 	make XEXT=.exe clobber &&
-	JMAKE_UNAME=$tag ./jmake.sh $j all &&
+	JMAKE_UNAME=$tag ./jmake.sh $j OPTFLAGS="$o" LOCALCFLAGS="$w" all &&
 	${tag}-strip jjove.exe recover.exe &&
 	mv jjove.exe $dist/$r/jove.exe &&
 	mv recover.exe $dist/$r &&
