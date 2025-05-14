@@ -82,7 +82,7 @@ extern FILE	*popen proto((const char *, const char *));
 /* The parameter of getpwuid is widened uid_t,
  * but there no easy portable way to write this
  */
-extern struct passwd *getpwuid(/*widened uid_t*/);
+extern struct passwd *getpwuid proto((uid_t/*widened uid_t*/));
 
 #  ifdef USE_UNAME
 extern int	uname proto((struct utsname *));
