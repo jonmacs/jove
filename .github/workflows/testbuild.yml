@@ -39,7 +39,7 @@ jobs:
         - 'centos:7'
         - 'rockylinux:9'
         - 'fedora:30'
-        - 'fedora:latest'
+        - 'fedora:41'
         - 'archlinux:latest'
         - 'gentoo/stage3:latest'
     runs-on: ubuntu-latest
