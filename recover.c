@@ -67,14 +67,6 @@ char	*argv[];
 #  include <sys/utsname.h>
 # endif
 
-/* Strictly speaking, popen is not available in stdio.h in POSIX.1 or ANSI-C.
- * It is part of POSIX.2, and declared incorrectly in OSF/1, so we suppress
- * it for OSF.
- */
-#ifndef	_OSF_SOURCE
-extern FILE	*(popen)(const char *, const char *);
-#endif
-
 #endif /* UNIX */
 
 #ifndef L_SET
