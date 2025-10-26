@@ -10,7 +10,6 @@ else
 endif
 1 auto-execute-command show-match .*\.[ch]$
 set comment-format /* %!   %c%! */
-set disable-biff on
 set match-regular-expressions on
 set use-i/d-char off
 bind-to-key backward-paragraph ^[[

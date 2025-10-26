@@ -55,7 +55,3 @@ extern jbool	OKXonXoff;		/* VAR: XON/XOFF can be used as ordinary chars */
 extern ZXchar	IntChar;		/* VAR: ttysetattr sets this to generate QUIT */
 
 #endif /* UNIX */
-
-#ifdef BIFF
-extern jbool	DisBiff;		/* VAR: turn off/on biff with entering/exiting jove */
-#endif

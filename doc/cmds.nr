@@ -632,20 +632,6 @@ This prints out the directory stack.  See the
 and
 .IQ popd
 commands for more information.
-.dc "disable-biff" "(variable)"
-When this is set, \s-2JOVE\s0 disables biff when you're editing and enables it
-again when you get out of \s-2JOVE\s0, or when you pause to the parent shell
-or push to a new shell.  (This means arrival of new mail will not be
-immediately apparent but will not cause indiscriminate writing on the
-display).  The default is
-.IQ off ,
-although it is always safe to set it
-.IQ on ,
-even on systems that do not provide the biff facility.  Note that
-the variable
-.IQ mode-line
-can be set up to announce the arrival of new
-mail during a \s-2JOVE\s0 session.
 .dc "display-default-filenames" "(variable)"
 If this is set when \s-2JOVE\s0 asks for a filename, it will display the default
 (unless that would take too much of the prompt line).
@@ -1111,7 +1097,7 @@ This is a special, read-only variable, set with a colon-delimited list of
 all the optional capabilities compiled into \s-2JOVE\s0.  The value will
 be something like
 .br
-.IQ :unix:abbr:bak:biff:cmtfmt:fcomp:iproc:pty:lisp:proc:spell:rec:job:idchar:hl:tcap:ctype: 
+.IQ :unix:abbr:bak:cmtfmt:fcomp:iproc:pty:lisp:proc:spell:rec:job:idchar:hl:tcap:ctype: 
 .br
 .IQ unix
 specifies a variety of traditional UNIX/POSIX capabilities (case-sensitive filenames,
@@ -1134,9 +1120,6 @@ platform).  Other tokens are
 .br
 .IQ bak 
 (backup-files can be created),
-.br
-.IQ biff 
-(ability to disable screen-disruptions from old Unix-style mail notification),
 .br
 .IQ cmtfmt
 (format C comments),
@@ -1389,10 +1372,9 @@ dialog in place of the traditional \s-2JOVE\s0 Minibuffer.
 This is how often (in seconds) \s-2JOVE\s0 should check your mailbox for
 incoming mail.  If you set this to zero \s-2JOVE\s0 won't check for new
 mail.  See also the
-.IQ mode-line ,
-.IQ mailbox
+.IQ mode-line 
 and
-.IQ disable-biff
+.IQ mailbox
 variables.
 The default is 60.
 .dc "mailbox" "(variable)"

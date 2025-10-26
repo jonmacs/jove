@@ -15,9 +15,6 @@ BACKUPFILES	This enables backing up files on write.  I guess lots of
 		can still control whether files are backed up with the
 		make-backup-files variable.
 
-BIFF		This enables turning on and off BIFF so your screen doesn't
-		get messed up with messages from BIFF.
-
 CMT_FMT		This enables code to format and indent C comments.
 
 F_COMPLETION	Enables filename completion.  This requires that your
