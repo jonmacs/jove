@@ -17,7 +17,6 @@
 #include "insert.h"
 #include "marks.h"
 #include "move.h"
-#include "sysprocs.h"
 #include "proc.h"
 #include "wind.h"
 

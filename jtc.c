@@ -35,15 +35,14 @@ extern int avoid_pedantic_complaints_about_empty_translation_unit;
 #include <sys/time.h>
 #include "select.h"
 
-#ifdef TERMIOS
-# include <termios.h>
-# include <sys/ioctl.h>
-# ifdef TIOCGWINSZ
+#include <termios.h>
+#include <sys/ioctl.h>
+#ifdef TIOCGWINSZ
 private struct winsize jtwin;
-#  define JVTCOLS jtwin.ws_col
-#  define JVTROWS jtwin.ws_row
-# endif /* TIOCGWINSZ */
-#endif /* TERMIOS */
+# define JVTCOLS jtwin.ws_col
+# define JVTROWS jtwin.ws_row
+#endif /* TIOCGWINSZ */
+
 #ifndef JVTCOLS
 # define JVTCOLS 80
 # define JVTROWS 24
@@ -52,13 +51,9 @@ private struct winsize jtwin;
 #ifdef TEST_STANDALONE
 extern int strncasecmp(const char *, const char *, size_t);
 extern int snprintf(char *, size_t, const char *, ...);
-extern intintf(const char *, ...;
-extern int putchar(int);
-extern void fflush(void *); /* XXX */
-extern void *stdout; /* XXX */
 #define flushscreen() fflush(stdout)
 #define caseeqn(s1, s2, n) (strncasecmp(s1, s2, n) == 0)
-#define swritefintf
+#define swritef snprintf
 #undef jisdigit
 #define jisdigit(c) (c >= '0' && c <= '9')
 #endif
@@ -291,7 +286,7 @@ tgetstr(const char *capname, char **area)
 
 #ifdef TEST_STANDALONE
 /* To test, build with
- * LANG=C gcc -o testjtc jtc.c -g -O -Wall -DTEST_STANDALONE -DJTC -DTERMIOS
+ * LANG=C gcc -o testjtc jtc.c -g -O -Wall -DTEST_STANDALONE -DJTC
  */
 
 /* make terminfo string printable */
@@ -325,7 +320,7 @@ xtputs(delay, s, li)
 int delay, li;
 const char *s;
 {
-	tputs(s, li, putchar);
+	tputs(s, li, (void (*)(char)) putchar);
 	fflush(stdout);
 	jdelay(delay);
 }
@@ -392,7 +387,7 @@ char **argv;
 		xtputs(10, jtcarg1(cp, 2), 2);
 	else {
 		xtputs(5, jtcarg1(tgetstr("sf", NULL),1), 1);
-		xtputs(5, jtcarg1(tgetstr("sf"),1), 1);
+		xtputs(5, jtcarg1(tgetstr("sf", NULL),1), 1);
 	}
 	j = tgetnum("li");
 	xtputs(5, tgetstr("dl", NULL), 1);

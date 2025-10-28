@@ -14,9 +14,7 @@
 #include "extend.h"
 #include "fmt.h"
 #include "insert.h"
-/* #include "io.h" */	/* for pwd() */
 #ifdef IPROCS
-# include "sysprocs.h"
 # include "iproc.h"
 #endif
 #include "move.h"

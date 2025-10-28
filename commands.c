@@ -13,22 +13,14 @@
 
 /* included for command routine declarationss */
 #include "abbrev.h"
-/* #include "argcount.h */
-/* #include "buf.h" */
 #include "c.h"
 #include "case.h"
 #include "commands.h"
 #include "delete.h"
 #include "disp.h"
-/* #include "extend.h" */
 #include "fmt.h"
 #include "insert.h"
-/* #include "io.h" */
-#include "sysprocs.h"	/* needed for iproc.h */
 #include "iproc.h"
-/* #include "jove.h" */
-/* #include "keymaps.h" */
-/* #include "macros.h" */
 #include "marks.h"
 #include "misc.h"
 #include "move.h"

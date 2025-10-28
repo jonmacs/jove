@@ -11,86 +11,22 @@
 # include "tune.h"  /* must include first since it controls everything else */
 #endif
 
-#include <setjmp.h>
+#include <time.h>
 #include <string.h>
 #include <errno.h>
-#include <time.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <limits.h> /* for CHAR_BIT */
+#include <stdio.h> /* for EOF, NULL */
+#include <setjmp.h>
+#include <sys/types.h>	/* defines off_t, pid_t, maybe FD_SET for select.h */
 
-#ifdef EWOULDBLOCK
-# define RETRY_ERRNO(e) ((e) == EINTR || (e) == EAGAIN || (e) == EWOULDBLOCK)
-#else
-/* older Unix, e.g. V7 */
-# define RETRY_ERRNO(e)	((e) == EINTR || (e) == EAGAIN)
-#endif
-
-#ifdef USE_STDIO_H
-# include <stdio.h> /* for recover, setmaps */
-#endif
-
-#ifndef MAC
-# include <sys/types.h>
-#else
-# include <types.h>
-# include <time.h>	/* for time_t */
-#endif
-
-/* There are two ways to handle functions with a variable number of args.
- * The old portable way uses varargs.h.  The way sanctioned by ANSI X3J11
- * uses stdarg.h.
+/*
+ * NO_EXTERNS leaves this out when building setmaps.c since externs.h is for the
+ * target, not the cross-compile host
  */
-#ifdef REALSTDC
-#define	STDARGS	1
-#endif
-
-#ifdef STDARGS
-# include <stdarg.h>
-# define	va_init(ap, parmN)	{ va_start((ap), parmN); }
-#else
-# include <varargs.h>
-# define	va_init(ap, parmN)	{ va_start((ap)); }
-#endif
-
-/* ANSI Goodies and their substitutes
- *
- * const: readonly type qualifier
- *
- * volatile: type qualifier indicating one of two kinds of magic.
- * 1. This object may be modified by an event unknown to the implementation
- *    (eg. asynchronous signal or memory-mapped I/O device).
- * 2. This automatic variable might be modified between a setjmp()
- *    and a longjmp(), and we wish it to have the correct value after
- *    the longjmp().  This second meaning is an X3J11 abomination.
- * So far, only the second meaning is used.
- */
-
-/* According to the ANSI standard for C, any library routine may
- * be defined as a macro with parameters.  In order to prevent
- * the expansion of this macro in a declaration of the routine,
- * ANSI suggests parenthesizing the identifier.  This is a reasonable
- * and legal approach, even for K&R C.
- *
- * A bug in the MIPS compiler used on MIPS, IRIS, and probably other
- * MIPS R[23]000 based systems, caused the compiler to reject
- * these declarations (at least at that time, 1989 August).
- * To avoid this bug, we had conditionally defined and used UNMACRO.
- */
-
-/* Since Jove does not use stdio.h (recover and setmaps do),
- * we may have to define NULL and EOF.
- */
-
-#ifndef NULL
-#define NULL	(void *)0
-#endif
-
-#ifndef EOF
-#define EOF	(-1)
-#endif
-
-/* Pervasive data types and constants */
-
-#ifndef CHAR_BIT
-# define CHAR_BIT	8	/* factor to convert sizeof => bits */
+#ifndef NO_EXTERNS
+# include "externs.h"
 #endif
 
 #ifndef NCHARS
@@ -107,6 +43,10 @@ typedef int		jbool;
 #define YES		1
 
 #define elemsof(a)	(sizeof(a) / sizeof(*(a)))	/* number of array elements */
+
+#define byte_copy(from, to, count)	memcpy((void *)(to), (const void *)(from), (size_t)(count))
+#define byte_move(from, to, count)	memmove((void *)(to), (const void *)(from), (size_t)(count))
+#define byte_zero(s, n)		memset((void *)(s), 0, (size_t)(n))
 
 /* Safe-where-possible signal handling.
  *
@@ -276,10 +216,6 @@ typedef struct FileStruct	File;	/* fp.h */
 #include "argcount.h"
 #include "util.h"
 
-#ifndef NO_EXTERNS  /* setmaps.c does not need externs, messes up cross-compiles */
-#include "externs.h"
-#endif
-
 #define FORWARD		1
 #define BACKWARD	(-1)
 
@@ -306,12 +242,10 @@ extern char
 
 extern jmp_buf	mainjmp;
 
-
 #define IDX(c)   ((c)-'a')
 #define IDXSZ    (IDX('z')+1)
 
 extern char	NullStr[];
-
 
 extern ZXchar
 	peekchar,	/* holds pushed-back getch output */

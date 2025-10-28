@@ -25,7 +25,6 @@
  * Change JRECDIR and JTMPDIR in Makefile to change the default directories.
  */
 
-#define USE_STDIO_H 1
 #include "jove.h"
 
 #define SMALLSTRSIZE	30	/* used for small buffers */
@@ -49,7 +48,6 @@ char	*argv[];
 
 #else /* RECOVER */	/* the body is the rest of this file */
 
-#include "sysprocs.h"
 #include "rec.h"
 #include "paths.h"
 #include "recover.h"
@@ -68,14 +66,6 @@ char	*argv[];
 # ifdef USE_UNAME
 #  include <sys/utsname.h>
 # endif
-
-/* Strictly speaking, popen is not available in stdio.h in POSIX.1 or ANSI-C.
- * It is part of POSIX.2, and declared incorrectly in OSF/1, so we suppress
- * it for OSF.
- */
-#ifndef	_OSF_SOURCE
-extern FILE	*popen(const char *, const char *);
-#endif
 
 #endif /* UNIX */
 
@@ -239,7 +229,7 @@ getblock(daddr atl)
 		    (long)atl, (long)bno, (long)off, (long)nleft);
 
 	if (bno != curblock) {
-		ssize_t		nb;
+		JSSIZE_T	nb;
 		const char	*what;
 		off_t		r,
 				boff = bno_to_seek_off(bno);

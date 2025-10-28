@@ -87,7 +87,6 @@ extern void *
 	freealloc(void *obj, size_t size);
 
 #if defined(IPROCS) || defined(SUBSHELL)
-
 # ifndef OWCDOS
 /*
  * The Open Watcom C declaration of environ has some macro
@@ -129,7 +128,3 @@ extern void
 /* Variables: */
 
 extern int	MarkThresh;		/* VAR: moves greater than MarkThresh will SetMark */
-
-/* externs.h:
- *	strerror (ifdef NO_STRERROR)
- */

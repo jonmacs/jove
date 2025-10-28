@@ -68,13 +68,6 @@ extern size_t
 	f_readn(File *fp,char *addr,size_t n);
 #endif
 
-#if defined(ZTCDOS) || defined(__BORLANDC__)
-/* POSIX <sys/types.h> defines this as some signed arithmetic type
- * suitable for holding file sizes.
- */
-typedef long	off_t;
-#endif
-
 extern void
 	f_close(File *fp),
 	f_seek(File *fp, off_t offset),

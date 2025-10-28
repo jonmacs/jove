@@ -20,34 +20,11 @@
 #include "ttystate.h"
 
 
-#ifdef SGTTY
-struct sgttyb	sg[2];
-#endif
-
-#ifdef TERMIO
-struct termio	sg[2];
-#endif
-
-#ifdef TERMIOS
 struct termios	sg[2];
-#endif
 
 #ifdef USE_TIOCSLTC
 struct ltchars	ls[2];
 #endif /* USE_TIOCSLTC */
-
-#ifdef SGTTY
-
-# ifdef TIOCGETC
-struct tchars	tc[2];
-# endif
-
-# ifdef LPASS8	/* use 4.3BSD's LPASS8 instead of raw for meta-key */
-int	lmword[2];		/* local mode word */
-# endif
-
-#endif /* SGTTY */
-
 
 /* Set tty to original (if !n) or JOVE (if n) modes.
  * This is designed to be idempotent: it can be called
@@ -90,55 +67,19 @@ ttysetattr(jbool n)	/* `n' is also used as subscript! */
 		 * NOTE: the nested tangle of ifdefs is intended to follow
 		 * the structure of the definitions in ttystate.c.
 		 */
-#ifdef SGTTY
-		(void) gtty(0, &sg[NO]);
-#endif
-
-#ifdef TERMIO
-		(void) ioctl(0, TCGETA, &sg[NO]);
-#endif
-
-#ifdef TERMIOS
 		(void) tcgetattr(0, &sg[NO]);
-#endif
 
 #ifdef USE_TIOCSLTC
 		(void) ioctl(0, TIOCGLTC, &ls[NO]);
 #endif /* USE_TIOCSLTC */
 
-#ifdef SGTTY
-
-# ifdef TIOCGETC
-		(void) ioctl(0, TIOCGETC, &tc[NO]);
-# endif
-
-# ifdef LPASS8	/* use 4.3BSD's LPASS8 instead of raw for meta-key */
-		(void) ioctl(0, TIOCLGET, &lmword[NO]);
-# endif
-
-#endif /* SGTTY */
-
 /* extract some info from results */
 
-#if defined(TERMIO) || defined(TERMIOS)
-# ifdef TAB3
+#ifdef TAB3
 		TABS = (sg[NO].c_oflag & TABDLY) != TAB3;
-# endif
-# ifdef TERMIOS
+#endif
 		ospeed = cfgetospeed(&sg[NO]);
-# else /* ! TERMIOS */
-#  ifdef CBAUD
-		ospeed = sg[NO].c_cflag & CBAUD;
-#  else /* ! CBAUD */
-		ospeed = B9600;	/* XXX */
-#  endif /* CBAUD */
-# endif /* TERMIOS */
-#endif /* defined(TERMIO) || defined(TERMIOS) */
 
-#ifdef SGTTY
-		TABS = !(sg[NO].sg_flags & XTABS);
-		ospeed = sg[NO].sg_ospeed;
-#endif /* SGTTY */
 #ifdef STICKY_TTYSTATE
 		/* keep saved copy of ttystate until JOVE quits */
 		keep_saved = YES;
@@ -161,16 +102,6 @@ ttysetattr(jbool n)	/* `n' is also used as subscript! */
 
 	sg[YES] = sg[NO];
 
-#ifdef SGTTY
-	sg[YES].sg_flags &= ~(XTABS|ECHO|CRMOD);
-# ifdef LPASS8
-	sg[YES].sg_flags |= CBREAK;
-# else
-	sg[YES].sg_flags |= (MetaKey ? RAW : CBREAK);
-# endif
-#endif
-
-#if defined(TERMIO) || defined(TERMIOS)
 	if (OKXonXoff)
 		sg[YES].c_iflag &= ~(IXON | IXOFF);
 	sg[YES].c_iflag &= ~(INLCR|ICRNL|IGNCR | (MetaKey? ISTRIP : 0));
@@ -182,37 +113,37 @@ ttysetattr(jbool n)	/* `n' is also used as subscript! */
 	 * in the configuration.  For example, on some unnamed
 	 * versions of the Convex OS, it would be good to
 	 * define it as (sg[YES].c_cc[VDISABLE]), saving a system call.
-	 * Note that the only uses of JDISABLE are in this block,
+	 * Note that the only uses of JVDISABLE are in this block,
 	 * so the macro may safely refer to things in this context.
 	 */
 	{
-# ifndef JVDISABLE
-#  ifdef _POSIX_VDISABLE
-#   define JVDISABLE	_POSIX_VDISABLE
-#  else /* !_POSIX_VDISABLE */
-#   ifdef _PC_VDISABLE
+#ifndef JVDISABLE
+# ifdef _POSIX_VDISABLE
+#  define JVDISABLE	_POSIX_VDISABLE
+# else /* !_POSIX_VDISABLE */
+#  ifdef _PC_VDISABLE
 		/* Cache the result of fpathconf to reduce the number of syscalls.
 		 * We don't handle the error return (-1) because there isn't
 		 * anything better to do with it.
 		 */
-		cc_t	jvd = fpathconf(0, _PC_VDISABLE);
-#    define JVDISABLE	jvd
-#   else /* !_PC_VDISABLE */
-#    define JVDISABLE	0
-#   endif /* !_PC_VDISABLE */
-#  endif /* !_POSIX_VDISABLE */
-# endif /* JVDISABLE */
+	    cc_t	jvd = fpathconf(0, _PC_VDISABLE);
+#   define JVDISABLE	jvd
+#  else /* !_PC_VDISABLE */
+#   define JVDISABLE	0
+#  endif /* !_PC_VDISABLE */
+# endif /* !_POSIX_VDISABLE */
+#endif /* JVDISABLE */
 
 		sg[YES].c_cc[VINTR] = IntChar;
 
-# ifdef VQUIT
+#ifdef VQUIT
 		sg[YES].c_cc[VQUIT] = JVDISABLE;
-# endif
+#endif
 		/* VERASE, VKILL, VEOL2 irrelevant */
 		/* Beware aliasing! VMIN is VEOF and VTIME is VEOL */
-# ifdef VSWTCH
+#ifdef VSWTCH
 		sg[YES].c_cc[VSWTCH] = JVDISABLE;
-# endif
+#endif
 
 		/* Under at least one system (SunOS 4.0), <termio.h>
 		 * mistakenly defines the extra V symbols of <termios.h>
@@ -222,28 +153,25 @@ ttysetattr(jbool n)	/* `n' is also used as subscript! */
 		 * on SunOS 4.0, so the problem may be moot.
 		 */
 
-# ifdef TERMIOS
-#  ifdef VSUSP
+#ifdef VSUSP
 		sg[YES].c_cc[VSUSP] = JVDISABLE;
-#  endif
-#  ifdef VDSUSP
+#endif
+#ifdef VDSUSP
 		sg[YES].c_cc[VDSUSP] = JVDISABLE;
-#  endif
-#  ifdef VDISCARD
+#endif
+#ifdef VDISCARD
 		/* ??? Under Solaris 2.1 needs VDISCARD disabled, or it will
 		 * be processed by the tty driver, but not under SysVR4!
 		 */
 		sg[YES].c_cc[VDISCARD] = JVDISABLE;	/* flush output */
-#  endif
-#  ifdef VLNEXT
+#endif
+#ifdef VLNEXT
 		sg[YES].c_cc[VLNEXT] = JVDISABLE;	/* literal next char */
-#  endif
-# endif /* TERMIOS */
+#endif
 
 		sg[YES].c_cc[VMIN] = 1;
 		sg[YES].c_cc[VTIME] = 1;
 	}
-#endif /* defined(TERMIO) || defined(TERMIOS) */
 
 #ifdef USE_TIOCSLTC
 	ls[YES] = ls[NO];
@@ -253,73 +181,16 @@ ttysetattr(jbool n)	/* `n' is also used as subscript! */
 	ls[YES].t_lnextc = (char) -1;
 #endif /* USE_TIOCSLTC */
 
-#ifdef SGTTY
-
-# ifdef TIOCGETC
-	tc[YES] = tc[NO];
-	tc[YES].t_intrc = IntChar;
-	tc[YES].t_quitc = (char) -1;
-	if (OKXonXoff) {
-		tc[YES].t_stopc = (char) -1;
-		tc[YES].t_startc = (char) -1;
-	}
-# endif
-
-# ifdef LPASS8	/* use 4.3BSD's LPASS8 instead of raw for meta-key */
-	lmword[YES] = lmword[NO];
-
-	if (MetaKey)
-		lmword[YES] |= LPASS8;
-
-#  ifdef LLITOUT
-	/* ??? under what conditions should we turn on LLITOUT flag? */
-#  endif /* LLITOUT */
-
-#  ifdef LTILDE
-	if (Hazeltine)
-		lmword[YES] &= ~LTILDE;
-#  endif /* LTILDE */
-
-# endif /* LPASS8 */
-
-#endif /* SGTTY */
-
 	/* Set tty state according to appropriate entry of each state pair.
 	 * NOTE: the nested tangle of ifdefs is intended to follow
 	 * the structure of the definitions in ttystate.c.
 	 */
 
-#ifdef SGTTY
-#  ifdef TIOCSETN
-	(void) ioctl(0, TIOCSETN, &sg[n]);
-#  else
-	(void) stty(0, &sg[n]);
-#  endif
-#endif
-
-#ifdef TERMIO
-	do {} while (ioctl(0, TCSETAW, &sg[n]) < 0 && errno == EINTR);
-#endif
-
-#ifdef TERMIOS
 	do {} while (tcsetattr(0, TCSADRAIN, &sg[n]) < 0 && errno == EINTR);
-#endif
 
 #ifdef USE_TIOCSLTC
 	(void) ioctl(0, TIOCSLTC, &ls[n]);
 #endif /* USE_TIOCSLTC */
-
-#ifdef SGTTY
-
-# ifdef TIOCGETC
-	(void) ioctl(0, TIOCSETC, &tc[n]);
-# endif
-
-# ifdef LPASS8	/* use 4.3BSD's LPASS8 instead of raw for meta-key */
-	(void) ioctl(0, TIOCLSET, &lmword[n]);	/* local mode word */
-# endif
-
-#endif /* SGTTY */
 
 #ifdef BIFF
 
@@ -344,7 +215,6 @@ ttysetattr(jbool n)	/* `n' is also used as subscript! */
 		static struct stat	tt_stat;
 # if !defined(USE_FSTAT) || !defined(USE_FCHMOD)
 		static char	*tt_name = NULL;	/* name of the control tty */
-		extern char	*ttyname(int);		/* for systems w/o fstat */
 # endif
 
 		if (n && DisBiff) {

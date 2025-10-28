@@ -21,7 +21,6 @@
 #include "vars.h"
 
 #ifdef IPROCS
-# include "sysprocs.h"	/* this and below ... */
 # include "iproc.h"	/* ... for definition of ProcNewline() */
 #endif
 

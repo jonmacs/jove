@@ -19,7 +19,6 @@
 
 #include <signal.h>
 #include <sys/ioctl.h>
-#include "sysprocs.h"
 #include "iproc.h"
 extern int pause(void);
 
@@ -83,7 +82,6 @@ detach(void)
 {
 #ifdef POSIX_PROCS
 	setsid();
-#endif
 #ifdef TIOCNOTTY
 	{
 		int fd = open("/dev/tty", O_WRONLY | O_BINARY | O_CLOEXEC);
@@ -104,6 +102,7 @@ detach(void)
 	}
 #endif
 	NEWPG();
+#endif
 }
 
 private void
