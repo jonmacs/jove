@@ -817,7 +817,7 @@ init_specials(void)
 }
 
 void
-AddSpecial()
+AddSpecial(void)
 {
 	const char	*word;
 	register List	*lp;
@@ -832,7 +832,7 @@ AddSpecial()
 }
 
 private Bufpos *
-lisp_indent()
+lisp_indent(void)
 {
 	Bufpos	*bp,
 		savedot;
