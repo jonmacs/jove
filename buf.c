@@ -224,16 +224,16 @@ BufNSelect(int n)
 	/* NOTREACHED */
 }
 
-void Buf1Select() { BufNSelect(1); }
-void Buf2Select() { BufNSelect(2); }
-void Buf3Select() { BufNSelect(3); }
-void Buf4Select() { BufNSelect(4); }
-void Buf5Select() { BufNSelect(5); }
-void Buf6Select() { BufNSelect(6); }
-void Buf7Select() { BufNSelect(7); }
-void Buf8Select() { BufNSelect(8); }
-void Buf9Select() { BufNSelect(9); }
-void Buf10Select() { BufNSelect(10); }
+void Buf1Select(void) { BufNSelect(1); }
+void Buf2Select(void) { BufNSelect(2); }
+void Buf3Select(void) { BufNSelect(3); }
+void Buf4Select(void) { BufNSelect(4); }
+void Buf5Select(void) { BufNSelect(5); }
+void Buf6Select(void) { BufNSelect(6); }
+void Buf7Select(void) { BufNSelect(7); }
+void Buf8Select(void) { BufNSelect(8); }
+void Buf9Select(void) { BufNSelect(9); }
+void Buf10Select(void) { BufNSelect(10); }
 
 private void
 delb_wind(Buffer *b)
