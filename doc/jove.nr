@@ -47,10 +47,15 @@ editor written at MIT by Richard Stallman.  Although JOVE is meant to be
 compatible with EMACS, there are some major differences between the two
 editors and you shouldn't rely on their behaving identically.
 .LP
-JOVE works on any reasonable display terminal that is described in the
+JOVE aims to be small, and usuable on a wide array of systems, so it works on
+many reasonable display terminals like modern vt[12]-style terminals, and by
+linking to a general terminal handling library such as
+.I ncurses
+(terminfo) or
 .I termcap
-file (see TERMCAP(5) for more details).  When you start up JOVE, it checks
-to see whether you have your
+(see TERMCAP(5)).
+
+When you start up JOVE, it checks to see whether you have your
 .I TERM
 environment variable set.  On most systems that will automatically be set up
 for you, but if it's not JOVE will ask you what kind of terminal you are
@@ -112,9 +117,10 @@ C shell initialization file (.cshrc):
 	alias popd      'popd \e!*; setenv CWD $cwd'
 	alias pushd     'pushd \e!*; setenv CWD $cwd'
 .fi
+.TP
 .BI \-D \ debugfile
 .I debugfile
-is created if missing, and some internal debug output is written to it. 
+is created if missing, and some internal debug output is written to it.
 Only for developers (or filing with bug reports on interactive-shell
 misbehaviour)
 .TP
@@ -122,25 +128,25 @@ misbehaviour)
 Allows the user to specify the directory in which supporting
 programs (recover, portsrv) required by JOVE can be found
 (default <LIBDIR>).  Within JOVE, this setting will be visible
-as the 
+as the
 .I lib-dir-pathname
 variable.  If JOVE was built to fit on machines with
 very little memory, without the features for post-crash recovery
 or interactive processes, then this option is not relevant.
-If 
-.I libdir 
+If
+.I libdir
 is a relative path, then the directory from which the running JOVE
-binary was started will be prepended to it. 
+binary was started will be prepended to it.
 .TP
 .BI \-s \ sharedir
 Allows the user to specify the directory in which default
-initialization files, command help and primary JOVE tutorial 
+initialization files, command help and primary JOVE tutorial
 can be found (default <SHAREDIR>). Within JOVE, this setting
 will be visible as the
 .I share-dir-pathname
 variable.
-If 
-.I sharedir 
+If
+.I sharedir
 is a relative path, then the directory from which the running Jove
 binary was started will be prepended to it.
 .TP
@@ -183,12 +189,12 @@ command on
 (see ctags(1)).
 .TP
 .B \-T
-starts JOVE in 
+starts JOVE in
 .I teach-jove
 mode, loading the JOVE tutorial into a buffer (unsaved) with
-the filename 
+the filename
 .IR ~/teach-jove .
-This replaces the old 
+This replaces the old
 .B teachjove
 command.
 .TP
@@ -268,7 +274,8 @@ with no loss.
 .SH GETTING HELP
 Once in JOVE, there are several commands available to get help.  To execute
 any JOVE command, you type ``<ESC> X command-name'' followed by <Return>.  To
-get a list of all the JOVE commands you type ``<ESC> X'' followed by ``?''.  The
+get a list of all the JOVE commands you type ``<ESC> X'' followed by ``?''.
+The
 .I describe-bindings
 command can be used to get a list containing each key, and its associated
 command (that is, the command that gets executed when you type that key).
@@ -319,8 +326,11 @@ string, or ``on'' or ``off'', depending on the context.  For example, if you
 want JOVE to make backup files, you set the ``make-backup-files'' variable to
 ``on''.  To see the value of a variable, use the ``print <variable>'' command.
 .SH INITIALIZATION
-JOVE first reads the system-wide initialization file (<SHAREDIR>/jove.rc) which provides reasonable defaults for your installation and loads standard macros.
-It will normally observe your TERM environment variable in order to provide terminal-specific key bindings and a map of your keyboard (see the standard ``keychart'' macro).
+JOVE first reads the system-wide initialization file (<SHAREDIR>/jove.rc)
+which provides reasonable defaults for your installation and loads standard
+macros.  It will normally observe your TERM environment variable in order to
+provide terminal-specific key bindings and a map of your keyboard (see the
+standard ``keychart'' macro).
 .LP
 JOVE then automatically reads further commands from the initialization file
 called ``.joverc'' (``jove.rc'' under MSDOS) in your HOME directory.
@@ -436,20 +446,34 @@ LC_ALL, LC_CTYPE, LANG \(em to set the locale
 .fi
 .SH SEE ALSO
 .nf
-ctags(1) \(em to generate tags for the find-tag command and the \-t command-line
-option
+ctags(1) \(em to generate tags for the find-tag command and the \-t
+command-line option
 .sp 0
 ed(1) \(em for a description of regular expressions
 .sp 0
 teachjove(1) \(em for an interactive JOVE tutorial.
 .fi
+
+.LP
+Project resources and releases:
+.I https://github.com/jonmacs/jove
+
 .SH DIAGNOSTICS
 JOVE diagnostics are meant to be self-explanatory, but you are advised
 to seek help whenever you are confused.  You can easily lose a lot of
 work if you don't know EXACTLY what you are doing.
-.SH BUGS
-Lines can't be more than 1024 characters long.
+
+.SH BUGS / LIMITATIONS
+.sp 1
+Linelenght are limited to a fixed value set at compile time. Default is 32768.
+
+.sp 1
+JOVE does not support multi-byte UTF-8 characters. In UTF-8 locales, non-ASCII
+characters may display incorrectly. Use ASCII or single-byte encodings with
+JOVE.
+
 .sp 1
 Searches can't cross line boundaries.
+
 .SH AUTHOR
 Jonathan Payne
