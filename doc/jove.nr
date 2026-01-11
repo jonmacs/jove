@@ -465,7 +465,7 @@ work if you don't know EXACTLY what you are doing.
 
 .SH BUGS / LIMITATIONS
 .sp 1
-Linelenght are limited to a fixed value set at compile time. Default is 32768.
+Line lengths are limited to a fixed value set at compile time. The Default is 32768.
 
 .sp 1
 JOVE does not support multi-byte UTF-8 characters. In UTF-8 locales, non-ASCII
