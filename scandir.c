@@ -104,7 +104,7 @@ DIR	*dp;
  */
 int
 jscandir(const char *dir, char ***nmptr,
-	 jbool (*qualify)(char *),
+	 jbool (*qualify)(const char *),
 	 int (*sorter)(const void *, const void *))
 {
 	DIR	*dirp;
@@ -159,7 +159,7 @@ jbool	MatchDir = NO;
  * be opened or malloc fails.
  */
 int
-jscandir(const char *dir, char ***nmptr, jbool (*qualify)(char *),
+jscandir(const char *dir, char ***nmptr, jbool (*qualify)(const char *),
 	 int (*sorter)(const void *, const void *))
 {
 	struct find_t	entry;
@@ -221,7 +221,7 @@ jscandir(const char *dir, char ***nmptr, jbool (*qualify)(char *),
  * be opened or malloc fails.
  */
 int
-jscandir(const char *dir, char ***nmptr, jbool (*qualify)(char *),
+jscandir(const char *dir, char ***nmptr, jbool (*qualify)(const char *),
 	 int (*sorter)(const void *, const void *))
 {
 	WIN32_FIND_DATA entry;

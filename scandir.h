@@ -7,7 +7,7 @@
 
 extern int
 	jscandir(const char *dir, char ***nmptr,
-		jbool (*qualify)(char *),
+		jbool (*qualify)(const char *),
 		int (*sorter)(const void *, const void *));
 
 extern void

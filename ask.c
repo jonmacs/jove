@@ -422,8 +422,6 @@ bad_extension(const char *name)
 	return NO;
 }
 
-private jbool f_match(char *file);
-
 private jbool
 f_match(const char *file)
 {
