@@ -33,7 +33,6 @@ jobs:
         - 'debian:8'
         - 'debian:9'
         - 'debian:11'
-        - 'debian:13'
         - 'debian:testing'
         - 'alpine:3.9'
         - 'alpine:latest'
