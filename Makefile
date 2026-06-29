@@ -1,5 +1,3 @@
-CC= gcc-15
-
 ##########################################################################
 # This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    #
 # provided by Jonathan and Jovehacks without charge and without          #
