@@ -34,9 +34,6 @@ const struct variable	variables[] = {
 #ifdef IPROCS
 	{ VARIABLE, "dbx-format-string", VAR(dbx_parse_fmt), V_STRING },
 #endif
-#ifdef BIFF
-	{ VARIABLE, "disable-biff", VAR(&DisBiff), V_BOOL|V_TTY_RESET },
-#endif
 	{ VARIABLE, "display-default-filenames", VAR(&DispDefFs), V_BOOL },
 #ifdef F_COMPLETION
 	{ VARIABLE, "display-filenames-with-bad-extensions", VAR(&DispBadFs), V_BOOL },

@@ -11,10 +11,6 @@
 
 #include "fp.h"
 
-#ifdef BIFF
-# include <sys/stat.h>
-#endif
-
 #include "chars.h"
 #include "term.h"	/* ospeed */
 #include "ttystate.h"
@@ -45,14 +41,6 @@ struct ltchars	ls[2];
  */
 jbool	OKXonXoff = YES;	/* VAR: XON/XOFF can be used as ordinary chars */
 ZXchar	IntChar = CTL(']');	/* VAR: ttysetattr sets this to generate SIGINT */
-
-#ifdef BIFF
-/*
- * Ancient UNIXes can mess up the screen with biff when mail
- * arrives, and it does no harm to turn this on anyway.
- */
-jbool	DisBiff = YES;		/* VAR: turn off/on biff with entering/exiting jove */
-#endif /* BIFF */
 
 void
 ttysetattr(jbool n)	/* `n' is also used as subscript! */
@@ -192,81 +180,6 @@ ttysetattr(jbool n)	/* `n' is also used as subscript! */
 	(void) ioctl(0, TIOCSLTC, &ls[n]);
 #endif /* USE_TIOCSLTC */
 
-#ifdef BIFF
-
-# ifdef S_IXUSR
-#  define BIFF_BIT ((jmode_t)S_IXUSR)	/* POSIX name */
-# else
-#  define BIFF_BIT ((jmode_t)S_IEXEC)	/* BSD name */
-# endif
-
-	/* biff state is an honorary part of the tty state.
-	 * On the other hand, it is different from the rest of the state
-	 * since we only want to examine the setting if DisBiff
-	 * has been set by the user.  For this reason, the code is
-	 * somewhat more intricate.
-	 */
-	{
-#		define BS_UNEXAMINED	0	/* we don't know if biff is enabled */
-#		define BS_DISABLED	1	/* we have disabled biff */
-#		define BS_UNCHANGED	2	/* we didn't disable biff */
-		static int	biff_state = BS_UNEXAMINED;
-
-		static struct stat	tt_stat;
-# if !defined(USE_FSTAT) || !defined(USE_FCHMOD)
-		static char	*tt_name = NULL;	/* name of the control tty */
-# endif
-
-		if (n && DisBiff) {
-			/* biff supression is our business */
-			if (biff_state == BS_UNEXAMINED) {
-				/* and we haven't looked after it */
-				biff_state = BS_UNCHANGED;	/* at least so far */
-				if (
-# ifdef USE_FSTAT
-					fstat(0, &tt_stat) != -1
-# else
-					((tt_name != NULL) || (tt_name = ttyname(0)) != NULL)
-					&& stat(tt_name, &tt_stat) != -1
-# endif
-				&& (tt_stat.st_mode & BIFF_BIT))
-				{
-					/* so let's suppress it */
-# ifdef USE_FCHMOD
-					(void) fchmod(0, tt_stat.st_mode & ~BIFF_BIT);
-					biff_state = BS_DISABLED;
-# else
-					if ((tt_name != NULL || (tt_name = ttyname(0)) != NULL)
-					&& chmod(tt_name, tt_stat.st_mode & ~BIFF_BIT) != -1)
-					{
-						/* Note: only change biff_state if we were able to
-						 * get the tt_name -- this prevents the other
-						 * chmod from blowing up.
-						 */
-						biff_state = BS_DISABLED;
-					}
-# endif
-				}
-			}
-		} else {
-			/* any biff suppression should be undone */
-			if (biff_state == BS_DISABLED) {
-				/* and we did suppress it, so we enable it */
-# ifdef USE_FCHMOD
-				(void) fchmod(0, tt_stat.st_mode);
-# else
-				(void) chmod(tt_name, tt_stat.st_mode);
-# endif
-			}
-			biff_state = BS_UNEXAMINED;	/* it's out of our hands */
-		}
-#		undef BS_UNEXAMINED
-#		undef BS_DISABLED
-#		undef BS_UNCHANGED
-	}
-# undef BIFF_BIT
-
-#endif /* BIFF */
 }
 
 /* Determine the number of characters to buffer at each baud rate.  The

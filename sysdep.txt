@@ -261,11 +261,6 @@ NO_STRERROR	If you do not have the strerror() routine.  Needed for
 USE_FSYNC	Have the fsync() system call.  True on just about all modern
 		UNIXes.  Used to ask the OS to really flush the file to disk.
 
-If BIFF is defined, you can usefully define either or both of the following:
-USE_FSTAT	Have the fstat() call.  Just about every modern Unix does.
-USE_FCHMOD	Have the fchmod() call.  Again, true on most modern UNIXes
-		after BSD4.2.
-
 Jove supports 7-bit or 8-bit character sets.  It has a wired-in
 notion of what each kind of character is, but it can use the
 system's classification of control characters.
