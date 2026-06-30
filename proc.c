@@ -214,8 +214,8 @@ NeedErrors(void)
 private jbool
 ErrorHasReferents(void)
 {
-	return inlist(cur_error->er_buf->b_first, cur_error->er_text)
-		&& inlist(perr_buf->b_first, cur_error->er_mess);
+	return inlist(cur_error->er_buf->b_first, cur_error->er_text) &&
+		inlist(perr_buf->b_first, cur_error->er_mess);
 }
 
 /* Go the the next error, if there is one.  Put the error buffer in

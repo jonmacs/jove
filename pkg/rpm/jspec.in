@@ -44,7 +44,11 @@ make DESTDIR=$RPM_BUILD_ROOT JOVEHOME=/usr JLIBDIR=%{_libdir}/jove JSHAREDIR=%{_
 %{_bindir}/teachjove
 %{_mandir}/man1/jove.1*
 %{_mandir}/man1/teachjove.1*
-%doc README doc/jove.man.txt doc/jove.man.pdf doc/jove.qref doc/example.rc
+%doc %{_docdir}/jove/README
+%doc %{_docdir}/jove/jove.man.txt
+%doc %{_docdir}/jove/jove.man.pdf
+%doc %{_docdir}/jove/jove.qref
+%doc %{_docdir}/jove/example.rc
 
 %changelog
 * Wed Jun 17 2015 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 4.16.0.73-9

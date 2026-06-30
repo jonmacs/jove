@@ -97,10 +97,10 @@ struct buffer {
 		*b_marks;		/* all the marks for this buffer */
 	int	b_themark,		/* current mark (in b_markring) */
 		b_type;			/* file, scratch, process, iprocess */
-	char	b_ntbf,			/* (bool) needs to be found when we
+	char	b_ntbf,			/* (jbool) needs to be found when we
 					   first select? */
-		b_modified,		/* (bool) is the buffer modified? */
-		b_diverged;		/* (bool) has the underlying file been changed behind our back? */
+		b_modified,		/* (jbool) is the buffer modified? */
+		b_diverged;		/* (jbool) has the underlying file been changed behind our back? */
 	int	b_major;		/* major mode */
 	unsigned	b_minor;		/* and minor mode */
 	struct keymap	*b_map;		/* local bindings (if any) */

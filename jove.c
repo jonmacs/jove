@@ -64,6 +64,7 @@
 #endif /* MSDOS */
 
 #ifdef WIN32
+# undef Fill /* sigh, used as a field name in some windows header! */
 # undef CR /* sigh, used as a field name in some windows header! */
 # undef Fill /* sigh, used as a field name in some windows header! */
 # include <windows.h>	/* needed for CreateProcess */
@@ -1985,11 +1986,7 @@ main(int argc, char *argv[])
 }
 
 #ifdef PNAME_SYSCTL_OID
-
-/*
- * FreeBSD, NetBSD.  Includes stdbool, so must be after all
- * the uses of the Jove bool type, sigh!
- */
+/* FreeBSD, NetBSD */
 # include <sys/sysctl.h>
 #endif
 

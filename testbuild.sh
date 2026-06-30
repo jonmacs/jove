@@ -1,15 +1,18 @@
 #!/bin/sh
 # Automated builds with various configs, should work on 
-# range of Linux, SunOS (OpenIndiana), FreeBSD.
+# range of Linux, SunOS (OpenIndiana), *BSD, Darwin(MacOS).
+# Used in github actions workflow for automated builds,
+# see .github/workflows/testbuild.yml
+# Author: Mark Moraes
 
-PATH=/bin:/usr/bin:/usr/gnu/bin:/opt/SUNWspro/bin:/usr/sfw/bin:/usr/local/bin:/usr/local/sbin:/usr/sbin:/sbin:/bin
+PATH=/bin:/usr/bin:/usr/gnu/bin:/opt/SUNWspro/bin:/usr/sfw/bin:/usr/local/bin:/opt/homebrew/bin:/usr/local/sbin:/usr/sbin:/sbin:/bin
 export PATH
 
 : ${TB_MACH=$(uname -m)}
 : ${TB_OS=$(uname)}
 : ${TB_REV=$(uname -r)}
 : ${TB_NODE=$(uname -n)}
-: ${TB_OPTFLAGS=-O}
+: ${TB_OPTFLAGS=-Os}
 : ${TB_MINGW=i686-w64-mingw32 x86_64-w64-mingw32}
 
 dist=$TB_OS-$TB_MACH
@@ -66,10 +69,18 @@ case $# in
 		mingwapk="$($SUDO apk list mingw-w64-gcc)"
 		case "$mingwapk" in '') ;; *) apk add mingw-w64-gcc;; esac
 	elif type yum 2> /dev/null; then
-		case "$ID" in rocky) ctags=;; *) ctags=ctags;; esac
+	        ctags=ctags
+		case "$ID" in
+		rocky) ctags=;;
+		centos)	sed -i -e 's/mirror.centos.org/vault.centos.org/g' \
+				-e 's/^#.*baseurl=http/baseurl=http/g' \
+				-e 's/^mirrorlist=http/#mirrorlist=http/g' \
+			    	/etc/yum.repos.d/CentOS-*.repo
+				;;
+		esac
 		$SUDO yum install -y make gcc ncurses-devel groff $ctags zip rpm-build
 	elif type brew 2> /dev/null; then
-		brew install make ctags zip ncurses
+		brew install make ncurses ctags zip groff
 	elif type pacman 2> /dev/null; then
 		$SUDO pacman -Sy --noconfirm gcc make pkgconf ncurses groff ctags zip
 	elif type nix-shell 2> /dev/null; then
@@ -77,7 +88,9 @@ case $# in
 	else
 		# not a packaging system we know, hope it already has minimal testbuild needs
 		type cc make mktemp
+		TB_OPTFLAGS=-O
 	fi
+	cc --version || true
 	case "$1" in
 	*only) exit 0;;
 	esac
@@ -128,25 +141,38 @@ GNU|Linux)  t=-lncurses
 	x="$x CC=gcc"
         ;;
 esac
+
+# awful hack to turn off warnings for old-style K&R definitions in
+# newish versions of gcc/clang
+# TO-DO: remove this for jove 5.x when we move to c89-style prototypes
+skipwarn="-Wno-unknown-warning -Wno-unknown-warning-option -Wno-old-style-definition -Wno-strict-prototypes -Wno-deprecated-non-prototype -Wno-incompatible-pointer-types"
+case "$o" in
+-O)	w=
+	;;
+*)	o="$o $skipwarn"
+	w="$skipwarn"
+	;;
+esac
+
 if test -x /usr/bin/getconf; then j=-j$(getconf $jv); else j=; fi
 # other than the first "make install" with $TB_OS, some of the others
 # (e.g. PIPEPROCS, TERMINFO) may produce warnings (e.g. no declaration for
 # ioctl) because we are just testing somewhat abnormal non-POSIX sysdefs.
 # Try using either old-style TERMCAPLIB, EXTRALIBS or new-style LDLIBS
 make clean &&
-JMAKE_OPTS=$j ./jmake.sh $dd/t10-$TB_OS install &&
+JMAKE_OPTS=$j ./jmake.sh $dd/t10-$TB_OS install OPTFLAGS="$o" LOCALCFLAGS="$w" &&
 make clean &&
-make $j OPTFLAGS="$o" PORTSRVINST=1 SYSDEFS="-DPIPEPROCS $d" TERMCAPLIB=$t EXTRALIBS= $x $dd/t20-pipeprocs install &&
+make $j OPTFLAGS="$o" LOCALCFLAGS="$w" PORTSRVINST=1 SYSDEFS="-DPIPEPROCS $d" TERMCAPLIB=$t EXTRALIBS= $x $dd/t20-pipeprocs install &&
 make clean &&
-make $j OPTFLAGS="$o" SYSDEFS="-DBSDPOSIX $d" LDLIBS=$t $x $dd/t30-bsdposix install &&
+make $j OPTFLAGS="$o" LOCALCFLAGS="$w" SYSDEFS="-DBSDPOSIX $d" LDLIBS=$t $x $dd/t30-bsdposix install &&
 make clean &&
-make $j OPTFLAGS="$o" SYSDEFS="-DBAREBONES -DSMALL -DJTC $d" LDLIBS= $x $dd/t60-small install &&
+make $j OPTFLAGS="$o" LOCALCFLAGS="$w" SYSDEFS="-DBAREBONES -DSMALL -DJTC $d" LDLIBS= $x $dd/t60-small install &&
 make clean &&
 case "$lib" in
 GLIBC)
-    make $j OPTFLAGS="$o" SYSDEFS="-DXLINUX" TERMCAPLIB=$t EXTRALIBS= $x $dd/t40-xlinux install &&
+    make $j OPTFLAGS="$o" LOCALCFLAGS="$w" SYSDEFS="-DXLINUX" TERMCAPLIB=$t EXTRALIBS= $x $dd/t40-xlinux install &&
     make clean &&
-    make $j OPTFLAGS="$o" SYSDEFS="-DTERMINFO -DUSE_VFORK" TERMCAPLIB=$t $x $dd/t50-vfork &&
+    make $j OPTFLAGS="$o" LOCALCFLAGS="$w" SYSDEFS="-DTERMINFO -DUSE_VFORK" TERMCAPLIB=$t $x $dd/t50-vfork &&
     make clean
     ;;
 esac &&
@@ -172,7 +198,8 @@ elif test -e /etc/alpine-release; then
 		if type ${tag}-gcc 2> /dev/null ; then
 			r=jove-$ver-$tag-static &&
 			if test ! -d $dist/$r; then mkdir $dist/$r; fi &&
-			JMAKE_UNAME=$tag ./jmake.sh clobber all &&
+			make clobber &&
+			JMAKE_UNAME=$tag ./jmake.sh OPTFLAGS="$o" LOCALCFLAGS="$w" all &&
 			strip jjove recover &&
 			mv jjove $dist/$r/jove &&
 			mv recover $dist/$r &&
@@ -187,7 +214,9 @@ for tag in ${TB_MINGW}; do
 	# build a cross-compiled version for Windows
 	r=jove-$ver-$tag &&
 	if test ! -d $dist/$r; then mkdir $dist/$r; fi &&
-	JMAKE_UNAME=$tag ./jmake.sh clobber all &&
+	make clobber &&
+	make XEXT=.exe clobber &&
+	JMAKE_UNAME=$tag ./jmake.sh $j OPTFLAGS="$o" LOCALCFLAGS="$w" all &&
 	${tag}-strip jjove.exe recover.exe &&
 	mv jjove.exe $dist/$r/jove.exe &&
 	mv recover.exe $dist/$r &&
@@ -198,9 +227,11 @@ for tag in ${TB_MINGW}; do
 done &&
 if type pbuilder 2> /dev/null; then
 	# if a developer has pbuilder, test debian package builds
-	$SUDO make deb
+	$SUDO make $j deb
 	cp -av /var/cache/pbuilder/result/*$(cat .version)*.deb $dist/
 fi
+ret=$?
 # portable for older Unix/SunOS!
-(cd "$td" && tar cvf - .) | gzip > $dist/$ver-builds.tar.gz
+(cd "$td" && tar cf - .) | gzip > $dist/$ver-builds.tar.gz
 rm -rf "$td"
+exit $ret

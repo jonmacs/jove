@@ -272,7 +272,7 @@ private const char	*CurDir;
  * out of them.
  */
 
-private jbool	add_name(char *);
+private jbool	add_name(const char *);
 
 private void
 free_files(void) {
@@ -303,7 +303,7 @@ get_files(const char *dirname)
 }
 
 private jbool
-add_name(char *fname)
+add_name(const char *fname)
 {
 	char	dfile[FILESIZE*2+2], /* CurDir/filename */
 		rfile[FILESIZE*2+2];

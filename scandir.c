@@ -104,7 +104,7 @@ DIR	*dp;
  */
 int
 jscandir(const char *dir, char ***nmptr,
-	 jbool (*qualify)(char *),
+	 jbool (*qualify)(const char *),
 	 int (*sorter)(const void *, const void *))
 {
 	DIR	*dirp;
@@ -159,7 +159,7 @@ jbool	MatchDir = NO;
  * be opened or malloc fails.
  */
 int
-jscandir(const char *dir, char ***nmptr, jbool (*qualify)(char *),
+jscandir(const char *dir, char ***nmptr, jbool (*qualify)(const char *),
 	 int (*sorter)(const void *, const void *))
 {
 	struct find_t	entry;
@@ -213,15 +213,15 @@ jscandir(const char *dir, char ***nmptr, jbool (*qualify)(char *),
 #endif /* MSDOS */
 
 #ifdef WIN32
-# undef CR /* sigh, used as a field name in some windows header! */
 # undef Fill /* sigh, used as a field name in some windows header! */
+# undef CR /* sigh, used as a field name in some windows header! */
 # include <windows.h>
 
 /* Scandir returns the number of entries or -1 if the directory cannot
  * be opened or malloc fails.
  */
 int
-jscandir(const char *dir, char ***nmptr, jbool (*qualify)(char *),
+jscandir(const char *dir, char ***nmptr, jbool (*qualify)(const char *),
 	 int (*sorter)(const void *, const void *))
 {
 	WIN32_FIND_DATA entry;

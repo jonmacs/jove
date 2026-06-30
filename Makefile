@@ -1,5 +1,3 @@
-CC= gcc-15
-
 ##########################################################################
 # This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    #
 # provided by Jonathan and Jovehacks without charge and without          #
@@ -328,7 +326,7 @@ recover$(XEXT):	recover.o
 # compile is better than faster executable (also urban legend that 
 # optimization produced bad code for setmaps!)
 setmaps$(LOCALEXT):	setmaps.o
-	$(LOCALCC) $(LOCALLDFLAGS) $(LOCALCFLAGS)-o setmaps$(LOCALEXT) setmaps.o $(LOCALEXTRALIBS)
+	$(LOCALCC) $(LOCALLDFLAGS) $(LOCALCFLAGS) -o setmaps$(LOCALEXT) setmaps.o $(LOCALEXTRALIBS)
 
 # Critical that setmaps be compiled with same SYSDEFS
 setmaps.o:	setmaps.c
@@ -444,7 +442,7 @@ $(TEACHDOC): $(DSHAREDIR) doc/teach-jove
 	$(TINSTALL) doc/teach-jove $(TEACHDOC)
 
 $(REFDOC): $(DDOCDIR) doc/jove.qref doc/example.rc $(FREFDOCS)
-	$(TINSTALL) doc/jove.qref doc/example.rc $(FREFDOCS) $(DDOCDIR)
+	$(TINSTALL) README doc/jove.qref doc/example.rc $(FREFDOCS) $(DDOCDIR)
 
 doc/jove.rc: doc/jove.rc.in
 	@mkdir $(TDIR) && \

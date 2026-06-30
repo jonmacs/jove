@@ -1,3 +1,31 @@
+Author: Mark Moraes <mark.moraes@deshawresearch.com>
+Date:   Thu Feb 27 08:50:25 2025 -0500
+
+    4.17.5.5: restore mode-line indicator for show-match-mode, rename
+    all strings to provide clue to the command to turn them off.
+    update to debian Brazilian translation
+    https://github.com/jonmacs/jove/issues/25
+    NOARGS macro for functions with no arguments
+    replace bool with jbool for c23 (bool is a keyword)
+    jmake.sh: ask for c89 (hopefully avoids complaints re:
+    old-style protos). Search for gcc on SunOS to address
+    https://github.com/jonmacs/jove/issues/23
+    add tmux terminal to builtin jtc
+    fix some github actions bitrot
+
+Author: Mark Moraes <moraes@computer.org>
+Date:   Thu Nov 30 02:48:10 2023 -0500
+
+    4.17.5.4 continued: get rid of ubuntu containers since docker pull fails,
+    not sure why. fix workflows typos and skip ctags for Rocky
+    even more elaborate hackery to fixup apt sources.list
+    for archived debians like 8 and 9. add rockylinux:9
+    removal of sys/stat inclusion in recover.c broke mingw (and probably DOS)
+    fixed it (in scandir.c) to work in both (probably also now works
+    for the not-tested-in-years classic Mac port)
+    testbuild: debian 9 regression no longer gets all the security repos,
+    so continue if apt update fails
+
 Author: Mark Moraes <moraes@computer.org>
 Date:   Tue Nov 28 22:52:00 2023 -0500
 

@@ -1458,7 +1458,7 @@ f_getputl(LinePtr line, File *fp)
 }
 
 typedef struct block {
-	char	b_dirty;	/* (bool) */
+	char	b_dirty;	/* (jbool) */
 	daddr	b_bno;
 	char	b_buf[JBUFSIZ];
 	struct block

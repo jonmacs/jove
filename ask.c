@@ -391,7 +391,7 @@ char	BadExtensions[sizeof(BadExtensions)] =	/* VAR: extensions to ignore */
 # endif /* MSFILESYSTEM */
 
 private jbool
-bad_extension(char *name)
+bad_extension(const char *name)
 {
 	char	*ip,
 		*bads;
@@ -422,10 +422,8 @@ bad_extension(char *name)
 	return NO;
 }
 
-private jbool f_match(char* file);	/* needed to comfort MS Visual C */
-
 private jbool
-f_match(char *file)
+f_match(const char *file)
 {
 	size_t	len = strlen(fc_filebase);
 
@@ -442,7 +440,7 @@ f_match(char *file)
 
 # ifndef DIRECTORY_ADD_SLASH
 private jbool
-isdir(char *name)
+isdir(const char *name)
 {
 	(void) do_stat(name, (Buffer *) NULL, DS_DIR);
 	return was_dir;
@@ -488,7 +486,8 @@ fill_in(char **dir_vec, int n)
 			}
 		} else {
 			jbool	the_same = YES; /* After filling in, are we the same
-							as when we were called? */
+						 * as when we were called?
+						 */
 
 			if (minmatch > (int)strlen(fc_filebase)) {
 				if (minmatch >= LBSIZE - (fc_filebase - linebuf)) {

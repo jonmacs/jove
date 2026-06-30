@@ -52,7 +52,7 @@ extern char
 
 extern int	getArgs proto((char ***));
 
-extern bool	rawchkc proto((void));
+extern jbool	rawchkc proto((void));
 
 extern void
 	MacInit proto((void)),
@@ -64,7 +64,7 @@ extern void
 	InitEvents proto((void)),
 	menus_on proto((void));
 
-extern bool
+extern jbool
 	Keyonly,
 	Bufchange,
 	Modechange,
@@ -73,7 +73,7 @@ extern bool
 
 /* Variables: */
 
-extern bool
+extern jbool
 	Macmode;	/* VAR: use Mac file selector */
 
 #endif /* MAC */

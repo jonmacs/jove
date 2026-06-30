@@ -768,20 +768,16 @@ cmdmatch(char *inp, char *verb, char *oppat)
 jbool
 joverc(char *file)
 {
-	char	fbuf[LBSIZE],
-		lbuf[LBSIZE];
-	jmp_buf
-		savejmp;
-	volatile int
-		lnum = 0;
-	File
-		*volatile fp;
-	volatile jbool
-		eof = NO;
+	char		fbuf[LBSIZE],
+			lbuf[LBSIZE];
+	jmp_buf		savejmp;
+	volatile int	lnum = 0;
+	File		*volatile fp;
+	volatile jbool	eof = NO;
 	volatile unsigned int	/* bitstrings */
-		finger = 1,
-		skipping = 0,
-		inelse = 0;
+			finger = 1,
+			skipping = 0,
+			inelse = 0;
 
 
 	/*
