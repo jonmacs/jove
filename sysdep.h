@@ -32,7 +32,7 @@
 
 #if defined(OpenBSD) || defined(Darwin) || defined (XBSD)
 /* System: modern OpenBSD, Darwin Mac OSX */
-# define BSDPOSIX_STDC	1
+# define BSDPOSIX	1
 # define USE_OPENPTY	1
 #endif
 
@@ -45,7 +45,7 @@
 #if defined(XLINUX)
 /*
  * System: Some Linux e.g. Debian 9 and earlier.  Very old Linux (e.g. before
- * RedHat6) used BSD-compatible pty handling so BSDPOSIX_STDC is better for
+ * RedHat6) used BSD-compatible pty handling so BSDPOSIX is better for
  * those. Middle-aged Linux (e.g. upto Debian 9) seemed to work better with
  * SYSVR4 and _XOPEN_SOURCE defined.  Modern Linux (e.g. Debian 10 on) works
  * better with GLIBCPTY, since they have openpty in libutil, and pty.h.
@@ -74,26 +74,24 @@
  */
 # define USE_OPENPTY	1	/* older Cygwin may not have openpty? */
 # define HAVE_PTY_H	1
-# define BSDPOSIX_STDC	1
+# define BSDPOSIX	1
 # define PNAME_PROC_SELF    1
 #endif
 
-#ifdef MINGW		/* System: MinGW cross-compilation for Windows WIN32 (see README.w32) */
+#ifdef MINGW		/* System: MinGW cross-compilation for Windows WIN32 (see README.win) */
 # define WIN32		1
-# define POSIX_UNISTD	1
 # define NO_MKSTEMP	1   /* MKSTEMP on Windows unlinks the filename, which Jove uses for filters */
 #endif
 
 #ifdef OWCDOS	/* System: Open Watcom C 1.9 for x86 running MSDOS (see README.dos) */
 # define IBMPCDOS	1
-# define REALSTDC	1	/* close enough for us, but ZTCDOS doesn't define __STDC__ */
-# define FULL_UNISTD	1
 #endif
 
-#ifdef _MSC_VER	/* System: Microsoft C for the IBM-PC under MSDOS or WIN32 (see README.dos or README.w32) */
+#ifdef _MSC_VER	/* System: Microsoft C for the IBM-PC under MSDOS or WIN32 (see README.dos or README.win) */
 /* 4.16.0.38 tested under VC++ 5.0 / VS 97 */
 /* 4.16.0.62 tested under Visual C++ 6.0 SP5 */
 /* 4.17.x.x tested under Visual Studio 2019 Community Edition */
+/* 5.x tested under Visual Studio 2022 Build Tools MSVC 14.43.34808 */
 # if defined(_WIN32) && !defined(WIN32)
 #  define WIN32 _WIN32
 # endif
@@ -108,19 +106,9 @@
 /**************************************************************************/
 /* Some very common collectons of capabilities, used by many defs above   */
 
-#ifdef BSDPOSIX_STDC	/* Same as BSDPOSIX, but with a Standard enough C */
-/* System: BSDI, 386BSD, BSD4.4, NetBSD -- BSDPOSIX_STDC */
-/* System: Old LINUX (MCC-Interim release) -- BSDPOSIX_STDC */
-# define REALSTDC	1
-# define BSDPOSIX	1
-#endif
-
 #ifdef BSDPOSIX	/* System: Posix system with BSD flavouring for ptys */
 /* System: SunOS4.1.3, DEC Ultrix 4.2 -- BSDPOSIX */
 /* System: DEC OSF/1 V1.3 -- BSDPOSIX + NO_TIOCREMOTE + NO_TIOCSIGNAL */
-# define TERMIOS	1
-# define USE_GETCWD	1
-# define FULL_UNISTD	1
 # define USE_SELECT	1
 # if !defined(PIPEPROCS) && !defined(NO_IPROCS)	/* useful to test PIPEPROCS even on pty platforms */
 #  define PTYPROCS	1
@@ -155,9 +143,6 @@
  * sysdep.txt.  It turns out that this bug is documented as a feature
  * in "The Single UNIX Specification", Version 2!
  */
-# define TERMIOS	1
-# define USE_GETCWD	1
-# define FULL_UNISTD	1
 # define USE_SELECT	1
 # if !defined(PIPEPROCS) && !defined(NO_IPROCS)	/* useful to test PIPEPROCS even on pty platforms */
 #  define PTYPROCS	1
@@ -172,49 +157,10 @@
 # define USE_FSTAT	1
 # define USE_FCHMOD	1
 # define HAS_SYMLINKS	1
-# define REALSTDC	1
 # define USE_CTYPE	1
 #endif
 
-#ifdef BSD4	/* System: Berkeley BSD4.x, 2.x, MIPS RiscOS 4.x */
-/* MIPS needs -systype bsd43, older releases (before 4.50?) may need
- * MIPS_CC_BUG defined as well.
- */
-# define SGTTY		1
-# define USE_GETWD	1
-# define USE_SELECT	1
-# define PTYPROCS	1
-# define BSD_PTYS	1	/* beware security flaw! */
-# define BSD_WAIT	1
-# define WAIT3		1
-# define BSD_SIGS	1
-# define JOB_CONTROL	1
-# define USE_VFORK	1
-# define BSD_SETPGRP	1
-# define USE_KILLPG	1
-# define BSD_DIR	1
-# define HAS_SYMLINKS	1
-# define SIGRESTYPE	int
-# define SIGRESVALUE	0
-# define USE_GETHOSTNAME	1
-# define NO_STRERROR	1
-# define USE_FSYNC	1
-# define USE_FSTAT	1
-# define USE_FCHMOD	1
-# define USE_BCOPY	1
-# define USE_INDEX	1
-# define jmode_t	int
-#endif
-
 /**************** Common Characteristics ****************/
-
-#ifdef pdp11
-/* On the PDP-11, UNIX allocates at least 8K for the stack.
- * In order not to waste this space, we allocate
- * a bunch of buffers as autos.
- */
-# define AUTO_BUFS	1
-#endif
 
 #ifdef IBMPCDOS	/* Common characteristics for IBM-PC MS-DOS systems. */
 # ifndef MSDOS
@@ -247,7 +193,6 @@
 #endif
 
 #ifdef WIN32	/* Common characteristics for WIN32 systems. */
-# define REALSTDC	1	/* MS C only defines __STDC__ if you use /Za */
 # define WINRESIZE	1
 # define PCNONASCII	((unsigned char)0xFF)	/* prefix for peculiar IBM PC key codes */
 # define NO_JSTDOUT	1	/* don't use jstdout */
@@ -264,8 +209,8 @@
 # endif
 #endif
 
-/* The operating system (MSDOS, WIN32, or MAC) must be defined by this point. */
-#if !(defined(MSDOS) || defined(WIN32) || defined(MAC))
+/* The operating system (MSDOS, WIN32) must be defined by this point. */
+#if !(defined(MSDOS) || defined(WIN32))
 # define UNIX	1	/* default to UNIX */
 #endif
 
@@ -277,14 +222,8 @@
 # define WINRESIZE	1
 # define MOUSE		1
 # define MALLOC_CACHE	1
-# if !(defined(USE_PWD) || defined(USE_GETCWD) || defined(USE_GETWD))
-#  define USE_GETWD     1
-# endif
 # if !(defined(NO_IPROCS) || defined(PIPEPROCS) || defined(PTYPROCS))
 #  define PIPEPROCS	1	/* use pipes */
-# endif
-# if !defined(TERMIOS) && !defined(SGTTY)
-#  define TERMIO	1	/* uses termio struct for terminal modes */
 # endif
 /* At the moment, the PTY code mandates having select().  One day, this might
  * change.
@@ -323,51 +262,12 @@
  * The things below here aren't meant to be tuned, but are included here
  * because they're dependent on the things defined earlier in the file.
  */
-#ifdef USE_BCOPY
-# define byte_copy(from, to, len)	bcopy((UnivConstPtr)(from), (UnivPtr)(to), (size_t)(len))
-# define byte_move(from, to, len)	byte_copy(from, to, len)
-# define byte_zero(s, n)	bzero((UnivPtr)(s), (size_t)(n))
-#endif
-
-#ifndef byte_copy
-# ifdef USE_MEMORY_H
-#  include <memory.h>
-# endif
-# define byte_copy(from, to, count)	memcpy((UnivPtr)(to), (UnivConstPtr)(from), (size_t)(count))
-# define byte_move(from, to, count)	memmove((UnivPtr)(to), (UnivConstPtr)(from), (size_t)(count))
-# define byte_zero(s, n)		memset((UnivPtr)(s), 0, (size_t)(n))
-#endif
-
-#ifdef USE_INDEX
-# define strchr		index
-# define strrchr	rindex
-#endif
-
-#ifdef FULL_UNISTD
-# define POSIX_UNISTD	1
-#endif
-
-/* JSSIZE_T: result type of read() and write() */
-#ifdef FULL_UNISTD
-# define JSSIZE_T    ssize_t
-#endif
-
-#ifndef JSSIZE_T
-# define JSSIZE_T    int
-#endif
 
 /* jmode_t: the type for file modes
  * Really old systems might use "int" or perhaps "unsigned".
  */
 #ifndef jmode_t
 # define jmode_t mode_t
-#endif
-
-/* Determine if really ANSI C */
-#ifdef __STDC__
-# if __STDC__ > 0
-#  define REALSTDC 1
-# endif
 #endif
 
 #ifndef SIGRESTYPE	/* default to void, correct for most modern systems */

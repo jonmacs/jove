@@ -12,15 +12,12 @@
  * provides, but those may not be appropriate for the host,
  * which, might be a very different compiler.
  */
- 
-#define USE_STDIO_H 1
-#define NO_EXTERNS 1
+
+#define NO_EXTERNS
 #include "jove.h"
 #include "chars.h"
 #include "commands.h"
 #include "vars.h"
-
-extern void	exit proto((int));
 
 #define LINESIZE	100	/* hope this is big enough */
 #define STACKLIMIT	10	/* max conditional depth */
@@ -32,32 +29,28 @@ extern void	exit proto((int));
 #include "vars.tab"
 
 private int
-matchcmd(choices, what)
-register const struct cmd	choices[];
-register char	*what;
+matchcmd(const struct cmd choices[], char *what)
 {
-	register int	i;
+	int	i;
 
 	for (i = 0; choices[i].Name != NULL; i++) {
 		if (what[0] == choices[i].Name[0]
-		&& strcmp(what, choices[i].Name) == 0)
+		    && strcmp(what, choices[i].Name) == 0)
 			return i;
 	}
 	return -1;
 }
 
 #ifdef MAC
-matchvar(choices, what)
-register const struct variable choices[];
-register char	*what;
+matchvar(const struct variable choices[], char *what)
 {
-	register int	len;
-	int	i;
+	int	len,
+		i;
 
 	len = strlen(what);
 	for (i = 0; choices[i].Name != NULL; i++) {
 		if (what[0] == choices[i].Name[0]
-		&& strcmp(what, choices[i].Name) == 0)
+		    && strcmp(what, choices[i].Name) == 0)
 			return i;
 	}
 	return -1;
@@ -65,15 +58,13 @@ register char	*what;
 #endif
 
 private int
-StartsWith(s, pre)
-const char *s, *pre;
+StartsWith(const char *s, const char *pre)
 {
-    return strncmp(s, pre, strlen(pre)) == 0;
+	return strncmp(s, pre, strlen(pre)) == 0;
 }
 
 private char *
-PPkey(c)
-int	c;
+PPkey(int c)
 {
 	static char	str[16];
 	char	*cp = str;
@@ -99,9 +90,7 @@ int	c;
 }
 
 private void
-extract(into, from)
-char	*into,
-	*from;
+extract(char *into, char *from)
 {
 	from += 2;	/* Past tab and first double quote. */
 	while ((*into = *from++) != '"')
@@ -111,7 +100,7 @@ char	*into,
 
 
 int
-main()
+main(int UNUSED(argc), char UNUSED(*argv[]))
 {
 	FILE
 		*ifile,

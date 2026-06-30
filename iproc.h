@@ -36,56 +36,58 @@ struct lump {
 extern File	*ProcInput;
 extern pid_t	kbd_pid;
 
-extern void	kbd_strt proto((void));
-extern jbool	kbd_stop proto((void));
-extern void	read_pipe_proc proto((pid_t, int));
-extern void	kbd_kill proto((void));
+extern void	kbd_strt(void);
+extern jbool	kbd_stop(void);
+extern void	read_pipe_proc(pid_t, int);
+extern void	kbd_kill(void);
 
 # else /* !PIPEPROCS */
 
-extern void	read_pty_proc proto((int));
+extern void	read_pty_proc(int);
 
-extern SIGRESTYPE	sigchld_handler proto((int));
-extern volatile jbool	procs_to_reap;
-extern void	reap_procs proto((void));
+extern SIGRESTYPE
+		sigchld_handler(int);
+extern volatile jbool	
+		procs_to_reap;
+extern void	reap_procs(void);
 
 # endif /* !PIPEPROCS */
 
 extern void
-	closeiprocs proto((void)),
-	untieDeadProcess proto((Buffer *));
+	closeiprocs(void),
+	untieDeadProcess(Buffer *);
 
 extern jbool
-	KillProcs proto((void));
+	KillProcs(void);
 
 extern const char
-	*pstate proto((Process));
+	*pstate(Process);
 
 extern pid_t	DeadPid;	/* info about ChildPid, if reaped by kill_off */
 extern wait_status_t	DeadStatus;
 
 extern void
-	kill_off proto((pid_t, wait_status_t));
+	kill_off(pid_t, wait_status_t);
 
 /* Commands: */
 extern void
-	ProcInt proto((void)),
-	Iprocess proto((void)),
-	ShellProc proto((void)),
-	ProcQuit proto((void)),
-	ProcKill proto((void)),
+	ProcInt(void),
+	Iprocess(void),
+	ShellProc(void),
+	ProcQuit(void),
+	ProcKill(void),
 # ifdef PTYPROCS
-	ProcCont proto((void)),
-	ProcDStop proto((void)),
-	ProcEof proto((void)),
-	ProcStop proto((void)),
+	ProcCont(void),
+	ProcDStop(void),
+	ProcEof(void),
+	ProcStop(void),
 # endif
-	ProcSendData proto((void)),
-	ProcNewline proto((void)),
-	ProcList proto((void)),
-	IprocEnvExport proto((void)),
-	IprocEnvShow proto((void)),
-	IprocEnvUnset proto((void));
+	ProcSendData(void),
+	ProcNewline(void),
+	ProcList(void),
+	IprocEnvExport(void),
+	IprocEnvShow(void),
+	IprocEnvUnset(void);
 
 /* Variables: */
 

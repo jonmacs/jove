@@ -9,7 +9,7 @@
 #include "list.h"
 
 private List *
-list_new()
+list_new(void)
 {
 	List	*new;
 
@@ -20,10 +20,8 @@ list_new()
 
 /* push an object to the beginning of list */
 
-UnivPtr
-list_push(list, element)
-register List	**list;
-UnivPtr element;
+void *
+list_push(List **list, void *element)
 {
 	List	*new;
 
@@ -34,18 +32,17 @@ UnivPtr element;
 	return element;
 }
 
-UnivPtr
-list_pop(list)
-List	**list;
+void *
+list_pop(List **list)
 {
 	List	*cell = *list;
-	UnivPtr	element;
+	void	*element;
 
 	if (cell == NULL)
 		return NULL;
 
 	element = cell->car;
 	*list = cell->cdr;
-	free((UnivPtr) cell);
+	free(cell);
 	return element;
 }

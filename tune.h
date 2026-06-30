@@ -78,14 +78,3 @@
 #ifndef MSDOS
 # define DFLT_MODE	0666	/* file will be created with this mode */
 #endif
-
-/* If the compiler does not support void, use -Dvoid=int or
- * typedef int	void;
- */
-
-/*
- * USE_PROTOTYPE must be defined for compilers that support prototypes but are
- * NOT ANSI C, i.e. do not have __STDC__ == 1.  USE_PROTOTYPE will be
- * automatically defined for ANSI compilers.
- */
-/* #define USE_PROTOTYPES	1 */

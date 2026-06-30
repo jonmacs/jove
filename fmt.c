@@ -18,8 +18,8 @@
 #endif
 
 private void
-	doformat proto((File *, const char *, va_list)),
-	pad proto((DAPchar, int));
+	doformat(File *, const char *, va_list),
+	pad(DAPchar, int);
 
 char	mesgbuf[MESG_SIZE];
 
@@ -38,18 +38,8 @@ char	mesgbuf[MESG_SIZE];
  * %p: char => visible rep
  */
 
-#ifdef ZTCDOS
-/* ZTCDOS only accepts va_list in a prototype */
 void
 format(char *buf, size_t len, const char *fmt, va_list ap)
-#else
-void
-format(buf, len, fmt, ap)
-char	*buf;
-size_t	len;
-const char	*fmt;
-va_list	ap;
-#endif
 {
 	File	strbuf;
 
@@ -65,9 +55,7 @@ va_list	ap;
 /* pretty-print character c into buffer cp (up to PPWIDTH bytes) */
 
 void
-PPchar(c, cp)
-ZXchar	c;
-char	*cp;
+PPchar(ZXchar c, char *cp)
 {
 	if (jisprint(c)) {
 		cp[0] = c;
@@ -96,9 +84,7 @@ private struct fmt_state {
 
 /* TODO: Make this unsigned long when we dump support for pre-ANSI C (use flag to ask for sign?) */
 private void
-putld(d, base)
-long	d;
-int	base;
+putld(long d, int base)
 {
 	static const char	chars[] = {'0', '1', '2', '3', '4', '5', '6',
 				    '7', '8', '9', 'a', 'b', 'c', 'd',
@@ -136,11 +122,10 @@ int	base;
 }
 
 private void
-fmt_puts(str)
-const char	*str;
+fmt_puts(const char *str)
 {
-	int	len;
-	register const char	*cp;
+	int		len;
+	const char	*cp;
 
 	if (str == NULL)
 		str = "(null)";
@@ -159,9 +144,7 @@ const char	*str;
 }
 
 private void
-pad(c, amount)
-register DAPchar	c;
-register int	amount;
+pad(DAPchar c, int amount)
 {
 	while (c && --amount >= 0)
 		f_putc(c, current_fmt.iop);
@@ -172,20 +155,12 @@ register int	amount;
  * we dump support for pre-ANSI C, OXox should probably use
  * unsigned too.
  */
-#ifdef ZTCDOS
-/* ZTCDOS only accepts va_list in a prototype */
 private void
-doformat(register File *sp, register const char *fmt, va_list ap)
-#else
-private void
-doformat(sp, fmt, ap)
-register File	*sp;
-register const char	*fmt;
-va_list	ap;
-#endif
+doformat(File *sp, const char *fmt, va_list ap)
 {
-	register char	c;
-	struct fmt_state	prev_fmt;
+	char	c;
+	struct fmt_state
+		prev_fmt;
 
 	prev_fmt = current_fmt;
 	current_fmt.iop = sp;
@@ -300,38 +275,24 @@ va_list	ap;
 	current_fmt = prev_fmt;
 }
 
-#ifdef STDARGS
 char *
 sprint(const char *fmt, ...)
-#else
-/*VARARGS1*/ char *
-sprint(fmt, va_alist)
-	const char	*fmt;
-	va_dcl
-#endif
 {
 	va_list	ap;
 	static char	line[LBSIZE];
 
-	va_init(ap, fmt);
+	va_start(ap, fmt);
 	format(line, sizeof line, fmt, ap);
 	va_end(ap);
 	return line;
 }
 
-#ifdef STDARGS
 void
 writef(const char *fmt, ...)
-#else
-/*VARARGS1*/ void
-writef(fmt, va_alist)
-	const char	*fmt;
-	va_dcl
-#endif
 {
 	va_list	ap;
 
-	va_init(ap, fmt);
+	va_start(ap, fmt);
 #ifdef NO_JSTDOUT
 	/* Can't use sprint because caller might have
 	 * passed the result of sprint as an arg.
@@ -348,61 +309,37 @@ writef(fmt, va_alist)
 	va_end(ap);
 }
 
-#ifdef STDARGS
 void
 fwritef(File *fp, const char *fmt, ...)
-#else
-/*VARARGS2*/ void
-fwritef(fp, fmt, va_alist)
-	File	*fp;
-	const char	*fmt;
-	va_dcl
-#endif
 {
 	va_list	ap;
 
-	va_init(ap, fmt);
+	va_start(ap, fmt);
 	doformat(fp, fmt, ap);
 	va_end(ap);
 }
 
-#ifdef STDARGS
 void
 swritef(char *str, size_t size, const char *fmt, ...)
-#else
-/*VARARGS3*/ void
-swritef(str, size, fmt, va_alist)
-	char	*str;
-	size_t	size;
-	const char	*fmt;
-	va_dcl
-#endif
 {
 	va_list	ap;
 
-	va_init(ap, fmt);
+	va_start(ap, fmt);
 	format(str, size, fmt, ap);
 	va_end(ap);
 }
 
 /* send a message (supressed if input pending) */
 
-#ifdef STDARGS
 void
 s_mess(const char *fmt, ...)
-#else
-/*VARARGS1*/ void
-s_mess(fmt, va_alist)
-	const char	*fmt;
-	va_dcl
-#endif
 {
 	va_list	ap;
 
 	if (InJoverc)
 		return;
 
-	va_init(ap, fmt);
+	va_start(ap, fmt);
 	format(mesgbuf, sizeof mesgbuf, fmt, ap);
 	va_end(ap);
 	message(mesgbuf);
@@ -412,19 +349,12 @@ s_mess(fmt, va_alist)
  * If you wish it to stick, set stickymsg on after calling f_mess.
  */
 
-#ifdef STDARGS
 void
 f_mess(const char *fmt, ...)
-#else
-/*VARARGS1*/ void
-f_mess(fmt, va_alist)
-	const char	*fmt;
-	va_dcl
-#endif
 {
 	va_list	ap;
 
-	va_init(ap, fmt);
+	va_start(ap, fmt);
 	format(mesgbuf, sizeof mesgbuf, fmt, ap);
 	va_end(ap);
 	DrawMesg(NO);
@@ -432,15 +362,8 @@ f_mess(fmt, va_alist)
 	UpdMesg = YES;	/* still needs updating (for convenience) */
 }
 
-#ifdef STDARGS
 void
 add_mess(const char *fmt, ...)
-#else
-/*VARARGS1*/ void
-add_mess(fmt, va_alist)
-	const char	*fmt;
-	va_dcl
-#endif
 {
 	int	mesg_len = strlen(mesgbuf);
 	va_list	ap;
@@ -448,7 +371,7 @@ add_mess(fmt, va_alist)
 	if (InJoverc)
 		return;
 
-	va_init(ap, fmt);
+	va_start(ap, fmt);
 	format(&mesgbuf[mesg_len], (sizeof mesgbuf) - mesg_len, fmt, ap);
 	va_end(ap);
 	message(mesgbuf);
@@ -457,15 +380,8 @@ add_mess(fmt, va_alist)
 jbool jdebug	    = YES;  /* so that first jdprintf is called */
 const char *jdpath  = NULL; /* if non-NULL, will be opened on first jdprintf */
 
-#ifdef STDARGS
 void
 jdprintf(const char *fmt, ...)
-#else
-/*VARARGS1*/ void
-jdprintf(fmt, va_alist)
-	const char	*fmt;
-	va_dcl
-#endif
 {
 	static jbool first_time = YES;
 	static File *dfp = NULL;
@@ -476,7 +392,7 @@ jdprintf(fmt, va_alist)
 		jdebug = (dfp != NULL);
 		first_time = NO;
 	}
-	va_init(ap, fmt);
+	va_start(ap, fmt);
 	if (dfp != NULL) {
 		doformat(dfp, fmt, ap);
 		flushout(dfp);

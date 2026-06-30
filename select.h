@@ -24,19 +24,5 @@
 
 #endif /* FD_SET */
 
-#ifndef FULL_UNISTD
-
-# ifdef USE_PROTOTYPES
-struct timeval;	/* forward declaration preventing prototype scoping */
-# endif
-
-extern int	UNMACRO(select) proto((int /*width*/,
-	fd_set * /*readfds*/, fd_set * /*writefds*/, fd_set * /*exceptfds*/,
-	struct timeval * /*timeout*/));
-
-#endif
-
-#ifdef USE_SELECT
 extern fd_set	global_fd;
 extern int	global_maxfd;
-#endif

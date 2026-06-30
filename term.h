@@ -12,14 +12,14 @@
  */
 
 extern void
-	ttysetattr proto((jbool n)),
-	ttsize proto((void)),
-	getTERM proto((void)),
-	settout proto((void)),
-	dobell proto((int x)),
-	clr_page proto((void)),
-	i_lines proto((int, int, int)),
-	d_lines proto((int, int, int));
+	ttysetattr(jbool n),
+	ttsize(void),
+	getTERM(void),
+	settout(void),
+	dobell(int x),
+	clr_page(void),
+	i_lines(int, int, int),
+	d_lines(int, int, int);
 
 /* MSDOS keyboard routines */
 
@@ -27,14 +27,15 @@ extern void
 
 # ifdef IBMPCDOS
 extern void
-	pcSetTerm proto((void)),
-	pcUnsetTerm proto((void));
+	pcSetTerm(void),
+	pcUnsetTerm(void);
 
-extern jbool enhanced_keybrd;	/* VAR: exploit "enhanced" keyboard? */
+extern jbool
+	enhanced_keybrd;	/* VAR: exploit "enhanced" keyboard? */
 # endif /* IBMPCDOS */
 
-extern ZXchar	getrawinchar proto((void));
-extern jbool	rawkey_ready proto((void));
+extern ZXchar	getrawinchar(void);
+extern jbool	rawkey_ready(void);
 
 #endif /* MSDOS */
 
@@ -42,9 +43,9 @@ extern jbool	rawkey_ready proto((void));
 
 #ifdef WIN32
 
-int getInputEvents proto((char *bp, int size));
-int inputEventWaiting proto((int nsecs));
-int FatalErrorMessage proto((char* str));
+int getInputEvents(char *bp, int size);
+int inputEventWaiting(int nsecs);
+int FatalErrorMessage(char* str);
 
 #endif /* WIN32 */
 
@@ -58,7 +59,7 @@ extern int
 #ifndef TERMCAP
 
 extern void
-	clr_eoln proto((void));
+	clr_eoln(void);
 
 #else /* TERMCAP */	/* the body is the rest of this file */
 
@@ -106,7 +107,7 @@ extern int
 	UG;		/* number of magic cookies left by US and UE */
 
 extern jbool
-	Hazeltine,		/* Hazeltine tilde kludge */
+	Hazeltine,	/* Hazeltine tilde kludge */
 	UL,		/* underscores don't replace chars already on screen */
 	NP;		/* there is No Pad character */
 
@@ -148,7 +149,7 @@ extern jbool
 # endif /* ID_CHAR */
 
 extern void
-	putpad proto((const char *str, int lines)),
-	putmulti proto((const char *ss, const char *ms, int num, int lines));
+	putpad(const char *str, int lines),
+	putmulti(const char *ss, const char *ms, int num, int lines);
 
 #endif /* TERMCAP */

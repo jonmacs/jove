@@ -47,10 +47,10 @@ private Buffer	*AskBuffer = NULL;	/* Askbuffer points to actual structure */
  * is somewhere in the mini-buffer).
  */
 private Buffer *
-get_minibuf()
+get_minibuf(void)
 {
 	if (AskBuffer) {		/* make sure it still exists */
-		register Buffer	*b;
+		Buffer	*b;
 
 		for (b = world; b != NULL; b = b->b_next)
 			if (b == AskBuffer)
@@ -64,11 +64,9 @@ get_minibuf()
 /* Add a string to the mini-buffer. */
 
 void
-minib_add(str, movedown)
-char	*str;
-jbool	movedown;
+minib_add(char *str, jbool movedown)
 {
-	register Buffer	*saveb = curbuf;
+	Buffer	*saveb = curbuf;
 
 	SetBuf(get_minibuf());
 	LineInsert(1);
@@ -81,11 +79,8 @@ jbool	movedown;
 jbool	InRealAsk = NO;
 
 private const char *
-real_ask(delim, d_proc, def, prompt)
-const char	*delim,
-	*def,
-	*prompt;
-jbool	(*d_proc) ptrproto((ZXchar));
+real_ask(const char *delim, jbool (*d_proc)(ZXchar),
+	 const char *def, const char *prompt)
 {
 	jmp_buf	savejmp;
 	ZXchar	c;
@@ -235,22 +230,14 @@ cleanup:
 	return Minibuf;
 }
 
-#ifdef STDARGS
 const char *
 ask(const char *def, const char *fmt, ...)
-#else
-/*VARARGS2*/ const char *
-ask(def, fmt, va_alist)
-	const char	*def;
-	const char	*fmt;
-	va_dcl
-#endif
 {
-	char	prompt[128];
+	char		prompt[128];
 	const char	*ans;
-	va_list	ap;
+	va_list		ap;
 
-	va_init(ap, fmt);
+	va_start(ap, fmt);
 	format(prompt, sizeof prompt, fmt, ap);
 	va_end(ap);
 	ans = real_ask("\r\n", NULL_ASK_EXT, def, prompt);
@@ -264,23 +251,13 @@ ask(def, fmt, va_alist)
 	return ans;
 }
 
-#ifdef STDARGS
 const char *
-do_ask(const char *delim, jbool (*d_proc) ptrproto((ZXchar)), const char *def, const char *fmt, ...)
-#else
-/*VARARGS4*/ const char *
-do_ask(delim, d_proc, def, fmt, va_alist)
-	const char	*delim;
-	jbool	(*d_proc) ptrproto((ZXchar));
-	const char	*def;
-	const char	*fmt;
-	va_dcl
-#endif
+do_ask(const char *delim, jbool (*d_proc)(ZXchar), const char *def, const char *fmt, ...)
 {
-	char	prompt[128];
-	va_list	ap;
+	char		prompt[128];
+	va_list		ap;
 
-	va_init(ap, fmt);
+	va_start(ap, fmt);
 	format(prompt, sizeof prompt, fmt, ap);
 	va_end(ap);
 	return real_ask(delim, d_proc, def, prompt);
@@ -288,20 +265,13 @@ do_ask(delim, d_proc, def, fmt, va_alist)
 
 jbool	OneKeyConfirmation = NO;	/* VAR: single y or n keystroke sufficient? */
 
-#ifdef STDARGS
 jbool
 yes_or_no_p(const char *fmt, ...)
-#else
-/*VARARGS1*/ jbool
-yes_or_no_p(fmt, va_alist)
-	const char	*fmt;
-	va_dcl
-#endif
 {
-	char	prompt[128];
-	va_list	ap;
+	char		prompt[128];
+	va_list		ap;
 
-	va_init(ap, fmt);
+	va_start(ap, fmt);
 	format(prompt, sizeof prompt, fmt, ap);
 	va_end(ap);
 
@@ -358,12 +328,12 @@ yes_or_no_p(fmt, va_alist)
 jbool	DoEVexpand = YES;	/* VAR: should we expand evironment variables? */
 
 private void
-EVexpand()
+EVexpand(void)
 {
-	register char	c;
-	register char	*lp = linebuf,
-			*ep;
-	char	varname[128],
+	char	c,
+		*lp = linebuf,
+		*ep,
+		varname[128],
 		*vp,
 		*lp_start;
 	Mark	*m = MakeMark(curline, curchar);
@@ -421,8 +391,7 @@ char	BadExtensions[sizeof(BadExtensions)] =	/* VAR: extensions to ignore */
 # endif /* MSFILESYSTEM */
 
 private jbool
-bad_extension(name)
-char	*name;
+bad_extension(const char *name)
 {
 	char	*ip,
 		*bads;
@@ -453,11 +422,8 @@ char	*name;
 	return NO;
 }
 
-private jbool f_match proto((char* file));	/* needed to comfort MS Visual C */
-
 private jbool
-f_match(file)
-char	*file;
+f_match(const char *file)
 {
 	size_t	len = strlen(fc_filebase);
 
@@ -474,8 +440,7 @@ char	*file;
 
 # ifndef DIRECTORY_ADD_SLASH
 private jbool
-isdir(name)
-char	*name;
+isdir(const char *name)
 {
 	(void) do_stat(name, (Buffer *) NULL, DS_DIR);
 	return was_dir;
@@ -483,9 +448,7 @@ char	*name;
 # endif /* !DIRECTORY_ADD_SLASH */
 
 private void
-fill_in(dir_vec, n)
-register char	**dir_vec;
-int	n;
+fill_in(char **dir_vec, int n)
 {
 	jbool	filter;
 
@@ -522,9 +485,9 @@ int	n;
 				break;
 			}
 		} else {
-			jbool
-				the_same = YES; /* After filling in, are we the same
-							as when we were called? */
+			jbool	the_same = YES; /* After filling in, are we the same
+						 * as when we were called?
+						 */
 
 			if (minmatch > (int)strlen(fc_filebase)) {
 				if (minmatch >= LBSIZE - (fc_filebase - linebuf)) {
@@ -558,8 +521,7 @@ int	n;
  * thing, depending on which.
  */
 private jbool
-f_complete(c)
-ZXchar	c;
+f_complete(ZXchar c)
 {
 	char
 		dir[FILESIZE],
@@ -671,11 +633,7 @@ ZXchar	c;
 private
 #endif
 char *
-ask_ford(prmt, def, buf)
-const char	*prmt;
-char
-	*def,
-	*buf;
+ask_ford(const char *prmt, char *def, char *buf)
 {
 	/* Note: pr_name yields a pointer into its static buffer so
 	 * pretty_name will not be a pointer into def.  This allows

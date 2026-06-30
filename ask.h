@@ -15,27 +15,27 @@ extern int
 extern char
 	Minibuf[LBSIZE];
 
-#define NULL_ASK_EXT	((jbool (*) ptrproto((ZXchar))) NULL)
+#define NULL_ASK_EXT	((jbool (*) (ZXchar)) NULL)
 
 /* ask for file or directory (only different under MSFILESYSTEM) */
 #ifdef MSFILESYSTEM
 extern char
-	*ask_file proto((const char *prmt, char *def, char *buf)),
-	*ask_dir proto((const char *prmt, char *def, char *buf));
+	*ask_file(const char *prmt, char *def, char *buf),
+	*ask_dir(const char *prmt, char *def, char *buf);
 #else
 extern char
-	*ask_ford proto((const char *prmt, char *def, char *buf));
+	*ask_ford(const char *prmt, char *def, char *buf);
 # define ask_file(prmt, def, buf)	ask_ford(prmt, def, buf)
 # define ask_dir(prmt, def, buf)	ask_ford(prmt, def, buf)
 #endif
 
 extern const char
-	*ask proto((const char *, const char *, ...)),
-	*do_ask proto((const char *, jbool (*) ptrproto((ZXchar)), const char *, const char *, ...));
+	*ask(const char *, const char *, ...),
+	*do_ask(const char *, jbool (*) (ZXchar), const char *, const char *, ...);
 
-extern jbool	yes_or_no_p proto((const char *, ...));
+extern jbool	yes_or_no_p(const char *, ...);
 
-extern void	minib_add proto((char *str, jbool movedown));
+extern void	minib_add(char *str, jbool movedown);
 
 /* Variables: */
 

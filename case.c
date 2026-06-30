@@ -22,17 +22,17 @@
  */
 
 private	jbool
-	lower proto((char *)),
-	upper proto((char *));
+	lower(char *),
+	upper(char *);
 
 private void
-	CaseReg proto((jbool up)),
-	case_reg proto((LinePtr line1,int char1,LinePtr line2,int char2,jbool up));
+	CaseReg(jbool up),
+	case_reg(LinePtr line1, int char1, LinePtr line2, int char2, jbool up);
 
 void
-CapChar()
+CapChar(void)
 {
-	register int	num;
+	int	num;
 	jbool	restore = NO;
 	Bufpos	b;
 
@@ -62,10 +62,10 @@ CapChar()
 }
 
 void
-CapWord()
+CapWord(void)
 {
-	register int	num,
-			restore = NO;
+	int	num,
+		restore = NO;
 	Bufpos	b;
 
 	DOTsave(&b);
@@ -98,8 +98,7 @@ CapWord()
 }
 
 private void
-case_word(up)
-jbool	up;
+case_word(jbool up)
 {
 	Bufpos	before;
 
@@ -111,11 +110,12 @@ jbool	up;
 /* Convert *p to upper case.  Return YES iff it was changed. */
 
 private jbool
-upper(p)
-register char	*p;
+upper(char *p)
 {
-	if (jislower(*p)) {
-		*p = CharUpcase(*p);
+	char c = *p;
+
+	if (jislower(c)) {
+		*p = CharUpcase(c);
 		return YES;
 	}
 	return NO;
@@ -124,8 +124,7 @@ register char	*p;
 /* Convert *p to lower case.  Return YES iff it was changed. */
 
 private jbool
-lower(p)
-char	*p;
+lower(char *p)
 {
 	char c = *p;
 
@@ -137,12 +136,7 @@ char	*p;
 }
 
 private void
-case_reg(line1, char1, line2, char2, up)
-LinePtr	line1,
-	line2;
-int	char1,
-	char2;
-jbool	up;
+case_reg(LinePtr line1, int char1, LinePtr line2, int char2, jbool up)
 {
 	(void) fixorder(&line1, &char1, &line2, &char2);
 	DotTo(line1, char1);
@@ -161,22 +155,21 @@ jbool	up;
 }
 
 void
-CasRegLower()
+CasRegLower(void)
 {
 	CaseReg(NO);
 }
 
 void
-CasRegUpper()
+CasRegUpper(void)
 {
 	CaseReg(YES);
 }
 
 private void
-CaseReg(up)
-jbool	up;
+CaseReg(jbool up)
 {
-	register Mark	*mp = CurMark();
+	Mark	*mp = CurMark();
 	Bufpos	savedot;
 
 	DOTsave(&savedot);
@@ -185,13 +178,13 @@ jbool	up;
 }
 
 void
-UppWord()
+UppWord(void)
 {
 	case_word(YES);
 }
 
 void
-LowWord()
+LowWord(void)
 {
 	case_word(NO);
 }

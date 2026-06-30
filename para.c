@@ -17,7 +17,7 @@
 #include "para.h"
 #include "re.h"
 
-private int	get_indent proto((LinePtr));
+private int	get_indent(LinePtr);
 
 /* Thanks to Brian Harvey for this paragraph boundary finding algorithm.
  * It's really quite hairy figuring it out.  This deals with paragraphs that
@@ -137,35 +137,34 @@ private int
 	head_indent,
 	body_indent;
 
-private jbool	use_lmargin;
+private jbool
+	use_lmargin;
 
 /* some defines for paragraph boundary checking */
 #define I_DELIM		(-1)	/* line matched by paragraph-delimiter-pattern */
 #define I_BUFEDGE	(-2)	/* line is nonexistent (edge of buffer) */
 
-private jbool	bslash;		/* Nonzero if get_indent finds line starting
+private jbool
+	bslash;		/* Nonzero if get_indent finds line starting
 				   with backslash */
 
 private jbool
-i_blank(lp)
-LinePtr	lp;
+i_blank(LinePtr lp)
 {
 	return get_indent(lp) < 0;
 }
 
 private jbool
-i_bsblank(lp)
-LinePtr	lp;
+i_bsblank(LinePtr lp)
 {
 	return i_blank(lp) || bslash;
 }
 
 private int
-get_indent(lp)
-register LinePtr	lp;
+get_indent(LinePtr lp)
 {
 	Bufpos	save;
-	register int	indent;
+	int	indent;
 
 	bslash = NO;
 	if (lp == NULL)
@@ -194,8 +193,7 @@ register LinePtr	lp;
 }
 
 private LinePtr
-tailrule(lp)
-register LinePtr	lp;
+tailrule(LinePtr lp)
 {
 	int	i;
 
@@ -221,8 +219,7 @@ register LinePtr	lp;
  * way we're favoring.
  */
 private void
-find_para(how)
-int	how;
+find_para(int how)
 {
 	LinePtr	this,
 		prev,
@@ -335,7 +332,7 @@ strt:
 }
 
 void
-FillParagraph()
+FillParagraph(void)
 {
 	LinePtr nl;
 	int lenparatail;
@@ -344,30 +341,25 @@ FillParagraph()
 	find_para(BACKWARD);
 	nl = new_kill();
 	lenparatail = length(para_tail);
-	(void) DoYank(para_head, 0, para_tail, lenparatail,
-		      nl, 0, (Buffer *)NULL);
+	(void) DoYank(para_head, 0, para_tail, lenparatail, nl, 0, NULL);
 	DoJustify(para_head, 0, para_tail, lenparatail, NO,
 		  use_lmargin ? LMargin : body_indent);
 }
 
 private LinePtr
-max_line(l1, l2)
-LinePtr	l1,
-	l2;
+max_line(LinePtr l1, LinePtr l2)
 {
-	return inorder(l1, 0, l2, 0)? l2 : l1;
+	return inorder(l1, 0, l2, 0) ? l2 : l1;
 }
 
 private LinePtr
-min_line(l1, l2)
-LinePtr	l1,
-	l2;
+min_line(LinePtr l1, LinePtr l2)
 {
-	return inorder(l1, 0, l2, 0)? l1 : l2;
+	return inorder(l1, 0, l2, 0) ? l1 : l2;
 }
 
 void
-FillRegion()
+FillRegion(void)
 {
 	CopyRegion();	/* enable yank-pop for undo */
 	do_rfill(is_an_arg());
@@ -375,8 +367,7 @@ FillRegion()
 }
 
 void
-do_rfill(ulm)
-jbool	ulm;
+do_rfill(jbool ulm)
 {
 	Mark	*mp = CurMark(),
 		*endmark;
@@ -418,7 +409,7 @@ jbool	ulm;
 }
 
 private void
-do_space()
+do_space(void)
 {
 	int
 		c1,
@@ -466,14 +457,7 @@ do_space()
 #endif
 
 void
-DoJustify(l1, c1, l2, c2, scrunch, indent)
-LinePtr	l1,
-	l2;
-int	c1,
-	c2,
-	indent;
-jbool
-	scrunch;
+DoJustify(LinePtr l1, int c1, LinePtr l2, int c2, jbool scrunch, int indent)
 {
 	Mark	*savedot = MakeMark(curline, curchar),
 		*endmark;
@@ -501,8 +485,9 @@ jbool
 		while (!eolp() && !jiswhite(linebuf[curchar]))
 			curchar += 1;
 
-		if (word_start != curchar && okay_char != start_char
-		&& calc_pos(linebuf, curchar) > RMargin) {
+		if (word_start != curchar && okay_char != start_char &&
+		    calc_pos(linebuf, curchar) > RMargin)
+		{
 			/* This non-empty word won't fit in output line
 			 * (the first word on a line is always considered to fit).
 			 */
@@ -558,10 +543,9 @@ jbool
 #endif
 
 private void
-DoPara(dir)
-int	dir;
+DoPara(int dir)
 {
-	register int	num = arg_value();
+	int	num = arg_value();
 	jbool	first_time = YES;
 
 	if (num < 0) {
@@ -598,13 +582,13 @@ tryagain:
 }
 
 void
-BackPara()
+BackPara(void)
 {
 	DoPara(BACKWARD);
 }
 
 void
-ForPara()
+ForPara(void)
 {
 	DoPara(FORWARD);
 }

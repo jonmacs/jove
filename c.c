@@ -21,14 +21,12 @@
 #include "para.h"
 
 private void
-	FindMatch proto((int));
+	FindMatch(int);
 
 private jbool
-backslashed(lp, cpos)
-register char	*lp;
-register int	cpos;
+backslashed(char *lp, int cpos)
 {
-	register int	cnt = 0;
+	int	cnt = 0;
 
 	while (cpos > 0 && lp[--cpos] == '\\')
 		cnt += 1;
@@ -43,7 +41,7 @@ private int	mp_kind;
 #define MP_INCOMMENT	3
 
 void
-mp_error()
+mp_error(void)
 {
 	switch (mp_kind) {
 	case MP_MISMATCH:
@@ -76,21 +74,17 @@ mp_error()
  * only ones that insist on getting the "true" story.
  */
 Bufpos *
-m_paren(p_type, dir, can_mismatch, can_stop)
-DAPchar	p_type;
-register int	dir;
-jbool	can_mismatch;
-jbool	can_stop;
+m_paren(DAPchar	p_type, int dir, jbool can_mismatch, jbool can_stop)
 {
 	static Bufpos	ret;
 	Bufpos	savedot;
 	struct RE_block	re_blk;
 	int	count = 0;
-	register char	c = '\0';	/* avoid uninitialized complaint from gcc -W */
+	char	c = '\0';	/* avoid uninitialized complaint from gcc -W */
 	char
 		p_match,	/* kind of paren matching p_type */
 		quote_c = '\0';
-	register int	c_char;
+	int	c_char;
 	int	in_comment = -1;	/* -1, YES, or NO */
 	jbool	stopped = NO;
 
@@ -115,7 +109,7 @@ jbool	can_stop;
 	 */
 	do {
 		Bufpos	*sp = docompiled(dir, &re_blk);
-		register char	*lp;
+		char	*lp;
 
 		if (sp == NULL)
 			break;
@@ -205,11 +199,9 @@ jbool	can_stop;
 }
 
 private void
-do_expr(dir, skip_words)
-register int	dir;
-jbool	skip_words;
+do_expr(int dir, jbool skip_words)
 {
-	register char	syntax = (dir == FORWARD) ? C_BRA : C_KET;
+	char	syntax = (dir == FORWARD) ? C_BRA : C_KET;
 
 	if (dir == BACKWARD)
 		b_char(1);
@@ -245,9 +237,9 @@ jbool	skip_words;
 }
 
 void
-FSexpr()
+FSexpr(void)
 {
-	register int	num = arg_value();
+	int	num = arg_value();
 
 	if (num < 0) {
 		negate_arg();
@@ -258,9 +250,9 @@ FSexpr()
 }
 
 void
-FList()
+FList(void)
 {
-	register int	num = arg_value();
+	int	num = arg_value();
 
 	if (num < 0) {
 		negate_arg();
@@ -271,9 +263,9 @@ FList()
 }
 
 void
-BSexpr()
+BSexpr(void)
 {
-	register int	num = arg_value();
+	int	num = arg_value();
 
 	if (num < 0) {
 		negate_arg();
@@ -284,9 +276,9 @@ BSexpr()
 }
 
 void
-BList()
+BList(void)
 {
-	register int	num = arg_value();
+	int	num = arg_value();
 
 	if (num < 0) {
 		negate_arg();
@@ -297,9 +289,9 @@ BList()
 }
 
 void
-BUpList()
+BUpList(void)
 {
-	register int	num = arg_value();
+	int	num = arg_value();
 	Bufpos	*mp;
 
 	if (num < 0) {
@@ -316,9 +308,9 @@ BUpList()
 }
 
 void
-FDownList()
+FDownList(void)
 {
-	register int	num = arg_value();
+	int	num = arg_value();
 	Bufpos	*sp;
 	static const char	sstr[] = "[{([\\])}]";
 
@@ -344,11 +336,10 @@ FDownList()
  * in the buffer.
  */
 private void
-FindMatch(dir)
-int	dir;
+FindMatch(int dir)
 {
-	register Bufpos	*bp;
-	register char	c = linebuf[curchar];
+	Bufpos	*bp;
+	char	c = linebuf[curchar];
 
 	if (strchr(p_types, c) == NULL || backslashed(linebuf, curchar)) {
 		complain((char *)NULL);
@@ -376,8 +367,7 @@ int	CArgIndent = ALIGN_ARGS;	/* VAR: how to indent arguments to C functions */
 
 /* indent for C code */
 Bufpos *
-c_indent(brace)
-jbool	brace;
+c_indent(jbool brace)
 {
 	Bufpos	*bp;
 	int	new_indent = 0,
@@ -466,8 +456,7 @@ jbool	brace;
 }
 
 private void
-re_indent(incr)
-int	incr;
+re_indent(int incr)
 {
 	LinePtr	l1, l2, lp;
 	int	c1, c2;
@@ -493,13 +482,13 @@ int	incr;
 }
 
 void
-LRShift()
+LRShift(void)
 {
 	re_indent(-arg_or_default(CIndIncrmt));
 }
 
 void
-RRShift()
+RRShift(void)
 {
 	re_indent(arg_or_default(CIndIncrmt));
 }
@@ -511,12 +500,9 @@ char	CmtFmt[80] = "/*%n%! * %c%!%n */";	/* VAR: comment format */
 /* Strip leading and trailing white space.  Skip over any imbedded '\n's. */
 
 private void
-strip_c(from, to)
-char	*from,
-	*to;
+strip_c(char *from, char *to)
 {
-	register char
-		*fr_p = from,
+	char	*fr_p = from,
 		*to_p = to,
 		c;
 
@@ -547,7 +533,7 @@ private jbool	nl_in_close_c;
  * if there's trouble.
  */
 private void
-parse_cmt_fmt()
+parse_cmt_fmt(void)
 {
 
 	static char	*const component[] = {
@@ -556,11 +542,11 @@ parse_cmt_fmt()
 		l_trailer,
 		close_c
 	};
-	register char	*fmtp = CmtFmt;
-	register char	*const *c_body = component,
-			*body_p = *c_body,
-			*body_limit = body_p + CMT_STR_BOUND - 1;
-	char	c;
+	char	*fmtp = CmtFmt,
+		*const *c_body = component,
+		*body_p = *c_body,
+		*body_limit = body_p + CMT_STR_BOUND - 1,
+		c;
 	int	comp_no = 0;
 
 	/* pick apart the comment string */
@@ -621,7 +607,7 @@ parse_cmt_fmt()
 }
 
 void
-FillComment()
+FillComment(void)
 {
 	int	saveRMargin,
 		indent_pos;
@@ -629,7 +615,7 @@ FillComment()
 	char	*trimmed_header;	/* l_header without leading spaces */
 	int	trimmed_header_len,	/* length without leading or trailing spaces */
 		trailer_len;
-	register char	*cp;
+	char	*cp;
 	Bufpos	open_c_pt,
 		close_c_pt,
 		tmp_bp,

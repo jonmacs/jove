@@ -45,15 +45,9 @@
 #define MinorMode(x)		BufMinorMode(curbuf, (x))
 
 /* global line scratch buffers */
-#ifdef AUTO_BUFS
-extern char	*genbuf,	/* scratch pad points at s_genbuf (see main()) */
-		*linebuf,	/* points at s_linebuf */
-		*iobuff;	/* for file reading ... points at s_iobuff */
-#else
-extern char	genbuf[LBSIZE],
-		linebuf[LBSIZE],
-		iobuff[LBSIZE];
-#endif
+extern char	genbuf[LBSIZE],	/* scratch pad points at s_genbuf (see main()) */
+		linebuf[LBSIZE], /* points at s_linebuf */
+		iobuff[LBSIZE];	/* for file reading ... points at s_iobuff */
 
 /* typedef struct line *LinePtr in jove.h */
 
@@ -80,7 +74,7 @@ struct buffer {
 	char *Name;		/* Name will not be used */
 #endif
 	Buffer	*b_next;		/* next buffer in chain */
-	const char	*b_name;	/* buffer name */
+	char	*b_name;		/* buffer name */
 	char	*b_fname;		/* file name associated with buffer */
 #ifdef USE_INO
 	/* unique identification of file */
@@ -133,13 +127,13 @@ struct position {
 };
 
 extern jbool
-	valid_bp proto((Buffer	*bp));
+	valid_bp(Buffer	*bp);
 
 extern Buffer
-	*buf_exists proto((const char *name)),
-	*do_find proto((Window *w, char *fname, jbool force, jbool do_macros)),
-	*do_select proto((Window *w, const char *name)),
-	*do_stat proto((const char *name, Buffer *target, int flags));
+	*buf_exists(const char *name),
+	*do_find(Window *w, char *fname, jbool force, jbool do_macros),
+	*do_select(Window *w, const char *name),
+	*do_stat(const char *name, Buffer *target, int flags);
 
 /* flags to do_stat */
 #define DS_NONE	0
@@ -152,45 +146,43 @@ extern jbool
 	was_file;	/* do_stat found a (plain) file */
 
 extern const char
-	*ask_buf proto((Buffer *def, int flags));
+	*ask_buf(Buffer *def, int flags);
 
-#ifdef USE_PROTOTYPES
 struct macro;	/* forward declaration preventing prototype scoping */
-#endif /* USE_PROTOTYPES */
 
 extern void
-	TogMinor proto((int bit)),
-	buf_clear proto((Buffer *b)),
-	setfname proto((Buffer *b, const char *name)),
-	SetABuf proto((Buffer *b)),
-	SetBuf proto((Buffer *newbuf)),
-	buf_init proto((void));
+	TogMinor(int bit),
+	buf_clear(Buffer *b),
+	setfname(Buffer *b, const char *name),
+	SetABuf(Buffer *b),
+	SetBuf(Buffer *newbuf),
+	buf_init(void);
 
 extern LinePtr
-	lastline proto((LinePtr lp)),
-	listput proto((Buffer *buf, LinePtr after)),
-	next_line proto((LinePtr line, long num)),
-	prev_line proto((LinePtr line, long num));
+	lastline(LinePtr lp),
+	listput(Buffer *buf, LinePtr after),
+	next_line(LinePtr line, long num),
+	prev_line(LinePtr line, long num);
 
 /* Commands: */
 
 extern void
-	BufErase proto((void)),
-	BufKill proto((void)),
-	BufList proto((void)),
-	BufSelect proto((void)),
-	FindFile proto((void)),
-	KillSome proto((void)),
-	ReNamBuf proto((void));
+	BufErase(void),
+	BufKill(void),
+	BufList(void),
+	BufSelect(void),
+	FindFile(void),
+	KillSome(void),
+	ReNamBuf(void);
 
 extern void
-	Buf1Select proto((void)),
-	Buf2Select proto((void)),
-	Buf3Select proto((void)),
-	Buf4Select proto((void)),
-	Buf5Select proto((void)),
-	Buf6Select proto((void)),
-	Buf7Select proto((void)),
-	Buf8Select proto((void)),
-	Buf9Select proto((void)),
-	Buf10Select proto((void));
+	Buf1Select(void),
+	Buf2Select(void),
+	Buf3Select(void),
+	Buf4Select(void),
+	Buf5Select(void),
+	Buf6Select(void),
+	Buf7Select(void),
+	Buf8Select(void),
+	Buf9Select(void),
+	Buf10Select(void);

@@ -10,7 +10,6 @@
 #ifdef RECOVER	/* the body is the rest of this file */
 
 #include "fp.h"
-#include "sysprocs.h"
 #include "rec.h"
 #include "fmt.h"
 #include "recover.h"
@@ -28,8 +27,7 @@ private File	*rec_out;
 private struct rec_head	Header;
 
 void
-rectmpname(tfname)
-char *tfname;
+rectmpname(char *tfname)
 {
 	if (strlen(tfname) >= sizeof(Header.TmpFileName)) {
 		complain("temporary filename too long; recovery disabled.");
@@ -39,7 +37,7 @@ char *tfname;
 }
 
 private void
-recinit()
+recinit(void)
 {
 	char	buf[FILESIZE];
 
@@ -66,7 +64,7 @@ recinit()
  * (in particular rec_fd).
  */
 void
-recclose()
+recclose(void)
 {
 	if (rec_fd != -1)
 		(void) close(rec_fd);
@@ -76,7 +74,7 @@ recclose()
 
 
 void
-recremove()
+recremove(void)
 {
 	if (rec_fd != -1) {
 		recclose();
@@ -87,10 +85,9 @@ recremove()
 /* Write out the line pointers for buffer B. */
 
 private void
-dmppntrs(b)
-register Buffer	*b;
+dmppntrs(Buffer *b)
 {
-	register LinePtr	lp;
+	LinePtr	lp;
 
 	for (lp = b->b_first; lp != NULL; lp = lp->l_next)
 		dmpobj(lp->l_dline);
@@ -99,8 +96,7 @@ register Buffer	*b;
 /* dump the buffer info and then the actual line pointers. */
 
 private void
-dmp_buf_header(b)
-register Buffer	*b;
+dmp_buf_header(Buffer *b)
 {
 	struct rec_entry	record;
 
@@ -120,9 +116,9 @@ int	ModCount = 0;	/* number of buffer mods since last sync */
 int	SyncFreq = 50;	/* VAR: how often to sync the file pointers */
 
 void
-SyncRec()
+SyncRec(void)
 {
-	register Buffer	*b;
+	Buffer		*b;
 	static jbool	beenhere = NO;
 	time_t		tupd;
 

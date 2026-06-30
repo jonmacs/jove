@@ -19,11 +19,7 @@
  * put its result into linebuf.
  */
 private void
-patchup(line1, char1, line2, char2)
-LinePtr	line1,
-	line2;
-register int	char1,
-		char2;
+patchup(LinePtr line1, int char1, LinePtr line2, int char2)
 {
 	if (line1 != line2)
 		ChkWindows(line1, line2);
@@ -44,13 +40,9 @@ register int	char1,
  * order.
  */
 LinePtr
-reg_delete(line1, char1, line2, char2)
-LinePtr	line1,
-	line2;
-int	char1,
-	char2;
+reg_delete(LinePtr line1, int char1, LinePtr line2, int char2)
 {
-	register LinePtr	retline;
+	LinePtr	retline;
 
 	if ((line1 == line2 && char1 == char2) || line2 == NULL) {
 		complain((char *)NULL);
@@ -91,9 +83,7 @@ int	char1,
 }
 
 private void
-lremove(line1, line2)
-register LinePtr	line1,
-		line2;
+lremove(LinePtr line1, LinePtr line2)
 {
 	LinePtr	next = line1->l_next;
 
@@ -111,7 +101,7 @@ register LinePtr	line1,
 /* delete character forward */
 
 void
-DelNChar()
+DelNChar(void)
 {
 	del_char(FORWARD, arg_value(), YES);
 }
@@ -119,7 +109,7 @@ DelNChar()
 /* Delete character backward */
 
 void
-DelPChar()
+DelPChar(void)
 {
 	if (MinorMode(OverWrite) && !eolp()) {
 		/* Overwrite with spaces.
@@ -143,10 +133,7 @@ DelPChar()
  * region between the two with patchup().
  */
 void
-del_char(dir, num, OK_kill)
-int	dir,
-	num;
-jbool	OK_kill;
+del_char(int dir, int num, jbool OK_kill)
 {
 	Bufpos	before,
 		after;
@@ -180,7 +167,7 @@ LinePtr	killbuf[NUMKILLS];
 int	killptr = 0;	/* index of newest entry (if any) */
 
 void
-DelKillRing()	/* delete newest entry */
+DelKillRing(void)	/* delete newest entry */
 {
 	int	i;
 
@@ -198,8 +185,7 @@ DelKillRing()	/* delete newest entry */
 }
 
 private void
-AddKillRing(text)	/* add a new entry */
-LinePtr	text;
+AddKillRing(LinePtr text)		/* add a new entry. */
 {
 	if (killbuf[killptr] != NULL) {
 		killptr = (killptr +1) % NUMKILLS;
@@ -222,10 +208,7 @@ LinePtr	text;
  * the region is appended (prepended if backwards) to the last entry.
  */
 void
-reg_kill(line2, char2, dot_moved)
-LinePtr	line2;
-int	char2;
-jbool	dot_moved;
+reg_kill(LinePtr line2, int char2, jbool dot_moved)
 {
 	LinePtr	nl,
 		line1 = curline;
@@ -263,18 +246,18 @@ jbool	dot_moved;
 }
 
 void
-DelReg()
+DelReg(void)
 {
-	register Mark	*mp = CurMark();
+	Mark	*mp = CurMark();
 
 	reg_kill(mp->m_line, mp->m_char, NO);
 }
 
 /* get a new line buffer and add it to the kill ring */
 LinePtr
-new_kill()
+new_kill(void)
 {
-	register LinePtr	nl = nbufline();
+	LinePtr	nl = nbufline();
 
 	AddKillRing(nl);
 	SavLine(nl, NullStr);
@@ -285,11 +268,11 @@ new_kill()
 /* Save a region.  A pretend kill. */
 
 void
-CopyRegion()
+CopyRegion(void)
 {
-	register LinePtr	nl;
-	register Mark	*mp;
-	register int	status;
+	LinePtr	nl;
+	Mark	*mp;
+	int	status;
 
 	mp = CurMark();
 	if (mp->m_line == curline && mp->m_char == curchar) {
@@ -312,10 +295,10 @@ CopyRegion()
 }
 
 void
-DelWtSpace()
+DelWtSpace(void)
 {
-	register char	*ep = &linebuf[curchar],
-			*sp = &linebuf[curchar];
+	char	*ep = &linebuf[curchar],
+		*sp = &linebuf[curchar];
 
 	while (jiswhite(*ep))
 		ep += 1;
@@ -334,9 +317,9 @@ DelWtSpace()
 }
 
 void
-DelBlnkLines()
+DelBlnkLines(void)
 {
-	register Mark	*dot;
+	Mark	*dot;
 	jbool	all;
 
 	if (!blnkp(&linebuf[curchar]))
@@ -361,8 +344,7 @@ DelBlnkLines()
 }
 
 private void
-dword(forward)
-jbool	forward;
+dword(jbool forward)
 {
 	Bufpos	savedot;
 
@@ -375,13 +357,13 @@ jbool	forward;
 }
 
 void
-DelNWord()
+DelNWord(void)
 {
 	dword(YES);
 }
 
 void
-DelPWord()
+DelPWord(void)
 {
 	dword(NO);
 }

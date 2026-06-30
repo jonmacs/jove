@@ -35,24 +35,25 @@ extern int
 	REeom,
 	REdelta;	/* increase in line length due to last re_dosub */
 
-extern jbool	okay_wrap;	/* Do a wrap search ... not when we're
-				   parsing errors ... */
+extern jbool
+	okay_wrap;	/* Do a wrap search ... not when we're
+			   parsing errors ... */
 
 extern jbool
-	re_lindex proto((LinePtr line, int offset, int dir,
-		struct RE_block *re_blk, jbool lbuf_okay, int crater)),
-	LookingAt proto((const char *pattern,char *buf,int offset)),
-	look_at proto((char *expr));
+	re_lindex(LinePtr line, int offset, int dir,
+		struct RE_block *re_blk, jbool lbuf_okay, int crater),
+	LookingAt(const char *pattern,char *buf,int offset),
+	look_at(char *expr);
 
 extern Bufpos
-	*docompiled proto((int dir, struct RE_block *re_blk)),
-	*dosearch proto((const char *pattern, int dir, jbool re));
+	*docompiled(int dir, struct RE_block *re_blk),
+	*dosearch(const char *pattern, int dir, jbool re);
 
 extern void
-	REcompile proto((const char *pattern, jbool re, struct RE_block *re_blk)),
-	putmatch proto((int which, char *buf,size_t size)),
-	re_dosub proto((struct RE_block *re_blk, char *tobuf, jbool delp)),
-	RErecur proto((void));
+	REcompile(const char *pattern, jbool re, struct RE_block *re_blk),
+	putmatch(int which, char *buf,size_t size),
+	re_dosub(struct RE_block *re_blk, char *tobuf, jbool delp),
+	RErecur(void);
 
 /* Variables: */
 

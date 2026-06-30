@@ -25,14 +25,14 @@
 
 struct abbrev {
 	unsigned int	a_hash;
-	char	*a_abbrev,
-		*a_phrase;
+	char		*a_abbrev,
+			*a_phrase;
 	struct abbrev	*a_next;
 	const data_obj	*a_cmdhook;
 };
 
 private	void
-	define proto((struct abbrev **, char *, char *));
+	define(struct abbrev **, char *, char *);
 
 #define GLOBAL	NMAJORS
 private struct abbrev	*A_tables[NMAJORS + 1][HASHSIZE];	/* Must be zeroed! */
@@ -40,11 +40,10 @@ private struct abbrev	*A_tables[NMAJORS + 1][HASHSIZE];	/* Must be zeroed! */
 jbool AutoCaseAbbrev = YES;	/* VAR: automatically do case on abbreviations */
 
 private unsigned int
-hash(a)
-register const char	*a;
+hash(const char *a)
 {
-	register unsigned int	hashval = 0;
-	register char	c;
+	unsigned int	hashval = 0;
+	char		c;
 
 	while ((c = *a++) != '\0')
 		hashval = (hashval << 2) + c;
@@ -53,11 +52,10 @@ register const char	*a;
 }
 
 private void
-def_abbrev(table)
-struct abbrev	*table[HASHSIZE];
+def_abbrev(struct abbrev *table[HASHSIZE])
 {
-	char	abbrev[100],
-		phrase[100];
+	char		abbrev[100],
+			phrase[100];
 
 	jamstr(abbrev, ask((char *)NULL, "abbrev: "));
 	jamstr(phrase, ask((char *)NULL, "abbrev: %s phrase: ", abbrev));
@@ -65,11 +63,9 @@ struct abbrev	*table[HASHSIZE];
 }
 
 private struct abbrev *
-lookup_abbrev(table, abbrev)
-register struct abbrev	*table[HASHSIZE];
-register const char	*abbrev;
+lookup_abbrev(struct abbrev *table[HASHSIZE], const char *abbrev)
 {
-	register struct abbrev	*ap;
+	struct abbrev	*ap;
 	unsigned int	h;
 
 	h = hash(abbrev);
@@ -80,16 +76,13 @@ register const char	*abbrev;
 }
 
 private void
-define(table, abbrev, phrase)
-register struct abbrev	*table[HASHSIZE];
-char	*abbrev,
-	*phrase;
+define(struct abbrev **table, char *abbrev, char *phrase)
 {
-	register struct abbrev	*ap;
+	struct abbrev	*ap;
 
 	ap = lookup_abbrev(table, abbrev);
 	if (ap == NULL) {
-		register unsigned int	h = hash(abbrev);
+		unsigned int	h = hash(abbrev);
 
 		ap = (struct abbrev *) emalloc(sizeof *ap);
 		ap->a_hash = h;
@@ -99,20 +92,19 @@ char	*abbrev,
 		ap->a_cmdhook = NULL;
 		table[h] = ap;
 	} else
-		free((UnivPtr) ap->a_phrase);
+		free(ap->a_phrase);
 	ap->a_phrase = copystr(phrase);
 }
 
 void
-AbbrevExpand()
+AbbrevExpand(void)
 {
-	char	wordbuf[100];
-	register char
-		*wp = wordbuf,
-		*cp;
-	int	col;
-	register char	c;
-	int	UC_count = 0;
+	char		wordbuf[100],
+			*wp = wordbuf,
+			*cp,
+			c;
+	int		col;
+	int		UC_count = 0;
 	struct abbrev	*ap;
 
 	col = curchar;
@@ -133,7 +125,7 @@ AbbrevExpand()
 	*wp = '\0';
 
 	if ((ap = lookup_abbrev(A_tables[curbuf->b_major], wordbuf)) != NULL
-	|| (ap = lookup_abbrev(A_tables[GLOBAL], wordbuf)) != NULL)
+	    || (ap = lookup_abbrev(A_tables[GLOBAL], wordbuf)) != NULL)
 	{
 		del_char(BACKWARD, (int)(wp - wordbuf), NO);
 
@@ -161,15 +153,14 @@ private const char	*const mode_names[NMAJORS + 1] = {
 };
 
 private void
-save_abbrevs(file)
-char	*file;
+save_abbrevs(char *file)
 {
-	File	*fp;
+	File		*fp;
 	struct abbrev	*ap,
 			**tp;
-	char	buf[LBSIZE];
-	int	i,
-		count = 0;
+	char		buf[LBSIZE];
+	int		i,
+			count = 0;
 
 	fp = open_file(file, buf, F_WRITE, YES);
 	for (i = 0; i <= GLOBAL; i++) {
@@ -187,15 +178,13 @@ char	*file;
 }
 
 private void
-rest_abbrevs(file)
-char	*file;
+rest_abbrevs(char *file)
 {
-	int
-		mode = -1,	/* Should be ++'d immediately */
-		lnum = 0;
-	char	*phrase_p;
-	File	*fp;
-	char	buf[LBSIZE];
+	int		mode = -1,	/* Should be ++'d immediately */
+			lnum = 0;
+	char		*phrase_p;
+	File		*fp;
+	char		buf[LBSIZE];
 
 	fp = open_file(file, buf, F_READ, YES);
 	while (mode<=GLOBAL && !f_gets(fp, genbuf, (size_t) LBSIZE)
@@ -219,40 +208,41 @@ char	*file;
 }
 
 void
-DefGAbbrev()
+DefGAbbrev(void)
 {
 	def_abbrev(A_tables[GLOBAL]);
 }
 
 void
-DefMAbbrev()
+DefMAbbrev(void)
 {
 	def_abbrev(A_tables[curbuf->b_major]);
 }
 
 void
-SaveAbbrevs()
+SaveAbbrevs(void)
 {
-	char	filebuf[FILESIZE];
+	char		filebuf[FILESIZE];
 
 	save_abbrevs(ask_file((char *)NULL, (char *)NULL, filebuf));
 }
 
 void
-RestAbbrevs()
+RestAbbrevs(void)
 {
-	char	filebuf[FILESIZE];
+	char		filebuf[FILESIZE];
 
 	rest_abbrevs(ask_file((char *)NULL, (char *)NULL, filebuf));
 }
 
 void
-EditAbbrevs()
+EditAbbrevs(void)
 {
-	char	tname[128];
-	static const char	EditName[] = "Abbreviation Edit";
-	Buffer	*obuf = curbuf,
-		*ebuf;
+	static const char
+			EditName[] = "Abbreviation Edit";
+	char		tname[128];
+	Buffer		*obuf = curbuf,
+			*ebuf;
 
 	if ((ebuf = buf_exists(EditName)) != NULL) {
 		if (ebuf->b_type != B_SCRATCH)
@@ -290,7 +280,7 @@ EditAbbrevs()
 }
 
 void
-BindMtoW()
+BindMtoW(void)
 {
 	struct abbrev	*ap;
 	const char	*word = ask((char *)NULL, "Word: ");

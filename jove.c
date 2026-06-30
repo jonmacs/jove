@@ -15,7 +15,6 @@
 #include "disp.h"
 #include "re.h"	/* for dosearch() */
 #include "reapp.h"	/* for find_tag(), UseRE */
-#include "sysprocs.h"
 #include "rec.h"
 #include "ask.h"
 #include "extend.h"
@@ -67,7 +66,8 @@
 #ifdef WIN32
 # undef Fill /* sigh, used as a field name in some windows header! */
 # undef CR /* sigh, used as a field name in some windows header! */
-# include <windows.h>	/* ??? is this needed? */
+# undef Fill /* sigh, used as a field name in some windows header! */
+# include <windows.h>	/* needed for CreateProcess */
 # undef FIONREAD	 /* This is defined but ioctl isn't so we cannot use it. */
 extern char *getLastErrorString(void);
 #endif
@@ -91,20 +91,19 @@ STACK_DECL
 #define MAXBASENAMELEN (1+14+1)
 
 private void
-	UnsetTerm proto((jbool)),
-	DoKeys proto((jbool firsttime)),
-	ShowKeyStrokes proto((void)),
-	jexecpath proto((char *, size_t));
+	UnsetTerm(jbool),
+	DoKeys(jbool),
+	ShowKeyStrokes(void),
+	jexecpath(char *, size_t);
 
 #ifdef NONBLOCKINGREAD
-private void	setblock proto((jbool on));
+private void	setblock(jbool on);
 #endif
 
 #ifdef POSIX_SIGS
+/* simulate BSD's safe signal() */
 SIGHANDLERTYPE
-setsighandler(signo, handler)	/* simulate BSD's safe signal() */
-int	signo;
-SIGHANDLERTYPE	handler;
+setsighandler(int signo, SIGHANDLERTYPE handler)
 {
 	static struct sigaction	act;	/* static so unspecified fields are 0 */
 	struct sigaction	oact;
@@ -127,9 +126,9 @@ char	JoveFeatures[MAXCOLS];	/* VAR: list of compiled-in features */
 int	UpdFreq = 30;	/* VAR: how often to update modeline */
 jbool	InSlowRead = NO;
 
+/* unset alarm if none needed */
 void
-SetClockAlarm(unset)
-jbool	unset;	/* unset alarm if none needed */
+SetClockAlarm(jbool unset)
 {
 	if (TimeDisplayed && UpdFreq != 0)
 		(void) alarm((unsigned) (UpdFreq - (time((time_t *)NULL) % UpdFreq)));
@@ -148,8 +147,7 @@ private volatile jbool	InWaitChar = NO;
 
 /*ARGSUSED*/
 private SIGRESTYPE
-AlarmHandler(junk)
-int	UNUSED(junk);	/* passed in on signal; of no interest */
+AlarmHandler(int UNUSED(junk))
 {
 	int save_errno = errno;	/* Subtle, but necessary! */
 
@@ -238,8 +236,7 @@ char	LibDir[FILESIZE] = LIBDIR;
  */
 
 SIGRESTYPE
-finish(code)
-int	code;
+finish(int code)
 {
 #ifdef RECOVER
 	int save_errno = errno;	/* Subtle, but necessary! */
@@ -294,8 +291,7 @@ int	code;
  * We give him a choice of death or continuation.
  */
 private SIGRESTYPE
-handle_sigint(code)
-int	code;
+handle_sigint(int code)
 {
 	int save_errno = errno;	/* Subtle, but necessary! */
 	char	c;
@@ -325,7 +321,7 @@ int	code;
 #  endif
 	do {
 		c = 'n';
-	} while (read(0, (UnivPtr) &c, sizeof(c)) < 0 && RETRY_ERRNO(errno));
+	} while (read(0, &c, sizeof c) < 0 && RETRY_ERRNO(errno));
 #  ifdef PIPEPROCS
 	if (started)
 		kbd_strt();
@@ -353,8 +349,7 @@ private int	nchars = 0;
 #ifdef NONBLOCKINGREAD
 
 private void
-setblock(on)	/* turn blocking on or off */
-jbool	on;
+setblock(jbool on)	/* turn blocking on or off */
 {
 	static int blockf, nonblockf;
 	static jbool	first = YES;
@@ -415,17 +410,16 @@ char	*Inputp = NULL;
 private ZXchar	kbdpeek = EOF;
 
 void
-kbd_ungetch(c)
-ZXchar	c;
+kbd_ungetch(ZXchar c)
 {
 	InputPending = YES;
 	kbdpeek = c;
 }
 
 ZXchar
-kbd_getch()
+kbd_getch(void)
 {
-	register ZXchar	c;
+	ZXchar	c;
 
 	if (kbdpeek != EOF) {
 		c = kbdpeek;
@@ -480,7 +474,7 @@ kbd_getch()
 
 				if (FD_ISSET(0, &reads)) {
 					do {
-						nchars = read(0, (UnivPtr) smbuf, sizeof(smbuf));
+						nchars = read(0, smbuf, sizeof smbuf);
 					} while (nchars < 0 && errno == EINTR);
 					if (nchars <= 0)
 						finish(SIGHUP);
@@ -534,7 +528,7 @@ kbd_getch()
 #   ifdef UNIX
 					InSlowRead = YES;
 #   endif
-					nchars = read(0, (UnivPtr) smbuf, sizeof smbuf);
+					nchars = read(0, smbuf, sizeof smbuf);
 #   ifdef UNIX
 					InSlowRead = NO;
 #   endif
@@ -564,7 +558,7 @@ kbd_getch()
 /* Returns YES if a character waiting (excluding macro body) */
 
 jbool
-charp()
+charp(void)
 {
 	if (InJoverc != 0 || kbdpeek != EOF || nchars > 0 || Inputp != NULL)
 		return InputPending = YES;
@@ -581,14 +575,14 @@ charp()
 		 */
 		int c;
 
-		if (ioctl(0, FIONREAD, (UnivPtr) &c) == -1)
+		if (ioctl(0, FIONREAD, &c) == -1)
 			c = 0;
 		return InputPending = c > 0;
 	}
 #else /* !FIONREAD */
 # ifdef NONBLOCKINGREAD
 	setblock(NO);		/* turn blocking off */
-	nchars = read(0, (UnivPtr) smbuf, sizeof smbuf);	/* Is anything there? */
+	nchars = read(0, smbuf, sizeof smbuf);	/* Is anything there? */
 	setblock(YES);		/* turn blocking on */
 	bp = smbuf;			/* make sure bp points to it */
 	return InputPending = nchars > 0;	/* just say we found something */
@@ -636,8 +630,7 @@ charp()
 #endif
 
 void
-SitFor(delay)
-int	delay;
+SitFor(int delay)
 {
 #ifdef MAC
 	long
@@ -698,8 +691,8 @@ int	delay;
 			1920,
 			1920,
 		};
-		register int	nchars,
-				check_cnt;
+		int	nchars,
+			check_cnt;
 
 		nchars = (delay * cps[ospeed]) / 10;
 		check_cnt = ScrBufSize;
@@ -752,12 +745,14 @@ private char
 	key_strokes[100],
 	*keys_p = key_strokes;
 
-private jbool	in_ask_ks;
+private jbool
+	in_ask_ks;
 
-private volatile jbool	slow_keying = NO;	/* for waitchar() */
+private volatile jbool
+	slow_keying = NO;	/* for waitchar() */
 
 void
-cmd_sync()
+cmd_sync(void)
 {
 	if (this_cmd != ARG_CMD) {
 		clr_arg_value();
@@ -769,7 +764,7 @@ cmd_sync()
 }
 
 ZXchar
-ask_ks()
+ask_ks(void)
 {
 	in_ask_ks = YES;
 	keys_p = key_strokes;
@@ -777,17 +772,14 @@ ask_ks()
 }
 
 void
-add_stroke(c)
-ZXchar	c;
+add_stroke(ZXchar c)
 {
 	if (keys_p < &key_strokes[sizeof (key_strokes) - 1])
 		*keys_p++ = c;
 }
 
 void
-pp_key_strokes(buffer, size)
-char	*buffer;
-size_t	size;
+pp_key_strokes(char *buffer, size_t size)
 {
 	char
 		*buf_end = buffer + size - 1,
@@ -801,7 +793,7 @@ size_t	size;
 }
 
 private void
-ShowKeyStrokes()
+ShowKeyStrokes(void)
 {
 	char	buffer[100];
 
@@ -817,7 +809,7 @@ ShowKeyStrokes()
 #define N_SEC	1	/* will be precisely 1 second on 4.2 */
 
 ZXchar
-waitchar()
+waitchar(void)
 {
 	ZXchar	c;
 #ifdef WAITCHAR_CURSOR_DOWN
@@ -893,7 +885,7 @@ waitchar()
 }
 
 private void
-SetTerm()
+SetTerm(void)
 {
 #ifdef IBMPCDOS
 	pcSetTerm();
@@ -913,8 +905,7 @@ SetTerm()
 }
 
 private void
-UnsetTerm(WarnUnwritten)
-jbool	WarnUnwritten;
+UnsetTerm(jbool WarnUnwritten)
 {
 #ifdef TERMCAP
 # ifdef ID_CHAR
@@ -943,7 +934,7 @@ jbool	WarnUnwritten;
 
 #ifdef JOB_CONTROL
 void
-PauseJove()
+PauseJove(void)
 {
 	UnsetTerm(YES);
 	(void) kill(0, SIGTSTP);
@@ -962,7 +953,7 @@ PauseJove()
 
 # ifndef MSDOS
 void
-jcloseall()
+jcloseall(void)
 {
 	tmpclose();
 #  ifdef RECOVER
@@ -975,7 +966,7 @@ jcloseall()
 # endif /* !MSDOS */
 
 void
-Push()
+Push(void)
 {
 # ifdef MSDOS_PROCS
 #  ifdef MSDOS
@@ -1059,7 +1050,7 @@ Push()
 
 /* adjust the tty to reflect possible change to JOVE variables */
 void
-tty_adjust()
+tty_adjust(void)
 {
 	ttysetattr(YES);
 #ifdef MOUSE
@@ -1077,8 +1068,7 @@ jbool
 	MetaKey = NO;		/* VAR: this terminal has a meta key */
 
 void
-Ungetc(c)
-ZXchar	c;
+Ungetc(ZXchar c)
 {
 	peekchar = c;
 }
@@ -1089,7 +1079,8 @@ ZXchar	c;
  * was gathered into argcount.
  */
 ZXchar
-peek_or_mac_getch() {
+peek_or_mac_getch(void)
+{
 	ZXchar c;
 	if ((c = peekchar) != EOF) {
 		/* got input from pushback */
@@ -1111,7 +1102,8 @@ peek_or_mac_getch() {
  * by a more elegant solution.
  */
 void
-dispatch_macros() {
+dispatch_macros(void)
+{
 	ZXchar	c;
 	int	saved_tcmd = this_cmd;
 	int	saved_lcmd = last_cmd;
@@ -1131,9 +1123,9 @@ dispatch_macros() {
 }
 
 ZXchar
-getch()
+getch(void)
 {
-	register ZXchar	c;
+	ZXchar	c;
 
 	if (Inputp != NULL) {
 		if ((c = ZXC(*Inputp++)) != '\0')
@@ -1175,7 +1167,7 @@ getch()
 }
 
 void
-TeachJove()
+TeachJove(void)
 {
 	char tnamebuf[FILESIZE];
 	PathCat(tnamebuf, sizeof(tnamebuf), HomeDir, TEACHJOVE);
@@ -1189,15 +1181,13 @@ TeachJove()
 }
 
 void
-ShowVersion()
+ShowVersion(void)
 {
 	s_mess("Jonathan's Own Version of Emacs (%s)", jversion);
 }
 
 private void
-UNIX_cmdline(argc, argv)
-int	argc;
-char	*argv[];
+UNIX_cmdline(int argc, char *argv[])
 {
 	long	lineno = 0;
 	int	nwinds = 1;
@@ -1343,20 +1333,13 @@ char	*argv[];
 	}
 }
 
-#ifdef STDARGS
 void
 error(const char *fmt, ...)
-#else
-/*VARARGS1*/ void
-error(fmt, va_alist)
-	const char	*fmt;
-	va_dcl
-#endif
 {
 	va_list	ap;
 
 	if (fmt) {
-		va_init(ap, fmt);
+		va_start(ap, fmt);
 		format(mesgbuf, sizeof mesgbuf, fmt, ap);
 		va_end(ap);
 		UpdMesg = YES;
@@ -1366,20 +1349,13 @@ error(fmt, va_alist)
 	/* NOTREACHED */
 }
 
-#ifdef STDARGS
 void
 complain(const char *fmt, ...)
-#else
-/*VARARGS1*/ void
-complain(fmt, va_alist)
-	const char	*fmt;
-	va_dcl
-#endif
 {
 	va_list	ap;
 
 	if (fmt) {
-		va_init(ap, fmt);
+		va_start(ap, fmt);
 		format(mesgbuf, sizeof mesgbuf, fmt, ap);
 		va_end(ap);
 		UpdMesg = YES;
@@ -1391,47 +1367,33 @@ complain(fmt, va_alist)
 
 /* format and display a message without using the normal display mechanisms */
 
-#ifdef STDARGS
 void
 raw_complain(const char *fmt, ...)
-#else
-/*VARARGS1*/ void
-raw_complain(fmt, va_alist)
-	const char	*fmt;
-	va_dcl
-#endif
 {
-	char	buf[MESG_SIZE];
-	va_list	ap;
-	const char *bp;
-	size_t	rem;
-	JSSIZE_T r;
+	char		buf[MESG_SIZE];
+	va_list		ap;
+	const char	*bp;
+	size_t		rem;
+	JSSIZE_T	r;
 
-	va_init(ap, fmt);
+	va_start(ap, fmt);
 	format(buf, sizeof(buf) - 2, fmt, ap);
 	va_end(ap);
 	strcat(buf, "\r\n");	/* \r *may* be redundant */
 	for (bp = buf, rem = strlen(buf)
-	; rem > 0 && (r = write(2, bp, rem)) != (JSSIZE_T)rem
-	; bp += r, rem -=r) {
-		if (r < 0 || errno != EINTR)
+	     ; rem > 0 && (r = write(2, bp, rem)) != (JSSIZE_T)rem
+	     ; bp += r, rem -= r) {
+		if (r < 0 && !RETRY_ERRNO(errno))
 		    break;	/* give up */
 	}
 }
 
-#ifdef STDARGS
 void
 confirm(const char *fmt, ...)
-#else
-/*VARARGS1*/ void
-confirm(fmt, va_alist)
-	const char	*fmt;
-	va_dcl
-#endif
 {
 	va_list	ap;
 
-	va_init(ap, fmt);
+	va_start(ap, fmt);
 	format(mesgbuf, sizeof mesgbuf, fmt, ap);
 	va_end(ap);
 	if (!yes_or_no_p("%s", mesgbuf)) {
@@ -1448,7 +1410,7 @@ confirm(fmt, va_alist)
 int	RecDepth = 0;
 
 void
-Recur()
+Recur(void)
 {
 	Buffer	*b = curbuf;
 	Mark	*m;
@@ -1477,8 +1439,7 @@ private int	iniargc;	/* main sets these for DoKeys() */
 private char	**iniargv;
 
 private void
-DoKeys(firsttime)
-jbool	firsttime;
+DoKeys(jbool firsttime)
 {
 	jmp_buf	savejmp;
 
@@ -1547,9 +1508,7 @@ jbool	firsttime;
 }
 
 private char **
-scanvec(args, str)
-register char	**args,
-		*str;
+scanvec(char **args, char *str)
 {
 	while (*args) {
 		if (strcmp(*args, str) == 0)
@@ -1563,8 +1522,7 @@ register char	**args,
 #ifdef WINRESIZE
 /*ARGSUSED*/
 SIGRESTYPE
-win_reshape(junk)
-int	UNUSED(junk);	/* passed in when invoked by a signal; of no interest */
+win_reshape(int UNUSED(junk))
 {
 	int save_errno = errno;	/* Subtle, but necessary! */
 
@@ -1586,11 +1544,7 @@ int	UNUSED(junk);	/* passed in when invoked by a signal; of no interest */
 #endif /* WINRESIZE */
 
 private jbool
-carefulcpy(to, from, maxsize, mess, raw)
-char	*to,*from;
-size_t	maxsize;
-char	*mess;
-jbool	raw;
+carefulcpy(char *to, char *from, size_t maxsize, char *mess, jbool raw)
 {
 	if (from != NULL) {
 		const char	*ugh;
@@ -1617,9 +1571,7 @@ jbool	raw;
 	carefulcpy(buf, getenv(varname), sizeof(buf), varname, NO)
 
 private void
-dojovercs(dosys, dousr)
-jbool	dosys;
-jbool	dousr;
+dojovercs(jbool dosys, jbool dousr)
 {
 	char	Joverc[FILESIZE];
 
@@ -1643,7 +1595,7 @@ jbool	dousr;
 }
 
 private void
-setfeatures()
+setfeatures(void)
 {
 	JoveFeatures[0] = '\0';
 #ifdef UNIX
@@ -1735,8 +1687,7 @@ setfeatures()
  * leading drive: for MSFILESYSTEM
  */
 private const char *
-relpathstart(path)
-const char *path;
+relpathstart(const char *path)
 {
 	const char *cp = path, c = *cp;
 	jdbg("relpathstart \"%s\"\n", path);
@@ -1773,10 +1724,7 @@ const char *path;
  * varname holds the name to indicate which one, for error messages.
  */
 private void
-fixrelpath(val, var, varname)
-const char *val;
-char *var; /* MUST BE FILESIZE */
-const char *varname;
+fixrelpath(const char *val, char *var, const char *varname)
 {
 	const char *rel;
 	char tempbuf[FILESIZE];
@@ -1802,23 +1750,9 @@ const char *varname;
 }
 
 int
-main(argc, argv)
-int	argc;
-char	*argv[];
+main(int argc, char *argv[])
 {
 	char	**argp;
-#ifdef AUTO_BUFS
-	/* allocate these usually static buffers on the stack:
-	 * preserves addressability on some systems.
-	 */
-	char	s_iobuff[LBSIZE],
-		s_genbuf[LBSIZE],
-		s_linebuf[LBSIZE];
-
-	iobuff = s_iobuff;
-	genbuf = s_genbuf;
-	linebuf = s_linebuf;
-#endif
 
 #ifdef MAC
 	MacInit();		/* initializes all */
@@ -2065,9 +1999,7 @@ char	*argv[];
 
 /* determine and return the directory in which the jove executable resides */
 private void
-jexecpath(namebuf, namebufsz)
-char *namebuf;
-size_t namebufsz;
+jexecpath(char *namebuf, size_t namebufsz)
 {
 	const char *cp;
 	namebuf[0] = '\0';
@@ -2118,9 +2050,10 @@ size_t namebufsz;
 #ifdef PNAME_PROC_SELF
 	/* Linux */
 	if (namebuf[0] == '\0') {
-		JSSIZE_T linklen;
-		struct stat stbuf;
-		const char *procself = "/proc/self/exe";
+		JSSIZE_T	linklen;
+		struct stat	stbuf;
+		const char	*procself = "/proc/self/exe";
+
 		if (lstat(procself, &stbuf) == 0) {
 		    linklen = readlink(procself, namebuf, namebufsz);
 		    if (linklen < 0) {

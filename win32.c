@@ -18,7 +18,7 @@
 
 # undef Fill /* sigh, used as a field name in some windows header! */
 # undef CR /* sigh, used as a field name in some windows header! */
-#include <windows.h>
+# include <windows.h>
 
 INPUT_RECORD in_event[NCHARS], *eventp = in_event;	/* Input events e.g. keyboard, mouse-click */
 DWORD nevents;
@@ -28,18 +28,18 @@ private COORD maxpos;
 private HANDLE old_stdout, old_stderr;
 private WORD  old_attributes;
 
-private BOOL WINAPI ctrlHandler proto((DWORD type));	/* Control handler */
+private BOOL WINAPI ctrlHandler(DWORD type);	/* Control handler */
 #define CHECK(fn)	{ if (!(fn)) ConsoleFail(#fn); }
 private void ConsoleFail(char *fdef);
 
 void
-getTERM()
+getTERM(void)
 {
 }
 
 void
-ttysetattr(n)
-jbool	n;	/* also used as subscript! */
+ttysetattr(jbool n)
+/* `n' is also used as subscript! */
 {
 	CONSOLE_SCREEN_BUFFER_INFO info;
 	COORD bufsize;
@@ -116,7 +116,7 @@ jbool	n;	/* also used as subscript! */
 }
 
 void
-ttsize()
+ttsize(void)
 {
 	/* ??? We really ought to wait until the screen is big enough:
 	 * at least three lines high (one line each for buffer, mode,
@@ -546,7 +546,7 @@ SaveBufferFile(Buffer *b)
 }
 
 private void
-MessageCloseFiles()
+MessageCloseFiles(void)
 {
 	/* We use a static buffer pointer so that we can detect if we
 	 * have been re-entered.  If so, we do nothing.  This can happen
@@ -623,7 +623,7 @@ freeReason(void)
 }
 
 char *
-getLastErrorString()
+getLastErrorString(void)
 {
 	static BOOL cleanupRegistered;
 	char *ptr;
@@ -717,7 +717,7 @@ int top, bottom, num;
 }
 
 void
-clr_page()
+clr_page(void)
 {
 	DWORD written;
 
@@ -728,7 +728,7 @@ clr_page()
 }
 
 void
-flushscreen()
+flushscreen(void)
 {
 	if (bufpos != 0) {
 		DWORD written;
@@ -742,7 +742,7 @@ flushscreen()
 }
 
 void
-clr_eoln()
+clr_eoln(void)
 {
 	DWORD written;
 
@@ -758,7 +758,7 @@ int	n;
 }
 
 void
-ResizeWindow()
+ResizeWindow(void)
 {
 	/* Must update window size to eliminate those ugly scroll bars */
 	SMALL_RECT newsize;
@@ -822,30 +822,28 @@ private jbool
 	doing_us = NO;
 
 private void
-doattr()
+doattr(void)
 {
 	flushscreen();
 	setcolor((doing_so? Mlattr : Txattr) ^ (doing_us? Hlattr : 0));
 }
 
 void
-SO_effect(f)
-jbool f;
+SO_effect(jbool f)
 {
 	doing_so = f;
 	doattr();
 }
 
 void
-US_effect(f)
-jbool	f;
+US_effect(jbool f)
 {
 	doing_us = f;
 	doattr();
 }
 
 int
-FatalErrorMessage(char* str)
+FatalErrorMessage(char *str)
 {
 	return MessageBox(NULL, str, NULL, MB_YESNO) == IDYES? 'y' : 'n';
 }

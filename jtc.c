@@ -35,27 +35,22 @@ extern int avoid_pedantic_complaints_about_empty_translation_unit;
 #include <sys/time.h>
 #include "select.h"
 
-#ifdef TERMIOS
-# include <termios.h>
-# include <sys/ioctl.h>
-# ifdef TIOCGWINSZ
+#include <termios.h>
+#include <sys/ioctl.h>
+#ifdef TIOCGWINSZ
 private struct winsize jtwin;
-#  define JVTCOLS jtwin.ws_col
-#  define JVTROWS jtwin.ws_row
-# endif /* TIOCGWINSZ */
-#endif /* TERMIOS */
+# define JVTCOLS jtwin.ws_col
+# define JVTROWS jtwin.ws_row
+#endif /* TIOCGWINSZ */
+
 #ifndef JVTCOLS
 # define JVTCOLS 80
 # define JVTROWS 24
 #endif
 
 #ifdef TEST_STANDALONE
-extern int strncasecmp proto((const char *, const char *, size_t));
-extern int snprintf proto((char *, size_t, const char *, ...));
-extern int printf(const char *, ...);
-extern int putchar(int);
-extern void fflush(void *); /* XXX */
-extern void *stdout; /* XXX */
+extern int strncasecmp(const char *, const char *, size_t);
+extern int snprintf(char *, size_t, const char *, ...);
 #define flushscreen() fflush(stdout)
 #define caseeqn(s1, s2, n) (strncasecmp(s1, s2, n) == 0)
 #define swritef snprintf
@@ -140,9 +135,7 @@ private JTLevel jtc_emu[] = {
 };
 
 char *
-jtcarg1(fmt, p)
-const char *fmt;
-int p;
+jtcarg1(const char *fmt, int p)
 {
 	if (fmt)
 		swritef(jtarg, sizeof jtarg, fmt, p);
@@ -158,9 +151,7 @@ int p;
  * hardwires the %i behaviour from terminfo/termcap
  */
 char *
-jtcarg2(fmt, destcol, destline)
-const char *fmt;
-int destcol, destline;
+jtcarg2(const char *fmt, int destcol, int destline)
 {
 	if (fmt)
 		swritef(jtarg, sizeof jtarg, fmt, destline+1, destcol+1);
@@ -176,8 +167,7 @@ int destcol, destline;
  * and moved to unix.c, ibmpcdos.c, win32.c, mac.c.
  */
 void
-jdelay(delay)
-int delay;
+jdelay(int delay)
 {
 	struct timeval	timer;
 	fd_set	readfds;
@@ -192,10 +182,7 @@ int delay;
 }
 
 void
-tputs(str, lines, putfunc)
-const char *str;
-int lines;
-void (*putfunc) proto((int));
+tputs(const char *str, int lines, void (*putfunc)(char))
 {
 	const char *cp = str;
 	ZXchar c;
@@ -213,9 +200,7 @@ void (*putfunc) proto((int));
 }
 
 int
-tgetent(buf, tenv)
-char *buf;
-const char *tenv;
+tgetent(char *buf, const char *tenv)
 {
 	const char *jtcenv = getenv("JOVEVT");
 	if (jtcenv != NULL) {
@@ -243,7 +228,7 @@ const char *tenv;
 		}
 	}
 #ifdef TIOCGWINSZ
-	if (ioctl(0, TIOCGWINSZ, (UnivPtr) &jtwin) < 0)
+	if (ioctl(0, TIOCGWINSZ, &jtwin) < 0)
 		return -1;
 #endif
 	return jtlev >= 0;
@@ -253,8 +238,7 @@ const char *tenv;
 			 cap[2] == val[2] && cap[2] == '\0')
 
 int
-tgetflag(capname)
-const char *capname;
+tgetflag(const char *capname)
 {
 	if (capeq(capname, "mi") && jtlev >= VT125)
 		return YES; /* terminfo for vt102 does not have move-in-insert */
@@ -270,8 +254,7 @@ const char *capname;
 
 
 int
-tgetnum(capname)
-const char *capname;
+tgetnum(const char *capname)
 {
 	if (capeq(capname, "co")) {
 		return JVTCOLS;
@@ -286,9 +269,7 @@ const char *capname;
 }
 
 const char *
-tgetstr(capname, area)
-const char *capname;
-char **area;
+tgetstr(const char *capname, char **area)
 {
 	JTermcap *j;
 	for (j = jtc; j < jtc + (sizeof(jtc)/sizeof(jtc[0])); j++) {
@@ -306,7 +287,7 @@ char **area;
 
 #ifdef TEST_STANDALONE
 /* To test, build with
- * LANG=C gcc -o testjtc jtc.c -g -O -Wall -DTEST_STANDALONE -DJTC -DTERMIOS
+ * LANG=C gcc -o testjtc jtc.c -g -O -Wall -DTEST_STANDALONE -DJTC
  */
 
 /* make terminfo string printable */
@@ -340,7 +321,7 @@ xtputs(delay, s, li)
 int delay, li;
 const char *s;
 {
-	tputs(s, li, putchar);
+	tputs(s, li, (void (*)(char)) putchar);
 	fflush(stdout);
 	jdelay(delay);
 }
@@ -407,7 +388,7 @@ char **argv;
 		xtputs(10, jtcarg1(cp, 2), 2);
 	else {
 		xtputs(5, jtcarg1(tgetstr("sf", NULL),1), 1);
-		xtputs(5, jtcarg1(tgetstr("sf"),1), 1);
+		xtputs(5, jtcarg1(tgetstr("sf", NULL),1), 1);
 	}
 	j = tgetnum("li");
 	xtputs(5, tgetstr("dl", NULL), 1);
