@@ -67,8 +67,8 @@ When this variable is
 .IQ on
 (the default), word abbreviations are adjusted for
 case automatically.  If the abbreviation is typed with no uppercase letter,
-the expansion is not changed; if it is typed with one or more uppercase letters,
-the first character in the expansion is capitalized;
+the expansion is not changed; if it is typed with one or more uppercase
+letters, the first character in the expansion is capitalized;
 additionally, if the abbreviation is typed with more than one uppercase letter,
 each letter in the expansion immediately preceded by whitespace or \-
 is capitalized.
@@ -86,8 +86,8 @@ When this variable is
 .IQ off ,
 upper and lower case are
 distinguished when looking for the abbreviation, i.e., in the example above,
-\*QJOVE\*U and \*QJove\*U would not be expanded unless they were defined separately.
-See also the
+\*QJOVE\*U and \*QJove\*U would not be expanded unless they were defined
+separately.  See also the
 .IQ word-abbrev-mode
 command.
 .dc "auto-execute-command" "Not Bound"
@@ -157,7 +157,8 @@ beginning of the line it moves to the end of the previous line.
 .dc "backward-list" "ESC\ ^P"
 This moves point backward over a list, which is any text between properly
 matching (\^...\^), [\^...\^] or {\^...\^}.
-It first searches backward for a \*Q)\*U and then moves to the matching \*Q(\*U.
+It first searches backward for a \*Q)\*U and then moves to the
+matching \*Q(\*U.
 This is useful when you are trying to find unmatched parentheses in a program.
 Arguments are accepted, and negative arguments search forwards.
 See also
@@ -407,7 +408,7 @@ See
 for more details.
 .dc "compile-it" "^X\ ^E"
 This compiles your program by running the
-.UX
+.B UNIX
 command
 .IQ make
 into a buffer,
@@ -491,9 +492,9 @@ command) or by inserting the character '^' followed by the appropriate
 letter for that character (e.g., ^A would be the two characters '^'
 followed by 'A').  You may use Back-slash to prevent the '^' from being
 interpreted as part of a control character when you really wish to insert
-one (e.g., a macro body \*Q\^\e\^^foo\*U would insert the string \*Q^foo\*U into the
-buffer, whereas the body \*Q^foo\*U would be the same as typing ^F and then
-inserting the string \*Qoo\*U).  See
+one (e.g., a macro body \*Q\^\e\^^foo\*U would insert the string \*Q^foo\*U
+into the buffer, whereas the body \*Q^foo\*U would be the same as typing ^F
+and then inserting the string \*Qoo\*U).  See
 .IQ write-macros-to-file
 to see how to save macros.
 .dc "define-mode-word-abbrev" "Not Bound"
@@ -633,8 +634,8 @@ and
 .IQ popd
 commands for more information.
 .dc "display-default-filenames" "(variable)"
-If this is set when \s-2JOVE\s0 asks for a filename, it will display the default
-(unless that would take too much of the prompt line).
+If this is set when \s-2JOVE\s0 asks for a filename, it will display the
+default (unless that would take too much of the prompt line).
 .dc "display-filenames-with-bad-extensions" "(variable)"
 This variable affects only filename completion, in particular, what
 happens when \*Q?\*U is typed while prompting for a file.  When this variable
@@ -714,7 +715,7 @@ system and require you to reboot.
 .dc "eof-process" "^C\ ^D"
 Sends EOF to the current interactive process.  This only works on
 versions of \s-2JOVE\s0 running under versions of
-.UX
+.B UNIX
 with pty's.
 .dc "erase-buffer" "Not Bound"
 This erases the contents of the specified buffer.  This is like
@@ -796,8 +797,8 @@ them to keys so that you can execute them more quickly.  See the
 .IQ bind-to-key
 command.
 .dc "exit-jove" "^X\ ^C"
-This exits \s-2JOVE\s0.  If any buffers need saving \s-2JOVE\s0 will print a warning
-message and ask for confirmation.  If you leave without saving your
+This exits \s-2JOVE\s0.  If any buffers need saving \s-2JOVE\s0 will print
+a warning message and ask for confirmation.  If you leave without saving your
 buffers all your work will be lost.  If you made a mistake and really
 do want to exit then you can.
 If there are any interactive processes running, \s-2JOVE\s0 will also ask
@@ -904,7 +905,7 @@ except it operates on a region instead of
 just a paragraph.
 .dc "filter-region" "Not Bound"
 This sends the text in the region to a
-.UX
+.B UNIX
 command, and replaces the
 region with the output from that command.  For example, if you are
 lazy and don't like to take the time to write properly indented C
@@ -913,11 +914,11 @@ code, you can put the region around your C file and
 it through
 .IQ cb ,
 the
-.UX
+.B UNIX
 C beautifier.  If you have a file that contains
 a bunch of lines that need to be sorted you can do that from inside
 \s-2JOVE\s0 too, by filtering the region through the
-.UX
+.B UNIX
 .IQ sort
 command.
 Before output from the command replaces the region \s-2JOVE\s0 stores the old
@@ -927,8 +928,8 @@ command will get back the old text.
 .dc "find-file" "^X\ ^F"
 This reads a specified file into its own buffer and then selects that buffer.
 If you've already read this file into a buffer, that buffer is simply
-selected.  If the file doesn't yet exist, \s-2JOVE\s0 will print \*Q(New file)\*U
-so that you know.
+selected.  If the file doesn't yet exist, \s-2JOVE\s0 will
+print \*Q(New file)\*U so that you know.
 If possible, the buffer is named after the filename (ignoring any directory
 part).
 .dc "find-tag" "^X\ T"
@@ -937,7 +938,7 @@ tags by default in the
 .BQ tags
 file in the current directory, as created
 by the
-.UX
+.B UNIX
 command
 .IQ ctags(1) .
 You can change
@@ -983,7 +984,8 @@ whitespace; or, if the nearest succeeding significant character is one of
 Arguments are accepted, and negative arguments search backwards.
 .dc "forward-sentence" "ESC\ E"
 This moves point forward to the end of the current or next sentence.
-\s-2JOVE\s0 considers the end of a sentence to be the characters \*Q.\*U, \*Q!\*U or
+\s-2JOVE\s0 considers the end of a sentence to be the
+characters \*Q.\*U, \*Q!\*U or
 \*Q?\*U, followed possibly by \*Q'\*U, \*Q''\*U, or \*Q"\*U, followed by a
 Return or whitespace.
 Arguments are accepted, and negative arguments search backwards.
@@ -1082,7 +1084,8 @@ are passed to interactive shell commands i.e.
 and
 .IQ i-shell-command .
 .dc "iproc-env-show" "Not Bound"
-This shows (as temporary screen output or in a buffer, depending on the variable
+This shows (as temporary screen output or in a buffer, depending on the
+variable
 .IQ send-typeout-to-buffer )
 the environment that will be exported to interactive processes.
 .dc "iproc-env-unset" "Not Bound"
@@ -1093,15 +1096,15 @@ to interactive processes.
 This is a special, read-only variable, containing the compiler, flags and
 options used to build Jove (on Unix-style machines)
 .dc "jove-features" "(variable)"
-This is a special, read-only variable, set with a colon-delimited list of 
+This is a special, read-only variable, set with a colon-delimited list of
 all the optional capabilities compiled into \s-2JOVE\s0.  The value will
 be something like
 .br
 .IQ :unix:abbr:bak:cmtfmt:fcomp:iproc:pty:lisp:proc:spell:rec:job:idchar:hl:tcap:ctype: 
 .br
 .IQ unix
-specifies a variety of traditional UNIX/POSIX capabilities (case-sensitive filenames,
-a Unix-style filesystem), as opposed to 
+specifies a variety of traditional UNIX/POSIX capabilities (case-sensitive
+filenames, a Unix-style filesystem), as opposed to
 .br
 .IQ msdos
 or
@@ -1115,10 +1118,10 @@ as is probably the case for the pre-OSX classic
 .IQ mac
 platform).  Other tokens are
 .br
-.IQ abbr 
-(abbrev-mode exists), 
+.IQ abbr
+(abbrev-mode exists),
 .br
-.IQ bak 
+.IQ bak
 (backup-files can be created),
 .br
 .IQ cmtfmt
@@ -1131,14 +1134,14 @@ platform).  Other tokens are
 (interactive shell processes),
 .br
 .IQ pipe
-(indicating that 
+(indicating that
 .IQ iproc
-is implemented using pipes and the 
+is implemented using pipes and the
 .IQ portsrv
 helper program ), or
 .br
 .IQ pty
-(indicating that 
+(indicating that
 .IQ iproc
 is implemented using pseudo-terminals, available on any modern
 post-4.2BSD platform),
@@ -1147,9 +1150,9 @@ post-4.2BSD platform),
 (lisp mode is available),
 .br
 .IQ proc
-(the ability to run non-interactive subshell processes with output 
+(the ability to run non-interactive subshell processes with output
 to buffers, or switch entirely from \s-2JOVE\s0 to a child shell
-via 
+via
 .IQ push-shell
 and then return to \s-2JOVE\s0 when that child shell exits),
 .br
@@ -1166,7 +1169,7 @@ from \s-2JOVE\s0 editors after a machine or program crash)
 (BSD job control is supported, so one can suspend \s-2JOVE\s0
 with the pause-jove command and return to the shell that \s-2JOVE\s0
 was started from, and later resume \s-2JOVE\s0 using a
-shell command like 
+shell command like
 .IQ fg ),
 .br
 .IQ jsmall
@@ -1177,11 +1180,12 @@ lines it can support, probably only 32000)
 (\s-2JOVE\s0 will attempt to optimize screen display
 using insert/delete character modes and terminal control sequences),
 .IQ hl
-(enable highlight-mark capabiltiy to display a small underscore for the position of the mark,
+(enable highlight-mark capabiltiy to display a small underscore for the
+position of the mark,
 and enable the scroll-bar capability in the buffer mode line),
 .br
 .IQ jtc
-(uses builtin ANSI/VT1xx/XTERM driver rather than 
+(uses builtin ANSI/VT1xx/XTERM driver rather than
 .IQ termcap/terminfo/curses ),
 .br
 .IQ tcap
@@ -1202,7 +1206,7 @@ This is a special, read-only variable, containing the linker, flags and
 libraries used to build Jove (on Unix-style machines)
 .dc "kill-next-word" "ESC\ D"
 This kills the text from point to the end of the current or next word.
-.IQ 
+.IQ
 The killed text is sent to the kill ring.
 .dc "kill-previous-word" "ESC\ DEL"
 This kills the text from point to the beginning of the current or
@@ -1226,10 +1230,10 @@ s-expression.
 The killed text is sent to the kill ring.
 .dc "kill-some-buffers" "Not Bound"
 This goes through all the existing buffers and asks whether or not to delete
-each one.  If you decide to delete a buffer, and it turns out that the buffer is
-modified, \s-2JOVE\s0 will offer to save it first.  This is useful for when \s-2JOVE\s0
-runs out of memory to store lines (this only happens on PDP-11's) and you
-have lots of buffers that you are no longer using.
+each one.  If you decide to delete a buffer, and it turns out that the buffer
+is modified, \s-2JOVE\s0 will offer to save it first.  This is useful for
+when \s-2JOVE\s0 runs out of memory to store lines (this only happens on
+PDP-11's) and you have lots of buffers that you are no longer using.
 See also the
 .IQ delete-buffer
 command.
@@ -1289,18 +1293,18 @@ without having to count the number of spaces over it actually is.
 This tells JOVE where to find the machine-dependent helper
 programs: the
 .IQ recover
-program, run when 
+program, run when
 .IQ "jove -r"
 is run after a crash to try to recover unsaved files,
-and on some older machines without pseudo-terminal support, the 
+and on some older machines without pseudo-terminal support, the
 .IQ portsrv
 program, which handles multiplexed communication with the
 keyboard and interactive shells (if JOVE is compiled with SUBSHELL
 and PIPEPROCS configured)
 .dc "lisp-mode" "Not Bound"
 This turns on the Lisp major mode.  In Lisp mode, the characters Tab
-and \*Q)\*U are treated specially, similar to the way they are treated in C mode.
-Also, Auto Indent mode is affected, and handled specially.
+and \*Q)\*U are treated specially, similar to the way they are treated in C
+mode. Also, Auto Indent mode is affected, and handled specially.
 See also the
 .IQ c-mode
 command.
@@ -1323,7 +1327,7 @@ the buffer.  The third says what type of buffer.  There are four
 types: File, Scratch, Process and I-Process.  \*QFile\*U is simply a
 buffer that holds a file; \*QScratch\*U is for buffers that \s-2JOVE\s0 uses
 internally; \*QProcess\*U is one that holds the output from a
-.UX
+.B UNIX
 command; \*QI-Process\*U is one that has an interactive process attached to
 it.  The next column contains the name of the buffer.  And the last
 column is the name of the file that's attached to the buffer.  In this
@@ -1366,8 +1370,8 @@ the buffer that was current when the command was executed.  In other
 words, the binding only applies to the selected buffer.
 .dc "macify" "(variable)"
 (Mac version only)
-When this variable is on, \s-2JOVE\s0 will use the standard Macintosh file-selector
-dialog in place of the traditional \s-2JOVE\s0 Minibuffer.
+When this variable is on, \s-2JOVE\s0 will use the standard Macintosh
+file-selector dialog in place of the traditional \s-2JOVE\s0 Minibuffer.
 .dc "mail-check-frequency" "(variable)"
 This is how often (in seconds) \s-2JOVE\s0 should check your mailbox for
 incoming mail.  If you set this to zero \s-2JOVE\s0 won't check for new
@@ -1432,7 +1436,7 @@ entered by holding down Meta and typing Y.
 On the IBM PC, this variable affects how ALT is interpreted.
 On the Macintosh, it affects how Option is interpreted.
 NOTE: In some older
-.UX
+.B UNIX
 systems, \s-2JOVE\s0 must switch the tty to
 raw mode to accept the 8-bit characters generated by a meta key.
 Unfortunately, the
@@ -1447,8 +1451,8 @@ between the '%' and the 'x' to mean repeat that many times.
 \&'x' may be:
 .DS I
 .ta .5i 1i 1.5i
-	C	checks for new mail, and displays \*Q[New mail]\*U if there is any
-		(see also the \c
+	C	checks for new mail, and displays \*Q[New mail]\*U if there
+		is any (see also the \c
 .IQ mail-check-frequency " \c"
 and \c
 .IQ mailbox " \c"
@@ -1523,8 +1527,8 @@ is positioned in this window on the line where the error occurred.
 This moves point down to the corresponding position on the next line (or the
 end of that line if it does not extend so far).
 .dc "next-page" "^V"
-This displays the next page of the selected buffer by taking the bottom line of
-the window and redrawing the window with it at the top.  If there isn't
+This displays the next page of the selected buffer by taking the bottom line
+of the window and redrawing the window with it at the top.  If there isn't
 another page in the buffer \s-2JOVE\s0 rings the bell.  If a numeric argument
 of only \- (with no digits) is supplied, the previous page
 is displayed.  Otherwise, if a numeric argument
@@ -1592,7 +1596,7 @@ and
 commands.
 This is a very useful tool and helps with compiling C programs or, when used
 in conjunction with the
-.UX
+.B UNIX
 .IQ grep
 command, with making changes to a bunch of files.
 \s-2JOVE\s0 finds each file that has an error and remembers each line that
@@ -1675,7 +1679,8 @@ are passed to subshell commands i.e.
 .IQ spell-buffer ,
 etc.
 .dc "proc-env-show" "Not Bound"
-This shows (as temporary screen output or in a buffer, depending on the variable
+This shows (as temporary screen output or in a buffer, depending on the
+variable
 .IQ send-typeout-to-buffer )
 the environment that will be exported to subshell commands.
 .dc "proc-env-unset" "Not Bound"
@@ -1755,7 +1760,7 @@ This spawns a child shell and relinquishes control to it.
 Within this shell, $1 can be used to refer to the filename (if any)
 of the selected buffer.
 This works on any version of
-.UX ,
+.B UNIX ,
 but this isn't as good as
 .IQ pause-jove
 because
@@ -1782,7 +1787,7 @@ commands.  It is mainly intended for use with the
 file.
 .dc "pwd" "Not Bound"
 This prints the pathname of the working directory, as in the
-.UX
+.B UNIX
 .IQ pwd
 command.
 .dc "query-replace-string" "ESC\ Q"
@@ -1915,7 +1920,7 @@ you really do want to write the file you must use
 .IQ write-file .
 .dc "save-on-exit" "(variable)"
 If this is
-.IQ on 
+.IQ on
 when \s-2JOVE\s0 is about to exit, it will ask, for each modified buffer,
 whether you wish it to be saved.
 See
@@ -2111,12 +2116,12 @@ command.
 This tells JOVE where to find the machine-independent configuration
 files that it uses, typically some system-wide
 .IQ jove.rc
-configuration files read on startup, 
-the formatted help information for the 
+configuration files read on startup,
+the formatted help information for the
 .IQ describe-*
 commands and the tutorial.  There is usually a compiled-in path that
 should be correct if Jove was properly installed.  This path
-can also be overridden with the 
+can also be overridden with the
 .IQ -s
 command-line option.
 .dc "shell" "(variable)"
@@ -2140,7 +2145,7 @@ See also the variable
 .IQ wrap-process-lines .
 .dc "shell-command" "^X\ !"
 This runs a
-.UX
+.B UNIX
 command and places the output from that command in a
 buffer.
 Within the command, $1 can be used to refer the the filename (if any)
@@ -2189,7 +2194,7 @@ message at the end is suppressed.
 This specifies a flag argument that directs the shell to
 take the next argument as a command to be executed.
 The default is \*Q\-c\*U (suitable for all known
-.UX
+.B UNIX
 shells).
 Under MSDOS, the default is \*Q/c\*U (suitable for command.com and
 similar MSDOS shells).
@@ -2216,8 +2221,8 @@ region is shifted the other way.
 This turns on or off the Show Match minor mode in the selected
 buffer.  Without a numeric argument, the command toggles the mode;
 with a zero argument, the mode is turned off; with a non-zero
-argument, the mode is turned on.  This mode changes \*Q}\*U, \*Q)\*U and \*Q]\*U
-so that when they are typed they are inserted as usual, and then the
+argument, the mode is turned on.  This mode changes \*Q}\*U, \*Q)\*U and
+\*Q]\*U so that when they are typed they are inserted as usual, and then the
 cursor flashes back to the matching \*Q{\*U, \*Q(\*U or \*Q[\*U (depending on
 what was typed) for about half a second, and then goes back to just
 after the \*Q}\*U, \*Q)\*U or \*Q]\*U that invoked the command.  This is useful
@@ -2321,11 +2326,11 @@ numeric argument 1, there will be no complaint if this file cannot be found.
 If \s-2JOVE\s0 was compiled with interactive-processes enabled (in which
 case the string
 .IQ :iproc:
-will be part of the read-only \s-2JOVE\s0 variable 
+will be part of the read-only \s-2JOVE\s0 variable
 .IQ jove-features ),
 the
 .iQ process-bind-to-key
-command binds the key sequence Control-C Control-C to the 
+command binds the key sequence Control-C Control-C to the
 .IQ interrupt-process
 command, which sends the SIGINT signal to interactive shell.
 .dc "space-sentence-2" (variable)
@@ -2336,7 +2341,7 @@ two spaces are left after each sentence by commands such as
 otherwise, one space is left.  The default is
 .IQ on .
 .dc "spell-command-format" "(variable)"
-This is the format specification string for a command which will run 
+This is the format specification string for a command which will run
 a spell checker on a specified file and produce
 a list of misspelled words on the output. This variable (and related
 .IQ spell-buffer
@@ -2346,7 +2351,7 @@ instance of the specifier %s which will be replaced with
 the pathname of the file to be checked.
 .dc "spell-buffer" "Not Bound"
 This saves the current buffer and runs it through the
-.UX
+.B UNIX
 .IQ spell
 command (specified by the variable
 .IQ spell-command-format
@@ -2415,13 +2420,13 @@ This loads the Jove tutorial from from
 the
 .BQ ~/teach-jove
 file if it was already saved there, else it loads the reference copy
-from 
+from
 .BQ SHAREDIR/teach-jove
 into a buffer that will save to
 .BQ ~/teach-jove,
 replacing the old standalone
 .I teachjove
-command.  The 
+command.  The
 .IQ -T
 option, if given to JOVE on the command line, will start JOVE up with
 the tutorial loaded.
@@ -2430,8 +2435,8 @@ This sets the major mode to Text.  This affects what \s-2JOVE\s0 considers
 as characters that make up words.  For instance, Single-quote is not part of
 a word in Fundamental mode, but is in Text mode.
 .dc "tmp-file-pathname" "(variable)"
-This tells \s-2JOVE\s0 where to put the tmp files, which is where \s-2JOVE\s0 stores
-buffers internally.  The default is in
+This tells \s-2JOVE\s0 where to put the tmp files, which is
+where \s-2JOVE\s0 stores buffers internally.  The default is in
 .BQ /tmp ,
 or as set up when your system
 was compiled, but if you want to
@@ -2473,8 +2478,8 @@ simply bind it to this command.
 How often the mode line is updated (and thus the time).  The
 default is 30 seconds.
 .dc "use-i/d-char" "(variable)"
-If your terminal has insert/delete character capability you can tell \s-2JOVE\s0
-not to use it by setting this to
+If your terminal has insert/delete character capability you can tell
+\s-2JOVE\s0 not to use it by setting this to
 .IQ off .
 In my opinion it is only worth using
 insert/delete character at low baud rates.  WARNING: if you set this to
@@ -2529,10 +2534,11 @@ zero argument, the mode is turned off; with a non-zero argument,
 the mode is turned on.  Word Abbrev mode lets you specify a word (an
 abbreviation) and a phrase with which \s-2JOVE\s0 should substitute
 the abbreviation.  You can use this to define words to expand into
-long phrases, e.g., \*Qjove\*U can expand into \*QJonathan's Own Version of Emacs\*U;
+long phrases, e.g., \*Qjove\*U can expand into
+\*QJonathan's Own Version of Emacs\*U;
 another common use is defining words that you often misspell
-in the same way, e.g., \*Qthier\*U => \*Qtheir\*U or \*Qteh\*U => \*Qthe\*U.  See
-the information on the
+in the same way, e.g., \*Qthier\*U => \*Qtheir\*U or \*Qteh\*U => \*Qthe\*U.
+See the information on the
 .IQ auto-case-abbrev
 variable.
 .sp 1
@@ -2596,8 +2602,8 @@ This writes the currently defined abbreviations to a specified file.
 They can be read back in and automatically defined with
 .IQ read-word-abbrev-file .
 .dc "xj-mouse-commands" "^X\ m\(**"
-Programs such as XJove and JoveTool generate these commands whenever a mouse button
-is pressed or released, or the mouse is moved while the button is
+Programs such as XJove and JoveTool generate these commands whenever a mouse
+button is pressed or released, or the mouse is moved while the button is
 pressed.  They are followed by parameters giving parameters for the
 button pressed, the coordinates of the mouse, etc.  They are not
 intended for direct use by the normal user.
