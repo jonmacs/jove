@@ -9,7 +9,7 @@ COMMAND WINDOW  WINDOW  Other   Current WINDOW  Buffer  Comment Para     ]
 
  L1      L2      |                            |  NumLock   /       *       -
 Toggle  Toggle   |                            |          Left    Right   Scroll
-OvrWt   Fill-m   |                            |          WORD    WORD    DOWN
+OvWrt   Fill-m   |                            |          WORD    WORD    DOWN
                  |----------------------------|
  L3      L4      |   INSERT  HOME    PREV     |    7       8       9       +
 Set     EXCH     |   Insert  Beg of  Page     |  Beg of   Up     Page    Scroll
