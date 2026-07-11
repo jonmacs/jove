@@ -78,7 +78,7 @@ case $# in
 			    	/etc/yum.repos.d/CentOS-*.repo
 				;;
 		esac
-		$SUDO yum install -y make gcc ncurses-devel groff $ctags zip rpm-build
+		$SUDO yum install -y make gcc ncurses-devel groff-base $ctags zip rpm-build
 	elif type brew 2> /dev/null; then
 		brew install make ncurses ctags zip groff
 	elif type pacman 2> /dev/null; then
