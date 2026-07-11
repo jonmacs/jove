@@ -1619,9 +1619,6 @@ setfeatures(void)
 #ifdef BACKUPFILES
 	jamstrcat(JoveFeatures, ":bak", sizeof(JoveFeatures));
 #endif
-#ifdef BIFF
-	jamstrcat(JoveFeatures, ":biff", sizeof(JoveFeatures));
-#endif
 #ifdef CMT_FMT
 	jamstrcat(JoveFeatures, ":cmtfmt", sizeof(JoveFeatures));
 #endif

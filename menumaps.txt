@@ -110,9 +110,6 @@ struct menu Menus[NMENUS] = {
 	"auto-case-abbrev",
 #endif
 	"case-ignore-search",
-#ifdef BIFF
-	"disable-biff",
-#endif
 #ifdef F_COMPLETION
 	"display-filenames-with-bad-extensions",
 #endif

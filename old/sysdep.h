@@ -33,8 +33,6 @@
 # define USE_GETHOSTNAME	1
 # define NO_STRERROR	1
 # define USE_FSYNC	1
-# define USE_FSTAT	1
-# define USE_FCHMOD	1
 # define HAS_SYMLINKS	1
 # define USE_CTYPE	1
 #endif
@@ -73,8 +71,6 @@
 # define USE_GETHOSTNAME	1
 # define NO_STRERROR	1
 # define USE_FSYNC	1
-# define USE_FSTAT	1
-# define USE_FCHMOD	1
 # define HAS_SYMLINKS	1
 # define USE_MEMORY_H	1
 #endif
@@ -100,8 +96,6 @@
 # define USE_GETHOSTNAME	1
 # define NO_STRERROR	1
 # define USE_FSYNC	1
-# define USE_FSTAT	1
-# define USE_FCHMOD	1
 # define HAS_SYMLINKS	1
 /* # define USE_BCOPY	1 */
 /* # define USE_INDEX	1 */
@@ -125,8 +119,6 @@
 # define USE_GETPWNAM	1
 # define USE_UNAME	1
 # define USE_FSYNC	1
-# define USE_FSTAT	1
-# define USE_FCHMOD	1
 # define HAS_SYMLINKS	1
 # define USE_CTYPE	1
 #endif
@@ -149,8 +141,6 @@
 # define USE_GETPWNAM	1
 # define USE_UNAME	1
 # define USE_FSYNC	1
-# define USE_FSTAT	1
-# define USE_FCHMOD	1
 # define HAS_SYMLINKS	1
 # define USE_CTYPE	1
   /* Only difference from AIX3_2, perhaps due to switching from

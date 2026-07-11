@@ -156,9 +156,6 @@ VARGROUP(var_misc_menu)
 #ifdef UNIX
 			VARIBOOL("allow-^S-and-^Q")
 #endif /* UNIX */
-#ifdef BIFF
-			VARIBOOL("disable-biff")
-#endif
 #ifdef IBMPCDOS
 			VARIBOOL("enhanced-keyboard")
 #endif
