@@ -9,14 +9,14 @@ jobs:
       fail-fast: false
       matrix:
         os:
-        - 'macos-13'
         - 'macos-14'
-        - 'macos-15'
+        - 'macos-latest'
         - 'ubuntu-22.04'
-        - 'ubuntu-24.04'
         - 'ubuntu-26.04'
+	- 'ubuntu-latest'
         - 'ubuntu-24.04-arm'
         - 'ubuntu-26.04-arm'
+	- 'ubuntu-latest-arm'
     runs-on: ${{ matrix.os }}
     steps:
       - run: echo "event=${{ github.event_name }} runner=${{ runner.os }} branch=${{ github.ref }} repo=${{ github.repository }} index=${{ strategy.job-index}} os=${{ matrix.os }} node=${{ matrix.node }} ."
@@ -40,8 +40,8 @@ jobs:
         - 'alpine:3.9'
         - 'alpine:latest'
         - 'centos:7'
-        - 'rockylinux:9'
-        - 'rockylinux:10'
+        - 'rockylinux/rockylinux:8'
+        - 'rockylinux/rockylinux:10'
         - 'fedora:30'
         - 'fedora:44'
         - 'archlinux:latest'
