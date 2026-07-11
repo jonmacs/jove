@@ -2,7 +2,7 @@ name: Test-Build
 on:
   push:
     branches:
-      - moraes/pr_ci_test_5
+      - main
 jobs:
   for-hosted:
     strategy:
