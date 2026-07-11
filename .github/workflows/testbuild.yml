@@ -13,10 +13,10 @@ jobs:
         - 'macos-latest'
         - 'ubuntu-22.04'
         - 'ubuntu-26.04'
-	- 'ubuntu-latest'
+        - 'ubuntu-latest'
         - 'ubuntu-24.04-arm'
         - 'ubuntu-26.04-arm'
-	- 'ubuntu-latest-arm'
+        - 'ubuntu-latest-arm'
     runs-on: ${{ matrix.os }}
     steps:
       - run: echo "event=${{ github.event_name }} runner=${{ runner.os }} branch=${{ github.ref }} repo=${{ github.repository }} index=${{ strategy.job-index}} os=${{ matrix.os }} node=${{ matrix.node }} ."
