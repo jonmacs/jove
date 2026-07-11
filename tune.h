@@ -28,10 +28,6 @@
 # define ABBREV		1	/* word abbreviation mode */
 # define BACKUPFILES	1	/* enable the backup files code */
 
-# ifdef UNIX
-#  define BIFF		1	/* if you have biff (or the equivalent) */
-# endif
-
 # define CMT_FMT		1	/* include the comment formatting routines */
 # define F_COMPLETION	1	/* filename completion */
 
