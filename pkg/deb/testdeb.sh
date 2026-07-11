@@ -1,8 +1,8 @@
 #!/bin/sh
-# Prereq: apt install pbuilder debian-keyring debian-archive-keyring
+# Prereq: apt install pbuilder
 # Mark Moraes, 20230108
 #
-: ${DEBVER=buster}
+: ${DEBVER=bookworm}
 : ${DEBARCHS="i386 amd64 armhf arm64"}
 set -eux
 case "$#" in
@@ -83,9 +83,19 @@ esac
 for arch in $DEBARCHS; do
 	echo "Packaging for $DEBVER $arch"
 	base="/var/cache/pbuilder/$DEBVER-$arch-base.tgz"
-	if test ! -f "$base"; then
-		pbuilder create --distribution "$DEBVER" --host-arch "$arch" --mirror http://ftp.us.debian.org/debian/ --basetgz "$base" debootstrapopts "--keyring=/usr/share/keyrings/debian-archive-keyring.gpg"
+	fh="https://ftp-master.debian.org"
+	for kf in $(curl -s -q "$fh/keys.html"|grep 'href=".* archive signing key'| sed 's,.*href=",'"$fh/"',;s,".*,,'); do
+		curl -s -q "$kf" | gpg --import
+	done
+	gpg --list-keys
+	if test ! -f "$base" -o ! -s "$base"; then
+		# failure on keyring often produces a zero length base!
+		$SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends --force-yes debian-keyring debian-archive-keyring
+		rm -f "$base"
+		pbuilder create --distribution "$DEBVER" --host-arch "$arch" --mirror http://ftp.us.debian.org/debian/ --basetgz "$base" --debootstrapopts "--keyring=$odir/gpg/pubring.gpg"
 	fi
-	pbuilder build --host-arch "$arch"  --basetgz "$base" "$odir/jove_${ver}-1.dsc"
+        tmpconf=$odir/.pbuilderrc
+	echo 'PBUILDERSATISFYDEPENDSCMD="/usr/lib/pbuilder/pbuilder-satisfydepends-apt"' > "$tmpconf"
+	pbuilder build --configfile "$tmpconf" --host-arch "$arch" --basetgz "$base" "$odir/jove_${ver}-1.dsc"
 done
 rm -r "$odir"

@@ -2,7 +2,7 @@ name: Test-Build
 on:
   push:
     branches:
-      - 4_17
+      - moraes/pr_ci_test_5
 jobs:
   for-hosted:
     strategy:
@@ -14,14 +14,16 @@ jobs:
         - 'macos-15'
         - 'ubuntu-22.04'
         - 'ubuntu-24.04'
+        - 'ubuntu-26.04'
         - 'ubuntu-24.04-arm'
+        - 'ubuntu-26.04-arm'
     runs-on: ${{ matrix.os }}
     steps:
       - run: echo "event=${{ github.event_name }} runner=${{ runner.os }} branch=${{ github.ref }} repo=${{ github.repository }} index=${{ strategy.job-index}} os=${{ matrix.os }} node=${{ matrix.node }} ."
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: SUDO=sudo ./testbuild.sh --preinstall
       - run: echo "status=${{ job.status }}."
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: DIST-hosted-${{ strategy.job-index }}
           path: DIST/*
@@ -39,8 +41,9 @@ jobs:
         - 'alpine:latest'
         - 'centos:7'
         - 'rockylinux:9'
+        - 'rockylinux:10'
         - 'fedora:30'
-        - 'fedora:41'
+        - 'fedora:44'
         - 'archlinux:latest'
         - 'gentoo/stage3:latest'
     runs-on: ubuntu-latest
@@ -48,11 +51,11 @@ jobs:
       CONTAINER: ${{ matrix.os }}
     steps:
       - run: echo "event=${{ github.event_name }} runner=${{ runner.os }} branch=${{ github.ref }} repo=${{ github.repository }} index=${{ strategy.job-index}} os=${{ matrix.os }} node=${{ matrix.node }} ."
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: docker pull $CONTAINER
-      - run: docker run --name container-"${CONTAINER//[:\/]/.}" -v ${{ github.workspace }}:/workspace -w /workspace $CONTAINER ./testbuild.sh --preinstall
+      - run: docker run --name container-"${CONTAINER//[:\/]/.}" -v "${{ github.workspace }}:/workspace" -w /workspace $CONTAINER ./testbuild.sh --preinstall
       - run: echo "status=${{ job.status }}."
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: DIST-container-${{ strategy.job-index }}
           path: DIST
