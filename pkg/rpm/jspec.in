@@ -8,7 +8,7 @@ License: Copyright only
 Group: Applications/Editors
 URL: https://github.com/jonmacs/jove
 Source0: https://github.com/jonmacs/jove/archive/__VERSION__.tar.gz
-BuildRequires: ncurses-devel groff
+BuildRequires: ncurses-devel groff-base
 
 %description
 Jove is a compact, powerful Emacs-style text-editor. It provides the common

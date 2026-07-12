@@ -152,7 +152,7 @@ void main()
 }
 
 _	
-\fBJOVE\ (C OvrWt)\ \ \ [Main:1]\ \ "hello.c"\ \ \(**\ \ /home/foo\fP	<\ the Mode Line
+\fBJOVE\ (C OvWrt)\ \ \ [Main:1]\ \ "hello.c"\ \ \(**\ \ /home/foo\fP	<\ the Mode Line
 _	
 : write-file (default hello.c) aloha.c\^\(sq 	<\ the Message Line
 =	
@@ -211,8 +211,8 @@ variable \fImode-line\fP which determines the layout of the mode line.  For
 the example above, this was set as described in the section on customizing
 \s-2JOVE\s0.
 .LP
-\fB(C OvrWt)\fP shows that \fBC\fP is the name of the current \fImajor
-mode\fP and that the Over Write \fIminor mode\fP is turned on.
+\fB(C OvWrt)\fP shows that \fBC\fP is the name of the current \fImajor
+mode\fP and that the OverWrite \fIminor mode\fP is turned on.
 .LP
 At any time, \s-2JOVE\s0 can be in only one major mode.
 Currently there are four major modes: \fIFundamental\fP,
@@ -221,14 +221,15 @@ Currently there are four major modes: \fIFundamental\fP,
 .LP
 The words which indicate which minor modes are turned on are:
 .DS
-\fBAbbrev\fP meaning that \fIWord Abbrev\fP mode is on;
-\fBAI\fP meaning that \fIAuto Indent\fP mode is on;
-\fBFill\fP meaning that \fIAuto Fill\fP mode is on;
-\fBOvrWt\fP meaning that \fIOver Write\fP mode is on;
-\fBRO\fP meaning that \fIRead Only\fP mode is on.
+\fBWoAbbr\fP meaning that \fIWord Abbrev\fP mode is on;
+\fBAuInd\fP meaning that \fIAuto Indent\fP mode is on;
+\fBAuFill\fP meaning that \fIAuto Fill\fP mode is on;
+\fBOvWrt\fP meaning that \fIOver Write\fP mode is on;
+\fBReadO\fP meaning that \fIRead Only\fP mode is on.
+\fBShoMat\fP meaning that \fIShow Match\fP mode is on.
 \fBDBX\fP meaning that \fIDBX\fP mode is on.
 \fBDef\fP meaning that you are in the process of defining a keyboard macro.
-This is not really a mode, but it's useful to be reminded about it.
+(This is not really a mode, but it's useful to be reminded about it.)
 .DE
 .KE
 The meanings of these modes are described later in this document.
@@ -1978,7 +1979,7 @@ _
 \ \ \ \ return 0;	<\ second Window
 }\^\(sq
 _	
-\fBJOVE\ (C OvrWt)\ \ \ [Main:1]\ \ "aloha.c"\ \ \-\-\ \ /home/foo\fP	<\ the Mode Line
+\fBJOVE\ (C OvWrt)\ \ \ [Main:1]\ \ "aloha.c"\ \ \-\-\ \ /home/foo\fP	<\ the Mode Line
 _	
 [Point pushed]	<\ the Message Line
 =	

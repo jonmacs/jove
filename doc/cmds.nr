@@ -1560,7 +1560,7 @@ self-inserting characters work.  Instead of inserting themselves and
 pushing the rest of the line over to the right, they replace or
 over-write the existing character.  Also, DEL replaces the character
 before point with a space instead of deleting it.  When Over Write
-mode is on \*QOvrWt\*U is displayed in the mode line.
+mode is on \*QOvWrt\*U is displayed in the mode line.
 .dc "page-next-window" "ESC\ ^V"
 This displays the next page in the next window.
 It switches to the next window, performs a

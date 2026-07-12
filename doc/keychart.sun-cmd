@@ -9,7 +9,7 @@ COMMAND WINDOW  WINDOW  Other   Current WINDOW  Buffer  Comment Para     ]
 
  L1      L2                                      R1      R2      R3
 (Toggle Toggle                                  Beg of  Left    Left
-OvrWt)  Fill-m                                  LINE    Paren   WORD
+OvWrt)  Fill-m                                  LINE    Paren   WORD
 
  L3      L4                                      R4      R5      R6       -
 Set     EXCH                                    End of  Right   Right   (Scroll

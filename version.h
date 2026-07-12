@@ -6,5 +6,5 @@
  **************************************************************************/
 
 /* NOTE: use only spaces, no TABS below to ensure "make .version" works */
-#define jversion "5.0.0.0" /* make .version uses sed to extract this */
-#define jversion_lnum 5,0,0,0   /* for windows jjove.rc file */
+#define jversion "5.0.0" /* make .version uses sed to extract this */
+#define jversion_lnum 5,0,0   /* for windows jjove.rc file */

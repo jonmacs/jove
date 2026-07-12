@@ -78,7 +78,7 @@ case $# in
 			    	/etc/yum.repos.d/CentOS-*.repo
 				;;
 		esac
-		$SUDO yum install -y make gcc ncurses-devel groff $ctags zip rpm-build
+		$SUDO yum install -y make gcc ncurses-devel groff-base $ctags zip rpm-build
 	elif type brew 2> /dev/null; then
 		brew install make ncurses ctags zip groff
 	elif type pacman 2> /dev/null; then
@@ -142,10 +142,8 @@ GNU|Linux)  t=-lncurses
         ;;
 esac
 
-# awful hack to turn off warnings for old-style K&R definitions in
-# newish versions of gcc/clang
-# TO-DO: remove this for jove 5.x when we move to c89-style prototypes
-skipwarn="-Wno-unknown-warning -Wno-unknown-warning-option -Wno-old-style-definition -Wno-strict-prototypes -Wno-deprecated-non-prototype -Wno-incompatible-pointer-types"
+# if we need to add any warnings to skip via -Wno-*
+skipwarn=
 case "$o" in
 -O)	w=
 	;;

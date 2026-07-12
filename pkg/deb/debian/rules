@@ -43,3 +43,8 @@ override_dh_auto_install:
 override_dh_clean:
 	dh_clean
 	debconf-updatepo
+
+override_dh_installdocs:
+	# Ensure the build user can write to the directory structure
+	chmod -R u+w debian/jove/
+	dh_installdocs
