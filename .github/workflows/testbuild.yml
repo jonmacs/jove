@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - main
+      - moraes/pr_dos_win
 jobs:
   for-hosted:
     strategy:
