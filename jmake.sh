@@ -36,7 +36,7 @@ case "$u" in
 	*x86_64*)	optflags="$optflags -Wno-long-long" # Win64 needs long long, and older gcc produce a C90 complaint;;
 	esac
 	extra="LOCALCC=$locc XEXT=.exe WINDRES=$u-windres EXTRAOBJS=win32.o ICON=jjove.coff"
-	ldlibs=-lcomdlg32
+	ldlibs="-static -static-libgcc -lcomdlg32 -lssp_nonshared"
 	;;
 *-linux-musl*) # presumably set via something like JMAKE_UNAME=i486-linux-musl
 	: ${JMAKE_RELATIVE=1}

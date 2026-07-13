@@ -5,10 +5,15 @@
 # this notice is included in all the source files and documentation.     #
 ##########################################################################
 
-[Updated in 2023 Nov]
+[Updated in 2026 Jul]
 
 JOVE on UNIX/Linux/MacOS X/*BSD/CygWin Systems
 ----------------------------------------------
+
+JOVE is Jonathan's Own Version of Emacs.  It is an interactive
+screen-oriented text editor that was meant to be compatible with EMACS,
+but is also very small, fast and efficient.  It is written in C, and
+designed for use by C programmers.
 
 Getting JOVE
 ------------
@@ -40,12 +45,16 @@ over and use
 Ensure you have the tools required to build Jove.  You need a C compiler
 (classic Unix cc, gcc or clang should work), the make utility, 
 and basic headers for libc, which may require extra packages on
-some Linux distributions.
+some Linux distributions.  groff is needed to format printed documentation,
+though pre-formatted versions are often included in pre-packaged distributions.
+ctags of some form is needed to generate tags file for Jove's find-tag commands.
+
     Debian, Ubuntu, Mint: apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends gcc make ncurses-dev pkg-config exuberant-ctags
+    Fedora, Red Hat and derivatives: yum install make gcc ncurses-devel groff-base ctags
     Alpine: apk update && apk add gcc make musl-dev ncurses-dev pkgconfig ctags
     MacOSX/Darwin: brew install make ncurses 
     Nix: nix-shell -p gnumake 
-    Arch: pacman -Sy gcc make # pkgconf ncurses
+    Arch: pacman -Sy gcc make pkgconf ncurses groff ctags
     Gentoo: # comes with gcc and make and headers by default!
 
 For many modern systems (Linux, various BSDs, MacOSX/Darwin,

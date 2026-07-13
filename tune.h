@@ -71,6 +71,6 @@
 # undef PTYPROCS	/* defined only if IPROCS is */
 #endif
 
-#ifndef MSDOS
+#ifndef DFLT_MODE
 # define DFLT_MODE	0666	/* file will be created with this mode */
 #endif

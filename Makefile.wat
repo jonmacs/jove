@@ -183,9 +183,6 @@ keys.c:	setmaps.exe keys.txt
 # Note: it may be necessary to manually copy the source file from
 # the distribution CDROM to the installation.  On the CDROM, the
 # file's path is \watcom\src\startup\wildargv.c.
-# Or you can get it from 
-# http://perforce.openwatcom.org:4000/@md=d&cd=//depot/openwatcom/bld/clib/startup/c/&c=WFs@//depot/openwatcom/bld/clib/startup/c/wildargv.c?ac=22
-# (e.g. version 3 seems to compile with OpenWatcom 1.9)
 # The latest versions at github need newer compilers than 1.9.0
 # https://github.com/open-watcom/open-watcom-v2/master/bld/clib/startup/c/wildargv.c
 # At least with some versions (fixed in the github version), wildargv.c does not accept tabs as
@@ -199,8 +196,8 @@ keys.c:	setmaps.exe keys.txt
 # to:
 #		    if( *p == ' ' || *p == '\t' ) break;
 
-#WILDSRC=$(%WATCOM)\src\startup\wildargv.c
-WILDSRC=wildargv.c
+WILDSRC=$(%WATCOM)\src\startup\wildargv.c
+
 wildargv.obj:	$(WILDSRC)
 	$(CC) $(CFLAGS) $(WILDSRC)
 

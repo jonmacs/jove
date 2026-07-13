@@ -17,6 +17,10 @@ BACKUPFILES	This enables backing up files on write.  I guess lots of
 
 CMT_FMT		This enables code to format and indent C comments.
 
+DFLT_MODE	Initial value for file-creation-mode, set to 0666
+		(since it will be modified by the user umask
+		setting, which is what really matters)
+
 F_COMPLETION	Enables filename completion.  This requires that your
 		system have reasonable directory scanning capabilities.
 		It's a really handy feature, so it's worth turning on.

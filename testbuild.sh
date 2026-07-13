@@ -62,6 +62,9 @@ case $# in
 		case "$TB_MACH" in
 		x86_64) $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y --force-yes mingw-w64;;
 		esac
+		case "$dist" in
+		DIST/Linux-x86_64-ubuntu-20.04-*) $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y --force-yes curl gnupg pbuilder;;
+		esac
 		# similar OPTFLAGS to what Cord uses for debian packaging
 		TB_OPTFLAGS="-g -O2 -fstack-protector-strong -Wformat -Werror=format-security -Wdate-time -D_FORTIFY_SOURCE=2"
 	elif type apk 2> /dev/null; then

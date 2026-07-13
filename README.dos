@@ -15,21 +15,23 @@ allows you to easily understand and modify JOVE.  The executable
 version allows you to easily install JOVE without using a C compiler.
 Neither requires the other.
 
-Each distribution may be in the form of a .zip archive (smaller) or
-a .sfx archive (self-extracting executable zip, larger, may be disallowed
-by various security tools, though that may also be true for .zip). You can
-create a suitable archive (source on Un*x, executable on DOS/Windows) using
-	make zip
-if you have a zip command installed.  If you use pkunzip to unpack,
+Each distribution may be in the form of a .zip archive, so you will need
+a command like unzip, pkunzip, 7-zip or other un-archiver that supports
+the zip format.  Note that some firewalls or endpoint protection software
+may not allow downloads of .zip files. If you use pkunzip to unpack,
 be sure to use the -d flag to get it to correctly place files
-in subdirectories.  If you need/prefer to use 7-zip, something like
+in subdirectories. 
+
+A source archive in .zip form can be generated on Posix using
+	make zip
+if you have a zip command installed. If you use 7-zip, something like
 	make ZIP=7z ZIPOPTS=a zip ZIPEXT=7z
 should work (though 7z does not make filenames DOS-friendly 8.3,
 probably does not matter for modern Windows machines)
 
 The source distribution for MSDOS (and WIN32 -- Windows/95 or later)
 is an archive called joveNNNs.zip, where NNN is a version
-number (for example, jove417s.zip for 4.17).  The source archive
+number (for example, jove500s.zip for 5.0).  The source archive
 contains all the source files needed to compile JOVE on an MSDOS or
 WIN32 machine.  It differs in three ways from the generic JOVE source
 distribution.  First, it is distributed in a conventional MSDOS
@@ -38,8 +40,7 @@ because they are of no use under MSDOS (for example, the X Window
 System support) and may not fit the 8.3 naming straitjacket.  Third, a
 few files are pre-built on UNIX and included because the tools to
 build them are not generally available under MSDOS (for example, the
-formatted documentation).  The source distribution for MSDOS can be
-built from the generic distribution on UNIX with the command "make zip".
+formatted documentation).
 
 The executable distribution for MSDOS on the IBM PC is an archive called
 joveNNNd.zip where NNN is a version number (e.g. 417 for 4.17).  The
