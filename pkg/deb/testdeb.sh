@@ -10,10 +10,16 @@ set -eux
 case "$#" in
 1) tar="$1";;
 2) tar="$1"; TARGET_ARCH="$2";;
-*) echo "Usage: $0 TARBALL [TARGET_ARCH] where TARBALL can be https://github.com/jonmacs/jove/archive/refs/tags/VERSION.tar.gz or .../jove-VERSION.tgz" >&2; exit 1;;
+*) echo "Usage: $0 TARBALL [TARGET_ARCH] where TARBALL can be https://github.com/jonmacs/jove/archive/refs/tags/VERSION.tar.gz or .../jove-VERSION.tgz and TARGET_ARCH is one of amd64, i386, arm64 or armhf (default is host arch)" >&2; exit 1;;
 esac
 
 : ${TARGET_ARCH="$(dpkg --print-architecture)"}
+case "$TARGET_ARCH" in
+amd64|i386) urlsub=archive;;
+arm64|armhf) urlsub=ports;;
+*) echo "$0: unknown TARGET_ARCH \"$TARGET_ARCH\"" >&2; exit 1;;
+esac
+
 
 # fragile regexp for ver
 tar=$(realpath -e "$tar")
@@ -71,25 +77,25 @@ esac
 
 cd "$odir"
 echo "==> Setting up an isolated APT sandbox directory"
-mkdir -p pkg/debian/apt-cache-lists/partial pkg/debian/apt-cache-files/archives/partial
+mkdir -p pkg/debian/apt-cache-lists/partial pkg/debian/apt-cache-files/archives/partial pkg/debian/apt-logs
+
 cat << EOF > "$odir/pkg/debian/apt-sandbox.conf"
 Dir::Etc::SourceList "$odir/pkg/debian/sandbox_sources.list";
 Dir::Etc::SourceParts "/dev/null";
 Dir::State::Lists "$odir/pkg/debian/apt-cache-lists/";
 Dir::Cache "$odir/pkg/debian/apt-cache-files/";
+Dir::Log "$odir/pkg/debian/apt-logs/";
 APT::Sandbox::User "root";
 EOF
 
 # 2. Write out a custom multi-architecture source list matching your target mirror requirements.
 # This explicitly allows amd64, i386, arm64, and armhf to coexist cleanly.
-cat << EOF > "$odir/pkg/debian/sandbox_sources.list"
-deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu $UBUNAME main universe restricted multiverse
-deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu $UBUNAME-updates main universe restricted multiverse
-deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu $UBUNAME-security main universe restricted multiverse
 
-deb [arch=arm64,armhf] http://ports.ubuntu.com $UBUNAME main universe restricted multiverse
-deb [arch=arm64,armhf] http://ports.ubuntu.com $UBUNAME-updates main universe restricted multiverse
-deb [arch=arm64,armhf] http://ports.ubuntu.com $UBUNAME-security main universe restricted multiverse
+cat << EOF > "$odir/pkg/debian/sandbox_sources.list"
+deb [arch=${TARGET_ARCH}] http://$urlsub.ubuntu.com/ubuntu $UBUNAME main universe restricted multiverse
+deb [arch=${TARGET_ARCH}] http://$urlsub.ubuntu.com/ubuntu $UBUNAME-updates main universe restricted multiverse
+deb [arch=${TARGET_ARCH}] http://$urlsub.ubuntu.com/ubuntu $UBUNAME-security main universe restricted multiverse
+deb-src [arch=${TARGET_ARCH}] http://$urlsub.ubuntu.com/ubuntu $UBUNAME main universe restricted multiverse
 EOF
 
 export APT_CONFIG="$odir/pkg/debian/apt-sandbox.conf"
@@ -147,18 +153,22 @@ if [ "${TARGET_ARCH}" != "${HOST_ARCH}" ]; then
         $SUDO apt-get install -y gcc-arm-linux-gnueabihf
     fi
     
-    echo "==> Installing cross-build dependencies"
-    # mk-build-deps creates a dummy package satisfying debian/control dependencies for the target architecture
-    $SUDO mk-build-deps -a "${TARGET_ARCH}" -i -r -t "apt-get -y --no-install-recommends" debian/control
-    
-    echo "==> Building cross-compiled Debian package"
-    # -a specifies target architecture, -Pcross,nocheck bypasses running tests meant for the wrong CPU
+fi
+
+echo "==> Generating local build-deps package meta-structure"
+mk-build-deps -a "${TARGET_ARCH}" "$odir"/pkg/deb/debian/control
+
+# Grab the freshly created file name dynamically
+DEPS_PKG=$(ls jove-build-deps_*.deb 2>/dev/null || ls *-build-deps_*.deb)
+
+echo "==> Installing package dependencies via local sandbox path..."
+# Let standard APT parse and fulfill the dependencies tracked inside the .deb archive
+$SUDO apt-get install -y --no-install-recommends "./${DEPS_PKG}"
+
+echo "==> Compiling"
+if [ "${TARGET_ARCH}" != "${HOST_ARCH}" ]; then
     dpkg-buildpackage -a"${TARGET_ARCH}" -Pcross,nocheck -b -us -uc
 else
-    echo "==> Installing native build dependencies"
-    $SUDO mk-build-deps -i -r -t "apt-get -y --no-install-recommends" debian/control
-    
-    echo "==> Building native Debian package"
     dpkg-buildpackage -b -us -uc
 fi
 
