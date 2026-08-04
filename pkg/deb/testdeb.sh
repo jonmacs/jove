@@ -47,7 +47,7 @@ if ! grep -s ${ver} "$sdir"/debian/changelog; then
 
 		 -- $DEBJOVEDEV  $(date +'%a, %d %b %Y %H:%M:%S %z')
 		EOF
-	rm debian/changelog && mv debian/changelog.new debian/changelog
+	rm "$sdir"/debian/changelog && mv "$sdir"/debian/changelog.new "$sdir"/debian/changelog
 fi
 
 odir=$(mktemp -d)
@@ -61,6 +61,8 @@ echo "==> UID=$ouid SUDO=\"$SUDO\" ODIR=\"$odir\""
 tar -C "$odir" -xvf "$sdir"/gpg-testhome.tar
 GNUPGHOME="$odir/gpg"
 export GNUPGHOME
+
+cp -pr "$sdir"/debian "$odir"
 
 ofile="$odir/jove_${ver}.orig.tar.gz"
 case "$tar" in
@@ -77,28 +79,28 @@ esac
 
 cd "$odir"
 echo "==> Setting up an isolated APT sandbox directory"
-mkdir -p pkg/debian/apt-cache-lists/partial pkg/debian/apt-cache-files/archives/partial pkg/debian/apt-logs
+mkdir -p var/apt-cache-lists/partial var/apt-cache-files/archives/partial var/apt-logs
 
-cat << EOF > "$odir/pkg/debian/apt-sandbox.conf"
-Dir::Etc::SourceList "$odir/pkg/debian/sandbox_sources.list";
+cat << EOF > "$odir/var/apt-sandbox.conf"
+Dir::Etc::SourceList "$odir/var/sandbox_sources.list";
 Dir::Etc::SourceParts "/dev/null";
-Dir::State::Lists "$odir/pkg/debian/apt-cache-lists/";
-Dir::Cache "$odir/pkg/debian/apt-cache-files/";
-Dir::Log "$odir/pkg/debian/apt-logs/";
+Dir::State::Lists "$odir/var/apt-cache-lists/";
+Dir::Cache "$odir/var/apt-cache-files/";
+Dir::Log "$odir/var/apt-logs/";
 APT::Sandbox::User "root";
 EOF
 
 # 2. Write out a custom multi-architecture source list matching your target mirror requirements.
 # This explicitly allows amd64, i386, arm64, and armhf to coexist cleanly.
 
-cat << EOF > "$odir/pkg/debian/sandbox_sources.list"
+cat << EOF > "$odir/var/sandbox_sources.list"
 deb [arch=${TARGET_ARCH}] http://$urlsub.ubuntu.com/ubuntu $UBUNAME main universe restricted multiverse
 deb [arch=${TARGET_ARCH}] http://$urlsub.ubuntu.com/ubuntu $UBUNAME-updates main universe restricted multiverse
 deb [arch=${TARGET_ARCH}] http://$urlsub.ubuntu.com/ubuntu $UBUNAME-security main universe restricted multiverse
 deb-src [arch=${TARGET_ARCH}] http://$urlsub.ubuntu.com/ubuntu $UBUNAME main universe restricted multiverse
 EOF
 
-export APT_CONFIG="$odir/pkg/debian/apt-sandbox.conf"
+export APT_CONFIG="$odir/var/apt-sandbox.conf"
 
 # generate dsc file and sign with gpg
 (
@@ -130,7 +132,7 @@ Checksums-Sha1: sha1sum
 Checksums-Sha256: sha256sum
 Files: md5sum
 EOF
-) | gpg --no-random-seed-file --clearsign > "$odir/jove_${ver}-1.dsc"
+) | gpg --no-random-seed-file --clearsign > "$odir/debian/jove_${ver}-1.dsc"
 
 
 echo "==> Configuring environment for target architecture: ${TARGET_ARCH}"
@@ -156,7 +158,7 @@ if [ "${TARGET_ARCH}" != "${HOST_ARCH}" ]; then
 fi
 
 echo "==> Generating local build-deps package meta-structure"
-mk-build-deps -a "${TARGET_ARCH}" "$odir"/pkg/deb/debian/control
+mk-build-deps -a "${TARGET_ARCH}" ./debian/control
 
 # Grab the freshly created file name dynamically
 DEPS_PKG=$(ls jove-build-deps_*.deb 2>/dev/null || ls *-build-deps_*.deb)
