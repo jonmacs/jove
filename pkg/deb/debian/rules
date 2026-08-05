@@ -38,6 +38,7 @@ override_dh_auto_install:
 		JMANDIR=/usr/share/man/man1 \
 		LOCALCC=$(CC_FOR_BUILD) \
 		CC=$(CC)
+	mkdir -p debian/jove/etc/jove
 	cp debian/jove.rc debian/jove/etc/jove/jove.rc
 
 override_dh_clean:

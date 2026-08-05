@@ -15,8 +15,8 @@ esac
 
 : ${TARGET_ARCH="$(dpkg --print-architecture)"}
 case "$TARGET_ARCH" in
-amd64|i386) urlsub=archive;;
-arm64|armhf) urlsub=ports;;
+amd64|i386) urlsub=archive; urlbase="/ubuntu";;
+arm64|armhf) urlsub=ports; urlbase="";;
 *) echo "$0: unknown TARGET_ARCH \"$TARGET_ARCH\"" >&2; exit 1;;
 esac
 
@@ -37,17 +37,16 @@ if test ! -r "$sdir"/debian/changelog; then
 	exit 1
 fi
 
-# one thing we write into srcdir, which means there is a race condition
-# if more than one simultaneous incantation of this script runs in same tree
 if ! grep -s ${ver} "$sdir"/debian/changelog; then
-	echo "==> Updating $sdir/debian/changelog"
-	cat - "$sdir"/debian/changelog <<- EOF > "$sdir"/debian/changelog.new
+        (echo "$0: prepend something like this to $sdir/debian/changelog and 'make tgz' and re-run";
+	cat <<- EOF
 		jove (${ver}-1) unstable; urgency=low
 		  * New upstream release.
 
 		 -- $DEBJOVEDEV  $(date +'%a, %d %b %Y %H:%M:%S %z')
 		EOF
-	rm "$sdir"/debian/changelog && mv "$sdir"/debian/changelog.new "$sdir"/debian/changelog
+	) >&2
+	exit 1
 fi
 
 odir=$(mktemp -d)
@@ -62,8 +61,6 @@ tar -C "$odir" -xvf "$sdir"/gpg-testhome.tar
 GNUPGHOME="$odir/gpg"
 export GNUPGHOME
 
-cp -pr "$sdir"/debian "$odir"
-
 ofile="$odir/jove_${ver}.orig.tar.gz"
 case "$tar" in
 http:*|https:*|ftp:*)
@@ -76,8 +73,11 @@ http:*|https:*|ftp:*)
 	cp -av "$tar" "$ofile"
 	;;
 esac
+tar -C "$odir" -xf "$tar"
 
 cd "$odir"
+mv jove-${ver}/pkg/deb/debian jove-${ver}
+
 echo "==> Setting up an isolated APT sandbox directory"
 mkdir -p var/apt-cache-lists/partial var/apt-cache-files/archives/partial var/apt-logs
 
@@ -94,10 +94,10 @@ EOF
 # This explicitly allows amd64, i386, arm64, and armhf to coexist cleanly.
 
 cat << EOF > "$odir/var/sandbox_sources.list"
-deb [arch=${TARGET_ARCH}] http://$urlsub.ubuntu.com/ubuntu $UBUNAME main universe restricted multiverse
-deb [arch=${TARGET_ARCH}] http://$urlsub.ubuntu.com/ubuntu $UBUNAME-updates main universe restricted multiverse
-deb [arch=${TARGET_ARCH}] http://$urlsub.ubuntu.com/ubuntu $UBUNAME-security main universe restricted multiverse
-deb-src [arch=${TARGET_ARCH}] http://$urlsub.ubuntu.com/ubuntu $UBUNAME main universe restricted multiverse
+deb [arch=${TARGET_ARCH}] http://$urlsub.ubuntu.com$urlbase $UBUNAME main universe restricted multiverse
+deb [arch=${TARGET_ARCH}] http://$urlsub.ubuntu.com$urlbase $UBUNAME-updates main universe restricted multiverse
+deb [arch=${TARGET_ARCH}] http://$urlsub.ubuntu.com$urlbase $UBUNAME-security main universe restricted multiverse
+deb-src [arch=${TARGET_ARCH}] http://$urlsub.ubuntu.com$urlbase $UBUNAME main universe restricted multiverse
 EOF
 
 export APT_CONFIG="$odir/var/apt-sandbox.conf"
@@ -132,7 +132,7 @@ Checksums-Sha1: sha1sum
 Checksums-Sha256: sha256sum
 Files: md5sum
 EOF
-) | gpg --no-random-seed-file --clearsign > "$odir/debian/jove_${ver}-1.dsc"
+) | gpg --no-random-seed-file --clearsign > "$odir/jove-${ver}/debian/jove_${ver}-1.dsc"
 
 
 echo "==> Configuring environment for target architecture: ${TARGET_ARCH}"
@@ -158,7 +158,7 @@ if [ "${TARGET_ARCH}" != "${HOST_ARCH}" ]; then
 fi
 
 echo "==> Generating local build-deps package meta-structure"
-mk-build-deps -a "${TARGET_ARCH}" ./debian/control
+mk-build-deps -a "${TARGET_ARCH}" jove-${ver}/debian/control
 
 # Grab the freshly created file name dynamically
 DEPS_PKG=$(ls jove-build-deps_*.deb 2>/dev/null || ls *-build-deps_*.deb)
@@ -167,6 +167,7 @@ echo "==> Installing package dependencies via local sandbox path..."
 # Let standard APT parse and fulfill the dependencies tracked inside the .deb archive
 $SUDO apt-get install -y --no-install-recommends "./${DEPS_PKG}"
 
+cd jove-${ver}
 echo "==> Compiling"
 if [ "${TARGET_ARCH}" != "${HOST_ARCH}" ]; then
     dpkg-buildpackage -a"${TARGET_ARCH}" -Pcross,nocheck -b -us -uc
@@ -175,8 +176,10 @@ else
 fi
 
 echo "==> Organizing build artifacts"
-mkdir -p "$sdir/DIST/${TARGET_ARCH}"
-mv ../*.deb ../*.changes ../*.buildinfo "$sdir/DIST/${TARGET_ARCH}/"
+: ${DISTDIR="$sdir/../../DIST"}
+mkdir -p "$DISTDIR/${TARGET_ARCH}"
+mv ../*.deb ../*.changes ../*.buildinfo "$DISTDIR/${TARGET_ARCH}/"
+cd "$sdir"
 rm -rf "$odir"
 
 echo "==> Build complete for ${TARGET_ARCH}"
