@@ -2,7 +2,7 @@
 # Mark Moraes, 20260804
 
 # Target architecture passed from the GitHub workflow (defaults to host arch)
-HOST_ARCH="$(dpkg --print-architecture)"
+BUILD_ARCH="$(dpkg --print-architecture)"
 UBUNAME=noble
 
 set -eux
@@ -113,7 +113,7 @@ Version: ${ver}-1
 Maintainer: Cord Beermann <cord@debian.org>
 Homepage: https://github.com/jonmacs/jove
 Standards-Version: 4.6.1
-Build-Depends: debhelper, po-debconf, libncurses-dev, groff, pkgconf
+Build-Depends: debhelper, po-debconf, libncurses-dev:any, groff, pkgconf
 Package-List:
  jove deb editors optional arch=any
 EOF
@@ -141,7 +141,7 @@ $SUDO apt-get update
 # Install general Debian packaging toolchains
 $SUDO apt-get install -y devscripts equivs build-essential
 
-if [ "${TARGET_ARCH}" != "${HOST_ARCH}" ]; then
+if [ "${TARGET_ARCH}" != "${BUILD_ARCH}" ]; then
     echo "==> Enabling multiarch and cross-compiler for ${TARGET_ARCH}"
     $SUDO dpkg --add-architecture "${TARGET_ARCH}"
     $SUDO apt-get update
@@ -169,11 +169,7 @@ $SUDO apt-get install -y --no-install-recommends "./${DEPS_PKG}"
 
 cd jove-${ver}
 echo "==> Compiling"
-if [ "${TARGET_ARCH}" != "${HOST_ARCH}" ]; then
-    dpkg-buildpackage -a"${TARGET_ARCH}" -Pcross,nocheck -b -us -uc
-else
-    dpkg-buildpackage -b -us -uc
-fi
+dpkg-buildpackage -a"${TARGET_ARCH}" -b -us -uc
 
 echo "==> Organizing build artifacts"
 : ${DISTDIR="$sdir/../../DIST"}
