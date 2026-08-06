@@ -2,7 +2,7 @@ Source: jove
 Section: editors
 Priority: optional
 Maintainer: Cord Beermann <cord@debian.org>
-Build-Depends: debhelper, po-debconf, libncurses-dev:any, groff, pkgconf
+Build-Depends: debhelper, po-debconf, libncurses-dev:any, groff, pkgconf:native
 Standards-Version: 4.6.1
 Homepage: https://github.com/jonmacs/jove
 Rules-Requires-Root: no

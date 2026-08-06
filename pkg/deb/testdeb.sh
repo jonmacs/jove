@@ -1,48 +1,29 @@
 #!/bin/sh
 # Mark Moraes, 20260804
 
-# Target architecture passed from the GitHub workflow (defaults to host arch)
 BUILD_ARCH="$(dpkg --print-architecture)"
+TARGET_ARCH="$BUILD_ARCH"
 UBUNAME=noble
 
 set -eux
 
-case "$#" in
+case $# in
+0) tar="-";;
 1) tar="$1";;
 2) tar="$1"; TARGET_ARCH="$2";;
-*) echo "Usage: $0 TARBALL [TARGET_ARCH] where TARBALL can be https://github.com/jonmacs/jove/archive/refs/tags/VERSION.tar.gz or .../jove-VERSION.tgz and TARGET_ARCH is one of amd64, i386, arm64 or armhf (default is host arch)" >&2; exit 1;;
+*) echo "Usage: $0 [TARBALL [TARGET_ARCH]] where TARBALL can be https://github.com/jonmacs/jove/archive/refs/tags/VERSION.tar.gz or .../jove-VERSION.tgz and TARGET_ARCH is one of amd64, i386, arm64 or armhf (default is host arch)" >&2; exit 1;;
 esac
 
-: ${TARGET_ARCH="$(dpkg --print-architecture)"}
-
-# fragile regexp for ver
-tar=$(realpath -e "$tar")
-ver=$(expr "$tar" : ".*/.*[-/]\([0-9.]*\)\..*gz")
-case "$ver" in
-[0-9]*)	echo "$0: version $ver tarball $tar";;
-*)	echo "$0: failure to extract version from tarball name" >&2
-	exit 1
-	;;
-esac
-
-sdir="$(realpath -e $(dirname $0))"
+sdir=$(realpath -e $(dirname $0))
 if test ! -r "$sdir"/debian/changelog; then
 	echo "$0: could not find $sdir/debian/changelog" >&2
 	exit 1
 fi
-
-if ! grep -s ${ver} "$sdir"/debian/changelog; then
-        (echo "$0: prepend something like this to $sdir/debian/changelog and 'make tgz' and re-run";
-	cat <<- EOF
-		jove (${ver}-1) unstable; urgency=low
-		  * New upstream release.
-
-		 -- $DEBJOVEDEV  $(date +'%a, %d %b %Y %H:%M:%S %z')
-		EOF
-	) >&2
+jdir=$(realpath -e "$sdir/../..")
+if test ! -r "$jdir"/Makefile; then
+	echo "$0: could not find $jdir/Makefile" >&2
 	exit 1
 fi
-
 odir=$(mktemp -d)
 : ${SUDO="sudo"}
 ouid=$(stat --format=%u $odir)
@@ -55,44 +36,77 @@ echo "==> Configuring environment for target architecture: ${TARGET_ARCH}"
 $SUDO apt-get update
 
 # Install general Debian packaging toolchains
-$SUDO apt-get install -y gpg groff tar devscripts equivs build-essential debhelper fakeroot
+$SUDO apt-get install -y gpg groff tar curl devscripts equivs build-essential debhelper fakeroot
 
-tar -C "$odir" -xvf "$sdir"/gpg-testhome.tar
-GNUPGHOME="$odir/gpg"
-export GNUPGHOME
-
-ofile="$odir/jove_${ver}.orig.tar.gz"
+# fragile regexp for ver
 case "$tar" in
-http:*|https:*|ftp:*)
-	wget -O "$ofile" "$tar"
-	;;
-*)	if test ! -r "$tar"; then
-		echo "$0: tarball $tar does not exist" >&2
-		exit 1;
+-)	(cd "$jdir" && make .version)
+	verfile="$jdir"/.version
+	if test ! -r "$verfile"; then
+		echo "$0: could not find $verfile" >&2
+		exit 1
 	fi
-	cp -av "$tar" "$ofile"
+	read ver < "$verfile"
+	ofile="$odir/jove_${ver}.orig.tar.gz"
+	(cd "$jdir" && JOVETAR="$ofile" make tgz)
+	if test ! -r "$ofile"; then
+		echo "$0: could not find $ofile ; maybe make tgz in $jdir failed" >&2
+		exit 1
+	fi
 	;;
+*)	ver=$(expr "$tar" : ".*/.*[-/]\([0-9.]*\)\..*gz")
+	case "$ver" in
+	[0-9]*)	echo "$0: version $ver tarball $tar";;
+	*)	echo "$0: failure to extract version from tarball name" >&2
+		exit 1
+		;;
+	esac
+	ofile="$odir/jove_${ver}.orig.tar.gz"
+	case "$tar" in
+	http:*|https:*|ftp:*)
+		curl -s -S -f -o "$ofile" "$tar"
+		;;
+	*)	tar=$(realpath -e "$tar")
+		if test ! -r "$tar"; then
+			echo "$0: tarball $tar does not exist" >&2
+			exit 1;
+		fi
+		cp "$tar" "$ofile"
+		;;
+	esac
 esac
-tar -C "$odir" -xf "$tar"
 
 cd "$odir"
-mv jove-${ver}/pkg/deb/debian jove-${ver}
+tar -xf "$ofile"
+mv jove-"${ver}"/pkg/deb/debian jove-"${ver}"/
+
+if ! grep -s "${ver}" jove-"${ver}"/debian/changelog; then
+        (echo "$0: prepend something like this to debian/changelog and 'make tgz' and re-run";
+	cat <<- EOF
+		jove (${ver}-1) unstable; urgency=low
+		  * New upstream release.
+
+		 -- $DEBJOVEDEV  $(date +'%a, %d %b %Y %H:%M:%S %z')
+		EOF
+	) >&2
+	exit 1
+fi
+
+tar -xvf jove-"${ver}"/pkg/deb/gpg-testhome.tar
+GNUPGHOME="$odir/gpg"
+export GNUPGHOME
 
 # generate dsc file and sign with gpg
 (
 cat << EOF
 Format: 3.0 (quilt)
-Source: jove
 Binary: jove
-Architecture: any
 Version: ${ver}-1
-Maintainer: Cord Beermann <cord@debian.org>
-Homepage: https://github.com/jonmacs/jove
-Standards-Version: 4.6.1
-Build-Depends: debhelper, po-debconf, libncurses-dev:any, groff, pkgconf
 Package-List:
  jove deb editors optional arch=any
 EOF
+
+egrep '^(Source|Architecture|Build-Depends|Standards-Version|Homepage|Maintainer):' "$sdir/debian/control"
 
 # generate checksums for dsc file
 while read hdr cmd; do
@@ -108,23 +122,15 @@ Checksums-Sha1: sha1sum
 Checksums-Sha256: sha256sum
 Files: md5sum
 EOF
-) | gpg --no-random-seed-file --clearsign > "$odir/jove-${ver}/debian/jove_${ver}-1.dsc"
+) | gpg --no-random-seed-file --clearsign > "jove-${ver}/debian/jove_${ver}-1.dsc"
 
 
-tag=
 if [ "${TARGET_ARCH}" != "${BUILD_ARCH}" ]; then
     echo "==> Fetching cross-compiler for ${TARGET_ARCH}"
     
-    if [ "${TARGET_ARCH}" = "i386" ]; then
-        tag=i686-linux-gnu-
-    elif [ "${TARGET_ARCH}" = "arm64" ]; then
-        tag=aarch64-linux-gnu-
-    elif [ "${TARGET_ARCH}" = "armhf" ]; then
-        tag=arm-linux-gnueabihf-
-    fi
     $SUDO apt-get install -y crossbuild-essential-${TARGET_ARCH}
     echo "==> Generating cross build-deps package meta-structure"
-    mk-build-deps -a "${TARGET_ARCH}" jove-${ver}/debian/control
+    mk-build-deps --host-arch="${TARGET_ARCH}" jove-${ver}/debian/control
 else
     sed -i 's/:any//g' jove-${ver}/debian/control
     mk-build-deps jove-${ver}/debian/control
@@ -142,10 +148,10 @@ echo "==> Compiling"
 dpkg-buildpackage -a"${TARGET_ARCH}" -b -us -uc
 
 echo "==> Organizing build artifacts"
-: ${DISTDIR="$sdir/../../DIST"}
+: ${DISTDIR="$jdir/DIST"}
 mkdir -p "$DISTDIR/${TARGET_ARCH}"
 mv ../*.deb ../*.changes ../*.buildinfo "$DISTDIR/${TARGET_ARCH}/"
-cd "$sdir"
+cd "$jdir"
 rm -rf "$odir"
 
 echo "==> Build complete for ${TARGET_ARCH}"

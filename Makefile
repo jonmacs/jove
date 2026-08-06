@@ -560,12 +560,13 @@ extags:	$(C_SRC) $(HEADERS)
 tgz:	.version .filelist Makefile jove.spec
 	set -u ; set -e ; \
 	BN=jove-`cat .version` ; \
-	rm -rf $$BN $$BN.tgz* ; \
+	: $${JOVETAR=$$BN.tgz} ; \
+	rm -rf $$BN $$JOVETAR ; \
 	mkdir $$BN ; \
 	$(TAR) cf - jove.spec `cat .filelist` | ( cd $$BN ; $(TAR) xf - ) ; \
-	$(TAR) czf $$BN.tgz $$BN ; \
+	$(TAR) czf $$JOVETAR $$BN ; \
 	rm -rf $$BN ; \
-	ls -l $$BN.tgz
+	ls -l $$JOVETAR
 
 distrib: tgz zip
 
