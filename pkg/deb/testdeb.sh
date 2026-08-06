@@ -2,7 +2,7 @@
 # Mark Moraes, 20260804
 
 BUILD_ARCH="$(dpkg --print-architecture)"
-UBUNAME=noble
+: ${UBUNAME=noble}
 
 set -eux
 
@@ -37,7 +37,7 @@ echo "==> Configuring environment for target architecture: ${TARGET_ARCH}"
 $SUDO apt-get update
 
 # Install general Debian packaging toolchains
-$SUDO apt-get install -y gpg groff tar curl devscripts equivs build-essential debhelper fakeroot
+$SUDO apt-get install -y gpg groff curl devscripts equivs build-essential debhelper fakeroot
 
 # fragile regexp for ver
 case "$tar" in
@@ -131,6 +131,35 @@ if [ "${TARGET_ARCH}" != "${BUILD_ARCH}" ]; then
 	echo "==> Fetching cross-compiler for ${TARGET_ARCH}"
 	$SUDO apt-get install -y crossbuild-essential-${TARGET_ARCH}
 	echo "==> Generating cross build-deps package meta-structure"
+	case "$TARGET_ARCH" in
+	i386|x86_64) ;;
+	*)      # Ugh. Ubuntu (24.04 at least) container does not have ports in
+		# apt sources.list and does not specify Architectures, fix that.
+		aptdir=/etc/apt/sources.list.d/
+		origfile=$aptdir/ubuntu.sources
+		newfile=$aptdir/ubuntu-ports.sources
+		if test ! -r "$newfile"; then
+			awk '
+			BEGIN { RS=""; ORS="\n\n" }
+			{
+				if ($0 ~ /(^|\n)Types: deb(\n|$)/ && $0 !~ /(^|\n)Architectures:/)
+					$0 = $0 "\nArchitectures: amd64 i386"
+				print
+			}' "$origfile" > "$odir"/$$
+			cat <<- EOF >> "$odir"/$$
+			# Added by $0
+			Types: deb
+			URIs: http://ports.ubuntu.com/ubuntu-ports
+			Suites: $UBUNAME $UBUNAME-updates $UBUNAME-backports $UBUNAME-security
+			Components: main universe restricted multiverse
+			Architectures: arm64 armhf ppc64 riscv64 s390x
+			Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+			EOF
+			# might briefly be two files but better than no files if we rm first
+			mv "$odir"/$$ "$newfile" && rm "$origfile"
+		fi
+		;;
+	esac
 	$SUDO dpkg --add-architecture ${TARGET_ARCH}
 	$SUDO apt-get update
 	mk-build-deps --host-arch="${TARGET_ARCH}" jove-"$ver"/debian/control
