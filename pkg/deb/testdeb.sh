@@ -2,16 +2,17 @@
 # Mark Moraes, 20260804
 
 BUILD_ARCH="$(dpkg --print-architecture)"
-TARGET_ARCH="$BUILD_ARCH"
 UBUNAME=noble
 
 set -eux
 
+TARGET_ARCH="$BUILD_ARCH"
+tar="-"
 case $# in
-0) tar="-";;
-1) tar="$1";;
-2) tar="$1"; TARGET_ARCH="$2";;
-*) echo "Usage: $0 [TARBALL [TARGET_ARCH]] where TARBALL can be https://github.com/jonmacs/jove/archive/refs/tags/VERSION.tar.gz or .../jove-VERSION.tgz and TARGET_ARCH is one of amd64, i386, arm64 or armhf (default is host arch)" >&2; exit 1;;
+0) ;;
+1) TARGET_ARCH="$1";;
+2) TARGET_ARCH="$1"; tar="$2";;
+*) echo "Usage: $0 [TARGET_ARCH [TARBALL]] where TARBALL can be https://github.com/jonmacs/jove/archive/refs/tags/VERSION.tar.gz or .../jove-VERSION.tgz and TARGET_ARCH is one of amd64, i386, arm64 or armhf (default is host arch)" >&2; exit 1;;
 esac
 
 sdir=$(realpath -e $(dirname $0))
@@ -78,9 +79,9 @@ esac
 
 cd "$odir"
 tar -xf "$ofile"
-mv jove-"${ver}"/pkg/deb/debian jove-"${ver}"/
+mv jove-"$ver"/pkg/deb/debian jove-"$ver"/
 
-if ! grep -s "${ver}" jove-"${ver}"/debian/changelog; then
+if ! grep -s "$ver" jove-"$ver"/debian/changelog; then
         (echo "$0: prepend something like this to debian/changelog and 'make tgz' and re-run";
 	cat <<- EOF
 		jove (${ver}-1) unstable; urgency=low
@@ -92,7 +93,7 @@ if ! grep -s "${ver}" jove-"${ver}"/debian/changelog; then
 	exit 1
 fi
 
-tar -xvf jove-"${ver}"/pkg/deb/gpg-testhome.tar
+tar -xvf jove-"$ver"/pkg/deb/gpg-testhome.tar
 GNUPGHOME="$odir/gpg"
 export GNUPGHOME
 
@@ -106,7 +107,8 @@ Package-List:
  jove deb editors optional arch=any
 EOF
 
-egrep '^(Source|Architecture|Build-Depends|Standards-Version|Homepage|Maintainer):' "$sdir/debian/control"
+sed -i "s/:any/:${TARGET_ARCH}/g" jove-"$ver"/debian/control
+egrep '^(Source|Architecture|Build-Depends|Standards-Version|Homepage|Maintainer):' jove-"$ver"/debian/control
 
 # generate checksums for dsc file
 while read hdr cmd; do
@@ -126,14 +128,14 @@ EOF
 
 
 if [ "${TARGET_ARCH}" != "${BUILD_ARCH}" ]; then
-    echo "==> Fetching cross-compiler for ${TARGET_ARCH}"
-    
-    $SUDO apt-get install -y crossbuild-essential-${TARGET_ARCH}
-    echo "==> Generating cross build-deps package meta-structure"
-    mk-build-deps --host-arch="${TARGET_ARCH}" jove-${ver}/debian/control
+	echo "==> Fetching cross-compiler for ${TARGET_ARCH}"
+	$SUDO apt-get install -y crossbuild-essential-${TARGET_ARCH}
+	echo "==> Generating cross build-deps package meta-structure"
+	$SUDO dpkg --add-architecture ${TARGET_ARCH}
+	$SUDO apt-get update
+	mk-build-deps --host-arch="${TARGET_ARCH}" jove-"$ver"/debian/control
 else
-    sed -i 's/:any//g' jove-${ver}/debian/control
-    mk-build-deps jove-${ver}/debian/control
+	mk-build-deps jove-"$ver"/debian/control
 fi
 
 # Grab the freshly created file name dynamically
@@ -143,7 +145,7 @@ echo "==> Installing package dependencies"
 # Let standard APT parse and fulfill the dependencies tracked inside the .deb archive
 $SUDO apt-get install -y --no-install-recommends "./${DEPS_PKG}"
 
-cd jove-${ver}
+cd jove-"$ver"
 echo "==> Compiling"
 dpkg-buildpackage -a"${TARGET_ARCH}" -b -us -uc
 
