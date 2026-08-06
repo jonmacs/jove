@@ -14,12 +14,6 @@ case "$#" in
 esac
 
 : ${TARGET_ARCH="$(dpkg --print-architecture)"}
-case "$TARGET_ARCH" in
-amd64|i386) urlsub=archive; urlbase="/ubuntu";;
-arm64|armhf) urlsub=ports; urlbase="";;
-*) echo "$0: unknown TARGET_ARCH \"$TARGET_ARCH\"" >&2; exit 1;;
-esac
-
 
 # fragile regexp for ver
 tar=$(realpath -e "$tar")
@@ -50,12 +44,18 @@ if ! grep -s ${ver} "$sdir"/debian/changelog; then
 fi
 
 odir=$(mktemp -d)
-: ${SUDO="sudo --preserve-env=APT_CONFIG"}
+: ${SUDO="sudo"}
 ouid=$(stat --format=%u $odir)
 case "$ouid" in
 0)	SUDO=;;
 esac
 echo "==> UID=$ouid SUDO=\"$SUDO\" ODIR=\"$odir\""
+
+echo "==> Configuring environment for target architecture: ${TARGET_ARCH}"
+$SUDO apt-get update
+
+# Install general Debian packaging toolchains
+$SUDO apt-get install -y gpg groff tar devscripts equivs build-essential debhelper fakeroot
 
 tar -C "$odir" -xvf "$sdir"/gpg-testhome.tar
 GNUPGHOME="$odir/gpg"
@@ -77,30 +77,6 @@ tar -C "$odir" -xf "$tar"
 
 cd "$odir"
 mv jove-${ver}/pkg/deb/debian jove-${ver}
-
-echo "==> Setting up an isolated APT sandbox directory"
-mkdir -p var/apt-cache-lists/partial var/apt-cache-files/archives/partial var/apt-logs
-
-cat << EOF > "$odir/var/apt-sandbox.conf"
-Dir::Etc::SourceList "$odir/var/sandbox_sources.list";
-Dir::Etc::SourceParts "/dev/null";
-Dir::State::Lists "$odir/var/apt-cache-lists/";
-Dir::Cache "$odir/var/apt-cache-files/";
-Dir::Log "$odir/var/apt-logs/";
-APT::Sandbox::User "root";
-EOF
-
-# 2. Write out a custom multi-architecture source list matching your target mirror requirements.
-# This explicitly allows amd64, i386, arm64, and armhf to coexist cleanly.
-
-cat << EOF > "$odir/var/sandbox_sources.list"
-deb [arch=${TARGET_ARCH}] http://$urlsub.ubuntu.com$urlbase $UBUNAME main universe restricted multiverse
-deb [arch=${TARGET_ARCH}] http://$urlsub.ubuntu.com$urlbase $UBUNAME-updates main universe restricted multiverse
-deb [arch=${TARGET_ARCH}] http://$urlsub.ubuntu.com$urlbase $UBUNAME-security main universe restricted multiverse
-deb-src [arch=${TARGET_ARCH}] http://$urlsub.ubuntu.com$urlbase $UBUNAME main universe restricted multiverse
-EOF
-
-export APT_CONFIG="$odir/var/apt-sandbox.conf"
 
 # generate dsc file and sign with gpg
 (
@@ -135,35 +111,29 @@ EOF
 ) | gpg --no-random-seed-file --clearsign > "$odir/jove-${ver}/debian/jove_${ver}-1.dsc"
 
 
-echo "==> Configuring environment for target architecture: ${TARGET_ARCH}"
-$SUDO apt-get update
-
-# Install general Debian packaging toolchains
-$SUDO apt-get install -y devscripts equivs build-essential
-
+tag=
 if [ "${TARGET_ARCH}" != "${BUILD_ARCH}" ]; then
-    echo "==> Enabling multiarch and cross-compiler for ${TARGET_ARCH}"
-    $SUDO dpkg --add-architecture "${TARGET_ARCH}"
-    $SUDO apt-get update
+    echo "==> Fetching cross-compiler for ${TARGET_ARCH}"
     
     if [ "${TARGET_ARCH}" = "i386" ]; then
-        # i386 runs natively on x86_64 but needs the 32-bit gcc toolchain
-        $SUDO apt-get install -y gcc-multilib
+        tag=i686-linux-gnu-
     elif [ "${TARGET_ARCH}" = "arm64" ]; then
-        $SUDO apt-get install -y gcc-aarch64-linux-gnu
+        tag=aarch64-linux-gnu-
     elif [ "${TARGET_ARCH}" = "armhf" ]; then
-        $SUDO apt-get install -y gcc-arm-linux-gnueabihf
+        tag=arm-linux-gnueabihf-
     fi
-    
+    $SUDO apt-get install -y crossbuild-essential-${TARGET_ARCH}
+    echo "==> Generating cross build-deps package meta-structure"
+    mk-build-deps -a "${TARGET_ARCH}" jove-${ver}/debian/control
+else
+    sed -i 's/:any//g' jove-${ver}/debian/control
+    mk-build-deps jove-${ver}/debian/control
 fi
-
-echo "==> Generating local build-deps package meta-structure"
-mk-build-deps -a "${TARGET_ARCH}" jove-${ver}/debian/control
 
 # Grab the freshly created file name dynamically
 DEPS_PKG=$(ls jove-build-deps_*.deb 2>/dev/null || ls *-build-deps_*.deb)
 
-echo "==> Installing package dependencies via local sandbox path..."
+echo "==> Installing package dependencies"
 # Let standard APT parse and fulfill the dependencies tracked inside the .deb archive
 $SUDO apt-get install -y --no-install-recommends "./${DEPS_PKG}"
 
