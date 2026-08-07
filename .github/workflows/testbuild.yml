@@ -50,11 +50,11 @@ jobs:
       CONTAINER: ${{ matrix.os }}
     steps:
       - run: |
-        echo "event=${{ github.event_name }} runner=${{ runner.os }} branch=${{ github.ref }} repo=${{ github.repository }} index=${{ strategy.job-index}} os=${{ matrix.os }} node=${{ matrix.node }} ."
-        MATRIXOS="${{ matrix.os }}"
-        MATRIXOS="${MATRIXOS//\//_}"
-        MATRIXOS="${MATRIXOS//://_}"
-        echo "MATRIXOS=$MATRIXOS" >> "$GITHUB_ENV"
+          echo "event=${{ github.event_name }} runner=${{ runner.os }} branch=${{ github.ref }} repo=${{ github.repository }} index=${{ strategy.job-index}} os=${{ matrix.os }} node=${{ matrix.node }} ."
+          MATRIXOS="${{ matrix.os }}"
+          MATRIXOS="${MATRIXOS//\//_}"
+          MATRIXOS="${MATRIXOS//://_}"
+          echo "MATRIXOS=$MATRIXOS" >> "$GITHUB_ENV"
 
       - uses: actions/checkout@v7
       - run: docker pull $CONTAINER
