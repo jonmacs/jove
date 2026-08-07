@@ -91,7 +91,7 @@ m_paren(DAPchar	p_type, int dir, jbool can_mismatch, jbool can_stop)
 	REcompile(MajorMode(CMODE)? "[(){}[\\]/\"']" : "[(){}[\\]\"]",
 		YES, &re_blk);
 	{
-		char	*cp = strchr(p_types, p_type);
+		const char	*cp = strchr(p_types, p_type);
 
 		if (cp == NULL) {
 			complain("[Cannot match %c's]", p_type);

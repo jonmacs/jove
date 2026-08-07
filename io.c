@@ -1732,7 +1732,7 @@ void
 backup_name(const char *fname, const char *btype,
 	    char *bfname, size_t bfnamesize)
 {
-	char	*s = strrchr(fname, '/');
+	const char	*s = strrchr(fname, '/');
 	size_t	dirlen = (s == NULL)? 0 : s + 1 - fname;
 
 	jamstrsub(bfname, fname, bfnamesize);

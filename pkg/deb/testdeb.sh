@@ -37,7 +37,7 @@ echo "==> Configuring environment for target architecture: ${TARGET_ARCH}"
 $SUDO apt-get update
 
 # Install general Debian packaging toolchains
-$SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y gpg groff curl devscripts equivs build-essential debhelper fakeroot
+$SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y gnupg groff curl devscripts equivs build-essential debhelper fakeroot
 
 # fragile regexp for ver
 case "$tar" in

@@ -541,7 +541,7 @@ erealloc(void *ptr, size_t size)
 const char *
 jbasename(const char *f)
 {
-	char	*cp;
+	const char	*cp;
 
 #ifdef MSFILESYSTEM
 	if (f[0] != '\0'  && f[1] == ':')
