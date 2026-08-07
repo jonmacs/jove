@@ -13,17 +13,6 @@ Jove for WIN32
 While Windows (or DOS) are not primary platforms for the JOVE developers,
 some effort is been made to test JOVE on both.
 
-Jove can be built for WIN32 (that is, Windows versions after Windows/95)
-natively with Microsoft Visual C (MSVC), or cross-compiled with
-{i686,x86-64}-w64-mingw32 on Linux.  The MSDOS source distribution zip may
-be preferable for MSVC builds because it contains pre-built documentation
-files which must be created on a UNIX system, and excludes some things
-only of use on UNIX (for example, X Window System support).  The filename
-of the MSDOS source distribution is a name that includes the version
-number joveNNNs.zip (for example, jove417s.zip for version 4.17), created
-by running 'make zip' on a Unix/Linux/*BSD system,
-	make zip
-
 A pre-compiled (via MINGW) and ready-to-run copy of JOVE for WIN32 is
 distributed in archives with the names
 jove-N.N.N.N-x86_64-w64-mingw32.zip (64bit binaries, 4.17.0.5 on),
@@ -41,6 +30,24 @@ special subsystem of Windows 3.1).  The primary reason is that WIN32s
 doesn't support the WIN32 Console API, which Jove for WIN32 depends on in
 order to display text on the screen and accept and interpret keystrokes.
 For such environments, use the MSDOS version.
+
+On Windows 11 (and perhaps later), Windows Terminal binds Ctrl-V to Paste.
+The workaround is to use Settings -> Actions, look for the Paste binding to
+Ctrl-v in the list and select it, click in the little trashcan that appears
+to delete it, confirm and then Save.  Others have reported this a few times
+to Windows Terminal, e.g.  github.com/microsoft/terminal/issues/11267 so
+maybe it will get fixed one day.
+
+Jove can be built for WIN32 (that is, Windows versions after Windows/95)
+natively with Microsoft Visual C (MSVC), or cross-compiled with
+{i686,x86-64}-w64-mingw32 on Linux.  The MSDOS source distribution zip may
+be preferable for MSVC builds because it contains pre-built documentation
+files which must be created on a UNIX system, and excludes some things
+only of use on UNIX (for example, X Window System support).  The filename
+of the MSDOS source distribution is a name that includes the version
+number joveNNNs.zip (for example, jove417s.zip for version 4.17), created
+by running 'make zip' on a Unix/Linux/*BSD system,
+	make zip
 
 The original port of Jove to WIN32 was performed by Jim Patterson
 (Jim.Patterson@Cognos.COM) with the help and advice of D. Hugh Redelmeier

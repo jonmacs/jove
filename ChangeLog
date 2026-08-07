@@ -1,4 +1,97 @@
-Author: Mark Moraes <mark.moraes@deshawresearch.com>
+Author: Mark Moraes <moraes@computer.org>
+Date:   Fri Aug  7 02:43:53 2026 -0400
+
+    5.0.0: SEMVER from now on
+    [vixie] moved to c89, rely on posix headers declaring standard functions
+    will not compile with classic C compilers -- if you still use an ancient
+    machine without c89+posix, stay with 4.17.*. gcc15 and clang19 no 
+    longer complain or error, so c2x now works.
+
+    avoid testdeb on debian older than 10 (debian 8 needs
+    --force-yes because of some expired keys, and debian 9
+    cannot find /usr/share/dpkg/buildtools.mk)
+    
+    get rid of warning for environ on MinGW
+
+    pkg/deb/testdeb.sh no longer needs/uses pbuilder, uses standard crossbuild
+    testbuild.sh runs it to produce .deb on ubuntu or debian platforms
+    seems to work for x86_64, i386 and arm64 on github (tested by hand for
+    armhf too)
+
+    Makefile tgz can override name with JOVETAR variable for convenience,
+    used by pkg/deb/testdeb.sh.  get some common fields from debian/control
+    for dsc in pkg/deb/testdeb.sh.
+
+    newer gcc apparently do some sort of overloaded function
+    declaration so strchr and strrchr return type is the same as
+    the first arg, fix that in io.c:backup_name, util.c:jbasename and
+    c.c:m_paren.
+    
+    testbuild.yml: updated platforms, put OS names on .github/workflows DIST artifacts
+    run testdeb.sh from testbuild.sh (no need for pbuilder) for ubuntu or debian
+
+    pkg/dos/ to automate the build with OpenWatcom under doxbox
+    tune.h fix so this compiles with OpenWatcom/dosbox again
+    tweak to testbuild so mingw crosscompiles for Windows work
+    (linker needs -lssp_nonshared)
+
+    fixed the main jove doc to reflect new abbreviation codes
+    that match the abbreviation commands consistently (change
+    made in 4.17.5.5)
+
+    fix jspec.in to also specify groff-base
+    try groff-base for yum, hope that works on rocky8
+
+    fix: a function declaration without a prototype is deprecated in all versions of C (clang19)
+
+    remove ttyname declaration (systems that want biff
+    support had either better have fstat+fchmod or declare
+    ttyname in unistd.h) nuked ancient biff/comsatd support.
+    if you remember what that is, congratulations.
+
+    delete popen declaration, who has OSF/1 and I very much
+    doubt c2x Jove compiles/works on it anyway, old systems need
+    to stay with 4.17.
+
+    remove more ancient/pre-POSIX/untested stuff: TERMIO, SGTTY,
+    USE_GETWD/USE_PWD, WAIT3 or BSD_WAIT.
+
+    updated sysdep.txt to delete obsolete config options
+
+    removed one more unnecessary extern for _exit()
+
+    removed all declarations that would appear in C89 or POSIX.1 standard headers
+    (I think POSIX.1 1988 ought to be fine, though hard to say since all machines
+    I can test are far more modern and conform to 2001)
+    
+    restored JSSIZE_T so Windows builds again.
+    
+    Tweaks to testbuild.sh to test mingw and pipeprocs.
+
+    no longer use -u on jmake since it causes a spurious failure in some situations
+
+    [vixie] remove spurious abort()
+
+    [vixie] stop calling strdup, make some Bufpos "const"
+
+    [cord] Update jove.nr.  replaced .UX Macro,
+    rewrapped to max 80 chars, removed trailing whitespace
+
+    ensure that testbuild PIPEPROCS installs portsrv via PORTSRVINST=1
+
+    fix windows cross-compile issues from Fill redefinition,
+    new brew location for MacOS
+
+    nix will need more experimenting (probably some nix-channel stuff) because
+    otherwise, testbuild cannot run, there is no uname, so will need to install
+    coreutils (perhaps if /nix exists or suchlike, tbd)
+    
+    add Darwin to jmake.sh
+
+    newer macos need to get groff from brew.  try nixos container as well
+
+
+Author: Mark Moraes <moraes@computer.org>
 Date:   Thu Feb 27 08:50:25 2025 -0500
 
     4.17.5.5: restore mode-line indicator for show-match-mode, rename

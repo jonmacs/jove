@@ -222,8 +222,12 @@ for tag in ${TB_MINGW}; do
 	make XEXT=.exe clobber
    fi
 done &&
-case "$dist" in
-*-ubuntu-*|*-debian-[1-9][0-9]*) DISTDIR=$(realpath -e $dist) ./pkg/deb/testdeb.sh;;
+case "$dist" in *-ubuntu-*|*-debian-[1-9][0-9]*)
+	DISTDIR=$(realpath -e $dist) ./pkg/deb/testdeb.sh
+	case "$TB_MACH" in x86_64)
+		DISTDIR=$(realpath -e $dist) ./pkg/deb/testdeb.sh;;
+	esac
+	;;
 esac
 ret=$?
 # portable for older Unix/SunOS!
