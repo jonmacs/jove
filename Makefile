@@ -579,9 +579,9 @@ rpm: jove.spec .version tgz $(RPMHOME)
 	cp $$BN.tgz $(RPMHOME)/$$rpmsrc; \
 	rpmbuild -ta $(RPMHOME)/$$rpmsrc
 
-# requires pbuilder to be installed, which uses chroot so needs to be run as root.
-deb: .version tgz
-	BN=`pwd`/jove-`cat .version`.tgz && cd pkg/deb && ./testdeb.sh $$BN
+# uses sudo to run apt-get and dpkg
+deb: .version
+	./pkg/deb/testdeb.sh
 
 # create a distribution and a separate GPG signature for it
 signed:	.version tgz

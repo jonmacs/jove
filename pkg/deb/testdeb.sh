@@ -37,7 +37,7 @@ echo "==> Configuring environment for target architecture: ${TARGET_ARCH}"
 $SUDO apt-get update
 
 # Install general Debian packaging toolchains
-$SUDO apt-get install -y gpg groff curl devscripts equivs build-essential debhelper fakeroot
+$SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y gpg groff curl devscripts equivs build-essential debhelper fakeroot
 
 # fragile regexp for ver
 case "$tar" in
@@ -138,7 +138,7 @@ if [ "${TARGET_ARCH}" != "${BUILD_ARCH}" ]; then
 		aptdir=/etc/apt/sources.list.d/
 		origfile=$aptdir/ubuntu.sources
 		newfile=$aptdir/ubuntu-ports.sources
-		if test ! -r "$newfile"; then
+		if test -r "$origfile" -a ! -r "$newfile"; then
 			awk '
 			BEGIN { RS=""; ORS="\n\n" }
 			{
@@ -179,9 +179,9 @@ echo "==> Compiling"
 dpkg-buildpackage -a"${TARGET_ARCH}" -b -us -uc
 
 echo "==> Organizing build artifacts"
-: ${DISTDIR="$jdir/DIST"}
-mkdir -p "$DISTDIR/${TARGET_ARCH}"
-mv ../*.deb ../*.changes ../*.buildinfo "$DISTDIR/${TARGET_ARCH}/"
+: ${DISTDIR="$jdir/DIST/testdeb"}
+mkdir -p "$DISTDIR"
+mv ../*.deb ../*.changes ../*.buildinfo "$DISTDIR/"
 cd "$jdir"
 rm -rf "$odir"
 

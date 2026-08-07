@@ -62,10 +62,6 @@ case $# in
 		case "$TB_MACH" in
 		x86_64) $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y --force-yes mingw-w64;;
 		esac
-		case "$dist" in
-		DIST/Linux-x86_64-ubuntu-20.04-*) $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y --force-yes curl gnupg pbuilder;;
-		esac
-		# similar OPTFLAGS to what Cord uses for debian packaging
 		TB_OPTFLAGS="-g -O2 -fstack-protector-strong -Wformat -Werror=format-security -Wdate-time -D_FORTIFY_SOURCE=2"
 	elif type apk 2> /dev/null; then
 		$SUDO apk update && apk add gcc make pkgconfig musl-dev ncurses-dev groff ctags zip
@@ -226,11 +222,9 @@ for tag in ${TB_MINGW}; do
 	make XEXT=.exe clobber
    fi
 done &&
-if type pbuilder 2> /dev/null; then
-	# if a developer has pbuilder, test debian package builds
-	$SUDO make $j deb
-	cp -av /var/cache/pbuilder/result/*$(cat .version)*.deb $dist/
-fi
+case "$dist" in
+*-ubuntu-*|*-debian-*) DISTDIR=$(realpath -e $dist) ./pkg/deb/testdeb.sh;;
+esac
 ret=$?
 # portable for older Unix/SunOS!
 (cd "$td" && tar cf - .) | gzip > $dist/$ver-builds.tar.gz
