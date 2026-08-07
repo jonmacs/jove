@@ -223,7 +223,7 @@ for tag in ${TB_MINGW}; do
    fi
 done &&
 case "$dist" in
-*-ubuntu-*|*-debian-*) DISTDIR=$(realpath -e $dist) ./pkg/deb/testdeb.sh;;
+*-ubuntu-*|*-debian-[1-9][0-9]*) DISTDIR=$(realpath -e $dist) ./pkg/deb/testdeb.sh;;
 esac
 ret=$?
 # portable for older Unix/SunOS!
