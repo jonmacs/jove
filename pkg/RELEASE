@@ -1,0 +1,79 @@
+When tagging a new release (e.g. 5.0.0) on github after
+suitable testing of the candidate, ensure the Changelog is
+updated and commit.
+
+From
+https://github.com/jonmacs/jove/actions/workflows/testbuild.yml
+choose the latest build, which ought to be all green.
+
+Download the following output files (the number ? after
+container or hosted might differ slightly depending on the
+order they run in)
+
+In a temporary directory, download:
+
+DIST-container-?-debian_11.zip
+DIST-container-?-alpine_3.9.zip
+DIST-container-?-centos_7.zip
+DIST-hosted-?-ubuntu-24.04-arm.zip
+
+unzip -x -j DIST-container-?-debian_11.zip '*/jove_*.deb' '*/*.tgz' '*/*.zip'
+unzip -x -j DIST-container-?-centos_7.zip '*/*.rpm'
+unzip -x -j DIST-container-?-alpine_3.9.zip '*/*static.tar.gz'
+unzip -x -j DIST-hosted-?-ubuntu-24.04-arm.zip '*/jove_*.deb'
+
+rm DIST-*.zip
+
+Something that looks like the following files should remain:
+
+jove-5.0.0-10.el7.x86_64.rpm
+jove-5.0.0-i686-w64-mingw32.zip
+jove-5.0.0-x86_64-alpine-linux-musl-static.tar.gz
+jove-5.0.0-x86_64-w64-mingw32.zip
+jove-5.0.0.tgz
+jove500s.zip
+jove_5.0.0-1_amd64.deb
+jove_5.0.0-1_arm64.deb
+jove_5.0.0-1_i386.deb
+
+I run pkg/dos/testdos.sh to generate a MS-DOS
+DIST/joveNNNd.zip (copy over to the temporary directory)
+
+Generate a self-extracting form using
+	cat pkg/dos/UNZIPSFX.EXE DIST/jove???d.zip > DIST/jove500d.exe
+	zip -A DIST/jove500d.exe
+
+After some testing, upload those as assets to the tag.
+
+To test, run a container (podman) of an ubuntu with this dir
+exported to it with -v, and try 
+	dpkg -i *_amd64.deb
+which should install jove, perhaps with a warning, then test jove
+then uninstall with
+	dpkg -r jove
+
+Repeat for *_i386.deb
+
+Then mkdir /tmp/testjove and unpack *-static.tar.gz in that directory,
+and run jove-*-x86_64-alpine-linux-musl-static/jove.
+(XXX this needs the musl package installed so it can find the loader,
+doesn't this defeat the purpose of a static binary)
+
+I test the mingw tars on a couple of Windows VMs (I have a
+WinXP and Win7) and a real Win11 box.
+
+Test the DOS self-extracting version in a new dosbox.
+
+For minimal testing (need to improve this):
+
+I usually ensure that the teachjove command works, that
+describe-command works, run a shell command, test an
+interactive shell, do a spell-check, unpack jove*.tgz and if
+not Windows, run compile-it in that directory using
+./jmake.sh as the compiler command, look up a tag, fill a
+para, change right and left and try again.  delete a
+close-brace and reinsert it to make sure formatting works,
+same for a paren.  Hop around screen and file (forward and
+back for chars, words, paras, screen, start and end of file;
+then with repeats).  Turn on line numbering and hop around.
+Turn off and hop around.
