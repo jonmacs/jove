@@ -265,7 +265,10 @@ Date:   Mon Jan 9 22:34:02 2023 -0500
     pkg/deb along with a testdeb.sh script that runs pbuilder to
     generate pkgs for amd64, arm64 and armhf as a test of cross-build.
     Add pkg to tgz, plus some other .filelist cleanup (include jove.spec)
-    
+
+    added some notes to pkg/RELEASE about tagging and building a release
+    on github.
+
     updated some of the test environments in github actions to
     more recent ones.
     
