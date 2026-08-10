@@ -224,8 +224,11 @@ for tag in ${TB_MINGW}; do
 done &&
 case "$dist" in *-ubuntu-*|*-debian-[1-9][0-9]*)
 	DISTDIR=$(realpath -e $dist) ./pkg/deb/testdeb.sh
-	case "$TB_MACH" in x86_64)
-		DISTDIR=$(realpath -e $dist) ./pkg/deb/testdeb.sh i386;;
+	case "$dist" in *-debian-*)
+		case "$TB_MACH" in x86_64)
+			DISTDIR=$(realpath -e $dist) ./pkg/deb/testdeb.sh i386;;
+		esac
+		;;
 	esac
 	;;
 esac
