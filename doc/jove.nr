@@ -47,7 +47,7 @@ editor written at MIT by Richard Stallman.  Although JOVE is meant to be
 compatible with EMACS, there are some major differences between the two
 editors and you shouldn't rely on their behaving identically.
 .LP
-JOVE aims to be small, and usuable on a wide array of systems, so it works on
+JOVE aims to be small, and usable on a wide array of systems, so it works on
 many reasonable display terminals like modern vt[12]-style terminals, and by
 linking to a general terminal handling library such as
 .I ncurses
