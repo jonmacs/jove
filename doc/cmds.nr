@@ -9,10 +9,10 @@
 .\"
 .\" This nroff/troff text is used for two purposes:
 .\" it is the second portion of the JOVE manual (combine with intro.nr), and
-.\" it is used to produce cmds.doc, the text used by the describe-command
+.\" it is used to produce cmds.txt, the text used by the describe-command
 .\" and describe-variable commands.
 .\" Take note of the .IQ and .BQ macros used in this file to put text in
-.\" italic or bold, and that their effect when producing cmds.doc is to
+.\" italic or bold, and that their effect when producing cmds.txt is to
 .\" enclose the relevant text within quotes.  Do not use any other means of
 .\" italicising or emboldening in this file.
 .
