@@ -509,7 +509,8 @@ included MS-DOS and classic (pre-OSX) Mac support.  D. Hugh
 Redelmeier and Mark Moraes released 4.16 on
 ftp.cs.toronto.edu, Cord Beerman has maintained the Debian
 package since 2010 (or earlier!). 4.17 onwards have been on
-github since 2019. 5.0 finally switches from classic old
-Kernighan-and-Ritchie function definitions to C89-style,
-abandoning the pre-C89 machines that JOVE first became
-known on.
+github since 2019. In 5.0, Paul Vixie finally switched from
+classic old Kernighan-and-Ritchie function definitions to
+C89-style, retiring support for the pre-C89 machines that
+JOVE first became known on, but that it is no longer
+tested on (use 4.17 on those, probably still works!)
