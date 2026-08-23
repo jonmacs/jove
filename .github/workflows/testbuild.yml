@@ -46,9 +46,8 @@ jobs:
         - 'archlinux:latest'
         - 'gentoo/stage3:latest'
         platform:
-        - 'amd64' # Global fallback for all matrix items
+        - 'amd64'
         include:
-        # Explicitly append a 32-bit target variant for alpine:latest
         - os: 'alpine:3.9'
           platform: '386'
    runs-on: ubuntu-latest
