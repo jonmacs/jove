@@ -1,4 +1,0 @@
-#!/bin/sh
-# teachjove used to be a binary, but now is just a script that 
-# invokes Jove with the -T option (triggering the teach-jove command)
-exec jove "$@" -T
