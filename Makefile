@@ -483,7 +483,7 @@ $(JOVEM): $(DMANDIR) doc/jove.$(MANEXT)
 # since Windows/DOS will not have NROFF.
 
 doc/jove.txt: doc/jove.nr
-	@if $*(WHICH) $(NROFF) > /dev/null; then mkdir $(TDIR) && \
+	@if $(WHICH) $(NROFF) > /dev/null; then mkdir $(TDIR) && \
 	LANG=C $(NROFF) $(NROFFOPTS) -man doc/jove.nr > $(TFILE) && \
 	if $(CMP) -s $(TFILE) doc/jove.txt 2> /dev/null; then rm $(TFILE); else rm -f doc/jove.txt; mv $(TFILE) doc/jove.txt; fi; rmdir $(TDIR); fi
 
