@@ -25,7 +25,7 @@ jobs:
       - run: echo "status=${{ job.status }}."
       - uses: actions/upload-artifact@v7
         with:
-          name: DIST-hosted-${{ strategy.job-index }}-${{ matrix.os }}
+          name: DIST-hosted-${{ matrix.os }}
           path: DIST/*
   for-containers:
     strategy:
@@ -51,6 +51,10 @@ jobs:
         include:
         - os: 'alpine:latest'
           platform: '386'
+        - os: 'debian:testing'
+          platform: '386'
+        - os: 'fedora:44'
+          platform: '386'
     runs-on: ubuntu-latest
     env:
       CONTAINER: ${{ matrix.os }}
@@ -61,7 +65,7 @@ jobs:
           MATRIXOS="${{ matrix.os }}"
           MATRIXOS="${MATRIXOS//\//_}"
           MATRIXOS="${MATRIXOS//:/_}"
-          echo "MATRIXOS=${MATRIXOS}_${{ matrix.platform }}" >> "$GITHUB_ENV"
+          echo "MATRIXTAG=${MATRIXOS}_${{ matrix.platform }}" >> "$GITHUB_ENV"
 
       - uses: actions/checkout@v7
       - run: docker pull $CONTAINER
@@ -69,5 +73,5 @@ jobs:
       - run: echo "status=${{ job.status }}."
       - uses: actions/upload-artifact@v7
         with:
-          name: DIST-container-${{ strategy.job-index }}-${{ env.MATRIXOS }}
+          name: DIST-container-${{ env.MATRIXTAG }}
           path: DIST
