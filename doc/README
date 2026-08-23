@@ -7,7 +7,7 @@
 
 README		this file
 
-cmds.macros.nr	nroff macros used to format cmds.nr to produce cmds.doc
+cmds.macros.nr	nroff macros used to format cmds.nr to produce cmds.txt
 intro.nr	introductory part of JOVE manual; combined with cmds.nr
 		to produce complete manual (nroff input)
 cmds.nr		descriptions of JOVE commands (and variables) (nroff input)
