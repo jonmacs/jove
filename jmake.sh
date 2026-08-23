@@ -64,7 +64,7 @@ SunOS)	for dx in /usr/bin /usr/sfw/bin; do
 	*) optflags=-O;; # generally not gcc, perhaps Sunpro or classic Unix cc
 	esac
 	ldlibs="-ltermcap"
-	extra="$extra NROFF=nroff TROFF=troff"	
+	extra="$extra NROFFOPTS="	
         xi=/usr/gnu/bin/install
         if test ! -x $xi; then
             xi=cp

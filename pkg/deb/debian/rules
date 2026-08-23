@@ -23,6 +23,7 @@ override_dh_auto_build:
 		JOVEHOME=/usr \
 		JMANDIR=/usr/share/man/man1 \
 		LOCALCC=$(CC_FOR_BUILD) \
+		NROFF="nroff -Tascii" \
 		CC=$(CC) \
 		fdocs all
 
@@ -37,6 +38,7 @@ override_dh_auto_install:
 		JOVEHOME=/usr \
 		JMANDIR=/usr/share/man/man1 \
 		LOCALCC=$(CC_FOR_BUILD) \
+		NROFF="nroff -Tascii" \
 		CC=$(CC)
 	mkdir -p debian/jove/etc/jove
 	cp debian/jove.rc debian/jove/etc/jove/jove.rc

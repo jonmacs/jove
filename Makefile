@@ -215,12 +215,12 @@ TAR=tar
 
 # These NROFF, TROFF and TROFFPOST settings work with groff.
 # Classic Unix and derivatives used to have ditroff, for which use:
-#	NROFF = nroff
-#	TROFF = troff
+#	NROFFOPTS = 
 #	TDEV = ps or TDEV = psc
 #	TROFFPOST = |/usr/lib/lp/postscript/dpost -
 #	or TROFFPOST = |psc
 NROFF = nroff
+NROFFOPTS = -Tascii
 TROFF = troff
 TDEV = pdf
 TROFFPOST = |gro$(TDEV)
@@ -420,13 +420,13 @@ $(RPMHOME)::
 	if test ! -d $(RPMHOME); then mkdir -p $(RPMHOME) && chmod $(DPERM) $(RPMHOME); fi
 
 doc/cmds.txt:	doc/cmds.macros.nr doc/cmds.nr
-	@mkdir $(TDIR) && \
-	LANG=C $(NROFF) doc/cmds.macros.nr doc/cmds.nr > $(TFILE); \
-	if $(CMP) -s $(TFILE) doc/cmds.txt 2> /dev/null; then rm $(TFILE); else rm -f doc/cmds.txt; mv $(TFILE) doc/cmds.txt; fi; rmdir $(TDIR)
+	@-if $(WHICH) $(NROFF) > /dev/null; then mkdir $(TDIR) && \
+	LANG=C $(NROFF) $(NROFFOPTS) doc/cmds.macros.nr doc/cmds.nr > $(TFILE); \
+	if $(CMP) -s $(TFILE) doc/cmds.txt 2> /dev/null; then rm $(TFILE); else rm -f doc/cmds.txt; mv $(TFILE) doc/cmds.txt; fi; rmdir $(TDIR); fi
 
 doc/jove.man.txt:	doc/intro.nr doc/cmds.nr
 	@-if $(WHICH) $(NROFF) > /dev/null; then mkdir $(TDIR) && \
-	LANG=C; export LANG; cd doc && tbl intro.nr | $(NROFF) -ms - cmds.nr > $(TFILE); \
+	LANG=C; export LANG; cd doc && tbl intro.nr | $(NROFF) $(NROFFOPTS) -ms - cmds.nr > $(TFILE); \
 	if $(CMP) -s $(TFILE) jove.man.txt 2> /dev/null; then rm $(TFILE); else rm -f jove.man.txt; mv $(TFILE) jove.man.txt; fi; rmdir $(TDIR); fi
 
 doc/jove.man.$(TDEV): doc/intro.nr doc/cmds.nr doc/contents.nr
@@ -483,9 +483,9 @@ $(JOVEM): $(DMANDIR) doc/jove.$(MANEXT)
 # since Windows/DOS will not have NROFF.
 
 doc/jove.txt: doc/jove.nr
-	@mkdir $(TDIR) && \
-	LANG=C $(NROFF) -man doc/jove.nr > $(TFILE) && \
-	if $(CMP) -s $(TFILE) doc/jove.txt 2> /dev/null; then rm $(TFILE); else rm -f doc/jove.txt; mv $(TFILE) doc/jove.txt; fi; rmdir $(TDIR)
+	@if $(WHICH) $(NROFF) > /dev/null; then mkdir $(TDIR) && \
+	LANG=C $(NROFF) $(NROFFOPTS) -man doc/jove.nr > $(TFILE) && \
+	if $(CMP) -s $(TFILE) doc/jove.txt 2> /dev/null; then rm $(TFILE); else rm -f doc/jove.txt; mv $(TFILE) doc/jove.txt; fi; rmdir $(TDIR); fi
 
 doc/teachjove.$(MANEXT): doc/teachjove.nr
 	@mkdir $(TDIR) && \
