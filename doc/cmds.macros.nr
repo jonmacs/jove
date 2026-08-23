@@ -1,4 +1,4 @@
-.\" Macros for formatting cmds.nr to produce cmds.doc
+.\" Macros for formatting cmds.nr to produce cmds.txt
 .
 .\" define strings for left and right double-quotes (same as -ms)
 .if n .ds Q ""
