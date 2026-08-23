@@ -507,8 +507,8 @@ comp.sources.unix (renamed from mod.sources in the great
 Usenet reorg) in Volume 14, Issue 57 as jove4.9, which
 included MS-DOS and classic (pre-OSX) Mac support.  D. Hugh
 Redelmeier and Mark Moraes released 4.16 on
-ftp.cs.toronto.edu, Cord Beerman has maintained the Debian
-package since 2010 (or earlier!). 4.17 onwards have been on
+ftp.cs.toronto.edu, Cord Beermann has maintained the Debian
+package since december 2000. 4.17 onwards have been on
 github since 2019. In 5.0, Paul Vixie finally switched from
 classic old Kernighan-and-Ritchie function definitions to
 C89-style, retiring support for the pre-C89 machines that
