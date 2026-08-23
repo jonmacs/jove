@@ -1,0 +1,4 @@
+# ignore some git and travis config from the github release src tarball
+.git*	export-ignore
+.*.yml	export-ignore
+*.ico	binary

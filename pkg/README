@@ -1,0 +1,6 @@
+Config files to generate reference packages.  These may
+differ from the ones used by actual distros, which may be
+modified by the distro maintainers, these are mainly
+intended as a starting point and for test.  Fixes and
+improvements are welcome, it is unlikely we are familiar
+with the best practices for each distro family.

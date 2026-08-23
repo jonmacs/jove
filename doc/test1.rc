@@ -1,0 +1,14 @@
+execute-macro testbegin
+define-macro insrm ^[xend-of-file^M^[xinsert-variable^Mright-margin^M
+define-macro inslm ^[xend-of-file^M^[xinsert-variable left-margin^M
+define-macro inslmrmnl ^[xexecute-macro inslm^M ^[xexecute-macro insrm^M^[xnewline^M
+set left-margin 90
+set right-margin 100
+execute-macro inslm
+newline
+execute-macro insrm
+newline
+set left-margin 200
+set right-margin 300
+execute-macro inslmrmnl
+execute-macro testend

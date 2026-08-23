@@ -1,0 +1,11 @@
+#!/bin/sh -e
+
+set -e
+
+if [ "$1" != "upgrade" ]
+then
+  update-alternatives --remove editor /usr/bin/jove
+  update-alternatives --remove emacs /usr/bin/jove
+fi
+
+#DEBHELPER#

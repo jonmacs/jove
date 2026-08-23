@@ -1,0 +1,50 @@
+#!/usr/bin/env python3
+# Prepend a portable shell script wrapper that unpacks a tarball
+# here-document.
+# Mark Moraes. 20230204
+# Released to the public domain.
+from __future__ import print_function
+import sys, os
+tok='__JOVE__TAR__EOF__TOKEN__'
+tar=' | tar %sxvf -'
+hdr=r'''#!/bin/sh
+jhome="$HOME/bin"
+usage="Usage: $0 [INSTALL_ROOT_DIR]\nto unpack jove binaries, doc and lib, default is $jhome"
+case $# in
+0)	;;
+1)	case "$1" in
+	-*)	echo "$usage" >&2; exit 1;;
+	*)	jhome="$1";;
+	esac
+	;;
+*)	echo "$usage" >&2; exit 1;;
+esac
+set -eu
+if test ! -d "$jhome"; then mkdir "$jhome"; fi
+cd "$jhome"
+export LANG=C
+awk '{printf "%c", $1}' << \
+'''+tok
+if len(sys.argv) != 2 or sys.argv[1].startswith('-') or not os.path.isfile(sys.argv[1]):
+	sys.exit("Usage: "+sys.argv[0]+" INPUT_TARBALL")
+fname=sys.argv[1]
+with open(fname, "rb") as f:
+	if fname.endswith('.bz2') or fname.endswith('.tbz2') or fname.endswith('.tbz'):
+		tarcmd = tar % 'j'
+	elif fname.endswith('.xz') or fname.endswith('.txz'):
+		tarcmd = tar % 'J'
+	elif fname.endswith('.gz') or fname.endswith('.tgz'):
+		tarcmd = tar % 'z'
+	elif fname.endswith('.zstd'):
+		tarcmd = tar % '--zstd -'
+	elif fname.endswith('.lzip'):
+		tarcmd = tar % '--lzip -'
+	elif fname.endswith('.lzop'):
+		tarcmd = tar % '--lzma -'
+	elif fname.endswith('.lzma'):
+		tarcmd = tar % '--lzma -'
+	else:
+		tarcmd = tar % ''
+	print(hdr+tarcmd)
+	print("\n".join(["%d"%i for i in f.read()]))
+print(tok)

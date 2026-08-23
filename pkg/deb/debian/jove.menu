@@ -1,0 +1,7 @@
+?package(jove):\
+  needs="text"\
+  hints="small, useful, featureful"\
+  section="Applications/Editors"\
+  title="jove"\
+  longtitle="Jove, Jonathan's Own Version of EMACS"\
+  command="/usr/bin/jove"

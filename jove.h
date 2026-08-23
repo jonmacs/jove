@@ -1,0 +1,340 @@
+/**************************************************************************
+ * This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    *
+ * provided by Jonathan and Jovehacks without charge and without          *
+ * warranty.  You may copy, modify, and/or distribute JOVE, provided that *
+ * this notice is included in all the source files and documentation.     *
+ **************************************************************************/
+
+/* jove.h header file to be included by EVERYONE */
+
+#ifndef TUNED
+# include "tune.h"  /* must include first since it controls everything else */
+#endif
+
+#include <time.h>
+#include <string.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <limits.h> /* for CHAR_BIT */
+#include <stdio.h> /* for EOF, NULL */
+#include <setjmp.h>
+#include <sys/types.h>	/* defines off_t, pid_t, maybe FD_SET for select.h */
+
+/*
+ * NO_EXTERNS leaves this out when building setmaps.c since externs.h is for the
+ * target, not the cross-compile host
+ */
+#ifndef NO_EXTERNS
+# include "externs.h"
+#endif
+
+#ifndef NCHARS
+# define NCHARS 0400
+#endif
+
+#define NULL_DADDR	((daddr) 0)
+#define DDIRTY		((daddr)1 << (sizeof(daddr)*CHAR_BIT - 1))	/* daddr dirty flag */
+
+#define private		static
+
+typedef int		jbool;
+#define NO		0
+#define YES		1
+
+#define elemsof(a)	(sizeof(a) / sizeof(*(a)))	/* number of array elements */
+
+#define byte_copy(from, to, count)	memcpy((void *)(to), (const void *)(from), (size_t)(count))
+#define byte_move(from, to, count)	memmove((void *)(to), (const void *)(from), (size_t)(count))
+#define byte_zero(s, n)		memset((void *)(s), 0, (size_t)(n))
+
+/* Safe-where-possible signal handling.
+ *
+ * SIGHANDLERTYPE: the type of a pointer to a signal handler
+ * setsighandler: the best way to establish a signal handler
+ * resetsighandler: the best way to re-establish a signal handler
+ */
+
+typedef SIGRESTYPE (*SIGHANDLERTYPE)(int);
+
+#ifdef POSIX_SIGS
+extern SIGHANDLERTYPE setsighandler(int, SIGHANDLERTYPE);
+# define resetsighandler(signo, handler)	/* nothing */
+#else /* !POSIX_SIGS */
+# ifdef USE_SIGSET
+#  define setsighandler(signo, handler)	sigset((signo), (handler))
+#  define resetsighandler(signo, handler)	/* nothing */
+# else /* !USE_SIGSET */
+   /* BSD_SIGS or default: use signal() */
+#  define setsighandler(signo, handler)	signal((signo), (handler))
+# endif /* !USE_SIGSET */
+#endif /* !POSIX_SIGS */
+
+#ifndef resetsighandler
+ /* On some systems, the signal handler is left established,
+  * but this is not the case with original UNIX signals.
+  * This code adjusts to the system at hand, at fairly low cost.
+  * This code is even used for BSD_SIGS, even though it should not
+  * be needed: it compensates for mis-configuration.
+  * Note: this routine will only work if every execution of a particular
+  * call is for the same handler.  Furthermore, all executions should
+  * be due to the handler being invoked by a signal.  These restrictions
+  * ensure that the setting of the static variable indicates whether
+  * signal handlers need to be re-established.
+  */
+# define resetsighandler(signo, handler)	{ \
+	static SIGHANDLERTYPE	reset_handler; \
+ \
+	if (reset_handler != (handler)) \
+		reset_handler = setsighandler((signo), (handler)); \
+}
+#endif
+
+/* Principles of character representation in JOVE:
+ *
+ * - Only legal characters (excluding NUL) may be stored in the buffer.
+ *
+ * - Only legal characters will be found in the input stream, as
+ *   delivered by getch and kbd_getch (the meta-key feature
+ *   may cause invalid characters to be read, but they will be
+ *   confined within kbd_getch).
+ *
+ * - Bad characters from a file should be discarded.  Perhaps a message
+ *   should be generated.  NUL should be considered one of these bad
+ *   characters.  [The elimination of these characters is the duty of
+ *   callers of jgetc.]
+ *
+ * - The type of a string (ignoring const or volatile) should be "char *".
+ *   This is the standard type specified by the ANSI/ISO C standard.
+ *   As such, it is the type expected by the standard library.
+ *
+ * - In general, it is reasonable to use a plain char type
+ *   to represent an individual character, avoiding the expense and
+ *   fuss of widening.
+ *
+ *   + The character must be known not to be an EOF.
+ *
+ *   + The character must only be used in ways in which sign extension
+ *     is known to not cause problems:
+ *
+ *     * The value is coerced into a char type (the most common example
+ *       is assignment to a char; another is the search character in a
+ *       call to strchr).  Of course, EOF must not appear in these
+ *       contexts.
+ *
+ *     * The value is used for equality or inequality comparison where
+ *       all operands are subject to identical char widening.  A
+ *       special case of this is 7-bit ASCII char literals:
+ *       they can be safely compared for equality or inequality with
+ *       chars widened explicitly or implicitly.
+ *
+ * - ZXchar is the type for a character that has been widened without
+ *   sign extension.  It can represent EOF distinctly from characters.
+ *   The ZXC and ZXRC functions should be used to do the widening.
+ *
+ * - DAPchar is the type that results from the "default argument promotions"
+ *   applied to the char type.  Since most of our function definitions are
+ *   in the old style, formals declared in these definitions to be of type
+ *   char should be declared to be of type DAPchar in any prototype (this is
+ *   an arcane ANSI C rule).  The widening involved might be sign-extension
+ *   or it might not, but we don't care because it will be immediately
+ *   narrowed. A C implementation can legally make the type "unsigned int",
+ *   but this is highly unlikely.  By extension, a value of this type may be
+ *   used anywhere a char is needed.
+ *
+ * The following functions widen char type to an int, without sign
+ * extension.  There are two kinds:
+ *
+ * ZXC(c): zero-extend an internal char.  It is presumed that
+ *	the character is clean, but we may have to prevent sign extension.
+ *
+ * ZXRC(c): zero-extend a external (raw) char.  The purpose is to prevent
+ *	sign extension, even if the char is invalid.
+ */
+
+typedef int ZXchar;	/* type for expanded char (possibly EOF) */
+
+#ifndef DAPchar
+# define DAPchar	int	/* DefaultArgPromotion(char) */
+#endif
+
+#ifndef UCHAR_ROOF
+# define UCHAR_ROOF	256	/* better be true! */
+#endif
+
+#if NCHARS == 128
+# ifndef ZXC
+#  define ZXC(c)	(c)	/* identity op -- sign bit must be off */
+# endif
+#else
+# if NCHARS == UCHAR_ROOF
+#  ifndef ZXC
+#   define ZXC(c)	((ZXchar) (unsigned char) (c))
+#  endif
+# else
+   /* ??? */
+# endif
+#endif
+
+#ifndef ZXRC
+# define ZXRC(c)	((ZXchar) (unsigned char) (c))
+#endif
+
+/* Pervasive exports of other modules */
+
+/* disp.c */
+extern volatile jbool	UpdModLine;	/* Does the mode line need to be updated? */
+
+/* term.c: universal termcap-like declarations */
+
+extern int
+	SG,		/* number of magic cookies left by SO and SE */
+	LI,		/* number of lines */
+	ILI,		/* number of internal lines (LI - 1) */
+	CO;		/* number of columns (CO <= MAXCOLS) */
+
+extern jbool
+	TABS;		/* terminal supports tabs */
+
+/* typedef pervasive structure definitions */
+
+typedef struct window	Window;	/* wind.h */
+typedef struct position	Bufpos;	/* buf.h */
+typedef struct mark	Mark;	/* buf.h (not mark.h!) */
+typedef struct buffer	Buffer;	/* buf.h */
+#ifdef FAR_LINES
+typedef struct line _far	*LinePtr;	/* buf.h */
+#else
+typedef struct line	*LinePtr;	/* buf.h */
+#endif
+typedef struct FileStruct	File;	/* fp.h */
+
+#include "buf.h"
+#include "io.h"
+#include "dataobj.h"
+#include "keymaps.h"
+#include "argcount.h"
+#include "util.h"
+
+#define FORWARD		1
+#define BACKWARD	(-1)
+
+/* jove.c exports: */
+
+/* paths */
+
+extern char
+	ShareDir[FILESIZE],	/* VAR: directory path of machine-independent support files */
+	LibDir[FILESIZE],	/* VAR: directory path of machine-dependent support programs */
+	TmpDir[FILESIZE];	/* VAR: directory path to store tmp files, must exist */
+
+#ifdef SUBSHELL
+extern char
+	Shell[FILESIZE],	/* VAR: shell to use */
+	ShFlags[16];	/* VAR: flags to shell */
+#endif
+
+
+/* setjmp/longjmp args for DoKeys() mainjmp */
+#define JMP_ERROR		1
+#define JMP_COMPLAIN	2	/* do the error without a getDOT */
+#define JMP_QUIT		3	/* leave this level of recursion */
+
+extern jmp_buf	mainjmp;
+
+#define IDX(c)   ((c)-'a')
+#define IDXSZ    (IDX('z')+1)
+
+extern char	NullStr[];
+
+extern ZXchar
+	peekchar,	/* holds pushed-back getch output */
+	LastKeyStruck;	/* used by SelfInsert and friends */
+
+extern int
+	RecDepth,	/* recursion depth (used by disp.c for modeline) */
+	SlowCmd;	/* depth of nesting of slow commands */
+
+extern jbool
+	TOabort,	/* flag set by Typeout() */
+	stickymsg,	/* the last message should stick around */
+	InputPending,	/* is there input waiting to be processed? */
+	Interactive;
+
+#ifdef UNIX
+extern jbool
+	InSlowRead;	/* Can we do a redisplay in a signal handler? */
+#endif
+
+extern char	*Inputp;
+
+#ifdef WINRESIZE
+# define PreEmptOutput()	(ResizePending || (SlowCmd == 0 && charp()))
+# define CheapPreEmptOutput()	(ResizePending || (SlowCmd == 0 && InputPending))
+#else
+# define PreEmptOutput()	(SlowCmd == 0 && charp())
+# define CheapPreEmptOutput()	(SlowCmd == 0 && InputPending)
+#endif
+
+#ifdef SUBSHELL
+extern void	jcloseall(void);
+#endif
+
+extern SIGRESTYPE
+	finish(int code) NEVER_RETURNS,	/* doesn't return at all! */
+	win_reshape(int UNUSED(junk));
+
+extern jbool
+	charp(void);
+
+extern ZXchar
+	getch(void),
+	kbd_getch(void),
+	peek_or_mac_getch(void),
+	waitchar(void),
+	ask_ks(void);
+
+extern void
+	cmd_sync(void),
+	add_stroke(ZXchar),
+	error(const char *, ...) NEVER_RETURNS,
+	complain(const char *, ...) NEVER_RETURNS,
+	raw_complain(const char *, ...),
+	confirm(const char *, ...),
+	SitFor(int delay),
+	pp_key_strokes(char *buffer, size_t size),
+	tty_adjust(void),
+	Ungetc(ZXchar c),
+	kbd_ungetch(ZXchar c),
+	dispatch_macros(void);
+
+/* Commands: */
+
+extern void
+#ifdef JOB_CONTROL
+	PauseJove(void),
+#endif
+#ifdef SUBSHELL
+	Push(void),
+#endif
+	Recur(void),
+	TeachJove(void),
+	ShowVersion(void);
+
+/* Variables: */
+
+extern jbool	MetaKey;		/* VAR: this terminal has a meta key */
+extern jbool	TimeDisplayed;		/* is time actually displayed in modeline? */
+extern char	JoveFeatures[MAXCOLS];	/* VAR: list of compiled-in features */
+
+#if defined(UNIX) || defined(MINGW)
+extern char	JoveCompiled[MAXCOLS];	/* VAR: compile flags used to build this */
+extern char	JoveLinked[MAXCOLS];	/* VAR: link flags used to build this */
+#endif /* UNIX || MINGW */
+
+#ifdef UNIX
+extern int	UpdFreq;		/* VAR: how often to update modeline */
+extern void	SetClockAlarm(jbool unset);
+#endif /* UNIX */
+
+extern jbool	SaveOnExit;		/* VAR: offer to save buffers on exit */

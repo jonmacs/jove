@@ -1,0 +1,99 @@
+/**************************************************************************
+ * This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    *
+ * provided by Jonathan and Jovehacks without charge and without          *
+ * warranty.  You may copy, modify, and/or distribute JOVE, provided that *
+ * this notice is included in all the source files and documentation.     *
+ **************************************************************************/
+
+#define makedirty(line)	{ (line)->l_dline |= DDIRTY; }
+#define isdirty(line)	((line)->l_dline & DDIRTY)
+
+typedef DADDR jwid_t;	/* DADDR must be >= max(sizeof(daddr),sizeof(Buffer *)) */
+
+struct scrimage {
+	int	s_offset,	/* offset to start printing at */
+		s_flags;	/* various flags */
+	long	s_vln;		/* Visible Line Number */
+	jwid_t	s_id;		/* unique identifier for line */
+	LinePtr	s_lp;		/* line to display (if any) */
+	Window	*s_window;	/* window that contains this line */
+};
+
+/* s_flags flags */
+#define s_DIRTY		01		/* buffer line changed since last displayed */
+#define s_MODELINE	02		/* this is a modeline */
+#define s_L_MOD		04		/* line has been modified internally */
+
+extern struct scrimage
+	*DesiredScreen,		/* what we want */
+	*PhysScreen;		/* what we got */
+
+extern jbool
+	UpdMesg;		/* update the message line */
+
+extern jbool
+	chkmail(jbool force);
+
+extern int
+	calc_pos(char *lp,int c_char);
+
+#define MAX_TYPEOUT	MAXCOLS	/* maximum width of typout (in chars) */
+
+extern void
+	ChkWindows(LinePtr line1,LinePtr line2),
+	ChkWinLines(void),
+	DrawMesg(jbool abortable),
+	message(const char *),
+	TOstart(const char *name),
+	TOstop(void),
+	Typeout(const char *, ...),
+	rbell(void),
+	redisplay(void);
+
+#ifdef WINRESIZE
+extern volatile jbool
+	ResizePending;	/* asynch request for screen resize */
+# ifdef WIN32
+extern void ResizeWindow(void);
+# endif
+#endif
+
+extern jbool
+	DisabledRedisplay;
+
+#ifdef ID_CHAR
+extern jbool
+	IN_INSmode;
+
+extern void
+	INSmode(jbool);
+#endif /* ID_CHAR */
+
+
+/* Variables: */
+
+extern jbool	BriteMode;		/* VAR: make the mode line inverse? */
+#ifdef UNIX
+extern int	MailInt;		/* VAR: mail check interval */
+extern char	Mailbox[FILESIZE];	/* VAR: mailbox name */
+#endif /* UNIX */
+extern char	ModeFmt[MAXCOLS];	/* VAR: mode line format string */
+extern jbool	ScrollAll;		/* VAR: when current line scrolls, scroll whole window? */
+extern int	ScrollWidth;		/* VAR: unit of horizontal scrolling */
+extern jbool	UseBuffers;		/* VAR: use buffers with Typeout() */
+#ifdef ID_CHAR
+extern jbool	UseIC;			/* VAR: whether or not to use i/d char processesing */
+#endif
+extern jbool	VisBell;		/* VAR: use visible bell (if possible) */
+extern jbool	MarkHighlighting;	/* VAR: highlight mark when visible */
+
+/* Commands: */
+extern void
+	Bow(void),
+	ClAndRedraw(void),
+	DownScroll(void),
+	Eow(void),
+	NextPage(void),
+	PrevPage(void),
+	RedrawDisplay(void),
+	UpScroll(void);

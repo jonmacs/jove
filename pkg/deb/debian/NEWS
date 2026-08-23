@@ -1,0 +1,17 @@
+jove (4.17.2.0-1) unstable; urgency=low
+
+    Beginning with Version 4.17.x we drop the automatic recover of crashed
+    jove sessions.
+
+    This means that your crashed sessions are kept in /var/tmp and will not
+    moved on reboot to /var/lib/jove/recover. You can still recover crashed
+    files with 'jove -r'.
+
+    You should clean /var/lib/jove/recover from remains of old sessions.
+
+    If you want to keep the old behaviour, you need to reinstall the init.d
+    script. It is in /usr/share/doc/jove. Don't forget to
+    'update-rc.d jove start 20 2 3 4 5 .'
+    You also need to set /var/lib/jove/recover to 1777.
+
+ -- Cord Beermann <cord@debian.org>  Fri, 14 Feb 2020 19:40:48 +0100

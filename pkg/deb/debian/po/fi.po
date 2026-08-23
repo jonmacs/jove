@@ -1,0 +1,67 @@
+#
+# Sami Kallio <phinaliumz@gmail.com>, 2020.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: jove\n"
+"Report-Msgid-Bugs-To: jove@packages.debian.org\n"
+"POT-Creation-Date: 2020-02-04 22:52+0100\n"
+"PO-Revision-Date: 2020-02-09 16:06+0200\n"
+"Last-Translator: Sami Kallio <phinaliumz@gmail.com>\n"
+"Language-Team: Finnish <debian-l10n-finnish@lists.debian.org>\n"
+"Language: fi\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1)\n"
+"X-Poedit-Language: Finnish\n"
+"X-Poedit-Country: FINLAND\n"
+"X-Generator: Gtranslator 3.34.0\n"
+
+#. Type: note
+#. Description
+#: ../jove.templates:1001
+msgid "Found old version of /etc/jove.rc. Moved it to /etc/jove/jove.rc"
+msgstr ""
+"Löydettiin vanha tiedosto /etc/jove.rc. Se siirrettiin nimelle /etc/jove/"
+"jove.rc"
+
+#. Type: note
+#. Description
+#: ../jove.templates:2001
+msgid "Old version of /etc/jove.rc and new version /etc/jove/jove.rc found"
+msgstr "Löydettiin vanha versio /etc/jove.rc ja uusi versio /etc/jove/jove.rc"
+
+#. Type: note
+#. Description
+#: ../jove.templates:2001
+msgid "Moving old version to /etc/jove/jove.rc.old"
+msgstr "Vanha versio siirrettiin nimelle /etc/jove/jove.rc.old"
+
+#. Type: note
+#. Description
+#: ../jove.templates:3001
+msgid "Removed obsolete /etc/init.d/jove script"
+msgstr "Poistettiin vanhentunut /etc/init.d/jove komentosarja"
+
+#. Type: note
+#. Description
+#: ../jove.templates:3001
+msgid "Check NEWS.Debian for more information"
+msgstr "Tarkista lisätiedot tiedostosta NEWS.Debian"
+
+#. Type: note
+#. Description
+#: ../jove.templates:4001
+msgid "Found old files in /var/lib/jove/preserve/"
+msgstr "Löydettiin vanhoja tiedostoja hakemistosta /var/lib/jove/preserve/"
+
+#. Type: note
+#. Description
+#: ../jove.templates:4001
+msgid ""
+"You can recover those by running jove -r Check NEWS.Debian for more "
+"information."
+msgstr ""
+"Voit palauttaa nämä komennolla jove -r Tarkista lisätiedot tiedostosta NEWS."
+"Debian."

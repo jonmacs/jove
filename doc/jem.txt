@@ -1,0 +1,4 @@
+C-X means press Control and X together, ESC X means ESC key followed by X
+Exit: C-X C-C         Save: C-X s               Tutorial: ESC t
+Describe-Key: C-X ?   Describe-Command: ESC ?   Apropos(Command-Search): C-X a
+Hide this help: ^X 1  Disable this beginner help with 'touch ~/.joverc'

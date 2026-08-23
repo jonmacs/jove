@@ -1,0 +1,810 @@
+/**************************************************************************
+ * This program is Copyright (C) 1986-2002 by Jonathan Payne.  JOVE is    *
+ * provided by Jonathan and Jovehacks without charge and without          *
+ * warranty.  You may copy, modify, and/or distribute JOVE, provided that *
+ * this notice is included in all the source files and documentation.     *
+ **************************************************************************/
+
+#include "jove.h"
+#include "jctype.h"
+#include "disp.h"
+#include "fp.h"
+#include "ask.h"
+#include "chars.h"
+#include "fmt.h"
+#include "insert.h"
+#include "macros.h"
+#include "marks.h"
+#include "move.h"
+#include "rec.h"
+
+#ifdef MAC
+# include "mac.h"
+#endif
+
+jbool
+blnkp(char *buf)
+{
+	char	c;
+
+	do {
+		c = *buf++;
+	} while (jiswhite(c));
+	return c == '\0';	/* It's NUL if we got to the end of the Line */
+}
+
+jbool
+within_indent(void)
+{
+	int	i;
+
+	i = curchar;
+	for (;;) {
+		if (--i < 0)
+			return YES;
+
+		if (!jiswhite(linebuf[i]))
+			return NO;
+	}
+}
+
+void
+DotTo(LinePtr line, int col)
+{
+	Bufpos	bp;
+
+	bp.p_line = line;
+	bp.p_char = col;
+	SetDot(&bp);
+}
+
+/* If bp->p_line is != current line, then save current line.  Then set dot
+ * to bp->p_line, and if they weren't equal get that line into linebuf.
+ */
+void
+SetDot(const Bufpos *bp)
+{
+	jbool	notequal;
+
+	if (bp == NULL)
+		return;
+
+	notequal = bp->p_line != curline;
+	if (notequal)
+		lsave();
+	if (bp->p_line != NULL)
+		curline = bp->p_line;
+	if (notequal)
+		getDOT();
+	curchar = bp->p_char;
+	if (curchar > length(curline))
+		curchar = length(curline);
+}
+
+void
+ToLast(void)
+{
+	SetLine(curbuf->b_last);
+	Eol();
+}
+
+int	MarkThresh = 22;	/* VAR: moves greater than MarkThresh will SetMark (avg screen size) */
+
+private long	line_diff;
+
+long
+inorder(LinePtr nextp, int char1, LinePtr endp, int char2)
+{
+	LinePtr	prevp = nextp;
+
+	line_diff = 0;
+	if (nextp == endp)
+		return char1 < char2;
+
+	while (nextp && prevp) {
+		nextp = nextp->l_next;
+		prevp = prevp->l_prev;
+		line_diff += 1;
+		if (nextp == endp)
+			return YES;
+
+		if (prevp == endp)
+			return NO;
+	}
+	while (nextp!=NULL) {
+		nextp = nextp->l_next;
+		line_diff += 1;
+		if (nextp == endp)
+			return YES;
+	}
+	while (prevp!=NULL) {
+		prevp = prevp->l_prev;
+		line_diff += 1;
+		if (prevp == endp)
+			return NO;
+	}
+	/* the lines are not ordered */
+	return -1;
+}
+
+/* Number of lines (forward OR back) from nextp to endp.
+ * Note: if they are not related, returns 0.
+ */
+long
+LineDist(LinePtr nextp, LinePtr endp)
+{
+	return inorder(nextp, 0, endp, 0) == -1? 0 : line_diff;
+}
+
+/* Number of lines forward from "from" to "to"; -1 if not found.
+ * Note: if "to" is (LinePtr)NULL, returns number of lines to end + 1
+ */
+long
+LinesTo(LinePtr from, LinePtr to)
+{
+	long	n = 0;
+
+	for (;;) {
+		if (from == to)
+			return n;
+
+		if (from == NULL)
+			return -1;
+
+		n += 1;
+		from = from->l_next;
+	}
+}
+
+void
+PushPntp(LinePtr line)
+{
+	if (LineDist(curline, line) >= MarkThresh)
+		set_mark();
+}
+
+void
+ToFirst(void)
+{
+	SetLine(curbuf->b_first);
+}
+
+int
+length(LinePtr line)
+{
+	return strlen(lcontents(line));
+}
+
+void
+to_word(int dir)
+{
+	if (dir == FORWARD) {
+		for(;;) {
+			ZXchar	c = ZXC(linebuf[curchar]);
+
+			if (c == '\0') {
+				if (curline->l_next == NULL)
+					break;	/* failure: out of buffer */
+
+				SetLine(curline->l_next);
+			} else if (jisword(c)) {
+				break;	/* success */
+			} else {
+				curchar += 1;
+			}
+		}
+	} else {
+		for (;;) {
+			if (bolp()) {
+				if (curline->l_prev == NULL)
+					break;	/* failure: out of buffer */
+
+				SetLine(curline->l_prev);
+				Eol();
+			} else if (jisword(linebuf[curchar - 1])) {
+				break;	/* success */
+			} else {
+				curchar -= 1;
+			}
+		}
+	}
+}
+
+/* Are there any modified buffers?  Allp means include B_PROCESS
+ * buffers in the check.
+ */
+jbool
+ModBufs(jbool allp)
+{
+	Buffer	*b;
+
+	for (b = world; b != NULL; b = b->b_next)
+		if (b->b_type != B_SCRATCH
+		&& (b->b_type == B_FILE || allp)
+		&& IsModified(b))
+			return YES;
+	return NO;
+}
+
+const char *
+filename(const Buffer *b)
+{
+	return b->b_fname ? pr_name(b->b_fname, YES) : "[No file]";
+}
+
+int
+jmin(int a, int b)
+{
+	return (a < b) ? a : b;
+}
+
+int
+jmax(int a, int b)
+{
+	return (a > b) ? a : b;
+}
+
+char *
+lcontents(LinePtr line)
+{
+	return line == curline? linebuf : lbptr(line);
+}
+
+char *
+ltobuf(LinePtr line, char *buf)
+{
+	if (line == curline) {
+		if (buf != linebuf)
+			strcpy(buf, linebuf);
+		Jr_Len = strlen(linebuf);
+	} else {
+		jgetline(line->l_dline, buf);
+	}
+	return buf;
+}
+
+void
+DOTsave(Bufpos *buf)
+{
+	buf->p_line = curline;
+	buf->p_char = curchar;
+}
+
+/* Return YES iff we had to rearrange the order. */
+
+jbool
+fixorder(LinePtr *line1, int *char1, LinePtr *line2, int *char2)
+{
+	LinePtr	tline;
+	int	tchar;
+
+	if (inorder(*line1, *char1, *line2, *char2))
+		return NO;
+
+	tline = *line1;
+	tchar = *char1;
+	*line1 = *line2;
+	*char1 = *char2;
+	*line2 = tline;
+	*char2 = tchar;
+
+	return YES;
+}
+
+jbool
+inlist(LinePtr first, LinePtr what)
+{
+	return LinesTo(first, what) != -1;
+}
+
+/* Make curbuf (un)modified and tell the redisplay code to update the modeline
+ * if it will need to be changed.
+ */
+void
+modify(void)
+{
+	if (!curbuf->b_modified) {
+		UpdModLine = YES;
+		curbuf->b_modified = YES;
+	}
+	DOLsave = YES;
+#ifdef RECOVER
+	if (curbuf->b_type != B_SCRATCH)
+		ModCount += 1;
+#endif
+}
+
+void
+unmodify(void)
+{
+	if (curbuf->b_modified) {
+		UpdModLine = YES;
+		curbuf->b_modified = NO;
+#ifdef RECOVER
+		/*
+		 * When a buffer transitions to unmodified
+		 * (most likely because it was saved, or if
+		 * the user invoked NotModified), then it
+		 * seems right to force a SyncRec (on the next
+		 * getch) so that any subsequent crash/recover
+		 * does not suggest recovery of this buffer.
+		 */
+		if (curbuf->b_type != B_SCRATCH)
+			ModCount = SyncFreq;
+#endif
+	}
+}
+
+/* Set or clear the divergence flag for `buf'.
+ * A buffer that contains a file is considered to have diverged
+ * if the file in the filesystem appears to have changed since the
+ * last time the buffer was loaded from or saved to that file.
+ * If the flag has changed, tell the redisplay code to update the
+ * modeline.
+ */
+void
+diverge(Buffer *buf, jbool d)
+{
+	if (buf->b_diverged != d) {
+		UpdModLine = YES;
+		buf->b_diverged = d;
+	}
+}
+
+int
+numcomp(const char *s1, const char *s2)
+{
+	int	count = 0;
+
+	while (*s1 != '\0' && *s1++ == *s2++)
+		count += 1;
+	return count;
+}
+
+#ifdef FILENAME_CASEINSENSITIVE
+int
+numcompcase(const char *s1, const char *s2)
+{
+	int	count = 0;
+
+	while (*s1 != '\0' && CharDowncase(*s1++) == CharDowncase(*s2++))
+		count += 1;
+	return count;
+}
+#endif
+
+char *
+copystr(const char *str)
+{
+	return str == NULL? (char *) NULL :
+		strcpy(emalloc(strlen(str) + 1), str);
+}
+
+#ifndef byte_copy
+void
+byte_copy(const void *from, void *to, size_t count)
+{
+	const char	*p = from;
+	char		*q = to;
+
+	if (count != 0) {
+		do *q++ = *p++; while (--count != 0);
+	}
+}
+#endif
+
+void
+len_error(int flag)
+{
+	static const char	mesg[] = "[line too long]";
+
+	if (flag == JMP_COMPLAIN) {
+		complain(mesg);
+		/* NOTREACHED */
+	} else {
+		error(mesg);
+		/* NOTREACHED */
+	}
+}
+
+/* Insert num copies of character c at offset atchar in buffer buf of size max */
+
+void
+ins_c(DAPchar c, char *buf, int atchar, int num, int max)
+{
+	/* hint to reader: all copying and filling is done right to left */
+	char	*from, *to;
+	int	taillen;
+
+	if (num <= 0)
+		return;
+
+	from = &buf[atchar];
+	taillen = *from == '\0'?  1 : strlen(from) + 1;	/* include NUL */
+	if (atchar + taillen + num > max) {
+		len_error(JMP_COMPLAIN);
+		/* NOTREACHED */
+	}
+	from += taillen;
+	to = from + num;
+	do {
+		*--to = *--from;
+	} while (--taillen != 0);
+	while (to != from)
+		*--to = c;
+}
+
+jbool
+TwoBlank(void)
+{
+	LinePtr	next = curline->l_next;
+
+	return (next != NULL
+		&& *(lcontents(next)) == '\0'
+		&& next->l_next != NULL
+		&& *(lcontents(next->l_next)) == '\0');
+}
+
+void
+linecopy(char *onto, int atchar, char *from)
+{
+	char	*endp = &onto[LBSIZE];
+
+	onto += atchar;
+
+	do {
+		if (onto >= endp) {
+			len_error(JMP_ERROR);
+			/* NOTREACHED */
+		}
+	} while ((*onto++ = *from++) != '\0');
+}
+
+char *
+IOerr(const char *err, const char *file)
+{
+	return sprint("Couldn't %s \"%s\".", err, file);
+}
+
+#ifdef UNIX
+void
+dopipe(int p[2])
+{
+	if (pipe(p) == -1) {
+		complain("[Pipe failed: %s]", strerror(errno));
+		/* NOTREACHED */
+	}
+}
+
+void
+pipeclose(int p[2])
+{
+	(void) close(p[0]);
+	(void) close(p[1]);
+}
+#endif /* UNIX */
+
+/* NOSTRICT */
+
+void *
+emalloc(size_t size)
+{
+	void	*ptr;
+
+	if ((ptr = malloc(size)) == NULL) {
+		/* Try garbage collecting lines */
+		GCchunks();
+		if ((ptr = malloc(size)) == NULL) {
+			/* Uh ... Oh screw it! */
+			error("[Out of memory]");
+			/* NOTREACHED */
+		}
+	}
+	return ptr;
+}
+
+void *
+erealloc(void *ptr, size_t size)
+{
+	if (ptr == NULL) {
+		ptr = emalloc(size);
+	} else if ((ptr = realloc(ptr, size)) == NULL) {
+		/* no second chance for realloc! */
+		error("[out of memory]");
+		/* NOTREACHED */
+	}
+	return ptr;
+}
+
+/* Return the basename of pathname F.
+ *
+ * - System V release 4 includes a function named "basename" in libgen.
+ *   It is incompatible with ours:
+ *   + it strips trailing "/" characters (does this matter?)
+ *   + although not clearly documented, this stripping modifies the argument!
+ *   + it handles the NULL pointer and the null string as "."
+ *
+ * - LINUX also provides a basename
+ *   + at least one version of Slackware puts the prototype in <unistd.h>
+ *     so it cannot be ignored.
+ *   + This LINUX prototype declares the parameter to be of const char *
+ *     type.  This is incompatible with ours and with SVR4's.
+ *   + The fact that the argument is a pointer to const implies that
+ *     the source string cannot be modified.  Therefore trailing "/"
+ *     characters are not stripped from the source.
+ *   + Either stripping isn't done to the result OR the result must be
+ *     placed in a distinct chunk of memory.  How is this memory managed?
+ *
+ * To avoid conflict, we have renamed ours to "jbasename".
+ */
+
+const char *
+jbasename(const char *f)
+{
+	const char	*cp;
+
+#ifdef MSFILESYSTEM
+	if (f[0] != '\0'  && f[1] == ':')
+		f += 2;
+	if ((cp = strrchr(f, '\\')) != NULL)
+		f = cp + 1;
+#endif /* MSFILESYSTEM */
+	if ((cp = strrchr(f, '/')) != NULL)
+		f = cp + 1;
+	return f;
+}
+
+void
+push_env(jmp_buf savejmp)
+{
+	byte_copy(mainjmp, savejmp, sizeof(jmp_buf));
+}
+
+void
+pop_env(jmp_buf savejmp)
+{
+	byte_copy(savejmp, mainjmp, sizeof(jmp_buf));
+}
+
+/* get the time buf, designated by *timep, from FROM to TO. */
+char *
+get_time(time_t *timep, char *buf, int from, int to)
+{
+	time_t	now;
+	char	*cp;
+
+	if (timep != NULL)
+		now = *timep;
+	else
+		(void) time(&now);
+	cp = ctime(&now) + from;
+	if (to == -1)
+		cp[strlen(cp) - 1] = '\0';		/* Get rid of \n */
+	else
+		cp[to - from] = '\0';
+	if (buf) {
+		strcpy(buf, cp);
+		return buf;
+	} else {
+		return cp;
+	}
+}
+
+/* Are s1 and s2 equal, at least for the first n chars, ignoring case? */
+
+jbool
+caseeqn(const char *s1, const char *s2, size_t n)
+{
+	if (s1==NULL || s2==NULL)
+		return NO;
+
+	for (;;) {
+		if (n == 0)
+			return YES;
+		n--;
+		if (!cind_eq(*s1, *s2++))
+			return NO;
+
+		if (*s1++ == '\0')
+			return YES;
+	}
+}
+
+/* copy a string into buffer; truncate silently if too large; NUL-pad.
+ * Note: buffer must be 1 larger than n to fit NUL!
+ * Duplicated in recover.c: needed by scandir.c
+ */
+void
+null_ncpy(char *to, const char *from, size_t n)
+{
+	(void) strncpy(to, from, n);
+	to[n] = '\0';
+}
+
+/* Copy a string into a buffer; truncate silently if string is too large */
+void
+truncstrsub(char *buf, const char *str, size_t bufsz)
+{
+	size_t strsz = strlen(str);
+	if (bufsz == 0) {
+		complain("internal error in truncstrsub");	/* cannot even fit NUL */
+		/* NOTREACHED */
+	} else {
+		size_t sz = strsz < bufsz ? strsz : bufsz - 1;
+		byte_move(str, buf, sz);
+		buf[sz] = '\0';
+	}
+}
+
+/* Copy a string into a buffer; complain if string is too large */
+void
+jamstrsub(char *buf, const char *str, size_t bufsz)
+{
+	size_t strsz = strlen(str);
+	if (strsz < bufsz) {
+		byte_move(str, buf, strsz);
+		buf[strsz] = '\0';
+	} else {
+		complain("string too long");
+		/* NOTREACHED */
+	}
+}
+
+/* Concatenate a string onto a buffer; complain if buffer not large enough */
+void
+jamstrcat(char *buf, const char *str, size_t bufsz)
+{
+	size_t bstrsz = strlen(buf);
+	if (bstrsz >= bufsz) {
+		complain("base string too long!");
+		/* NOTREACHED */
+	}
+	jamstrsub(buf + bstrsz, str, bufsz - bstrsz);
+}
+
+jbool
+sindex(const char *pattern, const char *string)
+{
+	size_t	len = strlen(pattern);
+
+	if (len == 0)
+		return YES;
+
+	while (*string != '\0') {
+		if (*pattern == *string && strncmp(pattern, string, len) == 0)
+			return YES;
+
+		string += 1;
+	}
+	return NO;
+}
+
+/* Free, then allocate a block.
+ * Like erealloc, except that the previous contents of the block are lost.
+ */
+
+void *
+freealloc(void *obj, size_t size)
+{
+	if (obj != NULL)
+		obj = realloc(obj, size);
+	if (obj == NULL)
+		obj = emalloc(size);
+	return obj;
+}
+
+/* order file names (parameter for qsort) */
+int
+fnamecomp(const void *a, const void *b)
+{
+	return strcmp(*(const char **)a, *(const char **)b);
+}
+
+/* decode a pair of characters representing \x or ^x */
+ZXchar
+DecodePair(ZXchar first, ZXchar second)
+{
+	if (second == EOF || second == '\n') {
+		complain("unexpected end of file after %p", first);
+		/* NOTREACHED */
+	}
+	if (first == '^') {
+		if (second == '?') {
+			second = DEL;
+		} else {
+			ZXchar	us = CharUpcase(second);
+
+			if (us < '@' || '_' < us) {
+				complain("unknown control character %p", second);
+				/* NOTREACHED */
+			}
+			second = CTL(us);
+		}
+	}
+	return second;
+}
+
+#if defined(IPROCS) || defined(SUBSHELL)
+/* Convenience routine, initializes envp properly if it is null,
+ * hides a bit of the abstraction and some duplicated code
+ */
+const char **
+jenvdata(Env *envp)
+{
+	if (envp->e_data == NULL) {
+	    envp->e_data = (const char **) environ; /* avoid gcc warning */
+	    envp->e_malloced = NO;
+	    envp->e_headroom = 0;
+	}
+	return envp->e_data;
+}
+    
+/* Put a definition into the environment.
+ * Same as putenv(3) in SVID 3, POSIX, and BSD 4.3.
+ */
+void
+jputenv(Env *envp, const char *def)
+{
+	const char **p, **e;
+	const char *eq;
+
+	if ((eq = strchr(def, '=')) == NULL)
+		return;
+	for (p = e = jenvdata(envp); ; p++) {
+		if (*p == NULL) {
+			if (envp->e_headroom == 0) {
+#				define JENV_INCR	5
+				size_t	sz = ((p-e) + 1) * sizeof(char *);
+				const char	**ne = (const char **)
+					malloc(sz + JENV_INCR*sizeof(char *));
+
+				if (ne == NULL)
+					break;	/* malloc failed: give up -- doesn't matter much */
+
+				byte_copy(envp->e_data, ne, sz);
+				p = ne + (p-e);
+				if (envp->e_malloced)
+					free(envp->e_data);
+				envp->e_data = e = ne;
+				envp->e_malloced = YES;
+				envp->e_headroom = JENV_INCR;
+#				undef JENV_INCR
+			}
+			envp->e_headroom -= 1;
+			*p++ = copystr(def);
+			*p = NULL;
+			break;
+		}
+		if (strncmp(*p, def, (size_t) (eq - def + 1)) == 0) {
+			*p = copystr(def);
+			break;
+		}
+	}
+}
+
+/* Remove any definitions of name from the environment.
+ * Same as 4.3BSD's unsetenv(3).
+ */
+void
+junsetenv(Env *envp, const char *name)
+{
+	const char **p, **q;
+	size_t l = strlen(name);
+
+	for (p = q = jenvdata(envp);;) {
+		const char *e = *p++;
+
+		*q = e;
+
+		if (e == NULL)
+			break;
+
+		if (strncmp(e, name, l) == 0 && e[l] == '=') {
+			/* unset this one by not advancing q */
+			envp->e_headroom += 1;
+		} else {
+			q += 1;
+		}
+	}
+}
+#endif /* defined(IPROCS) */

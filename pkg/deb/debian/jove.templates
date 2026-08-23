@@ -1,0 +1,19 @@
+Template: jove/upgradewarn-1
+Type: note
+_Description: Found old version of /etc/jove.rc. Moved it to /etc/jove/jove.rc
+
+Template: jove/upgradewarn-2
+Type: note
+_Description: Old version of /etc/jove.rc and new version /etc/jove/jove.rc found
+ Moving old version to /etc/jove/jove.rc.old
+
+Template: jove/removeinitd
+Type: note
+_Description: Removed obsolete /etc/init.d/jove script
+ Check NEWS.Debian for more information
+
+Template: jove/preservefiles
+Type: note
+_Description: Found old files in /var/lib/jove/preserve/
+ You can recover those by running jove -r
+ Check NEWS.Debian for more information.

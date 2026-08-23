@@ -1,0 +1,73 @@
+#
+#    Translators, if you are not familiar with the PO format, gettext
+#    documentation is worth reading, especially sections dedicated to
+#    this format, e.g. by running:
+#         info -n '(gettext)PO Files'
+#         info -n '(gettext)Header Entry'
+#
+#    Some information specific to po-debconf are available at
+#            /usr/share/doc/po-debconf/README-trans
+#         or http://www.debian.org/intl/l10n/po-debconf/README-trans
+#
+#    Developers do not need to manually edit POT or PO files.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: jove 4.16.0.70-2\n"
+"Report-Msgid-Bugs-To: jove@packages.debian.org\n"
+"POT-Creation-Date: 2020-02-04 22:52+0100\n"
+"PO-Revision-Date: 2006-11-28 19:41+0900\n"
+"Last-Translator: Atsushi Shimono <shimono@mozilla.gr.jp>\n"
+"Language-Team: Japanese <debian-japanese@lists.debian.org>\n"
+"Language: ja\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. Type: note
+#. Description
+#: ../jove.templates:1001
+msgid "Found old version of /etc/jove.rc. Moved it to /etc/jove/jove.rc"
+msgstr ""
+"古いバージョンである /etc/jove.rc が検出されました。これは /etc/jove/jove.rc "
+"に移動されます。"
+
+#. Type: note
+#. Description
+#: ../jove.templates:2001
+msgid "Old version of /etc/jove.rc and new version /etc/jove/jove.rc found"
+msgstr ""
+"古いバージョンである /etc/jove.rc と新しいバージョンである /etc/jove/jove.rc "
+"が検出されました。"
+
+#. Type: note
+#. Description
+#: ../jove.templates:2001
+msgid "Moving old version to /etc/jove/jove.rc.old"
+msgstr "古いバージョンを /etc/jove/jove.rc.old に移動します。"
+
+#. Type: note
+#. Description
+#: ../jove.templates:3001
+msgid "Removed obsolete /etc/init.d/jove script"
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../jove.templates:3001
+msgid "Check NEWS.Debian for more information"
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../jove.templates:4001
+msgid "Found old files in /var/lib/jove/preserve/"
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../jove.templates:4001
+msgid ""
+"You can recover those by running jove -r Check NEWS.Debian for more "
+"information."
+msgstr ""
