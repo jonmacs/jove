@@ -473,7 +473,43 @@ characters may display incorrectly. Use ASCII or single-byte encodings with
 JOVE.
 
 .sp 1
+There is no comprehensive undo capability, though many commands that modify
+a lot of text (e.g. fill-paragraph, kill-*) will save the pre-modification text
+region to the kill ring, and set up the mark so that the modified text can
+be easily deleted and then yanked back.
+
+.sp 1
 Searches can't cross line boundaries.
 
 .SH AUTHOR
 Jonathan Payne
+
+.SH HISTORY
+Jonathan wrote JOVE (on a PDP-11/70, running Seventh Edition
+Unix and pre-2.9 BSD) as a high school student at the
+Lincoln-Sudbury Regional High School.  It was/is the only
+Emacs clone that fits on a PDP-11, and was easy and
+relatively fast to build/run on most Unix computers of the
+1980s onwards, yet able to handle files much larger than
+could fit in real or virtual memory because of its efficient
+temporary file management.  Brian Harvey (the Computer
+Director at LSRHS) submitted it (with other LSRHS software)
+to the first USENIX distribution tape circa June 1982.
+Jonathan also posted a note about it to Usenet
+net.unix-wizards on April 18, 1983.  Version 4.6.1.4 was
+first posted to Usenet mod.sources Volume 8, Issue 20 (early
+1987) and included in the BSD 4.3 distribution as
+contributed software, with the printed manual in the User's
+Supplementary Documents volume (as USD:  17).  Patches
+appeared in mod.sources Volume 11 Issue 45 jove.pch
+(upgrading to 4.7). Version 4.9 appeared in
+comp.sources.unix (renamed from mod.sources in the great
+Usenet reorg) in Volume 14, Issue 57 as jove4.9, which
+included MS-DOS and classic (pre-OSX) Mac support.  D. Hugh
+Redelmeier and Mark Moraes released 4.16 on
+ftp.cs.toronto.edu, Cord Beerman has maintained the Debian
+package since 2010 (or earlier!). 4.17 onwards have been on
+github since 2019. 5.0 finally switches from classic old
+Kernighan-and-Ritchie function definitions to C89-style,
+abandoning the pre-C89 machines that JOVE first became
+known on.
