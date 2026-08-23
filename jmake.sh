@@ -38,7 +38,7 @@ case "$u" in
 	extra="LOCALCC=$locc XEXT=.exe WINDRES=$u-windres EXTRAOBJS=win32.o ICON=jjove.coff"
 	ldlibs="-static -static-libgcc -lcomdlg32 -lssp_nonshared"
 	;;
-*-linux-musl*) # presumably set via something like JMAKE_UNAME=i486-linux-musl
+*-linux-musl*) # presumably set via something like JMAKE_UNAME=i486-alpine-linux-musl or JMAKE_UNAME=$(gcc -dumpmachine)
 	: ${JMAKE_RELATIVE=1}
 	defcc="$u-gcc"
 	sysdefs="-DLinux -DJTC"

@@ -188,23 +188,19 @@ if test -e /etc/redhat-release; then
 	case "${1-}" in *install) rpm -i $HOME/rpmbuild/RPMS/$TB_MACH/jove-[4-9]*.rpm;; esac &&
 	rm -f $HOME/rpmbuild/*RPMS/$TB_MACH/jove-[4-9]*.rpm
 elif test -e /etc/alpine-release; then
-	# build statically compiled versions using native alpine x86_64
-	# and musl-cross-make i486 to get very generic 32- and 64-bit x86
-	# tarballs that should run on just about on any Linux PC hardware
-	for tag in i486-linux-musl x86_64-alpine-linux-musl; do
-		if type ${tag}-gcc 2> /dev/null ; then
-			r=jove-$ver-$tag-static &&
-			if test ! -d $dist/$r; then mkdir $dist/$r; fi &&
-			make clobber &&
-			JMAKE_UNAME=$tag ./jmake.sh OPTFLAGS="$o" LOCALCFLAGS="$w" all &&
-			strip jjove recover &&
-			mv jjove $dist/$r/jove &&
-			mv recover $dist/$r &&
-			cp -pr README ChangeLog teachjove paths.h doc $dist/$r/ &&
-			tar -c -z -v -f $dist/$r.tar.gz -C $dist $r &&
-			rm -r $dist/$r
-		fi
-	done
+	# build statically compiled versions using native alpine, since musl is small
+	# so make tarballs that should run on just about on any Linux PC hardware
+	tag=$(gcc -dumpmachine) &&
+	r=jove-$ver-$tag-static &&
+	if test ! -d $dist/$r; then mkdir $dist/$r; fi &&
+	make clobber &&
+	JMAKE_UNAME=$tag ./jmake.sh OPTFLAGS="$o -static" LOCALCFLAGS="$w" all &&
+	strip jjove recover &&
+	mv jjove $dist/$r/jove &&
+	mv recover $dist/$r &&
+	cp -pr README ChangeLog teachjove paths.h doc $dist/$r/ &&
+	tar -c -z -v -f $dist/$r.tar.gz -C $dist $r &&
+	rm -r $dist/$r
 fi &&
 for tag in ${TB_MINGW}; do
     if type ${tag}-gcc 2> /dev/null ; then
