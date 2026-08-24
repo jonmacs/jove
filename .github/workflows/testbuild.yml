@@ -53,8 +53,6 @@ jobs:
           platform: '386'
         - os: 'debian:testing'
           platform: '386'
-        - os: 'fedora:30'
-          platform: '386'
     runs-on: ubuntu-latest
     env:
       CONTAINER: ${{ matrix.os }}
