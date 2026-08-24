@@ -1,3 +1,8 @@
+# The release+tag process for Jove on github (20260823)
+
+[Assumes this is all run on an x86_64 machine, adapt if
+you're on something else]
+
 When tagging a new release (e.g. 5.0.0) on github after
 suitable testing of the candidate, ensure the Changelog is
 updated and commit.
@@ -12,38 +17,48 @@ order they run in)
 
 In a temporary directory, download:
 
-DIST-container-?-debian_11.zip
-DIST-container-?-alpine_3.9.zip
-DIST-container-?-centos_7.zip
-DIST-hosted-?-ubuntu-24.04-arm.zip
+DIST-container-debian_11_amd64.zip
+DIST-container-alpine_latest_amd64.zip
+DIST-container-alpine_latest_386.zip
+DIST-container-centos_7_amd64.zip
+DIST-hosted-ubuntu-24.04-arm.zip
 
-unzip -x -j DIST-container-?-debian_11.zip '*/jove_*.deb' '*/*.tgz' '*/*.zip'
-unzip -x -j DIST-container-?-centos_7.zip '*/*.rpm'
-unzip -x -j DIST-container-?-alpine_3.9.zip '*/*static.tar.gz'
-unzip -x -j DIST-hosted-?-ubuntu-24.04-arm.zip '*/jove_*.deb'
+unzip -x -j DIST-container-debian_11_amd64.zip '*/jove_*.deb' '*/*.tgz' '*/*.zip'
+unzip -x -j DIST-container-centos_7_amd64.zip '*/*.rpm'
+unzip -x -j DIST-container-alpine_latest_amd64.zip '*/*static.tar.gz'
+unzip -x -j DIST-container-alpine_latest_386.zip '*/*static.tar.gz'
+unzip -x -j DIST-hosted-ubuntu-24.04-arm.zip '*/jove_*.deb'
 
 rm DIST-*.zip
 
-Something that looks like the following files should remain:
+Something that looks like the following files should remain (5.0.0
+will be whatever Jove version you are releasing)
 
 jove-5.0.0-10.el7.x86_64.rpm
-jove-5.0.0-i686-w64-mingw32.zip
-jove-5.0.0-x86_64-alpine-linux-musl-static.tar.gz
-jove-5.0.0-x86_64-w64-mingw32.zip
-jove-5.0.0.tgz
-jove500s.zip
 jove_5.0.0-1_amd64.deb
 jove_5.0.0-1_arm64.deb
 jove_5.0.0-1_i386.deb
+jove-5.0.0-i586-alpine-linux-musl-static.tar.gz
+jove-5.0.0-i686-w64-mingw32.zip
+jove500s.zip
+jove-5.0.0.tgz
+jove-5.0.0-x86_64-alpine-linux-musl-static.tar.gz
+jove-5.0.0-x86_64-w64-mingw32.zip
 
 I run pkg/dos/testdos.sh to generate a MS-DOS
 DIST/joveNNNd.zip (copy over to the temporary directory)
 
-Generate a self-extracting form using
-	cat pkg/dos/UNZIPSFX.EXE DIST/jove???d.zip > DIST/jove500d.exe
+Generate a self-extracting form using the following command (all lines in one go)
+(replacing 500 with the current abbreviated version)
+
+	curl -L https://raw.githubusercontent.com/jonmacs/jove/binary-unzipsfx/pkg/dos/UNZIPSFX.EXE -o DIST/unzipsfx.exe &&
+	sha256sum -c pkg/dos/unzipsfx.sha256 && # should say DIST/unzipsfx.exe: OK
+	cat DIST/unzipsfx.exe DIST/jove500d.zip > DIST/jove500d.exe &&
 	zip -A DIST/jove500d.exe
 
-After some testing, upload those as assets to the tag.
+After the following testing, upload those as assets to the
+tag.  Filter the most relevant user-facing or
+packager-affecting changes from ChangeLog.
 
 To test, run a container (podman) of an ubuntu with this dir
 exported to it with -v, and try 
@@ -54,15 +69,16 @@ then uninstall with
 
 Repeat for *_i386.deb
 
-Then mkdir /tmp/testjove and unpack *-static.tar.gz in that directory,
-and run jove-*-x86_64-alpine-linux-musl-static/jove.
-(XXX this needs the musl package installed so it can find the loader,
-doesn't this defeat the purpose of a static binary)
+On a Linux machine or container, make a temp directory and
+one at a time, unpack *-static.tar.gz in that directory, and
+run jove-*-alpine-linux-musl-static/jove (i.e. twice for
+i586 and x86_64)
 
-I test the mingw tars on a couple of Windows VMs (I have a
-WinXP and Win7) and a real Win11 box.
+Test the mingw tars on Windows VMs (I usually try a WinXP
+and Win7 VM, and a real Win11 box).
 
-Test the DOS self-extracting version in a new dosbox.
+Test the DOS self-extracting version in a new dosbox, and/or
+a FreeDOS VM.
 
 For minimal testing (need to improve this):
 
@@ -76,4 +92,5 @@ close-brace and reinsert it to make sure formatting works,
 same for a paren.  Hop around screen and file (forward and
 back for chars, words, paras, screen, start and end of file;
 then with repeats).  Turn on line numbering and hop around.
-Turn off and hop around.
+Turn off numbering and hop around.  Copy-paste with and
+without xt-mouse.

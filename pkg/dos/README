@@ -28,15 +28,3 @@ and do a bit of browsing around.
 Then use 
 	exit
 to get out of dosbox, it makes a zip of the binary dir in jove500d.zip
-
-To make that a self-extracting zip executable,
-	cat pkg/dos/UNZIPSFX.EXE jove500d.zip > jove500d.exe
-	zip -A jove500d.exe
-
-UNZIPSFX.EXE was compiled using Watcom C via 'wmake -f msdos/makefile.wat'
-in the unpacked
-	https://pilotfiber.dl.sourceforge.net/project/infozip/UnZip%206.x%20%28latest%29/UnZip%206.0/unzip60.tar.gz?viasf=1&fid=976c3ed19f4a77d2&e=1786478170&st=29A7V2tqssNnAbJcLV-F1g
-on https://sourceforge.net/projects/infozip/postdownload
-036d96991646d0449ed0aa952e4fbe21b476ce994abc276e49d30e686708bd37  unzip60.tar.gz
-
-43b69f7eef18d4f77c4dd487843af0325540f5e057146af20a61c21530286247  pkg/dos/UNZIPSFX.EXE
