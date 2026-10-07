@@ -72,15 +72,6 @@ ifvar jove-features .*:proc:
   # unreadable output in subshells via pipes.
   # proc-env-export TERM=dumb
 
-  # gcc error messages have Unicode quote chars
-  # if LANG or LC* are set to utf*, which is
-  # typical for modern Linux.  That is hard to
-  # read inside Jove compile-it output.
-  # (similarly, nroff produces Unicode hyphens)
-  # LANG=C seems a more readable, albeit constraining
-  # default for Jove subshells (at least,
-  # till Jove gets to understand Unicode)
-  proc-env-export LANG=C
 endif
 
 # This makes the arrow keys work on most terminals.

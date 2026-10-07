@@ -98,12 +98,14 @@ lremove(LinePtr line1, LinePtr line2)
 	lfreereg(next, line2);	/* Put region at end of free line list. */
 }
 
+private void	del_motion(long n, jbool OK_kill, jbool whole);
+
 /* delete character forward */
 
 void
 DelNChar(void)
 {
-	del_char(FORWARD, arg_value(), YES);
+	del_motion(arg_value(), YES, YES);
 }
 
 /* Delete character backward */
@@ -117,33 +119,32 @@ DelPChar(void)
 		 * but control characters displayed as two are not handled.
 		 */
 		int	rightcol = calc_pos(linebuf, curchar);
-		int	charcount = jmin(arg_value(), curchar);
-		int	colcount = rightcol - calc_pos(linebuf, curchar-charcount);
+		int	n = arg_value();
+		int	colcount;
 
-		b_char(charcount);
+		while (--n >= 0 && !bolp())
+			curchar = prev_char(linebuf, curchar);
+		colcount = rightcol - calc_pos(linebuf, curchar);
 		overwrite(' ', colcount);
 		b_char(colcount);
 	} else {
-		del_char(BACKWARD, arg_value(), YES);
+		del_motion(-arg_value(), YES, YES);
 	}
 }
 
-/* Delete some characters.  If deleting forward then call for_char
- * to the final position otherwise call back_char.  Then delete the
- * region between the two with patchup().
+/* Delete some characters.  Move n characters (backward if n is
+ * negative, whole characters if whole is YES), then delete the
+ * region between the two positions with patchup().
  */
-void
-del_char(int dir, int num, jbool OK_kill)
+private void
+del_motion(long n, jbool OK_kill, jbool whole)
 {
 	Bufpos	before,
 		after;
-	jbool	killp = (OK_kill && (abs(num) > 1));
+	jbool	killp = (OK_kill && (labs(n) > 1));
 
 	DOTsave(&before);
-	if (dir == FORWARD)
-		f_char(num);
-	else
-		b_char(num);
+	char_motion(n, whole);
 	if (before.p_line == curline && before.p_char == curchar) {
 		complain((char *)NULL);
 		/* NOTREACHED */
@@ -156,6 +157,13 @@ del_char(int dir, int num, jbool OK_kill)
 		patchup(before.p_line, before.p_char, after.p_line, after.p_char);
 		lremove(before.p_line, after.p_line);
 	}
+}
+
+/* Delete num bytes. */
+void
+del_char(int dir, int num, jbool OK_kill)
+{
+	del_motion(dir == FORWARD? num : -(long)num, OK_kill, NO);
 }
 
 /* The kill ring.

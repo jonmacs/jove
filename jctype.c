@@ -5,6 +5,11 @@
  * this notice is included in all the source files and documentation.     *
  **************************************************************************/
 
+/* glibc only declares wcwidth for X/Open */
+#if !defined(_XOPEN_SOURCE) && !defined(NO_UTF8)
+# define _XOPEN_SOURCE	700
+#endif
+
 #include "jove.h"
 #include "jctype.h"
 
@@ -290,6 +295,10 @@ jisident(DAPchar c)
 # ifndef NO_SETLOCALE
 
 #  include <locale.h>
+#  ifdef USE_UTF8
+#   include <langinfo.h>
+#   include <wchar.h>
+#  endif
 
 char	LcCtype[32] = "";	/* VAR: lc-ctype, for use in setlocale */
 
@@ -300,6 +309,9 @@ locale_adjust(void)
 {
 	char	*res = setlocale(LC_CTYPE, LcCtype);
 
+#  ifdef USE_UTF8
+	UTF8Mode = strcmp(nl_langinfo(CODESET), "UTF-8") == 0;
+#  endif
 	if (res != NULL) {
 		/* success: if it fits, record result */
 		if (strlen(res) < sizeof(LcCtype))
@@ -326,6 +338,54 @@ locale_adjust(void)
 }
 
 # endif /* !NO_SETLOCALE */
+
+# ifdef USE_UTF8
+
+jbool	UTF8Mode = NO;
+
+/* Decode the UTF-8 sequence at s and return its length in bytes, or 0
+ * if s doesn't start with a well-formed sequence for a character that
+ * takes up screen space.  Overlong forms, surrogates, controls and
+ * zero-width characters all yield 0, so callers show them as octal
+ * bytes, which is ugly for combining marks, but honest.
+ */
+int
+utf8_decode(const char *s, ScrChar *cp, int *width)
+{
+	static const long	least[] = { 0, 0, 0x80, 0x800, 0x10000 };
+	ZXchar	c = ZXC(*s);
+	long	u;
+	int	len,
+		i,
+		w;
+
+	if (c < 0xC2)
+		return 0;
+	else if (c < 0xE0)
+		len = 2, u = c & 0x1F;
+	else if (c < 0xF0)
+		len = 3, u = c & 0x0F;
+	else if (c < 0xF5)
+		len = 4, u = c & 0x07;
+	else
+		return 0;
+	for (i = 1; i < len; i++) {
+		c = ZXC(s[i]);
+		if ((c & 0xC0) != 0x80)
+			return 0;	/* this also stops at NUL */
+		u = (u << 6) | (c & 0x3F);
+	}
+	if (u < least[len] || u > 0x10FFFF || (u >= 0xD800 && u <= 0xDFFF))
+		return 0;
+	w = wcwidth((wchar_t) u);
+	if (w <= 0)
+		return 0;
+	*cp = (ScrChar) u;
+	*width = w;
+	return len;
+}
+
+# endif /* USE_UTF8 */
 
 #else /* !USE_CTYPE */
 

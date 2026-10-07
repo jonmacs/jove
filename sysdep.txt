@@ -271,6 +271,10 @@ USE_CTYPE	use the system's <ctype.h> functions.  If this is
 		characters, be sure to define NCHARS to be 128
 NO_SETLOCALE	define if you wish to define USE_CTYPE but the system
 		has no setlocale routine.
+NO_UTF8		define to leave out UTF-8 display support.  Otherwise, UNIX
+		systems with USE_CTYPE get USE_UTF8, which needs
+		nl_langinfo and wcwidth, and treats the buffer as UTF-8
+		whenever the LC_CTYPE codeset is UTF-8.
 ISO_8859_1	use wired-in tables reflecting the characteristics of the
 		ISO 8859-1 character set (Latin1) (USE_CTYPE is better if
 		it works).

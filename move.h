@@ -7,12 +7,15 @@
 
 extern void
 	b_char(long n),
+	char_motion(long n, jbool whole),
 	f_char(long n),
 	f_word(long num),
 	line_move(int dir, long n, jbool line_cmd);
 
 extern int
-	how_far(LinePtr line,int col);
+	how_far(LinePtr line,int col),
+	next_char(const char *line, int i),
+	prev_char(const char *line, int i);
 
 /* Commands: */
 

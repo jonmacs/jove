@@ -28,9 +28,9 @@ private struct screenline	*Savelines = NULL;	/* scratch entries (LI of them) */
 
 private void LEclear(struct screenline *);	/* free s_effects component */
 
-private char	*cursor;			/* offset into current Line */
+private ScrChar	*cursor;		/* offset into current Line */
 
-char	*cursend;
+ScrChar	*cursend;
 
 /* Position in tercap screen.  INFINITY means "don't know". */
 int	CapCol,
@@ -46,8 +46,8 @@ make_scr(void)
 	int	i;
 	struct screenline
 		*ns;
-	char	*nsp;
-	static char
+	ScrChar	*nsp;
+	static ScrChar
 		*screenchars = NULL;
 	static volatile int
 		oldLI = 0;
@@ -83,7 +83,7 @@ make_scr(void)
 	ns = Screen = (struct screenline *)
 			malloc((unsigned) LI * sizeof(struct screenline));
 
-	nsp = screenchars = (char *) malloc((size_t)CO * LI);
+	nsp = screenchars = (ScrChar *) malloc((size_t)CO * LI * sizeof(ScrChar));
 
 	if (DesiredScreen == NULL
 	|| PhysScreen == NULL
@@ -136,12 +136,50 @@ make_scr(void)
 }
 
 void
-clrline(char *cp1, char *cp2)
+clrline(ScrChar *cp1, ScrChar *cp2)
 {
 	while (cp1 < cp2)
 		*cp1++ = ' ';
 }
 
+
+#ifdef USE_UTF8
+
+/* Send one screen cell to the terminal, as UTF-8 if it's a code point. */
+void
+scr_putcell(ScrChar c)
+{
+	if (UTF8Mode && c >= 0x80) {
+		if (c < 0x800) {
+			scr_putchar((char) (0xC0 | (c >> 6)));
+		} else {
+			if (c < 0x10000) {
+				scr_putchar((char) (0xE0 | (c >> 12)));
+			} else {
+				scr_putchar((char) (0xF0 | (c >> 18)));
+				scr_putchar((char) (0x80 | ((c >> 12) & 0x3F)));
+			}
+			scr_putchar((char) (0x80 | ((c >> 6) & 0x3F)));
+		}
+		scr_putchar((char) (0x80 | (c & 0x3F)));
+	} else {
+		scr_putchar((char) c);
+	}
+}
+
+/* The right half of a double-width character: the terminal moved past
+ * it when it drew the left half, so there's nothing to send.
+ */
+private void
+wide_sputc(void)
+{
+	if (CapLine == i_line && CapCol == i_col)
+		CapCol += 1;
+	*cursor++ = SC_WIDE;
+	i_col += 1;
+}
+
+#endif /* USE_UTF8 */
 
 /* Output one character (if necessary) at the current position */
 
@@ -188,10 +226,10 @@ sputc(char c)
 #else /* !MAC */
 
 # ifdef HIGHLIGHTING
-#  define	CharChanged(c)	(*cursor != (char) (c))
+#  define	CharChanged(c)	(*cursor != (ScrChar) (c))
 # else /* !HIGHLIGHTING */
 private jbool	ChangeEffect = NO;
-#  define	CharChanged(c)	(ChangeEffect || *cursor != (char) (c))
+#  define	CharChanged(c)	(ChangeEffect || *cursor != (ScrChar) (c))
 # endif /* !HIGHLIGHTING */
 
 # ifdef IBMPCDOS
@@ -199,7 +237,10 @@ private jbool	ChangeEffect = NO;
  * is slower than just doing it.  I wonder if this is true.
  */
 #  define	sputc(c)	do_sputc(c)
-# else /* !IBMPCDOS */
+# elif defined(USE_UTF8)
+/* An unchanged SC_WIDE may still need to move CapCol along. */
+#  define	sputc(c)	do_sputc(c)
+# else /* !IBMPCDOS && !USE_UTF8 */
 #  define sputc(c)	{ \
 	if (CharChanged(c)) { \
 		do_sputc(c); \
@@ -208,11 +249,17 @@ private jbool	ChangeEffect = NO;
 		i_col += 1; \
 	} \
 }
-# endif /* !IBMPCDOS */
+# endif /* !IBMPCDOS && !USE_UTF8 */
 
 private void
-do_sputc(char c)
+do_sputc(ScrChar c)
 {
+# ifdef USE_UTF8
+	if (c == SC_WIDE) {
+		wide_sputc();
+		return;
+	}
+# endif
 	if (CharChanged(c)) {
 # ifdef ID_CHAR
 		INSmode(NO);
@@ -224,7 +271,7 @@ do_sputc(char c)
 		if (UL && c == '_' && *cursor != ' ')
 			putstr(" \b");		/* Erase so '_' looks right. */
 # endif
-		scr_putchar(c);
+		scr_putcell(c);
 		AbortCnt -= 1;
 		CapCol += 1;
 	} else {
@@ -241,7 +288,7 @@ private void	(*real_effect)(jbool);
 private void
 do_hlsputc(const struct LErange *hl,	/* desired highlighting */
 	   const struct LErange *oldhl,	/* previous highlighting */
-	   char c)
+	   ScrChar c)
 {
 	/* assert: hl != NULL && oldhl != NULL
 	 * In other words, hl and oldhl must point to real LErange structs.
@@ -255,6 +302,13 @@ do_hlsputc(const struct LErange *hl,	/* desired highlighting */
 			(unsigned)i_col - hl->start < hl->width? hl->high : hl->norm,
 		(*underlying_effect)(jbool) =
 			(unsigned)i_col - oldhl->start < oldhl->width? oldhl->high : oldhl->norm;
+
+# ifdef USE_UTF8
+	if (c == SC_WIDE) {
+		wide_sputc();
+		return;
+	}
+# endif
 
 	if (*cursor != c || virtual_effect != underlying_effect) {
 # ifdef ID_CHAR
@@ -275,7 +329,7 @@ do_hlsputc(const struct LErange *hl,	/* desired highlighting */
 			putstr(" \b");		/* Erase so '_' looks right. */
 # endif
 		*cursor++ = c;
-		scr_putchar(c);
+		scr_putcell(c);
 		AbortCnt -= 1;
 		CapCol += 1;
 	} else {
@@ -300,7 +354,7 @@ cl_eol(void)
 			clrline(cursor, Curline->s_roof);
 		} else {
 			/* Ugh.  The slow way for dumb terminals. */
-			char *savecp = cursor;
+			ScrChar *savecp = cursor;
 
 			while (cursor < Curline->s_roof)
 				sputc(' ');
@@ -384,7 +438,7 @@ LEclear(struct screenline *sl)
  */
 
 jbool
-swrite(char *line, LineEffects hl, jbool abortable)
+swrite(ScrChar *line, LineEffects hl, jbool abortable)
 {
 	int	n = cursend - cursor;
 	jbool	aborted = NO;
@@ -463,7 +517,7 @@ swrite(char *line, LineEffects hl, jbool abortable)
 			SO_effect(YES);
 #endif /* !HIGHLIGHTING */
 
-		while ((c = ZXC(*line++)) != '\0') {
+		while ((c = ZXSC(*line++)) != '\0') {
 			if (abortable && i_col >= MinCol && AbortCnt < 0) {
 				AbortCnt = ScrBufSize;
 				if (PreEmptOutput()) {
@@ -496,6 +550,10 @@ swrite(char *line, LineEffects hl, jbool abortable)
 				spit(c);
 				break;
 			}
+#ifdef USE_UTF8
+			if (n == 1 && *line == SC_WIDE && line[1] != '\0')
+				c = ' ';	/* its right half is where the '!' goes */
+#endif
 			spit(c);
 		}
 #ifdef HIGHLIGHTING
@@ -767,15 +825,33 @@ ForTab(int UNUSED(line), int col)
 	}
 
 	if (col > CapCol) {
-		char	*cp = &Screen[CapLine].s_line[CapCol];
+		struct screenline	*sp = &Screen[CapLine];
+		ScrChar	*cp = &sp->s_line[CapCol];
 
 # ifdef ID_CHAR
 		INSmode(NO);	/* we're not just a motion */
 # endif
+# ifdef USE_UTF8
+		/* We can only redraw a double-width character whole, so
+		 * back up to its left half, and possibly overshoot by one.
+		 */
+		if (*cp == SC_WIDE) {
+			putpad(BC, 1);
+			CapCol--;
+			cp--;
+		}
+		while (col > CapCol || (*cp == SC_WIDE && cp < sp->s_roof)) {
+			if (*cp != SC_WIDE)
+				scr_putcell(*cp);
+			cp++;
+			CapCol++;
+		}
+# else
 		while (col > CapCol) {
 			scr_putchar(*cp++);
 			CapCol++;
 		}
+# endif
 	}
 
 	while (col < CapCol) {

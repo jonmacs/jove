@@ -38,10 +38,10 @@ struct screenline
 	*Curline = NULL;	/* current line */
 
 private void
-	DeTab(char *, int, char *, char *, jbool),
+	DeTab(char *, int, ScrChar *, ScrChar *, jbool),
 	DoIDline(int),
 	do_cl_eol(int),
-	ModeLine(Window *, char *, int),
+	ModeLine(Window *, ScrChar *, int),
 	GotoDot(void),
 	UpdLine(int),
 	UpdWindow(Window *, int);
@@ -49,16 +49,16 @@ private void
 #ifdef ID_CHAR
 private void
 	DelChar(int, int, int),
-	InsChar(int, int, int, char *);
+	InsChar(int, int, int, ScrChar *);
 
 private jbool
-	IDchar(char *, int),
+	IDchar(ScrChar *, int),
 	OkayDelete(int, int, jbool),
 	OkayInsert(int, int);
 
 private int
-	NumSimilar(char *, char *, int),
-	IDcomp(char *, char *, int);
+	NumSimilar(ScrChar *, ScrChar *, int),
+	IDcomp(ScrChar *, ScrChar *, int);
 #endif /* ID_CHAR */
 
 private jbool
@@ -287,29 +287,51 @@ find_pos(LinePtr line, int c_char)
 	return calc_pos(lcontents(line), c_char);
 }
 
-/* calc_pos calculates the screen column of character c_char.
+/* char_cols returns the number of screen columns taken by the
+ * character at s if it starts in column col, and sets *len to its
+ * length in bytes.
  *
- * Note: the calc_pos, how_far, and DeTab must be in synch --
- * each thinks it knows how characters are displayed.
+ * Note: calc_pos, how_far, DeTab and mode_app all use this or agree
+ * with it -- each thinks it knows how characters are displayed.
  */
+
+int
+char_cols(const char *s, int col, int *len)
+{
+	ZXchar	c = ZXC(*s);
+
+	*len = 1;
+	if (c == '\t' && tabstop != 0)
+		return TABDIST(col);
+	if (jisprint(c))
+		return 1;
+#ifdef USE_UTF8
+	if (UTF8Mode && c >= 0x80) {
+		ScrChar	cp;
+		int	width,
+			n = utf8_decode(s, &cp, &width);
+
+		if (n != 0) {
+			*len = n;
+			return width;
+		}
+	}
+#endif
+	return c <= DEL? 2 : 4;
+}
+
+/* calc_pos calculates the screen column of character c_char. */
 
 int
 calc_pos(char *lp, int c_char)
 {
-	int	pos = 0;
-	ZXchar	c;
+	int	pos = 0,
+		len;
 
-	while ((--c_char >= 0) && (c = ZXC(*lp++)) != 0) {
-		if (c == '\t' && tabstop != 0) {
-			pos += TABDIST(pos);
-		} else if (jisprint(c)) {
-			pos += 1;
-		} else {
-			if (c <= DEL)
-				pos += 2;
-			else
-				pos += 4;
-		}
+	while (c_char > 0 && *lp != '\0') {
+		pos += char_cols(lp, pos, &len);
+		lp += len;
+		c_char -= len;
 	}
 	return pos;
 }
@@ -553,7 +575,7 @@ UpdWindow(Window *w, int start)
 void
 DrawMesg(jbool abortable)
 {
-	char	outbuf[MAXCOLS + PPWIDTH];	/* assert(CO <= MAXCOLS); */
+	ScrChar	outbuf[MAXCOLS + PPWIDTH];	/* assert(CO <= MAXCOLS); */
 
 #ifndef MAC		/* same reason as in redisplay() */
 	if (PreEmptOutput())
@@ -650,7 +672,7 @@ UpdLine(int linenum)
 {
 	struct scrimage	*des_p = &DesiredScreen[linenum];
 	Window	*w = des_p->s_window;
-	char	outbuf[MAXCOLS + PPWIDTH];	/* assert(CO <= MAXCOLS); */
+	ScrChar	outbuf[MAXCOLS + PPWIDTH];	/* assert(CO <= MAXCOLS); */
 
 	i_set(linenum, 0);
 	if (des_p->s_flags & s_MODELINE) {
@@ -673,12 +695,17 @@ UpdLine(int linenum)
 		des_p->s_flags &= ~(s_DIRTY | s_L_MOD);
 
 		if (w->w_flags & W_NUMLINES) {
-			outbuf[fromcol-2] = ' ';
-			swritef(outbuf, sizeof(outbuf), "%6D  ", des_p->s_vln);
-			if (outbuf[fromcol-2] != ' ') {
-			    outbuf[fromcol-2] = '*';
-			    outbuf[fromcol-1] = ' ';
+			char	numbuf[MAXCOLS];
+			int	i;
+
+			numbuf[fromcol-2] = ' ';
+			swritef(numbuf, sizeof(numbuf), "%6D  ", des_p->s_vln);
+			if (numbuf[fromcol-2] != ' ') {
+			    numbuf[fromcol-2] = '*';
+			    numbuf[fromcol-1] = ' ';
 			}
+			for (i = 0; i < fromcol; i++)
+				outbuf[i] = numbuf[i];
 		}
 		if (des_p->s_offset != 0) {
 			outbuf[fromcol++] = '!';
@@ -692,7 +719,7 @@ UpdLine(int linenum)
 			lr.start = calc_pos(lptr, mark->m_char)
 				- des_p->s_offset + fromcol;
 			lr.width = 1;
-			if (lr.start < sizeof(outbuf) - 1 && outbuf[lr.start] == '\0') {
+			if (lr.start < elemsof(outbuf) - 1 && outbuf[lr.start] == '\0') {
 				outbuf[lr.start] = ' ';
 				outbuf[lr.start + 1] = '\0';
 			}
@@ -756,15 +783,20 @@ do_cl_eol(int linenum)
  * This is sufficient room for one extra character to be displayed,
  * streamlining the code.
  *
- * Note: the calc_pos, how_far, and DeTab must be in synch --
+ * Note: char_cols and DeTab must be in synch --
  * each thinks it knows how characters are displayed.
  */
 
 private void
-DeTab(char *src, int start_offset, char *dst, char *dst_limit, jbool visspace)
+DeTab(char *src, int start_offset, ScrChar *dst, ScrChar *dst_limit, jbool visspace)
 {
 	ZXchar	c;
 	int	offset = start_offset;
+#ifdef USE_UTF8
+	ScrChar	cp;
+	int	len,
+		width;
+#endif
 
 	/* At any time, the number of characters we've output is
 	 * start_offset - offset.  This is needed to correctly
@@ -785,6 +817,23 @@ DeTab(char *src, int start_offset, char *dst, char *dst_limit, jbool visspace)
 		} else if (jisprint(c)) {
 			if (visspace && c == ' ')
 				c = '_';
+#ifdef USE_UTF8
+		} else if (UTF8Mode && c >= 0x80
+		&& (len = utf8_decode(src - 1, &cp, &width)) != 0) {
+			src += len - 1;
+			c = cp;
+			if (width > 1) {
+				/* If horizontal scrolling hides the left
+				 * half, show a space instead of the right.
+				 */
+				if (--offset < 0) {
+					*dst++ = cp;
+					c = SC_WIDE;
+				} else {
+					c = ' ';
+				}
+			}
+#endif
 		} else {
 			char	buf[PPWIDTH];
 			char	*p;
@@ -799,6 +848,10 @@ DeTab(char *src, int start_offset, char *dst, char *dst_limit, jbool visspace)
 			if (dst >= dst_limit) {
 				/* we've run out of real estate: truncate and flag it */
 				dst = dst_limit-1;
+#ifdef USE_UTF8
+				if (*dst == SC_WIDE)
+					dst[-1] = ' ';
+#endif
 				*dst++ = '!';
 				break;
 			}
@@ -833,13 +886,31 @@ INSmode(jbool on)
  * Returns Non-Zero if you are finished (no differences left).
  */
 private jbool
-IDchar(char *new, int lineno)
+IDchar(ScrChar *new, int lineno)
 {
 	int	col = 0;
 	struct screenline
 		*sline = &Screen[lineno];
-	char	*old = sline->s_line;
-	int	newlen = strlen(new);
+	ScrChar	*old = sline->s_line;
+	int	newlen = 0;
+
+	while (new[newlen] != '\0') {
+#ifdef USE_UTF8
+		/* Inserting or deleting could split a double-width character. */
+		if (new[newlen] == SC_WIDE)
+			return NO;
+#endif
+		newlen++;
+	}
+#ifdef USE_UTF8
+	{
+		ScrChar	*p;
+
+		for (p = old; p < sline->s_roof; p++)
+			if (*p == SC_WIDE)
+				return NO;
+	}
+#endif
 
 	for (;;) {
 		int	oldlen = sline->s_roof - old;
@@ -897,7 +968,7 @@ IDchar(char *new, int lineno)
 }
 
 private int
-NumSimilar(char *s, char *t, int n)
+NumSimilar(ScrChar *s, ScrChar *t, int n)
 {
 	int	num = 0;
 
@@ -908,14 +979,14 @@ NumSimilar(char *s, char *t, int n)
 }
 
 private int
-IDcomp(char *s, char *t, int len)
+IDcomp(ScrChar *s, ScrChar *t, int len)
 {
 	int	i,
 		num = 0,
 		nonspace = 0;
 
 	for (i = 0; i < len; i++) {
-		char	c = *s++;
+		ScrChar	c = *s++;
 
 		if (c == '\0' || c != *t++)
 			break;
@@ -982,19 +1053,19 @@ DelChar(int lineno, int col, int num)
 	 * byte_copy cannot be used since the destination overlaps the source.
 	 */
 	{
-		char	*to = sp->s_line + col,
+		ScrChar	*to = sp->s_line + col,
 				*from = to + num;
 		size_t	len = sp->s_roof - from;
-		byte_move(from, to, len);
+		byte_move(from, to, len * sizeof(ScrChar));
 	}
 	clrline(sp->s_roof - num, sp->s_roof);
 	sp->s_roof -= num;
 }
 
 private void
-InsChar(int lineno, int col, int num, char *new)
+InsChar(int lineno, int col, int num, ScrChar *new)
 {
-	char	*sp1,
+	ScrChar	*sp1,
 		*sp2,	/* To push over the array. */
 		*sp3;	/* Last character to push over. */
 	int	i;
@@ -1015,7 +1086,7 @@ InsChar(int lineno, int col, int num, char *new)
 		*--sp2 = *--sp1;
 
 	new += col;
-	byte_copy(new, sp3, (size_t) num);
+	byte_copy(new, sp3, (size_t) num * sizeof(ScrChar));
 
 	/* The internal screen is correct, and now we have to do
 	 * the physical stuff.
@@ -1043,7 +1114,7 @@ InsChar(int lineno, int col, int num, char *new)
 # endif /* !NCURSES_BUG */
 
 	for (i = 0; i < num; i++) {
-		scr_putchar(new[i]);
+		scr_putcell(new[i]);
 		if (IN_INSmode)
 			putpad(IP, 1);
 	}
@@ -1099,6 +1170,9 @@ chkmail(jbool force)
 
 /* Print the mode line. */
 
+/* mend_p marks column CO-1, which is further along than byte CO-1
+ * when there are multibyte characters in the mode line.
+ */
 private char	*mode_p,
 		*mend_p;
 jbool	BriteMode = YES;		/* VAR: make the mode line inverse? */
@@ -1109,9 +1183,25 @@ mode_app(const char *str)
 	ZXchar	c;
 
 	while (mode_p < mend_p && (c = ZXC(*str++)) != '\0') {
+#ifdef USE_UTF8
+		ScrChar	cp;
+		int	len,
+			width;
+#endif
+
 		/* don't expand tabs: treat them as suspects */
 		if (jisprint(c)) {
 			*mode_p++ = c;
+#ifdef USE_UTF8
+		} else if (UTF8Mode && c >= 0x80
+		&& (len = utf8_decode(str - 1, &cp, &width)) != 0) {
+			if (width > mend_p - mode_p)
+				break;
+			byte_copy(str - 1, mode_p, len);
+			mode_p += len;
+			mend_p += len - width;
+			str += len - 1;
+#endif
 		} else {
 			char	buf[PPWIDTH];
 
@@ -1126,8 +1216,10 @@ mode_app(const char *str)
 char	ModeFmt[MAXCOLS] = "%[Jove%]%w%w%c(%M)%3c[%b:%n]%2c\"%f\"%c%i# %m*-%2c%p%2s%(%d%e(%t)%)";
 
 private void
-ModeLine(Window *w, char *line, int linenum)
+ModeLine(Window *w, ScrChar *outbuf, int linenum)
 {
+	/* worst case: every column is a four-byte character */
+	char	line[4 * MAXCOLS + PPWIDTH];
 	int	n,
 		glue = 0;
 	jbool	ign_some = NO,
@@ -1358,7 +1450,7 @@ ModeLine(Window *w, char *line, int linenum)
 
 	if (glue) {
 		/* 1 space unused, plus padding for magic cookies */
-		char	*to = &line[CO - 1 - (4 * SG)],
+		char	*to = mend_p - (4 * SG),
 			*from = mode_p;
 
 		if (to < from)
@@ -1375,11 +1467,12 @@ ModeLine(Window *w, char *line, int linenum)
 			}
 		}
 	} else {
-		while (mode_p < &line[CO - 1 - (4 * SG)])
+		while (mode_p < mend_p - (4 * SG))
 			*mode_p++ = fillc;
 	}
 
 	*mode_p = '\0';
+	DeTab(line, 0, outbuf, outbuf + CO, NO);
 
 	/* Highlight mode line. */
 	highlighting = NOEFFECT;
@@ -1387,8 +1480,8 @@ ModeLine(Window *w, char *line, int linenum)
 		highlighting = WindowRange(w);
 #ifdef HIGHLIGHTING
 		{
-			char
-				*p = &line[highlighting->start],
+			ScrChar
+				*p = &outbuf[highlighting->start],
 				*e = p + highlighting->width;
 
 			for (; p != e; p++)
@@ -1406,7 +1499,7 @@ ModeLine(Window *w, char *line, int linenum)
 #ifdef ID_CHAR
 	INSmode(NO);
 #endif
-	if (swrite(line, highlighting, YES))
+	if (swrite(outbuf, highlighting, YES))
 		do_cl_eol(linenum);
 	else
 		UpdModLine = YES;
@@ -1578,8 +1671,11 @@ TOstart(const char *name)
 private void
 TOlineFits(char *s)
 {
+	ScrChar	outbuf[MAXCOLS + PPWIDTH];	/* assert(CO <= MAXCOLS); */
+
+	DeTab(s, 0, outbuf, outbuf + CO, NO);
 	i_set(LineNo, 0);
-	(void) swrite(s, NOEFFECT, NO);
+	(void) swrite(outbuf, NOEFFECT, NO);
 	PhysScreen[LineNo].s_id = NOWHERE_DADDR;
 	cl_eol();
 	flushscreen();
@@ -1615,15 +1711,12 @@ Typeout(const char *fmt, ...)
 		ins_str(string);
 		ins_str("\n");
 	} else {
-		char	outbuf[MAXCOLS + PPWIDTH];	/* assert(CO <= MAXCOLS); */
-
 		if (LineNo == ILI - 2) {
 			TOprompt("--more--");
 			LineNo = 0;
 		}
 		if (!TOabort) {
-			DeTab(string, 0, outbuf, outbuf + CO, NO);
-			TOlineFits(outbuf);
+			TOlineFits(string);
 			LineNo += 1;
 		}
 	}

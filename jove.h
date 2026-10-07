@@ -180,6 +180,18 @@ typedef int ZXchar;	/* type for expanded char (possibly EOF) */
 # define ZXRC(c)	((ZXchar) (unsigned char) (c))
 #endif
 
+/* ScrChar is one cell of the screen image.  With USE_UTF8 a cell holds
+ * a Unicode code point (or a byte, outside UTF-8 locales), otherwise a
+ * char.  ZXSC widens a cell the way ZXC widens a char.
+ */
+#ifdef USE_UTF8
+typedef int	ScrChar;
+# define ZXSC(c)	(c)
+#else
+typedef char	ScrChar;
+# define ZXSC(c)	ZXC(c)
+#endif
+
 /* Pervasive exports of other modules */
 
 /* disp.c */

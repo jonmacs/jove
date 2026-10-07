@@ -727,8 +727,12 @@ sub-megabyte range.
 JOVE can not handle NUL characters in the buffer.  In most cases,
 they are discarded silently, another dubious feature.
 
-JOVE does not handle Unicode (aka UTF-8), it silently ignores LANG,
-locale etc.  Fixing this limitation is not easy.
+In a UTF-8 locale, JOVE displays UTF-8 text, and the character
+commands step over whole characters.  Some limits remain.  Regular
+expressions still match bytes, so "." matches one byte of "å".  The case
+commands only change ASCII letters.  Zero-width characters such as
+combining accents are shown in octal.  JOVE does not normalise text,
+so a search for NFC "ç" does not find NFD "ç".
 
 Bug Reports and Maintenance.
 ----------------------------

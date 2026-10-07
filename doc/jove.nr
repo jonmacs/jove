@@ -377,8 +377,10 @@ Determines how JOVE handles characters. When
 is set to a valid value, JOVE can display and handle text and filenames
 containing valid characters for that locale. In particular, characters will
 be correctly recognised as upper or lower case and displayed if printable.
-However JOVE cannot display or handle Extended Unix Code (EUC) characters
-which are more than 1 byte wide.  In the "C" locale, only characters from
+If the locale's codeset is UTF-8, JOVE displays UTF-8 characters,
+including double-width ones, and the character commands treat each as one
+character.  JOVE cannot display or handle other multibyte encodings, such
+as Extended Unix Code (EUC).  In the "C" locale, only characters from
 7-bit ASCII are valid (all characters with the eighth bit set being
 displayed in octal). In the "iso_8859_1" locale (if supported by the OS),
 the full Latin-1 alphabet is available. The JOVE variable ``lc-ctype'' can
@@ -468,9 +470,9 @@ work if you don't know EXACTLY what you are doing.
 Line lengths are limited to a fixed value set at compile time. The Default is 32768.
 
 .sp 1
-JOVE does not support multi-byte UTF-8 characters. In UTF-8 locales, non-ASCII
-characters may display incorrectly. Use ASCII or single-byte encodings with
-JOVE.
+In UTF-8 locales, regular expressions match bytes rather than characters,
+the case commands only change ASCII letters, and zero-width characters such
+as combining accents are displayed in octal.
 
 .sp 1
 Searches can't cross line boundaries.

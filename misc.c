@@ -90,18 +90,21 @@ StrLength(void)
 void
 TransChar(void)
 {
-	char	before;
+	char	before[5];
+	int	len;
 
-	if (curchar == 0 || (eolp() && curchar == 1)) {
+	if (curchar == 0 || (eolp() && prev_char(linebuf, curchar) == 0)) {
 		complain((char *)NULL);	/* BEEP */
 		/* NOTREACHED */
 	}
 	if (eolp())
-		b_char(1);
-	before = linebuf[curchar - 1];
-	del_char(BACKWARD, 1, NO);
-	f_char(1);
-	insert_c(before, 1);
+		curchar = prev_char(linebuf, curchar);
+	len = curchar - prev_char(linebuf, curchar);
+	byte_copy(&linebuf[curchar - len], before, len);
+	before[len] = '\0';
+	del_char(BACKWARD, len, NO);
+	f_char(next_char(linebuf, curchar) - curchar);
+	ins_str(before);
 }
 
 /* Switch current line with previous one */

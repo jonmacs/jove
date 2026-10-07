@@ -149,11 +149,15 @@ overwrite(DAPchar c, int n)
 	for (i = 0; i < n; i++) {
 		/* Delete one *column* forward (except that we don't
 		 * notice that control characters take two columns).
+		 * UTF-8 arrives a byte at a time: the first byte replaces
+		 * a whole character and the rest replace nothing.
 		 */
 		if (!eolp() && (linebuf[curchar] != '\t' || tabstop == 0
-				|| TABDIST(calc_pos(linebuf, curchar)) == 1))
+				|| TABDIST(calc_pos(linebuf, curchar)) == 1)
+		&& !(UTF8Mode && (ZXC(c) & 0xC0) == 0x80))
 		{
-			del_char(FORWARD, 1, NO);
+			del_char(FORWARD,
+				next_char(linebuf, curchar) - curchar, NO);
 		}
 		insert_c(c, 1);
 	}

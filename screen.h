@@ -29,7 +29,7 @@ typedef jbool	LineEffects;	/* standout or not */
 #endif /* !HIGHLIGHTING */
 
 struct screenline {
-	char
+	ScrChar
 		*s_line,
 		*s_roof;	/* character after last */
 	LineEffects s_effects;
@@ -39,7 +39,13 @@ extern struct screenline
 	*Screen,
 	*Curline;
 
-extern char *cursend;
+extern ScrChar *cursend;
+
+#ifdef USE_UTF8
+extern void	scr_putcell(ScrChar c);
+#else
+# define scr_putcell(c)	scr_putchar(c)
+#endif
 
 extern int
 	AbortCnt,
@@ -49,7 +55,7 @@ extern int
 
 extern jbool
 	BufSwrite(int linenum),
-	swrite(char *line, LineEffects hl, jbool abortable);
+	swrite(ScrChar *line, LineEffects hl, jbool abortable);
 
 extern LineEffects
 	WindowRange(Window *w);
@@ -58,7 +64,7 @@ extern void
 	Placur(int line,int col),
 	cl_eol(void),
 	cl_scr(jbool doit),
-	clrline(char *cp1, char *cp2),
+	clrline(ScrChar *cp1, ScrChar *cp2),
 	i_set(int nline, int ncol),
 	make_scr(void),
 	v_ins_line(int num, int top, int bottom),

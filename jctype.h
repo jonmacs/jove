@@ -62,4 +62,26 @@ extern void		locale_adjust(void);
 
 #endif /* !USE_CTYPE */
 
+#ifdef USE_UTF8
+extern jbool	UTF8Mode;	/* LC_CTYPE's codeset is UTF-8 */
+
+/* The right half of a double-width character on the screen. */
+# define SC_WIDE	((ScrChar) -1)
+
+extern int	utf8_decode(const char *s, ScrChar *cp, int *width);
+
+/* In UTF-8 mode every byte of a multibyte character counts as a
+ * word character.  Not quite right for U+2014 and friends, but close.
+ */
+# undef jisword
+# define jisword(c)	(isalnum(ZXC(c)) || (UTF8Mode && ZXC(c) >= 0x80))
+#else
+# define UTF8Mode	NO
+#endif
+
+/* jistext: may c be part of text a user types (in a search string or
+ * filename, say)?
+ */
+#define jistext(c)	(jisprint(c) || (UTF8Mode && ZXC(c) >= 0x80))
+
 #define cind_eq(a, b)	(CharUpcase(a) == CharUpcase(b))

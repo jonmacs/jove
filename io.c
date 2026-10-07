@@ -1025,7 +1025,7 @@ JWriteFile(void)
 		char	c;
 
 		while ((c = *cp++) != '\0') {
-			if (!jisprint(c) || strchr(badchars, c)!=NULL) {
+			if (!jistext(c) || strchr(badchars, c)!=NULL) {
 				complain("'%p': bad character in filename.", c);
 				/* NOTREACHED */
 			}

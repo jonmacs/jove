@@ -15,53 +15,91 @@
 
 private int	line_pos;
 
-void
-f_char(long n)
+/* next_char and prev_char return the offset of the character after
+ * and before offset i in line.  In UTF-8 mode a well-formed multibyte
+ * sequence is one character; otherwise each byte is.
+ */
+int
+next_char(const char *line, int i)
 {
-	if (n < 0) {
-		b_char(-n);
-		return;
+#ifdef USE_UTF8
+	ScrChar	cp;
+	int	len,
+		width;
+
+	if (UTF8Mode && (len = utf8_decode(line + i, &cp, &width)) != 0)
+		return i + len;
+#endif
+	return i + 1;
+}
+
+int
+prev_char(const char *line, int i)
+{
+#ifdef USE_UTF8
+	if (UTF8Mode) {
+		int	j;
+
+		for (j = i - 1; j >= 0 && j >= i - 4; j--)
+			if ((ZXC(line[j]) & 0xC0) != 0x80)
+				return next_char(line, j) == i? j : i - 1;
 	}
-	while (--n >= 0) {
+#endif
+	return i - 1;
+}
+
+/* Move n characters forward (backward if n is negative).  If whole is
+ * NO, a character is a byte, which is what callers that count with
+ * strlen want.
+ */
+void
+char_motion(long n, jbool whole)
+{
+	for (; n > 0; n--) {
 		if (eolp()) {			/* Go to the next Line */
 			if (curline->l_next == NULL)
 				break;
 
 			SetLine(curline->l_next);
-		} else
-			curchar += 1;
+		} else {
+			curchar = whole? next_char(linebuf, curchar) : curchar + 1;
+		}
 	}
-}
-
-void
-b_char(long n)
-{
-	if (n < 0) {
-		f_char(-n);
-		return;
-	}
-	while (--n >= 0) {
+	for (; n < 0; n++) {
 		if (bolp()) {
 			if (curline->l_prev == NULL)
 				break;
 
 			SetLine(curline->l_prev);
 			Eol();
-		} else
-			curchar -= 1;
+		} else {
+			curchar = whole? prev_char(linebuf, curchar) : curchar - 1;
+		}
 	}
+}
+
+void
+f_char(long n)
+{
+	char_motion(n, NO);
+}
+
+void
+b_char(long n)
+{
+	char_motion(-n, NO);
 }
 
 void
 ForChar(void)
 {
-	f_char(arg_value());
+	char_motion(arg_value(), YES);
 }
 
 void
 BackChar(void)
 {
-	b_char(arg_value());
+	char_motion(-arg_value(), YES);
 }
 
 void
@@ -121,33 +159,23 @@ line_move(int dir, long n, jbool line_cmd)
  * extended character, the result corresponds to that character
  * (as if col had indicated its start).
  *
- * Note: the calc_pos, how_far, and DeTab must be in synch --
- * each thinks it knows how characters are displayed.
  */
 
 int
 how_far(LinePtr line, int col)
 {
-	char	*lp = lcontents(line),
-		*base = lp;
-	int	pos = 0;
-	ZXchar	c;
+	char	*lp = lcontents(line);
+	int	i = 0,
+		pos = 0,
+		len;
 
-	do {
-		if ((c = ZXC(*lp)) == '\t' && tabstop != 0) {
-			pos += TABDIST(pos);
-		} else if (jisprint(c)) {
-			pos += 1;
-		} else {
-			if (c <= DEL)
-				pos += 2;
-			else
-				pos += 4;
-		}
-		lp += 1;
-	} while (pos <= col && c != '\0');
-
-	return lp - base - 1;
+	while (lp[i] != '\0') {
+		pos += char_cols(lp + i, pos, &len);
+		if (pos > col)
+			break;
+		i += len;
+	}
+	return i;
 }
 
 void

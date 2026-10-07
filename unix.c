@@ -12,6 +12,7 @@
 #include "fp.h"
 
 #include "chars.h"
+#include "jctype.h"	/* UTF8Mode */
 #include "term.h"	/* ospeed */
 #include "ttystate.h"
 
@@ -92,7 +93,7 @@ ttysetattr(jbool n)	/* `n' is also used as subscript! */
 
 	if (OKXonXoff)
 		sg[YES].c_iflag &= ~(IXON | IXOFF);
-	sg[YES].c_iflag &= ~(INLCR|ICRNL|IGNCR | (MetaKey? ISTRIP : 0));
+	sg[YES].c_iflag &= ~(INLCR|ICRNL|IGNCR | (MetaKey || UTF8Mode? ISTRIP : 0));
 	sg[YES].c_lflag &= ~(ICANON|ECHO);
 	sg[YES].c_oflag &= ~(OPOST);
 

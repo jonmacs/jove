@@ -692,7 +692,7 @@ isearch(int dir, Bufpos *bp)
 
 		default:
 			/* check for "funny" characters */
-			if (!jisprint(c) || IsPrefixChar(c)) {
+			if (!jistext(c) || IsPrefixChar(c)) {
 				Ungetc(c);
 				return I_STOP;
 			}

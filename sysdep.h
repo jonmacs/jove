@@ -234,6 +234,9 @@
 # ifndef USE_EXIT
 #  define EXIT _exit	/* so linker does not drag in all of stdio for static linking */
 # endif
+# if defined(USE_CTYPE) && !defined(NO_SETLOCALE) && !defined(NO_UTF8)
+#  define USE_UTF8	1	/* display UTF-8 if the locale's codeset is UTF-8 */
+# endif
 #endif /* UNIX */
 
 #ifndef EXIT

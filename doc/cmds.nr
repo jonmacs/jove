@@ -1272,6 +1272,7 @@ might be:
 "C"	Strict ASCII.  All other characters greater than \e\^177
 	rendered in octal.
 "iso_8859_1"	Latin-1 alphabet.
+"C.UTF-8"	Unicode, encoded as UTF-8.
 .DE
 .dc "left-margin" "(variable)"
 This is how far lines should be indented when Auto Indent mode is on,

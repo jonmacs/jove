@@ -35,7 +35,8 @@ extern jbool
 	chkmail(jbool force);
 
 extern int
-	calc_pos(char *lp,int c_char);
+	calc_pos(char *lp,int c_char),
+	char_cols(const char *s, int col, int *len);
 
 #define MAX_TYPEOUT	MAXCOLS	/* maximum width of typout (in chars) */
 

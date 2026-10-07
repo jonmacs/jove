@@ -336,7 +336,9 @@ should be able to display), or to any other \fILocale\fP available on your
 system.  The initial value of \fIlc-ctype\fP is taken from your LC_CTYPE
 environment variable, and otherwise defaults to \*QC\*U.  With each
 \fILocale\fP \s-2JOVE\s0 will know which of the extra characters are
-upper-case letters, lower-case letters, etc.
+upper-case letters, lower-case letters, etc.  If the \fILocale\fP uses
+UTF-8, \s-2JOVE\s0 displays multibyte characters as such, and commands
+such as \fIforward-character\fP move over a whole character at a time.
 .HH 2 "Name Completion"
 .LP
 \s-2JOVE\s0 knows the names of all sorts of objects, such as \s-2JOVE\s0
